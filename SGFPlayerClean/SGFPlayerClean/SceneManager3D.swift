@@ -3,7 +3,7 @@
 //  SGFPlayerClean
 //
 //  Created: 2025-11-28
-//  Updated: 2025-12-02 (Fixed Floating Stones)
+//  Updated: 2025-12-04 (Fade-Out Animation for Old Moves)
 //  Purpose: 3D scene management for SceneKit board rendering
 //
 
@@ -44,11 +44,11 @@ class SceneManager3D: ObservableObject {
     
     // Standard Stone Sizes
     private let stoneRadius: CGFloat = 0.48
-    // Vertical scaling factor for lenticular shape
     private let stoneScaleY: CGFloat = 0.486
     
-    // Legacy computed property for compatibility
-    private var effectiveBlackStoneRadius: CGFloat { 0.456 * (CGFloat(18) / CGFloat(boardSize - 1)) }
+    // Deep Red Color
+    private let deepRedColor = NSColor(calibratedRed: 0.75, green: 0.0, blue: 0.0, alpha: 1.0)
+    private let markerRedColor = NSColor(calibratedRed: 0.6, green: 0.0, blue: 0.0, alpha: 1.0)
 
     private var previousLastMove: (x: Int, y: Int)?
     private var previousBoardState: [[Stone?]] = []
@@ -59,7 +59,7 @@ class SceneManager3D: ObservableObject {
         setupBackground()
         createBoard()
         createLids()
-        print("✅ SceneManager3D: Initialized with Grounded Stones")
+        print("✅ SceneManager3D: Initialized with Fade-Out Glows")
     }
 
     // MARK: - Scene Setup
@@ -190,6 +190,23 @@ class SceneManager3D: ObservableObject {
             createBoard()
             previousBoardState = []
         }
+        
+        // FADE OUT ANIMATION:
+        // Before clearing stones, if there was a previous move that is DIFFERENT from the current one,
+        // spawn a ghost glow there to fade out.
+        if let prev = previousLastMove,
+           let settings = settings,
+           (settings.showBoardGlow || settings.showEnhancedGlow) {
+            
+            // Check if the previous move is no longer the last move
+            // (either a new move happened, or we went backward)
+            let isSameAsCurrent = (lastMove != nil && lastMove!.x == prev.x && lastMove!.y == prev.y)
+            
+            if !isSameAsCurrent {
+                spawnFadeOutGlow(col: prev.x, row: prev.y, settings: settings)
+            }
+        }
+
         stoneNodes.forEach { $0.removeFromParentNode() }
         stoneNodes.removeAll()
 
@@ -199,10 +216,7 @@ class SceneManager3D: ObservableObject {
         let offsetZ = -totalHeight / 2.0
         
         let boardTopY = boardThickness / 2.0
-        // FIX: Calculate Y so stone sits exactly on board
-        // Stone center Y = BoardTop + (Radius * ScaleY)
         let stoneHalfHeight = stoneRadius * stoneScaleY
-        // Sinking it by 0.01 ensures no floating pixels due to shadow bias
         let stoneY = boardTopY + stoneHalfHeight - 0.01
 
         for row in 0..<board.size {
@@ -217,16 +231,35 @@ class SceneManager3D: ObservableObject {
                         z += jitterOffset.y * effectiveCellHeight
                     }
 
-                    let position = SCNVector3(x, stoneY, z)
-                    
-                    let stoneNode = createSolidStone(color: stone, at: position, radius: stoneRadius)
+                    let targetPosition = SCNVector3(x, stoneY, z)
+                    let stoneNode = createSolidStone(color: stone, at: targetPosition, radius: stoneRadius)
 
-                    if let lastMove = lastMove, lastMove.x == col && lastMove.y == row {
+                    let isLastMove = (lastMove != nil && lastMove!.x == col && lastMove!.y == row)
+                    
+                    if isLastMove {
                         addLastMoveIndicator(to: stoneNode, color: stone, radius: stoneRadius)
+                        
+                        if let settings = settings, (settings.showBoardGlow || settings.showEnhancedGlow) {
+                            stoneNode.castsShadow = false
+                            addGlow(to: stoneNode, settings: settings, stoneY: stoneY, boardTopY: boardTopY)
+                        }
                     }
 
                     scene.rootNode.addChildNode(stoneNode)
                     stoneNodes.append(stoneNode)
+                    
+                    // Drop-In Animation
+                    if isLastMove, let settings = settings, settings.showDropInAnimation {
+                        stoneNode.position.y += 1.5
+                        stoneNode.opacity = 0.0
+                        
+                        SCNTransaction.begin()
+                        SCNTransaction.animationDuration = 0.3
+                        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
+                        stoneNode.position.y = targetPosition.y
+                        stoneNode.opacity = 1.0
+                        SCNTransaction.commit()
+                    }
                 }
             }
         }
@@ -265,15 +298,125 @@ class SceneManager3D: ObservableObject {
     private func addLastMoveIndicator(to stoneNode: SCNNode, color: Stone, radius: CGFloat) {
         if settings?.showLastMoveDot == true {
             let dot = SCNSphere(radius: radius * 0.15)
-            dot.firstMaterial?.diffuse.contents = NSColor.red
-            dot.firstMaterial?.emission.contents = NSColor.red
+            dot.firstMaterial?.diffuse.contents = markerRedColor
+            dot.firstMaterial?.emission.contents = markerRedColor
             let node = SCNNode(geometry: dot)
-            // Position dot relative to stone center
-            // Stone center is at Y=0 in local space. Top is at Y=radius.
-            // We add a tiny offset to avoid Z-fighting
             node.position = SCNVector3(0, radius * 1.05, 0)
             stoneNode.addChildNode(node)
         }
+    }
+    
+    private func addGlow(to stoneNode: SCNNode, settings: AppSettings, stoneY: CGFloat, boardTopY: CGFloat) {
+        let isEnhanced = settings.showEnhancedGlow
+        let scaleMultiplier: CGFloat = isEnhanced ? 1.8 : 1.5
+        let glowRadius = stoneRadius * scaleMultiplier
+        let plane = SCNPlane(width: glowRadius * 2, height: glowRadius * 2)
+        
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        let softness: CGFloat = isEnhanced ? 0.0 : 0.3
+        material.diffuse.contents = generateGlowTexture(color: deepRedColor, size: 256, softness: softness)
+        material.blendMode = .alpha
+        material.transparencyMode = .default
+        material.writesToDepthBuffer = false
+        plane.materials = [material]
+        
+        let glowNode = SCNNode(geometry: plane)
+        glowNode.eulerAngles.x = -.pi / 2
+        glowNode.castsShadow = false
+        glowNode.renderingOrder = 2000
+        
+        // Position fix relative to stone
+        let worldFloorY = boardTopY + 0.005
+        let offsetFromCenter = worldFloorY - stoneY
+        let localY = offsetFromCenter / stoneScaleY
+        
+        glowNode.position = SCNVector3(0, localY, 0)
+        
+        let targetOpacity: CGFloat = isEnhanced ? 0.8 : 0.9
+        glowNode.opacity = 0.0
+        stoneNode.addChildNode(glowNode)
+        
+        if settings.showDropInAnimation {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                SCNTransaction.begin()
+                SCNTransaction.animationDuration = 0.15
+                glowNode.opacity = targetOpacity
+                SCNTransaction.commit()
+            }
+        } else {
+            glowNode.opacity = targetOpacity
+        }
+    }
+    
+    // NEW: Spawns a standalone glow that fades out
+    private func spawnFadeOutGlow(col: Int, row: Int, settings: AppSettings) {
+        let isEnhanced = settings.showEnhancedGlow
+        let scaleMultiplier: CGFloat = isEnhanced ? 1.8 : 1.5
+        let glowRadius = stoneRadius * scaleMultiplier
+        let plane = SCNPlane(width: glowRadius * 2, height: glowRadius * 2)
+        
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        let softness: CGFloat = isEnhanced ? 0.0 : 0.3
+        material.diffuse.contents = generateGlowTexture(color: deepRedColor, size: 256, softness: softness)
+        material.blendMode = .alpha
+        material.transparencyMode = .default
+        material.writesToDepthBuffer = false
+        plane.materials = [material]
+        
+        let glowNode = SCNNode(geometry: plane)
+        glowNode.eulerAngles.x = -.pi / 2
+        glowNode.castsShadow = false
+        glowNode.renderingOrder = 2000
+        
+        // Position logic (Manual calculation since no stone parent)
+        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
+        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
+        let offsetX = -totalWidth / 2.0
+        let offsetZ = -totalHeight / 2.0
+        
+        var x = CGFloat(col) * effectiveCellWidth + offsetX
+        var z = CGFloat(row) * effectiveCellHeight + offsetZ
+        
+        if let boardVM = boardVM {
+            let jitterOffset = boardVM.getJitterOffset(forPosition: BoardPosition(row, col))
+            x += jitterOffset.x * effectiveCellWidth
+            z += jitterOffset.y * effectiveCellHeight
+        }
+        
+        let boardTopY = boardThickness / 2.0 + 0.005
+        glowNode.position = SCNVector3(x, boardTopY, z)
+        
+        // Start visible, animate to 0
+        let startOpacity: CGFloat = isEnhanced ? 0.8 : 0.9
+        glowNode.opacity = startOpacity
+        
+        scene.rootNode.addChildNode(glowNode)
+        
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.3
+        SCNTransaction.completionBlock = {
+            glowNode.removeFromParentNode()
+        }
+        glowNode.opacity = 0.0
+        SCNTransaction.commit()
+    }
+
+    private func generateGlowTexture(color: NSColor, size: Int, softness: CGFloat) -> NSImage {
+        let img = NSImage(size: NSSize(width: size, height: size))
+        img.lockFocus()
+        if let ctx = NSGraphicsContext.current?.cgContext {
+            let colors = [color.cgColor, color.withAlphaComponent(0).cgColor] as CFArray
+            let locations: [CGFloat] = [softness, 1.0]
+            
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
+                let center = CGPoint(x: size/2, y: size/2)
+                ctx.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: CGFloat(size)/2, options: .drawsBeforeStartLocation)
+            }
+        }
+        img.unlockFocus()
+        return img
     }
 
     // MARK: - Lids
@@ -321,7 +464,6 @@ class SceneManager3D: ObservableObject {
         for _ in 0..<blackCaptured {
             let pos = randomPositionInLid(radius: lidRadius * 0.7)
             let stone = createSolidStone(color: .white, at: pos, radius: stoneSize)
-            // Lid base height is 0.3. Top is 0.15. Stone center needs to be at 0.15 + HalfHeight
             stone.position.y = 0.15 + (stoneRadius * stoneScaleY)
             stone.castsShadow = false
             upperLid.addChildNode(stone)

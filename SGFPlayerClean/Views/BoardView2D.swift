@@ -3,6 +3,7 @@
 //  SGFPlayerClean
 //
 //  Created: 2025-11-28
+//  Updated: 2025-12-04 (Markers matched to Deep Red)
 //  Purpose: Renders the 2D Go board with textures and proper Z-ordering
 //
 
@@ -49,7 +50,39 @@ struct BoardView2D: View {
                 }
             }
             
-            // LAYER 3: Stones & Markers
+            // LAYER 2.5: GLOW LAYER (Separated for Z-Index Safety)
+            // This ensures the glow is ALWAYS under adjacent stones
+            if let lastMove = boardVM.lastMovePosition, (settings.showBoardGlow || settings.showEnhancedGlow) {
+                GeometryReader { geometry in
+                    let cellWidth = geometry.size.width / CGFloat(boardVM.boardSize + 1)
+                    let cellHeight = geometry.size.height / CGFloat(boardVM.boardSize + 1)
+                    
+                    // CRITICAL: Must use same jitter offset as stone to align perfectly
+                    let offset = boardVM.getJitterOffset(forPosition: lastMove)
+                    let x = (CGFloat(lastMove.col + 1) + offset.x) * cellWidth
+                    let y = (CGFloat(lastMove.row + 1) + offset.y) * cellHeight
+                    
+                    if settings.showEnhancedGlow {
+                        // ENHANCED: Deep Red (Standard Intensity)
+                        Circle()
+                            .fill(Color(red: 0.6, green: 0.0, blue: 0.0))
+                            .opacity(0.5)
+                            .frame(width: cellWidth * 1.3, height: cellHeight * 1.3)
+                            .blur(radius: 4.5)
+                            .position(x: x, y: y)
+                    } else if settings.showBoardGlow {
+                        // STANDARD: Deep Red (More Prominent)
+                        Circle()
+                            .fill(Color(red: 0.6, green: 0.0, blue: 0.0)) // Now Deep Red
+                            .opacity(0.5) // Higher opacity for prominence
+                            .frame(width: cellWidth * 1.1, height: cellHeight * 1.1) // Slightly larger
+                            .blur(radius: 2)
+                            .position(x: x, y: y)
+                    }
+                }
+            }
+            
+            // LAYER 3: Stones & Markers (No Glows here!)
             GeometryReader { geometry in
                 let cellWidth = geometry.size.width / CGFloat(boardVM.boardSize + 1)
                 let cellHeight = geometry.size.height / CGFloat(boardVM.boardSize + 1)
@@ -63,42 +96,32 @@ struct BoardView2D: View {
                         let x = (CGFloat(position.col + 1) + offset.x) * cellWidth
                         let y = (CGFloat(position.row + 1) + offset.y) * cellHeight
                         
-                        // Check if this is the last move
                         let isLastMove = (position == boardVM.lastMovePosition)
                         
-                        // ZStack for this specific intersection
+                        // ZStack for Stone + Top Markers
                         ZStack {
-                            // 1. Glow (Underneath)
-                            if isLastMove && settings.showBoardGlow {
-                                Circle()
-                                    .fill(Color.orange.opacity(0.6))
-                                    .frame(width: cellWidth * 1.4, height: cellHeight * 1.4)
-                                    .blur(radius: 4)
-                            }
-                            
-                            // 2. The Stone Image
+                            // 1. The Stone Image
                             StoneView2D(color: stone, position: position)
                                 .frame(width: cellWidth * 0.95, height: cellHeight * 0.95)
                                 .shadow(color: .black.opacity(0.4), radius: 1, x: 1, y: 1)
                             
-                            // 3. Top Markers (On top of stone)
+                            // 2. Top Markers (On top of stone)
                             if isLastMove {
                                 Group {
                                     if settings.showLastMoveCircle {
                                         Circle()
-                                            .stroke(Color.red, lineWidth: 2)
+                                            .stroke(Color(red: 0.6, green: 0.0, blue: 0.0), lineWidth: 2)
                                             .frame(width: cellWidth * 0.5, height: cellHeight * 0.5)
                                     }
                                     
                                     if settings.showLastMoveDot {
                                         Circle()
-                                            .fill(Color.red)
+                                            .fill(Color(red: 0.6, green: 0.0, blue: 0.0))
                                             .frame(width: cellWidth * 0.25, height: cellHeight * 0.25)
                                     }
                                     
                                     if settings.showMoveNumbers {
                                         Text("\(boardVM.currentMoveIndex)")
-                                            // Font size 0.45 to fit 3 digits
                                             .font(.system(size: cellWidth * 0.45, weight: .bold))
                                             .foregroundColor(stone == .black ? .white : .black)
                                     }
@@ -106,12 +129,11 @@ struct BoardView2D: View {
                             }
                         }
                         .position(x: x, y: y)
-                        // Explicit Z-Index ensures stones are layered correctly if they overlap slightly due to jitter
                         .zIndex(1)
                     }
                 }
                 
-                // DEBUG: Check for "Ghost Marker" (Last move set, but no stone at that position)
+                // DEBUG: Check for "Ghost Marker"
                 if let last = boardVM.lastMovePosition, boardVM.stones[last] == nil {
                     let _ = print("⚠️ MISSING STONE at \(last.col), \(last.row) for move \(boardVM.currentMoveIndex)")
                 }

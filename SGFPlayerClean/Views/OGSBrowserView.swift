@@ -3,7 +3,7 @@
 //  SGFPlayerClean
 //
 //  Created: 2025-11-29
-//  Purpose: Right-hand panel for browsing OGS challenges & Account Management
+//  Updated: 2025-12-04 (Redesigned Row for Detail)
 //
 
 import SwiftUI
@@ -12,19 +12,16 @@ struct OGSBrowserView: View {
     @ObservedObject var app: AppModel
     
     // UI Filters
-    @AppStorage("filterLive") private var filterLive = true
-    @AppStorage("filterCorrespondence") private var filterCorrespondence = false
     @AppStorage("filter19x19") private var filter19x19 = true
     @AppStorage("filter13x13") private var filter13x13 = true
     @AppStorage("filter9x9") private var filter9x9 = true
-    @AppStorage("filterOther") private var filterOther = false
+    @AppStorage("filterLive") private var filterLive = true
+    @AppStorage("filterCorrespondence") private var filterCorrespondence = false
     
     // Login State
+    @State private var showLoginArea = false
     @State private var username = ""
     @State private var password = ""
-    @State private var isLoggingIn = false
-    @State private var loginError: String?
-    @State private var showLoginArea = false
     
     var body: some View {
         ZStack {
@@ -33,9 +30,8 @@ struct OGSBrowserView: View {
                     headerView
                     
                     Picker("Tab", selection: $app.browserTab) {
-                        ForEach(OGSBrowserTab.allCases, id: \.self) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
+                        Text("Play").tag(OGSBrowserTab.challenge)
+                        Text("Watch").tag(OGSBrowserTab.watch)
                     }
                     .pickerStyle(.segmented)
                     .padding(10)
@@ -48,10 +44,8 @@ struct OGSBrowserView: View {
                         createGameFooter
                     }
                 }
-                .transition(.opacity)
             } else {
                 OGSCreateChallengeView(app: app, isPresented: $app.isCreatingChallenge)
-                    .transition(.move(edge: .trailing))
             }
         }
         .background(Color.black.opacity(0.6))
@@ -60,7 +54,7 @@ struct OGSBrowserView: View {
         .onDisappear { app.ogsClient.unsubscribeFromSeekgraph() }
     }
     
-    // MARK: - Header & Login
+    // MARK: - Header
     private var headerView: some View {
         VStack(spacing: 0) {
             HStack {
@@ -107,19 +101,16 @@ struct OGSBrowserView: View {
             } else {
                 TextField("Username", text: $username).textFieldStyle(.plain).padding(6).background(Color.white.opacity(0.1)).cornerRadius(4)
                 SecureField("Password", text: $password).textFieldStyle(.plain).padding(6).background(Color.white.opacity(0.1)).cornerRadius(4)
-                if let err = loginError { Text(err).font(.caption2).foregroundColor(.red) }
                 Button(action: performLogin) { Text("Log In").frame(maxWidth: .infinity).padding(.vertical, 6).background(Color.blue).cornerRadius(4) }
-                .buttonStyle(.plain).disabled(isLoggingIn || username.isEmpty)
+                .buttonStyle(.plain).disabled(username.isEmpty)
             }
         }
         .padding(.horizontal).padding(.bottom, 10)
     }
     
     private func performLogin() {
-        isLoggingIn = true; loginError = nil
-        app.ogsClient.authenticate(username: username, password: password) { success, error in
-            isLoggingIn = false
-            if success { password = "" } else { loginError = error ?? "Login failed" }
+        app.ogsClient.authenticate(username: username, password: password) { success, _ in
+            if success { password = ""; showLoginArea = false }
         }
     }
     
@@ -128,7 +119,7 @@ struct OGSBrowserView: View {
         else { return "\(Int(rank) - 29)d" }
     }
     
-    // MARK: - Filter Grid
+    // MARK: - Filters
     private var filterGrid: some View {
         VStack(spacing: 8) {
             HStack {
@@ -136,7 +127,6 @@ struct OGSBrowserView: View {
                 Toggle("19x", isOn: $filter19x19).toggleStyle(CheckboxToggleStyle())
                 Toggle("13x", isOn: $filter13x13).toggleStyle(CheckboxToggleStyle())
                 Toggle("9x", isOn: $filter9x9).toggleStyle(CheckboxToggleStyle())
-                Toggle("Other", isOn: $filterOther).toggleStyle(CheckboxToggleStyle())
                 Spacer()
             }
             HStack {
@@ -149,13 +139,18 @@ struct OGSBrowserView: View {
         .padding(10).background(Color.black.opacity(0.2))
     }
     
+    // MARK: - Content
     private var contentList: some View {
         ScrollView {
-            LazyVStack(spacing: 8) {
-                ForEach(filteredGames) { challenge in
-                    // ChallengeRow is defined at bottom of file
-                    ChallengeRow(challenge: challenge, isWatchMode: app.browserTab == .watch) {
-                        app.joinOnlineGame(id: challenge.id)
+            LazyVStack(spacing: 4) {
+                let games = filteredGames
+                if games.isEmpty {
+                    Text("No games found").foregroundColor(.gray).padding()
+                } else {
+                    ForEach(games) { challenge in
+                        ChallengeRow(challenge: challenge, isWatchMode: app.browserTab == .watch) {
+                            app.joinOnlineGame(id: challenge.id)
+                        }
                     }
                 }
             }
@@ -166,41 +161,53 @@ struct OGSBrowserView: View {
     private var createGameFooter: some View {
         VStack {
             Divider().background(Color.white.opacity(0.1))
-            Button(action: { withAnimation { app.isCreatingChallenge = true } }) {
-                Text("Create Challenge").font(.system(size: 13, weight: .semibold))
+            HStack {
+                Button(action: { app.ogsGame?.findMatch() }) {
+                    HStack {
+                        Image(systemName: "bolt.fill")
+                        Text("Quick Play")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 8)
-                    .background(Color.green.opacity(0.6)).foregroundColor(.white).cornerRadius(6)
+                    .background(Color.blue.opacity(0.6))
+                    .foregroundColor(.white).cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: { withAnimation { app.isCreatingChallenge = true } }) {
+                    HStack {
+                        Image(systemName: "plus")
+                        Text("Custom")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                    .background(Color.green.opacity(0.6))
+                    .foregroundColor(.white).cornerRadius(6)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain).padding()
+            .padding()
         }
     }
     
+    // MARK: - Logic
     private var filteredGames: [OGSChallenge] {
         return app.ogsClient.availableGames.filter { challenge in
-            let isValid = !challenge.game.blackLost && !challenge.game.whiteLost && !challenge.game.annulled
-            guard isValid else { return false }
-            
+            // 1. Tab Filter
             let isStarted = challenge.game.started != nil
             if app.browserTab == .challenge && isStarted { return false }
             if app.browserTab == .watch && !isStarted { return false }
             
-            let speed = challenge.speedCategory
-            let isCorr = speed == "correspondence"
-            let isLive = speed == "live" || speed == "blitz" || speed == "rapid"
-            
-            var showSpeed = false
-            if filterLive && isLive { showSpeed = true }
-            if filterCorrespondence && isCorr { showSpeed = true }
-            if !showSpeed { return false }
-            
+            // 2. Size Filter
             let w = challenge.game.width
-            let isStandard = [9, 13, 19].contains(w)
-            var showSize = false
-            if filter19x19 && w == 19 { showSize = true }
-            if filter13x13 && w == 13 { showSize = true }
-            if filter9x9 && w == 9 { showSize = true }
-            if filterOther && !isStandard { showSize = true }
-            if !showSize { return false }
+            if !filter19x19 && w == 19 { return false }
+            if !filter13x13 && w == 13 { return false }
+            if !filter9x9 && w == 9 { return false }
+            
+            // 3. Speed Filter
+            let tc = challenge.game.timeControl?.lowercased() ?? ""
+            if !filterLive && (tc != "correspondence") { return false }
+            if !filterCorrespondence && (tc == "correspondence") { return false }
             
             return true
         }
@@ -215,71 +222,84 @@ struct CheckboxToggleStyle: ToggleStyle {
             HStack(spacing: 6) {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                     .foregroundColor(configuration.isOn ? .blue : .gray)
-                configuration.label
-                    .font(.caption)
-                    .foregroundColor(.white)
+                configuration.label.font(.caption).foregroundColor(.white)
             }
-            .padding(4)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(4)
+            .padding(4).background(Color.white.opacity(0.05)).cornerRadius(4)
         }
         .buttonStyle(.plain)
     }
 }
 
-// Explicitly defined here to be in scope
 struct ChallengeRow: View {
     let challenge: OGSChallenge
     let isWatchMode: Bool
     let onAccept: () -> Void
     
     var body: some View {
-        HStack {
-            ZStack {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.orange.opacity(0.2))
-                    .frame(width: 32, height: 32)
-                Text(challenge.challenger.displayRank)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.orange)
-            }
+        HStack(spacing: 12) {
             
-            VStack(alignment: .leading, spacing: 2) {
-                if isWatchMode {
-                    Text(challenge.game.name ?? "Live Game")
-                        .font(.system(size: 12, weight: .semibold))
+            // COLUMN 1: Player/Game Name
+            HStack(spacing: 6) {
+                // Rank Badge
+                ZStack {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(red: 0.2, green: 0.2, blue: 0.3)) // Dark Slate Blue
+                        .frame(width: 32, height: 18)
+                    Text(challenge.challenger.displayRank)
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
-                        .lineLimit(1)
-                } else {
-                    Text("\(challenge.challenger.username)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
                 }
                 
-                HStack(spacing: 4) {
-                    Text(challenge.boardSize).foregroundColor(.gray)
-                    Text("•").foregroundColor(.gray)
-                    Image(systemName: "clock").font(.system(size: 8)).foregroundColor(.cyan)
-                    Text(challenge.timeControlDisplay).foregroundColor(.cyan)
-                }
-                .font(.system(size: 10))
+                // Name
+                Text(isWatchMode ? (challenge.game.name ?? "Live Game") : challenge.challenger.username)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white) // Blue-ish link color like OGS
+                    .lineLimit(1)
             }
+            .frame(width: 130, alignment: .leading)
             
+            // COLUMN 2: Size
+            Text(challenge.boardSize)
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+                .frame(width: 40, alignment: .leading)
+            
+            // COLUMN 3: Time
+            Text(challenge.timeControlDisplay) // Now contains "1m+5x 10s"
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+                .frame(width: 110, alignment: .leading)
+            
+            // COLUMN 4: Ranked
+            Text(challenge.game.ranked ? "Yes" : "No")
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.8))
+                .frame(width: 30, alignment: .leading)
+            
+            // COLUMN 5: Rules (Hidden on small screens if needed, but useful)
+            Text(challenge.game.rules.capitalized)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.6))
+                .frame(minWidth: 50, alignment: .leading)
+
             Spacer()
             
+            // BUTTON: Accept
             Button(action: onAccept) {
-                Image(systemName: isWatchMode ? "eye.fill" : "play.fill")
-                    .font(.system(size: 10))
-                    .padding(8)
-                    .background(Color.blue)
+                Text(isWatchMode ? "Watch" : "Accept")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
-                    .clipShape(Circle())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(isWatchMode ? Color.blue : Color(red: 0.2, green: 0.7, blue: 0.2)) // OGS Green
+                    .cornerRadius(4)
             }
             .buttonStyle(.plain)
+            .padding(.trailing, 4)
         }
-        .padding(8)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
         .background(Color.white.opacity(0.05))
-        .cornerRadius(8)
+        .cornerRadius(4)
     }
 }
