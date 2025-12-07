@@ -26,6 +26,8 @@
 		553B93A82EDE81370093C845 /* SettingsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93A72EDE81220093C845 /* SettingsPanel.swift */; };
 		553B93AA2EDEC0CF0093C845 /* StoneView2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93A92EDEC0BC0093C845 /* StoneView2D.swift */; };
 		553B93AC2EDEF5BD0093C845 /* StoneMeshFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93AB2EDEF5990093C845 /* StoneMeshFactory.swift */; };
+		553B93AE2EE2C4750093C845 /* SGFCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93AD2EE2C4700093C845 /* SGFCoordinates.swift */; };
+		553B93B02EE3B3C00093C845 /* ActiveGamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */; };
 		55B9DDAB2ECEE13900066FA3 /* BoardView2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DDA52ECEE13900066FA3 /* BoardView2D.swift */; };
 		55B9DDAC2ECEE13900066FA3 /* BoardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DD9F2ECEE13900066FA3 /* BoardViewModel.swift */; };
 		55B9DDAD2ECEE13900066FA3 /* LayoutViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DDA12ECEE13900066FA3 /* LayoutViewModel.swift */; };
@@ -76,6 +78,8 @@
 		553B93A72EDE81220093C845 /* SettingsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPanel.swift; sourceTree = "<group>"; };
 		553B93A92EDEC0BC0093C845 /* StoneView2D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneView2D.swift; sourceTree = "<group>"; };
 		553B93AB2EDEF5990093C845 /* StoneMeshFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneMeshFactory.swift; sourceTree = "<group>"; };
+		553B93AD2EE2C4700093C845 /* SGFCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SGFCoordinates.swift; sourceTree = "<group>"; };
+		553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveGamePanel.swift; sourceTree = "<group>"; };
 		55B9DD6F2ECEE05200066FA3 /* SGFPlayerClean.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SGFPlayerClean.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		55B9DD7D2ECEE05400066FA3 /* SGFPlayerCleanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SGFPlayerCleanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		55B9DD872ECEE05400066FA3 /* SGFPlayerCleanUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SGFPlayerCleanUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -166,6 +170,7 @@
 		55B9DD9E2ECEE13900066FA3 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				553B93AD2EE2C4700093C845 /* SGFCoordinates.swift */,
 				553B93AB2EDEF5990093C845 /* StoneMeshFactory.swift */,
 				553B93A32EDE24B90093C845 /* BoardPosition.swift */,
 				553B93972EDC1EF30093C845 /* AppModel.swift */,
@@ -194,6 +199,7 @@
 		55B9DDAA2ECEE13900066FA3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */,
 				553B93A92EDEC0BC0093C845 /* StoneView2D.swift */,
 				553B93A72EDE81220093C845 /* SettingsPanel.swift */,
 				553B93A52EDE80FE0093C845 /* RightPanelView.swift */,
@@ -365,6 +371,7 @@
 				553B93A22EDD708F0093C845 /* OGSCreateChallengeView.swift in Sources */,
 				553B939C2EDC28090093C845 /* TimeControlManager.swift in Sources */,
 				553B93A82EDE81370093C845 /* SettingsPanel.swift in Sources */,
+				553B93AE2EE2C4750093C845 /* SGFCoordinates.swift in Sources */,
 				55B9DDAF2ECEE13900066FA3 /* SGFGameWrapper.swift in Sources */,
 				553B93AA2EDEC0CF0093C845 /* StoneView2D.swift in Sources */,
 				553B93A02EDC2B1F0093C845 /* OGSBrowserView.swift in Sources */,
@@ -378,6 +385,7 @@
 				5525F84E2ED83EB600FD967B /* SharedOverlays.swift in Sources */,
 				553B938A2EDC14580093C845 /* GameSettings.swift in Sources */,
 				5525F84F2ED83EB600FD967B /* KeyboardShortcuts.swift in Sources */,
+				553B93B02EE3B3C00093C845 /* ActiveGamePanel.swift in Sources */,
 				553B93982EDC1EF30093C845 /* AppModel.swift in Sources */,
 				55B9DDB32ECEE13900066FA3 /* SGFKit.swift in Sources */,
 				55B9DDB52ECEE13900066FA3 /* SGFPlayerEngine.swift in Sources */,

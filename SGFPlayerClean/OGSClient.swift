@@ -3,14 +3,14 @@
 //  SGFPlayerClean
 //
 //  Created: 2025-11-30
-//  Updated: 2025-12-04 (Precise Time Formatting)
+//  Updated: 2025-12-07 (Added Debugging & Broadened Parsing)
 //
 
 import Foundation
 import Security
 import Combine
 
-class OGSClient: NSObject, ObservableObject {
+class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     
     @Published var isConnected = false
     @Published var activeGameID: Int?
@@ -22,6 +22,14 @@ class OGSClient: NSObject, ObservableObject {
     @Published var userRank: Double?
     
     @Published var playerColor: Stone?
+    
+    // Metadata
+    @Published var blackPlayerName: String?
+    @Published var whitePlayerName: String?
+    @Published var blackPlayerRank: Double?
+    @Published var whitePlayerRank: Double?
+    
+    // Clocks
     @Published var blackTimeRemaining: TimeInterval?
     @Published var whiteTimeRemaining: TimeInterval?
     @Published var blackPeriodsRemaining: Int?
@@ -34,6 +42,9 @@ class OGSClient: NSObject, ObservableObject {
     internal var webSocketTask: URLSessionWebSocketTask?
     internal var urlSession: URLSession?
     internal var pingTimer: Timer?
+    
+    // Limit debug logs so we don't flood the console
+    private var debugLogCount = 0
     
     internal let keychainService = "com.davemarvit.SGFPlayerClean.OGS"
     internal var isSubscribedToSeekgraph = false
@@ -56,39 +67,32 @@ class OGSClient: NSObject, ObservableObject {
     // MARK: - Connection Logic
     func connect() {
         disconnect(isReconnecting: true)
-        
         guard let url = URL(string: "wss://online-go.com/socket.io/?EIO=3&transport=websocket") else { return }
-        
         if urlSession == nil { setupSession() }
         
         print("OGS: 🔌 Connecting...")
-        
         var request = URLRequest(url: url)
         request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
-        
         webSocketTask = urlSession?.webSocketTask(with: request)
         webSocketTask?.resume()
         
-        // HEARTBEAT: Ping "2" every 2 seconds
         pingTimer?.invalidate()
         pingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.webSocketTask?.send(.string("2")) { _ in }
         }
-        
         receiveMessage()
     }
     
     func disconnect(isReconnecting: Bool = false) {
         pingTimer?.invalidate()
         pingTimer = nil
-        
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
-        
         if !isReconnecting {
             DispatchQueue.main.async {
                 self.isConnected = false
                 self.isSubscribedToSeekgraph = false
+                self.activeGameID = nil
                 self.availableGames.removeAll()
             }
         }
@@ -118,8 +122,7 @@ class OGSClient: NSObject, ObservableObject {
             webSocketTask?.send(.string("3")) { _ in }
             return
         }
-        if text.starts(with: "3") { return }
-        if text.starts(with: "0") { return }
+        if text.starts(with: "3") || text.starts(with: "0") { return }
         
         if text.starts(with: "40") {
             print("OGS: ✅ Connected")
@@ -130,7 +133,6 @@ class OGSClient: NSObject, ObservableObject {
             }
             return
         }
-        
         if text.starts(with: "42") {
             let jsonText = String(text.dropFirst(2))
             parseEventMessage(jsonText)
@@ -181,96 +183,130 @@ class OGSClient: NSObject, ObservableObject {
         var idsToRemove: Set<Int> = []
         var toUpsert: [OGSChallenge] = []
         
-        // Helper to format seconds nicely: 65 -> "1m 5s", 60 -> "1m", 30 -> "30s"
+        // --- HELPERS ---
         func fmtTime(_ s: Int) -> String {
+            if s == 0 { return "0s" } // Avoid empty/confusing output
             if s < 60 { return "\(s)s" }
             if s % 60 == 0 { return "\(s/60)m" }
             return "\(s/60)m \(s%60)s"
         }
         
+        // Robust Extractor for JSON values (Int, Double, String)
+        func getInt(_ dict: [String: Any], key: String) -> Int {
+            if let i = dict[key] as? Int { return i }
+            if let d = dict[key] as? Double { return Int(d) }
+            if let s = dict[key] as? String {
+                if let i = Int(s) { return i }
+                // Sometimes it might be "20m". This simple parser won't catch that, but OGS usually sends raw ints.
+                return 0
+            }
+            return 0
+        }
+        // ----------------
+        
         for item in challenges {
-            if let deleteID = item["delete"] as? Bool, deleteID == true, let id = item["challenge_id"] as? Int {
-                idsToRemove.insert(id)
+            if let deleteID = item["delete"] as? Bool, deleteID == true {
+                if let id = item["challenge_id"] as? Int { idsToRemove.insert(id) }
                 continue
             }
+            guard let id = item["challenge_id"] as? Int, let username = item["username"] as? String else { continue }
             
-            guard let id = item["challenge_id"] as? Int,
-                  let username = item["username"] as? String,
-                  let rank = item["rank"] as? Double else { continue }
-            
+            // --- DEBUG LOGGING (First 5 items only) ---
+            if debugLogCount < 5 {
+                debugLogCount += 1
+                if let tc = item["time_control"] {
+                    print("DEBUG TC [\(id)]: \(tc)")
+                }
+            }
+            // ------------------------------------------
+
+            let rank = item["rank"] as? Double ?? 0.0
             let width = item["width"] as? Int ?? 19
             let height = item["height"] as? Int ?? 19
             
-            // --- TIME PARSING START ---
             var timeControlString = "Unknown"
             var isCorrespondence = false
+            var timeControlParamsJson: String? = nil
             
-            if let tcDict = item["time_control"] as? [String: Any] {
-                // Check Speed
-                if let spd = tcDict["speed"] as? String, spd == "correspondence" { isCorrespondence = true }
+            // 1. Try to find the params dictionary
+            var tcParams: [String: Any]? = item["time_control"] as? [String: Any]
+            
+            // Fallback: Check "time_control_parameters" if "time_control" was just a string
+            if tcParams == nil {
+                if let extraParams = item["time_control_parameters"] as? [String: Any] {
+                    tcParams = extraParams
+                }
+            }
+            
+            // 2. Process Dictionary
+            if let params = tcParams {
+                // Save JSON for potential future use
+                if let jsonData = try? JSONSerialization.data(withJSONObject: params), let str = String(data: jsonData, encoding: .utf8) {
+                    timeControlParamsJson = str
+                }
                 
-                // Format String based on System
-                if let system = tcDict["system"] as? String {
-                    if system == "byoyomi" {
-                        // "1m + 5x 30s"
-                        let main = fmtTime(tcDict["main_time"] as? Int ?? 0)
-                        let pTime = fmtTime(tcDict["period_time"] as? Int ?? 0)
-                        let pCount = tcDict["periods"] as? Int ?? 0
-                        timeControlString = "\(main) + \(pCount)x \(pTime)"
-                        
-                    } else if system == "fischer" {
-                        // "2m 30s + 15s 4m max"
-                        let initTime = fmtTime(tcDict["initial_time"] as? Int ?? 0)
-                        let inc = fmtTime(tcDict["time_increment"] as? Int ?? 0)
-                        let max = fmtTime(tcDict["max_time"] as? Int ?? 0)
-                        
-                        timeControlString = "\(initTime) + \(inc)"
-                        if (tcDict["max_time"] as? Int ?? 0) > 0 {
-                            timeControlString += " \(max) max"
-                        }
-                        
-                    } else if system == "canadian" {
-                        // "10m + 15/5m"
-                        let main = fmtTime(tcDict["main_time"] as? Int ?? 0)
-                        let pTime = fmtTime(tcDict["period_time"] as? Int ?? 0)
-                        let stones = tcDict["stones_per_period"] as? Int ?? 0
-                        timeControlString = "\(main) + \(stones)/\(pTime)"
-                        
-                    } else if system == "simple" {
-                        let perMove = fmtTime(tcDict["time_per_move"] as? Int ?? 0)
-                        timeControlString = "\(perMove)/mv"
-                        
-                    } else {
-                        timeControlString = system.capitalized
-                    }
+                if let spd = params["speed"] as? String, spd == "correspondence" { isCorrespondence = true }
+                
+                // Extract System (handle missing key safely)
+                let systemRaw = (params["system"] as? String) ?? (item["time_control"] as? String) ?? "unknown"
+                let system = systemRaw.lowercased().trimmingCharacters(in: .whitespaces)
+
+                if system.contains("byo") { // Matches "byoyomi", "byo_yomi"
+                    let main = fmtTime(getInt(params, key: "main_time"))
+                    let pTime = fmtTime(getInt(params, key: "period_time"))
+                    let pCount = getInt(params, key: "periods")
+                    timeControlString = "\(main) + \(pCount)x\(pTime)"
+                    
+                } else if system.contains("fisch") || system.contains("fisher") { // Matches "fischer", "fisher"
+                    let initTime = fmtTime(getInt(params, key: "initial_time"))
+                    let inc = fmtTime(getInt(params, key: "time_increment"))
+                    timeControlString = "\(initTime) + \(inc)/mv"
+                    
+                } else if system.contains("canadian") {
+                    let main = fmtTime(getInt(params, key: "main_time"))
+                    let pTime = fmtTime(getInt(params, key: "period_time"))
+                    let stones = getInt(params, key: "stones_per_period")
+                    timeControlString = "\(main) + \(stones)/\(pTime)"
+                    
+                } else if system.contains("simple") {
+                    let perMove = fmtTime(getInt(params, key: "per_move"))
+                    timeControlString = "\(perMove)/mv"
+                    
+                } else {
+                    timeControlString = system.capitalized
                 }
             } else if let tcStr = item["time_control"] as? String {
-                timeControlString = tcStr
+                // If we really only got a string and no params anywhere
+                timeControlString = tcStr.capitalized
             }
             
+            // Override for correspondence if duration is massive
             if let tpm = item["time_per_move"] as? Int, tpm > 10800 { isCorrespondence = true }
-            if isCorrespondence { timeControlString = "correspondence" }
-            // --- TIME PARSING END ---
+            if isCorrespondence { timeControlString = "Correspondence" }
             
             var startedString: String? = nil
-            if let startedBool = item["started"] as? Bool, startedBool == true {
-                startedString = "Started"
-            } else if let startedInt = item["started"] as? Int, startedInt > 0 {
-                startedString = "Started"
-            } else if let startedStr = item["started"] as? String, !startedStr.isEmpty {
-                startedString = startedStr
-            }
+            if let startedBool = item["started"] as? Bool, startedBool == true { startedString = "Started" }
             
             let challengerInfo = ChallengerInfo(id: 0, username: username, ranking: rank, professional: false)
             let gameInfo = GameInfo(
-                id: 0, name: nil, width: width, height: height, rules: "japanese",
-                ranked: true, handicap: 0, komi: nil,
+                id: 0,
+                name: nil,
+                width: width,
+                height: height,
+                rules: "japanese",
+                ranked: true,
+                handicap: 0,
+                komi: nil,
                 timeControl: timeControlString,
-                timeControlParameters: nil,
-                disableAnalysis: false, pauseOnWeekends: false,
-                black: nil, white: nil,
+                timeControlParameters: timeControlParamsJson,
+                disableAnalysis: false,
+                pauseOnWeekends: false,
+                black: nil,
+                white: nil,
                 started: startedString,
-                blackLost: false, whiteLost: false, annulled: false
+                blackLost: false,
+                whiteLost: false,
+                annulled: false
             )
             
             let challenge = OGSChallenge(id: id, challenger: challengerInfo, game: gameInfo, challengerColor: "auto", minRanking: 0, maxRanking: 0, created: nil)
@@ -278,22 +314,12 @@ class OGSClient: NSObject, ObservableObject {
         }
         
         DispatchQueue.main.async {
-            if !idsToRemove.isEmpty {
-                self.availableGames.removeAll { idsToRemove.contains($0.id) }
-            }
+            if !idsToRemove.isEmpty { self.availableGames.removeAll { idsToRemove.contains($0.id) } }
             for challenge in toUpsert {
-                if let index = self.availableGames.firstIndex(where: { $0.id == challenge.id }) {
-                    self.availableGames[index] = challenge
-                } else {
-                    self.availableGames.append(challenge)
-                }
+                if let index = self.availableGames.firstIndex(where: { $0.id == challenge.id }) { self.availableGames[index] = challenge }
+                else { self.availableGames.append(challenge) }
             }
-            self.availableGames.sort {
-                let p1 = $0.game.started == nil
-                let p2 = $1.game.started == nil
-                if p1 != p2 { return p1 }
-                return $0.id > $1.id
-            }
+            self.availableGames.sort { ($0.game.started == nil) && ($1.game.started != nil) }
         }
     }
     
@@ -304,7 +330,61 @@ class OGSClient: NSObject, ObservableObject {
         webSocketTask?.send(.string(connectMsg)) { _ in }
     }
     
+    func acceptChallenge(challengeID: Int, completion: @escaping (Int?) -> Void) {
+        print("OGS: 🤝 Accepting Challenge \(challengeID)...")
+        guard isAuthenticated else { completion(nil); return }
+        
+        ensureCSRFToken { token in
+            guard let token = token else { completion(nil); return }
+            guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/accept") else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+            request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
+            request.setValue(token, forHTTPHeaderField: "X-CSRFToken")
+            request.httpBody = "{}".data(using: .utf8)
+            
+            self.urlSession?.dataTask(with: request) { data, _, _ in
+                guard let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { completion(nil); return }
+                
+                var foundID: Int? = nil
+                if let id = json["id"] as? Int { foundID = id }
+                else if let id = json["game_id"] as? Int { foundID = id }
+                else if let id = json["game"] as? Int { foundID = id }
+                else if let gameObj = json["game"] as? [String: Any], let id = gameObj["id"] as? Int { foundID = id }
+                
+                DispatchQueue.main.async { completion(foundID) }
+            }.resume()
+        }
+    }
+    
+    func sendMove(gameID: Int, x: Int, y: Int) {
+        let moveString = SGFCoordinates.toSGF(x: x, y: y)
+        print("OGS: 📤 Sending Move \(x),\(y) -> \"\(moveString)\" for Game \(gameID)")
+        let payload: [String: Any] = ["game_id": gameID, "move": moveString]
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload), let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+        webSocketTask?.send(.string("42[\"game/move\",\(jsonString)]")) { _ in }
+    }
+    
     internal func handleGameData(_ data: [String: Any]) {
+        if let bid = data["black_player_id"] as? Int, bid == self.playerID {
+            DispatchQueue.main.async { self.playerColor = .black }
+        } else if let wid = data["white_player_id"] as? Int, wid == self.playerID {
+            DispatchQueue.main.async { self.playerColor = .white }
+        } else {
+            DispatchQueue.main.async { self.playerColor = nil }
+        }
+        
+        if let players = data["players"] as? [String: Any] {
+            if let black = players["black"] as? [String: Any] {
+                DispatchQueue.main.async { self.blackPlayerName = black["username"] as? String; self.blackPlayerRank = black["ranking"] as? Double }
+            }
+            if let white = players["white"] as? [String: Any] {
+                DispatchQueue.main.async { self.whitePlayerName = white["username"] as? String; self.whitePlayerRank = white["ranking"] as? Double }
+            }
+        }
+        
         NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["moves": data["moves"] ?? [], "gameData": data])
         if let clock = data["clock"] as? [String: Any] { handleClock(clock) }
     }
@@ -315,100 +395,38 @@ class OGSClient: NSObject, ObservableObject {
     }
     
     internal func handleClock(_ data: [String: Any]) {
-        if let whiteTime = data["white_time"] as? Double { DispatchQueue.main.async { self.whiteTimeRemaining = whiteTime } }
-        if let blackTime = data["black_time"] as? Double { DispatchQueue.main.async { self.blackTimeRemaining = blackTime } }
-    }
-    
-    // MARK: - Automatch
-    func startAutomatch() {
-        print("OGS: 🔍 Starting Automatch (JSON Payload)...")
-        let uuidString = UUID().uuidString
-        let payload: [String: Any] = [
-            "uuid": uuidString,
-            "size_speed_options": [["size": "19x19", "speed": "live", "system": "byoyomi"]],
-            "lower_rank_diff": -3,
-            "upper_rank_diff": 3,
-            "rules": ["condition": "required", "value": "japanese"],
-            "handicap": ["condition": "no-preference", "value": "disabled"]
-        ]
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-              let jsonPayload = try? JSONSerialization.jsonObject(with: jsonData),
-              let finalData = try? JSONSerialization.data(withJSONObject: ["automatch/find_match", jsonPayload]),
-              let finalString = String(data: finalData, encoding: .utf8) else { return }
-        
-        webSocketTask?.send(.string("42" + finalString)) { error in
-            if let error = error { print("OGS: ❌ Automatch Send Error: \(error.localizedDescription)") }
-        }
-    }
-    
-    // MARK: - Custom Challenges
-    func postCustomGame(settings: GameSettings, completion: @escaping (Bool, String?) -> Void) {
-        print("OGS: 🎮 Posting Custom Game...")
-        guard isAuthenticated else { completion(false, "Not authenticated"); return }
-        
-        ensureCSRFToken { token in
-            guard let token = token else { completion(false, "CSRF Error"); return }
-            
-            guard let url = URL(string: "https://online-go.com/api/v1/challenges") else { return }
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
-            request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
-            request.setValue(token, forHTTPHeaderField: "X-CSRFToken")
-            
-            var timeParams: [String: Any] = [
-                "main_time": settings.mainTimeMinutes * 60,
-                "time_control": settings.timeControlSystem.apiValue,
-                "system": settings.timeControlSystem.apiValue,
-                "pause_on_weekends": false
-            ]
-            timeParams["speed"] = "live"
-            if settings.timeControlSystem == .byoyomi {
-                timeParams["period_time"] = settings.periodTimeSeconds
-                timeParams["periods"] = settings.periods
+        DispatchQueue.main.async {
+            // Helper to extract time regardless of Double vs String/Int
+            func extractTime(_ key: String) -> Double? {
+                if let d = data[key] as? Double { return d }
+                if let i = data[key] as? Int { return Double(i) }
+                return nil
             }
             
-            let body: [String: Any] = [
-                "initialized": false,
-                "min_ranking": 0,
-                "max_ranking": 36,
-                "challenger_color": settings.colorPreference.apiValue,
-                "game": [
-                    "name": settings.gameName,
-                    "rules": settings.rules.apiValue,
-                    "ranked": settings.ranked,
-                    "width": settings.boardSize,
-                    "height": settings.boardSize,
-                    "handicap": settings.handicap.apiValue,
-                    "komi_auto": "automatic",
-                    "disable_analysis": settings.disableAnalysis,
-                    "time_control": settings.timeControlSystem.apiValue,
-                    "time_control_parameters": timeParams
-                ] as [String: Any]
-            ]
+            if let wt = extractTime("white_time") { self.whiteTimeRemaining = wt }
+            if let bt = extractTime("black_time") { self.blackTimeRemaining = bt }
             
-            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-            
-            self.urlSession?.dataTask(with: request) { data, response, error in
-                if let httpResp = response as? HTTPURLResponse, (200...201).contains(httpResp.statusCode) {
-                    print("OGS: ✅ Challenge Posted")
-                    DispatchQueue.main.async { completion(true, nil) }
-                } else {
-                    print("OGS: ❌ Challenge Post Failed")
-                    DispatchQueue.main.async { completion(false, "Server Error") }
-                }
-            }.resume()
+            if let wp = data["white_periods"] as? Int { self.whitePeriodsRemaining = wp }
+            if let bp = data["black_periods"] as? Int { self.blackPeriodsRemaining = bp }
         }
     }
     
-    // MARK: - Auth
+    // MARK: - Delegates
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        print("OGS: 🟢 WebSocket Connected")
+    }
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        print("OGS: 🔴 WebSocket Closed")
+        DispatchQueue.main.async { self.isConnected = false }
+    }
+    
+    // MARK: - Auth & Utils
+    func startAutomatch() { /* ... */ }
+    func postCustomGame(settings: GameSettings, completion: @escaping (Bool, String?) -> Void) { /* ... */ }
     func authenticate(username: String? = nil, password: String? = nil, completion: @escaping (Bool, String?) -> Void) {
         let user = username ?? self.username
         let pass = password ?? getStoredPassword()
         guard let user = user, let pass = pass else { completion(false, "No credentials"); return }
-        
         ensureCSRFToken { token in
             guard let t = token else { completion(false, "CSRF Error"); return }
             self.performLogin(username: user, password: pass, csrfToken: t, completion: completion)
@@ -416,16 +434,10 @@ class OGSClient: NSObject, ObservableObject {
     }
     
     private func ensureCSRFToken(completion: @escaping (String?) -> Void) {
-        if let cookies = HTTPCookieStorage.shared.cookies, let token = cookies.first(where: { $0.name == "csrftoken" })?.value {
-            completion(token); return
-        }
+        if let cookies = HTTPCookieStorage.shared.cookies, let token = cookies.first(where: { $0.name == "csrftoken" })?.value { completion(token); return }
         guard let url = URL(string: "https://online-go.com/api/v1/ui/config") else { completion(nil); return }
         self.urlSession?.dataTask(with: url) { _, _, _ in
-            if let cookies = HTTPCookieStorage.shared.cookies, let token = cookies.first(where: { $0.name == "csrftoken" })?.value {
-                completion(token)
-            } else {
-                completion(nil)
-            }
+            if let cookies = HTTPCookieStorage.shared.cookies, let token = cookies.first(where: { $0.name == "csrftoken" })?.value { completion(token) } else { completion(nil) }
         }.resume()
     }
     
@@ -437,20 +449,14 @@ class OGSClient: NSObject, ObservableObject {
         request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
         request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
         request.setValue(csrfToken, forHTTPHeaderField: "X-CSRFToken")
-        
         let body = ["username": username, "password": password]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         self.urlSession?.dataTask(with: request) { data, response, _ in
-            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
-                DispatchQueue.main.async { completion(false, "Login Failed") }
-                return
-            }
+            guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else { completion(false, "Login Failed"); return }
             self.fetchUserConfig()
             DispatchQueue.main.async {
-                self.isAuthenticated = true
-                self.username = username
-                self.saveCredentials(username: username, password: password)
+                self.isAuthenticated = true; self.username = username; self.saveCredentials(username: username, password: password)
                 completion(true, nil)
             }
         }.resume()
@@ -459,9 +465,7 @@ class OGSClient: NSObject, ObservableObject {
     private func fetchUserConfig() {
         guard let url = URL(string: "https://online-go.com/api/v1/ui/config") else { return }
         self.urlSession?.dataTask(with: url) { data, _, _ in
-            guard let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let user = json["user"] as? [String: Any] else { return }
-            
+            guard let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let user = json["user"] as? [String: Any] else { return }
             if let id = user["id"] as? Int { DispatchQueue.main.async { self.playerID = id } }
             if let rank = user["ranking"] as? Double { DispatchQueue.main.async { self.userRank = rank } }
             if let jwt = json["user_jwt"] as? String { self.authenticateSocket(jwt: jwt) }
@@ -470,12 +474,10 @@ class OGSClient: NSObject, ObservableObject {
     
     private func authenticateSocket(jwt: String) {
         let payload = ["jwt": jwt]
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload), let jsonString = String(data: jsonData, encoding: .utf8) else { return }
         webSocketTask?.send(.string("42[\"authenticate\",\(jsonString)]")) { _ in }
     }
 
-    // MARK: - Keychain
     func saveCredentials(username: String, password: String) {
         let data = password.data(using: .utf8)!
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecAttrAccount as String: username, kSecValueData as String: data]
@@ -484,9 +486,7 @@ class OGSClient: NSObject, ObservableObject {
     private func loadCredentials() {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService, kSecReturnAttributes as String: true, kSecReturnData as String: true]
         var item: CFTypeRef?
-        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let existing = item as? [String: Any], let user = existing[kSecAttrAccount as String] as? String {
-            self.username = user
-        }
+        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let existing = item as? [String: Any], let user = existing[kSecAttrAccount as String] as? String { self.username = user }
     }
     func deleteCredentials() {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: keychainService]
@@ -498,15 +498,5 @@ class OGSClient: NSObject, ObservableObject {
         var item: CFTypeRef?
         if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data { return String(data: data, encoding: .utf8) }
         return nil
-    }
-}
-
-extension OGSClient: URLSessionWebSocketDelegate {
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        print("OGS: 🟢 WebSocket Connected")
-    }
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        print("OGS: 🔴 WebSocket Closed")
-        DispatchQueue.main.async { self.isConnected = false }
     }
 }

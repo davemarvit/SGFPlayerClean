@@ -1,11 +1,4 @@
-//
-//  BoardViewModel.swift
-//  SGFPlayerClean
-//
-//  Created: 2025-11-19
-//  Purpose: Manages game state, navigation, and local SGF file playback
-//
-
+// MARK: - File: BoardViewModel.swift
 import Foundation
 import Combine
 import SwiftUI
@@ -21,21 +14,31 @@ class BoardViewModel: ObservableObject {
     @Published var isAutoPlaying: Bool = false
     @Published var currentGame: SGFGameWrapper?
     @Published var boardSize: Int = 19
+    
+    // NEW: Ghost Stone State
+    @Published var ghostPosition: BoardPosition?
+    @Published var ghostColor: Stone?
+
+    // NEW: Handicap State
+    var isHandicapGame: Bool = false
 
     var totalMoves: Int { return player.maxIndex }
 
     // MARK: - Dependencies
     var player: SGFPlayer
+    weak var ogsClient: OGSClient?
     var autoPlaySpeed: TimeInterval = 0.75
     private var jitter: StoneJitter
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
-    init(player: SGFPlayer) {
+    init(player: SGFPlayer, ogsClient: OGSClient? = nil) {
         self.player = player
+        self.ogsClient = ogsClient
         self.jitter = StoneJitter(boardSize: 19, eccentricity: AppSettings.shared.jitterMultiplier)
         setupPlayerObservers()
         setupSettingsObservers()
+        setupOGSObservers()
     }
 
     private func setupPlayerObservers() {
@@ -51,22 +54,112 @@ class BoardViewModel: ObservableObject {
         AppSettings.shared.$jitterMultiplier.receive(on: RunLoop.main).sink { [weak self] m in self?.jitter.setEccentricity(m); self?.objectWillChange.send() }.store(in: &cancellables)
         AppSettings.shared.$moveInterval.receive(on: RunLoop.main).sink { [weak self] i in self?.autoPlaySpeed = i; self?.player.setPlayInterval(i) }.store(in: &cancellables)
     }
+    
+    private func setupOGSObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRemoteMoveNotification(_:)), name: NSNotification.Name("OGSMoveReceived"), object: nil)
+    }
 
     // MARK: - Game Loading
     func loadGame(_ game: SGFGameWrapper) {
-        // Ensure Main Thread
         DispatchQueue.main.async {
             print("📖 BoardViewModel: Loading game: \(game.title ?? "Untitled")")
             self.currentGame = game
             self.boardSize = game.size
+            self.isHandicapGame = false
             self.jitter = StoneJitter(boardSize: self.boardSize, eccentricity: AppSettings.shared.jitterMultiplier)
             
             self.player.load(game: game.game)
             
-            // Force update local state immediately
             self.updateStones(from: self.player.board)
             self.updateLastMove(from: self.player.lastMove)
             self.currentMoveIndex = self.player.currentIndex
+        }
+    }
+    
+    // MARK: - Logic: Color Calculation
+    var nextTurnColor: Stone {
+        // Look at previous move to determine next turn
+        if currentMoveIndex > 0 && currentMoveIndex <= player.moves.count {
+            let lastMoveColor = player.moves[currentMoveIndex - 1].0
+            return (lastMoveColor == .black) ? .white : .black
+        }
+        return isHandicapGame ? .white : .black
+    }
+
+    // MARK: - User Input & Ghost
+    
+    func updateGhostStone(at position: BoardPosition) {
+        guard let client = ogsClient, client.isConnected, client.activeGameID != nil else {
+            clearGhostStone()
+            return
+        }
+        
+        guard let myColor = client.playerColor else {
+            clearGhostStone()
+            return
+        }
+        
+        if nextTurnColor != myColor {
+            clearGhostStone()
+            return
+        }
+        
+        guard stones[position] == nil else {
+            clearGhostStone()
+            return
+        }
+        
+        self.ghostPosition = position
+        self.ghostColor = nextTurnColor
+    }
+    
+    func clearGhostStone() {
+        self.ghostPosition = nil
+        self.ghostColor = nil
+    }
+    
+    func placeStone(at position: BoardPosition) {
+        guard let client = ogsClient else { return }
+        
+        print("BoardVM: 🖱️ placeStone requested at \(position)")
+        
+        guard let gameID = client.activeGameID, client.isConnected else {
+            print("BoardVM: ❌ Rejected - Not connected or no active game.")
+            return
+        }
+        
+        guard let myColor = client.playerColor else {
+            print("BoardVM: ❌ Rejected - Player color unknown.")
+            return
+        }
+        
+        guard nextTurnColor == myColor else {
+            print("BoardVM: ❌ Rejected - Not my turn. Me: \(myColor), Next: \(nextTurnColor)")
+            return
+        }
+        
+        // Success
+        client.sendMove(gameID: gameID, x: position.col, y: position.row)
+        clearGhostStone()
+    }
+
+    // MARK: - Remote Input (OGS)
+    
+    @objc private func handleRemoteMoveNotification(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let x = userInfo["x"] as? Int,
+              let y = userInfo["y"] as? Int else { return }
+        handleRemoteMove(x: x, y: y)
+    }
+    
+    private func handleRemoteMove(x: Int, y: Int) {
+        DispatchQueue.main.async {
+            if let _ = self.stones[BoardPosition(y, x)] { return }
+            
+            let color = self.nextTurnColor
+            print("BoardVM: 📥 Remote Move: \(color) at \(x), \(y)")
+            
+            self.player.playMoveOptimistically(color: color, x: x, y: y)
         }
     }
 
@@ -83,7 +176,6 @@ class BoardViewModel: ObservableObject {
     
     func startAutoPlay() {
         DispatchQueue.main.async {
-            print("▶️ BoardViewModel: Starting Auto-Play at \(self.autoPlaySpeed)s interval")
             self.player.setPlayInterval(self.autoPlaySpeed)
             self.player.play()
         }

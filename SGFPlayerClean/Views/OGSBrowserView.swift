@@ -2,8 +2,10 @@
 //  OGSBrowserView.swift
 //  SGFPlayerClean
 //
-//  Created: 2025-11-29
-//  Updated: 2025-12-04 (Redesigned Row for Detail)
+//  Updated:
+//  - Removed heavy background (0.6 opacity) to allow frosted glass to show through.
+//  - Matched Header/Footer styling to SettingsPanel (0.1/0.2 opacity).
+//  - Preserved Layout fixes (Combined columns, Fixed Button).
 //
 
 import SwiftUI
@@ -48,8 +50,8 @@ struct OGSBrowserView: View {
                 OGSCreateChallengeView(app: app, isPresented: $app.isCreatingChallenge)
             }
         }
-        .background(Color.black.opacity(0.6))
-        .cornerRadius(12)
+        // REMOVED: .background(Color.black.opacity(0.6)) -> This was blocking the glass effect
+        // REMOVED: .cornerRadius(12) -> Sidebar should be full bleed
         .onAppear { app.ogsClient.subscribeToSeekgraph() }
         .onDisappear { app.ogsClient.unsubscribeFromSeekgraph() }
     }
@@ -77,7 +79,8 @@ struct OGSBrowserView: View {
             
             if showLoginArea { loginArea }
         }
-        .background(Color.white.opacity(0.05))
+        // STYLE: Match SettingsPanel Header
+        .background(Color.black.opacity(0.1))
     }
     
     private var loginArea: some View {
@@ -136,7 +139,9 @@ struct OGSBrowserView: View {
                 Spacer()
             }
         }
-        .padding(10).background(Color.black.opacity(0.2))
+        .padding(10)
+        // STYLE: Slightly darkened filter area, lighter than before
+        .background(Color.black.opacity(0.1))
     }
     
     // MARK: - Content
@@ -188,6 +193,8 @@ struct OGSBrowserView: View {
             }
             .padding()
         }
+        // STYLE: Match SettingsPanel Footer
+        .background(Color.black.opacity(0.1))
     }
     
     // MARK: - Logic
@@ -236,7 +243,7 @@ struct ChallengeRow: View {
     let onAccept: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             
             // COLUMN 1: Player/Game Name
             HStack(spacing: 6) {
@@ -244,7 +251,7 @@ struct ChallengeRow: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(red: 0.2, green: 0.2, blue: 0.3)) // Dark Slate Blue
-                        .frame(width: 32, height: 18)
+                        .frame(width: 30, height: 18)
                     Text(challenge.challenger.displayRank)
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
@@ -256,46 +263,52 @@ struct ChallengeRow: View {
                     .foregroundColor(.white) // Blue-ish link color like OGS
                     .lineLimit(1)
             }
-            .frame(width: 130, alignment: .leading)
+            .frame(width: 120, alignment: .leading)
             
             // COLUMN 2: Size
             Text(challenge.boardSize)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
-                .frame(width: 40, alignment: .leading)
+                .frame(width: 35, alignment: .leading)
             
-            // COLUMN 3: Time
-            Text(challenge.timeControlDisplay) // Now contains "1m+5x 10s"
+            // COLUMN 3: Time (Detailed)
+            Text(challenge.timeControlDisplay)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
-                .frame(width: 110, alignment: .leading)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            // COLUMN 4: Ranked
-            Text(challenge.game.ranked ? "Yes" : "No")
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.8))
-                .frame(width: 30, alignment: .leading)
-            
-            // COLUMN 5: Rules (Hidden on small screens if needed, but useful)
-            Text(challenge.game.rules.capitalized)
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.6))
-                .frame(minWidth: 50, alignment: .leading)
+            // COLUMN 4: Meta (Combined)
+            VStack(alignment: .trailing, spacing: 2) {
+                if challenge.game.ranked {
+                    Text("Rated")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.green)
+                } else {
+                    Text("Unrated")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                
+                Text(challenge.game.rules.capitalized)
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .frame(width: 50, alignment: .trailing)
 
-            Spacer()
-            
             // BUTTON: Accept
             Button(action: onAccept) {
                 Text(isWatchMode ? "Watch" : "Accept")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(isWatchMode ? Color.blue : Color(red: 0.2, green: 0.7, blue: 0.2)) // OGS Green
                     .cornerRadius(4)
             }
             .buttonStyle(.plain)
-            .padding(.trailing, 4)
+            .fixedSize() // Prevents wrapping on small windows
+            .padding(.leading, 4)
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 8)

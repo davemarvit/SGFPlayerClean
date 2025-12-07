@@ -3,8 +3,7 @@
 //  SGFPlayerClean
 //
 //  Created: 2025-11-24
-//  Updated: 2025-12-02 (Added Automatch Payloads)
-//  Purpose: Data models for OGS API responses
+//  Updated: 2025-12-07 (Simplified: Trust OGSClient for strings)
 //
 
 import Foundation
@@ -45,31 +44,9 @@ struct OGSChallenge: Codable, Identifiable, Hashable {
     }
 
     /// Detailed human-readable time string (e.g., "10m + 5x30s")
+    /// Sourced directly from GameInfo, which OGSClient populates.
     var timeControlDisplay: String {
-        guard let json = timeParams else { return game.timeControl?.capitalized ?? "Unknown" }
-        
-        let system = json["system"] as? String ?? ""
-        
-        if system == "byoyomi" {
-            let mainTime = json["main_time"] as? Int ?? 0
-            let periods = json["periods"] as? Int ?? 0
-            let periodTime = json["period_time"] as? Int ?? 0
-            return "\(mainTime/60)m + \(periods)x\(periodTime)s"
-        }
-        else if system == "fischer" {
-            let initialTime = json["initial_time"] as? Int ?? 0
-            let increment = json["time_increment"] as? Int ?? 0
-            return "\(initialTime/60)m + \(increment)s"
-        }
-        else if system == "simple" {
-            let perMove = json["per_move"] as? Int ?? 0
-            if perMove > 3600 {
-                return "\(perMove/3600)h / move"
-            }
-            return "\(perMove)s / move"
-        }
-        
-        return (json["speed"] as? String ?? "Unknown").capitalized
+        return game.timeControl ?? "Unknown"
     }
 
     // Hashable conformance for SwiftUI Lists
@@ -115,12 +92,12 @@ struct GameInfo: Codable, Hashable {
     let handicap: Int
     let komi: String?
     let timeControl: String?
-    let timeControlParameters: String?
+    let timeControlParameters: String? // JSON String
     let disableAnalysis: Bool
     let pauseOnWeekends: Bool
     let black: Int?
     let white: Int?
-    let started: String? // OGS sends ISO string or nil
+    let started: String?
     let blackLost: Bool
     let whiteLost: Bool
     let annulled: Bool
@@ -145,7 +122,6 @@ struct OGSChallengesResponse: Codable {
 
 // MARK: - Automatch Payloads
 
-/// The structure sent to "automatch/find_match"
 struct AutomatchPayload: Codable {
     let uuid: String
     let size_speed_options: [SizeSpeedOption]
@@ -154,7 +130,6 @@ struct AutomatchPayload: Codable {
     let rules: ConditionValue
     let handicap: ConditionValue
 
-    // Quick init for standard settings (19x19 Live Japanese)
     static func standard(uuid: String = UUID().uuidString) -> AutomatchPayload {
         return AutomatchPayload(
             uuid: uuid,
@@ -170,17 +145,16 @@ struct AutomatchPayload: Codable {
 }
 
 struct SizeSpeedOption: Codable {
-    let size: String   // "19x19", "13x13", "9x9"
-    let speed: String  // "live", "blitz", "correspondence"
-    let system: String // "byoyomi", "simple", "fischer"
+    let size: String
+    let speed: String
+    let system: String
 }
 
 struct ConditionValue: Codable {
-    let condition: String // "required", "no-preference"
-    let value: String     // "japanese", "chinese", "disabled"
+    let condition: String
+    let value: String
 }
 
-/// The response received from "automatch/start"
 struct AutomatchStart: Codable {
     let game_id: Int
     let uuid: String?

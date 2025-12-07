@@ -1,12 +1,4 @@
-//
-//  SceneManager3D.swift
-//  SGFPlayerClean
-//
-//  Created: 2025-11-28
-//  Updated: 2025-12-04 (Fade-Out Animation for Old Moves)
-//  Purpose: 3D scene management for SceneKit board rendering
-//
-
+// MARK: - File: SceneManager3D.swift
 import Foundation
 import SceneKit
 import AppKit
@@ -18,6 +10,9 @@ class SceneManager3D: ObservableObject {
 
     private var boardNode: SCNNode?
     private var stoneNodes: [SCNNode] = []
+    
+    // NEW: Ghost Stone Node
+    private var ghostNode: SCNNode?
     
     var settings: AppSettings?
     weak var boardVM: BoardViewModel?
@@ -59,7 +54,32 @@ class SceneManager3D: ObservableObject {
         setupBackground()
         createBoard()
         createLids()
-        print("✅ SceneManager3D: Initialized with Fade-Out Glows")
+        setupGhostNode()
+    }
+    
+    private func setupGhostNode() {
+        // Create a semi-transparent stone for hover effects
+        let sphere = SCNSphere(radius: stoneRadius)
+        sphere.segmentCount = 24
+        let material = SCNMaterial()
+        
+        // FIX: Less transparent, more visible
+        // Alpha 0.85 makes it solid enough to see clearly
+        material.diffuse.contents = NSColor(white: 1.0, alpha: 0.85)
+        material.emission.contents = NSColor(white: 0.05, alpha: 1.0) // Very faint glow
+        material.transparency = 0.85
+        material.lightingModel = .blinn
+        sphere.materials = [material]
+        
+        ghostNode = SCNNode(geometry: sphere)
+        ghostNode?.scale = SCNVector3(1.0, stoneScaleY, 1.0)
+        ghostNode?.opacity = 0.0 // Hidden by default
+        ghostNode?.castsShadow = false
+        ghostNode?.name = "GHOST" // Tag it so we can ignore it in hit tests
+        
+        if let ghost = ghostNode {
+            scene.rootNode.addChildNode(ghost)
+        }
     }
 
     // MARK: - Scene Setup
@@ -111,7 +131,7 @@ class SceneManager3D: ObservableObject {
     private func createBoard() {
         boardNode?.removeFromParentNode()
         scene.rootNode.childNodes.filter { node in
-            (node.geometry is SCNBox || node.geometry is SCNSphere) && node.position.y >= -boardThickness
+            (node.geometry is SCNBox || node.geometry is SCNSphere) && node.position.y >= -boardThickness && node != ghostNode
         }.forEach { $0.removeFromParentNode() }
 
         let boardWidth = CGFloat(boardSize + 1) * effectiveCellWidth
@@ -181,6 +201,32 @@ class SceneManager3D: ObservableObject {
             scene.rootNode.addChildNode(node)
         }
     }
+    
+    // MARK: - Hit Testing
+    
+    func hitTest(point: CGPoint, in view: SCNView) -> (x: Int, y: Int)? {
+        let options: [SCNHitTestOption: Any] = [.searchMode: SCNHitTestSearchMode.all.rawValue]
+        let results = view.hitTest(point, options: options)
+        
+        // Find the first hit that is the BOARD, ignoring the Ghost or other nodes
+        guard let result = results.first(where: { $0.node == self.boardNode }) else { return nil }
+        
+        let localPoint = result.localCoordinates
+        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
+        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
+        
+        let offsetX = totalWidth / 2.0
+        let offsetZ = totalHeight / 2.0
+        
+        let adjustedX = localPoint.x + offsetX
+        let adjustedZ = localPoint.z + offsetZ
+        
+        let col = Int(round(adjustedX / effectiveCellWidth))
+        let row = Int(round(adjustedZ / effectiveCellHeight))
+        
+        guard col >= 0, col < boardSize, row >= 0, row < boardSize else { return nil }
+        return (col, row)
+    }
 
     // MARK: - Stone Rendering
 
@@ -191,17 +237,10 @@ class SceneManager3D: ObservableObject {
             previousBoardState = []
         }
         
-        // FADE OUT ANIMATION:
-        // Before clearing stones, if there was a previous move that is DIFFERENT from the current one,
-        // spawn a ghost glow there to fade out.
         if let prev = previousLastMove,
            let settings = settings,
            (settings.showBoardGlow || settings.showEnhancedGlow) {
-            
-            // Check if the previous move is no longer the last move
-            // (either a new move happened, or we went backward)
             let isSameAsCurrent = (lastMove != nil && lastMove!.x == prev.x && lastMove!.y == prev.y)
-            
             if !isSameAsCurrent {
                 spawnFadeOutGlow(col: prev.x, row: prev.y, settings: settings)
             }
@@ -238,7 +277,6 @@ class SceneManager3D: ObservableObject {
                     
                     if isLastMove {
                         addLastMoveIndicator(to: stoneNode, color: stone, radius: stoneRadius)
-                        
                         if let settings = settings, (settings.showBoardGlow || settings.showEnhancedGlow) {
                             stoneNode.castsShadow = false
                             addGlow(to: stoneNode, settings: settings, stoneY: stoneY, boardTopY: boardTopY)
@@ -248,11 +286,9 @@ class SceneManager3D: ObservableObject {
                     scene.rootNode.addChildNode(stoneNode)
                     stoneNodes.append(stoneNode)
                     
-                    // Drop-In Animation
                     if isLastMove, let settings = settings, settings.showDropInAnimation {
                         stoneNode.position.y += 1.5
                         stoneNode.opacity = 0.0
-                        
                         SCNTransaction.begin()
                         SCNTransaction.animationDuration = 0.3
                         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
@@ -265,6 +301,40 @@ class SceneManager3D: ObservableObject {
         }
         previousBoardState = board.grid
         previousLastMove = lastMove
+    }
+    
+    // MARK: - Ghost Stone Logic
+    func updateGhost(at col: Int, row: Int, color: Stone?) {
+        guard let color = color, let ghost = ghostNode else {
+            ghostNode?.opacity = 0.0
+            return
+        }
+        
+        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
+        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
+        let offsetX = -totalWidth / 2.0
+        let offsetZ = -totalHeight / 2.0
+        
+        let x = CGFloat(col) * effectiveCellWidth + offsetX
+        let z = CGFloat(row) * effectiveCellHeight + offsetZ
+        let boardTopY = boardThickness / 2.0
+        let stoneY = boardTopY + (stoneRadius * stoneScaleY) - 0.01
+        
+        ghost.position = SCNVector3(x, stoneY, z)
+        
+        // Update color
+        let material = ghost.geometry?.firstMaterial
+        if color == .black {
+            material?.diffuse.contents = NSColor(white: 0.1, alpha: 0.85)
+        } else {
+            material?.diffuse.contents = NSColor(white: 1.0, alpha: 0.85)
+        }
+        
+        ghost.opacity = 0.9 // High visibility
+    }
+    
+    func hideGhost() {
+        ghostNode?.opacity = 0.0
     }
 
     private func createSolidStone(color: Stone, at position: SCNVector3, radius: CGFloat) -> SCNNode {
@@ -349,7 +419,6 @@ class SceneManager3D: ObservableObject {
         }
     }
     
-    // NEW: Spawns a standalone glow that fades out
     private func spawnFadeOutGlow(col: Int, row: Int, settings: AppSettings) {
         let isEnhanced = settings.showEnhancedGlow
         let scaleMultiplier: CGFloat = isEnhanced ? 1.8 : 1.5
@@ -370,7 +439,6 @@ class SceneManager3D: ObservableObject {
         glowNode.castsShadow = false
         glowNode.renderingOrder = 2000
         
-        // Position logic (Manual calculation since no stone parent)
         let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
         let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
         let offsetX = -totalWidth / 2.0
@@ -388,7 +456,6 @@ class SceneManager3D: ObservableObject {
         let boardTopY = boardThickness / 2.0 + 0.005
         glowNode.position = SCNVector3(x, boardTopY, z)
         
-        // Start visible, animate to 0
         let startOpacity: CGFloat = isEnhanced ? 0.8 : 0.9
         glowNode.opacity = startOpacity
         

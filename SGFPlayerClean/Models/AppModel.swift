@@ -44,7 +44,7 @@ final class AppModel: ObservableObject {
     @Published var isOnlineMode: Bool = false
     @Published var showPreGameOverlay: Bool = false
     
-    // Shared UI State (Persists between 2D/3D)
+    // Shared UI State
     @Published var browserTab: OGSBrowserTab = .challenge
     @Published var isCreatingChallenge: Bool = false
     
@@ -58,7 +58,7 @@ final class AppModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     init() {
-        self.boardVM = BoardViewModel(player: player)
+        self.boardVM = BoardViewModel(player: player, ogsClient: ogsClient)
         
         restoreFolderURL()
         if let url = folderURL { loadFolder(url) }
@@ -80,10 +80,26 @@ final class AppModel: ObservableObject {
     
     // MARK: - OGS Logic
     func joinOnlineGame(id: Int) {
-        print("AppModel: 🌍 Joining OGS Game \(id)")
+        print("AppModel: 🌍 Request to join ID \(id)")
         player.clear()
         selection = nil
-        ogsClient.joinGame(gameID: id)
+        
+        if ogsClient.availableGames.contains(where: { $0.id == id }) {
+            print("AppModel: 🧐 ID \(id) is a Challenge. Accepting...")
+            ogsClient.acceptChallenge(challengeID: id) { [weak self] newGameID in
+                if let gameID = newGameID {
+                    print("AppModel: 🔀 Challenge Accepted. Connecting to Game \(gameID)")
+                    self?.ogsClient.activeGameID = gameID
+                    self?.ogsClient.joinGame(gameID: gameID)
+                } else {
+                    print("AppModel: ❌ Failed to accept challenge.")
+                }
+            }
+        } else {
+            print("AppModel: 🧐 ID \(id) assumed to be Active Game. Connecting...")
+            ogsClient.activeGameID = id
+            ogsClient.joinGame(gameID: id)
+        }
     }
     
     private func setupOGSObservers() {
@@ -100,31 +116,94 @@ final class AppModel: ObservableObject {
     
     private func handleOGSGameLoad(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
+              let gameData = userInfo["gameData"] as? [String: Any],
               let moves = userInfo["moves"] as? [[Any]] else { return }
         
-        print("AppModel: 📦 OGS Game Loaded with \(moves.count) moves")
+        print("AppModel: 📦 OGS Game Loaded. Parsing...")
         boardVM?.stopAutoPlay()
         player.clear()
         
+        // 1. HANDICAP DETECTION & PLACEMENT
+        var manualHandicapStones: [[Int]] = []
+        
+        if let explicitPlacement = gameData["free_handicap_placement"] as? [[Int]], !explicitPlacement.isEmpty {
+            manualHandicapStones = explicitPlacement
+            print("AppModel: ⚫️ Found \(explicitPlacement.count) Explicit Handicap Stones.")
+        } else if let handicapCount = gameData["handicap"] as? Int, handicapCount > 0 {
+            // GENERATE STANDARD COORDINATES
+            let boardWidth = gameData["width"] as? Int ?? 19
+            let boardHeight = gameData["height"] as? Int ?? 19
+            if boardWidth == 19 && boardHeight == 19 {
+                manualHandicapStones = getStandardHandicapCoordinates(count: handicapCount)
+                print("AppModel: ⚠️ Generated \(manualHandicapStones.count) Standard Handicap Stones.")
+            } else {
+                print("AppModel: ❌ Unsupported board size for auto-handicap: \(boardWidth)x\(boardHeight)")
+            }
+        }
+        
+        // PLAY HANDICAP STONES
+        // We play them as standard Black moves. This advances 'player.currentIndex'.
+        // Example: 9 stones -> Index becomes 9.
+        // Standard turn logic (Even=Black, Odd=White) means Move 9 is White's turn.
+        // This effectively handles the "White moves first" rule without special flags.
+        if !manualHandicapStones.isEmpty {
+            for coords in manualHandicapStones {
+                if coords.count >= 2 {
+                    player.playMoveOptimistically(color: .black, x: coords[0], y: coords[1])
+                }
+            }
+            // Ensure we don't double-compensate in VM
+            boardVM?.isHandicapGame = false
+        } else {
+            // Reset flag just in case
+            boardVM?.isHandicapGame = false
+        }
+        
+        // 2. PROCESS MOVES
+        print("AppModel: 📜 Replaying \(moves.count) historical moves...")
         for moveData in moves {
             if moveData.count >= 2, let x = moveData[0] as? Int, let y = moveData[1] as? Int {
                 if x >= 0 && y >= 0 {
-                    let color = (player.currentIndex % 2 == 0) ? Stone.black : Stone.white
-                    player.playMoveOptimistically(color: color, x: x, y: y)
+                    let nextColor = boardVM?.nextTurnColor ?? .black
+                    player.playMoveOptimistically(color: nextColor, x: x, y: y)
                 }
             }
         }
         player.seek(to: player.maxIndex)
     }
     
+    // Helper for 19x19 star points
+    private func getStandardHandicapCoordinates(count: Int) -> [[Int]] {
+        // Standard OGS/SGF Star Points (0-indexed):
+        // TL(3,3), TM(9,3), TR(15,3)
+        // ML(3,9), MM(9,9), MR(15,9)
+        // BL(3,15), BM(9,15), BR(15,15)
+        
+        // Fixed sets for 19x19 based on Japanese rules commonly used
+        let stars: [String: [Int]] = [
+            "TR": [15,3], "TL": [3,3], "BR": [15,15], "BL": [3,15],
+            "MM": [9,9], // Tengen
+            "ML": [3,9], "MR": [15,9], "TM": [9,3], "BM": [9,15]
+        ]
+        
+        switch count {
+        case 2: return [stars["TR"]!, stars["BL"]!]
+        case 3: return [stars["TR"]!, stars["BL"]!, stars["BR"]!]
+        case 4: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!]
+        case 5: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!, stars["MM"]!]
+        case 6: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!, stars["ML"]!, stars["MR"]!]
+        case 7: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!, stars["ML"]!, stars["MR"]!, stars["MM"]!]
+        case 8: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!, stars["ML"]!, stars["MR"]!, stars["TM"]!, stars["BM"]!]
+        case 9: return [stars["TR"]!, stars["BL"]!, stars["BR"]!, stars["TL"]!, stars["ML"]!, stars["MR"]!, stars["TM"]!, stars["BM"]!, stars["MM"]!]
+        default: return []
+        }
+    }
+    
     private func handleOGSMove(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let x = userInfo["x"] as? Int, let y = userInfo["y"] as? Int else { return }
         playStoneClickSound()
-        if x >= 0 && y >= 0 {
-            let color = (player.currentIndex % 2 == 0) ? Stone.black : Stone.white
-            player.playMoveOptimistically(color: color, x: x, y: y)
-        }
+        // BoardViewModel listens to this same notification to update its state
     }
 
     // MARK: - Auto Advancement
@@ -155,22 +234,12 @@ final class AppModel: ObservableObject {
     // MARK: - Game Navigation
     func selectGame(_ gameWrapper: SGFGameWrapper) {
         selection = gameWrapper
-        
-        // Load into VM
         boardVM?.loadGame(gameWrapper)
         
-        // DEBUG: Log immediate state
-        print("AppModel: 📥 Selected \(gameWrapper.url.lastPathComponent). Start on Launch: \(AppSettings.shared.startGameOnLaunch)")
-        
         if AppSettings.shared.startGameOnLaunch {
-            print("AppModel: 🚀 Scheduling auto-play...")
-            
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 if let vm = self.boardVM {
-                    print("AppModel: ▶️ Triggering Play on BoardViewModel. Moves: \(vm.totalMoves)")
                     vm.startAutoPlay()
-                } else {
-                    print("AppModel: ❌ ERROR - boardVM is nil during auto-play attempt!")
                 }
             }
         }
