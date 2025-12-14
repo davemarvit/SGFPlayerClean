@@ -2,9 +2,9 @@
 //  ContentView3D.swift
 //  SGFPlayerClean
 //
-//  Updated:
-//  1. Mouse Drag Inverted (Grabbing the board).
-//  2. Added comments for adjusting Transparency/Backgrounds.
+//  Updated (v3.41):
+//  - Fixes Build Error: Corrects BoardSnapshot init signature.
+//  - Ensures 3D view reflects Online State.
 //
 
 import SwiftUI
@@ -46,38 +46,25 @@ struct ContentView3D: View {
     // MARK: - Body
     var body: some View {
         ZStack {
-            // LAYER 1: 3D SCENE (Bottom)
+            // LAYER 1: 3D SCENE
             sceneView
                 .edgesIgnoringSafeArea(.all)
 
-            // LAYER 2: LAYOUT STRUCTURE (Middle)
+            // LAYER 2: LAYOUT
             GeometryReader { geometry in
                 HStack(spacing: 0) {
-                    // LEFT: Invisible Touch Pass-through
                     Color.clear
                         .frame(width: geometry.size.width * 0.7)
                         .contentShape(Rectangle())
                         .allowsHitTesting(false)
                     
-                    // RIGHT: Panel
                     RightPanelView(app: app, boardVM: boardVM)
                         .frame(width: geometry.size.width * 0.3)
-                        
-                        // MARK: - TRANSPARENCY CUSTOMIZATION
-                        // The panel currently uses .frostedGlassStyle() internally.
-                        // To make it MORE transparent:
-                        // 1. Go to RightPanelView.swift and reduce opacity in the modifiers there.
-                        // 2. OR: Uncomment the line below to force a barely-visible background here:
-                        // .background(Color.black.opacity(0.1))
-                        
-                        // To make it LESS transparent (Darker):
-                        // .background(Color.black.opacity(0.5))
                 }
             }
             
-            // LAYER 3: FLOATING CONTROLS (Top)
+            // LAYER 3: FLOATING CONTROLS
             GeometryReader { geometry in
-                // A. Top-Left Buttons
                 VStack {
                     SharedOverlays(
                         showSettings: $showSettings,
@@ -87,7 +74,6 @@ struct ContentView3D: View {
                     Spacer()
                 }
                 
-                // B. Bottom-Center Playback
                 VStack {
                     Spacer()
                     PlaybackControls(boardVM: boardVM)
@@ -95,23 +81,9 @@ struct ContentView3D: View {
                 }
                 .frame(width: geometry.size.width * 0.7)
                 .allowsHitTesting(true)
-                
-                // C. Version Label
-                VStack {
-                    Spacer()
-                    HStack {
-                        Text("v1.0.49-CLEAN (3D)")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
-                            .padding(.leading, 30)
-                            .padding(.bottom, 15)
-                        Spacer()
-                    }
-                }
-                .allowsHitTesting(false)
             }
         }
-        // LIFECYCLE & EVENTS
+        // LIFECYCLE
         .onAppear {
             setupScene()
             resetFadeTimer()
@@ -119,8 +91,8 @@ struct ContentView3D: View {
                 if boardVM.currentGame?.id != game.id {
                     boardVM.loadGame(game)
                 }
-                updateScene()
             }
+            updateScene()
         }
         .onDisappear {
             fadeTimer?.invalidate()
@@ -129,13 +101,16 @@ struct ContentView3D: View {
         .onContinuousHover { phase in handleMouseMove(phase) }
         .keyboardShortcuts(boardVM: boardVM)
         .onChange(of: geometrySizeWrapper) { _, newSize in adjustCameraForSize(newSize) }
+        
+        // OBSERVING STONES (Fix for Invisible Stones)
+        .onChange(of: boardVM.stones) { _, _ in updateScene() }
+        
         .onChange(of: boardVM.currentMoveIndex) { _, _ in updateScene() }
         .onChange(of: settings.showBoardGlow) { _, _ in updateScene() }
         .onChange(of: currentRotationX) { _, _ in updateCamera() }
         .onChange(of: currentRotationY) { _, _ in updateCamera() }
         .onChange(of: cameraDistance) { _, _ in updateCamera() }
         
-        // SYNC GHOST
         .onChange(of: boardVM.ghostPosition) { _, pos in
             if let pos = pos {
                 sceneManager.updateGhost(at: pos.col, row: pos.row, color: boardVM.ghostColor)
@@ -145,7 +120,6 @@ struct ContentView3D: View {
         }
     }
     
-    // Geometry Helper
     @State private var viewSize: CGSize = .zero
     private var geometrySizeWrapper: CGSize { viewSize }
 
@@ -181,9 +155,25 @@ struct ContentView3D: View {
         sceneManager.updateCameraPosition(distance: cameraDistance, rotationX: currentRotationX, rotationY: currentRotationY, panX: cameraPanX, panY: cameraPanY)
     }
 
+    // CRITICAL FIX: Convert Dictionary to Snapshot using correct signature
     private func updateScene() {
         let lastMove = boardVM.lastMovePosition.map { (x: $0.col, y: $0.row) }
-        sceneManager.updateStones(from: app.player.board, lastMove: lastMove)
+        
+        // 1. Create a blank grid
+        var grid = [[Stone?]](repeating: [Stone?](repeating: nil, count: boardVM.boardSize), count: boardVM.boardSize)
+        
+        // 2. Populate from boardVM.stones (Source of Truth)
+        for (pos, stone) in boardVM.stones {
+            if pos.row < boardVM.boardSize && pos.col < boardVM.boardSize {
+                grid[pos.row][pos.col] = stone
+            }
+        }
+        
+        // 3. Create Snapshot (Fixed init signature)
+        let snapshot = BoardSnapshot(size: boardVM.boardSize, grid: grid)
+        
+        // 4. Pass to Manager
+        sceneManager.updateStones(from: snapshot, lastMove: lastMove)
         sceneManager.updateCapturedStones(blackCaptured: boardVM.blackCapturedCount, whiteCaptured: boardVM.whiteCapturedCount)
     }
 
@@ -202,7 +192,7 @@ struct ContentView3D: View {
     }
 }
 
-// MARK: - Interactive Scene View (Handles Input)
+// MARK: - Interactive Scene View
 struct InteractiveSceneView: NSViewRepresentable {
     let scene: SCNScene
     let cameraNode: SCNNode
@@ -219,14 +209,12 @@ struct InteractiveSceneView: NSViewRepresentable {
         view.allowsCameraControl = false
         view.backgroundColor = NSColor.black
         
-        // CLICK
         view.onClick = { point in
             if let (col, row) = sceneManager.hitTest(point: point, in: view) {
                 boardVM.placeStone(at: BoardPosition(row, col))
             }
         }
         
-        // HOVER
         view.onHover = { point in
             if let (col, row) = sceneManager.hitTest(point: point, in: view) {
                 DispatchQueue.main.async { boardVM.updateGhostStone(at: BoardPosition(row, col)) }
@@ -235,19 +223,14 @@ struct InteractiveSceneView: NSViewRepresentable {
             }
         }
         
-        // DRAG (INVERTED for "Grab Object" feel)
         view.onDrag = { deltaX, deltaY in
             let sensitivity: Float = 0.005
             DispatchQueue.main.async {
-                // Inverted signs (-= instead of +=) so dragging LEFT rotates board LEFT
                 rotationY -= Float(deltaX) * sensitivity
-                
-                // Inverted signs (- instead of +) so dragging UP tilts board UP
                 let newX = rotationX - Float(deltaY) * sensitivity
                 rotationX = max(-1.4, min(-0.1, newX))
             }
         }
-        
         return view
     }
 
@@ -256,12 +239,10 @@ struct InteractiveSceneView: NSViewRepresentable {
         nsView.pointOfView = cameraNode
     }
     
-    // Subclass to capture mouse events
     class ClickableSCNView: SCNView {
         var onClick: ((CGPoint) -> Void)?
         var onDrag: ((CGFloat, CGFloat) -> Void)?
         var onHover: ((CGPoint) -> Void)?
-        
         private var mouseDownEvent: NSEvent?
         
         override func updateTrackingAreas() {
@@ -281,10 +262,8 @@ struct InteractiveSceneView: NSViewRepresentable {
             if let downEvent = mouseDownEvent {
                 let p1 = downEvent.locationInWindow
                 let p2 = event.locationInWindow
-                let dist = hypot(p1.x - p2.x, p1.y - p2.y)
-                if dist < 10.0 {
-                    let location = self.convert(event.locationInWindow, from: nil)
-                    onClick?(location)
+                if hypot(p1.x - p2.x, p1.y - p2.y) < 10.0 {
+                    onClick?(self.convert(event.locationInWindow, from: nil))
                 }
             }
             self.mouseDownEvent = nil
@@ -297,9 +276,8 @@ struct InteractiveSceneView: NSViewRepresentable {
         }
         
         override func mouseMoved(with event: NSEvent) {
-            let location = self.convert(event.locationInWindow, from: nil)
-            onHover?(location)
+            onHover?(self.convert(event.locationInWindow, from: nil))
             super.mouseMoved(with: event)
         }
     }
-}
+} 

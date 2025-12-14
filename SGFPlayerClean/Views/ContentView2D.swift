@@ -2,8 +2,9 @@
 //  ContentView2D.swift
 //  SGFPlayerClean
 //
-//  Created: 2025-11-19
-//  Purpose: Main container for 2D board view
+//  Updated (v3.45):
+//  - Fixes "Unclickable Board" by allowing hits to pass through Lids Overlay.
+//  - Ensures Lids don't block the board underneath.
 //
 
 import SwiftUI
@@ -16,7 +17,7 @@ struct ContentView2D: View {
         static let topMargin: CGFloat = 40
         static let leftMargin: CGFloat = 40
         static let rightMargin: CGFloat = 120
-        static let bottomMargin: CGFloat = 80 // Reduced bottom margin for thinner controls
+        static let bottomMargin: CGFloat = 80
         
         static let lidGap: CGFloat = 20
         static let lidVerticalSpacing: CGFloat = 30
@@ -49,8 +50,7 @@ struct ContentView2D: View {
                 // LAYER 3: Overlays
                 SharedOverlays(showSettings: $showSettings, buttonsVisible: $buttonsVisible, app: app)
                 
-                // HIDDEN CONTROLS: Keyboard Shortcuts
-                // This is the robust way to handle Shift+Arrow without macOS 14 errors
+                // HIDDEN CONTROLS
                 ZStack {
                     Button("") { boardVM.seekToMove(max(boardVM.currentMoveIndex - 10, 0)) }
                         .keyboardShortcut(.leftArrow, modifiers: .shift)
@@ -58,7 +58,7 @@ struct ContentView2D: View {
                     Button("") { boardVM.seekToMove(min(boardVM.currentMoveIndex + 10, boardVM.totalMoves)) }
                         .keyboardShortcut(.rightArrow, modifiers: .shift)
                 }
-                .opacity(0) // Invisible but active
+                .opacity(0)
             }
             .onAppear {
                 if let game = app.selection {
@@ -82,15 +82,15 @@ struct ContentView2D: View {
         let panelWidth = geometry.size.width * 0.7
         let panelHeight = geometry.size.height
         
-        // 1. Calculate Board Rect
         let frame = calculateBoardFrame(containerWidth: panelWidth, containerHeight: panelHeight)
         
         ZStack(alignment: .topLeading) {
             
-            // A. Board
+            // A. Board (Interactive)
             BoardView2D(boardVM: boardVM, layoutVM: layoutVM)
                 .frame(width: frame.width, height: frame.height)
                 .position(x: frame.midX, y: frame.midY)
+                .zIndex(1)
                 .onChange(of: frame) { _, newFrame in
                     layoutVM.updateBoardFrame(newFrame, boardSize: boardVM.boardSize)
                 }
@@ -98,23 +98,28 @@ struct ContentView2D: View {
                     layoutVM.updateBoardFrame(frame, boardSize: boardVM.boardSize)
                 }
 
-            // B. Lids
+            // B. Lids (Visual Only - Pass touches through)
             lidsOverlay(boardFrame: frame)
+                .allowsHitTesting(false) // FIX: Stop blocking board clicks
+                .zIndex(2)
             
-            // C. Controls (Centered under board)
+            // C. Controls
             PlaybackControls(boardVM: boardVM)
-                .position(x: frame.midX, y: frame.maxY + 40) // Closer to board
+                .position(x: frame.midX, y: frame.maxY + 40)
+                .zIndex(3)
             
             // D. Version
             Text("v1.0.47")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.black.opacity(0.4))
                 .position(x: panelWidth - 40, y: panelHeight - 20)
+                .zIndex(0)
             
             // E. Right Panel
             RightPanelView(app: app, boardVM: boardVM)
                 .frame(width: geometry.size.width * 0.3, height: panelHeight)
                 .position(x: panelWidth + (geometry.size.width * 0.15), y: panelHeight / 2)
+                .zIndex(4)
         }
     }
 
