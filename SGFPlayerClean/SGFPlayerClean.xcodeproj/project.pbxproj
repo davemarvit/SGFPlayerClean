@@ -29,6 +29,7 @@
 		553B93AE2EE2C4750093C845 /* SGFCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93AD2EE2C4700093C845 /* SGFCoordinates.swift */; };
 		553B93B02EE3B3C00093C845 /* ActiveGamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */; };
 		553B93DF2EEA3BB00093C845 /* OGSClient+Logic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93DE2EEA3BAC0093C845 /* OGSClient+Logic.swift */; };
+		553B93E12EEE89770093C845 /* DebugDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 553B93E02EEE89740093C845 /* DebugDashboard.swift */; };
 		55B9DDAB2ECEE13900066FA3 /* BoardView2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DDA52ECEE13900066FA3 /* BoardView2D.swift */; };
 		55B9DDAC2ECEE13900066FA3 /* BoardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DD9F2ECEE13900066FA3 /* BoardViewModel.swift */; };
 		55B9DDAD2ECEE13900066FA3 /* LayoutViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B9DDA12ECEE13900066FA3 /* LayoutViewModel.swift */; };
@@ -82,6 +83,7 @@
 		553B93AD2EE2C4700093C845 /* SGFCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SGFCoordinates.swift; sourceTree = "<group>"; };
 		553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveGamePanel.swift; sourceTree = "<group>"; };
 		553B93DE2EEA3BAC0093C845 /* OGSClient+Logic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OGSClient+Logic.swift"; sourceTree = "<group>"; };
+		553B93E02EEE89740093C845 /* DebugDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDashboard.swift; sourceTree = "<group>"; };
 		55B9DD6F2ECEE05200066FA3 /* SGFPlayerClean.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SGFPlayerClean.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		55B9DD7D2ECEE05400066FA3 /* SGFPlayerCleanTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SGFPlayerCleanTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		55B9DD872ECEE05400066FA3 /* SGFPlayerCleanUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SGFPlayerCleanUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -201,6 +203,7 @@
 		55B9DDAA2ECEE13900066FA3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				553B93E02EEE89740093C845 /* DebugDashboard.swift */,
 				553B93DE2EEA3BAC0093C845 /* OGSClient+Logic.swift */,
 				553B93AF2EE3B3BB0093C845 /* ActiveGamePanel.swift */,
 				553B93A92EDEC0BC0093C845 /* StoneView2D.swift */,
@@ -387,6 +390,7 @@
 				553B93A42EDE24C90093C845 /* BoardPosition.swift in Sources */,
 				5525F84E2ED83EB600FD967B /* SharedOverlays.swift in Sources */,
 				553B93DF2EEA3BB00093C845 /* OGSClient+Logic.swift in Sources */,
+				553B93E12EEE89770093C845 /* DebugDashboard.swift in Sources */,
 				553B938A2EDC14580093C845 /* GameSettings.swift in Sources */,
 				5525F84F2ED83EB600FD967B /* KeyboardShortcuts.swift in Sources */,
 				553B93B02EE3B3C00093C845 /* ActiveGamePanel.swift in Sources */,

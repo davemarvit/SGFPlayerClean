@@ -2,8 +2,9 @@
 //  OGSModels.swift
 //  SGFPlayerClean
 //
-//  Created: 2025-11-24
-//  Updated: 2025-12-07 (Simplified: Trust OGSClient for strings)
+//  v3.99: Compilation Fix.
+//  - Restored 'started' property to GameInfo (Required by OGSBrowserView).
+//  - Maintains clean structure for Socket Adapter.
 //
 
 import Foundation
@@ -22,34 +23,17 @@ struct OGSChallenge: Codable, Identifiable, Hashable {
         "\(game.width)×\(game.height)"
     }
 
-    // Helper to extract the raw JSON parameters once
-    private var timeParams: [String: Any]? {
-        guard let params = game.timeControlParameters,
-              let data = params.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return json
-    }
-
-    /// Robust category detection for filtering (Live vs Correspondence)
     var speedCategory: String {
-        if let json = timeParams, let speed = json["speed"] as? String {
-            return speed // "blitz", "live", "correspondence"
-        }
-        // Fallback checks
+        if let speed = game.timeControlParameters?.speed { return speed }
         let tc = (game.timeControl ?? "").lowercased()
         if tc.contains("simple") || tc.contains("correspondence") { return "correspondence" }
         return "live"
     }
 
-    /// Detailed human-readable time string (e.g., "10m + 5x30s")
-    /// Sourced directly from GameInfo, which OGSClient populates.
     var timeControlDisplay: String {
         return game.timeControl ?? "Unknown"
     }
 
-    // Hashable conformance for SwiftUI Lists
     static func == (lhs: OGSChallenge, rhs: OGSChallenge) -> Bool {
         lhs.id == rhs.id
     }
@@ -57,29 +41,27 @@ struct OGSChallenge: Codable, Identifiable, Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-
-    enum CodingKeys: String, CodingKey {
-        case id, challenger, game, created
-        case challengerColor = "challenger_color"
-        case minRanking = "min_ranking"
-        case maxRanking = "max_ranking"
-    }
 }
 
 struct ChallengerInfo: Codable, Hashable {
     let id: Int
     let username: String
-    let ranking: Double
+    let ranking: Double?
     let professional: Bool
 
     var displayRank: String {
-        let rank = Int(round(ranking))
-        if rank < 30 {
-            return "\(30 - rank)k"
-        } else {
-            return "\(rank - 29)d"
-        }
+        guard let r = ranking else { return "?" }
+        let rank = Int(round(r))
+        if rank < 30 { return "\(30 - rank)k" }
+        else { return "\(rank - 29)d" }
     }
+}
+
+struct TimeControlParams: Codable, Hashable {
+    let speed: String?
+    let system: String?
+    let time_control: String?
+    let pause_on_weekends: Bool?
 }
 
 struct GameInfo: Codable, Hashable {
@@ -92,32 +74,22 @@ struct GameInfo: Codable, Hashable {
     let handicap: Int
     let komi: String?
     let timeControl: String?
-    let timeControlParameters: String? // JSON String
+    let timeControlParameters: TimeControlParams?
     let disableAnalysis: Bool
-    let pauseOnWeekends: Bool
-    let black: Int?
-    let white: Int?
+    
+    // v3.99 FIX: Restored this property
     let started: String?
-    let blackLost: Bool
-    let whiteLost: Bool
-    let annulled: Bool
-
+    
     enum CodingKeys: String, CodingKey {
-        case id, name, width, height, rules, ranked, handicap, komi, black, white, started, annulled
+        case id, name, width, height, rules, ranked, handicap, komi, started
         case timeControl = "time_control"
         case timeControlParameters = "time_control_parameters"
         case disableAnalysis = "disable_analysis"
-        case pauseOnWeekends = "pause_on_weekends"
-        case blackLost = "black_lost"
-        case whiteLost = "white_lost"
     }
 }
 
 struct OGSChallengesResponse: Codable {
     let results: [OGSChallenge]
-    let count: Int
-    let next: String?
-    let previous: String?
 }
 
 // MARK: - Automatch Payloads

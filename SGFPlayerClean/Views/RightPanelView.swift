@@ -2,9 +2,9 @@
 //  RightPanelView.swift
 //  SGFPlayerClean
 //
-//  Updated:
-//  - Uses .frostedGlassStyle() globally.
-//  - Reduced internal background opacities (0.2 -> 0.1) to match SettingsPanel.
+//  v3.107: Compilation Fix.
+//  - Updated OGSBrowserView init to match v3.105 signature (client: app.ogsClient).
+//  - Keeps existing UI logic and styling intact.
 //
 
 import SwiftUI
@@ -55,10 +55,12 @@ struct RightPanelView: View {
                 } else {
                     // ONLINE: Auto-switch between Lobby and Active Game
                     if app.ogsClient.activeGameID != nil && app.ogsClient.isConnected {
-                        ActiveGamePanel(client: app.ogsClient, boardVM: boardVM)
+                        // Pass the full appModel to ActiveGamePanel
+                        ActiveGamePanel(appModel: app)
                             .transition(.opacity)
                     } else {
-                        OGSBrowserView(app: app)
+                        // v3.107 FIX: Updated init to use 'client'
+                        OGSBrowserView(client: app.ogsClient)
                             .transition(.opacity)
                     }
                 }

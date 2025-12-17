@@ -2,15 +2,20 @@
 //  ActiveGamePanel.swift
 //  SGFPlayerClean
 //
-//  Updated (v3.70):
-//  - Added Undo Request Overlay (Accept/Reject).
+//  v3.77: Restored missing PlayerCard struct.
+//  - Added Debug Trigger.
+//  - Updated Initialization.
 //
 
 import SwiftUI
 
 struct ActiveGamePanel: View {
-    @ObservedObject var client: OGSClient
-    @ObservedObject var boardVM: BoardViewModel
+    // We now observe the full AppModel to toggle the dashboard
+    @ObservedObject var appModel: AppModel
+    
+    // Shortcuts for cleaner code
+    var client: OGSClient { appModel.ogsClient }
+    var boardVM: BoardViewModel { appModel.boardVM! }
     
     var body: some View {
         ZStack {
@@ -118,6 +123,18 @@ struct ActiveGamePanel: View {
                             .buttonStyle(.plain)
                         }
                         .padding(.horizontal)
+                        
+                        // --- DEBUG LINK ---
+                        Button(action: { appModel.showDebugDashboard = true }) {
+                            HStack {
+                                Image(systemName: "ladybug")
+                                Text("Network Inspector")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(.top, 20)
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding()
                 }
@@ -176,6 +193,7 @@ struct ActiveGamePanel: View {
     }
 }
 
+// MARK: - Player Card (Restored)
 struct PlayerCard: View {
     let name: String?
     let rank: Double?

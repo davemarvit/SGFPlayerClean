@@ -2,8 +2,8 @@
 //  AppModel.swift
 //  SGFPlayerClean
 //
-//  v3.69: Enhanced Undo-Reload support.
-//  - Ensures Board is reset before reloading online state.
+//  v3.79: Wires up Local Undo.
+//  - Listens for OGSUndoAccepted and triggers BoardVM replay.
 //
 
 import AppKit
@@ -54,6 +54,9 @@ final class AppModel: ObservableObject {
     
     @Published var browserTab: OGSBrowserTab = .challenge
     @Published var isCreatingChallenge: Bool = false
+    
+    // MARK: - Debugging
+    @Published var showDebugDashboard: Bool = false
     
     @Published var layoutVM = LayoutViewModel()
     
@@ -135,9 +138,21 @@ final class AppModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] notification in self?.handleOGSMove(notification) }
             .store(in: &cancellables)
+            
+        // NEW: Handle Undo Accepted (Local Replay)
+        NotificationCenter.default.publisher(for: NSNotification.Name("OGSUndoAccepted"))
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                print("AppModel: ↩️ Undo Accepted Notification. Replaying history locally...")
+                self?.boardVM?.undoLastOnlineMove()
+            }
+            .store(in: &cancellables)
     }
     
     private func handleOGSGameLoad(_ notification: Notification) {
+        // Stop the retry loop immediately
+        ogsClient.cancelJoinRetry()
+        
         guard let userInfo = notification.userInfo,
               let gameData = userInfo["gameData"] as? [String: Any] else { return }
         
@@ -186,13 +201,8 @@ final class AppModel: ObservableObject {
         let moves = (userInfo["moves"] as? [[Any]]) ?? []
         print("AppModel: Replaying \(moves.count) history moves")
         
-        // Note: initializeOnlineGame already set currentMoveIndex = 0.
-        // We do NOT need to manually track color here; handleRemoteMove handles it.
-        
         for moveData in moves {
             if moveData.count >= 2, let x = getInt(moveData[0]), let y = getInt(moveData[1]) {
-                // We pass nil for PlayerID during replay, allowing handleRemoteMove to deduce color from alternation
-                // or we could check the move's color if provided, but OGS compact moves are just coords.
                 boardVM?.handleRemoteMove(x: x, y: y, playerId: nil)
             }
         }

@@ -1,8 +1,8 @@
 // MARK: - File: BoardViewModel.swift
 //
-//  Architecture: Split-State Controller (v3.66)
-//  - v3.66: Fixes Undo Move Numbering.
-//  - Explicitly tracks 'currentMoveIndex' in Online Context so Undo Requests are valid.
+//  Architecture: Split-State Controller (v3.70)
+//  - v3.70: Adds Online Replay History for "Surgical Undo".
+//  - Stores move list to allow rebuilding state locally without server reload.
 //
 
 import Foundation
@@ -28,6 +28,10 @@ class BoardViewModel: ObservableObject {
     // FLAGS
     var isHandicapGame: Bool = false
     @Published var isOnlineContext: Bool = false
+    
+    // ONLINE HISTORY (For Local Replay)
+    private var onlineHandicapStones: [BoardPosition: Stone] = [:]
+    private var onlineMoveHistory: [(x: Int, y: Int, color: Stone)] = []
     
     var totalMoves: Int { return player.maxIndex }
     
@@ -107,6 +111,10 @@ class BoardViewModel: ObservableObject {
             self.whiteCapturedCount = 0
             self.isOnlineContext = false
             self.onlineLogic.reset(size: self.boardSize)
+            
+            self.onlineMoveHistory.removeAll()
+            self.onlineHandicapStones.removeAll()
+            
             self.objectWillChange.send()
         }
     }
@@ -139,6 +147,10 @@ class BoardViewModel: ObservableObject {
             self.onlineLogic.reset(size: width)
             self.onlineLogic.stones = initialStones
             
+            // Replay Support
+            self.onlineHandicapStones = initialStones
+            self.onlineMoveHistory.removeAll()
+            
             if !initialStones.isEmpty {
                 self.onlineLogic.lastColor = .black
                 print("📖 BoardVM: Handicap Detected. Set lastColor = Black.")
@@ -146,7 +158,7 @@ class BoardViewModel: ObservableObject {
             
             self.stones = initialStones
             self.lastMovePosition = nil
-            self.currentMoveIndex = 0 // Will increment as history moves are replayed via handleRemoteMove
+            self.currentMoveIndex = 0
             self.jitter = StoneJitter(boardSize: width, eccentricity: AppSettings.shared.jitterMultiplier)
             
             self.objectWillChange.send()
@@ -189,7 +201,9 @@ class BoardViewModel: ObservableObject {
             self.stones = onlineLogic.stones
             self.lastMovePosition = position
             
-            // FIX: Increment move index locally for optimistic update
+            // HISTORY
+            self.onlineMoveHistory.append((position.col, position.row, myColor))
+            
             self.currentMoveIndex += 1
             
             self.objectWillChange.send()
@@ -209,7 +223,12 @@ class BoardViewModel: ObservableObject {
             isProcessingMove = true
             scheduleSafetyUnlock()
             self.lastMovePosition = nil
-            // FIX: Pass counts as a move
+            
+            // HISTORY: Pass is -1, -1
+            if let myColor = client.playerColor {
+                self.onlineMoveHistory.append((-1, -1, myColor))
+            }
+            
             self.currentMoveIndex += 1
             client.sendPass(gameID: gameID)
             return
@@ -224,6 +243,43 @@ class BoardViewModel: ObservableObject {
         } else {
             previousMove()
         }
+    }
+    
+    // MARK: - Online Replay Logic (The Surgical Fix)
+    func undoLastOnlineMove() {
+        guard isOnlineContext, !onlineMoveHistory.isEmpty else { return }
+        
+        print("📖 BoardVM: ⏪ Performing Local Undo (Replay). History size: \(onlineMoveHistory.count) -> \(onlineMoveHistory.count - 1)")
+        
+        // 1. Remove last move
+        onlineMoveHistory.removeLast()
+        
+        // 2. Reset Logic to Handicap State
+        onlineLogic.reset(size: boardSize)
+        onlineLogic.stones = onlineHandicapStones
+        if !onlineHandicapStones.isEmpty { onlineLogic.lastColor = .black }
+        
+        // 3. Replay History
+        var newLastMove: BoardPosition? = nil
+        
+        for (x, y, color) in onlineMoveHistory {
+            if x < 0 {
+                // Pass
+                newLastMove = nil
+                onlineLogic.lastColor = color
+            } else {
+                let pos = BoardPosition(y, x)
+                onlineLogic.place(at: pos, color: color)
+                newLastMove = pos
+            }
+        }
+        
+        // 4. Update Published State
+        self.stones = onlineLogic.stones
+        self.lastMovePosition = newLastMove
+        self.currentMoveIndex = onlineMoveHistory.count
+        
+        self.objectWillChange.send()
     }
     
     func resignGame() {
@@ -270,6 +326,14 @@ class BoardViewModel: ObservableObject {
                 color = (self.onlineLogic.lastColor == .black) ? .white : .black
             }
             
+            // HISTORY CHECK: Don't add if already latest in history (Rare race condition)
+            if let last = self.onlineMoveHistory.last, last.x == x, last.y == y {
+                return
+            }
+            
+            // Add to history
+            self.onlineMoveHistory.append((x, y, color))
+            
             if x < 0 || y < 0 {
                 // Remote Pass
                 self.lastMovePosition = nil
@@ -280,17 +344,11 @@ class BoardViewModel: ObservableObject {
             
             let pos = BoardPosition(y, x)
             
-            // If board state matches (e.g. strict sync), ensure we don't double count if we missed the echo check
-            if self.onlineLogic.stones[pos] == color && self.lastMovePosition == pos {
-                return
-            }
-            
             print("📖 BoardVM: 📥 Remote Move Placed: \(color) at \(x),\(y)")
             self.onlineLogic.place(at: pos, color: color)
             self.stones = self.onlineLogic.stones
             self.lastMovePosition = pos
             
-            // FIX: Increment move index for remote moves (opponent or history replay)
             self.currentMoveIndex += 1
             
             self.clearGhostStone()
@@ -358,6 +416,13 @@ private class OnlineGameLogic {
                     removeGroup(at: neighbor, color: opponent)
                 }
             }
+        }
+        
+        // Suicide check
+        if countLiberties(at: position, color: color) == 0 {
+            // Note: In real Go, this might be invalid, but OGS handles rules.
+            // We just clear the group to match visual expectation if it happens.
+            removeGroup(at: position, color: color)
         }
     }
     
