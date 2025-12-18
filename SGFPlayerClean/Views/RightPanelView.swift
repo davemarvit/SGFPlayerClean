@@ -2,9 +2,8 @@
 //  RightPanelView.swift
 //  SGFPlayerClean
 //
-//  v3.107: Compilation Fix.
-//  - Updated OGSBrowserView init to match v3.105 signature (client: app.ogsClient).
-//  - Keeps existing UI logic and styling intact.
+//  v3.108: Wiring Challenge Creation.
+//  - Pass $app.isCreatingChallenge to OGSBrowserView.
 //
 
 import SwiftUI
@@ -30,7 +29,6 @@ struct RightPanelView: View {
             }
             .pickerStyle(.segmented)
             .padding(10)
-            // Match Settings Header Background (Opacity 0.1)
             .background(Color.black.opacity(0.1))
             
             Divider().background(Color.white.opacity(0.1))
@@ -55,24 +53,25 @@ struct RightPanelView: View {
                 } else {
                     // ONLINE: Auto-switch between Lobby and Active Game
                     if app.ogsClient.activeGameID != nil && app.ogsClient.isConnected {
-                        // Pass the full appModel to ActiveGamePanel
                         ActiveGamePanel(appModel: app)
                             .transition(.opacity)
                     } else {
-                        // v3.107 FIX: Updated init to use 'client'
-                        OGSBrowserView(client: app.ogsClient)
+                        // v3.108 FIX: Pass binding for creation sheet
+                        OGSBrowserView(client: app.ogsClient, isPresentingCreate: $app.isCreatingChallenge)
                             .transition(.opacity)
                     }
                 }
             }
         }
-        // STYLE: Match SettingsPanel exactly
         .frostedGlassStyle()
         .animation(.easeInOut(duration: 0.2), value: selectedTab)
         .animation(.easeInOut(duration: 0.2), value: app.ogsClient.activeGameID)
         .animation(.easeInOut(duration: 0.2), value: app.selection?.id)
     }
 }
+
+// ... [Keep LocalGameMetadataView, LocalPlaylistView, LocalGameRow unchanged] ...
+// (Omitted for brevity as they are identical to v3.107)
 
 // MARK: - Local Metadata View
 struct LocalGameMetadataView: View {
@@ -81,82 +80,56 @@ struct LocalGameMetadataView: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            
-            // Players & Captures
             HStack(alignment: .top) {
-                // Black Player
                 VStack(alignment: .leading, spacing: 4) {
                     Label(game.game.info.playerBlack ?? "Black", systemImage: "circle.fill")
                         .font(.headline)
                         .foregroundColor(.white)
                         .imageScale(.small)
-                    
-                    Text("\(boardVM.whiteCapturedCount) prisoners") // Stones Black has captured
+                    Text("\(boardVM.whiteCapturedCount) prisoners")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.6))
                 }
-                
                 Spacer()
-                
-                // White Player
                 VStack(alignment: .trailing, spacing: 4) {
                     Label(game.game.info.playerWhite ?? "White", systemImage: "circle")
                         .font(.headline)
                         .foregroundColor(.white)
                         .imageScale(.small)
-                    
-                    Text("\(boardVM.blackCapturedCount) prisoners") // Stones White has captured
+                    Text("\(boardVM.blackCapturedCount) prisoners")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.6))
                 }
             }
-            
             Divider().background(Color.white.opacity(0.1))
-            
-            // Game Info
             HStack {
                 if let result = game.game.info.result, !result.isEmpty {
-                    Text(result)
-                        .font(.callout.bold())
-                        .foregroundColor(.yellow)
+                    Text(result).font(.callout.bold()).foregroundColor(.yellow)
                 } else {
-                    Text("In Progress")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                    Text("In Progress").font(.caption).foregroundColor(.white.opacity(0.5))
                 }
-                
                 Spacer()
-                
                 if let date = game.game.info.date {
-                    Text(date)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                    Text(date).font(.caption).foregroundColor(.white.opacity(0.5))
                 }
             }
         }
         .padding()
-        // Match Settings Header Transparency (Opacity 0.1)
         .background(Color.black.opacity(0.1))
     }
 }
 
-// MARK: - Local Playlist View
 struct LocalPlaylistView: View {
     @ObservedObject var app: AppModel
-    
     var body: some View {
         VStack(spacing: 0) {
             if app.games.isEmpty {
                 Spacer()
                 VStack(spacing: 12) {
-                    Image(systemName: "folder.badge.questionmark")
-                        .font(.largeTitle)
-                        .foregroundColor(.white.opacity(0.3))
-                    Text("No SGF files loaded")
-                        .foregroundColor(.secondary)
+                    Image(systemName: "folder.badge.questionmark").font(.largeTitle).foregroundColor(.white.opacity(0.3))
+                    Text("No SGF files loaded").foregroundColor(.secondary)
                     Button("Open Folder...") { app.promptForFolder() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white.opacity(0.1))
+                        .buttonStyle(.borderedProminent).tint(.white.opacity(0.1))
                 }
                 Spacer()
             } else {
@@ -167,7 +140,6 @@ struct LocalPlaylistView: View {
                                 LocalGameRow(game: game, isSelected: app.selection?.id == game.id)
                             }
                             .buttonStyle(.plain)
-                            
                             Divider().background(Color.white.opacity(0.05))
                         }
                     }
@@ -177,50 +149,24 @@ struct LocalPlaylistView: View {
     }
 }
 
-// MARK: - Local Game Row
 struct LocalGameRow: View {
     let game: SGFGameWrapper
     let isSelected: Bool
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                if isSelected {
-                    Image(systemName: "play.fill")
-                        .font(.caption2)
-                        .foregroundColor(.cyan)
-                }
-                
-                Text(game.game.info.playerBlack ?? "?")
-                    .fontWeight(.bold) +
-                Text(" vs ") +
-                Text(game.game.info.playerWhite ?? "?")
-                    .fontWeight(.bold)
-                
+                if isSelected { Image(systemName: "play.fill").font(.caption2).foregroundColor(.cyan) }
+                Text(game.game.info.playerBlack ?? "?").fontWeight(.bold) + Text(" vs ") + Text(game.game.info.playerWhite ?? "?").fontWeight(.bold)
                 Spacer()
             }
-            .font(.caption)
-            .foregroundColor(isSelected ? .cyan : .white)
-            
+            .font(.caption).foregroundColor(isSelected ? .cyan : .white)
             HStack {
-                Text(game.game.info.date ?? "Unknown Date")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                
+                Text(game.game.info.date ?? "Unknown Date").font(.caption2).foregroundColor(.gray)
                 Spacer()
-                
-                if let result = game.game.info.result {
-                    Text(result)
-                        .font(.caption)
-                        .bold()
-                        .foregroundColor(.yellow)
-                }
+                if let result = game.game.info.result { Text(result).font(.caption).bold().foregroundColor(.yellow) }
             }
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .contentShape(Rectangle())
-        // Match Settings Panel Row Highlight
+        .padding(.vertical, 6).padding(.horizontal, 8).contentShape(Rectangle())
         .background(isSelected ? Color.white.opacity(0.15) : Color.clear)
     }
 }

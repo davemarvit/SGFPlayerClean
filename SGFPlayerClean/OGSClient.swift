@@ -2,9 +2,8 @@
 //  OGSClient.swift
 //  SGFPlayerClean
 //
-//  v3.100: UI Stability.
-//  - Disconnect logic no longer clears the challenge list (prevents flickering).
-//  - Ensures socket connection sends "seek_graph/connect" consistently.
+//  v3.108: Build Fix.
+//  - Restored startAutomatch() stub to satisfy OGSGameViewModel dependency.
 //
 
 import Foundation
@@ -15,7 +14,7 @@ import Security
 struct NetworkLogEntry: Identifiable {
     let id = UUID()
     let timestamp = Date()
-    let direction: String // "⬆️" (Sent) or "⬇️" (Received)
+    let direction: String
     let content: String
     let isHeartbeat: Bool
 }
@@ -41,8 +40,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     
     // Game Metadata
     @Published var komi: Double?
-    
-    // Player Metadata
     @Published var blackPlayerID: Int?
     @Published var whitePlayerID: Int?
     @Published var blackPlayerName: String?
@@ -50,7 +47,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var blackPlayerRank: Double?
     @Published var whitePlayerRank: Double?
     
-    // Clock & Time
     @Published var blackTimeRemaining: TimeInterval?
     @Published var whiteTimeRemaining: TimeInterval?
     @Published var blackPeriodsRemaining: Int?
@@ -58,29 +54,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var blackPeriodTime: TimeInterval?
     @Published var whitePeriodTime: TimeInterval?
 
-    // Undo State
     @Published var undoRequestedUsername: String? = nil
     @Published var undoRequestedMoveNumber: Int? = nil
 
     @Published var availableGames: [OGSChallenge] = []
-    
-    // MARK: - Debugging State
     @Published var trafficLogs: [NetworkLogEntry] = []
     
-    // MARK: - Internal Properties
     internal var webSocketTask: URLSessionWebSocketTask?
     internal var urlSession: URLSession?
     internal var pingTimer: Timer?
     internal var clockTimer: Timer?
     internal var joinRetryTimer: Timer?
     
-    // Queue Flags
     internal var isSubscribedToSeekgraph = false
     private var wantsSeekGraph = false
-    
-    // Watchdog
     private var lastMessageReceived: Date = Date()
-    
     internal let keychainService = "com.davemarvit.SGFPlayerClean.OGS"
     
     // MARK: - Initialization
@@ -97,10 +85,9 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     // MARK: - Connection Logic
     func connect() {
         disconnect(isReconnecting: true)
-        
         guard let url = URL(string: "wss://wsp.online-go.com/socket.io/?EIO=4&transport=websocket") else { return }
         
-        logTraffic("🔌 Connecting to WSP (v4)...", direction: "⚡️")
+        logTraffic("🔌 Connecting...", direction: "⚡️")
         var request = URLRequest(url: url)
         request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
         
@@ -111,7 +98,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         
         webSocketTask = urlSession?.webSocketTask(with: request)
         webSocketTask?.resume()
-        
         lastMessageReceived = Date()
         receiveMessage()
     }
@@ -120,7 +106,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         pingTimer?.invalidate()
         clockTimer?.invalidate()
         joinRetryTimer?.invalidate()
-        
         webSocketTask?.cancel(with: .goingAway, reason: nil)
         webSocketTask = nil
         
@@ -131,23 +116,19 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 self.isSubscribedToSeekgraph = false
                 self.activeGameID = nil
                 self.activeGameAuth = nil
-                // v3.100: Do NOT clear availableGames here to prevent UI flicker
             }
         } else {
             DispatchQueue.main.async { self.isConnected = false }
         }
     }
 
-    // MARK: - Socket I/O
-    
     internal func sendSocketMessage(_ text: String) {
         guard isConnected, webSocketTask != nil else { return }
-        
         logTraffic(text, direction: "⬆️")
         webSocketTask?.send(.string(text)) { [weak self] error in
             if let error = error {
                 print("OGS: ❌ Send Error: \(error)")
-                self?.logTraffic("❌ Send Error: \(error.localizedDescription)", direction: "⚠️")
+                self?.logTraffic("Error: \(error.localizedDescription)", direction: "⚠️")
             }
         }
     }
@@ -156,7 +137,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         webSocketTask?.receive { [weak self] result in
             guard let self = self else { return }
             self.lastMessageReceived = Date()
-            
             switch result {
             case .success(let message):
                 if case .string(let text) = message {
@@ -170,76 +150,56 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 }
                 self.receiveMessage()
             case .failure(let error):
-                self.logTraffic("❌ Socket Error: \(error.localizedDescription)", direction: "⚠️")
-                print("OGS: ❌ Socket Error: \(error.localizedDescription)")
+                self.logTraffic("Error: \(error.localizedDescription)", direction: "⚠️")
                 DispatchQueue.main.async { self.isConnected = false }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { if !self.isConnected { self.connect() } }
             }
         }
     }
     
-    // MARK: - Delegates
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        logTraffic("🟢 WebSocket Connected", direction: "⚡️")
-        
+        logTraffic("🟢 Connected", direction: "⚡️")
         DispatchQueue.main.async {
             self.isConnected = true
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if self.isConnected { self.sendSocketMessage("40") }
-            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { if self.isConnected { self.sendSocketMessage("40") } }
             
             self.pingTimer?.invalidate()
             self.pingTimer = Timer.scheduledTimer(withTimeInterval: 20.0, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
-                let silence = Date().timeIntervalSince(self.lastMessageReceived)
-                if silence > 45.0 {
-                    self.logTraffic("⚠️ Watchdog Timeout. Reconnecting...", direction: "⚡️")
-                    self.connect()
-                    return
-                }
+                if Date().timeIntervalSince(self.lastMessageReceived) > 45.0 { self.connect(); return }
                 self.sendSocketMessage("3")
             }
             
             if self.userJWT != nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    if self.isConnected { self.sendSocketAuth() }
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { if self.isConnected { self.sendSocketAuth() } }
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 if self.wantsSeekGraph || self.isSubscribedToSeekgraph {
-                    self.logTraffic("🔄 Restoration - Subscribing to SeekGraph", direction: "📡")
                     self.subscribeToSeekgraph(force: true)
                     self.wantsSeekGraph = false
                 }
-                
-                if let gameID = self.activeGameID {
-                    self.logTraffic("🔄 Restoration - Re-joining Game \(gameID)", direction: "🎮")
-                    self.joinGame(gameID: gameID)
-                }
+                if let gameID = self.activeGameID { self.joinGame(gameID: gameID) }
             }
         }
     }
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        logTraffic("🔴 WebSocket Closed", direction: "⚡️")
+        logTraffic("🔴 Closed", direction: "⚡️")
         pingTimer?.invalidate()
         DispatchQueue.main.async { self.isConnected = false; self.isSocketAuthenticated = false }
     }
     
-    // MARK: - Logging Helper
     internal func logTraffic(_ content: String, direction: String) {
         let isHeartbeat = (content == "2" || content == "3")
         let entry = NetworkLogEntry(direction: direction, content: content, isHeartbeat: isHeartbeat)
-        
         DispatchQueue.main.async {
             if self.trafficLogs.count > 100 { self.trafficLogs.removeLast() }
             self.trafficLogs.insert(entry, at: 0)
         }
     }
     
-    // MARK: - Auth Logic
+    // MARK: - Auth
     func loadCredentials() {
         if let data = KeychainHelper.load(service: keychainService, account: "session_id"),
            let sessionID = String(data: data, encoding: .utf8) {
@@ -251,7 +211,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
            cookies.contains(where: { $0.name == "sessionid" }) {
             self.isAuthenticated = true
             fetchUserConfig()
-            return
         }
     }
     
@@ -324,11 +283,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         sendSocketMessage(authMsg)
     }
     
-    func deleteCredentials() {
-        let _ = KeychainHelper.delete(service: keychainService, account: "session_id")
-        DispatchQueue.main.async { self.isAuthenticated = false; self.username = nil; self.playerID = nil; self.disconnect() }
-    }
-    
     internal func ensureCSRFToken(completion: @escaping (String?) -> Void) {
         if let url = URL(string: "https://online-go.com"), let cookies = urlSession?.configuration.httpCookieStorage?.cookies(for: url), let csrf = cookies.first(where: { $0.name == "csrftoken" }) {
             completion(csrf.value); return
@@ -346,13 +300,11 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     // MARK: - Game Actions
-    
     func joinGame(gameID: Int) {
-        print("OGS: 🎮 Joining Game \(gameID) (Starting Retry Loop)")
+        print("OGS: 🎮 Joining \(gameID)")
         sendJoinPayload(gameID: gameID)
         joinRetryTimer?.invalidate()
         joinRetryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            print("OGS: 🔁 Retrying Join Game \(gameID)...")
             self?.sendJoinPayload(gameID: gameID)
         }
     }
@@ -365,11 +317,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     func cancelJoinRetry() {
-        if joinRetryTimer != nil {
-            print("OGS: ✅ Join Successful. Stopping Retry Loop.")
-            joinRetryTimer?.invalidate()
-            joinRetryTimer = nil
-        }
+        joinRetryTimer?.invalidate()
+        joinRetryTimer = nil
     }
     
     func sendMove(gameID: Int, x: Int, y: Int) {
@@ -384,21 +333,18 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     func sendUndoRequest(gameID: Int, moveNumber: Int) {
-        print("OGS: ↩️ Sending Undo Request for Game \(gameID), Move \(moveNumber)")
         let json = "{\"game_id\":\(gameID),\"move_number\":\(moveNumber),\"player_id\":\(playerID ?? 0),\"auth\":\"\(activeGameAuth ?? "")\"}"
         sendSocketMessage("42[\"game/undo/request\",\(json)]")
     }
     
     func sendUndoAccept(gameID: Int) {
         guard let moveNum = undoRequestedMoveNumber else { return }
-        print("OGS: ✅ Accepting Undo Request for Move \(moveNum)")
         let json = "{\"game_id\":\(gameID),\"move_number\":\(moveNum),\"auth\":\"\(activeGameAuth ?? "")\"}"
         sendSocketMessage("42[\"game/undo/accept\",\(json)]")
         DispatchQueue.main.async { self.undoRequestedUsername = nil }
     }
     
     func sendUndoReject(gameID: Int) {
-        print("OGS: ❌ Rejecting Undo Request")
         DispatchQueue.main.async { self.undoRequestedUsername = nil }
     }
     
@@ -426,7 +372,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.urlSession?.dataTask(with: request) { data, resp, err in
                 if let _ = err { completion(nil, "Network Error"); return }
                 guard let http = resp as? HTTPURLResponse else { completion(nil, "Invalid Resp"); return }
-                
                 if http.statusCode == 403 && retryCount > 0 {
                     self.refreshCSRFToken { success in
                         if success { self.performAccept(challengeID: challengeID, retryCount: retryCount - 1, completion: completion) }
@@ -434,13 +379,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     }
                     return
                 }
-                
-                func getInt(_ v: Any?) -> Int? {
-                    if let i = v as? Int { return i }
-                    if let s = v as? String { return Int(s) }
-                    return nil
-                }
-                
+                func getInt(_ v: Any?) -> Int? { if let i = v as? Int { return i }; if let s = v as? String { return Int(s) }; return nil }
                 if let data = data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     if let id = getInt(json["id"]) { completion(id, nil); return }
                     if let id = getInt(json["game_id"]) { completion(id, nil); return }
@@ -451,73 +390,63 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         }
     }
     
-    // MARK: - API Calls
-    
-    func startAutomatch() { }
-    
-    func postCustomGame(settings: GameSettings, completion: @escaping (Bool, String?) -> Void) {
-        guard let url = URL(string: "https://online-go.com/api/v1/challenges") else { completion(false, "URL"); return }
-        
+    // v3.105: createChallenge (Replaces postCustomGame)
+    func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
+        guard let url = URL(string: "https://online-go.com/api/v1/challenges") else { completion(false, "Invalid URL"); return }
         ensureCSRFToken { token in
-            guard let token = token else { completion(false, "Auth Error"); return }
-            
-            let rules = "japanese"
-            let time = "byoyomi"
-            
-            let json: [String: Any] = [
-                "game": [
-                    "name": "Challenge",
-                    "rules": rules,
-                    "ranked": settings.ranked,
-                    "handicap": settings.handicap,
-                    "time_control": time,
-                    "time_control_parameters": [
-                        "time_control": time,
-                        "main_time": 600,
-                        "period_time": 30,
-                        "periods": 5
-                    ],
-                    "width": settings.boardSize,
-                    "height": settings.boardSize,
-                    "disable_analysis": false
-                ],
-                "challenger_color": "automatic",
-                "min_ranking": -30,
-                "max_ranking": 30
-            ]
-            
+            guard let token = token else { completion(false, "Missing CSRF Token"); return }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(token, forHTTPHeaderField: "X-CSRFToken")
             request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
-            request.httpBody = try? JSONSerialization.data(withJSONObject: json)
+            let jsonPayload = setup.toDictionary()
+            request.httpBody = try? JSONSerialization.data(withJSONObject: jsonPayload)
             
+            self.logTraffic("Creating Challenge...", direction: "⬆️")
             self.urlSession?.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    completion(false, error.localizedDescription)
-                    return
-                }
-                if let http = response as? HTTPURLResponse, http.statusCode == 201 {
-                    completion(true, nil)
-                } else {
-                    completion(false, "Failed (Status: \((response as? HTTPURLResponse)?.statusCode ?? 0))")
+                if let error = error { completion(false, error.localizedDescription); return }
+                if let http = response as? HTTPURLResponse {
+                    if http.statusCode == 201 || http.statusCode == 200 { completion(true, nil) }
+                    else {
+                        let msg = String(data: data ?? Data(), encoding: .utf8) ?? "Unknown"
+                        completion(false, "Status \(http.statusCode): \(msg)")
+                    }
+                } else { completion(false, "Invalid Response") }
+            }.resume()
+        }
+    }
+    
+    // v3.105: cancelChallenge
+    func cancelChallenge(challengeID: Int) {
+        guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)") else { return }
+        ensureCSRFToken { token in
+            guard let token = token else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(token, forHTTPHeaderField: "X-CSRFToken")
+            request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+            
+            self.logTraffic("Deleting Challenge \(challengeID)...", direction: "⬆️")
+            self.urlSession?.dataTask(with: request) { _, resp, _ in
+                if let http = resp as? HTTPURLResponse, http.statusCode != 200 && http.statusCode != 204 {
+                    print("OGS: Delete failed \(http.statusCode)")
                 }
             }.resume()
         }
     }
     
-    // MARK: - SeekGraph (Socket Based)
+    // v3.108: Restored startAutomatch Stub
+    func startAutomatch() {
+        // Future implementation
+        print("OGS: Automatch not yet implemented.")
+    }
     
     func subscribeToSeekgraph(force: Bool = false) {
-        guard isConnected else {
-            print("OGS: ⏳ Queuing SeekGraph subscription (Socket not ready)")
-            self.wantsSeekGraph = true
-            return
-        }
-        
+        guard isConnected else { self.wantsSeekGraph = true; return }
         if webSocketTask != nil && (!isSubscribedToSeekgraph || force) {
-            print("OGS: 📡 Subscribing to Global SeekGraph via Socket...")
+            print("OGS: 📡 Subscribing to Global SeekGraph")
             sendSocketMessage("42[\"seek_graph/connect\",{\"channel\":\"global\"}]")
             isSubscribedToSeekgraph = true
         }
