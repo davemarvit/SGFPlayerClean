@@ -1,8 +1,7 @@
-//
-//  DebugDashboard.swift
-//  SGFPlayerClean
+// MARK: - File: DebugDashboard.swift (v3.260)
 //
 //  A comprehensive debug view for OGS traffic and state inspection.
+//  Updated to harmonize with BoardViewModel v3.250.
 //
 
 import SwiftUI
@@ -40,23 +39,15 @@ struct DebugDashboard: View {
                 .background(Color.black.opacity(0.8))
                 
                 // Log List
-                ScrollViewReader { proxy in
-                    List {
-                        ForEach(appModel.ogsClient.trafficLogs) { entry in
-                            if showHeartbeats || !entry.isHeartbeat {
-                                LogRow(entry: entry)
-                                    .id(entry.id)
-                            }
-                        }
-                    }
-                    .listStyle(.plain)
-                    .background(Color.black.opacity(0.9))
-                    .onChange(of: appModel.ogsClient.trafficLogs.count) { _ in
-                        if let first = appModel.ogsClient.trafficLogs.first {
-                            // proxy.scrollTo(first.id, anchor: .top) // Auto-scroll if desired
+                List {
+                    ForEach(appModel.ogsClient.trafficLogs) { entry in
+                        if showHeartbeats || !entry.isHeartbeat {
+                            LogRow(entry: entry)
                         }
                     }
                 }
+                .listStyle(.plain)
+                .background(Color.black.opacity(0.9))
             }
             .frame(minWidth: 350)
             
@@ -69,26 +60,28 @@ struct DebugDashboard: View {
                     .foregroundColor(.white)
                     .padding(.bottom, 10)
                 
-                // Game Info
-                Group {
+                // Connection & Auth Info
+                VStack(alignment: .leading, spacing: 8) {
+                    StateRow(label: "Connected", value: appModel.ogsClient.isConnected ? "YES" : "NO")
+                    StateRow(label: "Socket Auth", value: appModel.ogsClient.isSocketAuthenticated ? "YES" : "NO")
                     StateRow(label: "Game ID", value: "\(appModel.ogsClient.activeGameID ?? -1)")
-                    StateRow(label: "Auth", value: appModel.ogsClient.activeGameAuth == nil ? "Missing" : "OK")
+                    StateRow(label: "Auth Token", value: appModel.ogsClient.activeGameAuth == nil ? "Missing" : "OK")
                     StateRow(label: "Player ID", value: "\(appModel.ogsClient.playerID ?? -1)")
-                    StateRow(label: "My Color", value: appModel.ogsClient.playerColor == .black ? "Black" : (appModel.ogsClient.playerColor == .white ? "White" : "Spectator"))
                 }
                 
                 Divider().background(Color.gray)
                 
-                // Move Counters (The critical test for Undo)
-                Group {
+                // Sync Status (Engine State)
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Sync Status")
                         .font(.subheadline)
                         .foregroundColor(.yellow)
                     
                     if let boardVM = appModel.boardVM {
-                        StateRow(label: "Local Move Index", value: "\(boardVM.currentMoveIndex)")
-                        StateRow(label: "Processing Move", value: boardVM.isProcessingMove ? "YES" : "NO")
-                        StateRow(label: "Last Remote Color", value: boardVM.nextTurnColor == .black ? "White" : "Black") // Inferred
+                        StateRow(label: "Move Index", value: "\(boardVM.currentMoveIndex)")
+                        StateRow(label: "Total Moves", value: "\(boardVM.totalMoves)")
+                        StateRow(label: "Next Turn", value: appModel.player.turn == .black ? "Black" : "White")
+                        StateRow(label: "My Color", value: appModel.ogsClient.playerColor == .black ? "Black" : (appModel.ogsClient.playerColor == .white ? "White" : "Spectator"))
                     } else {
                         Text("Board VM Not Active").foregroundColor(.red)
                     }

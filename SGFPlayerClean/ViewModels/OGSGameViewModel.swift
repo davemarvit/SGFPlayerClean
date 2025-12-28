@@ -1,58 +1,47 @@
-//
-//  OGSGameViewModel.swift
-//  SGFPlayerClean
-//
-//  Created: 2025-11-24
-//  Updated: 2025-12-02
-//  Purpose: Bridges the OGSClient to the App/UI
-//
-
+// MARK: - File: OGSGameViewModel.swift (v4.200)
 import Foundation
 import Combine
 
 class OGSGameViewModel: ObservableObject {
-    @Published var isConnected: Bool = false
-    @Published var currentGameID: Int?
-    @Published var gamePhase: String = "none"
+    @Published var gameInfo: GameInfo?
+    @Published var isMyTurn: Bool = false
+    @Published var gameStatus: String = "Connecting..."
+    @Published var gamePhase: String = "none" // Added to satisfy SupportingViews
     
-    // Internal
     private var ogsClient: OGSClient
     private var player: SGFPlayer
     private var timeControl: TimeControlManager
-    private var cancellables: Set<AnyCancellable> = []
+    private var cancellables = Set<AnyCancellable>()
     
     init(ogsClient: OGSClient, player: SGFPlayer, timeControl: TimeControlManager) {
         self.ogsClient = ogsClient
         self.player = player
         self.timeControl = timeControl
+        setupObservers()
+    }
+    
+    private func setupObservers() {
+        ogsClient.$activeGameID.sink { [weak self] id in
+            if id == nil { self?.gameStatus = "Not in a game"; self?.gamePhase = "none" }
+        }.store(in: &cancellables)
         
-        setupBindings()
-    }
-    
-    private func setupBindings() {
-        // Sync connection state
-        ogsClient.$isConnected
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.isConnected, on: self)
-            .store(in: &cancellables)
-            
-        // Sync Active Game ID
-        ogsClient.$activeGameID
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] id in
-                self?.currentGameID = id
-                if id != nil {
-                    print("OGSVM: Game Started! ID: \(id!)")
-                    self?.gamePhase = "playing"
+        ogsClient.$currentPlayerID.sink { [weak self] current in
+            guard let self = self, let myID = self.ogsClient.playerID else { return }
+            self.isMyTurn = (current == myID)
+            self.gameStatus = self.isMyTurn ? "Your turn" : "Waiting for opponent"
+        }.store(in: &cancellables)
+        
+        // Listen for phase updates from game data
+        NotificationCenter.default.publisher(for: NSNotification.Name("OGSGameDataReceived"))
+            .sink { [weak self] notification in
+                if let data = notification.userInfo?["gameData"] as? [String: Any],
+                   let phase = data["phase"] as? String {
+                    DispatchQueue.main.async { self?.gamePhase = phase }
                 }
-            }
-            .store(in: &cancellables)
+            }.store(in: &cancellables)
     }
     
-    // MARK: - Actions
-    
-    func findMatch() {
-        print("OGSVM: Requesting Automatch...")
-        ogsClient.startAutomatch()
-    }
+    func pass() { guard let id = ogsClient.activeGameID else { return }; ogsClient.sendPass(gameID: id) }
+    func resign() { guard let id = ogsClient.activeGameID else { return }; ogsClient.resignGame(gameID: id) }
+    func startQuickMatch() { ogsClient.startAutomatch() }
 }
