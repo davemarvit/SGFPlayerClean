@@ -27,7 +27,6 @@
 		55EEB57E2EFFEAC600030E2A /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB54B2EFFEAC600030E2A /* AppModel.swift */; };
 		55EEB57F2EFFEAC600030E2A /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB56D2EFFEAC600030E2A /* Logger.swift */; };
 		55EEB5812EFFEAC600030E2A /* SharedOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5722EFFEAC600030E2A /* SharedOverlays.swift */; };
-		55EEB5822EFFEAC600030E2A /* ContentView2D_minimal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5682EFFEAC600030E2A /* ContentView2D_minimal.swift */; };
 		55EEB5842EFFEAC600030E2A /* TimeControlManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5612EFFEAC600030E2A /* TimeControlManager.swift */; };
 		55EEB5862EFFEAC600030E2A /* SGFPlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5562EFFEAC600030E2A /* SGFPlayerEngine.swift */; };
 		55EEB5872EFFEAC600030E2A /* StoneView2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5742EFFEAC600030E2A /* StoneView2D.swift */; };
@@ -93,7 +92,6 @@
 		55EEB5652EFFEAC600030E2A /* BoardView2D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView2D.swift; sourceTree = "<group>"; };
 		55EEB5662EFFEAC600030E2A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		55EEB5672EFFEAC600030E2A /* ContentView2D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView2D.swift; sourceTree = "<group>"; };
-		55EEB5682EFFEAC600030E2A /* ContentView2D_minimal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView2D_minimal.swift; sourceTree = "<group>"; };
 		55EEB5692EFFEAC600030E2A /* ContentView3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView3D.swift; sourceTree = "<group>"; };
 		55EEB56A2EFFEAC600030E2A /* DebugDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDashboard.swift; sourceTree = "<group>"; };
 		55EEB56B2EFFEAC600030E2A /* DebugOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugOverlay.swift; sourceTree = "<group>"; };
@@ -207,7 +205,6 @@
 				55EEB5652EFFEAC600030E2A /* BoardView2D.swift */,
 				55EEB5662EFFEAC600030E2A /* ContentView.swift */,
 				55EEB5672EFFEAC600030E2A /* ContentView2D.swift */,
-				55EEB5682EFFEAC600030E2A /* ContentView2D_minimal.swift */,
 				55EEB5692EFFEAC600030E2A /* ContentView3D.swift */,
 				55EEB56A2EFFEAC600030E2A /* DebugDashboard.swift */,
 				55EEB56B2EFFEAC600030E2A /* DebugOverlay.swift */,
@@ -317,7 +314,6 @@
 				55EEB57E2EFFEAC600030E2A /* AppModel.swift in Sources */,
 				55EEB57F2EFFEAC600030E2A /* Logger.swift in Sources */,
 				55EEB5812EFFEAC600030E2A /* SharedOverlays.swift in Sources */,
-				55EEB5822EFFEAC600030E2A /* ContentView2D_minimal.swift in Sources */,
 				55EEB5842EFFEAC600030E2A /* TimeControlManager.swift in Sources */,
 				55EEB5862EFFEAC600030E2A /* SGFPlayerEngine.swift in Sources */,
 				55EEB5872EFFEAC600030E2A /* StoneView2D.swift in Sources */,

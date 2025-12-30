@@ -1,194 +1,74 @@
-//
-//  BoardView2D.swift
-//  SGFPlayerClean
-//
-//  Updated (v3.67):
-//  - Fixes Compilation Error: 'SafeImage' logic refactored.
-//  - Uses "board_kaya" asset.
-//
-
+// MARK: - File: BoardView2D.swift (v8.101)
 import SwiftUI
-#if os(macOS)
-import AppKit
-#endif
 
 struct BoardView2D: View {
     @ObservedObject var boardVM: BoardViewModel
     @ObservedObject var layoutVM: LayoutViewModel
+    let size: CGSize
     
     var body: some View {
-        GeometryReader { geometry in
+        let margin = size.width * 0.065
+        let gridW = size.width - (margin * 2)
+        let gridH = size.height - (margin * 2)
+        
+        // Fix: Explicitly access boardSize to avoid dynamic member lookup issues
+        let bSize = boardVM.boardSize
+        let cellP = gridW / CGFloat(max(1, bSize - 1))
+        let rowP = gridH / CGFloat(max(1, bSize - 1))
+        
+        ZStack {
             ZStack {
-                // 0. Board Background (Safe Texture)
-                ZStack {
-                    Color(red: 0.85, green: 0.68, blue: 0.40)
-                    // FIX: Pass resizingMode to init, do not chain .resizable() on the custom View
-                    SafeImage(name: "board_kaya", resizingMode: .tile)
-                        .opacity(0.8)
-                }
-                .cornerRadius(4)
-                .shadow(radius: 4)
-                
-                // 1. Grid
-                BoardGridShape(boardSize: boardVM.boardSize)
-                    .stroke(Color.black.opacity(0.8), lineWidth: 1)
-                    .padding(20)
-                
-                // 2. Star Points
-                ForEach(starPoints(size: boardVM.boardSize), id: \.self) { point in
-                    Circle()
-                        .fill(Color.black)
-                        .frame(width: starPointSize(for: geometry.size), height: starPointSize(for: geometry.size))
-                        .position(position(for: point, in: geometry.size))
-                }
-                
-                // 3. Stones
-                ForEach(Array(boardVM.stones).sorted(by: { $0.key.row < $1.key.row }), id: \.key) { (pos, color) in
-                    StoneView2D(color: color, position: pos)
-                        .frame(width: stoneSize(for: geometry.size), height: stoneSize(for: geometry.size))
-                        .position(position(for: pos, in: geometry.size))
-                        .offset(
-                            x: boardVM.getJitterOffset(forPosition: pos).x,
-                            y: boardVM.getJitterOffset(forPosition: pos).y
-                        )
-                }
-                
-                // 4. Ghost Stone
-                if let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
-                    StoneView2D(color: color, position: ghostPos)
-                        .opacity(0.5)
-                        .frame(width: stoneSize(for: geometry.size), height: stoneSize(for: geometry.size))
-                        .position(position(for: ghostPos, in: geometry.size))
-                }
-                
-                // 5. Last Move Marker
-                if let lastMove = boardVM.lastMovePosition {
-                    Circle()
-                        .stroke(boardVM.stones[lastMove] == .black ? Color.white : Color.black, lineWidth: 2)
-                        .frame(width: stoneSize(for: geometry.size) * 0.5, height: stoneSize(for: geometry.size) * 0.5)
-                        .position(position(for: lastMove, in: geometry.size))
-                }
-                
-                // 6. Interaction Layer
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        let pos = coordinate(at: location, in: geometry.size)
-                        boardVM.placeStone(at: pos)
-                    }
-                    .onContinuousHover { phase in
-                        switch phase {
-                        case .active(let location):
-                            let pos = coordinate(at: location, in: geometry.size)
-                            boardVM.updateGhostStone(at: pos)
-                        case .ended:
-                            boardVM.clearGhostStone()
-                        }
-                    }
+                Color(red: 0.82, green: 0.65, blue: 0.4)
+                SafeImage(name: "board_kaya.jpg", resizingMode: .stretch)
             }
+            .frame(width: size.width, height: size.height)
+            .cornerRadius(2)
+            .shadow(color: .black.opacity(0.4), radius: 8)
+            
+            ZStack(alignment: .topLeading) {
+                BoardGridShape(boardSize: bSize)
+                    .stroke(Color.black.opacity(0.8), lineWidth: 1.0)
+                
+                ForEach(starPoints(size: bSize), id: \.self) { pt in
+                    Circle().fill(Color.black)
+                        .frame(width: size.width * 0.012, height: size.width * 0.012)
+                        .position(x: CGFloat(pt.col) * cellP, y: CGFloat(pt.row) * rowP)
+                }
+                
+                ForEach(boardVM.stonesToRender) { rs in
+                    let sS = (rs.color == .black ? 1.015 : 0.995) * cellP
+                    StoneView2D(color: rs.color, position: rs.id)
+                        .frame(width: sS, height: sS)
+                        .position(x: CGFloat(rs.id.col) * cellP + (rs.offset.x * cellP),
+                                  y: CGFloat(rs.id.row) * rowP + (rs.offset.y * rowP))
+                }
+                
+                if let lastPos = boardVM.lastMovePosition {
+                    let j = boardVM.getJitterOffset(forPosition: lastPos)
+                    Circle().stroke(Color.white, lineWidth: max(1.5, size.width * 0.005))
+                        .frame(width: cellP * 0.45, height: cellP * 0.45)
+                        .position(x: CGFloat(lastPos.col) * cellP + (j.x * cellP),
+                                  y: CGFloat(lastPos.row) * rowP + (j.y * rowP))
+                }
+            }
+            .frame(width: gridW, height: gridH)
+            
+            Color.clear.contentShape(Rectangle())
+                .frame(width: size.width, height: size.height)
+                .onTapGesture { loc in
+                    let c = Int(round((loc.x - margin) / cellP))
+                    let r = Int(round((loc.y - margin) / rowP))
+                    boardVM.placeStone(at: BoardPosition(max(0, min(bSize-1, r)), max(0, min(bSize-1, c))))
+                }
         }
     }
     
-    // MARK: - Layout Helpers
     private func starPoints(size: Int) -> [BoardPosition] {
         if size == 19 {
-            return [
-                (3,3), (3,9), (3,15),
-                (9,3), (9,9), (9,15),
-                (15,3), (15,9), (15,15)
-            ].map { BoardPosition($0.0, $0.1) }
+            return [BoardPosition(3,3), BoardPosition(3,9), BoardPosition(3,15),
+                    BoardPosition(9,3), BoardPosition(9,9), BoardPosition(9,15),
+                    BoardPosition(15,3), BoardPosition(15,9), BoardPosition(15,15)]
         }
         return []
-    }
-    
-    private func position(for pos: BoardPosition, in size: CGSize) -> CGPoint {
-        let usableWidth = size.width - 40
-        let usableHeight = size.height - 40
-        let stepX = usableWidth / CGFloat(boardVM.boardSize - 1)
-        let stepY = usableHeight / CGFloat(boardVM.boardSize - 1)
-        
-        return CGPoint(
-            x: 20 + CGFloat(pos.col) * stepX,
-            y: 20 + CGFloat(pos.row) * stepY
-        )
-    }
-    
-    private func coordinate(at point: CGPoint, in size: CGSize) -> BoardPosition {
-        let usableWidth = size.width - 40
-        let usableHeight = size.height - 40
-        let stepX = usableWidth / CGFloat(boardVM.boardSize - 1)
-        let stepY = usableHeight / CGFloat(boardVM.boardSize - 1)
-        
-        let col = Int(round((point.x - 20) / stepX))
-        let row = Int(round((point.y - 20) / stepY))
-        
-        let clampedCol = max(0, min(boardVM.boardSize - 1, col))
-        let clampedRow = max(0, min(boardVM.boardSize - 1, row))
-        
-        return BoardPosition(clampedRow, clampedCol)
-    }
-    
-    private func starPointSize(for size: CGSize) -> CGFloat {
-        return ((size.width - 40) / CGFloat(boardVM.boardSize)) * 0.15
-    }
-    
-    private func stoneSize(for size: CGSize) -> CGFloat {
-        return ((size.width - 40) / CGFloat(boardVM.boardSize)) * 0.95
-    }
-}
-
-// MARK: - Safe Image Helper
-struct SafeImage: View {
-    let name: String
-    let resizingMode: Image.ResizingMode?
-    
-    init(name: String, resizingMode: Image.ResizingMode? = nil) {
-        self.name = name
-        self.resizingMode = resizingMode
-    }
-    
-    var body: some View {
-        if hasImage(named: name) {
-            if let mode = resizingMode {
-                Image(name).resizable(resizingMode: mode)
-            } else {
-                Image(name).resizable()
-            }
-        } else {
-            EmptyView()
-        }
-    }
-    
-    private func hasImage(named: String) -> Bool {
-        #if os(macOS)
-        return NSImage(named: named) != nil
-        #else
-        return UIImage(named: named) != nil
-        #endif
-    }
-}
-
-// MARK: - Board Grid Shape
-struct BoardGridShape: Shape {
-    let boardSize: Int
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let stepX = rect.width / CGFloat(boardSize - 1)
-        let stepY = rect.height / CGFloat(boardSize - 1)
-        
-        for col in 0..<boardSize {
-            let x = CGFloat(col) * stepX
-            path.move(to: CGPoint(x: x, y: 0))
-            path.addLine(to: CGPoint(x: x, y: rect.height))
-        }
-        
-        for row in 0..<boardSize {
-            let y = CGFloat(row) * stepY
-            path.move(to: CGPoint(x: 0, y: y))
-            path.addLine(to: CGPoint(x: rect.width, y: y))
-        }
-        
-        return path
     }
 }

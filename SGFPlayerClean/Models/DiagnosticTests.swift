@@ -1,6 +1,4 @@
-//
-//  DiagnosticTests.swift
-//  SGFPlayerClean
+// MARK: - File: DiagnosticTests.swift (v4.212)
 //
 //  Purpose: Diagnostic test views for debugging performance issues
 //
@@ -15,7 +13,7 @@ struct Test4_FullBoardVM: View {
     init() {
         let model = AppModel()
         _appModel = StateObject(wrappedValue: model)
-        // Harmonized signature
+        // Harmonized signature matching v8.100 architecture
         _boardVM = StateObject(wrappedValue: BoardViewModel(player: model.player, ogsClient: model.ogsClient))
         print("✅ Test 4: Full BoardViewModel initialized")
     }
@@ -24,7 +22,8 @@ struct Test4_FullBoardVM: View {
         VStack {
             Text("Test 4: Full BoardViewModel WITH Combine")
                 .foregroundColor(.white)
-            Text("Stones: \(boardVM.stones.count)")
+            // Performance Fix: Use optimized stonesToRender count
+            Text("Stones (Cache): \(boardVM.stonesToRender.count)")
                 .foregroundColor(.white)
             Text("Move: \(boardVM.currentMoveIndex)")
                 .foregroundColor(.white)

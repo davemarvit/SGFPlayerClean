@@ -1,71 +1,30 @@
-//
-//  SimpleBowlView.swift
-//  SGFPlayerClean
-//
-//  Created: 2025-11-28
-//  Purpose: Renders captured stone containers (Lids) in 2D
-//
-
+// MARK: - File: SimpleBowlView.swift (v6.400)
 import SwiftUI
 
 struct SimpleLidView: View {
-    let stoneColor: Stone
-    let stoneCount: Int
-    let stoneSize: CGFloat
-    let lidNumber: Int
-    let lidSize: CGFloat
-    
+    let stoneColor: Stone; let stoneCount: Int; let stoneSize: CGFloat; let lidNumber: Int; let lidSize: CGFloat
     var body: some View {
         ZStack {
-            // Lid Texture
-            Image(lidNumber == 1 ? "go_lid_1" : "go_lid_2")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: lidSize, height: lidSize)
-                .shadow(color: .black.opacity(0.3), radius: 3, x: 2, y: 2)
-            
-            // Stones Pile
-            if stoneCount > 0 {
-                LidStonesPile(
-                    color: stoneColor,
-                    count: min(stoneCount, 25),
-                    stoneSize: stoneSize, // FIX: Removed * 0.9 scaling so they match board size
-                    lidSize: lidSize
-                )
-            }
-            
-            // Numbers Removed as requested
-        }
-        .frame(width: lidSize, height: lidSize)
+            SafeImage(name: lidNumber == 1 ? "go_lid_1.png" : "go_lid_2.png", resizingMode: .stretch)
+                .frame(width: lidSize, height: lidSize).shadow(color: .black.opacity(0.4), radius: 5, x: 2, y: 3)
+            if stoneCount > 0 { LidStonesPile(color: stoneColor, count: min(stoneCount, 35), stoneSize: stoneSize, lidSize: lidSize) }
+        }.frame(width: lidSize, height: lidSize)
     }
 }
-
 struct LidStonesPile: View {
-    let color: Stone
-    let count: Int
-    let stoneSize: CGFloat
-    let lidSize: CGFloat
-    
+    let color: Stone; let count: Int; let stoneSize: CGFloat; let lidSize: CGFloat
     var body: some View {
+        let adjS = color == .black ? stoneSize * 1.015 : stoneSize * 0.995
         ZStack {
-            ForEach(0..<count, id: \.self) { index in
-                let offset = getScatterOffset(index: index, radius: lidSize * 0.35)
-                
-                // Use the shared StoneView2D with a seed override
-                StoneView2D(color: color, position: BoardPosition(0, 0), seedOverride: index * 7)
-                    .frame(width: stoneSize, height: stoneSize)
-                    .position(
-                        x: (lidSize / 2) + offset.x,
-                        y: (lidSize / 2) + offset.y
-                    )
-                    .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
+            ForEach(0..<count, id: \.self) { i in
+                let off = getOff(i: i, r: lidSize * 0.3)
+                StoneView2D(color: color, position: BoardPosition(0, 0), seedOverride: i * 7)
+                    .frame(width: adjS, height: adjS).position(x: (lidSize / 2) + off.x, y: (lidSize / 2) + off.y)
             }
         }
     }
-    
-    private func getScatterOffset(index: Int, radius: CGFloat) -> CGPoint {
-        let angle = Double(index) * 2.4
-        let dist = radius * sqrt(Double(index) / 25.0)
-        return CGPoint(x: CGFloat(cos(angle) * dist), y: CGFloat(sin(angle) * dist))
+    private func getOff(i: Int, r: CGFloat) -> CGPoint {
+        let a = Double(i) * 2.39996, d = r * sqrt(Double(i) / Double(count))
+        return CGPoint(x: CGFloat(cos(a) * d), y: CGFloat(sin(a) * d))
     }
 }

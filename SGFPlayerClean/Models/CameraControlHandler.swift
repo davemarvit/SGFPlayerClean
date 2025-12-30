@@ -1,16 +1,4 @@
-//
-//  CameraControlHandler.swift
-//  SGFPlayerClean
-//
-//  Created: 2025-11-28
-//  Purpose: Handle 3D camera rotation, pan, and zoom gestures
-//
-//  ARCHITECTURE:
-//  - Transparent overlay for gesture capture
-//  - Updates camera parameters via binding
-//  - Used by ContentView3D
-//
-
+// MARK: - File: CameraControlHandler.swift (v2.105)
 import SwiftUI
 import SceneKit
 
@@ -20,65 +8,72 @@ struct CameraControlHandler: View {
     @Binding var distance: CGFloat
     @Binding var panX: CGFloat
     @Binding var panY: CGFloat
-
     let sceneManager: SceneManager3D
-
+    let onInteractionEnded: () -> Void // Signal to save state
+    
     @State private var lastDragPosition: CGPoint = .zero
     @State private var isDragging: Bool = false
-
+    
     var body: some View {
         Color.clear
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        handleDrag(value)
-                    }
+                    .onChanged { value in handleDrag(value) }
                     .onEnded { _ in
                         isDragging = false
+                        onInteractionEnded()
                     }
             )
             .gesture(
                 MagnificationGesture()
-                    .onChanged { value in
-                        handleZoom(value)
-                    }
+                    .onChanged { value in handleZoom(value) }
+                    .onEnded { _ in onInteractionEnded() }
             )
     }
-
+    
     private func handleDrag(_ value: DragGesture.Value) {
         let currentPosition = value.location
-
         if !isDragging {
             lastDragPosition = currentPosition
             isDragging = true
             return
         }
-
         let delta = CGPoint(
             x: currentPosition.x - lastDragPosition.x,
             y: currentPosition.y - lastDragPosition.y
         )
-
-        // Right-click or Option+drag for panning
+        
         #if os(macOS)
-        if NSEvent.modifierFlags.contains(.option) || NSEvent.pressedMouseButtons == 2 {
-            // Pan camera
+        let flags = NSEvent.modifierFlags
+        let isShiftPressed = flags.contains(.shift)
+        let isControlPressed = flags.contains(.control)
+        
+        if isShiftPressed && isControlPressed {
+            // ZOOM: Ctrl + Shift + Drag
+            let zoomSpeed: CGFloat = 0.1
+            distance -= delta.y * zoomSpeed
+            distance = max(10.0, min(100.0, distance))
+        } else if isShiftPressed {
+            // TRANSLATION: Shift + Drag
+            // Pulling Board (+dx) -> Pushes board right
+            // Pulling Board (+dy) -> Pushes board toward user
             let panSpeed: CGFloat = 0.05
             panX += delta.x * panSpeed
-            panY -= delta.y * panSpeed  // Invert Y for natural panning
+            panY += delta.y * panSpeed
         } else {
-            // Rotate camera
+            // ROTATION: Pulling the board world
             let rotationSpeed: Float = 0.005
-            rotationY -= Float(delta.x) * rotationSpeed  // Inverted for intuitive control
-            rotationX -= Float(delta.y) * rotationSpeed
-
-            // Clamp vertical rotation to avoid flipping
-            rotationX = max(-Float.pi / 2, min(Float.pi / 2, rotationX))
+            // Mouse Down (+dy) -> Increases X rotation (tilts board forward)
+            rotationX += Float(delta.y) * rotationSpeed
+            // Mouse Right (+dx) -> Increases Y rotation (turns board clockwise)
+            rotationY += Float(delta.x) * rotationSpeed
+            
+            // Limit: 0.05 (side on) to 1.57 (90 deg top down)
+            rotationX = max(0.05, min(1.57, rotationX))
         }
         #endif
-
-        // Update scene manager
+        
         sceneManager.updateCameraPosition(
             distance: distance,
             rotationX: rotationX,
@@ -86,15 +81,12 @@ struct CameraControlHandler: View {
             panX: panX,
             panY: panY
         )
-
         lastDragPosition = currentPosition
     }
-
+    
     private func handleZoom(_ value: MagnificationGesture.Value) {
-        // Zoom in/out by adjusting camera distance
         let newDistance = distance / value
-        distance = max(10.0, min(100.0, newDistance))  // Clamp between 10-100
-
+        distance = max(10.0, min(100.0, newDistance))
         sceneManager.updateCameraPosition(
             distance: distance,
             rotationX: rotationX,

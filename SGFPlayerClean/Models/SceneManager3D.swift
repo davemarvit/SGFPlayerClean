@@ -1,554 +1,113 @@
-// MARK: - File: SceneManager3D.swift
+// MARK: - File: SceneManager3D.swift (v4.974)
 import Foundation
 import SceneKit
 import AppKit
+import QuartzCore
 
 class SceneManager3D: ObservableObject {
-    let scene = SCNScene()
-    let cameraNode = SCNNode()
-    let pivotNode = SCNNode()
-
-    private var boardNode: SCNNode?
-    private var stoneNodes: [SCNNode] = []
+    let scene = SCNScene(); let cameraNode = SCNNode(); let pivotNode = SCNNode()
+    private let worldAnchor = SCNNode()
+    private let stonesContainer = SCNNode()
     
-    // NEW: Ghost Stone Node
-    private var ghostNode: SCNNode?
+    private var stoneNodeMap: [BoardPosition: SCNNode] = [:]
+    private var blackStoneGeometry: SCNGeometry?; private var whiteStoneGeometry: SCNGeometry?
+    private var markerMaterial: SCNMaterial?; private var glowMaterial: SCNMaterial?
+    private var boardNode: SCNNode?; private var ghostNode: SCNNode?
     
-    var settings: AppSettings?
-    weak var boardVM: BoardViewModel?
-
-    private var upperLidNode: SCNNode?
-    private var lowerLidNode: SCNNode?
-    private var upperLidStones: [SCNNode] = []
-    private var lowerLidStones: [SCNNode] = []
-
-    // Config
-    private var boardSize: Int = 19
-    private let baseCellWidth: CGFloat = 1.0
-    private let baseCellHeight: CGFloat = 1.0773
-    private let boardThickness: CGFloat = 2.0
-
-    private var effectiveCellWidth: CGFloat {
-        let scaleFactor = CGFloat(18) / CGFloat(boardSize - 1)
-        return baseCellWidth * scaleFactor
-    }
-    private var effectiveCellHeight: CGFloat {
-        let scaleFactor = CGFloat(18) / CGFloat(boardSize - 1)
-        return baseCellHeight * scaleFactor
-    }
+    private var upperLidStones: [SCNNode] = []; private var lowerLidStones: [SCNNode] = []
+    private var upperLidNode: SCNNode?; private var lowerLidNode: SCNNode?
     
-    // Standard Stone Sizes
-    private let stoneRadius: CGFloat = 0.48
-    private let stoneScaleY: CGFloat = 0.486
-    
-    // Deep Red Color
-    private let deepRedColor = NSColor(calibratedRed: 0.75, green: 0.0, blue: 0.0, alpha: 1.0)
-    private let markerRedColor = NSColor(calibratedRed: 0.6, green: 0.0, blue: 0.0, alpha: 1.0)
-
-    private var previousLastMove: (x: Int, y: Int)?
-    private var previousBoardState: [[Stone?]] = []
+    private var boardSize: Int = 19; private let boardThickness: CGFloat = 2.0
+    private let stoneRadius: CGFloat = 0.48; private let stoneScaleY: CGFloat = 0.486; private var previousLastMove: BoardPosition?
+    private var effectiveCellWidth: CGFloat { CGFloat(18) / CGFloat(max(1, boardSize - 1)) }
+    private var effectiveCellHeight: CGFloat { (CGFloat(18) / CGFloat(max(1, boardSize - 1))) * 1.0773 }
 
     init() {
-        setupCamera()
-        setupLighting()
-        setupBackground()
-        createBoard()
-        createLids()
-        setupGhostNode()
-    }
-    
-    private func setupGhostNode() {
-        // Create a semi-transparent stone for hover effects
-        let sphere = SCNSphere(radius: stoneRadius)
-        sphere.segmentCount = 24
-        let material = SCNMaterial()
-        
-        // FIX: Less transparent, more visible
-        // Alpha 0.85 makes it solid enough to see clearly
-        material.diffuse.contents = NSColor(white: 1.0, alpha: 0.85)
-        material.emission.contents = NSColor(white: 0.05, alpha: 1.0) // Very faint glow
-        material.transparency = 0.85
-        material.lightingModel = .blinn
-        sphere.materials = [material]
-        
-        ghostNode = SCNNode(geometry: sphere)
-        ghostNode?.scale = SCNVector3(1.0, stoneScaleY, 1.0)
-        ghostNode?.opacity = 0.0 // Hidden by default
-        ghostNode?.castsShadow = false
-        ghostNode?.name = "GHOST" // Tag it so we can ignore it in hit tests
-        
-        if let ghost = ghostNode {
-            scene.rootNode.addChildNode(ghost)
-        }
-    }
-
-    // MARK: - Scene Setup
-    private func setupBackground() {
-        scene.background.contents = NSColor(red: 0.01, green: 0.01, blue: 0.05, alpha: 1.0)
-    }
-
-    private func setupCamera() {
-        let camera = SCNCamera()
-        camera.usesOrthographicProjection = false
-        camera.fieldOfView = 60
-        camera.zNear = 0.1
-        camera.zFar = 1000.0
-        cameraNode.camera = camera
-        pivotNode.position = SCNVector3(0, 0, 0)
+        scene.rootNode.addChildNode(worldAnchor)
         scene.rootNode.addChildNode(pivotNode)
         pivotNode.addChildNode(cameraNode)
-        updateCameraPosition(distance: 25.0, rotationX: -0.7, rotationY: 0.0, panX: 0, panY: 0)
+        worldAnchor.addChildNode(stonesContainer)
+        setupMaterials(); setupCamera(); setupLighting(); setupBackground(); createBoard(); createLids(); setupGhostNode()
     }
     
-    func updateCameraPosition(distance: CGFloat, rotationX: Float, rotationY: Float, panX: CGFloat, panY: CGFloat) {
-        pivotNode.eulerAngles.y = CGFloat(rotationY)
-        pivotNode.eulerAngles.x = CGFloat(rotationX)
-        let baseY: CGFloat = 15
-        let baseZ: CGFloat = 20
-        let distanceRatio = distance / 25.0
-        cameraNode.position = SCNVector3(x: panX, y: baseY * distanceRatio + panY, z: baseZ * distanceRatio)
-        cameraNode.look(at: SCNVector3(x: panX, y: panY, z: 0))
+    private func setupMaterials() {
+        blackStoneGeometry = SCNSphere(radius: stoneRadius); let bM = SCNMaterial(); bM.diffuse.contents = NSColor(white: 0.1, alpha: 1.0); bM.specular.contents = NSColor(white: 0.3, alpha: 1.0); bM.lightingModel = .blinn; blackStoneGeometry?.materials = [bM]
+        whiteStoneGeometry = SCNSphere(radius: stoneRadius); let wM = SCNMaterial(); wM.diffuse.contents = NSColor(white: 0.95, alpha: 1.0); wM.specular.contents = NSColor(white: 1.0, alpha: 1.0); wM.lightingModel = .blinn; whiteStoneGeometry?.materials = [wM]
+        markerMaterial = SCNMaterial(); markerMaterial?.diffuse.contents = NSColor.red; markerMaterial?.emission.contents = NSColor.red
+        glowMaterial = SCNMaterial(); glowMaterial?.lightingModel = .constant; glowMaterial?.blendMode = .alpha; glowMaterial?.diffuse.contents = generateRedGlowTexture(); glowMaterial?.writesToDepthBuffer = false
     }
 
-    private func setupLighting() {
-        let ambientLight = SCNNode()
-        ambientLight.light = SCNLight()
-        ambientLight.light!.type = .ambient
-        ambientLight.light!.color = NSColor(white: 0.4, alpha: 1.0)
-        scene.rootNode.addChildNode(ambientLight)
-
-        let directionalLight = SCNNode()
-        directionalLight.light = SCNLight()
-        directionalLight.light!.type = .directional
-        directionalLight.light!.color = NSColor(white: 0.8, alpha: 1.0)
-        directionalLight.light!.castsShadow = true
-        directionalLight.position = SCNVector3(-10, 20, -10)
-        directionalLight.look(at: SCNVector3(0, 0, 0))
-        scene.rootNode.addChildNode(directionalLight)
-    }
-
-    // MARK: - Board Creation
-    private func createBoard() {
-        boardNode?.removeFromParentNode()
-        scene.rootNode.childNodes.filter { node in
-            (node.geometry is SCNBox || node.geometry is SCNSphere) && node.position.y >= -boardThickness && node != ghostNode
-        }.forEach { $0.removeFromParentNode() }
-
-        let boardWidth = CGFloat(boardSize + 1) * effectiveCellWidth
-        let boardLength = CGFloat(boardSize + 1) * effectiveCellHeight
-        let boardGeometry = SCNBox(width: boardWidth, height: boardThickness, length: boardLength, chamferRadius: 0.0)
-        
-        let material = SCNMaterial()
-        if let kayaImage = NSImage(named: "board_kaya") {
-            material.diffuse.contents = kayaImage
-            material.diffuse.wrapS = .repeat
-            material.diffuse.wrapT = .repeat
-        } else {
-            material.diffuse.contents = NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 1.0)
-        }
-        material.specular.contents = NSColor(white: 0.3, alpha: 1.0)
-        material.shininess = 0.1
-        boardGeometry.materials = [material]
-
-        let boardNode = SCNNode(geometry: boardGeometry)
-        boardNode.position = SCNVector3(0, 0, 0)
-        scene.rootNode.addChildNode(boardNode)
-        self.boardNode = boardNode
-        
-        let backingGeometry = SCNBox(width: boardWidth, height: 0.1, length: boardLength, chamferRadius: 0.0)
-        let backingMaterial = SCNMaterial()
-        backingMaterial.diffuse.contents = NSColor(red: 0.7, green: 0.5, blue: 0.3, alpha: 1.0)
-        backingGeometry.materials = [backingMaterial]
-        let backingNode = SCNNode(geometry: backingGeometry)
-        backingNode.position = SCNVector3(0, -(boardThickness / 2.0 + 0.05), 0)
-        scene.rootNode.addChildNode(backingNode)
-
-        createGridLines()
-    }
-    
-    private func createGridLines() {
-        let lineThickness: CGFloat = 0.02
-        let lineHeight: CGFloat = 0.002
-        let lineColor = NSColor.black
-        let boardTopY = boardThickness / 2.0 + 0.02
-        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
-        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
-
-        for i in 0..<boardSize {
-            let z = CGFloat(i) * effectiveCellHeight - (totalHeight / 2.0)
-            let line = SCNBox(width: totalWidth, height: lineHeight, length: lineThickness, chamferRadius: 0)
-            line.firstMaterial?.diffuse.contents = lineColor
-            let node = SCNNode(geometry: line)
-            node.position = SCNVector3(0, boardTopY, z)
-            scene.rootNode.addChildNode(node)
-        }
-        for i in 0..<boardSize {
-            let x = CGFloat(i) * effectiveCellWidth - (totalWidth / 2.0)
-            let line = SCNBox(width: lineThickness, height: lineHeight, length: totalHeight, chamferRadius: 0)
-            line.firstMaterial?.diffuse.contents = lineColor
-            let node = SCNNode(geometry: line)
-            node.position = SCNVector3(x, boardTopY, 0)
-            scene.rootNode.addChildNode(node)
-        }
-        let stars: [(Int, Int)] = (boardSize == 19) ? [(3,3),(3,9),(3,15),(9,3),(9,9),(9,15),(15,3),(15,9),(15,15)] : []
-        for (col, row) in stars {
-            let x = CGFloat(col) * effectiveCellWidth - (totalWidth / 2.0)
-            let z = CGFloat(row) * effectiveCellHeight - (totalHeight / 2.0)
-            let star = SCNSphere(radius: 0.08)
-            star.firstMaterial?.diffuse.contents = lineColor
-            let node = SCNNode(geometry: star)
-            node.position = SCNVector3(x, boardTopY + 0.01, z)
-            scene.rootNode.addChildNode(node)
+    private func generateRedGlowTexture() -> NSImage {
+        let size = 128; return NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let center = CGPoint(x: size/2, y: size/2)
+            let colors = [NSColor.red.withAlphaComponent(0.75).cgColor, NSColor.red.withAlphaComponent(0.0).cgColor] as CFArray
+            let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0])
+            ctx.drawRadialGradient(grad!, startCenter: center, startRadius: 0, endCenter: center, endRadius: CGFloat(size/2), options: .drawsBeforeStartLocation); return true
         }
     }
-    
-    // MARK: - Hit Testing
-    
-    func hitTest(point: CGPoint, in view: SCNView) -> (x: Int, y: Int)? {
-        let options: [SCNHitTestOption: Any] = [.searchMode: SCNHitTestSearchMode.all.rawValue]
-        let results = view.hitTest(point, options: options)
-        
-        // Find the first hit that is the BOARD, ignoring the Ghost or other nodes
-        guard let result = results.first(where: { $0.node == self.boardNode }) else { return nil }
-        
-        let localPoint = result.localCoordinates
-        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
-        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
-        
-        let offsetX = totalWidth / 2.0
-        let offsetZ = totalHeight / 2.0
-        
-        let adjustedX = localPoint.x + offsetX
-        let adjustedZ = localPoint.z + offsetZ
-        
-        let col = Int(round(adjustedX / effectiveCellWidth))
-        let row = Int(round(adjustedZ / effectiveCellHeight))
-        
-        guard col >= 0, col < boardSize, row >= 0, row < boardSize else { return nil }
-        return (col, row)
-    }
 
-    // MARK: - Stone Rendering
-
-    func updateStones(from board: BoardSnapshot, lastMove: (x: Int, y: Int)?) {
-        if boardSize != board.size {
-            boardSize = board.size
-            createBoard()
-            previousBoardState = []
-        }
-        
-        if let prev = previousLastMove,
-           let settings = settings,
-           (settings.showBoardGlow || settings.showEnhancedGlow) {
-            let isSameAsCurrent = (lastMove != nil && lastMove!.x == prev.x && lastMove!.y == prev.y)
-            if !isSameAsCurrent {
-                spawnFadeOutGlow(col: prev.x, row: prev.y, settings: settings)
+    func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings) {
+        SCNTransaction.begin(); SCNTransaction.animationDuration = 0
+        let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let offX = -w / 2.0; let offZ = -h / 2.0; let surfaceY = boardThickness / 2.0
+        let currentPos = Set(cache.map { $0.id }); for (pos, node) in stoneNodeMap { if !currentPos.contains(pos) { node.removeFromParentNode(); stoneNodeMap.removeValue(forKey: pos) } }
+        for rs in cache {
+            let x = CGFloat(rs.id.col) * effectiveCellWidth + offX + (rs.offset.x * effectiveCellWidth); let z = CGFloat(rs.id.row) * effectiveCellHeight + offZ + (rs.offset.y * effectiveCellHeight)
+            if let n = stoneNodeMap[rs.id] { n.position = SCNVector3(x, surfaceY, z) } else {
+                let anchor = SCNNode(); anchor.position = SCNVector3(x, surfaceY, z)
+                let stone = SCNNode(geometry: rs.color == .black ? blackStoneGeometry : whiteStoneGeometry)
+                stone.scale = SCNVector3(1, stoneScaleY, 1); stone.position = SCNVector3(0, stoneRadius * stoneScaleY, 0)
+                anchor.addChildNode(stone); stonesContainer.addChildNode(anchor); stoneNodeMap[rs.id] = anchor
+                if settings.showDropInAnimation { anchor.opacity = 0; anchor.position.y += 1.0; anchor.runAction(.group([.fadeIn(duration: 0.15), .move(to: SCNVector3(x, surfaceY, z), duration: 0.15)])) }
             }
         }
-
-        stoneNodes.forEach { $0.removeFromParentNode() }
-        stoneNodes.removeAll()
-
-        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
-        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
-        let offsetX = -totalWidth / 2.0
-        let offsetZ = -totalHeight / 2.0
-        
-        let boardTopY = boardThickness / 2.0
-        let stoneHalfHeight = stoneRadius * stoneScaleY
-        let stoneY = boardTopY + stoneHalfHeight - 0.01
-
-        for row in 0..<board.size {
-            for col in 0..<board.size {
-                if let stone = board.grid[row][col] {
-                    var x = CGFloat(col) * effectiveCellWidth + offsetX
-                    var z = CGFloat(row) * effectiveCellHeight + offsetZ
-
-                    if let boardVM = boardVM {
-                        let jitterOffset = boardVM.getJitterOffset(forPosition: BoardPosition(row, col))
-                        x += jitterOffset.x * effectiveCellWidth
-                        z += jitterOffset.y * effectiveCellHeight
-                    }
-
-                    let targetPosition = SCNVector3(x, stoneY, z)
-                    let stoneNode = createSolidStone(color: stone, at: targetPosition, radius: stoneRadius)
-
-                    let isLastMove = (lastMove != nil && lastMove!.x == col && lastMove!.y == row)
-                    
-                    if isLastMove {
-                        addLastMoveIndicator(to: stoneNode, color: stone, radius: stoneRadius)
-                        if let settings = settings, (settings.showBoardGlow || settings.showEnhancedGlow) {
-                            stoneNode.castsShadow = false
-                            addGlow(to: stoneNode, settings: settings, stoneY: stoneY, boardTopY: boardTopY)
-                        }
-                    }
-
-                    scene.rootNode.addChildNode(stoneNode)
-                    stoneNodes.append(stoneNode)
-                    
-                    if isLastMove, let settings = settings, settings.showDropInAnimation {
-                        stoneNode.position.y += 1.5
-                        stoneNode.opacity = 0.0
-                        SCNTransaction.begin()
-                        SCNTransaction.animationDuration = 0.3
-                        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
-                        stoneNode.position.y = targetPosition.y
-                        stoneNode.opacity = 1.0
-                        SCNTransaction.commit()
-                    }
-                }
+        if previousLastMove != lastMove || true {
+            if let p = previousLastMove, let n = stoneNodeMap[p] { n.childNodes.filter({ $0.name?.contains("MARKER") ?? false }).forEach { $0.removeFromParentNode() } }
+            if let c = lastMove, let n = stoneNodeMap[c] {
+                let color = cache.first(where: { $0.id == c })?.color ?? .black
+                applyMarkers(to: n, color: color, index: moveIndex, settings: settings)
             }
+            previousLastMove = lastMove
         }
-        previousBoardState = board.grid
-        previousLastMove = lastMove
-    }
-    
-    // MARK: - Ghost Stone Logic
-    func updateGhost(at col: Int, row: Int, color: Stone?) {
-        guard let color = color, let ghost = ghostNode else {
-            ghostNode?.opacity = 0.0
-            return
-        }
-        
-        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
-        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
-        let offsetX = -totalWidth / 2.0
-        let offsetZ = -totalHeight / 2.0
-        
-        let x = CGFloat(col) * effectiveCellWidth + offsetX
-        let z = CGFloat(row) * effectiveCellHeight + offsetZ
-        let boardTopY = boardThickness / 2.0
-        let stoneY = boardTopY + (stoneRadius * stoneScaleY) - 0.01
-        
-        ghost.position = SCNVector3(x, stoneY, z)
-        
-        // Update color
-        let material = ghost.geometry?.firstMaterial
-        if color == .black {
-            material?.diffuse.contents = NSColor(white: 0.1, alpha: 0.85)
-        } else {
-            material?.diffuse.contents = NSColor(white: 1.0, alpha: 0.85)
-        }
-        
-        ghost.opacity = 0.9 // High visibility
-    }
-    
-    func hideGhost() {
-        ghostNode?.opacity = 0.0
-    }
-
-    private func createSolidStone(color: Stone, at position: SCNVector3, radius: CGFloat) -> SCNNode {
-        let sphere = SCNSphere(radius: radius)
-        sphere.segmentCount = 48
-        let material = SCNMaterial()
-
-        switch color {
-        case .black:
-            material.diffuse.contents = NSColor(white: 0.1, alpha: 1.0)
-            material.specular.contents = NSColor(white: 0.3, alpha: 1.0)
-            material.roughness.contents = 0.4
-        case .white:
-            material.diffuse.contents = NSColor(white: 0.95, alpha: 1.0)
-            material.specular.contents = NSColor(white: 1.0, alpha: 1.0)
-            material.roughness.contents = 0.1
-            material.shininess = 1.0
-        }
-        
-        material.isDoubleSided = false
-        material.lightingModel = .blinn
-        sphere.materials = [material]
-
-        let node = SCNNode(geometry: sphere)
-        node.scale = SCNVector3(1.0, stoneScaleY, 1.0)
-        node.position = position
-        node.castsShadow = true
-        return node
-    }
-    
-    private func addLastMoveIndicator(to stoneNode: SCNNode, color: Stone, radius: CGFloat) {
-        if settings?.showLastMoveDot == true {
-            let dot = SCNSphere(radius: radius * 0.15)
-            dot.firstMaterial?.diffuse.contents = markerRedColor
-            dot.firstMaterial?.emission.contents = markerRedColor
-            let node = SCNNode(geometry: dot)
-            node.position = SCNVector3(0, radius * 1.05, 0)
-            stoneNode.addChildNode(node)
-        }
-    }
-    
-    private func addGlow(to stoneNode: SCNNode, settings: AppSettings, stoneY: CGFloat, boardTopY: CGFloat) {
-        let isEnhanced = settings.showEnhancedGlow
-        let scaleMultiplier: CGFloat = isEnhanced ? 1.8 : 1.5
-        let glowRadius = stoneRadius * scaleMultiplier
-        let plane = SCNPlane(width: glowRadius * 2, height: glowRadius * 2)
-        
-        let material = SCNMaterial()
-        material.lightingModel = .constant
-        let softness: CGFloat = isEnhanced ? 0.0 : 0.3
-        material.diffuse.contents = generateGlowTexture(color: deepRedColor, size: 256, softness: softness)
-        material.blendMode = .alpha
-        material.transparencyMode = .default
-        material.writesToDepthBuffer = false
-        plane.materials = [material]
-        
-        let glowNode = SCNNode(geometry: plane)
-        glowNode.eulerAngles.x = -.pi / 2
-        glowNode.castsShadow = false
-        glowNode.renderingOrder = 2000
-        
-        // Position fix relative to stone
-        let worldFloorY = boardTopY + 0.005
-        let offsetFromCenter = worldFloorY - stoneY
-        let localY = offsetFromCenter / stoneScaleY
-        
-        glowNode.position = SCNVector3(0, localY, 0)
-        
-        let targetOpacity: CGFloat = isEnhanced ? 0.8 : 0.9
-        glowNode.opacity = 0.0
-        stoneNode.addChildNode(glowNode)
-        
-        if settings.showDropInAnimation {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 0.15
-                glowNode.opacity = targetOpacity
-                SCNTransaction.commit()
-            }
-        } else {
-            glowNode.opacity = targetOpacity
-        }
-    }
-    
-    private func spawnFadeOutGlow(col: Int, row: Int, settings: AppSettings) {
-        let isEnhanced = settings.showEnhancedGlow
-        let scaleMultiplier: CGFloat = isEnhanced ? 1.8 : 1.5
-        let glowRadius = stoneRadius * scaleMultiplier
-        let plane = SCNPlane(width: glowRadius * 2, height: glowRadius * 2)
-        
-        let material = SCNMaterial()
-        material.lightingModel = .constant
-        let softness: CGFloat = isEnhanced ? 0.0 : 0.3
-        material.diffuse.contents = generateGlowTexture(color: deepRedColor, size: 256, softness: softness)
-        material.blendMode = .alpha
-        material.transparencyMode = .default
-        material.writesToDepthBuffer = false
-        plane.materials = [material]
-        
-        let glowNode = SCNNode(geometry: plane)
-        glowNode.eulerAngles.x = -.pi / 2
-        glowNode.castsShadow = false
-        glowNode.renderingOrder = 2000
-        
-        let totalWidth = CGFloat(boardSize - 1) * effectiveCellWidth
-        let totalHeight = CGFloat(boardSize - 1) * effectiveCellHeight
-        let offsetX = -totalWidth / 2.0
-        let offsetZ = -totalHeight / 2.0
-        
-        var x = CGFloat(col) * effectiveCellWidth + offsetX
-        var z = CGFloat(row) * effectiveCellHeight + offsetZ
-        
-        if let boardVM = boardVM {
-            let jitterOffset = boardVM.getJitterOffset(forPosition: BoardPosition(row, col))
-            x += jitterOffset.x * effectiveCellWidth
-            z += jitterOffset.y * effectiveCellHeight
-        }
-        
-        let boardTopY = boardThickness / 2.0 + 0.005
-        glowNode.position = SCNVector3(x, boardTopY, z)
-        
-        let startOpacity: CGFloat = isEnhanced ? 0.8 : 0.9
-        glowNode.opacity = startOpacity
-        
-        scene.rootNode.addChildNode(glowNode)
-        
-        SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.3
-        SCNTransaction.completionBlock = {
-            glowNode.removeFromParentNode()
-        }
-        glowNode.opacity = 0.0
         SCNTransaction.commit()
     }
 
-    private func generateGlowTexture(color: NSColor, size: Int, softness: CGFloat) -> NSImage {
-        let img = NSImage(size: NSSize(width: size, height: size))
-        img.lockFocus()
-        if let ctx = NSGraphicsContext.current?.cgContext {
-            let colors = [color.cgColor, color.withAlphaComponent(0).cgColor] as CFArray
-            let locations: [CGFloat] = [softness, 1.0]
-            
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
-                let center = CGPoint(x: size/2, y: size/2)
-                ctx.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: CGFloat(size)/2, options: .drawsBeforeStartLocation)
-            }
+    private func applyMarkers(to group: SCNNode, color: Stone, index: Int, settings: AppSettings) {
+        let markerApex = (stoneRadius * stoneScaleY * 2.0) + 0.01
+        let textColor = color == .black ? NSColor.white : NSColor.black
+        if settings.showLastMoveDot { let d = SCNNode(geometry: SCNSphere(radius: stoneRadius * 0.12)); d.geometry?.firstMaterial = markerMaterial; d.name = "MARKER_DOT"; d.position = SCNVector3(0, markerApex + 0.02, 0); group.addChildNode(d) }
+        if settings.showLastMoveCircle { let r = SCNNode(geometry: SCNTorus(ringRadius: stoneRadius * 0.6, pipeRadius: 0.025)); r.geometry?.firstMaterial = markerMaterial; r.name = "MARKER_CIRCLE"; r.position = SCNVector3(0, markerApex, 0); group.addChildNode(r) }
+        if settings.showMoveNumbers {
+            let t = SCNText(string: "\(index)", extrusionDepth: 0.1); t.font = NSFont.boldSystemFont(ofSize: 0.45); t.flatness = 0.01; t.materials = [SCNMaterial()]; t.materials[0].diffuse.contents = textColor
+            let tn = SCNNode(geometry: t); tn.name = "MARKER_NUMBER"; tn.eulerAngles.x = -.pi/2; let (min, max) = t.boundingBox
+            tn.pivot = SCNMatrix4MakeTranslation(CGFloat((max.x - min.x)/2.0 + min.x), CGFloat((max.y - min.y)/2.0 + min.y), 0)
+            tn.position = SCNVector3(0, markerApex, 0); group.addChildNode(tn)
         }
-        img.unlockFocus()
-        return img
+        if settings.showBoardGlow || settings.showEnhancedGlow {
+            let s = settings.showEnhancedGlow ? 4.5 : 3.2; let p = SCNNode(geometry: SCNPlane(width: stoneRadius * s, height: stoneRadius * s)); p.geometry?.firstMaterial = glowMaterial; p.name = "MARKER_GLOW"; p.eulerAngles.x = -.pi/2; p.position = SCNVector3(0, 0.02, 0); p.renderingOrder = 3000; group.addChildNode(p)
+        }
     }
 
-    // MARK: - Lids
-    private func createLids() {
-        upperLidNode?.removeFromParentNode()
-        lowerLidNode?.removeFromParentNode()
+    func updateCameraPosition(distance: CGFloat, rotationX: Float, rotationY: Float, panX: CGFloat, panY: CGFloat) {
+        // Apply panning and rotation to the worldAnchor (Board) to simulate "Pulling the board"
+        worldAnchor.position = SCNVector3(x: panX, y: 0, z: panY)
+        worldAnchor.eulerAngles.y = CGFloat(rotationY)
+        worldAnchor.eulerAngles.x = CGFloat(rotationX)
         
-        upperLidNode = createLidNode(textureName: "go_lid_1", position: SCNVector3(14.0, -0.2, -5.0), radius: 3.5)
-        if let lid = upperLidNode { scene.rootNode.addChildNode(lid) }
-        
-        lowerLidNode = createLidNode(textureName: "go_lid_2", position: SCNVector3(14.0, -0.2, 5.0), radius: 3.5)
-        if let lid = lowerLidNode { scene.rootNode.addChildNode(lid) }
+        let r = distance / 25.0
+        cameraNode.position = SCNVector3(x: 0, y: 15.0 * r, z: 20.0 * r)
+        cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
     }
-    
-    private func createLidNode(textureName: String, position: SCNVector3, radius: CGFloat) -> SCNNode {
-        let cyl = SCNCylinder(radius: radius, height: 0.3)
-        cyl.radialSegmentCount = 64
-        let mat = SCNMaterial()
-        if let image = NSImage(named: textureName) {
-            mat.diffuse.contents = image
-        } else {
-            mat.diffuse.contents = NSColor.brown
-        }
-        mat.diffuse.wrapS = .clamp
-        mat.diffuse.wrapT = .clamp
-        mat.roughness.contents = 0.4
-        mat.specular.contents = NSColor(white: 0.2, alpha: 1.0)
-        cyl.materials = [mat]
-        let node = SCNNode(geometry: cyl)
-        node.position = position
-        node.castsShadow = true
-        return node
-    }
-    
-    func updateCapturedStones(blackCaptured: Int, whiteCaptured: Int) {
-        upperLidStones.forEach { $0.removeFromParentNode() }
-        lowerLidStones.forEach { $0.removeFromParentNode() }
-        upperLidStones.removeAll()
-        lowerLidStones.removeAll()
 
-        guard let upperLid = upperLidNode, let lowerLid = lowerLidNode else { return }
-        let lidRadius: CGFloat = 3.5
-        let stoneSize = stoneRadius
-
-        for _ in 0..<blackCaptured {
-            let pos = randomPositionInLid(radius: lidRadius * 0.7)
-            let stone = createSolidStone(color: .white, at: pos, radius: stoneSize)
-            stone.position.y = 0.15 + (stoneRadius * stoneScaleY)
-            stone.castsShadow = false
-            upperLid.addChildNode(stone)
-            upperLidStones.append(stone)
-        }
-        for _ in 0..<whiteCaptured {
-            let pos = randomPositionInLid(radius: lidRadius * 0.7)
-            let stone = createSolidStone(color: .black, at: pos, radius: stoneSize)
-            stone.position.y = 0.15 + (stoneRadius * stoneScaleY)
-            stone.castsShadow = false
-            lowerLid.addChildNode(stone)
-            lowerLidStones.append(stone)
-        }
-    }
-    
-    private func randomPositionInLid(radius: CGFloat) -> SCNVector3 {
-        let angle = Double.random(in: 0...2 * .pi)
-        let dist = sqrt(Double.random(in: 0...1)) * Double(radius)
-        return SCNVector3(CGFloat(cos(angle) * dist), 0.0, CGFloat(sin(angle) * dist))
-    }
+    func updateCapturedStones(black: Int, white: Int) { guard let u = upperLidNode, let l = lowerLidNode else { return }; SCNTransaction.begin(); SCNTransaction.animationDuration = 0; updateLidDiff(lid: u, current: &upperLidStones, target: black, geom: whiteStoneGeometry); updateLidDiff(lid: l, current: &lowerLidStones, target: white, geom: blackStoneGeometry); SCNTransaction.commit() }
+    private func updateLidDiff(lid: SCNNode, current: inout [SCNNode], target: Int, geom: SCNGeometry?) { if current.count == target { return }; if current.count > target { while current.count > target { current.last?.removeFromParentNode(); current.removeLast() } } else { for i in current.count..<target { let n = SCNNode(geometry: geom); let phi = 137.5 * (.pi / 180.0); let r = (3.5 * 0.7) * sqrt(Double(i) / 100.0); let th = Double(i) * phi; n.position = SCNVector3(x: CGFloat(cos(th)*r), y: 0.15, z: CGFloat(sin(th)*r)); lid.addChildNode(n); current.append(n) } } }
+    private func setupCamera() { let c = SCNCamera(); c.zNear = 0.1; c.zFar = 1000.0; cameraNode.camera = c; pivotNode.addChildNode(cameraNode); updateCameraPosition(distance: 25.0, rotationX: 0.75, rotationY: 0.0, panX: 0, panY: 0) }
+    private func setupLighting() { let amb = SCNNode(); amb.light = SCNLight(); amb.light?.type = .ambient; amb.light?.color = NSColor(white: 0.4, alpha: 1.0); worldAnchor.addChildNode(amb); let dir = SCNNode(); dir.light = SCNLight(); dir.light?.type = .directional; dir.light?.color = NSColor(white: 0.8, alpha: 1.0); dir.light?.castsShadow = true; dir.position = SCNVector3(-10, 20, -10); dir.look(at: SCNVector3(x: 0, y: 0, z: 0)); worldAnchor.addChildNode(dir) }
+    private func setupBackground() { scene.background.contents = NSColor(red: 0.01, green: 0.01, blue: 0.05, alpha: 1.0) }
+    private func createBoard() { boardNode?.removeFromParentNode(); let bW = CGFloat(boardSize + 1) * effectiveCellWidth; let bL = CGFloat(boardSize + 1) * effectiveCellHeight; let bG = SCNBox(width: bW, height: boardThickness, length: bL, chamferRadius: 0.0); let m = SCNMaterial(); m.diffuse.contents = NSImage(named: "board_kaya") ?? NSColor.brown; bG.materials = [m]; let n = SCNNode(geometry: bG); worldAnchor.addChildNode(n); self.boardNode = n; createGridLines() }
+    private func createGridLines() { let tY = boardThickness / 2.0 + 0.02; let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; for i in 0..<boardSize { let lZ = SCNBox(width: w, height: 0.002, length: 0.02, chamferRadius: 0); lZ.firstMaterial?.diffuse.contents = NSColor.black; let nZ = SCNNode(geometry: lZ); nZ.position = SCNVector3(x: 0, y: tY, z: CGFloat(i) * effectiveCellHeight - (h/2.0)); worldAnchor.addChildNode(nZ); let lX = SCNBox(width: 0.02, height: 0.002, length: h, chamferRadius: 0); lX.firstMaterial?.diffuse.contents = NSColor.black; let nX = SCNNode(geometry: lX); nX.position = SCNVector3(x: CGFloat(i) * effectiveCellWidth - (w/2.0), y: tY, z: 0); worldAnchor.addChildNode(nX) } }
+    func createLids() { upperLidNode?.removeFromParentNode(); lowerLidNode?.removeFromParentNode(); upperLidNode = createLidNode(textureName: "go_lid_1", pos: SCNVector3(x: 14.0, y: -0.2, z: -5.0)); lowerLidNode = createLidNode(textureName: "go_lid_2", pos: SCNVector3(x: 14.0, y: -0.2, z: 5.0)); if let u = upperLidNode { worldAnchor.addChildNode(u) }; if let l = lowerLidNode { worldAnchor.addChildNode(l) } }
+    private func createLidNode(textureName: String, pos: SCNVector3) -> SCNNode { let cyl = SCNCylinder(radius: 3.5, height: 0.3); let m = SCNMaterial(); m.diffuse.contents = NSImage(named: textureName) ?? NSColor.brown; cyl.materials = [m]; let n = SCNNode(geometry: cyl); n.position = pos; return n }
+    func hitTest(point: CGPoint, in view: SCNView) -> (x: Int, y: Int)? { guard let res = view.hitTest(point, options: [.searchMode: SCNHitTestSearchMode.all.rawValue]).first(where: { $0.node == self.boardNode }) else { return nil }; let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let c = Int(round((CGFloat(res.localCoordinates.x) + w/2.0) / effectiveCellWidth)); let r = Int(round((CGFloat(res.localCoordinates.z) + h/2.0) / effectiveCellHeight)); return (c >= 0 && c < boardSize && r >= 0 && r < boardSize) ? (c, r) : nil }
+    private func setupGhostNode() { let s = SCNSphere(radius: stoneRadius); let m = SCNMaterial(); m.diffuse.contents = NSColor(white: 1.0, alpha: 0.5); s.materials = [m]; ghostNode = SCNNode(geometry: s); ghostNode?.opacity = 0.0; stonesContainer.addChildNode(ghostNode!) }
 }
