@@ -1,18 +1,20 @@
-// MARK: - File: RightPanelView.swift (v8.100)
+// MARK: - File: RightPanelView.swift (v8.102)
 import SwiftUI
 
 struct RightPanelView: View {
     @EnvironmentObject var app: AppModel
     @State private var selectedTab: RightPanelTab = .local
     enum RightPanelTab: String { case local = "Local", online = "Online" }
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Picker("Mode", selection: $selectedTab) {
                 Text("Local").tag(RightPanelTab.local)
                 Text("Online").tag(RightPanelTab.online)
             }.pickerStyle(.segmented).padding(10)
+            
             Divider().background(Color.white.opacity(0.1))
+            
             ZStack {
                 if selectedTab == .local {
                     VStack(spacing: 0) {
@@ -22,16 +24,22 @@ struct RightPanelView: View {
                         }
                         LocalPlaylistView()
                     }
-                } else { onlineTabContent }
+                } else {
+                    onlineTabContent
+                }
             }
         }.frostedGlassStyle()
     }
+    
+    @ViewBuilder
     private var onlineTabContent: some View {
-        Group {
+        VStack {
             if app.ogsClient.activeGameID != nil && app.ogsClient.isConnected {
                 ActiveGamePanel().transition(.opacity)
             } else {
-                OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in app.joinOnlineGame(id: id) }.transition(.opacity)
+                OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in
+                    app.joinOnlineGame(id: id)
+                }.transition(.opacity)
             }
         }
     }
@@ -66,7 +74,9 @@ struct LocalPlaylistView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(app.games) { game in
-                            Button(action: { app.selectGame(game) }) { LocalGameRow(game: game, isSelected: app.selection?.id == game.id) }.buttonStyle(.plain)
+                            Button(action: { app.selectGame(game) }) {
+                                LocalGameRow(game: game, isSelected: app.selection?.id == game.id)
+                            }.buttonStyle(.plain)
                             Divider().background(Color.white.opacity(0.05))
                         }
                     }

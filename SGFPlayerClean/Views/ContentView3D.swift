@@ -1,4 +1,7 @@
-// MARK: - File: ContentView3D.swift (v4.974)
+// ========================================================
+// FILE: ./Views/ContentView3D.swift
+// VERSION: v5.100 (Click Debugging)
+// ========================================================
 import SwiftUI
 import SceneKit
 import Combine
@@ -8,7 +11,7 @@ struct ContentView3D: View {
     @StateObject private var sceneManager = SceneManager3D()
     @FocusState private var isBoardFocused: Bool
     
-    // Initialize @State from persisted AppSettings
+    // Camera State
     @State private var rotX: Float
     @State private var rotY: Float
     @State private var distance: CGFloat
@@ -27,26 +30,49 @@ struct ContentView3D: View {
     var body: some View {
         ZStack {
             if let bVM = app.boardVM {
-                // 3D Scene Layer
-                InteractiveSceneView(scene: sceneManager.scene, cameraNode: sceneManager.cameraNode, sceneManager: sceneManager, boardVM: bVM, rotationX: $rotX, rotationY: $rotY)
-                    .edgesIgnoringSafeArea(.all)
-                
-                // Gesture Overlay with Capture Logic
-                CameraControlHandler(
+                UnifiedInteractiveSceneView(
+                    scene: sceneManager.scene,
+                    cameraNode: sceneManager.cameraNode,
                     rotationX: $rotX,
                     rotationY: $rotY,
                     distance: $distance,
                     panX: $panX,
                     panY: $panY,
-                    sceneManager: sceneManager,
-                    onInteractionEnded: { saveViewportDefault() }
+                    onHover: { point in
+                        if let v = UnifiedInteractiveSceneView.lastActiveView,
+                           let (c, r) = sceneManager.hitTest(point: point, in: v) {
+                            bVM.updateGhostStone(at: BoardPosition(r, c))
+                        } else {
+                            bVM.clearGhostStone()
+                        }
+                    },
+                    onClick: { point in
+                        print("🖱 [3D View] Click at \(point)")
+                        if let v = UnifiedInteractiveSceneView.lastActiveView,
+                           let (c, r) = sceneManager.hitTest(point: point, in: v) {
+                            print("🎯 [3D View] Hit Board: \(c),\(r)")
+                            bVM.placeStone(at: BoardPosition(r, c))
+                        } else {
+                            print("❌ [3D View] Missed Board")
+                        }
+                    },
+                    onCameraChange: {
+                        sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
+                        saveViewport()
+                    }
                 )
+                .edgesIgnoringSafeArea(.all)
                 
-                // UI Overlay Layer
                 VStack(spacing: 0) {
-                    HStack(spacing: 0) { Color.clear.allowsHitTesting(false); RightPanelView().frame(width: 320) }
-                    Spacer(); PlaybackControlsView(boardVM: bVM).padding(.bottom, 25)
+                    HStack(spacing: 0) {
+                        Color.clear.allowsHitTesting(false)
+                        RightPanelView().frame(width: 320)
+                    }
+                    Spacer()
+                    PlaybackControlsView(boardVM: bVM).padding(.bottom, 25)
                 }
+                .onChange(of: bVM.ghostPosition) { _, _ in updateScene() }
+                .onChange(of: bVM.ghostColor) { _, _ in updateScene() }
             }
         }
         .focused($isBoardFocused)
@@ -65,37 +91,94 @@ struct ContentView3D: View {
         sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
+        sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
     }
-
-    private func saveViewportDefault() {
-        // Sync the current interactive state back to the persisted Defaults
+    
+    private func saveViewport() {
         let settings = AppSettings.shared
-        settings.camera3DRotationX = Double(rotX)
-        settings.camera3DRotationY = Double(rotY)
-        settings.camera3DDistance = Double(distance)
-        settings.camera3DPanX = Double(panX)
-        settings.camera3DPanY = Double(panY)
+        settings.camera3DRotationX = Double(rotX); settings.camera3DRotationY = Double(rotY)
+        settings.camera3DDistance = Double(distance); settings.camera3DPanX = Double(panX); settings.camera3DPanY = Double(panY)
     }
 }
 
-struct InteractiveSceneView: NSViewRepresentable {
-    let scene: SCNScene; let cameraNode: SCNNode; let sceneManager: SceneManager3D; let boardVM: BoardViewModel
-    @Binding var rotationX: Float; @Binding var rotationY: Float
-    func makeNSView(context: Context) -> ClickableSCNView {
-        let v = ClickableSCNView(); v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = .black; v.antialiasingMode = .multisampling4X
-        v.onClick = { p in if let (c, r) = sceneManager.hitTest(point: p, in: v) { boardVM.placeStone(at: BoardPosition(r, c)) } }
+// MARK: - Native Event Handling Implementation
+
+struct UnifiedInteractiveSceneView: NSViewRepresentable {
+    let scene: SCNScene; let cameraNode: SCNNode
+    @Binding var rotationX: Float; @Binding var rotationY: Float; @Binding var distance: CGFloat; @Binding var panX: CGFloat; @Binding var panY: CGFloat
+    var onHover: (CGPoint) -> Void; var onClick: (CGPoint) -> Void; var onCameraChange: () -> Void
+    static weak var lastActiveView: SCNView?
+    
+    func makeNSView(context: Context) -> UnifiedSCNView {
+        let v = UnifiedSCNView()
+        v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = .black; v.antialiasingMode = .multisampling4X; v.allowsCameraControl = false
+        // v5.100: Explicitly request best resolution for Retina hit-testing accuracy
+        v.wantsBestResolutionOpenGLSurface = true
+        v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }
+        UnifiedInteractiveSceneView.lastActiveView = v
         return v
     }
-    func updateNSView(_ v: ClickableSCNView, context: Context) { v.scene = scene; v.pointOfView = cameraNode }
+    
+    func updateNSView(_ v: UnifiedSCNView, context: Context) {
+        v.scene = scene; v.pointOfView = cameraNode
+        v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }
+        UnifiedInteractiveSceneView.lastActiveView = v
+    }
+    
+    private func handleInteraction(event: UnifiedSCNView.EventType, point: CGPoint, context: Context) {
+        switch event {
+        case .click: onClick(point)
+        case .hover: onHover(point)
+        case .drag(let delta, let modifiers):
+            if modifiers.contains(.shift) && modifiers.contains(.control) {
+                distance = max(10.0, min(100.0, distance - delta.y * 0.1))
+            } else if modifiers.contains(.shift) {
+                panX += delta.x * 0.05; panY += delta.y * 0.05
+            } else {
+                rotationX = max(0.05, min(1.57, rotationX + Float(delta.y) * 0.005))
+                rotationY += Float(delta.x) * 0.005
+            }
+            onCameraChange()
+        case .zoom(let amount):
+            distance = max(10.0, min(100.0, distance * (1.0 - amount * 0.1))); onCameraChange()
+        }
+    }
 }
 
-class ClickableSCNView: SCNView {
-    var onClick: ((CGPoint) -> Void)?
-    private var downEvent: NSEvent?
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas(); for t in self.trackingAreas { self.removeTrackingArea(t) }
-        self.addTrackingArea(NSTrackingArea(rect: self.bounds, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect, .activeAlways], owner: self, userInfo: nil))
+class UnifiedSCNView: SCNView {
+    enum EventType { case click, hover, drag(delta: CGPoint, modifiers: NSEvent.ModifierFlags), zoom(amount: CGFloat) }
+    var onInteraction: ((EventType, CGPoint) -> Void)?
+    private var lastDragPos: CGPoint = .zero; private var isDragging = false; private var downPos: CGPoint = .zero
+    
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        let options: NSTrackingArea.Options = [.mouseMoved, .activeInKeyWindow, .activeAlways, .inVisibleRect]
+        addTrackingArea(NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil))
     }
-    override func mouseDown(with e: NSEvent) { self.downEvent = e; super.mouseDown(with: e) }
-    override func mouseUp(with e: NSEvent) { if let d = downEvent { if hypot(d.locationInWindow.x - e.locationInWindow.x, d.locationInWindow.y - e.locationInWindow.y) < 10 { onClick?(self.convert(e.locationInWindow, from: nil)) } }; self.downEvent = nil; super.mouseUp(with: e) }
+    override func mouseDown(with event: NSEvent) {
+        let loc = convert(event.locationInWindow, from: nil); lastDragPos = loc; downPos = loc; isDragging = false; super.mouseDown(with: event)
+    }
+    override func mouseDragged(with event: NSEvent) {
+        let loc = convert(event.locationInWindow, from: nil)
+        if !isDragging && hypot(loc.x - downPos.x, loc.y - downPos.y) > 3 { isDragging = true }
+        if isDragging {
+            let delta = CGPoint(x: loc.x - lastDragPos.x, y: loc.y - lastDragPos.y)
+            onInteraction?(.drag(delta: delta, modifiers: event.modifierFlags), loc)
+            lastDragPos = loc
+        }
+        super.mouseDragged(with: event)
+    }
+    override func mouseUp(with event: NSEvent) {
+        if !isDragging {
+            let loc = convert(event.locationInWindow, from: nil)
+            onInteraction?(.click, loc)
+        }
+        isDragging = false; super.mouseUp(with: event)
+    }
+    override func mouseMoved(with event: NSEvent) {
+        let loc = convert(event.locationInWindow, from: nil)
+        onInteraction?(.hover, loc)
+        super.mouseMoved(with: event)
+    }
+    override func scrollWheel(with event: NSEvent) { onInteraction?(.zoom(amount: event.deltaY), .zero); super.scrollWheel(with: event) }
 }

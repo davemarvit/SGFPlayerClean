@@ -35,7 +35,6 @@
 		55EEB58A2EFFEAC600030E2A /* OGSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB55B2EFFEAC600030E2A /* OGSClient.swift */; };
 		55EEB58B2EFFEAC600030E2A /* SceneManager3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5512EFFEAC600030E2A /* SceneManager3D.swift */; };
 		55EEB58C2EFFEAC600030E2A /* KeyboardShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB56C2EFFEAC600030E2A /* KeyboardShortcuts.swift */; };
-		55EEB58D2EFFEAC600030E2A /* CameraControlHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB54D2EFFEAC600030E2A /* CameraControlHandler.swift */; };
 		55EEB58E2EFFEAC600030E2A /* StoneMeshFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5582EFFEAC600030E2A /* StoneMeshFactory.swift */; };
 		55EEB58F2EFFEAC600030E2A /* OGSBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB56E2EFFEAC600030E2A /* OGSBrowserView.swift */; };
 		55EEB5902EFFEAC600030E2A /* SimpleBowlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5732EFFEAC600030E2A /* SimpleBowlView.swift */; };
@@ -71,7 +70,6 @@
 		55EEB4D82EFFE34000030E2A /* tatami.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = tatami.jpg; sourceTree = "<group>"; };
 		55EEB54B2EFFEAC600030E2A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		55EEB54C2EFFEAC600030E2A /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
-		55EEB54D2EFFEAC600030E2A /* CameraControlHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraControlHandler.swift; sourceTree = "<group>"; };
 		55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticTests.swift; sourceTree = "<group>"; };
 		55EEB54F2EFFEAC600030E2A /* GameSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSettings.swift; sourceTree = "<group>"; };
 		55EEB5502EFFEAC600030E2A /* OGSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSModels.swift; sourceTree = "<group>"; };
@@ -163,7 +161,6 @@
 				55EEB5A42F0118D400030E2A /* SGFPlayerClean.entitlements */,
 				55EEB54B2EFFEAC600030E2A /* AppModel.swift */,
 				55EEB54C2EFFEAC600030E2A /* AppSettings.swift */,
-				55EEB54D2EFFEAC600030E2A /* CameraControlHandler.swift */,
 				55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */,
 				55EEB54F2EFFEAC600030E2A /* GameSettings.swift */,
 				55EEB5502EFFEAC600030E2A /* OGSModels.swift */,
@@ -323,7 +320,6 @@
 				55EEB59F2EFFEB2100030E2A /* GameSettings.swift in Sources */,
 				55EEB58B2EFFEAC600030E2A /* SceneManager3D.swift in Sources */,
 				55EEB58C2EFFEAC600030E2A /* KeyboardShortcuts.swift in Sources */,
-				55EEB58D2EFFEAC600030E2A /* CameraControlHandler.swift in Sources */,
 				55EEB58E2EFFEAC600030E2A /* StoneMeshFactory.swift in Sources */,
 				55EEB58F2EFFEAC600030E2A /* OGSBrowserView.swift in Sources */,
 				55EEB5902EFFEAC600030E2A /* SimpleBowlView.swift in Sources */,

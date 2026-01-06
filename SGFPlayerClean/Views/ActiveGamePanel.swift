@@ -1,12 +1,4 @@
-//
-//  ActiveGamePanel.swift
-//  SGFPlayerClean
-//
-//  v3.500: Logic Refresh.
-//  - Ported Main-thread safe player stats display.
-//  - Sync with AppModel EnvironmentObject.
-//
-
+// MARK: - File: ActiveGamePanel.swift (v3.502)
 import SwiftUI
 
 struct ActiveGamePanel: View {
@@ -66,11 +58,16 @@ struct ActiveGamePanel: View {
     private var controlsSection: some View {
         HStack {
             Button("Undo") {
-                if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.currentIndex) }
+                if let id = app.ogsClient.activeGameID {
+                    app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.serverMoveNumber)
+                }
             }
             Spacer()
             Button("Pass") {
-                if let id = app.ogsClient.activeGameID { app.ogsClient.sendPass(gameID: id) }
+                if let id = app.ogsClient.activeGameID {
+                    // FIX: Added moveNumber argument to match OGS protocol
+                    app.ogsClient.sendPass(gameID: id, moveNumber: app.player.serverMoveNumber)
+                }
             }
         }.buttonStyle(.bordered)
     }

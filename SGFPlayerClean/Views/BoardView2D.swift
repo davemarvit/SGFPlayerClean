@@ -1,4 +1,4 @@
-// MARK: - File: BoardView2D.swift (v8.101)
+// MARK: - File: BoardView2D.swift (v8.103)
 import SwiftUI
 
 struct BoardView2D: View {
@@ -10,8 +10,6 @@ struct BoardView2D: View {
         let margin = size.width * 0.065
         let gridW = size.width - (margin * 2)
         let gridH = size.height - (margin * 2)
-        
-        // Fix: Explicitly access boardSize to avoid dynamic member lookup issues
         let bSize = boardVM.boardSize
         let cellP = gridW / CGFloat(max(1, bSize - 1))
         let rowP = gridH / CGFloat(max(1, bSize - 1))
@@ -43,6 +41,13 @@ struct BoardView2D: View {
                                   y: CGFloat(rs.id.row) * rowP + (rs.offset.y * rowP))
                 }
                 
+                if let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
+                    StoneView2D(color: color, position: ghostPos)
+                        .frame(width: cellP, height: cellP)
+                        .opacity(0.4)
+                        .position(x: CGFloat(ghostPos.col) * cellP, y: CGFloat(ghostPos.row) * rowP)
+                }
+
                 if let lastPos = boardVM.lastMovePosition {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
                     Circle().stroke(Color.white, lineWidth: max(1.5, size.width * 0.005))
@@ -53,22 +58,32 @@ struct BoardView2D: View {
             }
             .frame(width: gridW, height: gridH)
             
+            // Interaction Layer (Top-most)
             Color.clear.contentShape(Rectangle())
                 .frame(width: size.width, height: size.height)
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let loc):
+                        let c = Int(round((loc.x - margin) / cellP))
+                        let r = Int(round((loc.y - margin) / rowP))
+                        if c >= 0 && c < bSize && r >= 0 && r < bSize {
+                            boardVM.updateGhostStone(at: BoardPosition(r, c))
+                        } else { boardVM.clearGhostStone() }
+                    case .ended: boardVM.clearGhostStone()
+                    }
+                }
                 .onTapGesture { loc in
                     let c = Int(round((loc.x - margin) / cellP))
                     let r = Int(round((loc.y - margin) / rowP))
-                    boardVM.placeStone(at: BoardPosition(max(0, min(bSize-1, r)), max(0, min(bSize-1, c))))
+                    if c >= 0 && c < bSize && r >= 0 && r < bSize {
+                        boardVM.placeStone(at: BoardPosition(r, c))
+                    }
                 }
         }
     }
     
     private func starPoints(size: Int) -> [BoardPosition] {
-        if size == 19 {
-            return [BoardPosition(3,3), BoardPosition(3,9), BoardPosition(3,15),
-                    BoardPosition(9,3), BoardPosition(9,9), BoardPosition(9,15),
-                    BoardPosition(15,3), BoardPosition(15,9), BoardPosition(15,15)]
-        }
+        if size == 19 { return [BoardPosition(3,3), BoardPosition(3,9), BoardPosition(3,15), BoardPosition(9,3), BoardPosition(9,9), BoardPosition(9,15), BoardPosition(15,3), BoardPosition(15,9), BoardPosition(15,15)] }
         return []
     }
 }
