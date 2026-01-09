@@ -1,6 +1,6 @@
 // ========================================================
 // FILE: ./Models/SGFPlayerEngine.swift
-// VERSION: v8.200 (Debug Instrumentation)
+// VERSION: v8.201 (Turn Sync & Version Alignment)
 // ========================================================
 import Foundation
 import Combine
@@ -19,6 +19,8 @@ final class SGFPlayer: ObservableObject {
     private var _baseSetup: [(Stone, Int, Int)] = []
     private var baseSize: Int = 19
     private var initialPlayer: Stone = .black
+    
+    /// In online mode, this tracks the OGS 'state_version'
     var serverMoveNumber: Int = 0
     private var timer: AnyCancellable?
     
@@ -27,22 +29,27 @@ final class SGFPlayer: ObservableObject {
     }
     
     var turn: Stone {
+        // PILLAR: Turn Priority
+        // 1. If we have moves in the history beyond setup, alternate from last move.
+        // 2. Otherwise, use the server-provided initial player flag.
         if let last = lastMove { return last.color == .black ? .white : .black }
         return initialPlayer
     }
+    
     var maxIndex: Int { _moves.count }
     
-    func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, startMoveNumber: Int) {
-        print("🔍 [Engine v8.200] loadOnline. Size: \(size), Setup Count: \(setup.count)")
+    func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
+        print("🔍 [Engine v8.201] loadOnline. Size: \(size), Turn: \(nextPlayer), Version: \(stateVersion)")
         self.baseSize = size
         self._moves = []
         self._baseSetup = setup.map { ($1, $0.col, $0.row) }
         self.initialPlayer = nextPlayer
-        self.serverMoveNumber = startMoveNumber
+        self.serverMoveNumber = stateVersion
         self.reset()
     }
     
     func applyOnlineMove(color: Stone, x: Int, y: Int, moveNumber: Int) {
+        // Prevent re-processing the same move version
         guard moveNumber > serverMoveNumber || (moveNumber == serverMoveNumber && lastMove == nil) else { return }
         self.serverMoveNumber = moveNumber
         self.playMoveOptimistically(color: color, x: x, y: y)
@@ -60,18 +67,13 @@ final class SGFPlayer: ObservableObject {
         pause()
         currentIndex = 0; whiteStonesCaptured = 0; blackStonesCaptured = 0
         var grid = Array(repeating: Array(repeating: Stone?.none, count: baseSize), count: baseSize)
-        var stones: [BoardPosition: Stone] = [:]
-        
-        print("🔍 [Engine] Resetting. Base Setup Items: \(_baseSetup.count)")
         
         for (stone, x, y) in _baseSetup where x < baseSize && y < baseSize {
             grid[y][x] = stone
-            stones[BoardPosition(y, x)] = stone
         }
         
         self.lastMove = nil
         syncSnapshot(grid: grid)
-        print("✅ [Engine] Reset complete. Grid has \(stones.count) stones.")
         moveProcessed.send()
     }
     
@@ -119,7 +121,6 @@ final class SGFPlayer: ObservableObject {
         }
     }
     
-    // MARK: - Playback Logic
     func stepForward() { guard currentIndex < _moves.count else { pause(); return }; apply(moveAt: currentIndex); currentIndex += 1; moveProcessed.send() }
     func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
     func seek(to idx: Int) {

@@ -1,6 +1,6 @@
 // ========================================================
 // FILE: ./ViewModels/BoardViewModel.swift
-// VERSION: v8.200 (Debug Instrumentation)
+// VERSION: v8.212 (Nuclear Cache Reset)
 // ========================================================
 import Foundation
 import SwiftUI
@@ -21,10 +21,7 @@ class BoardViewModel: ObservableObject {
     let onRequestUpdate3D = PassthroughSubject<Void, Never>()
     var engine: SGFPlayer; var ogsClient: OGSClient
     private var jitterEngine: StoneJitter
-    
-    // Debug: Track sync state
     private var isSyncing = false
-    
     private var cancellables = Set<AnyCancellable>()
     
     init(player: SGFPlayer, ogsClient: OGSClient) {
@@ -35,12 +32,15 @@ class BoardViewModel: ObservableObject {
     
     var boardSize: Int { self.engine.board.size }
     
-    func loadGame(_ wrapper: SGFGameWrapper) {
-        print("🔍 [BoardVM] Loading local game.")
+    func resetToEmpty() {
+        // PILLAR: Atomic UI Flush
+        self.engine.clear()
+        self.stonesToRender = []
         self.isOnlineContext = false
-        self.engine.load(game: wrapper.game)
+        self.syncState()
     }
     
+    func loadGame(_ wrapper: SGFGameWrapper) { self.isOnlineContext = false; self.engine.load(game: wrapper.game); self.jitterEngine = StoneJitter(boardSize: self.boardSize) }
     func goToStart() { engine.seek(to: 0) }
     func goToEnd() { engine.seek(to: engine.maxIndex) }
     func stepForward() { engine.stepForward() }
@@ -50,54 +50,42 @@ class BoardViewModel: ObservableObject {
     func toggleAutoPlay() { if engine.isPlaying { engine.pause() } else { engine.play() } }
     func seekToMove(_ index: Int) { engine.seek(to: index) }
     func stopAutoPlay() { engine.pause() }
-    func undoLastOnlineMove() { engine.stepBackward() }
     
-    func resetToEmpty() {
-        print("🔍 [BoardVM] Resetting to empty.")
-        engine.clear()
-        self.isOnlineContext = false
-        self.syncState()
-    }
-    
-    func handleRemoteMove(x: Int, y: Int, playerId: Int?) {
-        let color: Stone = (playerId == ogsClient.blackPlayerID) ? .black : .white
+    func handleRemoteMove(x: Int, y: Int, color: Stone) {
         self.engine.playMoveOptimistically(color: color, x: x, y: y)
     }
     
-    func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextTurn: Stone, moveNumber: Int) {
-        print("🔍 [BoardVM v8.200] initializeOnlineGame called. Stones: \(initialStones.count)")
+    func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
         self.isOnlineContext = true
-        // Engine loadOnline calls reset(), which should populate the board from initialStones
-        self.engine.loadOnline(size: width, setup: initialStones, nextPlayer: nextTurn, startMoveNumber: moveNumber)
-        
-        // Force immediate sync
-        self.syncState()
-        self.objectWillChange.send()
+        self.jitterEngine = StoneJitter(boardSize: width)
+        self.engine.loadOnline(size: width, setup: initialStones, nextPlayer: nextPlayer, stateVersion: stateVersion)
+        self.isSyncing = false
+        Task { @MainActor in self.syncState() }
     }
     
     func placeStone(at pos: BoardPosition) {
         if isOnlineContext {
-            let nextMoveNum = self.engine.serverMoveNumber + 1
-            print("🔍 [BoardVM] Sending Move: \(pos.col),\(pos.row) #\(nextMoveNum)")
-            self.ogsClient.sendMove(gameID: self.ogsClient.activeGameID ?? 0, x: pos.col, y: pos.row, moveNumber: nextMoveNum)
+            let myColor = ogsClient.playerColor ?? .white
+            guard self.engine.turn == myColor else { return }
+            
+            // Optimistic UI
+            self.engine.playMoveOptimistically(color: myColor, x: pos.col, y: pos.row)
+            
+            // Network Dispatch
+            self.ogsClient.sendMove(
+                gameID: self.ogsClient.activeGameID ?? 0,
+                x: pos.col,
+                y: pos.row
+            )
         }
     }
     
     func syncState() {
-        if isSyncing {
-            print("⚠️ [BoardVM] Sync SKIPPED (Already syncing)")
-            return
-        }
+        if isSyncing { return }
         isSyncing = true
-        
         let idx = self.engine.currentIndex
         let last = self.engine.lastMove.map { BoardPosition($0.y, $0.x) }
         let snap = self.engine.board
-        
-        // Logging for debug
-        if snap.stones.count > 0 {
-            print("🔍 [BoardVM] Syncing frame \(idx). Stone count: \(snap.stones.count)")
-        }
         
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
@@ -116,7 +104,6 @@ class BoardViewModel: ObservableObject {
                 self.whiteCapturedCount = self.engine.blackStonesCaptured
                 self.isAutoPlaying = self.engine.isPlaying
                 self.totalMoves = self.engine.maxIndex
-                
                 self.isSyncing = false
                 self.onRequestUpdate3D.send()
                 self.objectWillChange.send()
@@ -124,9 +111,15 @@ class BoardViewModel: ObservableObject {
         }
     }
     
-    func updateGhostStone(at pos: BoardPosition?) { self.ghostPosition = pos; self.ghostColor = self.engine.turn }
+    func updateGhostStone(at pos: BoardPosition?) {
+        guard isOnlineContext && engine.turn == ogsClient.playerColor else {
+            self.ghostPosition = nil
+            return
+        }
+        self.ghostPosition = pos
+        self.ghostColor = self.engine.turn
+    }
     func clearGhostStone() { self.ghostPosition = nil }
-    
     func getJitterOffset(forPosition pos: BoardPosition) -> CGPoint {
         return self.jitterEngine.offset(forX: pos.col, y: pos.row, moveIndex: self.currentMoveIndex, stones: self.engine.board.stones)
     }

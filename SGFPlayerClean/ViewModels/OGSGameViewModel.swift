@@ -1,4 +1,4 @@
-// MARK: - File: OGSGameViewModel.swift (v4.202)
+// MARK: - File: OGSGameViewModel.swift (v4.205)
 import Foundation
 import Combine
 
@@ -10,13 +10,11 @@ class OGSGameViewModel: ObservableObject {
     
     private var ogsClient: OGSClient
     private var player: SGFPlayer
-    private var timeControl: TimeControlManager
     private var cancellables = Set<AnyCancellable>()
     
     init(ogsClient: OGSClient, player: SGFPlayer, timeControl: TimeControlManager) {
         self.ogsClient = ogsClient
         self.player = player
-        self.timeControl = timeControl
         setupObservers()
     }
     
@@ -45,7 +43,8 @@ class OGSGameViewModel: ObservableObject {
     
     func pass() {
         guard let id = ogsClient.activeGameID else { return }
-        ogsClient.sendPass(gameID: id, moveNumber: player.serverMoveNumber)
+        // PILLAR: Refactored call site
+        ogsClient.sendPass(gameID: id)
     }
     
     func resign() {

@@ -3,16 +3,21 @@
 //  SGFPlayerClean
 //
 //  Purpose: Main application entry point
-//  Now with 2D/3D mode switching
+//  Ensures a single AppModel instance is shared across the app.
 //
 
 import SwiftUI
 
 @main
 struct SGFPlayerCleanApp: App {
+    // Single source of truth for the entire application lifecycle
+    @StateObject private var appModel = AppModel()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(appModel)
+                .environmentObject(appModel.ogsClient)
         }
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -35,19 +40,13 @@ struct SGFPlayerCleanApp: App {
         panel.title = "Choose an SGF file"
 
         panel.begin { response in
-            print("📂 File picker response: \(response == .OK ? "OK" : "Cancel")")
             if response == .OK, let url = panel.url {
                 print("📂 Selected file: \(url.path)")
-                print("📂 Posting notification...")
                 NotificationCenter.default.post(
                     name: NSNotification.Name("LoadSGFFile"),
                     object: url
                 )
-                print("📂 Notification posted")
-            } else {
-                print("📂 No file selected or picker cancelled")
             }
         }
     }
 }
-

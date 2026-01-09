@@ -1,4 +1,4 @@
-// MARK: - File: ActiveGamePanel.swift (v3.502)
+// MARK: - File: ActiveGamePanel.swift (v3.505)
 import SwiftUI
 
 struct ActiveGamePanel: View {
@@ -10,18 +10,7 @@ struct ActiveGamePanel: View {
             Divider().background(Color.white.opacity(0.1))
             
             if let username = app.ogsClient.undoRequestedUsername {
-                VStack(spacing: 8) {
-                    Text("Undo request from \(username)").font(.caption).bold()
-                    HStack {
-                        Button("Reject") {
-                            if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
-                        }.tint(.red)
-                        Button("Accept") {
-                            if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoAccept(gameID: id) }
-                        }.tint(.green)
-                    }.buttonStyle(.borderedProminent).controlSize(.small)
-                }
-                .padding().background(Color.orange.opacity(0.2)).cornerRadius(8)
+                undoApprovalSection(username: username)
             }
             
             playerInfoSection
@@ -39,6 +28,24 @@ struct ActiveGamePanel: View {
                 if let id = app.ogsClient.activeGameID { app.ogsClient.resignGame(gameID: id) }
             }.foregroundColor(.red)
         }
+    }
+    
+    private func undoApprovalSection(username: String) -> some View {
+        VStack(spacing: 8) {
+            Text("Undo request from \(username)").font(.caption).bold()
+            HStack {
+                Button("Reject") {
+                    if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
+                }.tint(.red)
+                Button("Accept") {
+                    if let id = app.ogsClient.activeGameID {
+                        let m = app.ogsClient.undoRequestedMoveNumber ?? app.player.serverMoveNumber
+                        app.ogsClient.sendUndoAccept(gameID: id, moveNumber: m)
+                    }
+                }.tint(.green)
+            }.buttonStyle(.borderedProminent).controlSize(.small)
+        }
+        .padding().background(Color.orange.opacity(0.2)).cornerRadius(8)
     }
     
     private var playerInfoSection: some View {
@@ -65,8 +72,8 @@ struct ActiveGamePanel: View {
             Spacer()
             Button("Pass") {
                 if let id = app.ogsClient.activeGameID {
-                    // FIX: Added moveNumber argument to match OGS protocol
-                    app.ogsClient.sendPass(gameID: id, moveNumber: app.player.serverMoveNumber)
+                    // PILLAR: Refactored call site
+                    app.ogsClient.sendPass(gameID: id)
                 }
             }
         }.buttonStyle(.bordered)

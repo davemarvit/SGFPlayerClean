@@ -1,8 +1,8 @@
-// MARK: - File: ContentView.swift (v7.200)
+// MARK: - File: ContentView.swift (v7.201)
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var appModel = AppModel()
+    @EnvironmentObject var appModel: AppModel
     @State private var showSettings: Bool = false
     @State private var buttonsVisible: Bool = true
 
@@ -24,7 +24,7 @@ struct ContentView: View {
                 OGSCreateChallengeView(isPresented: $appModel.isCreatingChallenge).background(Color.black.opacity(0.6)).transition(.opacity).zIndex(200)
             }
         }
-        .environmentObject(appModel).preferredColorScheme(.dark)
+        .preferredColorScheme(.dark)
         .sheet(isPresented: $appModel.showDebugDashboard) { DebugDashboard(appModel: appModel).frame(minWidth: 700, minHeight: 500) }
     }
 
