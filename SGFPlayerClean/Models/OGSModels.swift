@@ -25,6 +25,18 @@ struct RenderStone: Identifiable, Equatable {
 
 // MARK: - OGS Network & Lobby Models
 struct NetworkLogEntry: Identifiable { let id = UUID(); let timestamp = Date(); let direction, content: String; let isHeartbeat: Bool }
+
+struct OGSChatMessage: Identifiable, Equatable, Hashable {
+    let id = UUID()
+    let timestamp: Date
+    let sender: String
+    let message: String
+    let isSelf: Bool
+    
+    // To support various chat types (Main, Malkovich, etc - for now "Main" driven)
+    var type: String = "main"
+}
+
 struct ChallengerInfo: Codable, Hashable {
     let id: Int; let username: String; let ranking: Double?; let professional: Bool?
     var displayRank: String { ChallengeHelpers.formatRank(ranking ?? 0) }

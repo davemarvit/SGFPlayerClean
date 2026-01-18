@@ -21,6 +21,7 @@ final class AppModel: ObservableObject {
     @Published var isCreatingChallenge: Bool = false
     @Published var showDebugDashboard: Bool = false
     @Published var boardVM: BoardViewModel?
+    @Published var isTypingInChat: Bool = false // Global flag to disable shortcuts
     
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
@@ -32,16 +33,44 @@ final class AppModel: ObservableObject {
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
         
+        // PERSISTENCE CHECK: Restore online mode state
+        let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
+        if wasOnline {
+            print("💾 Restoring Online Mode State (User was online)")
+            self.isOnlineMode = true
+        }
+
         ogsClient.$activeGameID
             .receive(on: RunLoop.main)
+            .dropFirst() // FIX: Ignore initial 'nil' to prevent overwriting persistence restore
             .sink { [weak self] gid in
-                if gid != nil { self?.isOnlineMode = true }
+                let isOnline = (gid != nil)
+                
+                // Only change mode if we are actually entering/leaving a game
+                // If we are already online (restored), and gid is nil, that's fine (Lobby).
+                // Wait: If gid becomes nil (game ends), we stay in Online Mode (Lobby).
+                // If gid becomes non-nil, we are definitely in Online Mode.
+                
+                if let id = gid {
+                    self?.isOnlineMode = true
+                } 
+                // Note: We DO NOT auto-switch to Local Mode just because activeGameID is nil.
+                // The user must explicitly disconnect or switch modes.
+                // However, we DO want to persist the "Online" state.
+                
+                // Let's defer "Offline" switch to user action, OR ensure we track "Intended Mode".
+                // Current logic: If activeGameID is valid, we are Online.
+                // If activeGameID is nil, we might be consistently in Online Lobby.
+                
+                if isOnline {
+                     self?.isOnlineMode = true
+                     UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
+                }
             }.store(in: &cancellables)
             
         ogsClient.$myActiveGames
             .receive(on: RunLoop.main)
             .sink { [weak self] games in
-                // Auto-detect resumable games from lobby events
                 // Auto-detect resumable games from lobby events
                 if let first = games.first {
                     self?.resumableGameID = first
@@ -53,8 +82,9 @@ final class AppModel: ObservableObject {
         ogsClient.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
         setupAudio(); self.ogsClient.connect(); setupOGSObservers()
         
-        // Auto-load saved folder
-        if let url = AppSettings.shared.folderURL {
+        // Auto-load saved folder ONLY IF NOT ONLINE
+        // This prevents the "confusing local game" issue when waking up in online mode.
+        if !wasOnline, let url = AppSettings.shared.folderURL {
             print("📂 Auto-loading saved folder: \(url.path)")
             loadFolder(url)
         }
@@ -83,7 +113,8 @@ final class AppModel: ObservableObject {
     
     private func tryAutoAdvance() {
         // Re-check state to ensure user didn't start scrubbing or playing again
-        guard !player.isPlaying, player.currentIndex == player.maxIndex else { return }
+        // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating)
+        guard !isOnlineMode, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
         playNextGame()
     }
     

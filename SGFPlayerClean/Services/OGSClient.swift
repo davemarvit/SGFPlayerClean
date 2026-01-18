@@ -41,6 +41,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
     @Published var blackPlayerName: String?
     @Published var whitePlayerName: String?
+    
     @Published var blackTimeRemaining: TimeInterval?
     @Published var whiteTimeRemaining: TimeInterval?
     
@@ -61,6 +62,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         }
     }
     @Published var activeGameTimeControl: String?
+    @Published var gameRules: String? // "japanese", "chinese"
+    @Published var isRanked: Bool = false
     @Published var isGameFinished: Bool = false
     
     // Detailed Clock & State
@@ -333,15 +336,12 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
               let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
               let eventName = array.first as? String else { return }
         
-        // FIREHOSE LOGGING (Temporary)
-        // Ignoring frequent events to reduce noise
-        if eventName != "net/ping" && eventName != "net/pong" && eventName != "seekgraph/global" {
-            // NSLog("[OGS-EVT] 📩 Event: \(eventName)")
-        }
-        
-        DispatchQueue.main.async { self.lastReceivedEvent = eventName }
-        
         let payload = array.count > 1 ? (array[1] as? [String: Any] ?? [:]) : [:]
+
+        // FIREHOSE LOGGING (Temporary)
+        if eventName != "net/ping" && eventName != "net/pong" && eventName != "seekgraph/global" {
+             NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload)")
+        }
         
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
 
@@ -426,6 +426,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             }
         } else if eventName.hasSuffix("/move") {
             handleIncomingMove(payload)
+        } else if eventName.hasSuffix("/chat") {
+            handleIncomingChat(payload)
         } else if eventName.hasSuffix("/undo_requested") {
             if let p = payload as? [String: Any],
                let whomID = robustInt(p["requested_by"]),
@@ -506,6 +508,10 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.whitePlayerRank = wR ?? wR_int.map { Double($0) }
             self.blackPlayerCountry = blackObj?["country"] as? String
             self.whitePlayerCountry = whiteObj?["country"] as? String
+            
+            // Phase B: Game Rules & Ranked Status
+            if let r = p["rules"] as? String { self.gameRules = r.capitalized }
+            if let ranked = p["ranked"] as? Bool { self.isRanked = ranked }
             
             
             // Phase B: Static Time Control
@@ -671,31 +677,81 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             NSLog("[OGS-CLOCK] 🕒 Received Clock: \(data)")
             
             // Black Clock
+            var bSnapshot: Double? = nil
             if let b = data["black_time"] as? [String: Any] {
-                // FIX: Support String OR Double for thinking_time
-                if let bt = self.robustDouble(b["thinking_time"]) { self.blackTimeRemaining = bt }
-                self.blackClockPeriods = b["periods"] as? Int
-                self.blackClockPeriodTime = self.robustDouble(b["period_time"])
+                // FIX: Parse into local var, do NOT assign to property yet (avoids oscillation)
+                bSnapshot = self.robustDouble(b["thinking_time"])
+                if let per = b["periods"] as? Int { self.blackClockPeriods = per }
+                if let pt = self.robustDouble(b["period_time"]) { self.blackClockPeriodTime = pt }
             }
             
             // White Clock
+            var wSnapshot: Double? = nil
             if let w = data["white_time"] as? [String: Any] {
-                if let wt = self.robustDouble(w["thinking_time"]) { self.whiteTimeRemaining = wt }
-                self.whiteClockPeriods = w["periods"] as? Int
-                self.whiteClockPeriodTime = self.robustDouble(w["period_time"])
+                wSnapshot = self.robustDouble(w["thinking_time"])
+                if let per = w["periods"] as? Int { self.whiteClockPeriods = per }
+                if let pt = self.robustDouble(w["period_time"]) { self.whiteClockPeriodTime = pt }
             }
             
             if let cur = self.robustInt(data["current_player"]) { self.currentPlayerID = cur }
             
-            // Reverted Expiration Override due to User Report of "Adding 30s".
-            // Will debug ratio between Expiration and ThinkingTime.
-            if let now = self.robustDouble(data["now"]),
-               let exp = self.robustDouble(data["expiration"]),
-               let cur = self.currentPlayerID {
-                 let remaining = max(0, (exp - now) / 1000.0)
-                 let ttBlack = self.robustDouble((data["black_time"] as? [String:Any])?["thinking_time"]) ?? 0
-                 // NSLog("[OGS-CLOCK] 📊 Compare: Expiration \(remaining) vs ThinkingTime \(ttBlack)")
+            // FIX: Robustly handle missing 'now'
+            let nowV: Double = self.robustDouble(data["now"]) ?? (Date().timeIntervalSince1970 * 1000.0)
+            
+            // DEBUG CLOCK SYNC
+            // let expV = data["expiration"]
+            // let curV = data["current_player"]
+            // NSLog("[OGS-CLOCK-DEBUG] 🕰️ SYNC: Now: \(data["now"] ?? "nil") | Exp: \(expV ?? "nil") | Cur: \(curV ?? "nil")")
+            
+            // Calculate Final Times
+            var finalBlackTime: Double? = bSnapshot
+            var finalWhiteTime: Double? = wSnapshot
+            
+            // Apply Hybrid Logic to the ACTIVE player
+            if let cur = self.currentPlayerID {
+                let isBlackActive = (cur == self.blackPlayerID)
+                let isActiveSnapshot = isBlackActive ? bSnapshot : wSnapshot
+                
+                // Parse Period Time & Count for Buffer
+                let pObj = isBlackActive ? (data["black_time"] as? [String: Any]) : (data["white_time"] as? [String: Any])
+                
+                let cachedPeriodTime = isBlackActive ? self.blackClockPeriodTime : self.whiteClockPeriodTime
+                let cachedPeriods = isBlackActive ? self.blackClockPeriods : self.whiteClockPeriods
+                
+                let pTime = self.robustDouble(pObj?["period_time"]) ?? cachedPeriodTime ?? 0.0
+                let pCount = self.robustInt(pObj?["periods"]) ?? cachedPeriods ?? 0
+                
+                // FIX: Expiration includes ALL periods (e.g. 3 * 10s = 30s) if in Main Time.
+                // Subtracting just one period left 20s "Extra". Now subtracting All.
+                let totalBuffer = Double(pCount) * pTime
+                
+                if let exp = self.robustDouble(data["expiration"]), let snapshotVal = isActiveSnapshot {
+                     // Live Time Calculation
+                     let timeFromExp = max(0, (exp - nowV) / 1000.0)
+                     let correctedLiveTime = max(0, timeFromExp - totalBuffer)
+                     
+                     // Hybrid: min(Snapshot, Live)
+                     let properTime = min(snapshotVal, correctedLiveTime)
+                     
+                     // Log Logic
+                     // let diff = abs(snapshotVal - properTime)
+                     // if diff > 1.0 {
+                     //    NSLog("[OGS-CLOCK-FIX] ⚖️ Sync Adjust: Snap \(Int(snapshotVal)) vs Live \(Int(correctedLiveTime)) (Buff: \(Int(totalBuffer))) -> \(Int(properTime))")
+                     // }
+                     
+                     if isBlackActive { finalBlackTime = properTime }
+                     else { finalWhiteTime = properTime }
+                     
+                } else {
+                    // Fallback to snapshot (already set by default)
+                }
             }
+            
+            // Final Assignment (Single Update)
+            if let b = finalBlackTime { self.blackTimeRemaining = b }
+            if let w = finalWhiteTime { self.whiteTimeRemaining = w }
+            
+            // Phase B: Update captures... (omitted)
             
             // Phase B: Update captures from clock? No, usually in move or gamedata.
             // But sometimes move events carry captures.
@@ -717,6 +773,25 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.isRequestingUndo = false
         }
         NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
+    }
+
+    private func handleIncomingChat(_ data: [String: Any]) {
+        // Expected payload: { "player_id": 123, "username": "Foo", "body": "Hello", "type": "main" }
+        // Note: Sometimes internal system messages or 'malkovich' might appear.
+        
+        let type = data["type"] as? String ?? "main"
+        // For now, filter out 'malkovich' or 'system' unless desired. OGS usually sends 'main' for public chat.
+        guard type == "main" || type == "spectator" else { return }
+        
+        // Dispatch Notification
+        // We do basic parsing here, but ViewModel can re-parse or we can pass raw dict.
+        // Passing raw dict keeps the pattern consistent.
+        
+        // NSLog("[OGS-CHAT] 💬 Chat Received: \(data["body"] ?? "") from \(data["username"] ?? "")")
+        
+        DispatchQueue.main.async {
+             NotificationCenter.default.post(name: NSNotification.Name("OGSChatReceived"), object: nil, userInfo: data)
+        }
     }
 
     private func handleNetPing(_ p: [String: Any]) {

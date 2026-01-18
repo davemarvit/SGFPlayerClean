@@ -3,8 +3,15 @@ import SwiftUI
 
 struct KeyboardShortcutsModifier: ViewModifier {
     let boardVM: BoardViewModel
+    @ObservedObject var appModel: AppModel
+    
     func body(content: Content) -> some View {
-        content.focusable().onKeyPress(phases: .down) { press in
+        // FIX: Use default phase (.up) so TextFields (Leaf nodes) consume keys first.
+        // Using .down (tunneling) was hijacking inputs before the UI could see them.
+        content.focusable().onKeyPress { press in
+            // CRITICAL: If user is typing in chat, IGNORE all shortcuts.
+            guard !appModel.isTypingInChat else { return .ignored }
+            
             let isShift = press.modifiers.contains(.shift)
             switch press.key {
             case .leftArrow: isShift ? boardVM.stepBackwardTen() : boardVM.stepBackward(); return .handled
@@ -17,4 +24,4 @@ struct KeyboardShortcutsModifier: ViewModifier {
         }
     }
 }
-extension View { func keyboardShortcuts(boardVM: BoardViewModel) -> some View { modifier(KeyboardShortcutsModifier(boardVM: boardVM)) } }
+extension View { func keyboardShortcuts(boardVM: BoardViewModel, appModel: AppModel) -> some View { modifier(KeyboardShortcutsModifier(boardVM: boardVM, appModel: appModel)) } }

@@ -76,7 +76,7 @@ struct ContentView3D: View {
             }
         }
         .focused($isBoardFocused)
-        .keyboardShortcuts(boardVM: app.boardVM!)
+        .keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         .onAppear {
             isBoardFocused = true
             updateScene()

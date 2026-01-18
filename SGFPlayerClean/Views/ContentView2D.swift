@@ -49,7 +49,7 @@ struct ContentView2D: View {
                     .frame(width: area.width)
                     RightPanelView().frame(width: sidebarW).background(Color.black.opacity(0.15))
                 }
-            }.keyboardShortcuts(boardVM: app.boardVM!)
+            }.keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         }
     }
 }
