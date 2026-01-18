@@ -3,20 +3,18 @@ import SwiftUI
 
 struct RightPanelView: View {
     @EnvironmentObject var app: AppModel
-    @State private var selectedTab: RightPanelTab = .local
-    enum RightPanelTab: String { case local = "Local", online = "Online" }
     
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Mode", selection: $selectedTab) {
-                Text("Local").tag(RightPanelTab.local)
-                Text("Online").tag(RightPanelTab.online)
+            Picker("Mode", selection: $app.rightPanelTab) {
+                Text("Local").tag(AppModel.PanelTab.local)
+                Text("Online").tag(AppModel.PanelTab.online)
             }.pickerStyle(.segmented).padding(10)
             
             Divider().background(Color.white.opacity(0.1))
             
             ZStack {
-                if selectedTab == .local {
+                if app.rightPanelTab == .local {
                     VStack(spacing: 0) {
                         if let game = app.selection, let bvm = app.boardVM {
                             LocalGameMetadataView(game: game, boardVM: bvm)

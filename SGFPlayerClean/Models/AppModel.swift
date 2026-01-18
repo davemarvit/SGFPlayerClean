@@ -23,6 +23,10 @@ final class AppModel: ObservableObject {
     @Published var boardVM: BoardViewModel?
     @Published var isTypingInChat: Bool = false // Global flag to disable shortcuts
     
+    // UI Persistence
+    @Published var rightPanelTab: PanelTab = .local
+    enum PanelTab: String { case local = "Local", online = "Online" }
+    
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
     @Published var resumableGameID: Int? = nil

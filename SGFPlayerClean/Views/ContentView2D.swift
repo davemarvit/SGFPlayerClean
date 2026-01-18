@@ -15,39 +15,55 @@ struct ContentView2D: View {
     
     var body: some View {
         GeometryReader { window in
-            let area = CGSize(width: window.size.width - sidebarW, height: window.size.height)
+            // FIX: Use FULL window width for board layout (ignoring sidebar overlay)
+            // This aligns with 3D behavior where the panel overlays the scene.
+            let area = window.size // CGSize(width: window.size.width, height: window.size.height)
             let L = getLayout(area: area)
             let margin = L.bW * 0.065
 
-            ZStack {
+            ZStack(alignment: .topLeading) {
+                // 1. Background
                 TatamiBackground(boardHeight: L.bH)
-                HStack(spacing: 0) {
-                    VStack(spacing: 0) {
-                        Spacer()
-                        HStack(alignment: .top, spacing: L.gap) {
-                            if let bvm = app.boardVM {
-                                BoardView2D(boardVM: bvm, layoutVM: app.layoutVM, size: CGSize(width: L.bW, height: L.bH))
-                                    .frame(width: L.bW, height: L.bH)
-                                VStack(spacing: 0) {
-                                    // WHITE PLAYER SIDE (TOP): Captured Black stones
-                                    SimpleLidView(stoneColor: .black, stoneCount: bvm.whiteCapturedCount, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
-                                        .padding(.top, margin - (L.lidD / 2))
-                                    Spacer()
-                                    // BLACK PLAYER SIDE (BOTTOM): Captured White stones
-                                    SimpleLidView(stoneColor: .white, stoneCount: bvm.blackCapturedCount, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
-                                        .padding(.bottom, margin - (L.lidD / 2))
-                                }
-                                .frame(height: L.bH).frame(width: L.lidD)
-                            }
-                        }
-                        .frame(width: L.bW + L.gap + L.lidD)
-                        Spacer()
-                        if let bvm = app.boardVM {
-                            PlaybackControlsView(boardVM: bvm).padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
-                        }
+                
+                // 2. Board & Lids Container (Centered in Window)
+                VStack(spacing: 0) {
+                    Spacer()
+                    HStack(alignment: .top, spacing: L.gap) {
+                         // Board
+                         if let bvm = app.boardVM {
+                             BoardView2D(boardVM: bvm, layoutVM: app.layoutVM, size: CGSize(width: L.bW, height: L.bH))
+                                 .frame(width: L.bW, height: L.bH)
+                         }
+                         
+                         // Lids (Captures)
+                         VStack(spacing: 0) {
+                             // WHITE PLAYER SIDE (TOP): Captured Black stones
+                             SimpleLidView(stoneColor: .black, stoneCount: app.boardVM?.whiteCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
+                                 .padding(.top, margin - (L.lidD / 2))
+                             Spacer()
+                             // BLACK PLAYER SIDE (BOTTOM): Captured White stones
+                             SimpleLidView(stoneColor: .white, stoneCount: app.boardVM?.blackCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
+                                 .padding(.bottom, margin - (L.lidD / 2))
+                         }
+                         .frame(height: L.bH).frame(width: L.lidD)
                     }
-                    .frame(width: area.width)
-                    RightPanelView().frame(width: sidebarW).background(Color.black.opacity(0.15))
+                    .frame(width: L.bW + L.gap + L.lidD)
+                    
+                    Spacer()
+                    
+                    if let bvm = app.boardVM {
+                        PlaybackControlsView(boardVM: bvm).padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
+                    }
+                }
+                .frame(width: window.size.width, height: window.size.height) // Full Window Frame
+                
+                // 3. Right Panel Overlay (Aligned Trailing)
+                HStack {
+                    Spacer()
+                    RightPanelView()
+                        .frame(width: sidebarW)
+                        .background(Color.black.opacity(0.15))
+                        // .ignoresSafeArea() // CAUSE OF CUTOFF: Removed to respect window title bar
                 }
             }.keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         }

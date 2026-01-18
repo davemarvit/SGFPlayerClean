@@ -153,7 +153,7 @@ struct ActiveGamePanel: View {
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(white: 0.4)) // Neutral Dark Gray
+            .background(Color(white: 0.4).opacity(0.85)) // Neutral Dark Gray + Trans
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.1), lineWidth: 1))
             
@@ -188,7 +188,7 @@ struct ActiveGamePanel: View {
             }
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .background(Color(white: 0.75)) // Neutral Light Gray
+            .background(Color(white: 0.75).opacity(0.85)) // Neutral Light Gray + Trans
             .cornerRadius(8)
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.1), lineWidth: 1))
         }

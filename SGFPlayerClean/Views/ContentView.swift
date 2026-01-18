@@ -13,10 +13,7 @@ struct ContentView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Button(action: { appModel.showDebugDashboard.toggle() }) {
-                        Image(systemName: "ladybug.fill").foregroundColor(appModel.ogsClient.isConnected ? .green : .red)
-                            .padding(8).background(Color.black.opacity(0.6)).clipShape(Circle())
-                    }.buttonStyle(.plain).padding()
+                    // Debug Icon Removed
                 }
                 Spacer()
             }
