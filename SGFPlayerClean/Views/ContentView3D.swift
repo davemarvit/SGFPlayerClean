@@ -81,9 +81,21 @@ struct ContentView3D: View {
             isBoardFocused = true
             updateScene()
         }
-        .onReceive(app.boardVM?.onRequestUpdate3D ?? PassthroughSubject<Void, Never>()) { _ in
-            updateScene()
-        }
+        .onReceive(app.boardVM?.onRequestUpdate3D ?? PassthroughSubject<Void, Never>()) { _ in updateScene() }
+        .onReceive(AppSettings.shared.$showBoardGlow) { _ in DispatchQueue.main.async { updateScene() } }
+        .onReceive(AppSettings.shared.$showEnhancedGlow) { _ in DispatchQueue.main.async { updateScene() } }
+        // Fallback for other settings
+        .onReceive(AppSettings.shared.objectWillChange) { _ in DispatchQueue.main.async { updateScene() } }
+        
+        // Debug Overlay (Top Left)
+        // Debug Overlay Removed
+        // VStack {
+        //     HStack {
+        //         MaterialDebugView(manager: sceneManager)
+        //         Spacer()
+        //     }
+        //     Spacer()
+        // }
     }
     
     private func updateScene() {
@@ -133,9 +145,11 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
             if modifiers.contains(.shift) && modifiers.contains(.control) {
                 distance = max(10.0, min(100.0, distance - delta.y * 0.1))
             } else if modifiers.contains(.shift) {
-                panX += delta.x * 0.05; panY += delta.y * 0.05
             } else {
-                rotationX = max(0.05, min(1.57, rotationX + Float(delta.y) * 0.005))
+                // Controls Fixed (v5.600):
+                // Left/Right: Restored to standard Drag (Left = Rotate Left/CCW) (+= delta)
+                // Up/Down: Drag UP tilts board UP (Skimming View). Range expanded (-0.2 to 1.8).
+                rotationX = max(-0.2, min(1.8, rotationX - Float(delta.y) * 0.005))
                 rotationY += Float(delta.x) * 0.005
             }
             onCameraChange()
@@ -182,3 +196,5 @@ class UnifiedSCNView: SCNView {
     }
     override func scrollWheel(with event: NSEvent) { onInteraction?(.zoom(amount: event.deltaY), .zero); super.scrollWheel(with: event) }
 }
+
+// MaterialDebugView Removed (v5.500)

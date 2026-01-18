@@ -1,6 +1,6 @@
 // ========================================================
 // FILE: ./Views/DebugDashboard.swift
-// VERSION: v3.267 (Inspector Transparency)
+// VERSION: v3.285 (Stability & Binding Alignment)
 // ========================================================
 
 import SwiftUI
@@ -50,7 +50,6 @@ struct DebugDashboard: View {
                     DebugStateRow(label: "Connected", value: client.isConnected ? "YES" : "NO")
                     DebugStateRow(label: "Login (JWT)", value: client.userJWT != nil ? "Verified" : "Missing")
                     DebugStateRow(label: "Socket Auth", value: client.isSocketAuthenticated ? "YES" : "NO")
-                    // PILLAR: Verify the target ID matches the game you clicked
                     DebugStateRow(label: "Target Game ID", value: "\(client.activeGameID ?? -1)")
                     DebugStateRow(label: "My ID", value: "\(client.playerID ?? -1)")
                     DebugStateRow(label: "Black ID", value: "\(client.blackPlayerID ?? -1)")

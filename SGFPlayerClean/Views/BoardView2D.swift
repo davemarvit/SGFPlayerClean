@@ -21,7 +21,7 @@ struct BoardView2D: View {
             }
             .frame(width: size.width, height: size.height)
             .cornerRadius(2)
-            .shadow(color: .black.opacity(0.4), radius: 8)
+            .shadow(color: .black.opacity(0.5), radius: 12, x: 20, y: 20)
             
             ZStack(alignment: .topLeading) {
                 BoardGridShape(boardSize: bSize)
@@ -33,6 +33,19 @@ struct BoardView2D: View {
                         .position(x: CGFloat(pt.col) * cellP, y: CGFloat(pt.row) * rowP)
                 }
                 
+                // GLOW LAYER (Under Stones)
+                if let lastPos = boardVM.lastMovePosition,
+                   (AppSettings.shared.showBoardGlow || AppSettings.shared.showEnhancedGlow) {
+                    let j = boardVM.getJitterOffset(forPosition: lastPos)
+                    let tx = CGFloat(lastPos.col) * cellP + (j.x * cellP)
+                    let ty = CGFloat(lastPos.row) * rowP + (j.y * rowP)
+                    
+                    let s = AppSettings.shared.showEnhancedGlow ? cellP * 1.8 : cellP * 1.5
+                    Circle().fill(RadialGradient(gradient: Gradient(colors: [Color.red.opacity(0.6), Color.clear]), center: .center, startRadius: 0, endRadius: s/2))
+                        .frame(width: s, height: s)
+                        .position(x: tx, y: ty)
+                }
+
                 ForEach(boardVM.stonesToRender) { rs in
                     let sS = (rs.color == .black ? 1.015 : 0.995) * cellP
                     StoneView2D(color: rs.color, position: rs.id)
@@ -48,12 +61,40 @@ struct BoardView2D: View {
                         .position(x: CGFloat(ghostPos.col) * cellP, y: CGFloat(ghostPos.row) * rowP)
                 }
 
+                // MARKER LAYER (Over Stones)
                 if let lastPos = boardVM.lastMovePosition {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
-                    Circle().stroke(Color.white, lineWidth: max(1.5, size.width * 0.005))
-                        .frame(width: cellP * 0.45, height: cellP * 0.45)
-                        .position(x: CGFloat(lastPos.col) * cellP + (j.x * cellP),
-                                  y: CGFloat(lastPos.row) * rowP + (j.y * rowP))
+                    let tx = CGFloat(lastPos.col) * cellP + (j.x * cellP)
+                    let ty = CGFloat(lastPos.row) * rowP + (j.y * rowP)
+                    
+                    Group {
+                        // DOT
+                        if AppSettings.shared.showLastMoveDot {
+                            Circle().fill(Color.red)
+                                .frame(width: cellP * 0.25, height: cellP * 0.25)
+                        }
+                        
+                        // CIRCLE
+                        if AppSettings.shared.showLastMoveCircle {
+                            let stoneColor = boardVM.stonesToRender.first(where: { $0.id == lastPos })?.color ?? .black
+                            let strokeColor = stoneColor == .black ? Color.white : Color.black
+                            let width = max(0.8, size.width * 0.0025) // Half previous: max(1.5, ... * 0.005)
+                            
+                            Circle().stroke(strokeColor, lineWidth: width)
+                                .frame(width: cellP * 0.45, height: cellP * 0.45)
+                        }
+                        
+                        // NUMBER
+                        if AppSettings.shared.showMoveNumbers {
+                            let stoneColor = boardVM.stonesToRender.first(where: { $0.id == lastPos })?.color ?? .black
+                            let textColor = stoneColor == .black ? Color.white : Color.black
+                            
+                            Text("\(boardVM.currentMoveIndex)")
+                                .font(.system(size: cellP * 0.5, weight: .bold))
+                                .foregroundColor(textColor)
+                        }
+                    }
+                    .position(x: tx, y: ty)
                 }
             }
             .frame(width: gridW, height: gridH)

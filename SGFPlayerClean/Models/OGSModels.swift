@@ -27,34 +27,128 @@ struct RenderStone: Identifiable, Equatable {
 struct NetworkLogEntry: Identifiable { let id = UUID(); let timestamp = Date(); let direction, content: String; let isHeartbeat: Bool }
 struct ChallengerInfo: Codable, Hashable {
     let id: Int; let username: String; let ranking: Double?; let professional: Bool?
-    var displayRank: String {
-        guard let r = ranking else { return "?" }
-        let rank = Int(round(r)); return rank < 30 ? "\(30 - rank)k" : "\(rank - 29)d"
-    }
+    var displayRank: String { ChallengeHelpers.formatRank(ranking ?? 0) }
 }
 struct ChallengeGameInfo: Codable, Hashable { let ranked: Bool?; let width, height: Int; let rules: String? }
+struct TimeParameters: Codable, Hashable {
+    let time_control: String?; let main_time: Int?; let initial_time: Int?
+    let periods: Int?; let period_time: Int?
+    let time_increment: Int?; let increment: Int?
+    let stones_per_period: Int?
+    let per_move: Int?
+}
+
 struct OGSChallenge: Identifiable, Decodable {
     let id: Int; let name: String?; let challenger: ChallengerInfo?; let game: ChallengeGameInfo?; let time_per_move: Int?
-    enum CodingKeys: String, CodingKey { case challenge_id, game_id, name, user_id, username, ranking, professional, width, height, ranked, rules, time_per_move, black, white }
+    let time_control: String?
+    let time_control_parameters: TimeParameters?
+    
+    enum CodingKeys: String, CodingKey { case challenge_id, game_id, name, user_id, username, ranking, rank, professional, width, height, ranked, rules, time_per_move, black, white, time_control, time_control_parameters }
+    
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.id = (try? c.decode(Int.self, forKey: .challenge_id)) ?? (try? c.decode(Int.self, forKey: .game_id)) ?? 0
         self.name = try? c.decode(String.self, forKey: .name); self.time_per_move = try? c.decode(Int.self, forKey: .time_per_move)
+        
+        self.time_control = try? c.decode(String.self, forKey: .time_control)
+        self.time_control_parameters = try? c.decode(TimeParameters.self, forKey: .time_control_parameters)
+        
         if c.contains(.black) || c.contains(.white) {
             self.challenger = (try? c.decode(ChallengerInfo.self, forKey: .black)) ?? (try? c.decode(ChallengerInfo.self, forKey: .white))
         } else {
-            self.challenger = ChallengerInfo(id: (try? c.decode(Int.self, forKey: .user_id)) ?? 0, username: (try? c.decode(String.self, forKey: .username)) ?? "Unknown", ranking: try? c.decode(Double.self, forKey: .ranking), professional: try? c.decode(Bool.self, forKey: .professional))
+            let rankDouble = (try? c.decode(Double.self, forKey: .ranking)) ?? (try? c.decode(Double.self, forKey: .rank))
+            let rankInt = (try? c.decode(Int.self, forKey: .ranking)) ?? (try? c.decode(Int.self, forKey: .rank))
+            let finalRank = rankDouble ?? (rankInt.map { Double($0) })
+            
+            let profBool = try? c.decode(Bool.self, forKey: .professional)
+            let profInt = try? c.decode(Int.self, forKey: .professional)
+            let isProf = profBool ?? (profInt == 1)
+            
+            self.challenger = ChallengerInfo(id: (try? c.decode(Int.self, forKey: .user_id)) ?? 0, username: (try? c.decode(String.self, forKey: .username)) ?? "Unknown", ranking: finalRank, professional: isProf)
         }
-        self.game = ChallengeGameInfo(ranked: try? c.decode(Bool.self, forKey: .ranked), width: (try? c.decode(Int.self, forKey: .width)) ?? 19, height: (try? c.decode(Int.self, forKey: .height)) ?? 19, rules: try? c.decode(String.self, forKey: .rules))
+        
+        let rankedBool = try? c.decode(Bool.self, forKey: .ranked)
+        let rankedInt = try? c.decode(Int.self, forKey: .ranked)
+        let isRanked = rankedBool ?? (rankedInt == 1)
+        
+        self.game = ChallengeGameInfo(ranked: isRanked, width: (try? c.decode(Int.self, forKey: .width)) ?? 19, height: (try? c.decode(Int.self, forKey: .height)) ?? 19, rules: try? c.decode(String.self, forKey: .rules))
     }
     var boardSize: String { "\(game?.width ?? 19)x\(game?.height ?? 19)" }
     var speedCategory: String {
         guard let tpm = time_per_move else { return "live" }
         return tpm < 30 ? "blitz" : (tpm > 43200 ? "correspondence" : "live")
     }
-    var timeControlDisplay: String {
-        guard let tpm = time_per_move else { return "No limit" }
-        return tpm < 60 ? "\(tpm)s / move" : "\(tpm / 60)m / move"
+    var formattedTimeControl: String {
+        return ChallengeHelpers.formatTimeControl(tc: time_control, params: time_control_parameters, perMove: time_per_move)
+    }
+    
+    // Legacy support
+    var timeControlDisplay: String { formattedTimeControl }
+}
+
+struct ChallengeHelpers {
+    static func formatRank(_ r: Double) -> String {
+        let rank = Int(floor(r))
+        return rank < 30 ? "\(30 - rank)k" : "\(rank - 29)d"
+    }
+    static func flagEmoji(for code: String?) -> String {
+        guard let code = code, code.count == 2 else { return "" }
+        let base: UInt32 = 127397
+        var s = ""
+        for sScalar in code.uppercased().unicodeScalars {
+            s.unicodeScalars.append(UnicodeScalar(base + sScalar.value)!)
+        }
+        return s
+    }
+    
+    static func formatTimeControl(tc: String?, params: TimeParameters?, perMove: Int?) -> String {
+        let sys = tc ?? "byoyomi"
+        
+        // Helper: Seconds to "10m" or "30s" or "1h"
+        func fmt(_ sec: Int) -> String {
+            if sec >= 3600 { return "\(sec/3600)h" }
+            if sec >= 60 { return "\(sec/60)m" }
+            return "\(sec)s"
+        }
+        
+        // If we have detailed params
+        if let p = params {
+            if let main = p.main_time ?? p.initial_time {
+                 let mainStr = fmt(main)
+                 
+                 if sys == "byoyomi" {
+                     let periods = p.periods ?? 5
+                     let pTime = p.period_time ?? 30
+                     return "\(mainStr) + \(periods)x\(fmt(pTime))"
+                 }
+                 
+                 if sys == "fischer" {
+                     let inc = p.time_increment ?? p.increment ?? 0
+                     return "\(mainStr) + \(fmt(inc))"
+                 }
+                 
+                 if sys == "canadian" {
+                     let stones = p.stones_per_period ?? 25
+                     let pTime = p.period_time ?? 600
+                     return "\(mainStr) + \(fmt(pTime))/\(stones)"
+                 }
+                 
+                 if sys == "simple" {
+                    let perMove = p.per_move ?? 0
+                    return "\(mainStr)/\(fmt(perMove))"
+                 }
+                 
+                 if sys == "absolute" { return "\(mainStr)" }
+            }
+        }
+        
+        // Fallback if no params but we have time_per_move (Legacy Blitz/Live logic)
+        if let tpm = perMove {
+            if tpm == 0 { return "None" }
+            return tpm < 60 ? "\(tpm)s/mv" : "\(tpm/60)m/mv"
+        }
+        
+        return "Live"
     }
 }
 
@@ -110,6 +204,14 @@ struct SGFGame {
             for (k, vals) in node.props {
                 switch k {
                 case "SZ": if let v = vals.first { g.boardSize = Int(v.components(separatedBy: ":").first ?? "19") ?? 19 }
+                case "PB": g.info.playerBlack = vals.first
+                case "PW": g.info.playerWhite = vals.first
+                case "BR": g.info.blackRank = vals.first
+                case "WR": g.info.whiteRank = vals.first
+                case "RE": g.info.result = vals.first
+                case "DT": g.info.date = vals.first
+                case "KM": g.info.komi = vals.first
+                case "EV": g.info.event = vals.first
                 case "AB": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.black, x, y)) } }
                 case "AW": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.white, x, y)) } }
                 case "B": g.moves.append((.black, SGFCoordinates.parse(vals.first ?? "")))

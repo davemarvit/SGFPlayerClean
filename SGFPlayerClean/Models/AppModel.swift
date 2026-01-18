@@ -52,6 +52,53 @@ final class AppModel: ObservableObject {
 
         ogsClient.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
         setupAudio(); self.ogsClient.connect(); setupOGSObservers()
+        
+        // Auto-load saved folder
+        if let url = AppSettings.shared.folderURL {
+            print("📂 Auto-loading saved folder: \(url.path)")
+            loadFolder(url)
+        }
+        
+        setupAutoAdvance()
+    }
+    
+    private func setupAutoAdvance() {
+        player.$isPlaying
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] isPlaying in
+                if !isPlaying { self?.handlePlaybackStopped() }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handlePlaybackStopped() {
+        guard player.currentIndex == player.maxIndex, player.maxIndex > 0 else { return }
+        
+        print("🏁 Game Finished. Auto-advancing in 3s...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.tryAutoAdvance()
+        }
+    }
+    
+    private func tryAutoAdvance() {
+        // Re-check state to ensure user didn't start scrubbing or playing again
+        guard !player.isPlaying, player.currentIndex == player.maxIndex else { return }
+        playNextGame()
+    }
+    
+    func playNextGame() {
+        guard let current = selection, let idx = games.firstIndex(where: { $0.id == current.id }) else { return }
+        let nextIdx = (idx + 1) % games.count
+        let nextGame = games[nextIdx]
+        
+        print("⏭️ Auto-Advancing to: \(nextGame.url.lastPathComponent)")
+        selectGame(nextGame)
+        
+        // Short delay to ensure load completes before playing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.boardVM?.startAutoPlay()
+        }
     }
     
     private func robustInt(_ value: Any?) -> Int? {
@@ -274,6 +321,90 @@ final class AppModel: ObservableObject {
     private func setupAudio() { if let url = Bundle.main.url(forResource: "Stone_click_1", withExtension: "mp3") { stoneClickPlayer = try? AVAudioPlayer(contentsOf: url); stoneClickPlayer?.prepareToPlay() } }
     func playStoneClickSound() { stoneClickPlayer?.play() }
     func selectGame(_ g: SGFGameWrapper) { selection = g; boardVM?.loadGame(g) }
-    func promptForFolder() { /* Implementation */ }
-    func loadFolder(_ u: URL) { /* Implementation */ }
+    func promptForFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Load Games"
+        
+        panel.begin { [weak self] response in
+            if response == .OK, let url = panel.url {
+                self?.loadFolder(url)
+            }
+        }
+    }
+    
+    func loadFolder(_ url: URL) {
+        // 1. Update Settings
+        AppSettings.shared.folderURL = url
+        
+        // 2. Clear current library
+        self.games = []
+        self.selection = nil
+        
+        // 3. Background Load
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            // Security Scope: Essential for App Sandbox access to user-selected folder
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            
+            let fm = FileManager.default
+            var foundURLs: [URL] = []
+            
+            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+                for case let fileURL as URL in enumerator {
+                    if fileURL.pathExtension.lowercased() == "sgf" {
+                        foundURLs.append(fileURL)
+                    }
+                }
+            }
+            
+            // Sort
+            foundURLs.sort { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+            
+            // Shuffle?
+            if AppSettings.shared.shuffleGameOrder {
+                foundURLs.shuffle()
+            }
+            
+            // Parse Code
+            var loaded: [SGFGameWrapper] = []
+            for sgfURL in foundURLs {
+                do {
+                    let data = try Data(contentsOf: sgfURL)
+                    // Try UTF8, fallback to lossy
+                    let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+                    
+                    let tree = try SGFParser.parse(text: text)
+                    let game = SGFGame.from(tree: tree)
+                    loaded.append(SGFGameWrapper(url: sgfURL, game: game))
+                } catch {
+                    print("Failed to parse \(sgfURL.lastPathComponent): \(error)")
+                }
+            }
+            
+            // 4. Update Main Actor
+            DispatchQueue.main.async {
+                self.games = loaded
+                print("📚 Loaded \(loaded.count) games from \(url.lastPathComponent)")
+                
+                // Auto-Behavior
+                // Auto-Behavior
+                if AppSettings.shared.startGameOnLaunch, let first = loaded.first {
+                    self.selectGame(first)
+                    // Trigger Playback
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.boardVM?.startAutoPlay()
+                    }
+                } else {
+                    if let first = loaded.first {
+                        self.selection = first
+                    }
+                }
+            }
+        }
+    }
 }

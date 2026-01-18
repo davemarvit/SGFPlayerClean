@@ -21,7 +21,7 @@ final class SGFPlayer: ObservableObject {
     private var initialPlayer: Stone = .black
     
     /// In online mode, this tracks the OGS 'state_version'
-    var serverMoveNumber: Int = 0
+    var highestKnownStateVersion: Int = 0
     private var timer: AnyCancellable?
     
     init() {
@@ -30,35 +30,46 @@ final class SGFPlayer: ObservableObject {
     
     var turn: Stone {
         // PILLAR: Turn Priority
-        // 1. If we have moves in the history beyond setup, alternate from last move.
-        // 2. Otherwise, use the server-provided initial player flag.
-        if let last = lastMove { return last.color == .black ? .white : .black }
+        if let last = lastMove {
+             NSLog("[OGS-TURN] Turn by Move: \(last.color.opponent) (Last: \(last.color)). History: \(_moves.count)")
+             return last.color == .black ? .white : .black
+        }
+        NSLog("[OGS-TURN] Turn by Initial: \(initialPlayer)")
         return initialPlayer
     }
     
     var maxIndex: Int { _moves.count }
     
+    // Updated loadOnline to separate MoveCount logic from StateVersion logic
     func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
-        print("🔍 [Engine v8.201] loadOnline. Size: \(size), Turn: \(nextPlayer), Version: \(stateVersion)")
+        NSLog("[OGS-ENGINE] 🔍 loadOnline. Size: \(size), Turn: \(nextPlayer), Version: \(stateVersion)")
         self.baseSize = size
         self._moves = []
         self._baseSetup = setup.map { ($1, $0.col, $0.row) }
         self.initialPlayer = nextPlayer
-        self.serverMoveNumber = stateVersion
+        self.highestKnownStateVersion = stateVersion
         self.reset()
     }
     
     func applyOnlineMove(color: Stone, x: Int, y: Int, moveNumber: Int) {
-        // Prevent re-processing the same move version
-        guard moveNumber > serverMoveNumber || (moveNumber == serverMoveNumber && lastMove == nil) else { return }
-        self.serverMoveNumber = moveNumber
+        // LOGIC FIX: Enforce Sequential Consistency
+        let expected = _moves.count + 1
+        
+        // Debug Log
+        NSLog("[OGS-ENGINE] ⚡️ applyOnlineMove used. Move: \(moveNumber). Expected: \(expected). TopVersion: \(highestKnownStateVersion)")
+        
+        guard moveNumber == expected else {
+            NSLog("[OGS-ENGINE] 🚫 REJECTING Out-of-Order Move \(moveNumber) (Expected \(expected)).")
+            return
+        }
+        
         self.playMoveOptimistically(color: color, x: x, y: y)
     }
     
     func clear() {
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
-        whiteStonesCaptured = 0; blackStonesCaptured = 0; serverMoveNumber = 0
+        whiteStonesCaptured = 0; blackStonesCaptured = 0; highestKnownStateVersion = 0
         syncSnapshot(grid: Array(repeating: Array(repeating: nil, count: baseSize), count: baseSize))
         moveProcessed.send()
     }
@@ -117,6 +128,12 @@ final class SGFPlayer: ObservableObject {
             }
             
             self.lastMove = MoveRef(color: color, x: x, y: y)
+            syncSnapshot(grid: g)
+        } else {
+            // PASS HANDLING
+            // If coords are invalid (e.g. -1), treat as Pass.
+            // Crucial: Update lastMove so Turn logic flips!
+            self.lastMove = MoveRef(color: color, x: x ?? -1, y: y ?? -1)
             syncSnapshot(grid: g)
         }
     }
@@ -179,7 +196,7 @@ final class SGFPlayer: ObservableObject {
         self._baseSetup = game.setup
         self._moves = game.moves
         self.initialPlayer = .black
-        self.serverMoveNumber = 0
+        self.highestKnownStateVersion = 0
         self.reset()
     }
 }

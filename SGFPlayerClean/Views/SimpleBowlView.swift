@@ -6,7 +6,7 @@ struct SimpleLidView: View {
     var body: some View {
         ZStack {
             SafeImage(name: lidNumber == 1 ? "go_lid_1.png" : "go_lid_2.png", resizingMode: .stretch)
-                .frame(width: lidSize, height: lidSize).shadow(color: .black.opacity(0.4), radius: 5, x: 2, y: 3)
+                .frame(width: lidSize, height: lidSize).shadow(color: .black.opacity(0.4), radius: 8, x: 10, y: 10)
             if stoneCount > 0 { LidStonesPile(color: stoneColor, count: min(stoneCount, 35), stoneSize: stoneSize, lidSize: lidSize) }
         }.frame(width: lidSize, height: lidSize)
     }

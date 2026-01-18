@@ -28,11 +28,11 @@ struct SafeImage: View {
     var body: some View {
         #if os(macOS)
         if let img = NSImage(named: name) ?? NSImage(named: (name as NSString).deletingPathExtension) {
-            Image(nsImage: img).resizable(resizingMode: resizingMode)
+            Image(nsImage: img).resizable(resizingMode: resizingMode).interpolation(.high)
         } else { Color.white.opacity(0.05) }
         #else
         if let img = UIImage(named: name) {
-            Image(uiImage: img).resizable(resizingMode: resizingMode)
+            Image(uiImage: img).resizable(resizingMode: resizingMode).interpolation(.high)
         } else { Color.clear }
         #endif
     }

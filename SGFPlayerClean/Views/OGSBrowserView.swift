@@ -40,6 +40,19 @@ struct OGSBrowserView: View {
                 if app.ogsClient.isConnected { Label("Connected", systemImage: "circle.fill").font(.caption).foregroundColor(.green) }
                 else { Button("Retry") { app.ogsClient.connect() }.font(.caption).buttonStyle(.borderedProminent).tint(.orange) }
             }
+            // Resume Button
+            if let rid = app.resumableGameID {
+                Button(action: { app.resumeOnlineGame(id: rid) }) {
+                    HStack {
+                        Image(systemName: "arrow.uturn.backward")
+                        Text("Return to Game \(rid)")
+                        if let name = app.ogsClient.opponentName(for: app.ogsClient.playerID) { Text("vs \(name)") }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(.green)
+                .padding(.horizontal)
+            }
             HStack(spacing: 12) {
                 Text("Size:").font(.caption).foregroundColor(.white.opacity(0.7))
                 ForEach(BoardSizeCategory.allCases) { size in

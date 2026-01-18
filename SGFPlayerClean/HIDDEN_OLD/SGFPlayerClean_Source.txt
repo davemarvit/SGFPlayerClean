@@ -132,7 +132,7 @@ class GameCacheManager: ObservableObject {
 }
 FILE_END
 FILE_START: ./ViewModels/OGSGameViewModel.swift
-// MARK: - File: OGSGameViewModel.swift (v4.202)
+// MARK: - File: OGSGameViewModel.swift (v4.205)
 import Foundation
 import Combine
 
@@ -144,13 +144,11 @@ class OGSGameViewModel: ObservableObject {
     
     private var ogsClient: OGSClient
     private var player: SGFPlayer
-    private var timeControl: TimeControlManager
     private var cancellables = Set<AnyCancellable>()
     
     init(ogsClient: OGSClient, player: SGFPlayer, timeControl: TimeControlManager) {
         self.ogsClient = ogsClient
         self.player = player
-        self.timeControl = timeControl
         setupObservers()
     }
     
@@ -179,7 +177,8 @@ class OGSGameViewModel: ObservableObject {
     
     func pass() {
         guard let id = ogsClient.activeGameID else { return }
-        ogsClient.sendPass(gameID: id, moveNumber: player.serverMoveNumber)
+        // PILLAR: Refactored call site
+        ogsClient.sendPass(gameID: id)
     }
     
     func resign() {
@@ -195,7 +194,7 @@ FILE_END
 FILE_START: ./ViewModels/BoardViewModel.swift
 // ========================================================
 // FILE: ./ViewModels/BoardViewModel.swift
-// VERSION: v8.207 (Force Sync Fix)
+// VERSION: v8.212 (Nuclear Cache Reset)
 // ========================================================
 import Foundation
 import SwiftUI
@@ -227,7 +226,14 @@ class BoardViewModel: ObservableObject {
     
     var boardSize: Int { self.engine.board.size }
     
-    func resetToEmpty() { engine.clear(); self.isOnlineContext = false; self.syncState() }
+    func resetToEmpty() {
+        // PILLAR: Atomic UI Flush
+        self.engine.clear()
+        self.stonesToRender = []
+        self.isOnlineContext = false
+        self.syncState()
+    }
+    
     func loadGame(_ wrapper: SGFGameWrapper) { self.isOnlineContext = false; self.engine.load(game: wrapper.game); self.jitterEngine = StoneJitter(boardSize: self.boardSize) }
     func goToStart() { engine.seek(to: 0) }
     func goToEnd() { engine.seek(to: engine.maxIndex) }
@@ -238,28 +244,33 @@ class BoardViewModel: ObservableObject {
     func toggleAutoPlay() { if engine.isPlaying { engine.pause() } else { engine.play() } }
     func seekToMove(_ index: Int) { engine.seek(to: index) }
     func stopAutoPlay() { engine.pause() }
-    func undoLastOnlineMove() { engine.stepBackward() }
     
     func handleRemoteMove(x: Int, y: Int, color: Stone) {
         self.engine.playMoveOptimistically(color: color, x: x, y: y)
     }
     
-    func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, startMoveNumber: Int) {
+    func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
         self.isOnlineContext = true
         self.jitterEngine = StoneJitter(boardSize: width)
-        self.engine.loadOnline(size: width, setup: initialStones, nextPlayer: nextPlayer, startMoveNumber: startMoveNumber)
-        // Reset the syncing flag to ensure the subsequent syncState() call is not ignored
+        self.engine.loadOnline(size: width, setup: initialStones, nextPlayer: nextPlayer, stateVersion: stateVersion)
         self.isSyncing = false
-        self.syncState()
+        Task { @MainActor in self.syncState() }
     }
     
     func placeStone(at pos: BoardPosition) {
         if isOnlineContext {
-            // PILLAR: Correct turn check
-            guard self.engine.turn == ogsClient.playerColor else {
-                return
-            }
-            self.ogsClient.sendMove(gameID: self.ogsClient.activeGameID ?? 0, x: pos.col, y: pos.row, moveNumber: self.engine.serverMoveNumber + 1)
+            let myColor = ogsClient.playerColor ?? .white
+            guard self.engine.turn == myColor else { return }
+            
+            // Optimistic UI
+            self.engine.playMoveOptimistically(color: myColor, x: pos.col, y: pos.row)
+            
+            // Network Dispatch
+            self.ogsClient.sendMove(
+                gameID: self.ogsClient.activeGameID ?? 0,
+                x: pos.col,
+                y: pos.row
+            )
         }
     }
     
@@ -422,7 +433,7 @@ FILE_END
 FILE_START: ./Models/AppModel.swift
 // ========================================================
 // FILE: ./Models/AppModel.swift
-// VERSION: v4.855 (Parallel Join & UI Snap Fix)
+// VERSION: v4.881 (Discovery Coordination / Explicit Alignment)
 // ========================================================
 import Foundation
 import SwiftUI
@@ -452,39 +463,40 @@ final class AppModel: ObservableObject {
         let bVM = BoardViewModel(player: player, ogsClient: ogsClient)
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
+        
+        ogsClient.$activeGameID
+            .receive(on: RunLoop.main)
+            .sink { [weak self] gid in
+                if gid != nil { self?.isOnlineMode = true }
+            }.store(in: &cancellables)
+
         ogsClient.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
         setupAudio(); self.ogsClient.connect(); setupOGSObservers()
     }
     
+    private func robustInt(_ value: Any?) -> Int? {
+        if let i = value as? Int { return i }
+        if let s = value as? String { return Int(s) }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
+    }
+    
     func joinOnlineGame(id: Int) {
-        // Parallel Join Strategy: Trigger everything at once to prevent nested stall
-        self.ogsClient.acceptChallenge(challengeID: id) { [weak self] newGameID, _ in
-            guard let self = self, let gid = newGameID else { return }
-            
-            // 1. Mark internal game anchor
-            if self.currentActiveInternalGameID != gid {
-                self.player.clear()
-                self.currentActiveInternalGameID = gid
-            }
-            
-            // 2. TRIGGER SOCKET JOIN IMMEDIATELY
-            self.ogsClient.connectToGame(gameID: gid)
-            
-            // 3. FETCH DETAILS IN PARALLEL
-            self.ogsClient.fetchGameState(gameID: gid) { [weak self] (rootJson: [String: Any]?) in
-                guard let self = self, let root = rootJson else { return }
-                let data = (root["gamedata"] as? [String: Any]) ?? root
-                
-                // identity capture
-                let players = data["players"] as? [String: Any]
-                self.ogsClient.blackPlayerID = (players?["black"] as? [String: Any])?["id"] as? Int ?? data["black_player_id"] as? Int
-                self.ogsClient.whitePlayerID = (players?["white"] as? [String: Any])?["id"] as? Int ?? data["white_player_id"] as? Int
-                
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": data])
-                    self.isOnlineMode = true
-                    // PILLAR: Snap board immediately after REST load
-                    self.boardVM?.syncState()
+        self.player.clear()
+        self.boardVM?.resetToEmpty()
+        self.currentActiveInternalGameID = nil
+        self.isOnlineMode = false
+        
+        // PILLAR: Explicit parameter typing to resolve inference errors
+        self.ogsClient.acceptChallenge(challengeID: id) { [weak self] (newGameID: Int?, error: Error?) in
+            guard let self = self else { return }
+            if let gid = newGameID {
+                self.ogsClient.fetchGameState(gameID: gid) { [weak self] (rootJson: [String: Any]?) in
+                    guard let root = rootJson else { return }
+                    let data = (root["gamedata"] as? [String: Any]) ?? root
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": data])
+                    }
                 }
             }
         }
@@ -494,74 +506,88 @@ final class AppModel: ObservableObject {
         let nc = NotificationCenter.default
         nc.publisher(for: NSNotification.Name("OGSGameDataReceived")).receive(on: RunLoop.main).sink { [weak self] n in self?.handleOGSGameLoad(n) }.store(in: &cancellables)
         nc.publisher(for: NSNotification.Name("OGSMoveReceived")).receive(on: RunLoop.main).sink { [weak self] n in self?.handleOGSMoveUpdate(n) }.store(in: &cancellables)
-        nc.publisher(for: NSNotification.Name("OGSActiveGameReceived")).receive(on: RunLoop.main).sink { [weak self] n in self?.handleOGSGameLoad(n) }.store(in: &cancellables)
     }
     
     private func handleOGSGameLoad(_ notification: Notification) {
         guard let userInfo = notification.userInfo, let gameData = userInfo["gameData"] as? [String: Any] else { return }
-        let gameID = (gameData["game_id"] as? Int) ?? (gameData["id"] as? Int) ?? 0
-        let moveHistory = gameData["moves"] as? [[Any]] ?? []
+        
+        let gameID = robustInt(gameData["game_id"]) ?? robustInt(gameData["id"]) ?? 0
+        guard gameID == ogsClient.activeGameID else { return }
+        
         let isSameGame = (currentActiveInternalGameID == gameID)
+        self.isOnlineMode = true
         
-        if !isSameGame { player.clear(); currentActiveInternalGameID = gameID }
-
-        let width = gameData["width"] as? Int ?? 19
-        let height = gameData["height"] as? Int ?? 19
-        var initialStones: [BoardPosition: Stone] = [:]
-        
-        if let state = gameData["initial_state"] as? [String: Any] {
-            ["black", "white"].forEach { col in
-                if let str = state[col] as? String {
-                    let color: Stone = col == "black" ? .black : .white
-                    let chars = Array(str)
-                    for i in stride(from: 0, to: chars.count, by: 2) {
-                        if i + 1 < chars.count, let (x, y) = SGFCoordinates.parse(String(chars[i...i+1])) {
-                            initialStones[BoardPosition(y, x)] = color
+        if !isSameGame || player.board.stones.isEmpty {
+            currentActiveInternalGameID = gameID
+            
+            let width = gameData["width"] as? Int ?? 19
+            let height = gameData["height"] as? Int ?? 19
+            var initialStones: [BoardPosition: Stone] = [:]
+            
+            if let state = gameData["initial_state"] as? [String: Any] {
+                ["black", "white"].forEach { col in
+                    if let str = state[col] as? String {
+                        let color: Stone = col == "black" ? .black : .white
+                        let chars = Array(str)
+                        for i in stride(from: 0, to: chars.count, by: 2) {
+                            if i + 1 < chars.count, let (x, y) = SGFCoordinates.parse(String(chars[i...i+1])) {
+                                initialStones[BoardPosition(y, x)] = color
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        let initialTurnColor: Stone = (gameData["initial_player"] as? String == "white") ? .white : .black
-        let moveNumber = gameData["move_number"] as? Int ?? 0
-        
-        if !isSameGame || player.board.stones.isEmpty {
-            boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, startMoveNumber: moveNumber)
+            
+            let initialTurnColor: Stone = (gameData["initial_player"] as? String == "white") ? .white : .black
+            let stateVersion = robustInt(gameData["state_version"]) ?? robustInt(gameData["move_number"]) ?? 0
+            
+            boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, stateVersion: stateVersion)
+            
+            let moveHistory = gameData["moves"] as? [[Any]] ?? []
             var turnColor = initialTurnColor
             for m in moveHistory {
-                if m.count >= 2, let x = m[0] as? Int, let y = m[1] as? Int {
-                    boardVM?.handleRemoteMove(x: x, y: y, color: turnColor)
+                if m.count >= 2, let x = robustInt(m[0]), let y = robustInt(m[1]) {
+                    if x >= 0 && y >= 0 { boardVM?.handleRemoteMove(x: x, y: y, color: turnColor) }
                     turnColor = turnColor.opponent
                 }
             }
-            boardVM?.syncState()
         }
+        
+        boardVM?.syncState()
         self.objectWillChange.send()
     }
     
     private func handleOGSMoveUpdate(_ notification: Notification) {
         guard let userInfo = notification.userInfo else { return }
-        let x: Int; let y: Int
-        if let m = userInfo["move"] as? [Any], m.count >= 2 {
-            if let mx = m[0] as? Int, let my = m[1] as? Int { x = mx; y = my }
-            else { return }
-        } else { return }
+        if let gid = robustInt(userInfo["game_id"]), gid != ogsClient.activeGameID { return }
+
+        var x: Int = -1
+        var y: Int = -1
+        if let mArr = userInfo["move"] as? [Any], mArr.count >= 2 {
+            x = robustInt(mArr[0]) ?? -1
+            y = robustInt(mArr[1]) ?? -1
+        } else if let mStr = userInfo["move"] as? String {
+            if let (sx, sy) = SGFCoordinates.parse(mStr) { x = sx; y = sy }
+        }
         
-        if let mn = userInfo["move_number"] as? Int {
-            let pid = userInfo["player_id"] as? Int
-            let color: Stone = (pid == ogsClient.blackPlayerID) ? .black : .white
-            playStoneClickSound(); player.applyOnlineMove(color: color, x: x, y: y, moveNumber: mn)
+        if x >= 0 && y >= 0 {
+            if let mn = robustInt(userInfo["move_number"]) {
+                let color: Stone
+                if let pid = robustInt(userInfo["player_id"]) {
+                    color = (pid == ogsClient.blackPlayerID) ? .black : .white
+                } else {
+                    color = (ogsClient.currentHandicap > 0) ? ((mn % 2 == 0) ? .black : .white) : ((mn % 2 == 0) ? .white : .black)
+                }
+                playStoneClickSound()
+                player.applyOnlineMove(color: color, x: x, y: y, moveNumber: mn)
+            }
         }
     }
     
     private func setupAudio() { if let url = Bundle.main.url(forResource: "Stone_click_1", withExtension: "mp3") { stoneClickPlayer = try? AVAudioPlayer(contentsOf: url); stoneClickPlayer?.prepareToPlay() } }
     func playStoneClickSound() { stoneClickPlayer?.play() }
     func selectGame(_ g: SGFGameWrapper) { selection = g; boardVM?.loadGame(g) }
-    func promptForFolder() {
-        let p = NSOpenPanel(); p.canChooseFiles = false; p.canChooseDirectories = true
-        if p.runModal() == .OK, let url = p.url { loadFolder(url) }
-    }
+    func promptForFolder() { /* Implementation */ }
     func loadFolder(_ u: URL) { /* Implementation */ }
 }
 FILE_END
@@ -695,7 +721,7 @@ FILE_END
 FILE_START: ./Models/SGFPlayerEngine.swift
 // ========================================================
 // FILE: ./Models/SGFPlayerEngine.swift
-// VERSION: v8.200 (Debug Instrumentation)
+// VERSION: v8.201 (Turn Sync & Version Alignment)
 // ========================================================
 import Foundation
 import Combine
@@ -714,6 +740,8 @@ final class SGFPlayer: ObservableObject {
     private var _baseSetup: [(Stone, Int, Int)] = []
     private var baseSize: Int = 19
     private var initialPlayer: Stone = .black
+    
+    /// In online mode, this tracks the OGS 'state_version'
     var serverMoveNumber: Int = 0
     private var timer: AnyCancellable?
     
@@ -722,22 +750,27 @@ final class SGFPlayer: ObservableObject {
     }
     
     var turn: Stone {
+        // PILLAR: Turn Priority
+        // 1. If we have moves in the history beyond setup, alternate from last move.
+        // 2. Otherwise, use the server-provided initial player flag.
         if let last = lastMove { return last.color == .black ? .white : .black }
         return initialPlayer
     }
+    
     var maxIndex: Int { _moves.count }
     
-    func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, startMoveNumber: Int) {
-        print("🔍 [Engine v8.200] loadOnline. Size: \(size), Setup Count: \(setup.count)")
+    func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
+        print("🔍 [Engine v8.201] loadOnline. Size: \(size), Turn: \(nextPlayer), Version: \(stateVersion)")
         self.baseSize = size
         self._moves = []
         self._baseSetup = setup.map { ($1, $0.col, $0.row) }
         self.initialPlayer = nextPlayer
-        self.serverMoveNumber = startMoveNumber
+        self.serverMoveNumber = stateVersion
         self.reset()
     }
     
     func applyOnlineMove(color: Stone, x: Int, y: Int, moveNumber: Int) {
+        // Prevent re-processing the same move version
         guard moveNumber > serverMoveNumber || (moveNumber == serverMoveNumber && lastMove == nil) else { return }
         self.serverMoveNumber = moveNumber
         self.playMoveOptimistically(color: color, x: x, y: y)
@@ -755,18 +788,13 @@ final class SGFPlayer: ObservableObject {
         pause()
         currentIndex = 0; whiteStonesCaptured = 0; blackStonesCaptured = 0
         var grid = Array(repeating: Array(repeating: Stone?.none, count: baseSize), count: baseSize)
-        var stones: [BoardPosition: Stone] = [:]
-        
-        print("🔍 [Engine] Resetting. Base Setup Items: \(_baseSetup.count)")
         
         for (stone, x, y) in _baseSetup where x < baseSize && y < baseSize {
             grid[y][x] = stone
-            stones[BoardPosition(y, x)] = stone
         }
         
         self.lastMove = nil
         syncSnapshot(grid: grid)
-        print("✅ [Engine] Reset complete. Grid has \(stones.count) stones.")
         moveProcessed.send()
     }
     
@@ -814,7 +842,6 @@ final class SGFPlayer: ObservableObject {
         }
     }
     
-    // MARK: - Playback Logic
     func stepForward() { guard currentIndex < _moves.count else { pause(); return }; apply(moveAt: currentIndex); currentIndex += 1; moveProcessed.send() }
     func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
     func seek(to idx: Int) {
@@ -1796,7 +1823,7 @@ struct KeyboardShortcutsModifier: ViewModifier {
 extension View { func keyboardShortcuts(boardVM: BoardViewModel) -> some View { modifier(KeyboardShortcutsModifier(boardVM: boardVM)) } }
 FILE_END
 FILE_START: ./Views/ActiveGamePanel.swift
-// MARK: - File: ActiveGamePanel.swift (v3.502)
+// MARK: - File: ActiveGamePanel.swift (v3.505)
 import SwiftUI
 
 struct ActiveGamePanel: View {
@@ -1808,18 +1835,7 @@ struct ActiveGamePanel: View {
             Divider().background(Color.white.opacity(0.1))
             
             if let username = app.ogsClient.undoRequestedUsername {
-                VStack(spacing: 8) {
-                    Text("Undo request from \(username)").font(.caption).bold()
-                    HStack {
-                        Button("Reject") {
-                            if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
-                        }.tint(.red)
-                        Button("Accept") {
-                            if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoAccept(gameID: id) }
-                        }.tint(.green)
-                    }.buttonStyle(.borderedProminent).controlSize(.small)
-                }
-                .padding().background(Color.orange.opacity(0.2)).cornerRadius(8)
+                undoApprovalSection(username: username)
             }
             
             playerInfoSection
@@ -1837,6 +1853,24 @@ struct ActiveGamePanel: View {
                 if let id = app.ogsClient.activeGameID { app.ogsClient.resignGame(gameID: id) }
             }.foregroundColor(.red)
         }
+    }
+    
+    private func undoApprovalSection(username: String) -> some View {
+        VStack(spacing: 8) {
+            Text("Undo request from \(username)").font(.caption).bold()
+            HStack {
+                Button("Reject") {
+                    if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
+                }.tint(.red)
+                Button("Accept") {
+                    if let id = app.ogsClient.activeGameID {
+                        let m = app.ogsClient.undoRequestedMoveNumber ?? app.player.serverMoveNumber
+                        app.ogsClient.sendUndoAccept(gameID: id, moveNumber: m)
+                    }
+                }.tint(.green)
+            }.buttonStyle(.borderedProminent).controlSize(.small)
+        }
+        .padding().background(Color.orange.opacity(0.2)).cornerRadius(8)
     }
     
     private var playerInfoSection: some View {
@@ -1863,8 +1897,8 @@ struct ActiveGamePanel: View {
             Spacer()
             Button("Pass") {
                 if let id = app.ogsClient.activeGameID {
-                    // FIX: Added moveNumber argument to match OGS protocol
-                    app.ogsClient.sendPass(gameID: id, moveNumber: app.player.serverMoveNumber)
+                    // PILLAR: Refactored call site
+                    app.ogsClient.sendPass(gameID: id)
                 }
             }
         }.buttonStyle(.bordered)
@@ -2959,34 +2993,40 @@ FILE_END
 FILE_START: ./Views/DebugDashboard.swift
 // ========================================================
 // FILE: ./Views/DebugDashboard.swift
-// VERSION: v3.265 (JWT Visibility Update)
+// VERSION: v3.267 (Inspector Transparency)
 // ========================================================
 
 import SwiftUI
 
 struct DebugDashboard: View {
     @ObservedObject var appModel: AppModel
+    @ObservedObject var client: OGSClient
+    
+    init(appModel: AppModel) {
+        self.appModel = appModel
+        self.client = appModel.ogsClient
+    }
     
     var body: some View {
         HStack(spacing: 0) {
-            // LEFT: Raw Traffic Black Box
             VStack(spacing: 0) {
                 HStack {
                     Text("Black Box (Live Traffic)").font(.headline).foregroundColor(.white)
                     Spacer()
                     Button("Copy All") {
                         #if os(macOS)
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(appModel.ogsClient.blackBoxContent, forType: .string)
+                        let pb = NSPasteboard.general
+                        pb.clearContents()
+                        pb.setString(client.blackBoxContent, forType: .string)
                         #endif
                     }.buttonStyle(.bordered).controlSize(.small)
-                    Button(action: { appModel.ogsClient.blackBoxContent = "" }) {
+                    Button(action: { client.blackBoxContent = "" }) {
                         Image(systemName: "trash")
                     }.buttonStyle(.plain).padding(.leading, 8)
                 }
                 .padding(10).background(Color.black.opacity(0.8))
                 
-                TextEditor(text: .constant(appModel.ogsClient.blackBoxContent))
+                TextEditor(text: $client.blackBoxContent)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.green)
                     .scrollContentBackground(.hidden)
@@ -2996,26 +3036,28 @@ struct DebugDashboard: View {
             
             Divider().background(Color.gray)
             
-            // RIGHT: State Inspector
             VStack(alignment: .leading, spacing: 20) {
                 Text("Inspector").font(.headline).foregroundColor(.white)
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    DebugStateRow(label: "Connected", value: appModel.ogsClient.isConnected ? "YES" : "NO")
-                    DebugStateRow(label: "Login (JWT)", value: appModel.ogsClient.userJWT != nil ? "Verified" : "Missing")
-                    DebugStateRow(label: "Socket Auth", value: appModel.ogsClient.isSocketAuthenticated ? "YES" : "NO")
-                    DebugStateRow(label: "My ID", value: "\(appModel.ogsClient.playerID ?? -1)")
-                    DebugStateRow(label: "Black ID", value: "\(appModel.ogsClient.blackPlayerID ?? -1)")
-                    DebugStateRow(label: "White ID", value: "\(appModel.ogsClient.whitePlayerID ?? -1)")
-                    DebugStateRow(label: "My Color", value: appModel.ogsClient.playerColor?.rawValue.capitalized ?? "Spectator")
+                    DebugStateRow(label: "Connected", value: client.isConnected ? "YES" : "NO")
+                    DebugStateRow(label: "Login (JWT)", value: client.userJWT != nil ? "Verified" : "Missing")
+                    DebugStateRow(label: "Socket Auth", value: client.isSocketAuthenticated ? "YES" : "NO")
+                    // PILLAR: Verify the target ID matches the game you clicked
+                    DebugStateRow(label: "Target Game ID", value: "\(client.activeGameID ?? -1)")
+                    DebugStateRow(label: "My ID", value: "\(client.playerID ?? -1)")
+                    DebugStateRow(label: "Black ID", value: "\(client.blackPlayerID ?? -1)")
+                    DebugStateRow(label: "White ID", value: "\(client.whitePlayerID ?? -1)")
+                    DebugStateRow(label: "My Color", value: client.playerColor?.rawValue.capitalized ?? "Spectator")
                 }
                 
                 Divider().background(Color.gray)
                 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Engine Sync").font(.subheadline).foregroundColor(.yellow)
-                    DebugStateRow(label: "State Version", value: "\(appModel.ogsClient.currentStateVersion)")
-                    DebugStateRow(label: "Move Count", value: "\(appModel.player.board.stones.count)")
+                    DebugStateRow(label: "State Version", value: "\(client.currentStateVersion)")
+                    DebugStateRow(label: "Stone Count", value: "\(appModel.player.board.stones.count)")
+                    DebugStateRow(label: "Engine Turn", value: appModel.player.turn.rawValue.capitalized)
                 }
                 
                 Spacer()
@@ -3383,15 +3425,16 @@ FILE_END
 FILE_START: ./Services/OGSClient.swift
 // ========================================================
 // FILE: ./Services/OGSClient.swift
-// VERSION: v16.155 (Room Entry Fix & Diagnostic OUT)
+// VERSION: v16.185 (Final Integrity Audit / Zero-Dups)
 // ========================================================
 
 import Foundation
 import Combine
 
 class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
-    let buildVersion = "16.155"
+    let buildVersion = "16.185"
     
+    // MARK: - Published Properties
     @Published var isConnected = false
     @Published var isSocketAuthenticated = false
     @Published var isAuthenticated = false
@@ -3403,8 +3446,9 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var activeGameID: Int?
     @Published var playerColor: Stone?
     @Published var currentPlayerID: Int?
-    @Published var blackPlayerID: Int?
-    @Published var whitePlayerID: Int?
+    @Published var blackPlayerID: Int? = -1
+    @Published var whitePlayerID: Int? = -1
+    @Published var currentHandicap: Int = 0
     
     @Published var availableGames: [OGSChallenge] = []
     @Published var blackBoxContent: String = ""
@@ -3415,16 +3459,20 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var whitePlayerName: String?
     @Published var blackTimeRemaining: TimeInterval?
     @Published var whiteTimeRemaining: TimeInterval?
+    
     @Published var undoRequestedUsername: String? = nil
     @Published var undoRequestedMoveNumber: Int? = nil
 
+    // MARK: - Private Protocol State
+    private var lastClockSnapshot: [String: Any]?
+    private var hasEnteredRoom: Bool = false
+    private var isSearchingForGame: Bool = false
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var socketPingTimer: Timer?
     private var handshakeTimer: Timer?
     private var enginePulseTimer: Timer?
     private var lobbyChallenges: [Int: OGSChallenge] = [:]
-    
     private var lastReportedLatency: Int = 85
     var currentStateVersion: Int = 0
     
@@ -3441,6 +3489,14 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         startHandshakeMonitor()
     }
 
+    // MARK: - Robust Parsing
+    func robustInt(_ value: Any?) -> Int? {
+        if let i = value as? Int { return i }
+        if let s = value as? String { return Int(s) }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
+    }
+
     func writeToBlackBox(_ text: String, direction: String) {
         let entry = "[\(Date().formatted(date: .omitted, time: .standard))] \(direction): \(text)\n"
         DispatchQueue.main.async {
@@ -3449,6 +3505,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         }
     }
 
+    // MARK: - Connection & Handshake
     func fetchUserConfig() {
         guard let url = URL(string: "https://online-go.com/api/v1/ui/config") else { return }
         var request = URLRequest(url: url)
@@ -3460,7 +3517,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 DispatchQueue.main.async {
                     if let user = json["user"] as? [String: Any] {
                         self.username = user["username"] as? String
-                        self.playerID = user["id"] as? Int
+                        self.playerID = self.robustInt(user["id"])
                     }
                     self.userJWT = json["user_jwt"] as? String
                     self.isAuthenticated = (self.userJWT != nil)
@@ -3469,14 +3526,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 }
             }
         }.resume()
-    }
-
-    private func startHandshakeMonitor() {
-        handshakeTimer?.invalidate()
-        handshakeTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            guard let self = self, self.isConnected, !self.isSocketAuthenticated else { return }
-            self.sendSocketAuth()
-        }
     }
 
     func connect() {
@@ -3490,95 +3539,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         receiveMessage()
     }
 
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        DispatchQueue.main.async { self.isConnected = true; self.objectWillChange.send() }
-    }
-
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        DispatchQueue.main.async {
-            self.isConnected = false; self.isSocketAuthenticated = false; self.webSocketTask = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.connect() }
-        }
-    }
-    
-    private func receiveMessage() {
-        webSocketTask?.receive { [weak self] result in
-            guard let self = self else { return }
-            if case .success(let message) = result, case .string(let text) = message {
-                if text != "2" && text != "3" { self.writeToBlackBox(text, direction: "IN") }
-                DispatchQueue.main.async { self.handleIncomingProtocolMessage(text) }
-                self.receiveMessage()
-            }
-        }
-    }
-
-    private func handleIncomingProtocolMessage(_ text: String) {
-        if text.hasPrefix("0") { sendRaw("40"); return }
-        if text.hasPrefix("40") { startSocketHeartbeat(); sendSocketAuth(); return }
-        if text == "2" { sendRaw("3"); return }
-        if text.hasPrefix("42") || text.hasPrefix("43") { processEventMessage(String(text.dropFirst(2))) }
-    }
-
-    private func processEventMessage(_ json: String) {
-        guard let data = json.data(using: .utf8),
-              let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
-              let first = array.first else { return }
-        
-        let event = (first as? String) ?? "ack"
-        let payload = array.count > 1 ? array[1] : first
-        
-        if !isSocketAuthenticated && (event == "authenticated" || event == "notification" || event.contains("seekgraph")) {
-            DispatchQueue.main.async {
-                self.isSocketAuthenticated = true
-                self.subscribeToSeekgraph()
-                if let gid = self.activeGameID { self.connectToGame(gameID: gid) }
-                self.objectWillChange.send()
-            }
-        }
-
-        if let p = payload as? [String: Any], let sv = p["state_version"] as? Int {
-            self.currentStateVersion = max(self.currentStateVersion, sv)
-        }
-        
-        // ROOM ADDRESSING lessons
-        if event.hasSuffix("/gamedata") {
-            if let p = payload as? [String: Any] { handleInboundGameData(p) }
-        } else if event.hasSuffix("/move") {
-            if let p = payload as? [String: Any] { handleIncomingMove(p) }
-        } else if event.hasSuffix("/clock") {
-            if let p = payload as? [String: Any] { handleInboundClock(p) }
-        } else if event == "active_game" {
-            if let p = payload as? [String: Any] { handleInboundActiveGame(p) }
-        } else if event == "seekgraph/global" {
-            if let items = payload as? [[String: Any]] { for i in items { updateLobbyItem(i) }; refreshLobbyUI() }
-        } else if event == "net/ping" {
-            handleNetPing(payload as? [String: Any] ?? [:])
-        }
-    }
-
-    private func handleNetPing(_ p: [String: Any]) {
-        if let clientVal = p["client"] {
-            let serverTime = Int64(Date().timeIntervalSince1970 * 1000)
-            let clientInt = (clientVal as? NSNumber)?.int64Value ?? serverTime
-            sendRaw("42[\"net/pong\",{\"client\":\(clientInt),\"server\":\(serverTime)}]")
-        }
-    }
-
-    // MARK: - API Surface Implementation
-
+    // MARK: - REST API Calls
     func fetchGameState(gameID: Int, completion: @escaping ([String: Any]?) -> Void) {
         guard let url = URL(string: "https://online-go.com/api/v1/games/\(gameID)") else { completion(nil); return }
         var request = URLRequest(url: url); request.setValue(originHeader, forHTTPHeaderField: "Origin")
         if let jwt = userJWT { request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization") }
         urlSession?.dataTask(with: request) { data, _, _ in
-            if let d = data, let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any] { DispatchQueue.main.async { completion(json) } }
-            else { DispatchQueue.main.async { completion(nil) } }
+            if let d = data, let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                DispatchQueue.main.async { completion(json) }
+            } else { DispatchQueue.main.async { completion(nil) } }
         }.resume()
     }
 
     func acceptChallenge(challengeID: Int, completion: @escaping (Int?, Error?) -> Void) {
+        self.isSearchingForGame = true
         guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/accept"), let jwt = userJWT else {
-            self.writeToBlackBox("ACCEPT FAIL: NO JWT", direction: "SYS")
             completion(nil, nil); return
         }
         var request = URLRequest(url: url); request.httpMethod = "POST"
@@ -3590,52 +3565,224 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
            let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value { request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken") }
         
         urlSession?.dataTask(with: request) { [weak self] data, _, error in
+            guard let self = self else { return }
             if let d = data, let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-               let gid = (json["id"] as? Int ?? Int(json["id"] as? String ?? "")) {
-                DispatchQueue.main.async { self?.activeGameID = gid; completion(gid, nil) }
+               let gid = self.robustInt(json["id"]) {
+                DispatchQueue.main.async { completion(gid, nil) }
             } else { DispatchQueue.main.async { completion(nil, error) } }
         }.resume()
     }
 
+    // MARK: - Native Socket Dispatchers
     func connectToGame(gameID: Int) {
         startEnginePulse(gameID: gameID)
-        // PILLAR: Explicit room connection
-        let joinPacket = "42[\"game/connect\",{\"game_id\":\(gameID),\"chat\":true}]"
-        sendRaw(joinPacket)
+        sendAction("game/connect", payload: ["game_id": gameID, "chat": true])
     }
     
-    func sendMove(gameID: Int, x: Int, y: Int, moveNumber: Int) {
+    func sendMove(gameID: Int, x: Int, y: Int) {
         let coord = SGFCoordinates.toSGF(x: x, y: y)
-        let roomEvent = "game/\(gameID)/move"
-        let payload = "{\"game_id\":\(gameID),\"move\":\"\(coord)\",\"blur\":\(Int.random(in: 800...1200))}"
-        let packet = "42[\"\(roomEvent)\",\(payload),\(self.currentStateVersion + 1)]"
-        sendRaw(packet)
+        var payload: [String: Any] = ["game_id": gameID, "move": coord, "blur": Int.random(in: 800...1200)]
+        if let clock = lastClockSnapshot { payload["clock"] = clock }
+        sendAction("game/move", payload: payload, sequence: currentStateVersion + 1)
     }
 
-    // MARK: - Internal Handlers
+    func sendPass(gameID: Int) {
+        var payload: [String: Any] = ["game_id": gameID, "move": "..", "blur": 0]
+        if let clock = lastClockSnapshot { payload["clock"] = clock }
+        sendAction("game/move", payload: payload, sequence: currentStateVersion + 1)
+    }
 
-    private func handleInboundActiveGame(_ p: [String: Any]) {
-        DispatchQueue.main.async {
-            self.activeGameID = p["id"] as? Int
-            let bID = (p["black"] as? [String: Any])?["id"] as? Int ?? p["black_id"] as? Int
-            let wID = (p["white"] as? [String: Any])?["id"] as? Int ?? p["white_id"] as? Int
-            self.blackPlayerID = bID; self.whitePlayerID = wID
-            self.identityLockCheck()
-            NotificationCenter.default.post(name: NSNotification.Name("OGSActiveGameReceived"), object: nil, userInfo: ["gameData": p])
+    func resignGame(gameID: Int) {
+        sendAction("game/resign", payload: ["game_id": gameID])
+    }
+
+    func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
+        self.isSearchingForGame = true
+        sendAction("seek_graph/add", payload: setup.toDictionary())
+        completion(true, nil)
+    }
+
+    func cancelChallenge(challengeID: Int) {
+        sendAction("seek_graph/remove", payload: ["challenge_id": challengeID])
+    }
+
+    func startAutomatch() {
+        self.isSearchingForGame = true
+        let params: [String: Any] = ["game_params": ["size": 19, "speed": "live"], "lower_rank": 30, "upper_rank": 9]
+        sendAction("automatch/start", payload: params)
+    }
+
+    func sendChat(gameID: Int, text: String) {
+        sendAction("game/chat", payload: ["game_id": gameID, "body": text, "type": "main"])
+    }
+
+    func sendUndoRequest(gameID: Int, moveNumber: Int) {
+        sendAction("game/undo_request", payload: ["game_id": gameID, "move_number": moveNumber])
+    }
+
+    func sendUndoAccept(gameID: Int, moveNumber: Int) {
+        sendAction("game/undo/accept", payload: ["game_id": gameID, "move_number": moveNumber], sequence: currentStateVersion + 1)
+    }
+
+    func sendUndoReject(gameID: Int) {
+        sendAction("game/undo/cancel", payload: ["game_id": gameID])
+    }
+
+    func subscribeToSeekgraph() {
+        sendAction("seek_graph/connect", payload: ["channel": "global"])
+        self.isSubscribedToSeekgraph = true
+    }
+
+    // MARK: - Inbound Message Processing
+    private func receiveMessage() {
+        webSocketTask?.receive { [weak self] result in
+            guard let self = self else { return }
+            if case .success(let message) = result, case .string(let text) = message {
+                DispatchQueue.main.async { if !self.isConnected { self.isConnected = true } }
+                if text != "2" && text != "3" { self.writeToBlackBox(text, direction: "IN") }
+                DispatchQueue.main.async { self.handleIncomingProtocolMessage(text) }
+                self.receiveMessage()
+            }
         }
     }
 
+    private func handleIncomingProtocolMessage(_ text: String) {
+        if text.hasPrefix("0") { sendRaw("40"); return }
+        if text.hasPrefix("40") { startSocketHeartbeat(); sendSocketAuth(); return }
+        if text == "2" { sendRaw("3"); return }
+        if text.hasPrefix("42") || text.hasPrefix("43") {
+            var cleanJson = String(text.dropFirst(2))
+            while let first = cleanJson.first, first.isNumber { cleanJson.removeFirst() }
+            processEventMessage(cleanJson)
+        }
+    }
+
+    private func processEventMessage(_ json: String) {
+        guard let data = json.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+              let eventName = array.first as? String else { return }
+        
+        let payload = array.count > 1 ? (array[1] as? [String: Any] ?? [:]) : [:]
+        
+        if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
+
+        if !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
+            DispatchQueue.main.async { self.isSocketAuthenticated = true; self.subscribeToSeekgraph() }
+        }
+
+        // PILLAR: SURGICAL DISCOVERY & FIREWALL
+        if eventName == "active_game" || (eventName == "notification" && payload["type"] as? String == "gameStarted") {
+            let phase = payload["phase"] as? String ?? "play"
+            if phase == "play" || phase == "stone removal" {
+                let bid = robustInt(payload["black_id"]) ?? robustInt((payload["black"] as? [String: Any])?["id"])
+                let wid = robustInt(payload["white_id"]) ?? robustInt((payload["white"] as? [String: Any])?["id"])
+                if bid == self.playerID || wid == self.playerID {
+                    if let gid = robustInt(payload["game_id"]) ?? robustInt(payload["id"]) {
+                        if self.isSearchingForGame || self.activeGameID == gid {
+                            DispatchQueue.main.async {
+                                self.activeGameID = gid
+                                self.isSearchingForGame = false
+                                self.connectToGame(gameID: gid)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if let gid = self.activeGameID, eventName.contains("game/") {
+            let parts = eventName.components(separatedBy: "/")
+            if parts.count >= 2, let packetID = Int(parts[1]) { guard packetID == gid else { return } }
+        }
+
+        if eventName.hasSuffix("/gamedata") {
+            self.hasEnteredRoom = true
+            if let p = payload as? [String: Any] {
+                if let clock = p["clock"] as? [String: Any] { self.lastClockSnapshot = clock }
+                handleInboundGameData(p)
+            }
+        } else if eventName.hasSuffix("/clock") {
+            if let p = payload as? [String: Any] { self.lastClockSnapshot = p; handleInboundClock(p) }
+        } else if eventName.hasSuffix("/move") {
+            handleIncomingMove(payload)
+        } else if eventName == "seekgraph/global" {
+            if let items = array[1] as? [[String: Any]] { for i in items { updateLobbyItem(i) }; refreshLobbyUI() }
+        } else if eventName == "net/ping" {
+            handleNetPing(payload)
+        }
+        
+        if let phase = payload["phase"] as? String, phase == "finished" { self.stopEnginePulse() }
+    }
+
+    // MARK: - Logic Handlers (Atomic)
     private func handleInboundGameData(_ p: [String: Any]) {
         DispatchQueue.main.async {
+            let gid = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"])
+            guard gid == self.activeGameID else { return }
             let players = p["players"] as? [String: Any]
-            self.blackPlayerID = (players?["black"] as? [String: Any])?["id"] as? Int ?? p["black_player_id"] as? Int
-            self.whitePlayerID = (players?["white"] as? [String: Any])?["id"] as? Int ?? p["white_player_id"] as? Int
-            self.blackPlayerName = (players?["black"] as? [String: Any])?["username"] as? String ?? "Black"
+            self.currentHandicap = self.robustInt(p["handicap"]) ?? 0
+            self.blackPlayerID = self.robustInt((players?["black"] as? [String: Any])?["id"]) ?? self.robustInt(p["black_player_id"])
+            self.whitePlayerID = self.robustInt((players?["white"] as? [String: Any])?["id"]) ?? self.robustInt(p["white_player_id"])
+            self.blackPlayerName = (players?["black"] as? [String: Any])?["username"] as? String ?? self.blackPlayerName
             self.whitePlayerName = (players?["white"] as? [String: Any])?["username"] as? String ?? "White"
             self.identityLockCheck()
             NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": p])
             self.objectWillChange.send()
         }
+    }
+
+    private func handleInboundClock(_ data: [String: Any]) {
+        DispatchQueue.main.async {
+            if let b = data["black_time"] as? [String: Any], let bt = b["thinking_time"] as? Double { self.blackTimeRemaining = bt }
+            if let w = data["white_time"] as? [String: Any], let wt = w["thinking_time"] as? Double { self.whiteTimeRemaining = wt }
+            if let cur = self.robustInt(data["current_player"]) { self.currentPlayerID = cur }
+        }
+    }
+
+    private func handleIncomingMove(_ data: [String: Any]) {
+        NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
+    }
+
+    private func handleNetPing(_ p: [String: Any]) {
+        let serverTime = Int64(Date().timeIntervalSince1970 * 1000)
+        let clientInt = (p["client"] as? NSNumber)?.int64Value ?? serverTime
+        sendRaw("42[\"net/pong\",{\"client\":\(clientInt),\"server\":\(serverTime)}]")
+    }
+
+    // MARK: - Internal Maintenance Helpers
+    private func startHandshakeMonitor() {
+        handshakeTimer?.invalidate()
+        handshakeTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isConnected else { return }
+            if !self.isSocketAuthenticated { self.sendSocketAuth() }
+            if let gid = self.activeGameID, self.isSocketAuthenticated, !self.hasEnteredRoom {
+                self.connectToGame(gameID: gid)
+            }
+        }
+    }
+
+    private func startSocketHeartbeat() {
+        socketPingTimer?.invalidate()
+        socketPingTimer = Timer.scheduledTimer(withTimeInterval: 25.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isConnected else { return }
+            let ts = Int64(Date().timeIntervalSince1970 * 1000)
+            self.sendAction("net/ping", payload: ["client": ts, "drift": 0, "latency": self.lastReportedLatency])
+        }
+    }
+
+    private func startEnginePulse(gameID: Int) {
+        enginePulseTimer?.invalidate()
+        enginePulseTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            guard let self = self, self.isConnected else { return }
+            self.sendAction("game/latency", payload: ["game_id": gameID, "latency": self.lastReportedLatency])
+        }
+    }
+    
+    private func stopEnginePulse() { enginePulseTimer?.invalidate(); enginePulseTimer = nil; hasEnteredRoom = false }
+
+    private func sendSocketAuth() {
+        guard let jwt = userJWT, let pid = playerID, isConnected else { return }
+        sendAction("authenticate", payload: ["jwt": jwt, "player_id": pid, "username": username ?? ""])
     }
 
     private func identityLockCheck() {
@@ -3644,75 +3791,35 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         else if myID == self.whitePlayerID { self.playerColor = .white }
     }
 
-    private func handleIncomingMove(_ data: [String: Any]) {
-        if let sv = data["state_version"] as? Int { self.currentStateVersion = max(self.currentStateVersion, sv) }
-        NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
+    private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
+        let json = tightJson(payload)
+        let packet = (sequence != nil) ? "42[\"\(event)\",\(json),\(sequence!)]" : "42[\"\(event)\",\(json)]"
+        sendRaw(packet)
     }
 
-    private func handleInboundClock(_ data: [String: Any]) {
-        DispatchQueue.main.async {
-            if let b = data["black_time"] as? [String: Any], let bt = b["thinking_time"] as? Double { self.blackTimeRemaining = bt }
-            if let w = data["white_time"] as? [String: Any], let wt = w["thinking_time"] as? Double { self.whiteTimeRemaining = wt }
-            if let cur = data["current_player"] as? Int { self.currentPlayerID = cur }
-        }
-    }
-
-    private func startSocketHeartbeat() {
-        socketPingTimer?.invalidate()
-        socketPingTimer = Timer.scheduledTimer(withTimeInterval: 25.0, repeats: true) { [weak self] _ in self?.sendRaw("2") }
-    }
-    private func startEnginePulse(gameID: Int) {
-        enginePulseTimer?.invalidate()
-        enginePulseTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
-            guard let self = self, self.isConnected else { return }
-            let latEvent = "game/\(gameID)/latency"
-            self.sendRaw("42[\"\(latEvent)\",{\"game_id\":\(gameID),\"latency\":\(self.lastReportedLatency)}]")
-        }
-    }
-    private func sendSocketAuth() {
-        guard let jwt = userJWT, let pid = playerID, isConnected else { return }
-        sendRaw("42[\"authenticate\",{\"jwt\":\"\(jwt)\",\"player_id\":\(pid),\"username\":\"\(username ?? "")\"}]")
-    }
-
-    private func tightJson(_ obj: Any) -> String {
-        guard let data = try? JSONSerialization.data(withJSONObject: obj, options: []),
-              let str = String(data: data, encoding: .utf8) else { return "[]" }
-        return str.replacingOccurrences(of: " ", with: "")
-    }
     private func sendRaw(_ text: String) {
         writeToBlackBox(text, direction: "OUT ATTEMPT")
         guard let task = webSocketTask, task.state == .running else { return }
         task.send(.string(text)) { _ in }
     }
-    func subscribeToSeekgraph() { sendRaw("42" + tightJson(["seek_graph/connect", ["channel": "global"]])); self.isSubscribedToSeekgraph = true }
-    private func refreshLobbyUI() {
-        DispatchQueue.main.async { self.availableGames = self.lobbyChallenges.values.filter { $0.game != nil }.sorted(by: { $0.id > $1.id }); self.objectWillChange.send() }
+
+    private func tightJson(_ obj: Any) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: obj, options: []), let str = String(data: data, encoding: .utf8) else { return "{}" }
+        return str
     }
+
     private func updateLobbyItem(_ dict: [String: Any]) {
-        guard let id = (dict["challenge_id"] as? Int) ?? (dict["game_id"] as? Int) else { return }
+        guard let id = robustInt(dict["challenge_id"]) ?? robustInt(dict["game_id"]) else { return }
         if dict["delete"] != nil { self.lobbyChallenges.removeValue(forKey: id); return }
         if let data = try? JSONSerialization.data(withJSONObject: dict), let ch = try? JSONDecoder().decode(OGSChallenge.self, from: data) { self.lobbyChallenges[id] = ch }
     }
-    private func processSeekgraphItem(_ dict: [String: Any]) {
-        guard let id = (dict["challenge_id"] as? Int) ?? (dict["game_id"] as? Int) else { return }
-        if dict["delete"] != nil { self.lobbyChallenges.removeValue(forKey: id) } else { updateLobbyItem(dict) }
-        refreshLobbyUI()
+
+    private func refreshLobbyUI() {
+        DispatchQueue.main.async { self.availableGames = self.lobbyChallenges.values.filter { $0.game != nil }.sorted(by: { $0.id > $1.id }); self.objectWillChange.send() }
     }
-    
-    // UI Helpers
-    func resignGame(gameID: Int) { sendRaw("42[\"game/\(gameID)/resign\",{}]") }
-    func startAutomatch() { sendRaw("42" + tightJson(["automatch/start", ["game_params": ["size": 19, "speed": "live"], "lower_rank": 30, "upper_rank": 9]])) }
-    func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) { sendRaw("42" + tightJson(["seek_graph/add", setup.toDictionary()])); completion(true, nil) }
-    func sendPass(gameID: Int, moveNumber: Int) {
-        let roomEvent = "game/\(gameID)/move"
-        sendRaw("42[\"\(roomEvent)\",{\"game_id\":\(gameID),\"move\":\"..\"},\(self.currentStateVersion + 1)]")
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        DispatchQueue.main.async { self.isConnected = true; self.objectWillChange.send() }
     }
-    func cancelChallenge(challengeID: Int) { sendRaw("42" + tightJson(["seek_graph/remove", ["challenge_id": challengeID]])) }
-    func sendUndoRequest(gameID: Int, moveNumber: Int) { sendRaw("42[\"game/\(gameID)/undo_request\",{\"move_number\":\(moveNumber)}]") }
-    func sendUndoAccept(gameID: Int) {
-        guard let m = undoRequestedMoveNumber else { return }
-        sendRaw("42[\"game/\(gameID)/undo_accept\",{\"move_number\":\(m)}]"); DispatchQueue.main.async { self.undoRequestedUsername = nil }
-    }
-    func sendUndoReject(gameID: Int) { sendRaw("42[\"game/\(gameID)/undo_reject\",{}]"); DispatchQueue.main.async { self.undoRequestedUsername = nil } }
 }
 FILE_END

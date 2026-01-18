@@ -156,7 +156,7 @@ struct SettingsPanel: View {
                     Toggle("Dot", isOn: $settings.showLastMoveDot)
                     Toggle("Circle", isOn: $settings.showLastMoveCircle)
                     Toggle("Board Glow", isOn: $settings.showBoardGlow)
-                    Toggle("Enhanced Effects", isOn: $settings.showEnhancedGlow)
+                    Toggle("Enhanced Glow", isOn: $settings.showEnhancedGlow)
                     Toggle("Drop Stone Animation", isOn: $settings.showDropInAnimation)
                         .disabled(app.viewMode == .view2D)
                         .foregroundColor(app.viewMode == .view2D ? .white.opacity(0.4) : .white)
@@ -176,21 +176,39 @@ struct SettingsPanel: View {
             Label("Library", systemImage: "books.vertical.fill")
                 .font(.headline).foregroundColor(.white)
             
-            Button(action: { app.promptForFolder() }) {
-                HStack {
-                    Image(systemName: "folder.badge.plus")
-                    Text("Choose Folder")
+            HStack {
+                Button(action: { app.promptForFolder() }) {
+                    HStack {
+                        Image(systemName: "folder.badge.plus")
+                        Text("Choose Folder")
+                    }
+                    .padding(8)
+                    .background(Color.white.opacity(0.15)).cornerRadius(6)
                 }
-                .frame(maxWidth: .infinity).padding(8)
-                .background(Color.white.opacity(0.15)).cornerRadius(6)
+                .buttonStyle(.plain)
+                
+                if let url = settings.folderURL {
+                    Text(url.lastPathComponent)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
             }
-            .buttonStyle(.plain)
             
             if !app.games.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(app.games) { wrapper in
-                            Button(action: { app.selectGame(wrapper) }) {
+                            Button(action: {
+                                app.selectGame(wrapper)
+                                close()
+                                // Delayed Auto-Play
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    app.boardVM?.startAutoPlay()
+                                }
+                            }) {
                                 GameListRow(wrapper: wrapper, isSelected: app.selection?.id == wrapper.id)
                             }
                             .buttonStyle(.plain)
