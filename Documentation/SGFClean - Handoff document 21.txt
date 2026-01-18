@@ -1,0 +1,52 @@
+Handover Document: SGFPlayerClean – OGS Protocol Stabilization (Build 16.092+)
+1. Next Session Prompt
+"We are on Build 16.092. Protocol stabilization is 90% complete. We have successfully solved the '9-Move Wall' (60s Reaper) and the 'Handshake Loop'. However, we are currently blocked by a 'Transition Wall.'
+The Problem: The Networking Engine successfully authenticates and accepts challenges (confirmed by logs and opponent behavior), but the SwiftUI Views are 'Thread-Locked' or 'Instance-Locked.' The State Inspector shows 'Missing Token' and 'Game ID -1' while the Traffic Log shows 'Auth Success.' This prevents the board from resizing (staying at 19x19) and prevents stone placement.
+Your Mission:
+Resolve the Split-Brain: Identify why @Published updates in OGSClient are not reaching the UI. Inspect AppModel.swift and SGFPlayerCleanApp.swift for multiple OGSClient instances (The 'Multiple Instance' Bug).
+Verify the Board Switch: Ensure BoardViewModel is correctly listening for the OGSGameDataReceived notification to resize the board from 19x19 to the live game dimensions.
+No Guessing: Do not refactor the protocol logic without seeing the forensic evidence. If the UI still lags, ask for the View-to-ViewModel wiring code."
+2. Forensic History: The Three Walls
+We have successfully identified and dismantled three distinct "Walls" that caused disconnections.
+A. The Move 4 Wall (Handicap Sequence)
+The Failure: Moves were rejected almost immediately in handicap games.
+The Discovery: We were using msgID = moveNumber. OGS doesn't count stones; it counts State Versions. Every handicap stone, chat message, or clock update increments the state_version.
+The Fix: We now anchor the msgID to the server's state_version field. Our outbound msgID is always currentStateVersion + 1.
+B. The Move 9 Wall (60-Second Reaper)
+The Failure: The connection was terminated by the server at exactly 60 seconds.
+The Discovery: We were failing the Level 4 Application Heartbeat (net/ping).
+The Trap: Swift's Date().timeIntervalSince1970 returns seconds (Double). OGS's reaper expects Int64 milliseconds. Sending seconds made the server think the client clock was frozen.
+The Fix: Explicit millisecond conversion: Int64(Date().timeIntervalSince1970 * 1000).
+C. The Handshake Loop (Engine.IO 4)
+The Failure: Constant Socket Opened -> Socket Closed loops in the logs.
+The Discovery: OGS uses Engine.IO v4. It requires an immediate response to the 0 (Open) packet.
+The Fix: The 0 -> 40 handshake. When the server sends 0, the client must immediately send 40 (Socket.IO Connect) to establish the session.
+3. The Current Blocker: The Transition Wall
+We are currently in a "Split-Brain" state. The background networking is working, but the UI is observing a "Ghost" instance.
+Evidence from Build 16.092:
+The Log (Reality): SYS: JWT Found, AUTH: Success, OUT: Accepting #....
+The UI (Ghost): Auth Token: Missing, Game ID: -1, Board: 19x19.
+Hypothesis for Resolution:
+Multiple Instances: The AppModel may be creating its own OGSClient while the ContentView is injected with a different one via the Environment.
+Notification Shadowing: The BoardViewModel initializes based on a local SGF file. If it doesn't receive the OGSGameDataReceived notification on the Main Thread, it stays locked in "Replay Mode" (19x19) and ignores socket moves.
+CSRF Headers: While we fixed the "Accept" REST call by extracting the csrftoken cookie, the server-side socket reset that follows "Accept" requires the client to re-connect and immediately send a game/connect for the new activeGameID.
+4. Working Model: Protocol Reference (Build 16.092+)
+I. The "Four-Lock" Keep-Alive
+Level 1: Server sends 2, Client replies 3.
+Level 2: Client sends 2 every 25s (Socket Ping).
+Level 3: Client sends 42["game/latency", {...}] every 5s. Note: Must NOT have a msgID.
+Level 4: Server sends 42["net/ping", {"client": TS}]. Client MUST reply 42["net/pong", {"client": TS, "server": TS}] using Int64.
+II. Move Execution (msgID & Anti-Cheat)
+Payload Format: 42["game/move", {Payload}, msgID]
+msgID Calculation: currentStateVersion + 1 (Updated from every inbound packet).
+Clock Calculation: main_time = (Last Server Time - Local Elapsed Time) - Random Blur (1200-2200ms).
+III. Inbound Coordinate Parsing
+OGS move data is heterogeneous. We must handle both:
+String: move: "pd" (Standard move).
+Array: move: [x, y, time] (Often used for handicap stones or move acknowledgments).
+5. Areas for Immediate Investigation
+Lobby Cleanup: We are seeing ~95 games while the web client shows ~20. We need to implement stricter pruning for seek_graph/remove events where the payload contains delete: true or is missing the game object.
+Board Dimensions: The BoardViewModel needs a "Hard Reset" function triggered by the socket's gamedata to override the 19x19 local replay.
+Auth Token Persistence: We need to verify that userJWT is being saved to the Keychain or AppModel so it survives the socket resets that occur during game transitions.
+Current Code Base Status:
+The Networking Layer (OGSClient.swift) is now theoretically robust enough to play a full game. The focus must now shift to UI Synchronization and View Model Bridge integrity to allow testing of the gameplay logic.

@@ -1,0 +1,51 @@
+Master Protocol Document.txt (Updated v1.2)
+Project: SGFPlayerClean
+Protocol Version: OGS Socket.IO v4 (Native Alignment)
+1. Transport Layer (Socket.IO/Engine.IO)
+Outbound Action: 42["event", {payload}, sequence_id]
+Acknowledgment: 43[sequence_id, response_data]
+Types:
+event: String
+payload: JSON Object
+sequence_id: Integer (Client-side incrementing counter)
+2. Network Maintenance
+Event: net/ping
+client: Int64 (Unix Epoch in milliseconds)
+drift: Float (Calculated server-client time offset)
+latency: Int (Round-trip time in milliseconds)
+3. Room & Gameplay Routing
+Event: game/connect (Establish room presence)
+game_id: Int
+chat: Boolean
+Event: game/move (The primary action packet)
+game_id: Int
+move: String (2-character SGF coordinate, e.g., "pd", or ".." for pass)
+blur: Int (Simulated human click delay in ms)
+clock: Dictionary (Exact snapshot of the last received clock object)
+4. The Clock Object (State Snapshot)
+The clock object must be mirrored exactly from inbound /clock or /gamedata packets.
+Key Types:
+main_time: Int (Milliseconds remaining)
+periods_left: Int (Remaining Byo-Yomi periods)
+period_time_left: Int (Milliseconds in current period)
+timed_out: Boolean
+5. Handicap & Initial State (Coordination)
+Initial Stones: Received in gamedata -> initial_state -> black / white.
+Format: String of concatenated SGF pairs (e.g., "ecegcegeccgggccg").
+Logic: Every 2 characters represent one (x, y) coordinate.
+Turn Rule: initial_player ("black" or "white") dictates who moves first after the initial_state is applied.
+6. Lifecycle Events
+Resign: game/resign -> {"game_id": Int}
+Chat: game/chat -> {"game_id": Int, "body": String, "type": "main"}
+Phase Sync: phase (String) - Monitor for "play", "stone removal", or "finished".
+Why these Types matter for SGFPlayerClean:
+Int64 for Timestamps: Standard Swift Int on older 32-bit systems (if applicable) or certain JSON parsers can overflow when handling Unix timestamps in milliseconds. Using Int64 ensures the net/ping is never corrupted.
+String for Move: Even though Go coordinates are numbers (0-18), OGS strictly expects the SGF "Letter Pair." Sending an [x, y] array to the game/move event will cause a rejection.
+Int for GameID: Unlike some APIs that use UUID strings, OGS uses raw integers for game IDs.
+🛠 Final Checklist for Build 16.158
+I have already incorporated these types into the OGSClient.swift provided in the previous message (using Int, String, and Int64 where appropriate).
+One final Operational Note:
+In your logs, I noticed the server sends an acknowledgment 43[5,null,null].
+The 5 matches your OUT ATTEMPT sequence ID.
+If you see 43[ID, {"error": "..."}], we know the packet was received but rejected.
+If you see 43[ID, null, null], the move was accepted.

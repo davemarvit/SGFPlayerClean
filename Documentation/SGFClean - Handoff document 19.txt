@@ -1,0 +1,74 @@
+Handover Document: SGFPlayerClean – OGS Protocol Stabilization (v16.036)
+1. Project Description
+SGFPlayerClean is a dual-purpose Go (Igo/Baduk/Weiqi) application.
+Local Mode: Provides a high-fidelity interface for replaying and analyzing local game files in .sgf format.
+Online Mode: Connects to the Online Go Server (OGS) via REST APIs and WebSockets to allow users to browse challenges in the lobby, accept games, and play live matches with real-time clock synchronization.
+The project is currently in a "Protocol Stabilization" phase, where the primary objective is to eliminate connection drops that occur during live gameplay.
+2. Next Session Prompt
+"We are currently running Build 16.036. This version successfully handles the lobby, game connection, and initial moves. However, it consistently disconnects after 4 moves (approx. 20–30s into a game).
+Your Mission: Identify the 'Protocol Violation' causing the OGS Game Engine to drop the connection after Move 4. We have forensic logs and old working code. Focus on the Message Sequence IDs (msgID) and the Flattened Clock Object. You must provide full code drop-ins for OGSClient.swift and follow the 'No Guessing' rule. Use the detailed communication inventory in Section 4 to verify every outbound packet."
+3. Working Guidelines
+No Guessing: Do not assume an OGS protocol, API endpoint, or payload key. If a value is unknown, request a file upload or a log snippet from the user.
+Full Code Drop-ins: Provide the entire content of the file. Do not provide partial snippets that require the user to hunt for insertion points.
+Forensic Reality: Use the browser logs (Chrome Dev Tools) and the provided "Old Working Code" as the primary sources of truth.
+Completeness over Concision: Back-and-forth chat can be brief, but this document must be exhaustive.
+4. Communication Inventory & Sequence
+All communication with wss://wsp.online-go.com/ must follow the sequence and structure identified in the browser logs.
+A. The Handshake Sequence (Log Rows 5-10)
+Upon joining a game, the client MUST send these packets in order:
+game/connect: ["game/connect", {"game_id": ID, "chat": true, "player_id": PID, "auth": "SECRET"}]
+Note: The auth token is fetched via a REST call to /api/v1/games/ID before the socket connects.
+chat/join: ["chat/join", {"channel": "game-ID"}]
+Impact: Failure to join the chat channel often results in the server flagging the user as "Inactive."
+ui-pushes/subscribe: ["ui-pushes/subscribe", {"channel": "game-ID"}]
+Impact: Required to receive the [gameID]clock and score updates.
+spectate: ["spectate", {"game_id": ID}] (Backup subscription used by the web client).
+B. The Outbound Move Payload (Log Row 15)
+OGS uses a strict 3-element array for moves. If the structure or keys are wrong, the move is ignored (Ghost Stone).
+Structure: ["game/move", {PayloadDictionary}, msgID]
+The Dictionary:
+game_id: Integer.
+move: String (e.g., "pd").
+blur: Random Integer (800-1500).
+clock: A flattened object: {"main_time": 3598446, "timed_out": false, "periods_left": 5, "period_time_left": 15000}.
+The msgID: An integer representing the sequence. Log analysis shows msgID = move_number + 1.
+C. The Inbound Sync Events
+[gameID]gamedata: Contains the root identity keys black_player_id and white_player_id.
+[gameID]clock: Sends nested time data: white_time: { thinking_time: X, periods: Y, period_time: Z }.
+CRITICAL: The client must receive this, cache it, and flatten it to the move format (above) for the next game/move.
+5. The "Four-Lock" Keep-Alive System
+OGS terminates connections if any of the following four heartbeats are missed.
+Level	Command	Frequency	Forensic Log Source
+1. Socket (Reactive)	2 -> 3	On Demand	Standard Engine.IO behavior.
+2. Socket (Proactive)	2	Every 15s	Found in "Old Working Code" as schedulePing.
+3. Game Engine	game/latency	Exactly 5.0s	Log Row 43. Payload: {"game_id": ID, "latency": 100}.
+4. Application	net/ping	On Demand	Found in "Old Working Code." Server sends net/ping, client must reply with net/pong including client and server timestamps.
+6. Key Lessons & Discovered "Traps"
+The Identity Key Trap (Color Inversion)
+Reality: The WebSocket gamedata event sends black_player_id as a top-level root key.
+Our Failure: We were looking inside a nested players object. When it returned nil, the app couldn't identify the player, causing stones to appear as the wrong color.
+Rule: Always check root keys black_player_id and white_player_id first.
+The Heterogeneous Array Trap (Ghost Stones)
+Reality: OGS expects [String, Dictionary, Integer].
+Our Failure: Swift's JSONSerialization often wraps the Dictionary in an extra set of [] to satisfy the [Any] type.
+The Fix: Use Manual JSON String Construction for moves: "["game/move",\(dictStr),\(msgID)]".
+The Move 4 Disconnect (The Sequence Wall)
+The current 4-move limit suggests that Move 5 triggers a server-side state validation that we are failing.
+Hypothesis: The msgID sequence is desyncing, or the clock object we are returning has the wrong keys (e.g., using thinking_time instead of main_time).
+7. Identity Mapping for Code
+The following variable names and types are strictly required for compatibility with AppModel.swift:
+@Published var activeGameAuth: String?: Used to store the secret game token.
+@Published var blackPlayerID: Int?: Used by AppModel to calculate color: (pid == blackPlayerID) ? .black : .white.
+func connectToGame(gameID: Int): Called by AppModel after fetching REST data.
+func sendMove(gameID: Int, x: Int, y: Int, moveNumber: Int): Parameters MUST match this signature.
+Parity Logic: Per Log Row 11 (Move 1 = White), use: MoveNumber % 2 == 0 is Black.
+8. State Machine Logic (The Thinking Goal)
+The next session must treat OGSClient as a Mirror State Machine.
+Receive clock (Nested).
+Store clock.
+User Clicks.
+Transform clock (Flatten).
+Calculate msgID (moveNum + 1).
+Construct String (Manual JSON).
+Send.
+Failure to mirror the server's state exactly results in a disconnect.

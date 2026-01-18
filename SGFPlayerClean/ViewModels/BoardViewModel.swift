@@ -20,8 +20,10 @@ class BoardViewModel: ObservableObject {
     
     let onRequestUpdate3D = PassthroughSubject<Void, Never>()
     var engine: SGFPlayer; var ogsClient: OGSClient
+    var onPlaySound: ((AppModel.SoundType) -> Void)? // Sound Callback
     private var jitterEngine: StoneJitter
     private var isSyncing = false
+    private var lastObservedMoveIndex: Int = 0
     private var cancellables = Set<AnyCancellable>()
     
     init(player: SGFPlayer, ogsClient: OGSClient) {
@@ -49,10 +51,17 @@ class BoardViewModel: ObservableObject {
         self.engine.clear()
         self.stonesToRender = []
         self.isOnlineContext = false
+        self.lastObservedMoveIndex = 0 // FIX: Reset sound tracker
         self.syncState()
     }
     
-    func loadGame(_ wrapper: SGFGameWrapper) { self.isOnlineContext = false; self.engine.load(game: wrapper.game); self.jitterEngine = StoneJitter(boardSize: self.boardSize) }
+    func loadGame(_ wrapper: SGFGameWrapper) { 
+        self.isOnlineContext = false
+        self.engine.load(game: wrapper.game)
+        self.jitterEngine = StoneJitter(boardSize: self.boardSize)
+        self.lastObservedMoveIndex = self.engine.currentIndex // FIX: Sync sound tracker
+        self.syncState() // Ensure UI syncs
+    }
     func goToStart() { engine.seek(to: 0) }
     func goToEnd() { engine.seek(to: engine.maxIndex) }
     func stepForward() { engine.stepForward() }
@@ -100,6 +109,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func placeStone(at pos: BoardPosition) {
+        // NSLog("[SOUND-DEBUG] placeStone. Online: \(isOnlineContext) Pos: \(pos)")
         // LOCK: If game is finished, board is read-only
         if ogsClient.isGameFinished {
             self.ghostPosition = nil
@@ -124,7 +134,23 @@ class BoardViewModel: ObservableObject {
             }
             
             // Optimistic UI
+            // 1. Capture State Snapshot (Pre-Move)
+            let oldB = self.engine.blackStonesCaptured
+            let oldW = self.engine.whiteStonesCaptured
+            
+            // 2. Play Locally
             self.engine.playMoveOptimistically(color: myColor, x: pos.col, y: pos.row)
+            
+            // 3. Diff & Play Sound
+            let newB = self.engine.blackStonesCaptured
+            let newW = self.engine.whiteStonesCaptured
+            let captured = (newB - oldB) + (newW - oldW)
+            
+            NSLog("[SOUND-DEBUG] Optimistic Trigger: Diff: \(captured)")
+            
+            if captured > 1 { onPlaySound?(.captureMultiple) }
+            else if captured == 1 { onPlaySound?(.captureSingle) }
+            else { onPlaySound?(.place) }
             
             // Network Dispatch
             self.ogsClient.sendMove(
@@ -132,12 +158,26 @@ class BoardViewModel: ObservableObject {
                 x: pos.col,
                 y: pos.row
             )
+        } else {
+             // Local Play
+             // 1. Validation
+             if pos.row < self.engine.board.grid.count, 
+                pos.col < self.engine.board.grid[0].count,
+                self.engine.board.grid[pos.row][pos.col] != nil {
+                 return
+             }
+             
+             // 2. Play
+             // Note: We do NOT call syncState() here manually. 
+             // playMoveOptimistically triggers 'moveProcessed' publisher which calls syncState.
+             // This prevents the race condition where sound was cut off.
+             self.engine.playMoveOptimistically(color: self.engine.turn, x: pos.col, y: pos.row)
         }
     }
     
     func syncState() {
-        // if isSyncing { return } // Removed re-entrancy guard to allow immediate updates on main thread
-        // isSyncing = true
+        // NSLog("[SOUND-DEBUG] syncState ENTRY. Online: \(isOnlineContext) Idx: \(self.engine.currentIndex)")
+        
         let idx = self.engine.currentIndex
         let last = self.engine.lastMove.map { BoardPosition($0.y, $0.x) }
         let snap = self.engine.board
@@ -156,6 +196,36 @@ class BoardViewModel: ObservableObject {
         }
         
         self.stonesToRender = safeList
+        
+        // Sound Logic (Local Play / AutoPlay)
+        if !isOnlineContext {
+             // NSLog("[SOUND-DEBUG] Sound Check - Idx: \(idx) Last: \(self.lastObservedMoveIndex)")
+             
+             // Robustness: If we notice a jump (e.g. valid move), trigger logic.
+             // If we are just 1 step ahead, play sound.
+             if idx == (self.lastObservedMoveIndex + 1) {
+                 let oldBlack = self.blackCapturedCount
+                 let oldWhite = self.whiteCapturedCount
+                 let newBlack = self.engine.whiteStonesCaptured
+                 let newWhite = self.engine.blackStonesCaptured
+                 
+                 let captured = (newBlack - oldBlack) + (newWhite - oldWhite)
+                 print("🔊 Capture Debug: OldB:\(oldBlack) NewB:\(newBlack) OldW:\(oldWhite) NewW:\(newWhite) Diff:\(captured)")
+                 
+                 if captured > 0 { 
+                     // Priority: Capture > Place
+                     if captured > 1 { onPlaySound?(.captureMultiple) }
+                     else { onPlaySound?(.captureSingle) }
+                 } else { 
+                     onPlaySound?(.place) 
+                 }
+             } else if idx != self.lastObservedMoveIndex {
+                 // Discontinuity (Scrub? Load?). Do not play sound.
+                 // Just sync tracker.
+             }
+        }
+        self.lastObservedMoveIndex = idx
+        
         self.lastMovePosition = last
         self.currentMoveIndex = idx
         self.blackCapturedCount = self.engine.whiteStonesCaptured

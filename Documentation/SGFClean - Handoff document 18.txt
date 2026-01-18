@@ -1,0 +1,101 @@
+1. Project Vision & Current State
+The Objective
+To create a high-performance, aesthetically "clean" macOS native client for Online Go Server (OGS). The project uses a custom SceneKit 3D viewport and a SwiftUI 2D board. It employs a hybrid architecture:
+	•	Swift Layer: Managing the WebSocket (Real-Time), REST API (Auth/Setup), and the SGF Engine (Move logic).
+	•	Web Layer: A background WKWebView that handles complex rendering or asset extraction (Tatami, Kaya board) while hiding the OGS web UI.
+Current Status
+The client has reached "Functional Parity" for live play:
+	•	Connection: Successful "Waterfall" initialization (REST -> WebSocket).
+	•	Lobby: Real-time challenge listing (Seekgraph) is functional.
+	•	Game Management: Can accept challenges, fetch initial board state, and sync handicap stones.
+	•	Live Moves: Outgoing moves (String format) are accepted by OGS. Incoming moves (Array format) are parsed and drawn correctly.
+
+2. The "Truth Chain" Connection Protocol
+The OGS wsp.online-go.com server is a modified Socket.io instance that is extremely sensitive to timing and formatting.
+A. The Waterfall Initialization (Serial Execution Required)
+You cannot open the WebSocket immediately. The client must follow this sequence to bind the socket to a valid session:
+	1	Phase 1: Dummy POST: Send an empty JSON body {} to https://online-go.com/api/v0/login. This forces the server to set the csrftoken cookie in the app's HTTPCookieStorage.
+	2	Phase 2: UI Config: Send a GET request to https://online-go.com/api/v1/ui/config. This populates the sessionid cookie and retrieves the user_jwt.
+	3	Phase 3: WebSocket Handshake: Initiate the connection to wss://wsp.online-go.com/.
+	◦	Cookie Binding: The URLSession must share the same HTTPCookieStorage from Phases 1 and 2.
+	◦	Headers: Use a browser-like User-Agent and set the Origin to https://online-go.com.
+B. The "No-Space" Rule (Brittle JSON Parsing)
+OGS backend parsers are character-perfect. Standard Swift JSONSerialization adds spaces after commas and colons. This causes silent authentication failures.
+	•	Requirement: Construct Auth and Move packets as raw interpolated strings.
+	•	Correct: ["authenticate",{"jwt":"..."}]
+	•	Incorrect: ["authenticate", {"jwt": "..."}]
+C. The "42" Protocol Landmine
+Standard Socket.io uses a 42 prefix for messages.
+	•	Critical Discovery: For the OGS wsp server, adding the 42 prefix to Auth or Move packets causes an immediate transport-layer reset (nw_write_request_report ... Send failed).
+	•	Rule: Use Plain WebSocket framing. Packets must start with the raw bracket [ and end with ].
+
+3. Connection Survival & The "10-Second Rule"
+OGS implements a strict timeout policy discovered in Handover v10.500.
+The Heartbeat Logic
+	1	Pulse Response: The server sends a raw string "2". The client must immediately respond with a raw string "3".
+	2	Proactive Ping: If the server does not receive a pulse for ~10 seconds, it logically disconnects the player ("Your opponent is no longer connected"), even if the socket remains physically open.
+	3	The Fix: We use a pingTimer set to 7 seconds to send a proactive "2" to the server, ensuring we beat the 10-second timeout.
+
+4. Move Protocols & State Sync
+Outgoing Moves (Client → Server)
+When the user clicks the board, the client sends a "Golden Payload":
+	•	Format: ["game/move", {payload}, msgID]
+	•	Payload Dictionary:
+	◦	game_id: Integer.
+	◦	move: SGF String (e.g., "pd").
+	◦	player_id: The current user's OGS ID.
+	◦	blur: Random integer (800-3000) mimicking mouse hover time.
+	◦	clock: {"main_time": 0, "timed_out": false} (mandatory metadata).
+	•	msgID: An incrementing integer appended to the end of the array.
+Incoming Moves (Server → Client)
+Arrives as ["game/{ID}/move", {payload}].
+	•	Payload: Typically an array [x, y, server_time].
+	•	Normalization: OGSClient converts the server's array back into [x, y] coordinates so AppModel can update the SGFPlayerEngine.
+The Handicap Move Bump
+In handicap games, OGS often treats the handicap placement as Move 1.
+	•	If a game has a handicap and the move count is 0, the client must set its internal counter to 1 so that the user's first click is sent as Move 2. If Move 1 is sent twice, the server ignores it.
+
+5. File Architecture & Responsibilities
+File
+Primary Responsibility
+OGSClient.swift
+The Brain. Manages Waterfall Init, Socket Heartbeats, and "No-Space" string formatting. Normalizes incoming server data.
+AppModel.swift
+The Coordinator. Orchestrates game joins, captures activeGameAuth tokens, and handles audio/file persistence.
+SGFPlayerEngine.swift
+Source of Truth. The only file that calculates board state, captures, and liberties. Server-Authoritative.
+BoardViewModel.swift
+The Bridge. Translates Engine state into RenderStone objects for the UI. Handles "Ghost Stone" cursor tracking.
+SceneManager3D.swift
+Viewport Engine. Manages 3D textures, lighting, and "Drop-in" stone animations.
+UnifiedInteractiveSceneView
+Native Bridge. Handles high-DPI Retina coordinate conversion for 3D click detection.
+
+6. Variables & Function Call Reference
+Important Client Properties
+	•	isSocketAuthenticated: Boolean. Moves are suppressed until the server echoes an authenticate success event.
+	•	userJWT.didSet: The Watchdog. Automatically triggers authentication if the JWT arrives after the socket has already opened (fixes a common race condition).
+	•	latencyOffset: Calculated as Date().now - server.now. Used to synchronize the countdown clocks.
+	•	availableGames: Array of OGSChallenge. Populated via the seekgraph/global event.
+Critical Function Calls
+	•	connectToGame(gameID): Must be called after joining. It subscribes to both game/connect and ui-pushes/subscribe.
+	•	ensureCSRFToken(): A wrapper used before REST POSTs (like acceptChallenge) to ensure the session cookies haven't expired.
+	•	sendRaw(text): The low-level socket writer. Bypasses standard JSON encoders to maintain character-perfection.
+
+7. Known Landmines & Troubleshooting
+"Ghost Stone appears but click does nothing"
+	•	Diagnosis: The socket is in a "Zombie" state. It is physically connected but the server ignored the authenticate packet because of spaces in the JSON or a missing sessionid cookie.
+	•	Check: Look for ✅ OGS: Auth Confirmed in the console.
+"NW Flow Failure / Socket is not connected"
+	•	Diagnosis: Protocol violation. You likely sent a 42 prefix or malformed JSON headers. The server hung up at the transport layer.
+	•	Check: Ensure all outgoing packets start with a raw [ bracket.
+"Wrong Color Stones"
+	•	Diagnosis: The client failed to sync blackPlayerID or whitePlayerID from the initial gamedata packet.
+	•	Check: The client should log 🎨 OGS Identity Synced when entering a game.
+"Console: open(/private/var/db/DetachedSignatures) failed"
+	•	Diagnosis: Safe noise. This is a standard macOS security log artifact and can be ignored.
+
+Methodology for Next Session
+	1	Maintain the Waterfall: Never connect the WebSocket before the REST config is verified.
+	2	Maintain the 7s Heartbeat: Do not increase the ping interval beyond 10 seconds.
+	3	Maintain Character-Perfection: Do not switch back to JSONEncoder for outgoing protocol-critical packets.

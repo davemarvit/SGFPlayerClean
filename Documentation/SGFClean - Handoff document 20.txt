@@ -1,0 +1,317 @@
+Handover Document: SGFPlayerClean – OGS Protocol Stabilization (Build 16.062+)
+1. Next Session Prompt
+"We are currently running Build 16.062. We have successfully broken the 'Move 4 Wall' and the 'Ghost Stone' issues by anchoring the msgID to the server's state_version. However, we have hit a new '9-Move Wall' (approximately 60s into a game).
+Your Mission: Identify why the OGS Game Engine or the Socket.IO reaper terminates the connection after 9 moves. Review the 'State Version Anchor' logic and the 'Anti-Cheat Clock Math' in Section 4. You must provide full code drop-ins for OGSClient.swift and follow the 'No Guessing' rule. Use the forensic log evidence in Section 5 to verify if the msgID sequence is drifting or if a Heartbeat Level is being missed."
+2. Project Overview & Current Status
+SGFPlayerClean is a Go application connecting to the Online Go Server (OGS). We are in the Protocol Stabilization phase.
+The Problem: Reliable connections during live gameplay.
+The Progress: We have evolved from a 2-stone limit to a consistent 9-stone limit. We have identified that OGS uses a strict validation engine that checks for sequence integrity (msgID) and anti-cheat timing (main_time).
+3. The Working Model: OGS Protocol
+All communication with wss://wsp.online-go.com/ must follow the structures identified in the forensic browser logs.
+A. The "Four-Lock" Keep-Alive System
+OGS terminates connections if any of these are missed:
+Level 1 (Reactive): Client receives 2, must reply 3. (Engine.IO standard).
+Level 2 (Proactive): Client sends 2 every 25s. (Matches "Old Working Code" schedulePing).
+Level 3 (Game Engine): Client sends ["game/latency", {"game_id": ID, "latency": X}] every 5s.
+Forensic Note: Length is exactly 50 bytes. Does not include a msgID.
+Level 4 (Application): Server sends ["net/ping", {"client": TS}]. Client must reply ["net/pong", {"client": TS, "server": TS}].
+Impact: Failure to reply usually causes a disconnect at the 60-second mark.
+B. The Outbound Move Payload (Modern Mode)
+Structure: ["game/move", {PayloadDictionary}, msgID]
+game_id: Integer.
+move: String (e.g., "pd").
+blur: Random Integer (1200–2200).
+clock: {"main_time": Double, "timed_out": false}.
+msgID: The state_version + 1.
+C. The Inbound Sync (Ingress)
+gamedata: Contains state_version (The anchor for all future msgIDs).
+move: The server confirms stones via a heterogeneous array: [X, Y, RemainingTimeMS].
+Trap: We must parse coordinates as [Int] OR String to ensure the local board updates.
+4. Critical Insights & Lessons Learned
+The "Anti-Cheat" Clock Trap
+Evidence: In Build 16.056, moves were rejected at Move 6.
+Discovery: Your log 02:53:12.412 showed main_time: 3598605.5 and blur: 1294.
+The Rule: The main_time sent back to the server must be the ThinkingTime received from the server minus the blur (spent time). If the clock doesn't move while blur claims time was spent, the server flags it as a clock-freeze hack and disconnects.
+The "State Version" vs. "Move Number"
+Evidence: In handicap games, move_number: 1 often corresponds to msgID: 15.
+Discovery: The msgID is not a count of stones. It is the State Version of the game. Every handicap placement or system event increments this version.
+The Fix: We no longer calculate msgID = moveNumber. We anchor to the state_version field in the gamedata and increment from there.
+5. Challenges & Hypotheses (The "9-Move Wall")
+We are currently failing around Move 9 (~60 seconds).
+Hypothesis A (The Sequence Gap): In handicap games, does the state_version increment by more than 1 when the opponent moves? If we only increment by 1 locally, we might be falling behind the server's version.
+Test: Update currentStateVersion from every inbound move event's move_number key.
+Hypothesis B (The Level 4 Timeout): We may be sending net/pong with the wrong types (Int vs Double) or missing the 60s window.
+Hypothesis C (The Latency Mirror): Are we echoing the wrong player's latency? The log shows two latency values (one for each PID).
+6. The Current Working Code (Build 16.062)
+code
+Swift
+// ========================================================
+// FILE: ./Services/OGSClient.swift
+// VERSION: v16.062 (The VM-Stable / State-Anchor Base)
+// ========================================================
+
+import Foundation
+import Combine
+
+class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
+    let buildVersion = "16.062"
+    
+    // MARK: - Published State (Compatible with AppModel/VMs)
+    @Published var isConnected = false
+    @Published var isSocketAuthenticated = false
+    @Published var isAuthenticated = false
+    @Published var isSubscribedToSeekgraph = false
+    @Published var lastError: String? = nil
+    @Published var username: String?
+    @Published var playerID: Int?
+    @Published var userJWT: String? {
+        didSet { if userJWT != nil && isConnected && !isSocketAuthenticated { sendSocketAuth() } }
+    }
+    @Published var activeGameID: Int?
+    @Published var activeGameAuth: String?
+    @Published var playerColor: Stone?
+    @Published var currentPlayerID: Int?
+    @Published var availableGames: [OGSChallenge] = []
+    @Published var trafficLogs: [NetworkLogEntry] = []
+    
+    @Published var blackPlayerID: Int?; @Published var whitePlayerID: Int?
+    @Published var blackPlayerName: String?; @Published var whitePlayerName: String?
+    @Published var blackTimeRemaining: TimeInterval?; @Published var whiteTimeRemaining: TimeInterval?
+    @Published var undoRequestedUsername: String? = nil
+    @Published var undoRequestedMoveNumber: Int? = nil
+
+    // MARK: - Internal State
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
+    private var socketPingTimer: Timer?
+    private var enginePulseTimer: Timer?
+    private var lastServerThinkingTime: Double = 3600.0 
+    private var lastReportedLatency: Int = 83 
+    private var currentStateVersion: Int = 0 
+    private var sessionMsgID: Int = 1
+    
+    private let originHeader = "https://online-go.com"
+    private let refererHeader = "https://online-go.com/play"
+    private let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    
+    override init() {
+        super.init()
+        let config = URLSessionConfiguration.default
+        config.httpCookieStorage = HTTPCookieStorage.shared
+        config.httpCookieAcceptPolicy = .always
+        self.urlSession = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue())
+        getInitialCSRF()
+    }
+
+    // MARK: - Auth Handshake
+    private func getInitialCSRF() {
+        guard let url = URL(string: "https://online-go.com/api/v0/login") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        request.httpBody = "{}".data(using: .utf8)
+        urlSession?.dataTask(with: request) { [weak self] _, _, _ in self?.fetchUserConfig() }.resume()
+    }
+
+    func fetchUserConfig() {
+        guard let url = URL(string: "https://online-go.com/api/v1/ui/config") else { return }
+        var request = URLRequest(url: url)
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        urlSession?.dataTask(with: request) { [weak self] data, _, _ in
+            guard let self = self, let d = data,
+                  let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
+                  let user = json["user"] as? [String: Any] else { return }
+            DispatchQueue.main.async {
+                self.username = user["username"] as? String
+                self.playerID = user["id"] as? Int
+                self.userJWT = json["user_jwt"] as? String
+                self.isAuthenticated = true
+                self.connect()
+            }
+        }.resume()
+    }
+
+    func connect() {
+        guard webSocketTask == nil || webSocketTask?.state == .completed else { return }
+        guard let url = URL(string: "wss://wsp.online-go.com/") else { return }
+        var request = URLRequest(url: url)
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        request.setValue(refererHeader, forHTTPHeaderField: "Referer")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        webSocketTask = urlSession?.webSocketTask(with: request)
+        webSocketTask?.resume()
+        receiveMessage()
+    }
+    
+    private func receiveMessage() {
+        webSocketTask?.receive { [weak self] result in
+            guard let self = self else { return }
+            if case .success(let msg) = result, case .string(let text) = msg {
+                self.handleIncomingJSON(text)
+                self.receiveMessage()
+            } else {
+                DispatchQueue.main.async {
+                    self.isConnected = false
+                    self.webSocketTask = nil
+                    self.socketPingTimer?.invalidate()
+                    self.enginePulseTimer?.invalidate()
+                }
+            }
+        }
+    }
+    
+    private func handleIncomingJSON(_ text: String) {
+        if text == "2" { sendRaw("3"); return }
+        if !isConnected {
+            DispatchQueue.main.async {
+                self.isConnected = true
+                self.sendSocketAuth()
+                self.subscribeToSeekgraph()
+                self.startSocketHeartbeat()
+            }
+        }
+        guard let data = text.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+              array.count >= 2 else { return }
+        
+        let event = array[0] as? String ?? ""
+        let payload = array[1]
+        
+        switch event {
+        case "net/ping":
+            if let p = payload as? [String: Any], let clientTime = p["client"] as? Int {
+                let serverTime = Int(Date().timeIntervalSince1970 * 1000)
+                sendRaw("[\"net/pong\",{\"client\":\(clientTime),\"server\":\(serverTime)}]")
+            }
+        case _ where event.contains("gamedata"):
+            if let p = payload as? [String: Any] {
+                syncIdentityProperties(p)
+                if let version = p["state_version"] as? Int { self.currentStateVersion = version }
+                NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": p])
+            }
+        case _ where event.contains("move"):
+            if let p = payload as? [String: Any] { handleIncomingMove(p) }
+        case _ where event.contains("clock"):
+            if let p = payload as? [String: Any] { handleInboundClock(p) }
+        case _ where event.contains("latency"):
+            if let p = payload as? [String: Any], let lat = p["latency"] as? Int {
+                self.lastReportedLatency = lat
+            }
+        case "authenticate":
+            if let p = payload as? [String: Any], (p["success"] as? Bool) == true || p["id"] != nil {
+                DispatchQueue.main.async { self.isSocketAuthenticated = true }
+            }
+        default: break
+        }
+    }
+
+    private func startSocketHeartbeat() {
+        socketPingTimer?.invalidate()
+        socketPingTimer = Timer.scheduledTimer(withTimeInterval: 25.0, repeats: true) { [weak self] _ in self?.sendRaw("2") }
+    }
+
+    private func startEngineHeartbeat() {
+        enginePulseTimer?.invalidate()
+        enginePulseTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self = self, let gID = self.activeGameID, self.isConnected else { return }
+            self.sendRaw("[\"game/latency\",{\"game_id\":\(gID),\"latency\":\(self.lastReportedLatency)}]")
+        }
+    }
+
+    func connectToGame(gameID: Int) {
+        DispatchQueue.main.async { self.activeGameID = gameID; self.startEngineHeartbeat() }
+        sendPacket(event: "game/disconnect", payload: ["game_id": gameID])
+        sendPacket(event: "game/connect", payload: ["game_id": gameID, "chat": true])
+        sendPacket(event: "chat/join", payload: ["channel": "game-\(gameID)"])
+        sendPacket(event: "ui-pushes/subscribe", payload: ["channel": "game-\(gameID)"])
+        sendPacket(event: "spectate", payload: ["game_id": gameID])
+    }
+
+    func sendMove(gameID: Int, x: Int, y: Int, moveNumber: Int) {
+        guard isConnected else { return }
+        let coord = SGFCoordinates.toSGF(x: x, y: y)
+        let blurMs = Int.random(in: 1200...1800)
+        let mainTimeMs = (self.lastServerThinkingTime * 1000.0) - Double(blurMs)
+        let clockObj: [String: Any] = ["main_time": mainTimeMs, "timed_out": false]
+        let moveDict: [String: Any] = ["game_id": gameID, "move": coord, "blur": blurMs, "clock": clockObj]
+        let msgID = self.currentStateVersion + 1
+        sendRaw("[\"game/move\",\(jsonString(moveDict)),\(msgID)]")
+        logTraffic(direction: "OUT", content: "Move #\(msgID): \(coord)")
+    }
+
+    private func handleIncomingMove(_ data: [String: Any]) {
+        if let moveNum = data["move_number"] as? Int { self.currentStateVersion = moveNum }
+        if let moveArray = data["move"] as? [Any], moveArray.count >= 3, let timeMs = moveArray[2] as? Double {
+            let color: Stone = (self.currentStateVersion % 2 == 0) ? .black : .white
+            if color == self.playerColor { self.lastServerThinkingTime = timeMs / 1000.0 }
+        }
+        var normalized = data
+        let color: Stone = (self.currentStateVersion % 2 == 0) ? .black : .white
+        normalized["color"] = (color == .black) ? "black" : "white"
+        normalized["player_id"] = (color == .black) ? self.blackPlayerID : self.whitePlayerID
+        if let moveString = data["move"] as? String, let (x, y) = SGFCoordinates.parse(moveString) { 
+            normalized["move"] = [x, y] 
+        } else if let moveCoords = data["move"] as? [Any], moveCoords.count >= 2 {
+            normalized["move"] = [(moveCoords[0] as? Int) ?? 0, (moveCoords[1] as? Int) ?? 0]
+        }
+        NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: normalized)
+    }
+
+    private func handleInboundClock(_ data: [String: Any]) {
+        let myKey = (playerColor == .black) ? "black_time" : "white_time"
+        if let timeData = data[myKey] as? [String: Any] { self.lastServerThinkingTime = (timeData["thinking_time"] as? Double) ?? 3600.0 }
+        if let pid = data["current_player"] as? Int { DispatchQueue.main.async { self.currentPlayerID = pid } }
+    }
+
+    private func syncIdentityProperties(_ data: [String: Any]) {
+        let bid = (data["black_player_id"] as? Int) ?? (data["players"] as? [String:Any])?["black"] as? Int
+        let wid = (data["white_player_id"] as? Int) ?? (data["players"] as? [String:Any])?["white"] as? Int
+        DispatchQueue.main.async {
+            if let id = bid { self.blackPlayerID = id }
+            if let id = wid { self.whitePlayerID = id }
+            if let pid = self.playerID { self.playerColor = (pid == self.blackPlayerID) ? .black : .white }
+        }
+    }
+
+    private func sendPacket(event: String, payload: Any) {
+        sendRaw("[\"\(event)\",\(jsonString(payload)),\(self.sessionMsgID)]")
+        self.sessionMsgID += 1
+    }
+    private func jsonString(_ obj: Any) -> String {
+        guard let d = try? JSONSerialization.data(withJSONObject: obj), let s = String(data: d, encoding: .utf8) else { return "{}" }
+        return s
+    }
+    private func sendRaw(_ text: String) { webSocketTask?.send(.string(text)) { _ in } }
+    private func logTraffic(direction: String, content: String, isHeartbeat: Bool = false) {
+        DispatchQueue.main.async {
+            let entry = NetworkLogEntry(direction: direction, content: content, isHeartbeat: isHeartbeat)
+            self.trafficLogs.append(entry); if self.trafficLogs.count > 100 { self.trafficLogs.removeFirst() }
+        }
+    }
+    private func sendSocketAuth() { guard let jwt = userJWT, isConnected else { return }; sendPacket(event: "authenticate", payload: ["jwt": jwt]) }
+    func subscribeToSeekgraph() { sendPacket(event: "seek_graph/connect", payload: ["channel": "global"]); self.isSubscribedToSeekgraph = true }
+
+    // MARK: - VM Support Methods
+    func startAutomatch() { }
+    func cancelAutomatch() { }
+    func resignGame(gameID: Int) { sendRaw("[\"game/resign\",{\"game_id\":\(gameID)}]") }
+    func sendPass(gameID: Int, moveNumber: Int) { 
+        let msgID = self.currentStateVersion + 1
+        sendRaw("[\"game/move\",{\"game_id\":\(gameID),\"move\":\"..\"},\(msgID)]") 
+    }
+    func cancelChallenge(challengeID: Int) { sendRaw("[\"seek_graph/remove\",{\"challenge_id\":\(challengeID)}]") }
+    func sendUndoReject(gameID: Int) { }
+    func sendUndoAccept(gameID: Int) { }
+    func sendUndoRequest(gameID: Int, moveNumber: Int) { }
+    private func processSeekgraphItem(_ dict: [String: Any]) {
+        DispatchQueue.main.async {
+            guard let id = (dict["challenge_id"] as? Int) ?? (dict["game_id"] as? Int) else { return }
+            if dict["delete"] != nil { self.availableGames.removeAll { $0.id == id } }
+            else if let data = try? JSONSerialization.data(withJSONObject: dict), let challenge = try? JSONDecoder().decode(OGSChallenge.self, from: data) {
+                if let idx = self.availableGames.firstIndex(where: { $0.id == id }) { self.availableGames[idx] = challenge }
+                else { self.availableGames.append(challenge) }
+            }
+        }
+    }
+}

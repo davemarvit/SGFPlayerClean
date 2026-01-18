@@ -1,0 +1,303 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\froman\fcharset0 Times-Bold;\f1\fswiss\fcharset0 Helvetica;\f2\fswiss\fcharset0 Helvetica-Bold;
+\f3\fmodern\fcharset0 Courier;\f4\froman\fcharset0 Times-Roman;\f5\fswiss\fcharset0 Helvetica-Oblique;
+\f6\fmodern\fcharset0 Courier-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red251\green251\blue251;\red38\green38\blue38;
+\red109\green109\blue109;\red24\green24\blue24;\red47\green47\blue47;\red31\green31\blue31;\red219\green219\blue223;
+}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c98824\c98824\c98824;\cssrgb\c19608\c19608\c19608;
+\cssrgb\c50196\c50196\c50196;\cssrgb\c12157\c12157\c12157;\cssrgb\c24314\c24314\c24314;\cssrgb\c16471\c16471\c16471;\cssrgb\c88627\c88627\c89804;
+}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid1\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
+{\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{circle\}}{\leveltext\leveltemplateid402\'01\uc0\u9702 ;}{\levelnumbers;}\fi-360\li1440\lin1440 }{\listname ;}\listid5}
+{\list\listtemplateid6\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid501\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid6}
+{\list\listtemplateid7\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid601\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid7}
+{\list\listtemplateid8\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid701\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid8}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}{\listoverride\listid6\listoverridecount0\ls6}{\listoverride\listid7\listoverridecount0\ls7}{\listoverride\listid8\listoverridecount0\ls8}}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs48 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Kickoff Prompt for Next Session\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf0 "I am continuing the\'a0
+\f2\b SGFPlayerClean
+\f1\b0 \'a0project.\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f2\b \cf0 Current Context:
+\f1\b0 \uc0\u8232 We have a working UI (Lobby, Challenge Creation, Board Display) and a working REST-based initialization (Handicap stones load correctly).\u8232 
+\f2\b The Critical Bug:
+\f1\b0 \'a0We are in a\'a0
+\f2\b "Zombie Play" state
+\f1\b0 . We can place stones locally, and the socket sends a\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/move
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0message, but the OGS server\'a0
+\f2\b ignores it
+\f1\b0 \'a0(no confirmation, no update on opponent's screen).\
+
+\f2\b Primary Objective:
+\f1\b0 \uc0\u8232 Fix the\'a0
+\f2\b Socket Protocol
+\f1\b0 \'a0in\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 OGSClient.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0to match the Web Client's behavior exactly. We strongly suspect we are sending malformed payloads (extra fields) or connecting out of sequence (before authentication confirms).\
+
+\f2\b Files to Analyze:
+\f1\b0 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls1\ilvl0
+\f3\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 OGSClient.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(The networking core - needs protocol fixes).\
+\ls1\ilvl0
+\f3\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 SGFCoordinates.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(To verify we are sending valid SGF strings like "pd").\
+\ls1\ilvl0
+\f3\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 AppModel.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(To verify the sequence of connection steps).\uc0\u8232 "\
+\pard\pardeftab720\partightenfactor0
+
+\f4\fs24 \cf5 \strokec5 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs48 \cf0 \strokec2 Handover Document: SGFPlayerClean (v3.181)\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f2\fs28 \cf0 Date:
+\f1\b0 \'a0December 20, 2025\uc0\u8232 
+\f2\b System Time:
+\f1\b0 \'a0Saturday, 2:45 AM (PST)\uc0\u8232 
+\f2\b Focus:
+\f1\b0 \'a0Protocol Compliance, Authentication Sequencing, and Payload Strictness\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf0 1. Executive Summary\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf0 The application correctly joins games visually (via REST fetch), but the\'a0
+\f2\b Socket Connection
+\f1\b0 \'a0is dysfunctional for gameplay.\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls2\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Symptoms:
+\f1\b0 \'a0User moves -> Socket sends\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/move
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0-> Server stays silent -> Local board desynchronizes.\
+\ls2\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Root Cause Analysis:
+\f1\b0 \'a0Comparison with Web Client logs indicates we are\'a0
+\f2\b "Polluting the Payload"
+\f1\b0 . We send\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 auth
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0and\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 player_id
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0in messages where the Web Client sends\'a0
+\f5\i only
+\f1\i0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game_id
+\f1\fs28 \cf0 \cb1 \strokec2 . The server likely rejects these malformed packets or treats the connection as unauthorized because the Global Auth handshake wasn't confirmed first.\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f0\b\fs36 \cf0 2. Technical Debt & Architectural Risks\
+\pard\pardeftab720\partightenfactor0
+
+\fs28 \cf0 A. The "Payload Pollution" Issue\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0 \cf0 We observed that the Web Client sends minimal JSON, whereas we send maximal JSON.\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls3\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Web Client (Connect):
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 ["game/connect", \{"game_id": 123, "chat": true\}]
+\f1\fs28 \cf0 \cb1 \strokec2 \
+\ls3\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Our Client (Connect):
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 ["game/connect", \{"game_id": 123, "chat": true, "player_id": 456, "auth": "..."\}]
+\f1\fs28 \cf0 \cb1 \strokec2 \
+\ls3\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Web Client (Move):
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 ["game/move", \{"game_id": 123, "move": "qd"\}]
+\f1\fs28 \cf0 \cb1 \strokec2 \
+\ls3\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Our Client (Move):
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 ["game/move", \{"game_id": 123, "move": "qd", "player_id": 456, "auth": "..."\}]
+\f1\fs28 \cf0 \cb1 \strokec2 \
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f2\b \cf0 Hypothesis:
+\f1\b0 \'a0The OGS server validates payload schema strictly. Sending extra fields might cause the server to drop the packet as "Malformed" without sending an error back.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf0 B. The Authentication Handshake Sequence\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0 \cf0 Currently,\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 OGSClient
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0fires\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 authenticate
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0and then immediately fires\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/connect
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(via AppModel).\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls4\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Risk:
+\f1\b0 \'a0Socket.IO messages are asynchronous. If\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/connect
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0arrives before the server processes\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 authenticate
+\f1\fs28 \cf0 \cb1 \strokec2 , the game connection is established as\'a0
+\f2\b Anonymous
+\f1\b0 .\
+\ls4\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Requirement:
+\f1\b0 \'a0We must implement a listener for the\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 authenticate
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0
+\f2\b response
+\f1\b0 \'a0(likely a message or a specific ACK) before we allow\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 connectToGame
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0to run.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf0 C. Variable Types & Coordinate Systems\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls5\ilvl0
+\f2 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Coordinates:
+\f1\b0 \'a0We assume OGS uses standard SGF\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 aa
+\f1\fs28 \cf0 \cb1 \strokec2 -
+\f3\fs26 \cf3 \cb4 \strokec3 ss
+\f1\fs28 \cf0 \cb1 \strokec2 . If\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 SGFCoordinates.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0is zero-indexed but OGS expects 1-indexed (or vice-versa), or if we are inverting Y-axis, we might be sending "Invalid Moves" (e.g., placing a stone on top of an existing one).\
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa60\partightenfactor0
+\ls5\ilvl1
+\f5\i \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Check:
+\f1\i0 \'a0Web logs show "qd". We must ensure our (16, 3) converts to exactly "qd".\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls5\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Move Format:
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/move
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(outgoing) expects a\'a0
+\f2\b String
+\f1\b0 .\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/move
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0(incoming broadcast) uses an\'a0
+\f2\b Array
+\f1\b0 \'a0
+\f3\fs26 \cf3 \cb4 \strokec3 [x,y,dt]
+\f1\fs28 \cf0 \cb1 \strokec2 . We must maintain this asymmetry.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf0 D. Missing "Keep-Alive" Subscriptions\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0 \cf0 Web logs showed subscriptions to\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 active_game
+\f1\fs28 \cf0 \cb1 \strokec2 ,\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 hostinfo
+\f1\fs28 \cf0 \cb1 \strokec2 , etc.\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls6\ilvl0
+\f2\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Risk:
+\f1\b0 \'a0We only subscribe to\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 seekgraph/global
+\f1\fs28 \cf0 \cb1 \strokec2 . It is possible that\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 game/connect
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0requires the socket to\'a0
+\f5\i also
+\f1\i0 \'a0be subscribed to user-specific notification channels to work correctly as a player.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf0 3. Immediate Action Plan\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls7\ilvl0
+\f2\fs28 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Strict Payload Cleanup:
+\f1\b0 \'a0Modify\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 OGSClient.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0to strip\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 auth
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0and\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 player_id
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0from\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 connectToGame
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0and\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 sendMove
+\f1\fs28 \cf0 \cb1 \strokec2 . Match the Web Client\'a0
+\f5\i exactly
+\f1\i0 .\
+\ls7\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Auth Gating:
+\f1\b0 \'a0Modify\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 OGSClient
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0to pause game connections until\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 authenticate
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0has been acknowledged (if possible) or ensure a strict delay/callback structure.\
+\ls7\ilvl0
+\f2\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Coordinate Verification:
+\f1\b0 \'a0Review\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 SGFCoordinates.swift
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0to ensure\'a0
+\f3\fs26 \cf3 \cb4 \strokec3 toSGF
+\f1\fs28 \cf0 \cb1 \strokec2 \'a0matches OGS expectations (0-18 range, a-s char mapping).\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf0 4. Key Files for Next Session\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls8\ilvl0
+\f6\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 OGSClient.swift
+\f1\b0\fs28 \cf0 \cb1 \strokec2 \'a0(Target for fixes)\
+\ls8\ilvl0
+\f6\b\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 AppModel.swift
+\f1\b0\fs28 \cf0 \cb1 \strokec2 \'a0(Orchestrator)\
+\ls8\ilvl0
+\f6\b\fs26 \cf3 \cb4 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 SGFCoordinates.swift
+\f1\b0\fs28 \cf0 \cb1 \strokec2 \'a0(Data integrity check)\
+\pard\pardeftab720\partightenfactor0
+
+\f4\fs24 \cf0 \cb6 41.7s\cb1 \
+Use Arrow Up and Arrow Down to select a turn, Enter to jump to it, and Escape to return to the chat.\
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb7 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb8 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\fs36 \cf9 \strokec9 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs28 \cf9 \
+}

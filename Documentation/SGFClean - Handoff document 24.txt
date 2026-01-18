@@ -1,0 +1,94 @@
+SGFPlayerClean: Comprehensive Handover Document (v2.0)
+Document Status: FINAL / VERIFIED
+Protocol Target: OGS Socket.IO v4 / Engine.IO v4 / API v1
+Last Updated: 2026-01-09
+1. TRANSPORT & CORE PROTOCOL (The Foundation)
+Heartbeat (Engine.IO)
+Server Ping: 2 (Raw string)
+Client Response: 3 (Raw string)
+Critical Rule: Client must only respond with 3 when it receives 2. Initiating an uninvited 2 causes the server to flag the client as "Unstable" and drop the room subscription.
+Transactional Packets (Socket.IO)
+Format: 42["event_name", {payload}, message_id]
+Sequence ID: Use currentStateVersion + 1 for the message_id. This increments only for transactional actions (Moves, Pass, Undo).
+Minification: Always use "tight" (minified) JSON strings. Extra whitespace can cause OGS microservices to reject packets.
+CSRF & Authentication
+Cookie Key: csrftoken (Case Sensitive: Must be all lowercase).
+Discovery Gate: Immediately after accepting a challenge, set isSearchingForGame = true. Wait for the socket to emit a notification where type == "gameStarted" or an active_game event to verify the user is a participant before "Adopting" the game.
+2. VERIFIED OGS DATA STRUCTURES (From Session Logs)
+Player Identity & Ranks
+OGS is inconsistent with JSON nesting. Information often exists at the root of a packet or inside a players dictionary.
+Parsing Rule: Check both p["black"] and p["players"]["black"].
+Rank Formula (Verified):
+Kyu: 30 - floor(rank) (Suffix: k). Example: 28.56 -> 2k.
+Dan: floor(rank) - 29 (Suffix: DON). Example: 32.1 -> 3DON.
+Abbreviation Note: Ranks below Dan are strictly kyu (k). Never use Q or Que.
+Time Control & Ticking
+Traces confirm a dual-unit system that is easy to misinterpret.
+Main Time: Field thinking_time is in milliseconds (ms). (e.g., 30000 = 30 seconds).
+Byo-Yomi:
+periods: The number of periods remaining (Int).
+period_time: The base length of a period (Seconds).
+period_time_left: The current ticking period (Seconds).
+Ticker Logic: A local 1Hz ticker must subtract 1000.0 from thinking_time OR 1.0 from period_time_left.
+Undo Protocol
+Outbound Request: 42["game/undo/request", {"game_id": id, "move_number": n}]
+Inbound Notification: game/{id}/undo_requested
+Outbound Accept: 42["game/undo/accept", {"game_id": id, "move_number": n}]
+Rejection: Implicit. OGS does not use a "Reject" command; playing a move or a pass automatically cancels the undo state.
+Navigation & Resuming
+Leaving a Session: Send 42["game/disconnect", {"game_id": id}].
+Lobby Subscriptions: When returning to the lobby, the client must send:
+["automatch/available/subscribe"]
+["seek_graph/connect", {"channel":"global"}]
+["ui-pushes/subscribe", {"channel":"announcements"}]
+3. POST-MORTEM: LESSONS FROM REGRESSIONS
+During this session, several attempts to add features broke the core engine. These failure points are documented here to prevent recurrence.
+Regression: The "Discovery Hijack"
+What happened: Implementing a "Resumable Games" list used the active_game event. This event was accidentally intercepted before it could set the blackPlayerID and whitePlayerID in the main gameplay loop.
+Result: The client couldn't identify the user's color. Move validation failed, making the board non-responsive, and a black stone appeared white on the board because the ID comparison defaulted to -1 == -1.
+Fix: Ensure any logic tracking background games never prevents the primary room-entry logic from populating player identity.
+Regression: Timer Stalling
+What happened: The ticker was implemented to subtract 1.0 from the thinking_time.
+Result: Because thinking_time is in milliseconds, subtracting 1.0 meant the clock only moved by 1/1000th of a second every second. The UI appeared frozen.
+Fix: Ticker must be unit-aware (1000 for ms, 1 for seconds).
+Regression: Identity Loss
+What happened: AppModel move processing relied on a successful identityLockCheck(). When the active_game packet structure changed, the check failed.
+Result: Stone colors inverted.
+Fix: identityLockCheck() must be called immediately upon any gamedata or active_game packet reception.
+4. FUTURE ROADMAP (Safety Rules)
+Rule 1: The Nuclear Reset
+Never join a new game without calling player.clear() and boardVM.stonesToRender = [] on the Main Actor. This prevents "Ghost Stones" from the previous session.
+Rule 2: Incrementally Advancing the UI
+To implement the "Resume" or "Timer" features safely:
+Phase A (Ranks): Update RankFormatter and countryFlag (Pure logic, low risk).
+Phase B (State): Add Byo-Yomi properties to OGSClient but do not use them yet.
+Phase C (Ticker): Add the 1Hz ticker. Ensure it updates published properties on the @MainActor to prevent threading crashes.
+Phase D (Resuming): When re-adding the resumableGames list, ensure the active_game event continues to propagate to the handleInboundGameData function so player IDs are always locked.
+Rule 3: Coordinate Mapping
+Outbound: String ("pd", "jj", ".."). 
+x
+=
+0
+→
+′
+a
+′
+,
+x
+=
+1
+→
+′
+b
+′
+x=0→ 
+′
+ a 
+′
+ ,x=1→ 
+′
+ b 
+′
+ 
+.
+Inbound: Array [column, row, time_spent]. Use robustInt to extract.

@@ -30,12 +30,26 @@ final class AppModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
     @Published var resumableGameID: Int? = nil
-    private var stoneClickPlayer: AVAudioPlayer?
+    
+    // Audio
+    enum SoundType { case place, captureSingle, captureMultiple }
+    private var clickPlayer: AVAudioPlayer?
+    private var captureSinglePlayer: AVAudioPlayer?
+    private var captureMultiPlayer: AVAudioPlayer?
+    // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
     init() {
         let bVM = BoardViewModel(player: player, ogsClient: ogsClient)
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
+        
+        // Audio Binding
+        bVM.onPlaySound = { [weak self] type in
+            self?.playSound(type)
+        }
+        
+        // Initialize Audio
+        setupAudio()
         
         // PERSISTENCE CHECK: Restore online mode state
         let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
@@ -96,6 +110,60 @@ final class AppModel: ObservableObject {
         setupAutoAdvance()
     }
     
+    // MARK: - Audio
+    private func setupAudio() {
+        // macOS does not require AVAudioSession configuration for simple playback
+        NSLog("[SOUND] Audio Setup: Loading Assets...")
+
+        // Load Sound Assets
+        // Note: filenames must match exactly (case-sensitive on device, usually loose on Sim)
+        self.clickPlayer = loadSound("Stone_click_1.mp3")
+        self.captureSinglePlayer = loadSound("Capture_single.mp3")
+        self.captureMultiPlayer = loadSound("Capture_multiple.mp3")
+    }
+    
+    private func loadSound(_ name: String) -> AVAudioPlayer? {
+        // Look in main bundle
+        guard let url = Bundle.main.url(forResource: name, withExtension: nil) else {
+            NSLog("[SOUND] ❌ Audio file not found in Bundle: \(name)")
+            return nil
+        }
+        do {
+            let p = try AVAudioPlayer(contentsOf: url)
+            p.prepareToPlay()
+            NSLog("[SOUND] Loaded: \(name)")
+            return p
+        } catch {
+            NSLog("[SOUND] ❌ Failed to create player for \(name): \(error)")
+            return nil
+        }
+    }
+    
+    func playSound(_ type: SoundType) {
+        // Simple overlap logic: stop before play? Or mix?
+        // standard stones usually cut off previous click?
+        // Let's allow mix for rapid play, but maybe re-trigger.
+        
+        var p: AVAudioPlayer?
+        switch type {
+        case .place: p = clickPlayer
+        case .captureSingle: p = captureSinglePlayer
+        case .captureMultiple: p = captureMultiPlayer
+        }
+        
+        guard let player = p else {
+             NSLog("[SOUND] ⚠️ Request to play \(type) but player is nil")
+             return
+        }
+        
+        // NSLog("[SOUND] Playing: \(type)") // Silenced to reduce noise
+        if player.isPlaying {
+            player.stop()
+            player.currentTime = 0
+        }
+        player.play()
+    }
+
     private func setupAutoAdvance() {
         player.$isPlaying
             .dropFirst()
@@ -339,7 +407,6 @@ final class AppModel: ObservableObject {
         else if x >= 0 && y >= 0 {
             if let mn = robustInt(userInfo["move_number"]) {
                 // Ghost Guard Removed: We now rely on Strict Server Authority.
-                // Any move sent by OGS is considered valid.
                 
                 let color: Stone
                 if let pid = robustInt(userInfo["player_id"]) {
@@ -347,14 +414,33 @@ final class AppModel: ObservableObject {
                 } else {
                     color = (ogsClient.currentHandicap > 0) ? ((mn % 2 == 0) ? .black : .white) : ((mn % 2 == 0) ? .white : .black)
                 }
-                playStoneClickSound()
+                
+                // Sound Trigger (Online)
+                // We rely on the Engine's truth because OGS's 'removed' payload is often empty/unreliable.
+                let oldB = boardVM?.engine.blackStonesCaptured ?? 0
+                let oldW = boardVM?.engine.whiteStonesCaptured ?? 0
+                
+                // Apply Move
                 boardVM?.handleRemoteMove(x: x, y: y, color: color)
+                
+                // Check Engine Diff
+                let newB = boardVM?.engine.blackStonesCaptured ?? 0
+                let newW = boardVM?.engine.whiteStonesCaptured ?? 0
+                let captured = (newB - oldB) + (newW - oldW)
+                
+                if captured > 1 { self.playSound(.captureMultiple) }
+                else if captured == 1 { self.playSound(.captureSingle) }
+                else { 
+                    // Prevent double-playing 'place' for self (handled optimistically)
+                    let myColor = ogsClient.playerColor ?? .white
+                    if color != myColor {
+                        self.playSound(.place) 
+                    }
+                }
             }
         }
     }
     
-    private func setupAudio() { if let url = Bundle.main.url(forResource: "Stone_click_1", withExtension: "mp3") { stoneClickPlayer = try? AVAudioPlayer(contentsOf: url); stoneClickPlayer?.prepareToPlay() } }
-    func playStoneClickSound() { stoneClickPlayer?.play() }
     func selectGame(_ g: SGFGameWrapper) { selection = g; boardVM?.loadGame(g) }
     func promptForFolder() {
         let panel = NSOpenPanel()

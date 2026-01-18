@@ -1,0 +1,53 @@
+1. Project Purpose & Current Status
+SGFPlayerClean is a high-fidelity Go board interface supporting both 2D and 3D views. Its primary mission is twofold:
+Providing a robust local SGF reviewer for file navigation.
+Interfacing as a live client for the Online Go Server (OGS).
+The Challenge: We are currently navigating the "Final Stability Phase." We have successfully bridged the gap between guest access and authenticated user access, but we are currently trapped in a "Room-Entry Stall." While the app successfully logs in and identifies the game, the real-time socket connection is not fully "entering the room," leading to a period of initial blankness and non-responsive input.
+2. The Working Method (Strict Rules)
+To maintain project integrity and avoid the regression loops experienced in earlier builds, the following rules are non-negotiable:
+Full File Drop-ins Only: Never provide snippets. Provide complete source code for files to prevent bracket mismatches or lost property definitions.
+Approval-First Generation: The AI must articulate its findings and strategy first. Code generation only happens after explicit user approval.
+Strict No-Guessing Policy: If a packet structure or server response is unknown, the AI must ask for a log capture. Evidence-based coding is vastly preferred over intuition.
+Reference Source of Truth: Use the user-provided project text file as the absolute reference for all variable names and class structures to prevent "shrinking API" errors.
+3. Software & Protocol Architecture
+Software Architecture
+The Engine (SGFPlayerEngine.swift): A local state machine that manages stones, liberties, captures, and turn order. It is the "Brain."
+Single Source of Truth (AppModel.swift): The coordinator. It manages the lifecycle of the networking client and the engine.
+The Networking Layer (OGSClient.swift): Implements the Socket.IO / Engine.IO v4 protocol. It is the "Ears and Mouth."
+The UI Bridge (BoardViewModel.swift): Interprets engine data into a cache of RenderStones for SwiftUI. It is the "Eyes."
+Current Protocol Architecture (Expectation vs. Reality)
+OGS uses a tiered heartbeat and addressing system. Lessons learned from Build 16.145 logs:
+Level 1 (Engine.IO): Raw 2 -> 3 heartbeat every 25s.
+Level 2 (Socket.IO): Packet prefix 42 for events, 43 for acknowledgments.
+Level 3 (Room-Specific Addressing): OGS does not use generic paths like game/move. It uses targeted paths: game/{game_id}/move, game/{game_id}/latency, and game/{game_id}/connect.
+Level 4 (Sequence/Version): OGS ignores any move where the packet msgID (the 3rd element in the 42 array) does not match the server’s state_version + 1.
+4. Protocol Interaction Table
+Action	Event Name (Expected)	Payload Requirements
+Handshake	authenticate	{"jwt":"...", "player_id": 123, "username":"..."} (Must be tight JSON, no spaces)
+Join Game	game/connect	{"game_id": 123, "chat": true}
+Room Entry	game/{id}/connect	Used by some servers as a fallback for room entry.
+Heartbeat	game/{id}/latency	{"game_id": 123, "latency": 85}
+Place Move	game/{id}/move	{"game_id": 123, "move": "pd", "blur": 1000} + msgID
+Inbound Data	.../gamedata	Contains initial_state (Handicap) and moves (History).
+5. Fixed vs. Falling Short
+What is Effectively Fixed:
+The Auth Wall: userJWT is now successfully retrieved and Verified. Socket Auth correctly flips to YES.
+Resizing: The board now snaps to the correct dimensions (9x9, 13x13) based on REST data immediately.
+Handicap Parsing: The app now understands that handicap stones arrive as SGF strings ("eceg...") and correctly populates the engine.
+Identity Anchor: The app correctly identifies the user as "White" or "Black" by comparing playerID against the players object.
+Where we are Falling Short:
+Room-Entry Race Condition: The initial game/connect packet is being fired the millisecond the socket opens, often while the socket is still in a .connecting state, causing it to be dropped silently.
+UI Drawing Latency: The AppModel loads the engine (Move Count: 8), but the UI doesn't "see" it until a refresh packet arrives 30 seconds later.
+The Turn-Lock Deadlock: In handicap games, the engine defaults to Black's turn. If the user is White, Move 1 must be White. If the engine thinks it is Black's turn, it ignores the user's White clicks.
+6. Bad Behaviors & Asserted Causes
+Behavior	Assertion of Cause
+Blank board for 30 seconds	The UI is waiting for a Socket signal to draw, ignoring the data already sitting in the Engine from the REST fetch.
+Clicking does nothing	Turn-Lock: The engine thinks it is Black's turn (default), so it blocks White's input.
+Lobby flashes every 30s	The Reaper: The socket is resetting because we haven't successfully "entered" a room or the server rejected the heartbeat format.
+Moves appear as Black	Identity Mapping: The engine assumed moves[0] is always Black, ignoring the initial_player: white flag in the log.
+7. Strategic Mission for Build 16.156
+The next session must focus on "The Sticky Join."
+Room-Join Retry Loop: Implement a mechanism in OGSClient that retries the game/connect packet every 1 second until the log confirms it was successfully sent.
+Forced Main-Actor Redraw: Ensure syncState() in BoardViewModel is called on the Main Thread the instant the REST data is loaded, forcing the handicap stones to appear immediately.
+Initial Player Enforcement: Set the engine's turn based on the initial_player field in the gamedata packet to unlock the user's ability to click.
+Logger Diagnostic: Maintain "OUT ATTEMPT" logging to verify that the "Sticky Join" is actually firing.

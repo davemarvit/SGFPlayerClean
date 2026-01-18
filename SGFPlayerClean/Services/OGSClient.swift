@@ -58,7 +58,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     
     @Published var lastUndoneMoveNumber: Int? { // Guard against stale server data
         didSet {
-            NSLog("[OGS-DEBUG] 🛡️ lastUndoneMoveNumber CHANGED: \(oldValue ?? -1) -> \(lastUndoneMoveNumber ?? -1)")
+            // NSLog("[OGS-DEBUG] 🛡️ lastUndoneMoveNumber CHANGED: \(oldValue ?? -1) -> \(lastUndoneMoveNumber ?? -1)")
         }
     }
     @Published var activeGameTimeControl: String?
@@ -169,7 +169,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     func fetchGameState(gameID: Int, completion: @escaping ([String: Any]?) -> Void) {
         // DEBUG TRACE: Who is calling this?
         let trace = Thread.callStackSymbols.joined(separator: "\n")
-        NSLog("[OGS-CS] 🚀 fetchGameState CALLED for \(gameID). Stack:\n\(trace)")
+        // NSLog("[OGS-CS] 🚀 fetchGameState CALLED for \(gameID). Stack:\n\(trace)")
         
         let ts = Int(Date().timeIntervalSince1970)
         guard let url = URL(string: "https://online-go.com/api/v1/games/\(gameID)?t=\(ts)") else { completion(nil); return }
@@ -340,7 +340,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
         // FIREHOSE LOGGING (Temporary)
         if eventName != "net/ping" && eventName != "net/pong" && eventName != "seekgraph/global" {
-             NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload)")
+             // NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload)")
         }
         
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
@@ -367,11 +367,11 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                                 let isCurrentFinished = (self.activeGameID == gid && self.isGameFinished)
                                 
                                 if isKnownFinished || isCurrentFinished {
-                                      NSLog("[OGS-LOBBY] 🛡️ Shield Blocked \(gid). (Known: \(isKnownFinished), CurrentFinished: \(isCurrentFinished))")
+                                      // NSLog("[OGS-LOBBY] 🛡️ Shield Blocked \(gid). (Known: \(isKnownFinished), CurrentFinished: \(isCurrentFinished))")
                                 } else {
                                      // Only log if it's NEW to reduce spam (though loop implies spam)
                                      if !self.myActiveGames.contains(gid) {
-                                         NSLog("[OGS-LOBBY] ✅ Added 'active_game' \(gid). Phase: \(phase ?? "nil"), Outcome: nil")
+                                         // NSLog("[OGS-LOBBY] ✅ Added 'active_game' \(gid). Phase: \(phase ?? "nil"), Outcome: nil")
                                      }
                                      self.myActiveGames.insert(gid)
                                 }
@@ -674,7 +674,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private func handleInboundClock(_ data: [String: Any]) {
         DispatchQueue.main.async {
             // DEBUG: Log the Clock Data to catch "Reset" issues
-            NSLog("[OGS-CLOCK] 🕒 Received Clock: \(data)")
+            // NSLog("[OGS-CLOCK] 🕒 Received Clock: \(data)")
             
             // Black Clock
             var bSnapshot: Double? = nil
@@ -922,7 +922,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
         let json = tightJson(payload)
         let packet = (sequence != nil) ? "42[\"\(event)\",\(json),\(sequence!)]" : "42[\"\(event)\",\(json)]"
-        if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") }
+        // if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") }
         sendRaw(packet)
     }
 

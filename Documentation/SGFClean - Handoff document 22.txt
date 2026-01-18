@@ -1,0 +1,56 @@
+1. Next Session Prompt: "The Final Push for Stability"
+"We are on Build 16.109. We have successfully bridged the 'Transition Wall'—the board now resizes to 9x9/13x13 and handicap stones appear correctly. However, we are currently trapped in a Stability and State Synchronization Loop.
+The Current Blockers:
+The 60-Second Reaper: The OGS server terminates the connection at exactly 60 seconds. Our net/pong heartbeat is likely being rejected due to strict JSON formatting (spaces/types).
+Color Identity Crisis: Moves played during the game appear as White stones regardless of who played them.
+The Wipe-Out Effect: Stones placed during play vanish upon the inevitable 60-second socket reset.
+Input Deadlock: The client becomes non-responsive after approximately 2 moves.
+Your Mission:
+Surgically stabilize the net/pong heartbeat using raw string construction to match the OGS browser fingerprint exactly. Fix the AppModel color-mapping by strictly validating inbound player_id against the blackPlayerID stored in OGSClient. Refine the 'Wipe-Out' logic to ensure player.clear() is only called on a genuine new Game ID, not a socket reconnect.
+No Guessing: If you are unsure of a packet structure, ask the user for a raw string capture from the browser Dev Tools. Provide only full file drop-ins to prevent compilation errors."
+2. Project Overview: The SGFPlayerClean Mission
+SGFPlayerClean is a high-fidelity Go board interface (supporting both 2D and 3D views) designed to interface with the Online Go Server (OGS).
+The Core Architecture:
+The Engine (SGFPlayerEngine.swift): A local state machine that manages liberties, captures, and SGF tree navigation.
+The Single Source of Truth (AppModel.swift): Coordinates between the networking layer and the engine. It must remain a single instance.
+The Networking Layer (OGSClient.swift): Implements the complex Engine.IO v4 / Socket.IO protocol used by OGS.
+The UI Bridge (BoardViewModel.swift): Interprets engine snapshots into renderable stones for the SwiftUI views.
+3. Forensic History: The Four Walls
+We have dismantled three major blockers to reach Build 16.109:
+A. The Move 4 Wall (Handicap Sequence): Solved by anchoring msgID to the server’s state_version rather than a local move counter.
+B. The Handshake Loop: Solved the Engine.IO 4 transition (0 -> 40 -> 42["authenticate"]).
+C. The Transition Wall (Resizing): Solved. The app now correctly fetches game state via REST and listens for the active_game socket event to snap the board size from 19x19 to the live dimensions.
+D. The 60-Second Reaper: CURRENT BLOCKER. Every 60 seconds, the server kills the connection. This is a failure of the Level 4 Application Heartbeat.
+4. Protocol Forensic Model (Learned Build 16.092–16.109)
+I. The Four-Lock Heartbeat
+Level 1: Server 2, Client 3.
+Level 2: Client 2 every 25s (Socket.io Ping).
+Level 3: game/latency every 5s (must match browser timestamp/id format).
+Level 4 (The Reaper): Server sends 42["net/ping", {"client": TS}]. Client MUST reply 42["net/pong", {"client": TS, "server": TS}].
+CRITICAL LESSON: OGS is JSON-strict. Using JSONSerialization adds a space after commas ({"a": 1, "b": 2}), but the server expects a tight string ({"a":1,"b":2}). This mismatch causes the 60s kick.
+II. Heterogeneous Move Formats
+Outbound (Client → Server): Must be a string coordinate: 42["game/move", {"game_id": 123, "move": "pd"}].
+Inbound (Server → Client): Usually arrives as an array: ["move": [x, y, time_delta]].
+Handicap Stones: Arrive in the initial_state as a long string (e.g., "pdqdpj...") or in free_handicap_placement as [[Int]].
+III. State Versioning vs. Move Numbers
+Move numbers are for humans; state_version is for the protocol.
+Every action (chat, clock, stones, undo) increments state_version.
+The msgID sent with moves must be currentStateVersion + 1.
+5. Challenges & Strategy for Resolution
+Challenge 1: The "All-White Stones" Bug
+Why it fails: In handicap games, the User is often White. The AppModel was defaulting to White stones because it wasn't successfully verifying the player_id against the blackPlayerID property in OGSClient.
+Strategy: Ensure blackPlayerID is captured from the gamedata or active_game packets before moves start. Explicitly check: let color = (movePID == ogsClient.blackPlayerID) ? .black : .white.
+Challenge 2: Reconnect Persistence (Vanishing Stones)
+Why it fails: OGS forces a socket reset and "re-authentication" frequently. When this happens, our app receives a fresh active_game packet. Our current code calls player.clear(), wiping the board.
+Strategy: Implement an "Active Game Anchor." Only call player.clear() if the newGameID != currentActiveInternalGameID. If it's a reconnect for the same game, ignore the clear command and only apply new moves.
+Challenge 3: Thread-Locking & Race Conditions
+Warning: Socket messages arrive on a background thread. If @Published properties are updated there, SwiftUI might fail to refresh or behave unpredictably (flickering).
+Strategy: Enforce @MainActor on AppModel and wrap all NotificationCenter posts in DispatchQueue.main.async.
+6. Working Process Rules
+Full File Drop-ins Only: Never provide snippets. The complexity of the OGSClient class scope makes it too easy to leave a bracket unclosed or a method missing.
+Evidence over Intuition: Do not refactor the protocol logic unless logs or browser traces prove the current model is wrong.
+The "No Spaces" JSON Rule: For all heartbeat and system packets, manually construct the JSON strings to ensure they match the browser's fingerprint exactly.
+Verification Steps: Every code change must address a specific forensic symptom (e.g., "This change addresses the 60-second timestamp gap seen in Log X").
+7. Known Stubs to Monitor
+fetchGameState: Recently implemented but needs validation on different game types (Ranked vs. Unranked).
+undoRequestedMoveNumber: Currently a placeholder; needs to be populated from game/undo_requested packets to allow the UI to respond to undos.

@@ -115,10 +115,12 @@ final class SGFPlayer: ObservableObject {
                     if liberties(of: group, in: g).isEmpty {
                         captured += group.count
                         for s in group { g[s.y][s.x] = nil }
+                        // NSLog("[SOUND-DEBUG] Engine: Captured Group of \(group.count) at \(group[0])")
                     }
                 }
             }
             if color == .black { whiteStonesCaptured += captured } else { blackStonesCaptured += captured }
+            // if captured > 0 { NSLog("[SOUND-DEBUG] Engine: Total Captured this move: \(captured). New Totals - B:\(blackStonesCaptured) W:\(whiteStonesCaptured)") }
             
             var sV = Set<Point>()
             let sG = collectGroup(from: Point(x: x, y: y), color: color, grid: g, visited: &sV)

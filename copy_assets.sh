@@ -7,7 +7,7 @@ ASSETS_SOURCE="/Users/Dave/SGFPlayerClean/SGFPlayerClean/Assets"
 
 if [ -d "$APP_BUNDLE" ]; then
     echo "Copying assets to app bundle..."
-    cp "$ASSETS_SOURCE"/*.{png,jpg} "$APP_BUNDLE/Contents/Resources/" 2>/dev/null
+    cp "$ASSETS_SOURCE"/*.{png,jpg,mp3} "$APP_BUNDLE/Contents/Resources/" 2>/dev/null
     echo "✅ Assets copied successfully"
 else
     echo "❌ App bundle not found at: $APP_BUNDLE"

@@ -1,0 +1,348 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;\f2\fmodern\fcharset0 Courier;
+\f3\fmodern\fcharset0 Courier-Bold;}
+{\colortbl;\red255\green255\blue255;\red219\green219\blue223;\red19\green19\blue19;\red251\green251\blue251;
+\red38\green38\blue38;\red109\green109\blue109;}
+{\*\expandedcolortbl;;\cssrgb\c88627\c88627\c89804;\cssrgb\c9804\c9804\c9804;\cssrgb\c98824\c98824\c98824;
+\cssrgb\c19608\c19608\c19608;\cssrgb\c50196\c50196\c50196;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid102\'01\'01;}{\levelnumbers\'01;}\fi-360\li1440\lin1440 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid301\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid4}
+{\list\listtemplateid5\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid401\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid5}
+{\list\listtemplateid6\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid501\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid6}
+{\list\listtemplateid7\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid601\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid7}
+{\list\listtemplateid8\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid701\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid8}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}{\listoverride\listid5\listoverridecount0\ls5}{\listoverride\listid6\listoverridecount0\ls6}{\listoverride\listid7\listoverridecount0\ls7}{\listoverride\listid8\listoverridecount0\ls8}}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs48 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Handover Document: SGFPlayerClean (v3.210)\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\fs28 \cf2 Date:
+\f1\b0 \'a0December 23, 2025\cb1 \uc0\u8232 
+\f0\b \cb3 Project:
+\f1\b0 \'a0SGFPlayerClean (Swift/macOS)\cb1 \uc0\u8232 
+\f0\b \cb3 Current Status:
+\f1\b0 \'a0Protocol identified; architectural "circles" regarding build errors and type ambiguity need a final resolution.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 1. Executive Summary\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf2 The project is a Go (Baduk) client that supports local SGF playback and real-time play on the Online Go Server (OGS). We have a polished UI and working REST-based game initialization. The current "blocker" is the\'a0
+\f0\b "Zombie Play" bug
+\f1\b0 : moves made in our client are not reflected on the OGS server. We have identified that this is a\'a0
+\f0\b Protocol & Authentication Sequence
+\f1\b0 \'a0issue. Our attempts to fix it have recently led to a cycle of SwiftUI build errors due to type redeclarations and interface mismatches between the View and ViewModel layers.\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 2. The Critical Bug: "Zombie Play"\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls1\ilvl0
+\fs28 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Symptom:
+\f1\b0 \'a0User places a stone on the board -> Local board updates -> Socket sends\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 game/move
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0-> Server stays silent (no confirmation, no update on opponent's screen).\cb1 \
+\ls1\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Root Cause:
+\f1\b0 \'a0The server treats the connection as a "Spectator" rather than a "Player." This happens if the socket is not authenticated correctly OR if the move payload is missing the required "write-access" keys.\cb1 \
+\ls1\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 The Solution DNA:
+\f1\b0 \'a0Based on previous working code (v3.86), OGS requires a\'a0
+\f0\b Plain WebSocket
+\f1\b0 \'a0handshake (no Socket.IO\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 42
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0prefixes) and the inclusion of both\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 player_id
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and the game-specific\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 auth
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0token in every move packet.\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 \cb3 3. Protocol Alignment (The "Golden" DNA)\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf2 The following protocol specifics were confirmed from the last working version of this app:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls2\ilvl0
+\f0\b \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Host:
+\f1\b0 \'a0
+\f2\fs26 \cf4 \cb5 \strokec4 wss://wsp.online-go.com/
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(Note: Use the root, not the\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 /socket.io/
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0path).\cb1 \
+\ls2\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Framing:
+\f1\b0 \'a0Use\'a0
+\f0\b Plain JSON Arrays
+\f1\b0 . Example:\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 ["game/move", \{...\}]
+\f1\fs28 \cf2 \cb3 \strokec2 . Do\'a0
+\f0\b NOT
+\f1\b0 \'a0use Socket.IO prefixes (
+\f2\fs26 \cf4 \cb5 \strokec4 40
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 42
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 43
+\f1\fs28 \cf2 \cb3 \strokec2 ).\cb1 \
+\ls2\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Handshake Sequence:
+\f1\b0 \cb1 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa60\partightenfactor0
+\ls2\ilvl1\cf2 \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Open Socket.\cb1 \
+\ls2\ilvl1\cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Send\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 ["authenticate", \{"jwt": "..."\}]
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0immediately.\cb1 \
+\ls2\ilvl1\cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Send\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 ["seek_graph/connect", \{"channel": "global"\}]
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(Note the\'a0
+\f0\b underscore
+\f1\b0 \'a0in the connect call).\cb1 \
+\ls2\ilvl1\cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	4	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Handle incoming lobby data as\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 seekgraph/global
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(Note:\'a0
+\f0\b No underscore
+\f1\b0 \'a0in the incoming event name).\cb1 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls2\ilvl0
+\f0\b \cf2 \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Write-Access Payloads:
+\f1\b0 \'a0To make moves, the payload\'a0
+\f0\b must
+\f1\b0 \'a0include:\cb1 \
+\pard\tx940\tx1440\pardeftab720\li1440\fi-1440\sa60\partightenfactor0
+\ls2\ilvl1
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 "game_id"
+\f1\fs28 \cf2 \cb3 \strokec2 : The ID of the game.\cb1 \
+\ls2\ilvl1
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 "move"
+\f1\fs28 \cf2 \cb3 \strokec2 : SGF coordinates (e.g., "pd").\cb1 \
+\ls2\ilvl1
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 "auth"
+\f1\fs28 \cf2 \cb3 \strokec2 : The game-specific secret token (fetched via REST\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 api/v1/games/ID
+\f1\fs28 \cf2 \cb3 \strokec2 ).\cb1 \
+\ls2\ilvl1
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u9702 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 "player_id"
+\f1\fs28 \cf2 \cb3 \strokec2 : Your OGS user ID.\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 \cb3 4. Architectural Design & Key Variables\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf2 The project uses a tiered architecture. To maintain stability, we are moving to a\'a0
+\f0\b Strict Single-Source
+\f1\b0 \'a0pattern:\
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 A. The "Source of Truth" (
+\f3\fs26 \cf4 \cb5 \strokec4 OGSModels.swift
+\f0\fs28 \cf2 \cb3 \strokec2 )\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0 \cf2 To prevent "Ambiguous Type Lookup" and "Redeclaration" errors,\'a0
+\f0\b all Enums must live here and only here
+\f1\b0 .\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls3\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 ViewMode
+\f1\fs28 \cf2 \cb3 \strokec2 : (2D vs 3D)\cb1 \
+\ls3\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 BoardSizeCategory
+\f1\fs28 \cf2 \cb3 \strokec2 : (19, 13, 9, Other)\cb1 \
+\ls3\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 GameSpeedFilter
+\f1\fs28 \cf2 \cb3 \strokec2 : (Blitz, Live, etc.)\cb1 \
+\ls3\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 OGSBrowserTab
+\f1\fs28 \cf2 \cb3 \strokec2 : (Challenge vs Watch)\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 \cb3 B. The Orchestrator (
+\f3\fs26 \cf4 \cb5 \strokec4 AppModel.swift
+\f0\fs28 \cf2 \cb3 \strokec2 )\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls4\ilvl0
+\f1\b0 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Manages the lifecycle of the\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSClient
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 BoardViewModel
+\f1\fs28 \cf2 \cb3 \strokec2 .\cb1 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls4\ilvl0
+\f0\b \cf2 \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Crucial Logic:
+\f1\b0 \'a0When joining a game, it must fetch the REST state\'a0
+\f0\b first
+\f1\b0 \'a0to capture the\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 auth
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0token before the socket attempts to connect to the game.\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 \cb3 C. The Bridge (
+\f3\fs26 \cf4 \cb5 \strokec4 BoardViewModel.swift
+\f0\fs28 \cf2 \cb3 \strokec2 )\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0 \cf2 This file acts as the contract between the UI and the Engine. It\'a0
+\f0\b must
+\f1\b0 \'a0contain:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls5\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 ghostPosition
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0/\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 ghostColor
+\f1\fs28 \cf2 \cb3 \strokec2 : For 2D hover stones.\cb1 \
+\ls5\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 whiteCapturedCount
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0/\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 blackCapturedCount
+\f1\fs28 \cf2 \cb3 \strokec2 : For the status panel.\cb1 \
+\ls5\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 currentMoveIndex
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0/\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 isAutoPlaying
+\f1\fs28 \cf2 \cb3 \strokec2 : Published properties observed by the AppModel.\cb1 \
+\ls5\ilvl0
+\f2\fs26 \cf4 \cb5 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 boardSize
+\f1\fs28 \cf2 \cb3 \strokec2 : Derived from the engine.\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 \cb3 D. The Engine (
+\f3\fs26 \cf4 \cb5 \strokec4 SGFPlayer.swift
+\f0\fs28 \cf2 \cb3 \strokec2 )\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls6\ilvl0
+\f1\b0 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Treat this file as the "stable core."\cb1 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls6\ilvl0
+\f0\b \cf2 \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Key Challenge:
+\f1\b0 \'a0Ensure the ViewModel calls the correct method names. Previous errors suggest the engine uses\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 undo()
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 turn
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(color) rather than\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 stepBackward()
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 nextColor
+\f1\fs28 \cf2 \cb3 \strokec2 .\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 \cb3 5. Troubleshooting History: Avoiding the "Circles"\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf2 We have repeatedly hit the following compiler errors. Any future changes must account for these:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls7\ilvl0
+\f0\b \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Trailing Closure Error:
+\f1\b0 \'a0Swift's compiler chokes on\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 DispatchQueue.global().async \{ ... \}
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0if the code inside is too complex or types are ambiguous.\'a0
+\f0\b Solution:
+\f1\b0 \'a0Refactor heavy logic into private helper methods.\cb1 \
+\ls7\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Binding Inference Error:
+\f1\b0 \'a0If an object is passed through too many view layers, the compiler loses the type.\'a0
+\f0\b Solution:
+\f1\b0 \'a0Use\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 @EnvironmentObject var app: AppModel
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0in sub-views instead of passing the client manually.\cb1 \
+\ls7\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Subscript Mutation:
+\f1\b0 \'a0Payloads must be declared as\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 var payload: [String: Any]
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0because we inject\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 auth
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 player_id
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0dynamically. Using\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 let
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0causes a build crash.\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 \cb3 6. Safety & Manipulation Guidelines\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\sa60\partightenfactor0
+\ls8\ilvl0
+\fs28 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Safe to Modify:
+\f1\b0 \'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSClient.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(handshake logic),\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 BoardViewModel.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(UI properties),\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSModels.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(data structures).\cb1 \
+\ls8\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Treat Gingerly:
+\f1\b0 \'a0
+\f2\fs26 \cf4 \cb5 \strokec4 SGFPlayer.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(the core engine) and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 SGFCoordinates.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0(the coordinate translator). If these are changed, ensure the logic mapping (0-indexed vs 1-indexed) remains intact.\cb1 \
+\ls8\ilvl0
+\f0\b \cb3 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Structural Rule:
+\f1\b0 \'a0If an Enum needs to be used in two different files, move it to\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSModels.swift
+\f1\fs28 \cf2 \cb3 \strokec2 \'a0and delete it from the original file.\'a0
+\f0\b Never duplicate Enums.
+\f1\b0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b\fs36 \cf2 \cb3 7. Kickoff Script for the Next Session\
+\pard\pardeftab720\sa360\partightenfactor0
+
+\f1\b0\fs28 \cf2 "I am continuing the SGFPlayerClean project. We are fixing the 'Zombie Play' bug. I have a Handover Document (v3.210) that specifies the OGS Plain WebSocket protocol. My first task is to provide the current code for\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 SGFPlayer.swift
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 BoardViewModel.swift
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSClient.swift
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 AppModel.swift
+\f1\fs28 \cf2 \cb3 \strokec2 ,\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 BoardView2D.swift
+\f1\fs28 \cf2 \cb3 \strokec2 , and\'a0
+\f2\fs26 \cf4 \cb5 \strokec4 OGSModels.swift
+\f1\fs28 \cf2 \cb3 \strokec2 . I need you to harmonize these files to use the working protocol while ensuring all UI variable 'contracts' are satisfied so we don't get build errors."\
+\pard\pardeftab720\partightenfactor0
+\cf6 \strokec6 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\b \cf2 \strokec2 Final Advice for the Fresh Session:
+\f1\b0 \cb1 \uc0\u8232 \cb3 Dave, once you start the new session, paste this document first. Then, paste the files I listed in Section 7. The new session will have the "clean slate" needed to align the variable names and the protocol in one perfect pass.\
+}

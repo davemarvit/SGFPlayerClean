@@ -1,0 +1,4558 @@
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/SGF-Player/AppDelegate.swift
+// ========================================================
+
+import Cocoa
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    @objc private func openSGF(_ sender: Any?) {
+        let panel = NSOpenPanel()
+        panel.allowedFileTypes = ["sgf"]      // OK to keep; deprecation warning is harmless for now
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.title = "Open SGF File"
+
+        panel.begin { [weak self] result in
+            guard let self = self else { return }
+            guard result == .OK, let url = panel.url else { return }
+
+            // Update title with file name
+            self.window?.title = "SGF-Player – \(url.lastPathComponent)"
+
+            do {
+                let text = try String(contentsOf: url, encoding: .utf8)
+                print("📝 SGF head:", text.prefix(200))
+
+                // Hand the SGF to the WebView controller
+                if let vc = self.window.contentViewController as? GoSGFScreenSaverViewController {
+                    // deliverSGF is @MainActor; use Task to satisfy Swift 6 actor checks
+                    Task { @MainActor in
+                        vc.deliverSGF(text: text, filename: url.lastPathComponent)
+                    }
+                } else {
+                    print("⚠️ Couldn’t find WebView controller to deliver SGF")
+                }
+            } catch {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Couldn’t read SGF"
+                alert.informativeText = error.localizedDescription
+                alert.addButton(withTitle: "OK")
+                if let win = self.window { alert.beginSheetModal(for: win) { _ in } }
+                else { alert.runModal() }
+            }
+        }
+
+            // TODO: Next steps: parse and play.
+        }
+    
+    private func buildMainMenu() {
+        let mainMenu = NSMenu(title: "MainMenu")
+
+        // App menu (SGF-Player ▸ Quit)
+        let appMenuItem = NSMenuItem()
+        mainMenu.addItem(appMenuItem)
+        let appMenu = NSMenu(title: "SGF-Player")
+        let quitItem = NSMenuItem(
+            title: "Quit SGF-Player",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        appMenu.addItem(quitItem)
+        appMenuItem.submenu = appMenu
+
+        // File menu (File ▸ Open…)
+        let fileMenuItem = NSMenuItem()
+        mainMenu.addItem(fileMenuItem)
+        let fileMenu = NSMenu(title: "File")
+        let openItem = NSMenuItem(
+            title: "Open…",
+            action: #selector(openSGF(_:)),
+            keyEquivalent: "o"
+        )
+        openItem.keyEquivalentModifierMask = [.command]
+        openItem.target = self
+        fileMenu.addItem(openItem)
+        fileMenuItem.submenu = fileMenu
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    // MARK: - JS bridge helpers
+    @objc func toggleFullScreenFromJS() {
+        window?.toggleFullScreen(nil)
+    }
+    
+    private var window: NSWindow!
+    private var windowController: NSWindowController!
+    
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        print("🧭 willFinishLaunching fired")
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Make sure this is a normal, dock-present app.
+        NSApp.setActivationPolicy(.regular)
+        buildMainMenu()
+
+        // Create a big, obvious window.
+        let rect = NSRect(x: 240, y: 180, width: 1100, height: 740)
+        window = NSWindow(
+            contentRect: rect,
+            styleMask: [.titled, .closable, .resizable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.setFrame(NSRect(x: 240, y: 180, width: 1100, height: 740), display: true)
+        window.contentMinSize = NSSize(width: 800, height: 600)
+        
+        window.title = "SGF-Player"
+        window.isReleasedWhenClosed = false
+        window.level = .normal
+        window.collectionBehavior = [.canJoinAllSpaces] // appear on the current Space
+        window.center()
+
+        // Attach your controller.
+        let vc = GoSGFScreenSaverViewController()
+        window.contentViewController = vc
+
+        // Force it visible and frontmost.
+        window.setIsVisible(true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.arrangeInFront(nil)
+
+        // Keep a controller reference.
+        windowController = NSWindowController(window: window)
+
+        // Loud diagnostics.
+        print("🪟 visible=\(window.isVisible) key=\(window.isKeyWindow) main=\(window.isMainWindow) mini=\(window.isMiniaturized)")
+        print("🪟 frame=\(NSStringFromRect(window.frame)) level=\(window.level.rawValue)")
+        if let scr = window.screen {
+            print("🖥️ screen \(scr.frame)")
+        } else {
+            print("⚠️ window has no screen yet")
+        }
+
+        // Flash the title so we can tell it’s alive.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.window.title = "SGF-Player ✅"
+        }
+        DispatchQueue.main.async {
+            self.window.makeKeyAndOrderFront(nil)
+            self.window.makeMain()
+            NSApp.activate(ignoringOtherApps: true)
+            print("🔑 after-async: key=\(self.window.isKeyWindow) main=\(self.window.isMainWindow)")
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) { }
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/SGF-Player/main.swift
+// ========================================================
+
+import Cocoa
+
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+
+NSApp.setActivationPolicy(.regular)
+NSApp.activate(ignoringOtherApps: true)
+
+// 👇 This is the missing piece
+NSApp.finishLaunching()
+
+
+app.run()
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/GoSGFScreenSaverViewController.swift
+// ========================================================
+
+import AppKit
+import WebKit
+
+@MainActor
+final class GoSGFScreenSaverViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate {
+
+    private var webView: WKWebView!
+    private var lastSGF: (text: String, filename: String)?
+    private var bridgeInstalled = false
+    private let sleepMgr = SleepAssertionManager()
+
+    // JSON-escape helper for injecting strings into JS
+    private func jsonLiteral(_ s: String) -> String {
+        if let data = try? JSONSerialization.data(withJSONObject: [s]),
+           let arr = String(data: data, encoding: .utf8),
+           let first = arr.dropFirst().dropLast()
+            .split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false).first {
+            return String(first)
+        }
+        let escaped = s
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\n", with: "\\n")
+        return "\"\(escaped)\""
+    }
+
+    // Swift -> JS: deliver an SGF to a page hook
+    @MainActor
+    func deliverSGF(text: String, filename: String) {
+        guard let webView else { return }
+        self.lastSGF = (text, filename)
+        let js = """
+        (function(){
+          try {
+            const payload = { text: \(jsonLiteral(text)), filename: \(jsonLiteral(filename)) };
+            const candidates = [
+              window.loadSGF,
+              window.onNativeSGF,
+              (window.viewer && window.viewer.loadSGF),
+              (window.app && window.app.loadSGF)
+            ].filter(fn => typeof fn === 'function');
+            if (candidates.length) {
+              try { candidates[0](payload.text, payload.filename); } catch (e) { return 'hook-threw'; }
+              return 'ok';
+            }
+            window.__pendingSGF = payload;
+            window.dispatchEvent(new CustomEvent('sgf-open', { detail: payload }));
+            return 'stashed';
+          } catch (e) { return 'err:' + String(e); }
+        })();
+        """
+        webView.evaluateJavaScript(js) { result, jsError in
+            if let err = jsError { print("⚠️ JS eval error:", err.localizedDescription) }
+            else { print("➡️ SGF injection result:", result ?? "nil") }
+        }
+    }
+
+    // Install a dedicated tatami layer (behind board+canvas) and neutralize dark backdrops
+    private func applyTatamiBackground() {
+        let js = #"""
+        (function(){
+          try {
+            // 0) Create a dedicated tatami layer behind everything
+            var bg = document.getElementById('tatami-bg');
+            if (!bg) {
+              bg = document.createElement('div');
+              bg.id = 'tatami-bg';
+              document.body.appendChild(bg);
+            }
+            var href = new URL('img/tatami.jpg', location.href).href;
+            Object.assign(bg.style, {
+              position:'fixed',
+              left:'0', top:'0', width:'100vw', height:'100vh',
+              zIndex:'0',
+              pointerEvents:'none',
+              backgroundImage:'url("'+href+'")',
+              backgroundSize:'cover',
+              backgroundPosition:'center',
+              backgroundRepeat:'no-repeat',
+              backgroundAttachment:'fixed'
+            });
+
+            // 1) Force html/body to be transparent; use tatami div as the real background
+            var sId = 'tatami-style';
+            var s = document.getElementById(sId);
+            if (!s) {
+              s = document.createElement('style'); s.id = sId;
+              s.textContent = `
+                html, body {
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100vw !important;
+                  height: 100vh !important;
+                  overflow: hidden !important;
+                  background: transparent !important;
+                }
+                #tatami-bg { z-index: 0 !important; }
+                #board-wood { z-index: 1 !important; }
+                #board, canvas#board, #board canvas {
+                  z-index: 2 !important;
+                  background: transparent !important;
+                  box-shadow: none !important;
+                  border: 0 !important;
+                }
+              `;
+              (document.head || document.documentElement).appendChild(s);
+            }
+
+            // 2) Neutralize full-viewport dark backdrops
+            (function stripOpaqueBackdrops(){
+              try {
+                var vw = window.innerWidth, vh = window.innerHeight;
+                Array.from(document.body.children).forEach(function(el){
+                  if (el.id === 'tatami-bg' || el.id === 'board-wood' || el.id === 'board' || el.id === 'board-host') return;
+                  var r = el.getBoundingClientRect();
+                  if (r.width >= vw*0.85 && r.height >= vh*0.85) {
+                    var cs = getComputedStyle(el);
+                    var bg = (cs.backgroundColor||'').toLowerCase();
+                    var m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+                    var dark = false;
+                    if (m) {
+                      var rr = +m[1], gg = +m[2], bb = +m[3], aa = (m[4]==null?1:+m[4]);
+                      dark = (rr<=24 && gg<=24 && bb<=24 && aa>=0.98);
+                    } else if (bg === 'black') { dark = true; }
+                    if (dark || cs.backgroundImage !== 'none') {
+                      el.style.setProperty('background', 'transparent', 'important');
+                      el.style.setProperty('background-color', 'transparent', 'important');
+                      el.style.setProperty('box-shadow', 'none', 'important');
+                    }
+                  }
+                });
+              } catch(_) {}
+            })();
+
+            // 3) Keep the tatami sized to the viewport
+            function sizeTatami(){
+              bg.style.width  = window.innerWidth + 'px';
+              bg.style.height = window.innerHeight + 'px';
+            }
+            sizeTatami();
+            if (!window.__TATAMI_RO) {
+              window.__TATAMI_RO = new ResizeObserver(function(){ sizeTatami(); });
+              window.__TATAMI_RO.observe(document.body);
+            }
+
+            return 'TATAMI_OK';
+          } catch (e) {
+            return 'TATAMI_ERR:' + String(e && (e.message || e));
+          }
+        })();
+        """#
+        webView?.evaluateJavaScript(js) { result, error in
+            if let error {
+                print("⚠️ tatami JS error:", error.localizedDescription)
+            } else {
+                print("🌿 tatami result:", result ?? "nil")
+            }
+        }
+    }
+
+    // MARK: - View setup
+
+    override func loadView() {
+        UserDefaults.standard.set(true, forKey: "WebKitDeveloperExtras")
+        let config = WKWebViewConfiguration()
+        config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+
+        let prefs = WKWebpagePreferences()
+        prefs.allowsContentJavaScript = true
+        config.defaultWebpagePreferences = prefs
+
+        if !bridgeInstalled {
+            config.userContentController.add(self, name: "native")
+            bridgeInstalled = true
+        }
+
+        let web = WKWebView(frame: .zero, configuration: config)
+        web.autoresizingMask = [.width, .height]
+        self.view = web
+        self.webView = web
+        web.navigationDelegate = self
+        web.uiDelegate = self
+
+        loadLocalWebApp()
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        updateAssertion(for: isInFullScreen)
+
+        guard let win = view.window else { return }
+        NotificationCenter.default.addObserver(self, selector: #selector(didEnterFullScreen(_:)),
+                                              name: NSWindow.didEnterFullScreenNotification, object: win)
+        NotificationCenter.default.addObserver(self, selector: #selector(didExitFullScreen(_:)),
+                                              name: NSWindow.didExitFullScreenNotification, object: win)
+        NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeMain(_:)),
+                                              name: NSWindow.didBecomeMainNotification, object: nil)
+    }
+
+    private func updateAssertion(for full: Bool) {
+        if full { print("🌕 Full screen → disable screensaver"); sleepMgr.enable() }
+        else    { print("🌗 Windowed → allow screensaver");      sleepMgr.disable() }
+    }
+
+    private var isInFullScreen: Bool { view.window?.styleMask.contains(.fullScreen) == true }
+    @objc private func didEnterFullScreen(_ note: Notification) { updateAssertion(for: true) }
+    @objc private func didExitFullScreen(_ note: Notification)  { updateAssertion(for: false) }
+    @objc private func windowDidBecomeMain(_ note: Notification){ updateAssertion(for: isInFullScreen) }
+
+    // MARK: - JS bridge (page -> native)
+
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        guard message.name == "native" else { return }
+        if let action = message.body as? String {
+            handleNativeAction(action)
+        } else if let dict = message.body as? [String: Any],
+                  let action = dict["action"] as? String {
+            // forward diagnostics
+            if action == "jsError" || action == "jsRejection" || action == "jsConsole" {
+                print("🧯 JS:", dict)
+                return
+            }
+            handleNativeAction(action)
+        }
+    }
+
+    // Install wood and expose a single sizing API we can call from normalizeAndDraw()
+    private func forceBoardWood() {
+        let js = #"""
+        (function(){
+          try{
+            var wood = document.getElementById('board-wood');
+            if(!wood){ wood=document.createElement('div'); wood.id='board-wood'; document.body.appendChild(wood); }
+
+            var kaya = new URL('img/kaya_board.jpg', location.href).href;
+
+            // visuals
+            wood.style.setProperty('position','fixed','important');
+            wood.style.setProperty('z-index','1','important');
+            wood.style.setProperty('pointer-events','none','important');
+            wood.style.setProperty('background-image',
+              'linear-gradient(to right, rgba(140,200,190,0.15) 1px, rgba(0,0,0,0) 1px),'+
+              'linear-gradient(rgba(140,200,190,0.15) 1px, rgba(0,0,0,0) 1px),url("'+kaya+'")',
+              'important');
+            wood.style.setProperty('background-repeat','repeat,repeat,no-repeat','important');
+            wood.style.setProperty('background-position','center,center,center','important');
+            wood.style.setProperty('background-size','calc(100%/18) 100%, 100% calc(100%/18), cover','important');
+            wood.style.setProperty('background-color','transparent','important');
+
+            function writeFrame(L,T,S,who){
+              wood.style.setProperty('left',   Math.round(L)+'px','important');
+              wood.style.setProperty('top',    Math.round(T)+'px','important');
+              wood.style.setProperty('width',  Math.round(S)+'px','important');
+              wood.style.setProperty('height', Math.round(S)+'px','important');
+              try{ wood.dataset.writer = who || 'sync'; }catch(_){}
+            }
+
+            // expose API
+            window.__SYNC_WOOD = function(L,T,S,who){ try{ writeFrame(L,T,S,who); }catch(_){ } };
+
+            // initial guess
+            var host = document.getElementById('board-host') || document.body;
+            var r = host.getBoundingClientRect();
+            var S = Math.min(r.width*0.60, r.height*0.60);
+            var L = r.left + (r.width  - S)/2;
+            var T = r.top  + (r.height - S)/2;
+            writeFrame(L,T,S,'forceBoardWood(init)');
+
+            return { ok:true, bgi:getComputedStyle(wood).backgroundImage };
+          }catch(e){
+            return { ok:false, err:String(e && (e.message||e)) };
+          }
+        })();
+        """#
+        webView?.evaluateJavaScript(js) { result, error in
+            if let error { print("🌲 wood error:", error.localizedDescription) }
+            else { print("🌲 wood:", result ?? "nil") }
+        }
+    }
+    
+    private func handleNativeAction(_ action: String) {
+        switch action {
+        case "toggleFullScreen":
+            (NSApp.delegate as? AppDelegate)?.toggleFullScreenFromJS()
+        default:
+            NSLog("Unknown native action: %@", action)
+        }
+    }
+
+    // MARK: - Load bundled web app
+
+    private func loadLocalWebApp() {
+        guard let resRoot = Bundle.main.resourceURL else {
+            print("❌ Bundle.main.resourceURL is nil")
+            return
+        }
+        let webAppURL = resRoot.appendingPathComponent("WebApp", isDirectory: true)
+        let indexURL  = webAppURL.appendingPathComponent("index.html", isDirectory: false)
+        let appJS     = webAppURL.appendingPathComponent("app.js", isDirectory: false)
+
+        print("📦 resourceRoot:", resRoot.path)
+        print("📦 WebApp dir  :", webAppURL.path)
+        print("📦 index.html  :", indexURL.path)
+        print("📦 app.js      :", appJS.path)
+
+        // --- quick asset presence log ---
+        let imgDir = webAppURL.appendingPathComponent("img", isDirectory: true)
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(atPath: imgDir.path).sorted()
+            print("🧾 img dir exists:", FileManager.default.fileExists(atPath: imgDir.path) ? "yes" : "no")
+            print("🧾 img dir count:", contents.count)
+            print("🧾 img files sample:", contents.prefix(30).joined(separator: ", "))
+            for name in ["tatami.jpg","kaya_board.jpg","slate_stone.png","clam_01.png"] {
+                let p = imgDir.appendingPathComponent(name).path
+                print("✅ exists:", name, FileManager.default.fileExists(atPath: p) ? "YES" : "NO", "→", p)
+            }
+        } catch {
+            print("❌ couldn’t list img dir:", (error as NSError).localizedDescription)
+        }
+
+        webView.navigationDelegate = self
+        webView.loadFileURL(indexURL, allowingReadAccessTo: webAppURL)
+    }
+
+    // MARK: - WKNavigationDelegate
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        print("✅ WebView finished loading index.html")
+
+        webView.evaluateJavaScript("location.href") { result, jsError in
+            print("📄 page URL:", result ?? "nil", "error:", jsError?.localizedDescription ?? "none")
+        }
+        webView.evaluateJavaScript("document.title") { result, _ in
+            print("📄 page title:", result ?? "nil")
+        }
+        webView.evaluateJavaScript("document.body.innerText.slice(0,140)") { result, _ in
+            print("🧪 body prefix:", result ?? "nil")
+        }
+
+        // Install global JS error/console bridge (diagnostics)
+        let errBridge = #"""
+        (function(){
+          try{
+            if (window.__ERR_BRIDGE) return 'ERR_BRIDGE_ALREADY';
+            window.__ERR_BRIDGE = true;
+            function send(kind, obj){
+              try { (webkit && webkit.messageHandlers && webkit.messageHandlers.native)
+                 ? webkit.messageHandlers.native.postMessage(Object.assign({action:kind}, obj||{}))
+                 : console.log('[bridge]', kind, obj);
+              } catch(_) {}
+            }
+            window.addEventListener('error', function(e){
+              send('jsError', { message: String(e.message||e), source: e.filename||null, line: e.lineno||0, col: e.colno||0 });
+            });
+            window.addEventListener('unhandledrejection', function(e){
+              var m = (e.reason && (e.reason.stack||e.reason.message)) || String(e.reason);
+              send('jsRejection', { message: m });
+            });
+            ['log','warn','error'].forEach(function(k){
+              try{
+                var _ = console[k];
+                console[k] = function(){
+                  try { send('jsConsole', { level:k, text: Array.prototype.map.call(arguments, x=>String(x)).join(' ') }); } catch(_) {}
+                  return _.apply(console, arguments);
+                };
+              }catch(_){}
+            });
+            return 'ERR_BRIDGE_OK';
+          }catch(e){ return 'ERR_BRIDGE_ERR:'+String(e); }
+        })();
+        """#
+        webView.evaluateJavaScript(errBridge) { r, _ in print("🧵 err-bridge:", r ?? "nil") }
+
+        // Keep tatami on the body early
+        self.applyTatamiBackground()
+
+        // Force wood background + overlays (must run after tatami but before ctx patch)
+        self.forceBoardWood()
+
+        // 0) CSS hard-override: transparent board/canvas
+        let cssFix = #"""
+        (function(){
+          try{
+            const id='sgf-css-fix';
+            if(!document.getElementById(id)){
+              const s=document.createElement('style'); s.id=id; s.textContent = `
+                #board, canvas#board, #board canvas { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+                canvas { background-color: transparent !important; }
+                #lidL, #lidR,
+                img[src*="lid_left"], img[src*="lid_right"],
+                img[src*="go_bowl"] { display: none !important; }
+              `;
+              (document.head||document.documentElement).appendChild(s);
+            }
+            return 'CSS_OK';
+          }catch(e){ return 'CSS_ERR:'+String(e&&e.message||e); }
+        })();
+        """#
+        webView.evaluateJavaScript(cssFix) { r, _ in print("🎨 css-fix:", r ?? "nil") }
+
+        // 1) Context patch: skip full-canvas opaque fills
+        // 1) Context patch: skip full-canvas opaque fills and tiny white hoshi dots
+        let ctxPatch = #"""
+        (function(){
+          try{
+            const P = CanvasRenderingContext2D && CanvasRenderingContext2D.prototype;
+            if(!P || P.__sgfPatchedV2) return 'ALREADY';
+            P.__sgfPatchedV2 = true;
+
+            const EPS = 2;
+
+            function parseRGB(s){
+              s = (s||'').toLowerCase().trim();
+              if (s === '' || s === 'transparent') return null;
+
+              if (s.startsWith('#')) {
+                const hex = s.slice(1);
+                if (hex.length === 3) {
+                  const r=parseInt(hex[0],16)*17, g=parseInt(hex[1],16)*17, b=parseInt(hex[2],16)*17;
+                  return {r,g,b,a:1};
+                }
+                if (hex.length === 6 || hex.length === 8) {
+                  const r=parseInt(hex.slice(0,2),16);
+                  const g=parseInt(hex.slice(2,4),16);
+                  const b=parseInt(hex.slice(4,6),16);
+                  const a=(hex.length===8 ? parseInt(hex.slice(6,8),16)/255 : 1);
+                  return {r,g,b,a};
+                }
+              }
+              if (s.startsWith('rgb')) {
+                const nums = s.replace(/[^\d,.]/g,'').split(',').map(x=>+x);
+                return { r:nums[0]||0, g:nums[1]||0, b:nums[2]||0, a:(nums[3]==null?1:nums[3]) };
+              }
+              if (s === 'black') return {r:0,g:0,b:0,a:1};
+              if (s === 'white') return {r:255,g:255,b:255,a:1};
+              return null;
+            }
+
+            function isBlackish(fs){
+              const c = parseRGB(fs);
+              return !!c && c.r<=20 && c.g<=20 && c.b<=20 && c.a>=0.98;
+            }
+            function isWhitish(fs){
+              const c = parseRGB(fs);
+              return !!c && c.r>=235 && c.g>=235 && c.b>=235 && c.a>=0.98;
+            }
+
+            // remember last rect() call
+            const _rect = P.rect;
+            P.__sgfLastRect = null;
+            P.rect = function(x,y,w,h){ try{ this.__sgfLastRect = {x,y,w,h}; }catch(_){}
+              return _rect.apply(this, arguments);
+            };
+
+            // remember last arc radius (for tiny white pips)
+            const _arc = P.arc;
+            P.__sgfLastArcR = null;
+            P.arc = function(x,y,r){
+              try{ this.__sgfLastArcR = r; }catch(_){}
+              return _arc.apply(this, arguments);
+            };
+
+            // block full-canvas black clears
+            const _fillRect = P.fillRect;
+            P.fillRect = function(x,y,w,h){
+              try{
+                const cw = this.canvas && this.canvas.width  || 0;
+                const ch = this.canvas && this.canvas.height || 0;
+                const full = Math.abs(x)<=1 && Math.abs(y)<=1 &&
+                             Math.abs(w - cw) <= EPS && Math.abs(h - ch) <= EPS;
+                if (full && isBlackish(this.fillStyle)) return;
+              }catch(_){}
+              return _fillRect.apply(this, arguments);
+            };
+
+            // also skip tiny white fills (hoshi dots), but keep stones (larger radius)
+            const _fill = P.fill;
+            P.fill = function(){
+              try{
+                // full-canvas check via rect()
+                const r = this.__sgfLastRect;
+                if (r) {
+                  const cw = this.canvas && this.canvas.width  || 0;
+                  const ch = this.canvas && this.canvas.height || 0;
+                  const full = Math.abs(r.x)<=1 && Math.abs(r.y)<=1 &&
+                               Math.abs(r.w - cw) <= EPS && Math.abs(r.h - ch) <= EPS;
+                  if (full && isBlackish(this.fillStyle)) { this.__sgfLastRect = null; return; }
+                }
+                // NEW: kill tiny white pips (≤6px radius). Stones are much larger.
+                const lastR = this.__sgfLastArcR || 0;
+                if (lastR > 0 && lastR <= 6 && isWhitish(this.fillStyle)) { this.__sgfLastArcR = null; return; }
+              }catch(_){}
+              return _fill.apply(this, arguments);
+            };
+
+            return 'CTX2_OK';
+          }catch(e){ return 'CTX2_ERR:'+String(e && (e.message||e)); }
+        })();
+        """#
+        webView.evaluateJavaScript(ctxPatch) { r, _ in print("🖌️ ctx-patch:", r ?? "nil") }
+
+        // 2) Load bundled app.js (base64→eval) with shims + layout
+        do {
+            guard let jsPath = Bundle.main.path(forResource: "app", ofType: "js", inDirectory: "WebApp") else {
+                print("❌ could not locate WebApp/app.js in bundle"); return
+            }
+            let codeData = try Data(contentsOf: URL(fileURLWithPath: jsPath))
+            let b64 = codeData.base64EncodedString()
+            let head = String(data: codeData.prefix(400), encoding: .utf8) ?? ""
+            print("📄 app.js head:", head.replacingOccurrences(of: "\n", with: " "))
+            print("📥 injecting app.js (base64) from:", jsPath, "len(b64):", b64.count)
+
+            let wrapper = """
+            (function(){
+              try{
+                if (typeof window.loadAssets !== 'function') {
+                  window.loadAssets = async function(){ return { images:{}, sounds:{}, data:{} }; };
+                }
+                if (typeof window.fetchAsset !== 'function') {
+                  window.fetchAsset = async function(path){ const r=await fetch(path); if(!r.ok) throw new Error('fetch '+path+' '+r.status); return r; };
+                }
+                (function ensureDiag(){
+                  try {
+                    if (typeof window.diag !== 'function') {
+                      try { delete window.diag; } catch(_) {}
+                      Object.defineProperty(window, 'diag', { configurable:true, writable:true,
+                        value:function(m){ try{
+                          if (typeof window.reportDiag === 'function') window.reportDiag(String(m));
+                          else console.log(String(m));
+                        }catch(_){ console.log(String(m)); } }
+                      });
+                    }
+                  } catch(_) {}
+                })();
+
+                (0, eval)(atob("%@") + "\\n//# sourceURL=bundled-app.js");
+
+                (function(){
+                  try{
+                    var boardEl = document.getElementById('board');
+                    if(!boardEl){ boardEl=document.createElement('div'); boardEl.id='board'; document.body.appendChild(boardEl); }
+                    var canvas = boardEl.querySelector('canvas') || (function(){ var c=document.createElement('canvas'); boardEl.appendChild(c); return c; })();
+                    canvas.style.background='transparent'; canvas.style.position='fixed'; canvas.style.zIndex='2';
+
+                    var wood = document.getElementById('board-wood');
+                    if(!wood){ wood=document.createElement('div'); wood.id='board-wood'; document.body.appendChild(wood); }
+                    var kaya = new URL('img/kaya_board.jpg', location.href).href;
+                    Object.assign(wood.style,{position:'fixed',zIndex:'1',pointerEvents:'none',
+                      backgroundImage:
+                        'linear-gradient(to right, rgba(140,200,190,0.15) 1px, rgba(0,0,0,0) 1px),'+
+                        'linear-gradient(rgba(140,200,190,0.15) 1px, rgba(0,0,0,0) 1px),url(\"'+kaya+'\")',
+                      backgroundRepeat:'repeat,repeat,no-repeat',
+                      backgroundPosition:'center,center,center',
+                      backgroundSize:'calc(100%/18) 100%, 100% calc(100%/18), cover'
+                    });
+
+                    (function(){
+                      var overlay=document.getElementById('grid-overlay');
+                      if(!overlay){ overlay=document.createElement('canvas'); overlay.id='grid-overlay'; document.body.appendChild(overlay); }
+                      overlay.style.position='fixed'; overlay.style.zIndex='3';
+                      overlay.style.pointerEvents='none'; overlay.style.background='transparent'; overlay.style.mixBlendMode='normal';
+
+                      // hide any white hoshi dots from page
+                      try{
+                        var killer=document.getElementById('sgf-dot-killer');
+                        if(!killer){
+                          killer=document.createElement('style'); killer.id='sgf-dot-killer';
+                          killer.textContent='#board-host .hoshi,#board .hoshi,.star,.star-point,[data-hoshi],[data-star]{display:none !important;}';
+                          (document.head||document.documentElement).appendChild(killer);
+                        }
+                      }catch(_){}
+
+                      function drawGrid(g, S){
+                        var N=19, pad=Math.round(S*0.055), span=S-2*pad, i,j;
+                        var dpr=window.devicePixelRatio||1;
+                        g.setTransform(dpr,0,0,dpr,0,0); g.globalCompositeOperation='source-over'; g.filter='none'; g.clearRect(0,0,S,S);
+                        g.lineWidth=1/dpr; g.strokeStyle='rgba(0,0,0,0.70)';
+                        g.beginPath();
+                        for(i=0;i<N;i++){
+                          var x=Math.round(pad+span*i/(N-1))+0.5/dpr;
+                          var y=Math.round(pad+span*i/(N-1))+0.5/dpr;
+                          g.moveTo(x,pad); g.lineTo(x,pad+span);
+                          g.moveTo(pad,y); g.lineTo(pad+span,y);
+                        }
+                        g.stroke();
+                        var coverR=Math.max(3,Math.round(S*0.010));
+                        g.fillStyle='rgba(233,200,120,1)';
+                        var pts=[3,9,15];
+                        for(i=0;i<pts.length;i++) for(j=0;j<pts.length;j++){
+                          var cx=pad+span*pts[i]/(N-1), cy=pad+span*pts[j]/(N-1);
+                          g.beginPath(); g.arc(cx,cy,coverR,0,Math.PI*2); g.fill();
+                        }
+                        var r=Math.max(3,Math.round(S*0.008));
+                        g.fillStyle='rgba(0,0,0,0.92)';
+                        for(i=0;i<pts.length;i++) for(j=0;j<pts.length;j++){
+                          var xh=pad+span*pts[i]/(N-1), yh=pad+span*pts[j]/(N-1);
+                          g.beginPath(); g.arc(xh,yh,r,0,Math.PI*2); g.fill();
+                        }
+                      }
+
+                      function sizeAll(){
+                        var vw=window.innerWidth||1, vh=window.innerHeight||1;
+                        var G=0.18, gx=Math.round(vw*G), gy=Math.round(vh*G);
+                        var S=Math.floor(Math.min(vw-2*gx, vh-2*gy));
+                        var L=Math.floor((vw-S)/2), T=Math.floor((vh-S)/2);
+                        var frame={left:L+'px', top:T+'px', width:S+'px', height:S+'px'};
+
+                        wood.style.setProperty('left',  frame.left,  'important');
+                        wood.style.setProperty('top',   frame.top,   'important');
+                        wood.style.setProperty('width', frame.width, 'important');
+                        wood.style.setProperty('height',frame.height,'important');
+
+                        canvas.style.setProperty('left',  frame.left,  'important');
+                        canvas.style.setProperty('top',   frame.top,   'important');
+                        canvas.style.setProperty('width', frame.width, 'important');
+                        canvas.style.setProperty('height',frame.height,'important');
+
+                        overlay.style.setProperty('left',  frame.left,  'important');
+                        overlay.style.setProperty('top',   frame.top,   'important');
+                        overlay.style.setProperty('width', frame.width, 'important');
+                        overlay.style.setProperty('height',frame.height,'important');
+
+                        var dpr=window.devicePixelRatio||1, px=Math.max(1,Math.round(S*dpr));
+                        if(canvas.width!==px)  canvas.width=px;
+                        if(canvas.height!==px) canvas.height=px;
+                        if(overlay.width!==px) overlay.width=px;
+                        if(overlay.height!==px) overlay.height=px;
+
+                        var g=canvas.getContext('2d');
+                        if(g){ g.setTransform(dpr,0,0,dpr,0,0); g.imageSmoothingEnabled=true; g.globalCompositeOperation='source-over'; g.filter='none'; }
+
+                        var go=overlay.getContext('2d'); if(go) drawGrid(go,S);
+                      }
+
+                      sizeAll();
+                      if(!window.__SGF_RO){
+                        window.__SGF_RO=new ResizeObserver(function(){ sizeAll(); });
+                        window.__SGF_RO.observe(document.body);
+                        window.addEventListener('resize', sizeAll, {passive:true});
+                      }
+                    })();
+                  }catch(_){}
+                })();
+
+                (function(){try{
+                  var btn=[].slice.call(document.querySelectorAll('button,[role="button"],.btn,.button')).find(b=>/play/i.test(b.innerText||b.textContent||''));
+                  if(btn) btn.click();
+                }catch(_){}})();
+
+                return "APP_OK";
+              }catch(e){
+                try{window.__APP_ERR=String(e && (e.message?e.message:e));}catch(_){}
+                return "APP_ERR:"+String(e && (e.message?e.message:e));
+              }
+            })();
+            """.replacingOccurrences(of: "%@", with: b64)
+
+            webView.evaluateJavaScript(wrapper) { result, jsError in
+                if let err = jsError as NSError? {
+                    if let m = err.userInfo["WKJavaScriptExceptionMessage"] { print("   message:", m) }
+                    if let u = err.userInfo["WKJavaScriptExceptionSourceURL"] { print("   source:", u) }
+                    if let l = err.userInfo["WKJavaScriptExceptionLineNumber"] { print("   line:", l) }
+                    if let c = err.userInfo["WKJavaScriptExceptionColumnNumber"] { print("   column:", c) }
+                    return
+                }
+                print("✅ app.js result:", result ?? "nil")
+                
+                let killOverlay = #"""
+                (function(){
+                  try{
+                    var o = document.getElementById('grid-overlay');
+                    if (o && o.parentNode) o.parentNode.removeChild(o);
+                    return 'OVERLAY_OFF';
+                  } catch(e) { return 'OVERLAY_ERR:'+String(e); }
+                })();
+                """#
+                webView.evaluateJavaScript(killOverlay) { r, _ in
+                    print("🧩 overlay:", r ?? "nil")
+                }
+
+                // Re-apply the 2D ctx full-canvas fill skipper AFTER app.js
+                let postCtxPatch = #"""
+                (function(){
+                  try{
+                    var P = CanvasRenderingContext2D.prototype;
+                    if (P.__fillRectPatched !== true) {
+                      var _fill = P.fillRect;
+                      P.__fillRectPatched = true;
+                      P.fillRect = function(x,y,w,h){
+                        try{
+                          var C = this.canvas;
+                          var isFull = Math.abs(x)<=1 && Math.abs(y)<=1 &&
+                                       Math.abs(w - C.width)<=2 && Math.abs(h - C.height)<=2;
+                          var fs = (this.fillStyle||'').toString().toLowerCase();
+                          var looksOpaqueBlack =
+                            /black/.test(fs) ||
+                            /^#0{3,8}$/.test(fs) ||
+                            /rgba?\(\s*0\s*,\s*0\s*,\s*0(?:\s*,\s*(1|0\.9\d*))?\)/.test(fs);
+                          if (isFull && looksOpaqueBlack) return;
+                        }catch(_){}
+                        return _fill.apply(this, arguments);
+                      };
+                    }
+                    return 'POST_CTX_OK';
+                  }catch(e){ return 'POST_CTX_ERR:'+String(e && (e.message||e)); }
+                })();
+                """#
+                webView.evaluateJavaScript(postCtxPatch) { r, _ in
+                    print("🖌️ ctx-repatch:", r ?? "nil")
+                }
+
+                // 3) Fallback grid if the page still didn’t draw
+                let boardBootstrap = #"""
+                (function(){
+                  try{
+                   var board=document.getElementById('board'); if(!board){board=document.createElement('div');board.id='board';document.body.appendChild(board);}
+                   var canvas = board.querySelector('#sgf-fallback') || board.querySelector('canvas');
+                   if(!canvas){ canvas=document.createElement('canvas'); canvas.id='sgf-fallback'; board.appendChild(canvas); }
+                   canvas.style.position='fixed'; canvas.style.zIndex='3'; canvas.style.background='transparent';
+                    function sizeAndDraw(){
+                      var vw=innerWidth, vh=innerHeight, G=0.08, gx=Math.round(vw*G), gy=Math.round(vh*G);
+                      var S=Math.floor(Math.min(vw-2*gx, vh-2*gy)), L=Math.floor((vw-S)/2), T=Math.floor((vh-S)/2);
+                      Object.assign(canvas.style,{left:L+'px',top:T+'px',width:S+'px',height:S+'px'});
+                      var dpr=devicePixelRatio||1, px=Math.max(1,Math.round(S*dpr));
+                      if(canvas.width!==px) canvas.width=px; if(canvas.height!==px) canvas.height=px;
+                      var g=canvas.getContext('2d'); if(!g) return 'NO_CTX'; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,S,S);
+                      g.lineWidth = 1/dpr;
+                      g.fillStyle='rgba(233,200,120,0.95)'; 
+                      g.fillRect(0,0,S,S);
+                      var N=19, pad=Math.round(S*0.055), span=S-2*pad;
+                      g.strokeStyle='rgba(0,0,0,0.65)'; g.lineWidth = 1/dpr;
+                      for(var i=0;i<N;i++){
+                        var x = Math.round(pad + span*i/(N-1));
+                        g.beginPath(); g.moveTo(x, pad); g.lineTo(x, pad+span); g.stroke();
+                        var y = Math.round(pad + span*i/(N-1));
+                        g.beginPath(); g.moveTo(pad, y); g.lineTo(pad+span, y); g.stroke();
+                        var star=[3,9,15],  r=Math.max(2,Math.round(S*0.006));
+                        g.fillStyle='rgba(0,0,0,0.85)';
+                        star.forEach(ix=>star.forEach(iy=>{
+                          var x=pad+span*ix/(N-1), y=pad+span*iy/(N-1); g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); }));
+                      }
+                      return 'OK';
+                    }
+                    var r=sizeAndDraw(); if(!window.__SGF_FALLBACK){window.__SGF_FALLBACK=new ResizeObserver(()=>sizeAndDraw()); window.__SGF_FALLBACK.observe(document.body);}
+                    return 'BOARD_'+r;
+                  }catch(e){ return 'BOARD_ERR:'+String(e&&(e.message||e)); }
+                })();
+                """#
+                webView.evaluateJavaScript(boardBootstrap) { r, _ in
+                    print("🪵 board-bootstrap:", r ?? "nil")
+
+                    // --- ENSURE FALLBACK CANVAS EXISTS + REPORT LOCATION ---
+                    let ensureFallback = #"""
+                    (function(){
+                      try{
+                        var board = document.getElementById('board') || (function(){var d=document.createElement('div'); d.id='board'; document.body.appendChild(d); return d;})();
+                        var c = document.getElementById('sgf-fallback');
+                        if (!c) { c = document.createElement('canvas'); c.id = 'sgf-fallback'; board.appendChild(c); }
+                        c.style.position='fixed'; c.style.zIndex='99999'; c.style.display='block'; c.style.visibility='visible';
+                        c.style.background='transparent'; c.style.outline='3px solid magenta';
+                        return {
+                          ok:true,
+                          exists: !!document.getElementById('sgf-fallback'),
+                          canvases: Array.from(document.getElementsByTagName('canvas')).map(el=>({id:el.id||null, parentId:el.parentElement && el.parentElement.id || null, parentTag: el.parentElement && el.parentElement.tagName.toLowerCase()})),
+                          parent: c.parentElement ? { id:c.parentElement.id||null, tag:c.parentElement.tagName.toLowerCase() } : null
+                        };
+                      }catch(e){
+                        return { ok:false, err:String(e && (e.message||e)) };
+                      }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(ensureFallback) { r, _ in
+                        print("🧪 ensure-fallback:", r ?? "nil")
+                    }
+                    
+                    // --- PROMOTE/CREATE canvas#board & DRAW TEST GRID (and sync wood) ---
+                    let promoteAndDraw = #"""
+                    (function(){
+                      try{
+                        function firstCanvasNotInCanvas(){
+                          var list = Array.from(document.querySelectorAll('canvas'));
+                          for (var i=0;i<list.length;i++){
+                            var p = list[i].parentElement;
+                            if (!p || p.tagName.toLowerCase() !== 'canvas') return list[i];
+                          }
+                          return null;
+                        }
+                        var c = document.getElementById('board');
+                        if (!(c && c.tagName && c.tagName.toLowerCase()==='canvas')) c = null;
+                        if (!c) c = firstCanvasNotInCanvas();
+                        if (!c){ c = document.createElement('canvas'); c.id = 'board'; document.body.appendChild(c); }
+
+                        Object.assign(c.style, {
+                          position:'fixed', left:'0px', top:'0px',
+                          width: window.innerWidth + 'px',
+                          height: window.innerHeight + 'px',
+                          zIndex:'2', display:'block', visibility:'visible',
+                          opacity:'1', background:'transparent', outline:'none'
+                        });
+
+                        if (window.__SYNC_WOOD) window.__SYNC_WOOD(0,0,Math.min(window.innerWidth,window.innerHeight),'normalize-init');
+
+                        var dpr = window.devicePixelRatio || 1;
+                        var cssW = Math.max(1, Math.round(window.innerWidth));
+                        var cssH = Math.max(1, Math.round(window.innerHeight));
+                        var pxW = Math.max(1, Math.round(cssW * dpr));
+                        var pxH = Math.max(1, Math.round(cssH * dpr));
+                        if (c.width !== pxW) c.width = pxW;
+                        if (c.height !== pxH) c.height = pxH;
+
+                        var g = c.getContext('2d'); if (!g) return {ok:false, err:'NO_CTX'};
+                        g.setTransform(dpr,0,0,dpr,0,0);
+                        g.clearRect(0,0,cssW,cssH);
+
+                        var G=0.08, gx=Math.round(cssW*G), gy=Math.round(cssH*G);
+                        var S=Math.floor(Math.min(cssW-2*gx, cssH-2*gy));
+                        var L=Math.floor((cssW-S)/2), T=Math.floor((cssH-S)/2);
+
+                        g.strokeStyle='rgba(255, 0, 180, 0.8)';
+                        g.lineWidth = Math.max(3, Math.round(S*0.01));
+                        g.beginPath(); g.moveTo(L,T); g.lineTo(L+S,T+S); g.stroke();
+                        g.beginPath(); g.moveTo(L+S,T); g.lineTo(L,T+S); g.stroke();
+
+                        g.fillStyle='rgba(233,200,120,0.95)';
+                        g.fillRect(L,T,S,S);
+
+                        var N=19, pad=Math.round(S*0.06), span=S-2*pad;
+                        g.strokeStyle='rgba(0,0,0,0.55)'; g.lineWidth=1;
+                        for (var i=0;i<N;i++){
+                          var x= L + pad + span*i/(N-1); g.beginPath(); g.moveTo(x, T+pad); g.lineTo(x, T+pad+span); g.stroke();
+                          var y= T + pad + span*i/(N-1); g.beginPath(); g.moveTo(L+pad, y); g.lineTo(L+pad+span, y); g.stroke();
+                        }
+                        var star=[3,9,15], r=Math.max(2,Math.round(S*0.006));
+                        g.fillStyle='rgba(0,0,0,0.85)';
+                        star.forEach(ix=>star.forEach(iy=>{
+                          var x=L+pad+span*ix/(N-1), y=T+pad+span*iy/(N-1);
+                          g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+                        }));
+
+                        return { ok:true, used: c.id || '(no id)', parent: c.parentElement ? {id:c.parentElement.id||null, tag:c.parentElement.tagName.toLowerCase()} : null, cssSize:{w:cssW,h:cssH}, dpr:dpr };
+                      }catch(e){
+                        return {ok:false, err:String(e && (e.message||e))};
+                      }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(promoteAndDraw) { r, _ in
+                        print("🧰 promote-and-draw:", r ?? "nil")
+                    }
+                    
+                    // --- CLEANUP: remove any <canvas> nested inside another <canvas> ---
+                    let cleanupBadCanvases = #"""
+                    (function(){
+                      try{
+                        Array.from(document.querySelectorAll('canvas')).forEach(function(c){
+                          var p = c.parentElement;
+                          if (p && p.tagName && p.tagName.toLowerCase()==='canvas') { p.removeChild(c); }
+                        });
+                        return 'CLEAN_OK';
+                      }catch(e){ return 'CLEAN_ERR:'+String(e && (e.message||e)); }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(cleanupBadCanvases) { r, _ in
+                        print("🧼 cleanup:", r ?? "nil")
+                    }
+                    
+                    // --- NORMALIZE & DRAW + keep wood/overlay in lockstep ---
+                    // --- NORMALIZE & DRAW (PIN): keep canvas#board in a centered square, every frame ---
+                    let normalizeAndDraw = #"""
+                    (function(){
+                      try{
+                        // 1) Find the board canvas (prefer #board, then first canvas not inside another canvas)
+                        function firstCanvasNotInCanvas(){
+                          var list = Array.from(document.querySelectorAll('canvas'));
+                          for (var i=0;i<list.length;i++){
+                            var p = list[i].parentElement;
+                            if (!p || p.tagName.toLowerCase() !== 'canvas') return list[i];
+                          }
+                          return null;
+                        }
+                        var c = document.getElementById('board');
+                        if (!(c && c.tagName && c.tagName.toLowerCase()==='canvas')) c = firstCanvasNotInCanvas();
+                        if (!c) return {ok:false, err:'NO_CANVAS'};
+
+                        // make sure it floats above wood but below UI
+                        c.style.setProperty('position','fixed','important');
+                        c.style.setProperty('z-index','2','important');
+                        c.style.setProperty('background','transparent','important');
+                        c.style.setProperty('visibility','visible','important');
+                        c.style.setProperty('display','block','important');
+                        c.style.setProperty('outline','none','important');
+
+                        // 2) Pin the frame on every animation frame so the page can't reflow it back
+                        var host = document.getElementById('board-host') || document.body;
+                        var dpr  = window.devicePixelRatio || 1;
+
+                        function applyFrame(L,T,S){
+                          // CSS size/position (with !important so app code can’t override)
+                          c.style.setProperty('left',   L+'px', 'important');
+                          c.style.setProperty('top',    T+'px', 'important');
+                          c.style.setProperty('width',  S+'px', 'important');
+                          c.style.setProperty('height', S+'px', 'important');
+
+                          // backing store matches the visual square
+                          var px = Math.max(1, Math.round(S * dpr));
+                          if (c.width  !== px) c.width  = px;
+                          if (c.height !== px) c.height = px;
+
+                          // mirror to wood (and overlay if it exists)
+                          try{
+                            if (window.__SYNC_WOOD) window.__SYNC_WOOD(L,T,S,'pin');
+                            var w = document.getElementById('board-wood');
+                            if (w) {
+                              w.style.setProperty('left',   L+'px', 'important');
+                              w.style.setProperty('top',    T+'px', 'important');
+                              w.style.setProperty('width',  S+'px', 'important');
+                              w.style.setProperty('height', S+'px', 'important');
+                            }
+                            var o = document.getElementById('grid-overlay');
+                            if (o) {
+                              o.style.setProperty('left',   L+'px', 'important');
+                              o.style.setProperty('top',    T+'px', 'important');
+                              o.style.setProperty('width',  S+'px', 'important');
+                              o.style.setProperty('height', S+'px', 'important');
+                            }
+                          }catch(_){}
+                        }
+
+                        function computeFrame(){
+                          // center square with ~18% outer margin so tatami shows
+                          var r = host.getBoundingClientRect();
+                          var M = 0.18;
+                          var availW = r.width  * (1 - 2*M);
+                          var availH = r.height * (1 - 2*M);
+                          var S = Math.floor(Math.min(availW, availH));
+                          var L = Math.floor(r.left + (r.width  - S)/2);
+                          var T = Math.floor(r.top  + (r.height - S)/2);
+                          return {L,T,S};
+                        }
+
+                        function pinLoop(){
+                          try {
+                            var f = computeFrame();
+                            applyFrame(f.L, f.T, f.S);
+                          } catch(_) {}
+                          requestAnimationFrame(pinLoop);
+                        }
+
+                        // run once, then keep pinning
+                        var first = computeFrame(); applyFrame(first.L, first.T, first.S);
+                        if (!window.__PIN_LOOP) { window.__PIN_LOOP = true; requestAnimationFrame(pinLoop); }
+
+                        return {ok:true, status:'PINNING', canvas:c.id||null, host:host.id||'body'};
+                      }catch(e){
+                        return {ok:false, err:String(e && (e.message||e))};
+                      }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(normalizeAndDraw) { r, _ in
+                        print("📐 normalize-and-draw:", r ?? "nil")
+                    }
+                    
+                    // --- CANVAS DEBUG snapshot
+                    let canvasDebug = #"""
+                    (function(){
+                      try{
+                        var c = document.getElementById('board');
+                        if (!(c && c.tagName && c.tagName.toLowerCase()==='canvas')) {
+                          c = document.querySelector('#board canvas') || document.querySelector('canvas');
+                        }
+                        if(!c) return {ok:false, err:'NO_CANVAS'};
+
+                        var r = c.getBoundingClientRect();
+                        var cs = getComputedStyle(c);
+
+                        Object.assign(c.style, {
+                          position:'fixed', zIndex:'99999', opacity:'1', visibility:'visible',
+                          display:'block', background:'transparent', outline:'none', mixBlendMode:'normal'
+                        });
+
+                        var cx = Math.round(r.left + r.width/2);
+                        var cy = Math.round(r.top  + r.height/2);
+                        var topEl = document.elementFromPoint(cx, cy);
+
+                        return {
+                          ok:true,
+                          rect:{x:Math.round(r.left), y:Math.round(r.top), w:Math.round(r.width), h:Math.round(r.height)},
+                          style:{ position: cs.position, zIndex: cs.zIndex, opacity: cs.opacity, display: cs.display, visibility: cs.visibility, background: cs.backgroundColor },
+                          center:{x:cx, y:cy},
+                          topAtCenter: topEl ? { tag: topEl.tagName.toLowerCase(), id: topEl.id||null, cls: topEl.className||null } : null
+                        };
+                      }catch(e){
+                        return {ok:false, err:String(e && (e.message||e))};
+                      }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(canvasDebug) { r, _ in print("🎯 canvas-debug:", r ?? "nil") }
+
+                    // --- TATAMI DIAGNOSTIC ---
+                    let tatamiDiag = #"""
+                    (function(){
+                      try {
+                        function gi(id){ return document.getElementById(id); }
+                        function cs(el){ return getComputedStyle(el); }
+                        function rect(el){ const r=el.getBoundingClientRect(); return {w:Math.round(r.width),h:Math.round(r.height),x:Math.round(r.left),y:Math.round(r.top)}; }
+                        function tag(el){ return {tag:el.tagName.toLowerCase(), id:el.id||null, class:el.className||null}; }
+                        function info(el){ const st=cs(el); const rc=rect(el); return Object.assign(tag(el), rc, { z: st.zIndex||'auto', bgc: st.backgroundColor, bgi: st.backgroundImage }); }
+                        function isDarkOpaque(c){
+                          if (!c || c==='transparent') return false;
+                          if (/black/i.test(c)) return true;
+                          const m=c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+                          if (!m) return false;
+                          const r=+m[1], g=+m[2], b=+m[3], a = (m[4]==null?1:+m[4]);
+                          const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+                          return (lum < 30 && a >= 0.97);
+                        }
+
+                        const out = { ctxPatched: !!CanvasRenderingContext2D.prototype.__fillRectPatched, tatami:null, covers:[], cleared:[] };
+                        const bg = gi('tatami-bg');
+                        out.tatami = bg ? info(bg) : 'MISSING';
+
+                        const vw = innerWidth, vh = innerHeight;
+                        const big = Array.from(document.querySelectorAll('body *')).filter(el=>{
+                          const r = el.getBoundingClientRect();
+                          return r.width >= vw*0.85 && r.height >= vh*0.85;
+                        }).map(info).sort((a,b)=>(parseInt(b.z)||0)-(parseInt(a.z)||0));
+
+                        out.covers = big.slice(0, 10);
+
+                        Array.from(document.body.children).forEach(el=>{
+                          if (el.id === 'tatami-bg' || el.id === 'board' || el.id === 'board-wood') return;
+                          const r = el.getBoundingClientRect();
+                          if (r.width >= vw*0.85 && r.height >= vh*0.85) {
+                            const st = cs(el);
+                            if (isDarkOpaque(st.backgroundColor) || st.backgroundImage !== 'none') {
+                              el.style.setProperty('background', 'transparent', 'important');
+                              el.style.setProperty('background-color', 'transparent', 'important');
+                              el.style.setProperty('box-shadow', 'none', 'important');
+                              out.cleared.push(info(el));
+                            }
+                          }
+                        });
+
+                        return out;
+                      } catch(e) { return {err: String(e && (e.message||e))}; }
+                    })();
+                    """#
+                    webView.evaluateJavaScript(tatamiDiag) { r, _ in
+                        print("🧩 tatami-diag:", r ?? "nil")
+                    }
+                }
+            }
+        } catch {
+            print("❌ couldn’t read app.js:", (error as NSError).localizedDescription)
+        }
+
+        if let last = lastSGF {
+            deliverSGF(text: last.text, filename: last.filename)
+        }
+    }
+
+    // MARK: - File input panel from WKWebView
+
+    func webView(_ webView: WKWebView,
+                 runOpenPanelWith parameters: WKOpenPanelParameters,
+                 initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping ([URL]?) -> Void) {
+
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.canCreateDirectories = false
+        panel.title = "Choose folder or SGF files"
+        panel.prompt = "Choose"
+
+        panel.begin { result in
+            completionHandler(result == .OK ? panel.urls : nil)
+        }
+    }
+
+    // MARK: - Bridge cleanup
+
+    private func detachJSBridge() {
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "native")
+        bridgeInstalled = false
+    }
+
+    deinit {
+        Task { @MainActor [unowned self] in
+            detachJSBridge()
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/ProbeSaver/SleepAssertionManager.swift
+// ========================================================
+
+import Foundation
+
+// This object is internally synchronized with NSLock, so it's safe to mark
+// as Sendable for Swift's concurrency checks.
+final class SleepAssertionManager: @unchecked Sendable {
+    private var activity: NSObjectProtocol?
+    private let lock = NSLock()
+
+    func enable() {
+        lock.lock(); defer { lock.unlock() }
+        guard activity == nil else { return }
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.idleDisplaySleepDisabled, .userInitiated],
+            reason: "Full-screen visual running"
+        )
+    }
+
+    func disable() {
+        lock.lock(); defer { lock.unlock() }
+        guard let token = activity else { return }
+        ProcessInfo.processInfo.endActivity(token)
+        activity = nil
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/ProbeSaver/ProbeSaverMain.swift
+// ========================================================
+
+import AppKit
+import ScreenSaver
+
+class ProbeSaverView: ScreenSaverView {
+
+    override init?(frame: NSRect, isPreview: Bool) {
+        super.init(frame: frame, isPreview: isPreview)
+        animationTimeInterval = 1.0 / 30.0
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        animationTimeInterval = 1.0 / 30.0
+    }
+
+    override func draw(_ rect: NSRect) {
+        NSColor.black.setFill()
+        rect.fill()
+
+        let text = "Hello from ProbeSaver!"
+        let attrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.white,
+            .font: NSFont.systemFont(ofSize: 42, weight: .bold)
+        ]
+        let size = (text as NSString).size(withAttributes: attrs)
+        let point = NSPoint(
+            x: (bounds.width - size.width) / 2,
+            y: (bounds.height - size.height) / 2
+        )
+        (text as NSString).draw(at: point, withAttributes: attrs)
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/ProbeSaver/ProbeSaver.swift
+// ========================================================
+
+import ScreenSaver
+import AppKit
+
+class ProbeSaverView: ScreenSaverView {
+    private let label: CATextLayer = {
+        let l = CATextLayer()
+        l.alignmentMode = .center
+        l.contentsScale = NSScreen.main?.backingScaleFactor ?? 2.0
+        l.font = NSFont.systemFont(ofSize: 72, weight: .bold)
+        l.fontSize = 72
+        l.foregroundColor = NSColor.white.cgColor
+        l.string = "Hello from ProbeSaver!"
+        return l
+    }()
+
+    override init?(frame: NSRect, isPreview: Bool) {
+        super.init(frame: frame, isPreview: isPreview)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.cgColor
+        layer?.addSublayer(label)
+        repositionLabel()
+        animationTimeInterval = 1.0 / 30.0
+    }
+
+    required init?(coder: NSCoder) { super.init(coder: coder) }
+
+    override func draw(_ rect: NSRect) {
+        super.draw(rect)
+    }
+
+    override func animateOneFrame() {
+        super.animateOneFrame()
+    }
+
+    override func resizeSubviews(withOldSize oldSize: NSSize) {
+        super.resizeSubviews(withOldSize: oldSize)
+        repositionLabel()
+    }
+
+    private func repositionLabel() {
+        let textSize = (label.string as? String ?? "").size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: 72, weight: .bold)
+        ])
+        let layerFrame = bounds
+        label.frame = CGRect(
+            x: layerFrame.midX - textSize.width/2,
+            y: layerFrame.midY - textSize.height/2,
+            width: textSize.width,
+            height: textSize.height
+        )
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSaver/ScreenSaver/GoSGFScreenSaver/ProbeSaver.swift
+// ========================================================
+
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/HostScreenSaverView.swift
+// ========================================================
+
+import AppKit
+import ScreenSaver
+
+final class HostScreenSaverView: NSView {
+    private var saver: ScreenSaverView?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        loadSaver()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        loadSaver()
+    }
+
+    private func loadSaver() {
+        // Look for GoSGFScreenSaver.saver inside the host app bundle Resources
+        guard
+            let url = Bundle.main.url(forResource: "GoSGFScreenSaver", withExtension: "saver"),
+            let bundle = Bundle(url: url),
+            let cls = bundle.principalClass as? ScreenSaverView.Type
+        else {
+            NSLog("[SaverHost] Could not locate/instantiate saver bundle.")
+            return
+        }
+
+        let v = cls.init(frame: bounds, isPreview: false)!
+        v.autoresizingMask = [.width, .height]
+        addSubview(v)
+        saver = v
+        v.startAnimation()
+        NSLog("[SaverHost] Saver loaded and started.")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        saver?.startAnimation()
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil { saver?.stopAnimation() }
+        super.viewWillMove(toWindow: newWindow)
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/ScreenSaverWrapper.swift
+// ========================================================
+
+import SwiftUI
+import ScreenSaver
+
+struct ScreenSaverWrapper: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let container = NSView()
+        // Mount the saver view into the container
+        SaverLoader.load(into: container)
+        return container
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Keep the saver view filling the container on resize
+        if let saver = nsView.subviews.first {
+            saver.frame = nsView.bounds
+            saver.autoresizingMask = [.width, .height]
+        }
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: ()) {
+        // Cleanup when SwiftUI removes the view
+        (nsView.subviews.first as? ScreenSaverView)?.stopAnimation()
+        nsView.subviews.forEach { $0.removeFromSuperview() }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/SaverHostApp.swift
+// ========================================================
+
+import SwiftUI
+
+@main
+struct SaverHostApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()   // <- this must be here
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/SaverHostContainer.swift
+// ========================================================
+
+import SwiftUI
+import AppKit
+
+struct SaverHostContainer: NSViewRepresentable {
+    func makeNSView(context: Context) -> HostScreenSaverView {
+        HostScreenSaverView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: HostScreenSaverView, context: Context) {
+        // nothing to update for now
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/SaverLoader.swift
+// ========================================================
+
+import Cocoa
+import ScreenSaver
+
+enum SaverLoader {                      // <- a simple namespace
+    static func load(into containerView: NSView) {
+        guard let saverURL = Bundle.main.url(
+            forResource: "GoSGFScreenSaver",
+            withExtension: "saver",
+            subdirectory: "Screensavers"
+        ) else { print("❌ Saver bundle not found"); return }
+        print("📦 Saver URL:", saverURL.path)
+
+        guard let saverBundle = Bundle(url: saverURL) else {
+            print("❌ Failed to create bundle from URL")
+            return
+        }
+        _ = saverBundle.load()
+
+        guard let cls = saverBundle.principalClass as? ScreenSaverView.Type else {
+            print("❌ Principal class is not a ScreenSaverView (principalClass=\(String(describing: saverBundle.principalClass)))")
+            return
+        }
+        print("✅ Principal class:", cls)
+
+        guard let view = cls.init(frame: containerView.bounds, isPreview: false) else {
+            print("❌ Could not init ScreenSaverView")
+            return
+        }
+        view.autoresizingMask = [.width, .height]
+
+        containerView.subviews.forEach { $0.removeFromSuperview() }
+        containerView.addSubview(view)
+        view.startAnimation()
+        print("🚀 Saver mounted and started")
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/ScreenSaver/SaverHost/ContentView.swift
+// ========================================================
+
+import SwiftUI
+import AppKit
+
+struct ContentView: View {
+    var body: some View {
+        ZStack {
+            Color.gray.opacity(0.15)            // visible background
+            Text("Host is running").padding()   // sanity marker
+            ScreenSaverWrapper()                 // saver on top
+        }
+        .frame(minWidth: 800, minHeight: 600)
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+            if let w = NSApp.windows.first {
+                // Ensure it's a normal, movable window
+                w.styleMask.insert([.titled, .closable, .miniaturizable, .resizable])
+                w.isMovableByWindowBackground = true
+                w.level = .normal
+                w.title = "SaverHost"
+                w.center()
+            }
+            print("✅ ContentView appeared")
+        }
+    }
+}
+
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/HostScreenSaverView.swift
+// ========================================================
+
+import AppKit
+import ScreenSaver
+
+final class HostScreenSaverView: NSView {
+    private var saver: ScreenSaverView?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        loadSaver()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        loadSaver()
+    }
+
+    private func loadSaver() {
+        // Look for GoSGFScreenSaver.saver inside the host app bundle Resources
+        guard
+            let url = Bundle.main.url(forResource: "GoSGFScreenSaver", withExtension: "saver"),
+            let bundle = Bundle(url: url),
+            let cls = bundle.principalClass as? ScreenSaverView.Type
+        else {
+            NSLog("[SaverHost] Could not locate/instantiate saver bundle.")
+            return
+        }
+
+        let v = cls.init(frame: bounds, isPreview: false)!
+        v.autoresizingMask = [.width, .height]
+        addSubview(v)
+        saver = v
+        v.startAnimation()
+        NSLog("[SaverHost] Saver loaded and started.")
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        saver?.startAnimation()
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil { saver?.stopAnimation() }
+        super.viewWillMove(toWindow: newWindow)
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/ScreenSaverWrapper.swift
+// ========================================================
+
+import SwiftUI
+import ScreenSaver
+
+struct ScreenSaverWrapper: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let container = NSView()
+        // Mount the saver view into the container
+        SaverLoader.load(into: container)
+        return container
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Keep the saver view filling the container on resize
+        if let saver = nsView.subviews.first {
+            saver.frame = nsView.bounds
+            saver.autoresizingMask = [.width, .height]
+        }
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: ()) {
+        // Cleanup when SwiftUI removes the view
+        (nsView.subviews.first as? ScreenSaverView)?.stopAnimation()
+        nsView.subviews.forEach { $0.removeFromSuperview() }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/SaverHostApp.swift
+// ========================================================
+
+import SwiftUI
+
+@main
+struct SaverHostApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()   // <- this must be here
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/SaverHostContainer.swift
+// ========================================================
+
+import SwiftUI
+import AppKit
+
+struct SaverHostContainer: NSViewRepresentable {
+    func makeNSView(context: Context) -> HostScreenSaverView {
+        HostScreenSaverView(frame: .zero)
+    }
+
+    func updateNSView(_ nsView: HostScreenSaverView, context: Context) {
+        // nothing to update for now
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/SaverLoader.swift
+// ========================================================
+
+import Cocoa
+import ScreenSaver
+
+enum SaverLoader {                      // <- a simple namespace
+    static func load(into containerView: NSView) {
+        guard let saverURL = Bundle.main.url(
+            forResource: "GoSGFScreenSaver",
+            withExtension: "saver",
+            subdirectory: "Screensavers"
+        ) else { print("❌ Saver bundle not found"); return }
+        print("📦 Saver URL:", saverURL.path)
+
+        guard let saverBundle = Bundle(url: saverURL) else {
+            print("❌ Failed to create bundle from URL")
+            return
+        }
+        _ = saverBundle.load()
+
+        guard let cls = saverBundle.principalClass as? ScreenSaverView.Type else {
+            print("❌ Principal class is not a ScreenSaverView (principalClass=\(String(describing: saverBundle.principalClass)))")
+            return
+        }
+        print("✅ Principal class:", cls)
+
+        guard let view = cls.init(frame: containerView.bounds, isPreview: false) else {
+            print("❌ Could not init ScreenSaverView")
+            return
+        }
+        view.autoresizingMask = [.width, .height]
+
+        containerView.subviews.forEach { $0.removeFromSuperview() }
+        containerView.addSubview(view)
+        view.startAnimation()
+        print("🚀 Saver mounted and started")
+    }
+}
+
+
+// ========================================================
+// FILE: ./Projects/GoSGF/Old versions/Stable Aug 19/ScreenSaver/SaverHost/ContentView.swift
+// ========================================================
+
+import SwiftUI
+import AppKit
+
+struct ContentView: View {
+    var body: some View {
+        ZStack {
+            Color.gray.opacity(0.15)            // visible background
+            Text("Host is running").padding()   // sanity marker
+            ScreenSaverWrapper()                 // saver on top
+        }
+        .frame(minWidth: 800, minHeight: 600)
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+            if let w = NSApp.windows.first {
+                // Ensure it's a normal, movable window
+                w.styleMask.insert([.titled, .closable, .miniaturizable, .resizable])
+                w.isMovableByWindowBackground = true
+                w.level = .normal
+                w.title = "SaverHost"
+                w.center()
+            }
+            print("✅ ContentView appeared")
+        }
+    }
+}
+
+
+
+// ========================================================
+// FILE: ./Desktop/test_byoyomi.swift
+// ========================================================
+
+#!/usr/bin/env swift
+import Foundation
+
+guard CommandLine.arguments.count >= 3 else {
+    print("Usage: swift test_byoyomi.swift <sessionid> <csrftoken>")
+    exit(1)
+}
+
+let session = CommandLine.arguments[1]
+let csrf = CommandLine.arguments[2]
+
+print("\n=== OGS Challenge Test (BYOYOMI - EXACT BROWSER MATCH) ===\n")
+
+let url = URL(string: "https://online-go.com/api/v1/challenges")!
+var request = URLRequest(url: url)
+request.httpMethod = "POST"
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
+
+// EXACT MATCH to your working browser request!
+let challengeData: [String: Any] = [
+    "initialized": false,
+    "min_ranking": -1000,
+    "max_ranking": 1000,
+    "challenger_color": "automatic",
+    "rengo_auto_start": 0,
+    "game": [
+        "name": "Claude Test - Byoyomi",
+        "rules": "japanese",
+        "ranked": false,  // unranked for safety
+        "width": 19,
+        "height": 19,
+        "handicap": -1,
+        "komi_auto": "automatic",
+        "disable_analysis": false,
+        "pause_on_weekends": false,
+        "private": false,
+        "rengo": false,
+        "rengo_casual_mode": true,
+        "time_control": "byoyomi",  // Matching your working request!
+        "time_control_parameters": [
+            "main_time": 300,
+            "period_time": 30,
+            "periods": 5
+        ] as [String: Any]
+    ] as [String: Any]
+]
+
+let jsonData = try! JSONSerialization.data(withJSONObject: challengeData, options: .prettyPrinted)
+request.httpBody = jsonData
+
+let cookieString = "sessionid=\(session); csrftoken=\(csrf)"
+request.setValue(cookieString, forHTTPHeaderField: "Cookie")
+
+print("Request Body:")
+print(String(data: jsonData, encoding: .utf8) ?? "")
+print("\n=== Sending ===\n")
+
+let semaphore = DispatchSemaphore(value: 0)
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    defer { semaphore.signal() }
+    
+    guard let httpResponse = response as? HTTPURLResponse else { return }
+    print("Status: \(httpResponse.statusCode)\n")
+    
+    if let data = data, let str = String(data: data, encoding: .utf8) {
+        print(str)
+    }
+    
+    if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+        print("\n✅ SUCCESS!")
+    }
+}
+task.resume()
+semaphore.wait()
+
+
+// ========================================================
+// FILE: ./Desktop/test_ogs_challenge_fixed.swift
+// ========================================================
+
+#!/usr/bin/env swift
+
+import Foundation
+
+// Usage: swift test_ogs_challenge_fixed.swift <sessionid> <csrftoken>
+
+guard CommandLine.arguments.count >= 3 else {
+    print("Usage: swift test_ogs_challenge_fixed.swift <sessionid> <csrftoken>")
+    exit(1)
+}
+
+let session = CommandLine.arguments[1]
+let csrf = CommandLine.arguments[2]
+
+print("\n=== OGS Challenge Creation Test (FIXED) ===\n")
+print("Using cookies from command line arguments\n")
+print("✓ Authentication cookies provided")
+print("  - sessionid: \(session.prefix(20))...")
+print("  - csrftoken: \(csrf.prefix(20))...\n")
+
+// Create the challenge
+let url = URL(string: "https://online-go.com/api/v1/challenges")!
+var request = URLRequest(url: url)
+request.httpMethod = "POST"
+
+// Set headers
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
+
+print("=== Building Challenge Request ===")
+
+// Time control parameters as dictionary
+let timeControlParams: [String: Any] = [
+    "initial_time": 300,  // 5 minutes
+    "time_increment": 30,
+    "max_time": 600
+]
+
+// Convert to JSON string (OGS expects string not object!)
+let timeControlJsonData = try! JSONSerialization.data(withJSONObject: timeControlParams)
+let timeControlString = String(data: timeControlJsonData, encoding: .utf8)!
+
+print("Time control parameters (as JSON string): \(timeControlString)\n")
+
+// Build the challenge - FIXED STRUCTURE
+let challengeData: [String: Any] = [
+    // Top-level fields (FIXED: challenger_color moved here!)
+    "min_ranking": -1000,
+    "max_ranking": 1000,
+    "challenger_color": "automatic",
+
+    // Game object
+    "game": [
+        "name": "Claude Test Game - Fixed v2",
+        "rules": "japanese",
+        "ranked": false,
+        "width": 19,
+        "height": 19,
+        "handicap": 0,
+        "komi": "automatic",  // FIXED: Changed from komi_auto to komi
+        "disable_analysis": false,
+        "private": false,
+        "pause_on_weekends": false,
+        "time_control": "fischer",
+        "time_control_parameters": timeControlString  // JSON string
+    ] as [String: Any]
+]
+
+// Serialize to JSON
+let jsonData = try! JSONSerialization.data(withJSONObject: challengeData, options: .prettyPrinted)
+request.httpBody = jsonData
+
+// Manual cookie injection (required for authentication)
+let cookieString = "sessionid=\(session); csrftoken=\(csrf)"
+request.setValue(cookieString, forHTTPHeaderField: "Cookie")
+
+// Print request details
+print("=== Request Details ===")
+print("URL: \(url)")
+print("Method: POST\n")
+print("Headers:")
+for (key, value) in request.allHTTPHeaderFields ?? [:] {
+    if key == "Cookie" || key == "X-CSRFToken" {
+        print("  \(key): \(String(value.prefix(20)))...")
+    } else {
+        print("  \(key): \(value)")
+    }
+}
+
+print("\nRequest Body:")
+print(String(data: jsonData, encoding: .utf8) ?? "Unable to print body")
+
+print("\n=== Sending Request ===\n")
+
+// Create semaphore for synchronous execution
+let semaphore = DispatchSemaphore(value: 0)
+
+// Send the request
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    defer { semaphore.signal() }
+
+    print("=== Response ===")
+
+    if let error = error {
+        print("❌ Network Error: \(error.localizedDescription)")
+        return
+    }
+
+    guard let httpResponse = response as? HTTPURLResponse else {
+        print("❌ Invalid response type")
+        return
+    }
+
+    print("Status Code: \(httpResponse.statusCode)\n")
+
+    // Print response headers
+    print("Response Headers:")
+    for (key, value) in httpResponse.allHeaderFields {
+        print("  \(key): \(value)")
+    }
+
+    // Print response body
+    if let data = data {
+        print("\nResponse Body (\(data.count) bytes):\n")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print(responseString)
+        } else {
+            print("Unable to decode response as UTF-8")
+        }
+    } else {
+        print("\nNo response body")
+    }
+
+    // Interpret result
+    print("\n")
+    switch httpResponse.statusCode {
+    case 200, 201:
+        print("✅ Success! Challenge created")
+        if let data = data,
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let gameId = json["id"] as? Int {
+            print("   Challenge ID: \(gameId)")
+            print("   View at: https://online-go.com/game/\(gameId)")
+        }
+    case 400:
+        print("❌ Bad Request: The server rejected the request format")
+    case 401:
+        print("❌ Unauthorized: Authentication failed")
+    case 500:
+        print("❌ Server Error 500: The server encountered an error processing the request")
+    default:
+        print("❌ Unexpected status code: \(httpResponse.statusCode)")
+    }
+}
+
+task.resume()
+semaphore.wait()
+
+print("\n=== Test Complete ===")
+
+
+// ========================================================
+// FILE: ./Desktop/test_ogs_challenge.swift
+// ========================================================
+
+#!/usr/bin/env swift
+
+import Foundation
+
+// Simple test script to create an OGS challenge
+// This isolates the API call from the UI to debug the HTTP 500 error
+
+print("=== OGS Challenge Creation Test ===\n")
+
+// Get cookies from command line arguments or environment
+var sessionId: String? = ProcessInfo.processInfo.environment["OGS_SESSION"]
+var csrfToken: String? = ProcessInfo.processInfo.environment["OGS_CSRF"]
+
+// If not in environment, check command line args
+if CommandLine.arguments.count >= 3 {
+    sessionId = CommandLine.arguments[1]
+    csrfToken = CommandLine.arguments[2]
+    print("Using cookies from command line arguments")
+} else if sessionId != nil && csrfToken != nil {
+    print("Using cookies from environment variables")
+} else {
+    // Try to get from shared cookie storage (may not work from command line)
+    let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) ?? []
+    print("Found \(cookies.count) cookies for online-go.com in shared storage")
+
+    for cookie in cookies {
+        print("  - \(cookie.name): \(cookie.value.prefix(20))...")
+        if cookie.name == "sessionid" {
+            sessionId = cookie.value
+        } else if cookie.name == "csrftoken" {
+            csrfToken = cookie.value
+        }
+    }
+}
+
+guard let csrf = csrfToken, let session = sessionId else {
+    print("\n❌ ERROR: Missing authentication cookies")
+    print("   - sessionid: \(sessionId != nil ? "✓" : "✗")")
+    print("   - csrftoken: \(csrfToken != nil ? "✓" : "✗")")
+    print("\nUsage:")
+    print("  swift test_ogs_challenge.swift <sessionid> <csrftoken>")
+    print("  OR set environment variables:")
+    print("  export OGS_SESSION=your_session_id")
+    print("  export OGS_CSRF=your_csrf_token")
+    exit(1)
+}
+
+print("\n✓ Authentication cookies provided")
+print("  - sessionid: \(session.prefix(20))...")
+print("  - csrftoken: \(csrf.prefix(20))...")
+
+// Build the challenge request using the FIXED format from web UI's commit
+print("\n=== Building Challenge Request ===")
+
+// Time control parameters as a dictionary first
+let timeControlParams: [String: Any] = [
+    "initial_time": 300,  // 5 minutes
+    "time_increment": 30,
+    "max_time": 600
+]
+
+// Convert to JSON string (OGS expects a string, not an object!)
+let timeControlJsonData = try! JSONSerialization.data(withJSONObject: timeControlParams)
+let timeControlString = String(data: timeControlJsonData, encoding: .utf8)!
+
+print("Time control parameters (as JSON string): \(timeControlString)")
+
+// Build the full challenge object
+let challengeData: [String: Any] = [
+    "initialized": false,
+    "min_ranking": -1000,
+    "max_ranking": 1000,
+    "game": [
+        "name": "Claude Test Game",
+        "rules": "japanese",
+        "ranked": false,
+        "width": 19,
+        "height": 19,
+        "handicap": 0,
+        "komi_auto": "automatic",  // Changed to "automatic" as per web UI fix
+        "disable_analysis": false,
+        "initial_state": nil as String?,
+        "private": false,
+        "rengo": false,
+        "rengo_auto_start": 0,
+        "time_control": "fischer",  // Only here, not in time_control_parameters
+        "time_control_parameters": timeControlString,  // JSON string, not object!
+        "pause_on_weekends": false,
+        "challenger_color": "automatic"
+    ] as [String: Any]
+]
+
+// Create the request
+var request = URLRequest(url: URL(string: "https://online-go.com/api/v1/challenges")!)
+request.httpMethod = "POST"
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
+
+// Manually add cookies to the request (they won't be sent automatically from command line)
+let cookieString = "sessionid=\(session); csrftoken=\(csrf)"
+request.setValue(cookieString, forHTTPHeaderField: "Cookie")
+
+// Serialize the body
+let jsonData = try! JSONSerialization.data(withJSONObject: challengeData, options: .prettyPrinted)
+request.httpBody = jsonData
+
+// Print the request for debugging
+print("\n=== Request Details ===")
+print("URL: \(request.url!)")
+print("Method: \(request.httpMethod!)")
+print("\nHeaders:")
+for (key, value) in request.allHTTPHeaderFields ?? [:] {
+    if key == "X-CSRFToken" {
+        print("  \(key): \(value.prefix(20))...")
+    } else {
+        print("  \(key): \(value)")
+    }
+}
+
+print("\nRequest Body:")
+print(String(data: jsonData, encoding: .utf8)!)
+
+// Send the request
+print("\n=== Sending Request ===")
+let semaphore = DispatchSemaphore(value: 0)
+
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    defer { semaphore.signal() }
+
+    if let error = error {
+        print("\n❌ ERROR: \(error.localizedDescription)")
+        return
+    }
+
+    guard let httpResponse = response as? HTTPURLResponse else {
+        print("\n❌ ERROR: No HTTP response")
+        return
+    }
+
+    print("\n=== Response ===")
+    print("Status Code: \(httpResponse.statusCode)")
+    print("\nResponse Headers:")
+    for (key, value) in httpResponse.allHeaderFields {
+        print("  \(key): \(value)")
+    }
+
+    if let data = data {
+        print("\nResponse Body (\(data.count) bytes):")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print(responseString)
+        } else {
+            print("(binary data)")
+        }
+
+        // Try to parse as JSON
+        if let json = try? JSONSerialization.jsonObject(with: data) {
+            print("\nParsed JSON:")
+            if let prettyData = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                print(prettyString)
+            }
+        }
+    } else {
+        print("\nNo response body")
+    }
+
+    // Status code interpretation
+    if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+        print("\n✅ SUCCESS: Challenge created!")
+    } else if httpResponse.statusCode == 500 {
+        print("\n❌ Server Error 500: The server encountered an error processing the request")
+    } else if httpResponse.statusCode == 400 {
+        print("\n❌ Bad Request 400: The request format was invalid")
+    } else if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+        print("\n❌ Authentication Error: Not logged in or permission denied")
+    } else {
+        print("\n⚠️  Unexpected status code: \(httpResponse.statusCode)")
+    }
+}
+
+task.resume()
+semaphore.wait()
+
+print("\n=== Test Complete ===")
+
+
+// ========================================================
+// FILE: ./Desktop/SGF Screen Saver/GoSGFSaverHost/Shared/SharedViewer.swift
+// ========================================================
+
+import Cocoa
+import WebKit
+
+// MARK: - Shared utilities used by both the App host and the ScreenSaver
+
+public enum SharedViewer {
+
+  /// Enable the Web Inspector (right-click → Inspect Element) when DEBUG.
+  public static func enableInspectorIfNeeded() {
+    #if DEBUG
+    UserDefaults.standard.set(true, forKey: "WebKitDeveloperExtras")
+    #endif
+  }
+
+  /// Try to find `viewer.html` in this order:
+  /// 1) ~/Go/SGFViewer/viewer.html  (external canonical folder)
+  /// 2) Bundle subfolder “SGFViewer/viewer.html” (blue folder reference)
+  /// 3) Bundle root “viewer.html” (legacy)
+  ///
+  /// Returns (fileURL, readAccessURL) if found.
+  public static func resolveViewerHTML(in bundle: Bundle = .main) -> (file: URL, readAccess: URL)? {
+    let fm = FileManager.default
+
+    // 1) External canonical folder in the user's home directory
+    let home = fm.homeDirectoryForCurrentUser
+    let externalFolder = home.appendingPathComponent("Go/SGFViewer", isDirectory: true)
+    let externalViewer  = externalFolder.appendingPathComponent("viewer.html")
+    if fm.fileExists(atPath: externalViewer.path) {
+      return (externalViewer, externalFolder)
+    }
+
+    // 2) Bundled folder reference (a blue folder named "SGFViewer" in Xcode)
+    if let folder = bundle.url(forResource: "SGFViewer", withExtension: nil),
+       let viewer = bundle.url(forResource: "viewer", withExtension: "html", subdirectory: "SGFViewer") {
+      return (viewer, folder)
+    }
+
+    // 3) Legacy fallback: viewer.html at bundle root
+    if let legacy = bundle.url(forResource: "viewer", withExtension: "html") {
+      return (legacy, legacy.deletingLastPathComponent())
+    }
+
+    return nil
+  }
+
+  /// Load `viewer.html` into the given WKWebView using file URL + read access.
+  /// Runs on the main actor to avoid black-screen issues.
+  @MainActor
+  public static func loadViewerHTML(into webView: WKWebView, bundle: Bundle = .main) {
+    // Identify which bundle we’re in (handy in the ScreenSaver)
+    let bundleID = bundle.bundleIdentifier ?? "(no bundle id)"
+    print("SSV ▶️ loadViewerHTML: bundleID=\(bundleID)")
+
+    guard let (file, access) = resolveViewerHTML(in: bundle) else {
+      print("SSV ❌ viewer.html not found in external folder or bundle")
+      debugBundleDump(bundle)
+      return
+    }
+
+    print("SSV 📄 Loading viewer.html from: \(file.path)")
+    print("SSV 🔓 Read access root:      \(access.path)")
+    webView.loadFileURL(file, allowingReadAccessTo: access)
+  }
+
+  /// Send an array of SGFs to the page’s JS: __nativeProvideSGFs([{name, content}, ...])
+  @MainActor
+  public static func postNativeFiles(_ files: [(name: String, content: String)], to webView: WKWebView) {
+    let payload = files.map { ["name": $0.name, "content": $0.content] }
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
+          let json = String(data: data, encoding: .utf8) else {
+      print("SSV ❌ Failed to encode SGF payload")
+      return
+    }
+
+    let js = "__nativeProvideSGFs(\(json))"
+    webView.evaluateJavaScript(js) { _, err in
+      if let err = err {
+        print("SSV ❌ Failed to deliver SGFs to page:", err.localizedDescription)
+      } else {
+        print("SSV 📤 Delivered \(files.count) SGF file(s) to page")
+      }
+    }
+  }
+
+  /// Helpful diagnostics if viewer.html isn't found.
+  private static func debugBundleDump(_ bundle: Bundle) {
+    let paths = [
+      bundle.bundlePath,
+      bundle.resourcePath ?? "(no resourcePath)",
+      (bundle.url(forResource: "SGFViewer", withExtension: nil)?.path ?? "(no SGFViewer folder)")
+    ]
+    print("SSV 🧭 Bundle paths:\n  " + paths.joined(separator: "\n  "))
+    let fm = FileManager.default
+    if let res = bundle.resourcePath,
+       let items = try? fm.contentsOfDirectory(atPath: res).sorted() {
+      print("SSV 📦 Bundle root contents (first 40):")
+      for name in items.prefix(40) { print("   • \(name)") }
+    }
+  }
+}
+
+// MARK: - Shared WKScriptMessage handler / delegate
+
+/// A thin coordinator you can reuse in the App host and ScreenSaver.
+/// Provide closures for the actions you need (e.g., pickFolder, toggleFullscreen).
+public class SharedViewerCoordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+
+  /// Called when JS posts `{action:'pickFolder'}`
+  public var onPickFolder: ((_ webView: WKWebView) -> Void)?
+
+  /// Called when JS posts `{action:'toggleFullscreen'}`
+  public var onToggleFullscreen: ((_ webView: WKWebView) -> Void)?
+
+  public override init() { super.init() }
+
+  // MARK: WKScriptMessageHandler
+  public func userContentController(_ userContentController: WKUserContentController,
+                                    didReceive message: WKScriptMessage) {
+    guard message.name == "native",
+          let dict = message.body as? [String: Any],
+          let action = dict["action"] as? String,
+          let webView = message.webView
+    else { return }
+
+    switch action {
+    case "pickFolder":
+      onPickFolder?(webView)
+    case "toggleFullscreen":
+      onToggleFullscreen?(webView)
+    default:
+      break
+    }
+  }
+
+  // MARK: WKNavigationDelegate (optional diagnostics)
+  public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    print("SSV ✅ WKWebView didFinish")
+  }
+  public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+    print("SSV ❌ WKWebView didFail:", error.localizedDescription)
+  }
+  public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+    print("SSV ❌ WKWebView provisional fail:", error.localizedDescription)
+  }
+}
+
+// MARK: - Small conveniences
+
+public extension WKWebView {
+  /// Make the web view transparent and (when available) debuggable from Safari.
+  func prepareForViewer() {
+    setValue(false, forKey: "drawsBackground")
+    if #available(macOS 13.0, *) {
+      self.isInspectable = true
+    }
+  }
+}
+
+
+// ========================================================
+// FILE: ./Desktop/SGF Screen Saver/GoSGFSaverHost/GoSGFSaverHost/NativeBridge.swift
+// ========================================================
+
+import Foundation
+import WebKit
+import AppKit
+
+/// Handles messages from JS: window.webkit.messageHandlers.native.postMessage({...})
+final class NativeBridge: NSObject, WKScriptMessageHandler {
+    private weak var webView: WKWebView?
+
+    func attach(_ webView: WKWebView) {
+        self.webView = webView
+    }
+
+    // Receive messages from JS
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        guard message.name == "native" else { return }
+        guard let body = message.body as? [String: Any],
+              let action = body["action"] as? String else { return }
+
+        switch action {
+        case "toggleFullscreen":
+            toggleFullscreen()
+        case "pickFolder":
+            pickFolderAndSendSGFs()
+        default:
+            break
+        }
+    }
+
+    // MARK: - Fullscreen (host window)
+    private func toggleFullscreen() {
+        DispatchQueue.main.async {
+            NSApp.keyWindow?.toggleFullScreen(nil)
+        }
+    }
+
+    // MARK: - Folder picker and SGF loader
+    private func pickFolderAndSendSGFs() {
+        DispatchQueue.main.async {
+            let panel = NSOpenPanel()
+            panel.title = "Choose a folder of SGF files"
+            panel.prompt = "Open"
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.canCreateDirectories = false
+            panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
+
+            panel.begin { [weak self] result in
+                guard result == .OK, let folderURL = panel.url else {
+                    self?.sendSGFsToWeb([])
+                    return
+                }
+                let sgfs = self?.collectSGFs(recursiveFrom: folderURL) ?? []
+                self?.sendSGFsToWeb(sgfs)
+            }
+        }
+    }
+
+    private func collectSGFs(recursiveFrom root: URL) -> [[String: String]] {
+        var results: [[String: String]] = []
+        let fm = FileManager.default
+        if let enumerator = fm.enumerator(at: root, includingPropertiesForKeys: nil) {
+            for case let url as URL in enumerator {
+                if url.pathExtension.lowercased() == "sgf" {
+                    if let txt = try? String(contentsOf: url, encoding: .utf8) {
+                        results.append([
+                            "name": url.lastPathComponent,
+                            "content": txt
+                        ])
+                    }
+                }
+            }
+        }
+        return results
+    }
+
+    // Send array of {name, content} to JS: window.__nativeProvideSGFs(arr)
+    private func sendSGFsToWeb(_ files: [[String: String]]) {
+        guard let webView = webView else { return }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: files, options: [])
+            let json = String(data: data, encoding: .utf8) ?? "[]"
+            let js = "window.__nativeProvideSGFs(\(json));"
+            DispatchQueue.main.async {
+                webView.evaluateJavaScript(js) { _, error in
+                    if let error = error {
+                        print("❌ JS eval error: \(error)")
+                    } else {
+                        print("✅ Sent \(files.count) SGFs to web")
+                    }
+                }
+            }
+        } catch {
+            print("❌ JSON encode error:", error)
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Desktop/SGF Screen Saver/GoSGFSaverHost/GoSGFSaverHost/GoSGFSaverHostApp.swift
+// ========================================================
+
+import SwiftUI
+
+@main
+struct GoSGFSaverHostApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .frame(minWidth: 1000, minHeight: 700)
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Desktop/SGF Screen Saver/GoSGFSaverHost/GoSGFSaverHost/ContentView.swift
+// ========================================================
+
+import SwiftUI
+import WebKit
+
+struct ContentView: NSViewRepresentable {
+
+    func makeNSView(context: Context) -> WKWebView {
+        // Enable Web Inspector in DEBUG (right-click → Inspect Element)
+        SharedViewer.enableInspectorIfNeeded()
+
+        // Build a WKWebView + message channel "native"
+        let config = WKWebViewConfiguration()
+        let controller = WKUserContentController()
+        controller.add(context.coordinator, name: "native")
+        config.userContentController = controller
+
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
+        webView.prepareForViewer() // transparent + (macOS 13+) isInspectable
+
+        // Wire coordinator closures for messages from JS
+        context.coordinator.onToggleFullscreen = { webView in
+            webView.window?.toggleFullScreen(nil)
+        }
+        context.coordinator.onPickFolder = { [weak coord = context.coordinator] webView in
+            coord?.pickFolderAndSendSGFs(to: webView)
+        }
+
+        // Load viewer.html (external → bundled folder → legacy root)
+        SharedViewer.loadViewerHTML(into: webView, bundle: .main)
+        return webView
+    }
+
+    func updateNSView(_ nsView: WKWebView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    // Use the shared coordinator base to handle the "native" bridge
+    final class Coordinator: SharedViewerCoordinator {
+
+        /// Open a folder, collect *.sgf files, and send them to the page via __nativeProvideSGFs(...)
+        func pickFolderAndSendSGFs(to webView: WKWebView) {
+            let panel = NSOpenPanel()
+            panel.allowsMultipleSelection = false
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.prompt = "Choose"
+
+            panel.begin { resp in
+                guard resp == .OK, let folderURL = panel.urls.first else { return }
+
+                DispatchQueue.global(qos: .userInitiated).async {
+                    var files: [(name: String, content: String)] = []
+
+                    if let enumerator = FileManager.default.enumerator(at: folderURL, includingPropertiesForKeys: nil) {
+                        for case let fileURL as URL in enumerator {
+                            guard fileURL.pathExtension.lowercased() == "sgf" else { continue }
+                            if let data = try? Data(contentsOf: fileURL),
+                               let text = String(data: data, encoding: .utf8) {
+                                files.append((name: fileURL.lastPathComponent, content: text))
+                            }
+                        }
+                    }
+
+                    DispatchQueue.main.async {
+                        SharedViewer.postNativeFiles(files, to: webView)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+// ========================================================
+// FILE: ./Desktop/SGFPlayer3D_Build/Build/Intermediates.noindex/SGFPlayer3D.build/Debug/SGFPlayer3D.build/DerivedSources/GeneratedAssetSymbols.swift
+// ========================================================
+
+import Foundation
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+#if canImport(DeveloperToolsSupport)
+import DeveloperToolsSupport
+#endif
+
+#if SWIFT_PACKAGE
+private let resourceBundle = Foundation.Bundle.module
+#else
+private class ResourceBundleClass {}
+private let resourceBundle = Foundation.Bundle(for: ResourceBundleClass.self)
+#endif
+
+// MARK: - Color Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ColorResource {
+
+}
+
+// MARK: - Image Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ImageResource {
+
+    /// The "board_kaya" asset catalog image resource.
+    static let boardKaya = DeveloperToolsSupport.ImageResource(name: "board_kaya", bundle: resourceBundle)
+
+    /// The "clamNH_01" asset catalog image resource.
+    static let clamNH01 = DeveloperToolsSupport.ImageResource(name: "clamNH_01", bundle: resourceBundle)
+
+    /// The "clamNH_02" asset catalog image resource.
+    static let clamNH02 = DeveloperToolsSupport.ImageResource(name: "clamNH_02", bundle: resourceBundle)
+
+    /// The "clamNH_03" asset catalog image resource.
+    static let clamNH03 = DeveloperToolsSupport.ImageResource(name: "clamNH_03", bundle: resourceBundle)
+
+    /// The "clamNH_04" asset catalog image resource.
+    static let clamNH04 = DeveloperToolsSupport.ImageResource(name: "clamNH_04", bundle: resourceBundle)
+
+    /// The "clamNH_05" asset catalog image resource.
+    static let clamNH05 = DeveloperToolsSupport.ImageResource(name: "clamNH_05", bundle: resourceBundle)
+
+    /// The "clamNH_06" asset catalog image resource.
+    static let clamNH06 = DeveloperToolsSupport.ImageResource(name: "clamNH_06", bundle: resourceBundle)
+
+    /// The "clam_01" asset catalog image resource.
+    static let clam01 = DeveloperToolsSupport.ImageResource(name: "clam_01", bundle: resourceBundle)
+
+    /// The "clam_02" asset catalog image resource.
+    static let clam02 = DeveloperToolsSupport.ImageResource(name: "clam_02", bundle: resourceBundle)
+
+    /// The "clam_03" asset catalog image resource.
+    static let clam03 = DeveloperToolsSupport.ImageResource(name: "clam_03", bundle: resourceBundle)
+
+    /// The "clam_04" asset catalog image resource.
+    static let clam04 = DeveloperToolsSupport.ImageResource(name: "clam_04", bundle: resourceBundle)
+
+    /// The "clam_05" asset catalog image resource.
+    static let clam05 = DeveloperToolsSupport.ImageResource(name: "clam_05", bundle: resourceBundle)
+
+    /// The "go_lid_1" asset catalog image resource.
+    static let goLid1 = DeveloperToolsSupport.ImageResource(name: "go_lid_1", bundle: resourceBundle)
+
+    /// The "go_lid_2" asset catalog image resource.
+    static let goLid2 = DeveloperToolsSupport.ImageResource(name: "go_lid_2", bundle: resourceBundle)
+
+    /// The "squareclam_01" asset catalog image resource.
+    static let squareclam01 = DeveloperToolsSupport.ImageResource(name: "squareclam_01", bundle: resourceBundle)
+
+    /// The "stone_black" asset catalog image resource.
+    static let stoneBlack = DeveloperToolsSupport.ImageResource(name: "stone_black", bundle: resourceBundle)
+
+    /// The "stone_blackNH" asset catalog image resource.
+    static let stoneBlackNH = DeveloperToolsSupport.ImageResource(name: "stone_blackNH", bundle: resourceBundle)
+
+    /// The "tatami" asset catalog image resource.
+    static let tatami = DeveloperToolsSupport.ImageResource(name: "tatami", bundle: resourceBundle)
+
+    /// The "test_grid" asset catalog image resource.
+    static let testGrid = DeveloperToolsSupport.ImageResource(name: "test_grid", bundle: resourceBundle)
+
+}
+
+// MARK: - Color Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSColor {
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+}
+#endif
+
+// MARK: - Image Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+// MARK: - Thinnable Asset Support -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ColorResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if AppKit.NSColor(named: NSColor.Name(thinnableName), bundle: bundle) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIColor(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+#endif
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ImageResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if bundle.image(forResource: NSImage.Name(thinnableName)) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIImage(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !targetEnvironment(macCatalyst)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+
+
+// ========================================================
+// FILE: ./Desktop/test_browser_format.swift
+// ========================================================
+
+#!/usr/bin/env swift
+
+import Foundation
+
+guard CommandLine.arguments.count >= 3 else {
+    print("Usage: swift test_browser_format.swift <sessionid> <csrftoken>")
+    exit(1)
+}
+
+let session = CommandLine.arguments[1]
+let csrf = CommandLine.arguments[2]
+
+print("\n=== OGS Challenge Test (BROWSER FORMAT) ===\n")
+
+let url = URL(string: "https://online-go.com/api/v1/challenges")!
+var request = URLRequest(url: url)
+request.httpMethod = "POST"
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Referer")
+request.setValue("https://online-go.com", forHTTPHeaderField: "Origin")
+
+// EXACT BROWSER FORMAT - matching your working request!
+let challengeData: [String: Any] = [
+    "initialized": false,
+    "min_ranking": -1000,
+    "max_ranking": 1000,
+    "challenger_color": "automatic",
+    "rengo_auto_start": 0,
+    "game": [
+        "name": "Claude Test - Browser Format",
+        "rules": "japanese",
+        "ranked": false,
+        "width": 19,
+        "height": 19,
+        "handicap": -1,  // -1 for automatic!
+        "komi_auto": "automatic",  // komi_auto not komi!
+        "disable_analysis": false,
+        "initial_state": nil as String?,
+        "pause_on_weekends": false,
+        "private": false,
+        "rengo": false,
+        "rengo_casual_mode": true,
+        "time_control": "fischer",
+        "time_control_parameters": [  // OBJECT not string!
+            "main_time": 300,  // main_time not initial_time!
+            "time_increment": 30,
+            "max_time": 600
+        ] as [String: Any]
+    ] as [String: Any]
+]
+
+let jsonData = try! JSONSerialization.data(withJSONObject: challengeData, options: .prettyPrinted)
+request.httpBody = jsonData
+
+let cookieString = "sessionid=\(session); csrftoken=\(csrf)"
+request.setValue(cookieString, forHTTPHeaderField: "Cookie")
+
+print("Request Body:")
+print(String(data: jsonData, encoding: .utf8) ?? "")
+print("\n=== Sending ===\n")
+
+let semaphore = DispatchSemaphore(value: 0)
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    defer { semaphore.signal() }
+    
+    guard let httpResponse = response as? HTTPURLResponse else { return }
+    print("Status: \(httpResponse.statusCode)\n")
+    
+    if let data = data, let str = String(data: data, encoding: .utf8) {
+        print(str)
+    }
+    
+    if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
+        print("\n✅ SUCCESS!")
+    }
+}
+task.resume()
+semaphore.wait()
+
+
+// ========================================================
+// FILE: ./Library/Developer/Xcode/DerivedData/SGFPlayer3D-bcsalgdjhsuvmnefuakeimnbtbqp/Index.noindex/Build/Intermediates.noindex/SGFPlayer3D.build/Debug/SGFPlayer3D.build/DerivedSources/GeneratedAssetSymbols.swift
+// ========================================================
+
+import Foundation
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+#if canImport(DeveloperToolsSupport)
+import DeveloperToolsSupport
+#endif
+
+#if SWIFT_PACKAGE
+private let resourceBundle = Foundation.Bundle.module
+#else
+private class ResourceBundleClass {}
+private let resourceBundle = Foundation.Bundle(for: ResourceBundleClass.self)
+#endif
+
+// MARK: - Color Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ColorResource {
+
+}
+
+// MARK: - Image Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ImageResource {
+
+    /// The "board_kaya" asset catalog image resource.
+    static let boardKaya = DeveloperToolsSupport.ImageResource(name: "board_kaya", bundle: resourceBundle)
+
+    /// The "clamNH_01" asset catalog image resource.
+    static let clamNH01 = DeveloperToolsSupport.ImageResource(name: "clamNH_01", bundle: resourceBundle)
+
+    /// The "clamNH_02" asset catalog image resource.
+    static let clamNH02 = DeveloperToolsSupport.ImageResource(name: "clamNH_02", bundle: resourceBundle)
+
+    /// The "clamNH_03" asset catalog image resource.
+    static let clamNH03 = DeveloperToolsSupport.ImageResource(name: "clamNH_03", bundle: resourceBundle)
+
+    /// The "clamNH_04" asset catalog image resource.
+    static let clamNH04 = DeveloperToolsSupport.ImageResource(name: "clamNH_04", bundle: resourceBundle)
+
+    /// The "clamNH_05" asset catalog image resource.
+    static let clamNH05 = DeveloperToolsSupport.ImageResource(name: "clamNH_05", bundle: resourceBundle)
+
+    /// The "clamNH_06" asset catalog image resource.
+    static let clamNH06 = DeveloperToolsSupport.ImageResource(name: "clamNH_06", bundle: resourceBundle)
+
+    /// The "clam_01" asset catalog image resource.
+    static let clam01 = DeveloperToolsSupport.ImageResource(name: "clam_01", bundle: resourceBundle)
+
+    /// The "clam_02" asset catalog image resource.
+    static let clam02 = DeveloperToolsSupport.ImageResource(name: "clam_02", bundle: resourceBundle)
+
+    /// The "clam_03" asset catalog image resource.
+    static let clam03 = DeveloperToolsSupport.ImageResource(name: "clam_03", bundle: resourceBundle)
+
+    /// The "clam_04" asset catalog image resource.
+    static let clam04 = DeveloperToolsSupport.ImageResource(name: "clam_04", bundle: resourceBundle)
+
+    /// The "clam_05" asset catalog image resource.
+    static let clam05 = DeveloperToolsSupport.ImageResource(name: "clam_05", bundle: resourceBundle)
+
+    /// The "go_lid_1" asset catalog image resource.
+    static let goLid1 = DeveloperToolsSupport.ImageResource(name: "go_lid_1", bundle: resourceBundle)
+
+    /// The "go_lid_2" asset catalog image resource.
+    static let goLid2 = DeveloperToolsSupport.ImageResource(name: "go_lid_2", bundle: resourceBundle)
+
+    /// The "squareclam_01" asset catalog image resource.
+    static let squareclam01 = DeveloperToolsSupport.ImageResource(name: "squareclam_01", bundle: resourceBundle)
+
+    /// The "stone_black" asset catalog image resource.
+    static let stoneBlack = DeveloperToolsSupport.ImageResource(name: "stone_black", bundle: resourceBundle)
+
+    /// The "stone_blackNH" asset catalog image resource.
+    static let stoneBlackNH = DeveloperToolsSupport.ImageResource(name: "stone_blackNH", bundle: resourceBundle)
+
+    /// The "tatami" asset catalog image resource.
+    static let tatami = DeveloperToolsSupport.ImageResource(name: "tatami", bundle: resourceBundle)
+
+    /// The "test_grid" asset catalog image resource.
+    static let testGrid = DeveloperToolsSupport.ImageResource(name: "test_grid", bundle: resourceBundle)
+
+}
+
+// MARK: - Color Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSColor {
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+}
+#endif
+
+// MARK: - Image Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+// MARK: - Thinnable Asset Support -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ColorResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if AppKit.NSColor(named: NSColor.Name(thinnableName), bundle: bundle) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIColor(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+#endif
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ImageResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if bundle.image(forResource: NSImage.Name(thinnableName)) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIImage(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !targetEnvironment(macCatalyst)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+
+
+// ========================================================
+// FILE: ./Library/Developer/Xcode/DerivedData/SGFPlayer3D-bcsalgdjhsuvmnefuakeimnbtbqp/Build/Intermediates.noindex/SGFPlayer3D.build/Release/SGFPlayer3D.build/DerivedSources/GeneratedAssetSymbols.swift
+// ========================================================
+
+import Foundation
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(SwiftUI)
+import SwiftUI
+#endif
+#if canImport(DeveloperToolsSupport)
+import DeveloperToolsSupport
+#endif
+
+#if SWIFT_PACKAGE
+private let resourceBundle = Foundation.Bundle.module
+#else
+private class ResourceBundleClass {}
+private let resourceBundle = Foundation.Bundle(for: ResourceBundleClass.self)
+#endif
+
+// MARK: - Color Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ColorResource {
+
+}
+
+// MARK: - Image Symbols -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension DeveloperToolsSupport.ImageResource {
+
+    /// The "board_kaya" asset catalog image resource.
+    static let boardKaya = DeveloperToolsSupport.ImageResource(name: "board_kaya", bundle: resourceBundle)
+
+    /// The "clamNH_01" asset catalog image resource.
+    static let clamNH01 = DeveloperToolsSupport.ImageResource(name: "clamNH_01", bundle: resourceBundle)
+
+    /// The "clamNH_02" asset catalog image resource.
+    static let clamNH02 = DeveloperToolsSupport.ImageResource(name: "clamNH_02", bundle: resourceBundle)
+
+    /// The "clamNH_03" asset catalog image resource.
+    static let clamNH03 = DeveloperToolsSupport.ImageResource(name: "clamNH_03", bundle: resourceBundle)
+
+    /// The "clamNH_04" asset catalog image resource.
+    static let clamNH04 = DeveloperToolsSupport.ImageResource(name: "clamNH_04", bundle: resourceBundle)
+
+    /// The "clamNH_05" asset catalog image resource.
+    static let clamNH05 = DeveloperToolsSupport.ImageResource(name: "clamNH_05", bundle: resourceBundle)
+
+    /// The "clamNH_06" asset catalog image resource.
+    static let clamNH06 = DeveloperToolsSupport.ImageResource(name: "clamNH_06", bundle: resourceBundle)
+
+    /// The "clam_01" asset catalog image resource.
+    static let clam01 = DeveloperToolsSupport.ImageResource(name: "clam_01", bundle: resourceBundle)
+
+    /// The "clam_02" asset catalog image resource.
+    static let clam02 = DeveloperToolsSupport.ImageResource(name: "clam_02", bundle: resourceBundle)
+
+    /// The "clam_03" asset catalog image resource.
+    static let clam03 = DeveloperToolsSupport.ImageResource(name: "clam_03", bundle: resourceBundle)
+
+    /// The "clam_04" asset catalog image resource.
+    static let clam04 = DeveloperToolsSupport.ImageResource(name: "clam_04", bundle: resourceBundle)
+
+    /// The "clam_05" asset catalog image resource.
+    static let clam05 = DeveloperToolsSupport.ImageResource(name: "clam_05", bundle: resourceBundle)
+
+    /// The "go_lid_1" asset catalog image resource.
+    static let goLid1 = DeveloperToolsSupport.ImageResource(name: "go_lid_1", bundle: resourceBundle)
+
+    /// The "go_lid_2" asset catalog image resource.
+    static let goLid2 = DeveloperToolsSupport.ImageResource(name: "go_lid_2", bundle: resourceBundle)
+
+    /// The "squareclam_01" asset catalog image resource.
+    static let squareclam01 = DeveloperToolsSupport.ImageResource(name: "squareclam_01", bundle: resourceBundle)
+
+    /// The "stone_black" asset catalog image resource.
+    static let stoneBlack = DeveloperToolsSupport.ImageResource(name: "stone_black", bundle: resourceBundle)
+
+    /// The "stone_blackNH" asset catalog image resource.
+    static let stoneBlackNH = DeveloperToolsSupport.ImageResource(name: "stone_blackNH", bundle: resourceBundle)
+
+    /// The "tatami" asset catalog image resource.
+    static let tatami = DeveloperToolsSupport.ImageResource(name: "tatami", bundle: resourceBundle)
+
+    /// The "test_grid" asset catalog image resource.
+    static let testGrid = DeveloperToolsSupport.ImageResource(name: "test_grid", bundle: resourceBundle)
+
+}
+
+// MARK: - Color Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSColor {
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+}
+#endif
+
+// MARK: - Image Symbol Extensions -
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: AppKit.NSImage {
+#if !targetEnvironment(macCatalyst)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    /// The "board_kaya" asset catalog image.
+    static var boardKaya: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .boardKaya)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_01" asset catalog image.
+    static var clamNH01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_02" asset catalog image.
+    static var clamNH02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_03" asset catalog image.
+    static var clamNH03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_04" asset catalog image.
+    static var clamNH04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_05" asset catalog image.
+    static var clamNH05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clamNH_06" asset catalog image.
+    static var clamNH06: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clamNH06)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_01" asset catalog image.
+    static var clam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_02" asset catalog image.
+    static var clam02: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam02)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_03" asset catalog image.
+    static var clam03: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam03)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_04" asset catalog image.
+    static var clam04: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam04)
+#else
+        .init()
+#endif
+    }
+
+    /// The "clam_05" asset catalog image.
+    static var clam05: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .clam05)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_1" asset catalog image.
+    static var goLid1: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid1)
+#else
+        .init()
+#endif
+    }
+
+    /// The "go_lid_2" asset catalog image.
+    static var goLid2: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .goLid2)
+#else
+        .init()
+#endif
+    }
+
+    /// The "squareclam_01" asset catalog image.
+    static var squareclam01: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .squareclam01)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_black" asset catalog image.
+    static var stoneBlack: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlack)
+#else
+        .init()
+#endif
+    }
+
+    /// The "stone_blackNH" asset catalog image.
+    static var stoneBlackNH: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .stoneBlackNH)
+#else
+        .init()
+#endif
+    }
+
+    /// The "tatami" asset catalog image.
+    static var tatami: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .tatami)
+#else
+        .init()
+#endif
+    }
+
+    /// The "test_grid" asset catalog image.
+    static var testGrid: UIKit.UIImage {
+#if !os(watchOS)
+        .init(resource: .testGrid)
+#else
+        .init()
+#endif
+    }
+
+}
+#endif
+
+// MARK: - Thinnable Asset Support -
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ColorResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if AppKit.NSColor(named: NSColor.Name(thinnableName), bundle: bundle) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIColor(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIColor {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(SwiftUI)
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+extension SwiftUI.ShapeStyle where Self == SwiftUI.Color {
+
+    private init?(thinnableResource: DeveloperToolsSupport.ColorResource?) {
+        if let resource = thinnableResource {
+            self.init(resource)
+        } else {
+            return nil
+        }
+    }
+
+}
+#endif
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+@available(watchOS, unavailable)
+extension DeveloperToolsSupport.ImageResource {
+
+    private init?(thinnableName: Swift.String, bundle: Foundation.Bundle) {
+#if canImport(AppKit) && os(macOS)
+        if bundle.image(forResource: NSImage.Name(thinnableName)) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#elseif canImport(UIKit) && !os(watchOS)
+        if UIKit.UIImage(named: thinnableName, in: bundle, compatibleWith: nil) != nil {
+            self.init(name: thinnableName, bundle: bundle)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+
+#if canImport(AppKit)
+@available(macOS 14.0, *)
+@available(macCatalyst, unavailable)
+extension AppKit.NSImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !targetEnvironment(macCatalyst)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
+#if canImport(UIKit)
+@available(iOS 17.0, tvOS 17.0, *)
+@available(watchOS, unavailable)
+extension UIKit.UIImage {
+
+    private convenience init?(thinnableResource: DeveloperToolsSupport.ImageResource?) {
+#if !os(watchOS)
+        if let resource = thinnableResource {
+            self.init(resource: resource)
+        } else {
+            return nil
+        }
+#else
+        return nil
+#endif
+    }
+
+}
+#endif
+
