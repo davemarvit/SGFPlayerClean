@@ -85,7 +85,14 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     // MARK: - Private Protocol State
     private var lastClockSnapshot: [String: Any]?
     private var hasEnteredRoom: Bool = false
+    
+    // Keep-Alive
+    private var keepAliveTimer: Timer?
+    private var activeChallengeID: Int?
+    private var activeChallengeGameID: Int?
+    
     private var isSearchingForGame: Bool = false
+    private var currentAutomatchUUID: String? // Track active Automatch request
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
     private var socketPingTimer: Timer?
@@ -94,6 +101,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private var lobbyChallenges: [Int: OGSChallenge] = [:]
     private var lastReportedLatency: Int = 85
     var currentStateVersion: Int = 0
+    private var requestSequence: Int = 100 // Client-side request counter
     
     private let originHeader = "https://online-go.com"
     private let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -261,13 +269,159 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
+        // Guard: Needs Player ID and JWT
+        // Note: Added trailing slash to avoid potential 301 redirects dropping POST body
+        guard let jwt = userJWT, let url = URL(string: "https://online-go.com/api/v1/challenges/") else {
+             completion(false, "Not authenticated"); return
+        }
+        
         self.isSearchingForGame = true
-        sendAction("seek_graph/add", payload: setup.toDictionary())
-        completion(true, nil)
+        self.currentAutomatchUUID = nil
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        
+        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
+           let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value { 
+            request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            request.setValue(csrf, forHTTPHeaderField: "X-CSRF-Token")
+        }
+        
+        let payload = setup.toDictionary()
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        
+        if let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            NSLog("[OGS-REST] 📤 Creating Challenge Payload:\n\(jsonString)")
+        }
+        
+        urlSession?.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                NSLog("[OGS-REST] ❌ Error: \(error)")
+                DispatchQueue.main.async { completion(false, error.localizedDescription) }
+                return
+            }
+            
+            if let d = data, let responseString = String(data: d, encoding: .utf8) {
+                // Log the raw response for debugging
+                NSLog("[OGS-REST] 📥 Raw Response:\n\(responseString)")
+                
+                if let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                    // Success Check: 'id', 'challenge_id', or 'challenge'
+                    if let id = self.robustInt(json["id"]) ?? 
+                                self.robustInt(json["challenge_id"]) ?? 
+                                self.robustInt(json["challenge"]) {
+                        NSLog("[OGS-REST] ✅ Challenge Created Successfully. ID: \(id)")
+                        
+                        // Capture Game ID if present for Keep-Alive
+                        let gid = self.robustInt(json["game"]) ?? self.robustInt(json["game_id"])
+                        
+                        DispatchQueue.main.async { 
+                            self.startChallengeKeepAlive(challengeID: id, gameID: gid)
+                            completion(true, nil) 
+                        }
+                    } else if let detail = json["detail"] as? String {
+                         NSLog("[OGS-REST] ⚠️ Failed: \(detail)")
+                         DispatchQueue.main.async { completion(false, detail) }
+                    } else {
+                         NSLog("[OGS-REST] ⚠️ Server Error or Unknown: \(json)")
+                         DispatchQueue.main.async { completion(false, "Server Error: \(responseString)") }
+                    }
+                } else {
+                    DispatchQueue.main.async { completion(false, "Invalid data received") }
+                }
+            } else {
+                    DispatchQueue.main.async { completion(false, "Empty response") }
+            }
+        }.resume()
+    }
+
+    func startChallengeKeepAlive(challengeID: Int, gameID: Int?) {
+        stopChallengeKeepAlive()
+        
+        self.activeChallengeID = challengeID
+        self.activeChallengeGameID = gameID
+        
+        NSLog("[OGS] 🔄 Starting Keep-Alive for Challenge \(challengeID)")
+        
+        // Send immediately
+        sendKeepAlive()
+        
+        // Repeat every 2 seconds
+        self.keepAliveTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.sendKeepAlive()
+        }
+    }
+    
+    private func sendKeepAlive() {
+        guard let cid = activeChallengeID else { return }
+        var payload: [String: Any] = ["challenge_id": cid]
+        if let gid = activeChallengeGameID { payload["game_id"] = gid }
+        
+        // Log sparingly? Or verbose for now to confirm fix.
+        // NSLog("[OGS-KEEP] 💓 KeepAlive C:\(cid)") 
+        sendAction("challenge/keepalive", payload: payload)
+    }
+    
+    func stopChallengeKeepAlive() {
+        if let t = keepAliveTimer {
+            t.invalidate()
+            keepAliveTimer = nil
+            NSLog("[OGS] 🛑 Stopped Keep-Alive")
+        }
+        activeChallengeID = nil
+        activeChallengeGameID = nil
     }
 
     func cancelChallenge(challengeID: Int) {
-        sendAction("seek_graph/remove", payload: ["challenge_id": challengeID])
+        stopChallengeKeepAlive() // Stop pinging
+        
+        // OGS API: DELETE /api/v1/challenges/<id>/
+        // Implementation TODO if needed, or use socket 'challenge/delete' if available?
+        // Web usually uses DELETE REST endpoint or socket 'automatch/cancel'.
+        // For REST challenges, DELETE is correct.
+        
+        guard let jwt = userJWT, let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        
+        // Add Cookies if needed (usually good idea)
+        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) {
+            let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+            request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+            if let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
+                request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            }
+        }
+
+        urlSession?.dataTask(with: request) { _, _, error in
+            if let e = error { NSLog("[OGS] ❌ Cancel Challenge Failed: \(e)") }
+            else { NSLog("[OGS] ✅ Challenge Cancelled: \(challengeID)") }
+        }.resume()
+        
+        // Phase 1: Try Automatch Cancel (Priority)
+        if let uuid = self.currentAutomatchUUID {
+            NSLog("[OGS-DEBUG] 📤 Cancelling Automatch UUID: \(uuid)")
+            sendAction("automatch/available/remove", payload: ["uuid": uuid])
+            self.currentAutomatchUUID = nil
+        }
+        
+        // Phase 2: Try Seekgraph Cancel (Legacy/Safety)
+        // If the challenge ID is known (from lobby list), we can also try removing it directly
+        // just in case it was a legacy seek or persisted.
+        if challengeID > 0 {
+             NSLog("[OGS-DEBUG] 📤 Cancelling Challenge ID: \(challengeID)")
+             sendAction("seek_graph/remove", payload: ["challenge_id": challengeID])
+        }
     }
 
     func startAutomatch() {
@@ -302,9 +456,27 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         sendAction("game/undo/cancel", payload: ["game_id": gameID])
     }
 
+    
     func subscribeToSeekgraph() {
         sendAction("seek_graph/connect", payload: ["channel": "global"])
         self.isSubscribedToSeekgraph = true
+    }
+    
+    func performPostAuthSubscriptions() {
+        guard isConnected else { return }
+        // PILLAR: Full Handshake from Web Trace
+        // 1. Common Pushes
+        sendAction("ui-pushes/subscribe", payload: ["channel": "announcements"])
+        sendAction("ui-pushes/subscribe", payload: ["channel": "gotv"])
+        
+        // 2. Automatch (Essential for visibility)
+        sendAction("automatch/available/subscribe", payload: [:])
+        sendAction("automatch/list", payload: [:]) // Asks "What am I in?"
+        
+        // 3. Self Monitor (Optional but good for presence)
+        if let pid = playerID {
+            sendAction("user/monitor", payload: ["user_ids": [pid]])
+        }
     }
 
     // MARK: - Inbound Message Processing
@@ -324,7 +496,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if text.hasPrefix("0") { sendRaw("40"); return }
         if text.hasPrefix("40") { startSocketHeartbeat(); sendSocketAuth(); return }
         if text == "2" { sendRaw("3"); return }
-        if text.hasPrefix("42") || text.hasPrefix("43") {
+        
+        // ACK Handling (43)
+        if text.hasPrefix("43") {
+            let clean = String(text.dropFirst(2))
+            if let data = clean.data(using: .utf8),
+               let array = try? JSONSerialization.jsonObject(with: data) as? [Any] {
+                let seq = array.first as? Int ?? -1
+                let response = array.count > 1 ? array[1] : nil
+                NSLog("[OGS-ACK] 📥 Msg \(seq): \(response ?? "OK")")
+            }
+            return
+        }
+        
+        // Event Handling (42)
+        if text.hasPrefix("42") {
             var cleanJson = String(text.dropFirst(2))
             while let first = cleanJson.first, first.isNumber { cleanJson.removeFirst() }
             processEventMessage(cleanJson)
@@ -346,7 +532,11 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
 
         if !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
-            DispatchQueue.main.async { self.isSocketAuthenticated = true; self.subscribeToSeekgraph() }
+            DispatchQueue.main.async { 
+                self.isSocketAuthenticated = true
+                self.subscribeToSeekgraph()
+                self.performPostAuthSubscriptions() // UPDATED
+            }
         }
 
         // PILLAR: SURGICAL DISCOVERY & FIREWALL
@@ -389,6 +579,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                                  } else {
                                     self.activeGameID = gid
                                     self.isSearchingForGame = false
+                                    self.stopChallengeKeepAlive() // Game started, stop pinging
+                                    self.currentAutomatchUUID = nil
                                     self.connectToGame(gameID: gid)
                                  }
                             }
@@ -401,6 +593,14 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if let gid = self.activeGameID, eventName.contains("game/") {
             let parts = eventName.components(separatedBy: "/")
             if parts.count >= 2, let packetID = Int(parts[1]) { guard packetID == gid else { return } }
+        }
+        
+        // AUTOMATCH CONFIRMATION
+        if eventName == "automatch/available/add" {
+            // Server is confirming our request!
+            let uuid = payload["uuid"] as? String
+            NSLog("[OGS-AUTOMATCH] ✅ Request Active. UUID: \(uuid ?? "?")")
+            return
         }
 
         // Check for Game Over signals immediately
@@ -910,7 +1110,9 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
     private func sendSocketAuth() {
         guard let jwt = userJWT, let pid = playerID, isConnected else { return }
-        sendAction("authenticate", payload: ["jwt": jwt, "player_id": pid, "username": username ?? ""])
+        let payload: [String: Any] = ["jwt": jwt, "player_id": pid, "username": username ?? ""]
+        NSLog("[OGS-AUTH] 🔐 Authenticating with: \(payload)")
+        sendAction("authenticate", payload: payload)
     }
 
     private func identityLockCheck() {
@@ -937,10 +1139,31 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         return str
     }
 
+
+
+    // ... (rest of methods) ...
+
     private func updateLobbyItem(_ dict: [String: Any]) {
         guard let id = robustInt(dict["challenge_id"]) ?? robustInt(dict["game_id"]) else { return }
-        if dict["delete"] != nil { self.lobbyChallenges.removeValue(forKey: id); return }
-        if let data = try? JSONSerialization.data(withJSONObject: dict), let ch = try? JSONDecoder().decode(OGSChallenge.self, from: data) { self.lobbyChallenges[id] = ch }
+        
+        if dict["delete"] != nil { 
+            self.lobbyChallenges.removeValue(forKey: id)
+            return 
+        }
+        
+        // DEBUG: Trace incoming items to see if we see our own
+        if let data = try? JSONSerialization.data(withJSONObject: dict), 
+           let ch = try? JSONDecoder().decode(OGSChallenge.self, from: data) {
+            
+            self.lobbyChallenges[id] = ch
+            
+            // Check if it's mine
+            if let pid = self.playerID, let creatorID = ch.challenger?.id, pid == creatorID {
+                NSLog("[OGS-LOBBY] 🟢 Found MY Challenge: \(id). Creator: \(ch.challenger?.username ?? "?") (\(creatorID))")
+            }
+        } else {
+             NSLog("[OGS-LOBBY] ⚠️ Failed to decode item: \(dict)")
+        }
     }
 
     private func refreshLobbyUI() {

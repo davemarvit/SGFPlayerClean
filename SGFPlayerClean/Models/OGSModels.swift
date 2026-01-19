@@ -250,9 +250,146 @@ enum BoardSizeCategory: String, CaseIterable, Identifiable { case size19 = "19",
 enum GameSpeedFilter: String, CaseIterable, Identifiable { case all = "All Speeds", live = "Live", blitz = "Blitz", correspondence = "Correspondence"; var id: String { rawValue } }
 
 struct ChallengeSetup: Codable {
-    var name = "Friendly Match"; var size = 19; var rules = "japanese"; var ranked = true; var handicap = 0; var color = "automatic"; var minRank = 0; var maxRank = 38; var timeControl = "byoyomi"; var mainTime = 600; var periods = 5; var periodTime = 30; var initialTime = 600; var increment = 30; var maxTime = 1200; var perMove = 30
-    func toDictionary() -> [String: Any] { ["game": ["name": name, "rules": rules, "ranked": ranked, "width": size, "height": size], "challenger_color": color] }
-    static func load() -> ChallengeSetup { ChallengeSetup() }; func save() {}
+    var name = "Friendly Match"; var size = 19; var rules = "japanese"; var ranked = true
+    var handicap = 0; var color = "automatic"; var minRank = 0; var maxRank = 38
+    var timeControl = "byoyomi"; var mainTime = 600; var periods = 5; var periodTime = 30
+    var initialTime = 600; var increment = 30; var maxTime = 1200; var perMove = 30
+    
+    func toDictionary() -> [String: Any] {
+        // Based on Verified Web Payload (Step 376)
+        
+        // Time Control Parameters (Nested & Redundant)
+        // Web sends: { per_move: 15, pause_on_weekends: false, speed: "live", system: "simple", time_control: "simple" }
+        var tcParams: [String: Any] = [:]
+        
+        // Infer Speed (heuristic)
+        var speed = "live"
+        if perMove < 20 { speed = "blitz" }
+        else if mainTime < 600 { speed = "blitz" }
+        
+        if timeControl == "byoyomi" {
+            tcParams = [
+                "main_time": mainTime,
+                "periods": periods,
+                "period_time": periodTime,
+                "speed": speed,
+                "system": "byoyomi",
+                "time_control": "byoyomi"
+            ]
+        } else if timeControl == "fischer" {
+            tcParams = [
+                "initial_time": initialTime,
+                "time_increment": increment,
+                "max_time": maxTime,
+                "speed": speed,
+                "system": "fischer",
+                "time_control": "fischer"
+            ]
+        } else if timeControl == "simple" {
+            tcParams = [
+                "per_move": perMove,
+                "pause_on_weekends": false,
+                "speed": speed,
+                "system": "simple",
+                "time_control": "simple"
+            ]
+        }
+        
+        let finalColor = (color == "automatic") ? "automatic" : color // Payload showed "automatic"
+        
+        // Inner Game Object
+        // Payload: { handicap: -1, time_control: "simple", rules: "japanese", ranked: false, width: 19, height: 19 ... }
+        let gameObj: [String: Any] = [
+            "handicap": (handicap == 0) ? 0 : handicap, // Use 0 for "None", -1 for "Auto" if supported (payload said -1, but 500 happened. Let's stick to Safe 0 or User choice)
+            "time_control": timeControl,
+            "rules": rules,
+            "ranked": ranked,
+            "width": size,
+            "height": size,
+            "disable_analysis": false,
+            "initial_state": NSNull(),       // Explicit null from payload
+            "komi_auto": "automatic",        // From Payload
+            "name": name,
+            "pause_on_weekends": false,
+            "private": false,                // Explicit false
+            "rengo": false,
+            "time_control_parameters": tcParams
+        ]
+
+        // Top Level
+        return [
+            "game": gameObj,
+            "initialized": false,            // From Payload
+            "min_ranking": minRank,          // -1000 in payload, user likely wants loose bounds or specific
+            "max_ranking": maxRank,
+            "challenger_color": finalColor,
+            "aga_ranked": false,             // From Payload
+            "invite_only": false,
+            "rengo_auto_start": 0
+        ]
+    }
+    
+    func toAutomatchPayload(playerID: Int, username: String) -> (String, [String: Any]) {
+        let uuid = UUID().uuidString.lowercased()
+        
+        // Infer Speed from Time Control
+        // OGS Web has 'blitz', 'rapid', 'live'
+        // Simple heuristic mapping
+        var speed = "live"
+        if perMove < 20 { speed = "blitz" }
+        else if mainTime < 600 { speed = "blitz" }
+        
+        // Construct Size string (e.g. "19x19")
+        let sizeStr = "\(size)x\(size)"
+        
+        // Time Control Value Construction
+        let tcValue: [String: Any] = ["system": timeControl, "speed": speed] // Base
+        
+        // NOTE: The web client sends essentially "Any Logic" in size_speed_options
+        // We will target exactly what the user selected.
+        let sizeSpeedOption: [String: Any] = [
+            "size": sizeStr,
+            "speed": speed,
+            "system": timeControl
+        ]
+        
+        // Handicap Logic
+        let handicapValue = (handicap == -1 || handicap > 0) ? "enabled" : "none"
+        
+        let prefs: [String: Any] = [
+            "uuid": uuid,
+            "size_speed_options": [sizeSpeedOption],
+            "lower_rank_diff": 5, // Default reasonable
+            "upper_rank_diff": 5,
+            "rules": ["condition": "required", "value": rules],
+            "time_control": ["condition": "required", "value": tcValue],
+            "handicap": ["condition": "preferred", "value": handicapValue]
+        ]
+        
+        let payload: [String: Any] = [
+            "uuid": uuid,
+            "preferences": prefs,
+            "player": [
+                "id": playerID,
+                "username": username
+            ]
+        ]
+        return (uuid, payload)
+    }
+    
+    static func load() -> ChallengeSetup {
+        if let data = UserDefaults.standard.data(forKey: "last_challenge_setup"),
+           let decoded = try? JSONDecoder().decode(ChallengeSetup.self, from: data) {
+            return decoded
+        }
+        return ChallengeSetup()
+    }
+    
+    func save() {
+        if let data = try? JSONEncoder().encode(self) {
+            UserDefaults.standard.set(data, forKey: "last_challenge_setup")
+        }
+    }
 }
 
 struct SGFCoordinates {

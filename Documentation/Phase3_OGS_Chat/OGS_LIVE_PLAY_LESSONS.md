@@ -230,4 +230,52 @@ RECEIVED EVENT: active-bots
 
 ---
 
+## SOLVED: Challenge Creation (2026-01-19)
+
+### Issue 1 Resolved: 500 Errors & Invisible Challenges
+
+**Root Causes Found:**
+1. **Payload Mismatch (500 Error):** The server requires specific, seemingly redundant fields that are not documented.
+   - Required: `komi_auto: "automatic"`, `initial_state: null`, `initialized: false`.
+   - Required: `time_control_parameters` nested with specific keys (`speed`, `system`, `time_control` redundant inside).
+2. **Authentication (401/500 Error):** The REST API ignores the `Bearer` token for some operations and demands the `sessionid` cookie.
+3. **Visibility (Disappearing Challenge):** Challenges created via REST are "zombies" unless a WebSocket `challenge/keepalive` heartbeat is sent every ~2 seconds.
+
+**The Fix:**
+
+1. **Exact Payload Structure:**
+   ```json
+   {
+     "game": {
+       "time_control_parameters": {
+         "time_control": "simple",
+         "system": "simple",
+         "speed": "live",
+         "per_move": 30,
+         "pause_on_weekends": false
+       },
+       "komi_auto": "automatic",
+       "initial_state": null,
+       ...
+     },
+     "initialized": false,
+     "aga_ranked": false,
+     ...
+   }
+   ```
+
+2. **Session Cookie Auth:**
+   Changed `OGSClient` to iterate `HTTPCookieStorage.shared` and inject the `Cookie` header (specifically `sessionid`) into every REST request.
+
+3. **Keep-Alive Heartbeat:**
+   Implemented a timer in `OGSClient` that sends:
+   ```json
+   ["challenge/keepalive", {"challenge_id": 12345, "game_id": 67890}]
+   ```
+   every 2 seconds until the game starts.
+
+**Status:** ✅ Fully Functional. Challenges appear in the Lobby and persist.
+
+---
+
 **END OF DOCUMENT**
