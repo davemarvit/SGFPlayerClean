@@ -167,7 +167,17 @@ final class SGFPlayer: ObservableObject {
         self.board = BoardSnapshot(size: baseSize, grid: grid, stones: flat)
     }
     
-    private struct Point: Hashable { let x, y: Int }
+    internal struct Point: Hashable { let x, y: Int }
+    
+    // MARK: - Public Group Helper
+    func getGroup(at pos: BoardPosition) -> Set<BoardPosition> {
+        let grid = self.board.grid
+        guard pos.row < baseSize, pos.col < baseSize, let color = grid[pos.row][pos.col] else { return [] }
+        
+        var visited = Set<Point>()
+        let pts = collectGroup(from: Point(x: pos.col, y: pos.row), color: color, grid: grid, visited: &visited)
+        return Set(pts.map { BoardPosition($0.y, $0.x) })
+    }
     
     private func collectGroup(from start: Point, color: Stone, grid: [[Stone?]], visited: inout Set<Point>) -> [Point] {
         var stack = [start]; var group: [Point] = []; let h = grid.count; let w = grid[0].count
@@ -193,6 +203,37 @@ final class SGFPlayer: ObservableObject {
         return Array(libs)
     }
     
+    // MARK: - Rules Enforcement
+    func isSuicide(color: Stone, x: Int, y: Int) -> Bool {
+        // 1. Simulate Move
+        var g = board.grid
+        guard x >= 0, y >= 0, x < baseSize, y < baseSize, g[y][x] == nil else { return false }
+        g[y][x] = color
+        
+        // 2. Remove Captured Opponents
+        let opponent = color.opponent
+        var capturedAny = false
+        for (nx, ny) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)] where nx >= 0 && nx < baseSize && ny >= 0 && ny < baseSize {
+             if g[ny][nx] == opponent {
+                 var visited = Set<Point>()
+                 let group = collectGroup(from: Point(x: nx, y: ny), color: opponent, grid: g, visited: &visited)
+                 // Check liberties of opponent group
+                 if liberties(of: group, in: g).isEmpty {
+                     capturedAny = true; break // Valid capture, so NOT suicide
+                 }
+             }
+        }
+        if capturedAny { return false }
+        
+        // 3. Check Self Liberties
+        var myVisited = Set<Point>()
+        let myGroup = collectGroup(from: Point(x: x, y: y), color: color, grid: g, visited: &myVisited)
+        let myLibs = liberties(of: myGroup, in: g)
+        
+        // If 0 liberties and we didn't capture anything, it's suicide.
+        return myLibs.isEmpty
+    }
+    
     func load(game: SGFGame) {
         self.baseSize = game.boardSize
         self._baseSetup = game.setup
@@ -200,5 +241,59 @@ final class SGFPlayer: ObservableObject {
         self.initialPlayer = .black
         self.highestKnownStateVersion = 0
         self.reset()
+    }
+    
+    // MARK: - Scoring Helpers
+    func calculateTerritory(deadStones: Set<BoardPosition>) -> [BoardPosition: Stone] {
+        var territory: [BoardPosition: Stone] = [:]
+        let size = self.baseSize
+        var grid = self.board.grid
+        
+        // 1. Remove Dead Stones from Grid View
+        for pos in deadStones {
+            if pos.row < size && pos.col < size {
+                grid[pos.row][pos.col] = nil
+            }
+        }
+        
+        var visited = Set<Point>()
+        
+        for r in 0..<size {
+            for c in 0..<size {
+                let p = Point(x: c, y: r)
+                if grid[r][c] == nil && !visited.contains(p) {
+                    // Start Flood Fill
+                    var region: [Point] = []
+                    var boundaryColors = Set<Stone>()
+                    var q = [p]
+                    visited.insert(p)
+                    
+                    while !q.isEmpty {
+                        let curr = q.removeFirst()
+                        region.append(curr)
+                        
+                        for (nx, ny) in [(curr.x-1, curr.y), (curr.x+1, curr.y), (curr.x, curr.y-1), (curr.x, curr.y+1)] {
+                            if nx >= 0 && nx < size && ny >= 0 && ny < size {
+                                let neighbor = Point(x: nx, y: ny)
+                                if let stone = grid[ny][nx] {
+                                    boundaryColors.insert(stone)
+                                } else if !visited.contains(neighbor) {
+                                    visited.insert(neighbor)
+                                    q.append(neighbor)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Determine Ownership
+                    if boundaryColors.count == 1, let owner = boundaryColors.first {
+                        for pt in region {
+                            territory[BoardPosition(pt.y, pt.x)] = owner
+                        }
+                    }
+                }
+            }
+        }
+        return territory
     }
 }

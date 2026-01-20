@@ -17,6 +17,7 @@ class BoardViewModel: ObservableObject {
     @Published var whiteCapturedCount: Int = 0
     @Published var isAutoPlaying: Bool = false
     @Published var totalMoves: Int = 0
+    @Published var territoryPoints: [BoardPosition: Stone] = [:]
     
     let onRequestUpdate3D = PassthroughSubject<Void, Never>()
     var engine: SGFPlayer; var ogsClient: OGSClient
@@ -42,6 +43,10 @@ class BoardViewModel: ObservableObject {
                 self?.syncState()
             }
             .store(in: &cancellables)
+            
+        // OGS Scoring Observers
+        ogsClient.$removedStones.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
+        ogsClient.$phase.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
     }
     
     var boardSize: Int { self.engine.board.size }
@@ -93,7 +98,15 @@ class BoardViewModel: ObservableObject {
         // It does NOT swap turn if it returns early? 
         // Need to check SGFPlayerEngine.apply logic on early return.
         
-        self.engine.playMoveOptimistically(color: color, x: -1, y: -1)
+        if self.engine.isSuicide(color: color, x: -1, y: -1) == false { // Dummy check or just play
+             SoundManager.shared.play("pass")
+             self.engine.playMoveOptimistically(color: color, x: -1, y: -1)
+        } else {
+             SoundManager.shared.play("pass")
+             self.engine.playMoveOptimistically(color: color, x: -1, y: -1)
+        }
+        // Simplified: Just play sound and pass.
+        // SoundManager.shared.play("pass") was added above.
     }
     
     func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
@@ -109,12 +122,51 @@ class BoardViewModel: ObservableObject {
     }
     
     func placeStone(at pos: BoardPosition) {
-        // NSLog("[SOUND-DEBUG] placeStone. Online: \(isOnlineContext) Pos: \(pos)")
-        // LOCK: If game is finished, board is read-only
-        if ogsClient.isGameFinished {
+        NSLog("[OGS-DEBUG] placeStone at \(pos). Phase: \(ogsClient.phase ?? "nil")")
+        // LOCK: If game is finished or in scoring, board is read-only
+        // LOCK: Phase Check match syncState logic
+        let p = ogsClient.phase
+        if ogsClient.isGameFinished || p == "stone removal" || p == "finished" {
             self.ghostPosition = nil
-            return
+            
+            // Stone Removal Interaction
+            if p == "stone removal" {
+                // Toggling Dead Stones Logic
+                 if let gridColor = self.engine.board.stones[pos] {
+                    // ... Existing Logic ...
+                // 2. Identify the group (optional, but good for UX, though server handles logic)
+                // For MVP, just send the coordinate clicked. The server expands to group.
+                if let gameID = ogsClient.activeGameID {
+                    // We need to send the FULL list of dead stones.
+                    // So we toggle local state and send the new set.
+                    // BUT: OGS is Source of Truth. If we optimistically update, we might desync.
+                    // Protocol: Client sends valid stone coordinates to toggle? 
+                    // Actually, protocol usually expects the full string of removed stones.
+                    
+                    var currentRemoved = ogsClient.removedStones
+                    // Heuristic: If we click a stone that is in removed, we remove it (revive).
+                    // If we click a stone that is NOT in removed, we add it (kill).
+                    // However, we need to add/remove the ENTIRE GROUP ideally.
+                    // Let's use the engine helper to get the group.
+                    
+                    let group = self.engine.getGroup(at: pos)
+                    // If any stone in group is dead, revive whole group. Else kill whole group.
+                    let isAnyDead = group.contains { currentRemoved.contains($0) }
+                    
+                    if isAnyDead {
+                        currentRemoved.subtract(group)
+                    } else {
+                        currentRemoved.formUnion(group)
+                    }
+                    
+                    // Convert back to string "aabbcc"
+                    let coords = currentRemoved.map { SGFCoordinates.toSGF(x: $0.col, y: $0.row) }.joined()
+                    ogsClient.sendRemovedStones(gameID: gameID, removed: coords)
+                }
+            }
         }
+        return
+    }
         
         if isOnlineContext {
             let myColor = ogsClient.playerColor ?? .white
@@ -130,6 +182,12 @@ class BoardViewModel: ObservableObject {
                pos.col < self.engine.board.grid[0].count,
                self.engine.board.grid[pos.row][pos.col] != nil {
                 // NSLog("[OGS-INPUT] 🚫 Input Rejected. Position \(pos.col),\(pos.row) is Occupied.")
+                return
+            }
+            
+            // Suicide Check
+            if self.engine.isSuicide(color: myColor, x: pos.col, y: pos.row) {
+                NSLog("[OGS-INPUT] 🚫 Input Rejected. Move at \(pos.col),\(pos.row) is Suicide.")
                 return
             }
             
@@ -167,6 +225,11 @@ class BoardViewModel: ObservableObject {
                  return
              }
              
+             // Suicide Check
+             if self.engine.isSuicide(color: self.engine.turn, x: pos.col, y: pos.row) {
+                 return
+             }
+             
              // 2. Play
              // Note: We do NOT call syncState() here manually. 
              // playMoveOptimistically triggers 'moveProcessed' publisher which calls syncState.
@@ -179,7 +242,10 @@ class BoardViewModel: ObservableObject {
         // NSLog("[SOUND-DEBUG] syncState ENTRY. Online: \(isOnlineContext) Idx: \(self.engine.currentIndex)")
         
         let idx = self.engine.currentIndex
-        let last = self.engine.lastMove.map { BoardPosition($0.y, $0.x) }
+        let last = self.engine.lastMove.flatMap { m -> BoardPosition? in
+            if m.x < 0 || m.y < 0 { return nil } // Exclude Pass
+            return BoardPosition(m.y, m.x)
+        }
         let snap = self.engine.board
         
         // MOVED TO MAIN THREAD to avoid race conditions with StoneJitter
@@ -187,7 +253,18 @@ class BoardViewModel: ObservableObject {
         var list: [RenderStone] = []
         for (pos, col) in snap.stones {
             let off = self.jitterEngine.offset(forX: pos.col, y: pos.row, moveIndex: idx, stones: snap.stones)
-            list.append(RenderStone(id: pos, color: col, offset: off))
+            var rs = RenderStone(id: pos, color: col, offset: off)
+            
+            // Apply Dead State (Scoring Support)
+            if isOnlineContext {
+               let p = ogsClient.phase
+               if (p == "stone removal" || p == "finished") {
+                   if ogsClient.removedStones.contains(pos) {
+                       rs.isDead = true
+                   }
+               }
+            }
+            list.append(rs)
         }
         // Stable Sort for Rendering Stability (Row then Col)
         let safeList = list.sorted {
@@ -195,7 +272,22 @@ class BoardViewModel: ObservableObject {
             return $0.id.col < $1.id.col
         }
         
+
+        
         self.stonesToRender = safeList
+        
+        // Scoring: Territory
+        if isOnlineContext {
+           let p = ogsClient.phase
+           if (p == "stone removal" || p == "finished") {
+               let t = self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
+               self.territoryPoints = t
+           } else {
+               self.territoryPoints = [:]
+           }
+        } else {
+            self.territoryPoints = [:]
+        }
         
         // Sound Logic (Local Play / AutoPlay)
         if !isOnlineContext {

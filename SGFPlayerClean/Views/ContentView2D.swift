@@ -91,6 +91,6 @@ struct PlaybackControlsView: View {
             .onChange(of: boardVM.currentMoveIndex) { _, val in localIdx = Double(val) }
             .tint(.white).frame(width: 140)
             Text("\(boardVM.currentMoveIndex)/\(boardVM.totalMoves)").font(.system(size: 9, design: .monospaced)).foregroundColor(.white.opacity(0.8)).frame(width: 50)
-        }.padding(.horizontal, 12).padding(.vertical, 6).background(Color.black.opacity(0.65)).cornerRadius(18).foregroundColor(.white).fixedSize()
+        }.padding(.horizontal, 12).padding(.vertical, 6).background((Color.black.opacity(0.65) as Color)).cornerRadius(18).foregroundColor(.white).fixedSize()
     }
 }

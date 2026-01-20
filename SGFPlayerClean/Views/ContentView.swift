@@ -8,7 +8,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            mainInterface.disabled(appModel.isCreatingChallenge)
+            mainInterface // .disabled(appModel.isCreatingChallenge) removed
             SharedOverlays(showSettings: $showSettings, buttonsVisible: $buttonsVisible, app: appModel)
             VStack {
                 HStack {
@@ -17,9 +17,14 @@ struct ContentView: View {
                 }
                 Spacer()
             }
-            if appModel.isCreatingChallenge {
-                OGSCreateChallengeView(isPresented: $appModel.isCreatingChallenge).background(Color.black.opacity(0.6)).transition(.opacity).zIndex(200)
+            VStack {
+                HStack {
+                    Spacer()
+                    // Debug Icon Removed
+                }
+                Spacer()
             }
+            // Challenge View Removed (Moved to Right Panel)
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $appModel.showDebugDashboard) { DebugDashboard(appModel: appModel).frame(minWidth: 700, minHeight: 500) }

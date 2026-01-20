@@ -21,6 +21,18 @@ struct ActiveGamePanel: View {
                 Divider().background(Color.white.opacity(0.1)).padding(.vertical, 8)
                 
                 // Chat Section (Always Visible)
+                if let last = app.player.lastMove,
+                   last.x == -1, last.y == -1,
+                   last.color != app.ogsClient.playerColor,
+                   !app.ogsClient.isGameFinished {
+                    Text("Opponent Passed")
+                        .font(.headline)
+                        .foregroundColor(.yellow)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(4)
+                }
                 if let vm = app.ogsGame {
                     OGSChatView(gameVM: vm)
                         // .frame(height: 200) // Flexible height preferred
@@ -35,7 +47,7 @@ struct ActiveGamePanel: View {
             .padding()
             .animation(.easeInOut(duration: 0.5), value: app.ogsClient.undoRequestedUsername)
             
-            if app.ogsClient.isGameFinished {
+            if app.ogsClient.isGameFinished && (app.ogsClient.activeGameResult != nil || app.ogsClient.activeGameOutcome != nil) {
                 resultOverlay.transition(.opacity.combined(with: .scale))
             }
         }
@@ -48,18 +60,47 @@ struct ActiveGamePanel: View {
     }
     
     private var resultOverlay: some View {
-        VStack(spacing: 16) {
-            Text("GAME OVER").font(.largeTitle).bold().foregroundColor(.white)
-            if let outcome = app.ogsClient.activeGameOutcome {
+        VStack(spacing: 20) {
+            if let res = app.ogsClient.activeGameResult {
+                Text(res.title)
+                    .font(.system(size: 40, weight: .heavy))
+                    .foregroundColor(.white)
+                
+                VStack(spacing: 4) {
+                    Text(res.subtitle)
+                        .font(.title3)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white.opacity(0.9))
+                    Text(res.method)
+                        .font(.title3)
+                        .bold()
+                        .foregroundColor(.yellow)
+                }
+            } else if let outcome = app.ogsClient.activeGameOutcome {
                 Text(outcome).font(.title2).foregroundColor(.yellow)
             }
-            Button(action: { app.ogsClient.activeGameID = nil }) {
-                Text("Return to Lobby").bold().padding(.horizontal, 20)
-            }.buttonStyle(.borderedProminent)
+            
+
+            // Redundant "Return to Lobby" button removed to prevent blocking chat/board.
+            // User can use the "< Lobby" button in the header.
         }
         .padding(40)
         .background(Material.ultraThinMaterial)
         .cornerRadius(20)
+        .overlay(
+            Button(action: {
+                // Dimiss Overlay so user can chat/view board
+                app.ogsClient.activeGameResult = nil
+                app.ogsClient.activeGameOutcome = nil
+            }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+            .padding(16),
+            alignment: .topTrailing
+        )
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.2), lineWidth: 1))
         .shadow(radius: 20)
     }
@@ -196,32 +237,54 @@ struct ActiveGamePanel: View {
     
     private var controlsSection: some View {
         HStack {
-            Button("Undo") {
-                if let id = app.ogsClient.activeGameID {
-                     app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
+            // SCORING CONTROLS (Priority)
+            if app.ogsClient.phase == "stone removal" {
+                Button(action: {
+                    if let id = app.ogsClient.activeGameID {
+                        app.ogsClient.acceptScore(gameID: id)
+                    }
+                }) {
+                    Text("Accept Removed Stones")
+                        .bold()
+                        .frame(maxWidth: .infinity)
                 }
-            }.disabled(app.ogsClient.isGameFinished || app.ogsClient.isRequestingUndo)
-            
-            if app.ogsClient.isRequestingUndo {
-                Text("Requested...").font(.caption).foregroundColor(.orange)
-            }
-            
-            Spacer()
-            
-            Button("Pass") {
-                if let id = app.ogsClient.activeGameID {
-                    app.ogsClient.sendPass(gameID: id)
+                .tint(.blue)
+                .buttonStyle(.borderedProminent)
+            } else {
+                // NORMAL CONTROLS
+                
+
+
+                Button("Undo") {
+                    if let id = app.ogsClient.activeGameID {
+                         app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
+                    }
+                }.disabled(app.ogsClient.isGameFinished || app.ogsClient.isRequestingUndo)
+                
+                if app.ogsClient.isRequestingUndo {
+                    Text("Requested...").font(.caption).foregroundColor(.orange)
                 }
-            }.disabled(app.ogsClient.isGameFinished)
-            
-            Spacer()
-            
-            Button("Resign") {
-                showResignConfirmation = true
+                
+                Spacer()
+
+
+                
+                Button("Pass") {
+                    if let id = app.ogsClient.activeGameID {
+                        SoundManager.shared.play("pass")
+                        app.ogsClient.sendPass(gameID: id)
+                    }
+                }
+                .disabled(app.ogsClient.isGameFinished || app.ogsClient.currentPlayerID != app.ogsClient.playerID)
+                
+                Spacer()
+                
+                Button("Resign") {
+                    showResignConfirmation = true
+                }
+                .foregroundColor(.red)
+                .disabled(app.ogsClient.isGameFinished)
             }
-            .foregroundColor(.red)
-            .disabled(app.ogsClient.isGameFinished)
-            
         }
         .padding()
         .background(Color.black.opacity(0.2))
@@ -248,17 +311,39 @@ struct GameClockView: View {
     
     var body: some View {
         VStack(alignment: side == .left ? .leading : .trailing) {
-            // Main Time
-            Text(fmt(mainTime ?? 0))
-                .font(.title2).monospacedDigit().bold()
-                .foregroundColor(isDark ? .white : .black)
             
-            // Byoyomi / Periods
-            if let p = periods, let pt = periodTime {
-                let pStr = (p == 1) ? "SD" : "\(p)"
-                Text("+ \(fmt(pt)) (\(pStr))")
-                    .font(.body).monospacedDigit()
-                    .foregroundColor(isDark ? .white.opacity(0.7) : .black.opacity(0.6))
+            // LOGIC: If main time is exhausted (<= 0) AND we have Byoyomi periods,
+            // promote Byoyomi to the Large Text slot.
+            
+            let isByoyomiActive = (mainTime ?? 0) <= 0 && (periods ?? 0) > 0
+            
+            if isByoyomiActive {
+                // BYOYOMI (Large)
+                if let p = periods, let pt = periodTime {
+                    let pStr = (p == 1) ? "SD" : "\(p)"
+                    Text("\(fmt(pt)) (\(pStr))")
+                        .font(.title2).monospacedDigit().bold() // Promoted Size
+                        .foregroundColor(isDark ? .white : .black) // Standard Color
+                }
+                
+                // MAIN TIME (Small/Hidden or "0:00")
+                // User said "main time is exhausted anyways", so we can arguably hide it or show simplified.
+                // We'll show "0:00" small just for context, or hide it.
+                // Text("0:00").font(.caption).foregroundColor(isDark ? .white.opacity(0.3) : .black.opacity(0.3))
+                
+            } else {
+                // NORMAL MAIN TIME (Large)
+                Text(fmt(mainTime ?? 0))
+                    .font(.title2).monospacedDigit().bold()
+                    .foregroundColor(isDark ? .white : .black)
+                
+                // BYOYOMI (Small/Secondary)
+                if let p = periods, let pt = periodTime {
+                    let pStr = (p == 1) ? "SD" : "\(p)"
+                    Text("+ \(fmt(pt)) (\(pStr))")
+                        .font(.body).monospacedDigit()
+                        .foregroundColor(isDark ? .white.opacity(0.7) : .black.opacity(0.6))
+                }
             }
         }
         .padding(8)
@@ -360,9 +445,10 @@ struct ChatBubble: View {
             
             VStack(alignment: msg.isSelf ? .trailing : .leading, spacing: 2) {
                 if !msg.isSelf {
-                    Text(msg.sender)
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                    HStack {
+                         Text(msg.sender).font(.caption2).foregroundColor(.gray)
+                         Text(timeAndMoveString(for: msg)).font(.caption2).foregroundColor(.gray.opacity(0.6))
+                    }
                 }
                 
                 Text(msg.message)
@@ -372,6 +458,10 @@ struct ChatBubble: View {
                     .background(msg.isSelf ? Color.blue.opacity(0.8) : Color.white.opacity(0.1))
                     .foregroundColor(.white)
                     .cornerRadius(12)
+                
+                if msg.isSelf {
+                    Text(timeAndMoveString(for: msg)).font(.caption2).foregroundColor(.gray.opacity(0.5))
+                }
             }
             
             if msg.isSelf {
@@ -381,5 +471,15 @@ struct ChatBubble: View {
                 Spacer()
             }
         }
+    }
+    
+    private func timeAndMoveString(for msg: OGSChatMessage) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        let time = formatter.string(from: msg.timestamp)
+        if let mv = msg.moveNumber {
+            return "\(time) • Move \(mv)"
+        }
+        return time
     }
 }

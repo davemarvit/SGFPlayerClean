@@ -21,6 +21,7 @@ struct MoveRef: Equatable { let color: Stone; let x, y: Int }
 
 struct RenderStone: Identifiable, Equatable {
     let id: BoardPosition; let color: Stone; let offset: CGPoint
+    var isDead: Bool = false
 }
 
 // MARK: - OGS Network & Lobby Models
@@ -34,7 +35,9 @@ struct OGSChatMessage: Identifiable, Equatable, Hashable {
     let isSelf: Bool
     
     // To support various chat types (Main, Malkovich, etc - for now "Main" driven)
+    // To support various chat types (Main, Malkovich, etc - for now "Main" driven)
     var type: String = "main"
+    var moveNumber: Int?
 }
 
 struct ChallengerInfo: Codable, Hashable {

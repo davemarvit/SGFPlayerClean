@@ -111,6 +111,25 @@ struct SettingsPanel: View {
                 Slider(value: $settings.jitterMultiplier, in: 0.0...2.0, step: 0.05).tint(.cyan)
             }
             
+            // Volume Sliders
+            VStack(alignment: .leading, spacing: 4) {
+                 HStack {
+                     Text("Stone Volume") // Placement & Capture
+                     Spacer()
+                     Text(String(format: "%.0f%%", settings.stoneVolume * 100)).monospacedDigit().foregroundColor(.white)
+                 }
+                 .font(.caption).foregroundColor(.white.opacity(0.8))
+                 Slider(value: $settings.stoneVolume, in: 0.0...1.0).tint(.green)
+
+                 HStack {
+                     Text("Voice Volume") // System & Speech
+                     Spacer()
+                     Text(String(format: "%.0f%%", settings.voiceVolume * 100)).monospacedDigit().foregroundColor(.white)
+                 }
+                 .font(.caption).foregroundColor(.white.opacity(0.8))
+                 Slider(value: $settings.voiceVolume, in: 0.0...1.0).tint(.cyan)
+            }
+            
             Group {
                 Toggle("Shuffle Games", isOn: $settings.shuffleGameOrder)
                 Toggle("Start on Launch", isOn: $settings.startGameOnLaunch)

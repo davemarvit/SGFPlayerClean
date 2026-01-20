@@ -18,6 +18,18 @@ class AppSettings: ObservableObject {
     @Published var startGameOnLaunch: Bool {
         didSet { UserDefaults.standard.set(startGameOnLaunch, forKey: "startGameOnLaunch") }
     }
+    @Published var isMuted: Bool {
+        didSet { UserDefaults.standard.set(isMuted, forKey: "isMuted") }
+    }
+    @Published var voiceVolume: Double {
+        didSet { 
+            UserDefaults.standard.set(voiceVolume, forKey: "voiceVolume");
+            SoundManager.shared.setVolume(Float(voiceVolume))
+        }
+    }
+    @Published var stoneVolume: Double {
+        didSet { UserDefaults.standard.set(stoneVolume, forKey: "stoneVolume") }
+    }
 
     // MARK: - Visuals
     @Published var showMoveNumbers: Bool {
@@ -75,6 +87,13 @@ class AppSettings: ObservableObject {
         self.jitterMultiplier = UserDefaults.standard.object(forKey: "jitterMultiplier") as? Double ?? 1.0
         self.shuffleGameOrder = UserDefaults.standard.bool(forKey: "shuffleGameOrder")
         self.startGameOnLaunch = UserDefaults.standard.bool(forKey: "startGameOnLaunch")
+        self.isMuted = UserDefaults.standard.bool(forKey: "isMuted")
+        // Volume Init
+        let vVol = UserDefaults.standard.object(forKey: "voiceVolume") as? Double
+        self.voiceVolume = (vVol == nil) ? 1.0 : vVol!
+        
+        let sVol = UserDefaults.standard.object(forKey: "stoneVolume") as? Double
+        self.stoneVolume = (sVol == nil) ? 1.0 : sVol!
         self.showMoveNumbers = UserDefaults.standard.bool(forKey: "showMoveNumbers")
         self.showLastMoveDot = UserDefaults.standard.object(forKey: "showLastMoveDot") as? Bool ?? true
         self.showLastMoveCircle = UserDefaults.standard.bool(forKey: "showLastMoveCircle")
@@ -94,6 +113,127 @@ class AppSettings: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "folderURLBookmark") {
             var isStale = false
             self.folderURL = try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &isStale)
+        }
+    }
+}
+
+// MARK: - Sound Manager (Embedded for Compilation)
+import AVFoundation
+
+class SoundManager: ObservableObject {
+    static let shared = SoundManager()
+    
+    private var players: [String: AVAudioPlayer] = [:]
+    private let fileExtension = "aiff"
+    
+    // State for Debouncing
+    private var lastPlayedCountdown: Int? = nil
+    private var lastWarningTime: TimeInterval = 0
+    
+    private init() {
+        preloadSounds()
+    }
+    
+    private func preloadSounds() {
+        // Updated List
+        let sounds = [
+            "game_started", "game_over", "you_win", "you_lose", "draw",
+            "won_resignation", "lost_resignation", "won_timeout", "lost_timeout",
+            "ten_seconds", "countdown_10", "countdown_09", "countdown_08", "countdown_07",
+            "countdown_06", "countdown_05", "countdown_04", "countdown_03", "countdown_02", "countdown_01",
+            "timeout", "byoyomi_start", "byoyomi_simple",
+            // "your_move", // REMOVED
+            "pass", "game_restarted",
+            "opponent_disconnected", "opponent_connected",
+            "undo_requested", "undo_accepted", "undo_refused", "connection_lost", "connection_restored",
+            // Periods
+            "periods_1", "periods_2", "periods_3", "periods_4", "periods_5"
+        ]
+        
+        var loadedCount = 0
+        for name in sounds {
+            if let url = Bundle.main.url(forResource: name, withExtension: fileExtension) {
+                do {
+                    let player = try AVAudioPlayer(contentsOf: url)
+                    player.prepareToPlay()
+                    players[name] = player
+                    loadedCount += 1
+                } catch {
+                    print("[SoundManager] ⚠️ Failed to load \(name): \(error)")
+                }
+            } else {
+                 print("[SoundManager] ❌ File Not Found in Bundle: \(name).\(fileExtension)")
+            }
+        }
+        print("[SoundManager] 🏁 Preload Complete. Loaded \(loadedCount)/\(sounds.count) sounds.")
+    }
+    
+    func setVolume(_ vol: Float) {
+        for p in players.values { p.volume = vol }
+    }
+    
+    func play(_ name: String) {
+        if AppSettings.shared.isMuted { return }
+        
+        guard let player = players[name] else { return }
+        if player.volume != Float(AppSettings.shared.voiceVolume) {
+            player.volume = Float(AppSettings.shared.voiceVolume)
+        }
+        
+        if player.isPlaying {
+            player.stop()
+            player.currentTime = 0
+        }
+        player.play()
+    }
+    
+    func playCountdown(_ number: Int) {
+        // Debounce: Don't repeat the same number
+        guard lastPlayedCountdown != number else { return }
+        
+        if number >= 1 && number <= 10 {
+            let key = number == 10 ? "countdown_10" : String(format: "countdown_%02d", number)
+            play(key)
+            lastPlayedCountdown = number
+        } else {
+            // Reset if out of range (so we can count down again later)
+            lastPlayedCountdown = nil
+        }
+    }
+    
+    func playClockWarning() {
+        // Debounce: Only warn once per 10s roughly? Or rely on caller?
+        // Caller calls this when exactly 10s left. 
+        // Logic in OGSClient checks 'main <= 10 && main >= 1'. 
+        // We should just play "ten_seconds" once.
+        play("ten_seconds")
+    }
+    
+    func playPeriodCount(_ count: Int) {
+        if count >= 1 && count <= 5 {
+            play("periods_\(count)")
+        }
+    }
+    
+    func playByoyomiStart() {
+        play("byoyomi_simple") // Use simple phonetic version
+    }
+    
+    func playWinner(isMe: Bool, isDraw: Bool, method: String? = nil) {
+        if isDraw {
+            play("draw")
+        } else if isMe {
+            if let m = method?.lowercased() {
+                if m.contains("resignation") { play("won_resignation"); return }
+                if m.contains("timeout") { play("won_timeout"); return }
+            }
+            play("you_win")
+        } else {
+            if let m = method?.lowercased() {
+                if m.contains("resignation") { play("lost_resignation"); return }
+                if m.contains("timeout") { play("lost_timeout"); return }
+            }
+            play("you_lose")
         }
     }
 }

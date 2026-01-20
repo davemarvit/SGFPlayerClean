@@ -21,7 +21,17 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var activeGameID: Int?
     @Published var myActiveGames: Set<Int> = []
     @Published var finishedGameIDs: Set<Int> = [] // NEW: Persistent filter for Zombie games // Discovered active games for this user
-    @Published var activeGameOutcome: String? // "White+Resign", "Black+T" etc.
+
+    
+    // UI Structure for Game Over
+    struct GameResult {
+        let title: String
+        let subtitle: String
+        let method: String
+        let isMe: Bool
+    }
+    @Published var activeGameResult: GameResult?
+    @Published var activeGameOutcome: String? // Legacy/Deprecated string for now
     @Published var playerColor: Stone?
     @Published var currentPlayerID: Int?
     var lastKnownRemoteMoveNumber: Int? // NEW: Track server's move number for Undo
@@ -78,6 +88,10 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var blackPeriodLength: Double?
 
     @Published var whitePeriodLength: Double?
+    
+    // Scoring & Dead Stones
+    @Published var phase: String? = "play"
+    @Published var removedStones: Set<BoardPosition> = []
     
     // Debugging
     @Published var lastReceivedEvent: String = ""
@@ -145,12 +159,17 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     if let user = json["user"] as? [String: Any] {
                         self.username = user["username"] as? String
                         self.playerID = self.robustInt(user["id"])
+                        NSLog("[OGS-AUTH] ✅ Config Loaded. User: \(self.username ?? "nil") ID: \(self.playerID ?? -1)")
+                    } else {
+                         NSLog("[OGS-AUTH] ⚠️ Config Loaded but no 'user' object found.")
                     }
                     self.userJWT = json["user_jwt"] as? String
                     self.isAuthenticated = (self.userJWT != nil)
-                    if self.isAuthenticated { self.connect() }
+                    // if self.isAuthenticated { self.connect() } // DISABLED: AppModel controls connection
                     self.objectWillChange.send()
                 }
+            } else {
+                 NSLog("[OGS-AUTH] ❌ fetchUserConfig JSON Parse Failed or No Data.")
             }
         }.resume()
     }
@@ -164,6 +183,82 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         webSocketTask = urlSession?.webSocketTask(with: request)
         webSocketTask?.resume()
         receiveMessage()
+    }
+
+    func disconnect() {
+        webSocketTask?.cancel(with: .normalClosure, reason: nil)
+        webSocketTask = nil
+        isConnected = false
+        isSocketAuthenticated = false
+        socketPingTimer?.invalidate()
+    }
+    
+    // MARK: - Authentication
+    func logout() {
+        // 1. Disconnect Socket
+        disconnect()
+        
+        // 2. Clear Session Data
+        self.userJWT = nil
+        self.playerID = nil
+        self.username = nil
+        self.isAuthenticated = false
+        
+        // 3. Clear Cookies
+        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) {
+            for cookie in cookies {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
+        }
+        
+        // 4. Clear Defaults if any
+        UserDefaults.standard.removeObject(forKey: "ods_session_token") // Example
+        
+        objectWillChange.send()
+    }
+    
+    func login(username: String, password: String, completion: @escaping (Bool, String?) -> Void) {
+        // Attempt Session Login (Simulating Browser Form or API)
+        // Note: For a robust 3rd party app, OAuth2 is preferred but requires Client ID/Secret.
+        // We will try the undocumented UI login or simple legacy auth if available.
+        // Strategy: Use the /api/v1/ui/login endpoint if it exists, or generic /login.
+        
+        // STRATEGY: Use the legacy /api/v0/login endpoint with CSRF protection.
+        let url = URL(string: "https://online-go.com/api/v0/login")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(originHeader, forHTTPHeaderField: "Origin")
+        req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        // CSRF INJECTION
+        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
+           let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
+            req.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+            req.setValue(csrf, forHTTPHeaderField: "X-XSRF-TOKEN") // Redundancy
+        }
+        
+        let body = ["username": username, "password": password]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        urlSession?.dataTask(with: req) { data, response, error in
+            if let http = response as? HTTPURLResponse {
+                // NSLog("[OGS-AUTH] Login Response: \(http.statusCode)")
+                if http.statusCode == 200 || http.statusCode == 204 {
+                    // Success! Cookies should be set automatically by URLSession.
+                    // Now refresh config to get JWT.
+                    self.fetchUserConfig()
+                    completion(true, nil)
+                } else {
+                    let body = String(data: data ?? Data(), encoding: .utf8) ?? ""
+                    // NSLog("[OGS-AUTH] Login Failed. Body: \(body)")
+                    completion(false, "Login failed (Code \(http.statusCode))")
+                }
+            } else {
+                completion(false, error?.localizedDescription ?? "Network Error")
+            }
+        }.resume()
     }
 
     func opponentName(for myID: Int?) -> String? {
@@ -265,6 +360,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     func resignGame(gameID: Int) {
+        // NSLog("[OGS-GAME] Resigning \(gameID)")
         sendAction("game/resign", payload: ["game_id": gameID])
     }
 
@@ -455,6 +551,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     func sendUndoReject(gameID: Int) {
         sendAction("game/undo/cancel", payload: ["game_id": gameID])
     }
+    
+    // MARK: - Scoring Actions
+    func acceptScore(gameID: Int) {
+        NSLog("[OGS-SCORING] 🤝 Accepting Score for \(gameID)")
+        sendAction("stone_removal/accept", payload: ["game_id": gameID])
+    }
+    
+    func sendRemovedStones(gameID: Int, removed: String) {
+        NSLog("[OGS-SCORING] 📤 Updating Removed Stones: \(removed)")
+        sendAction("stone_removal/removed", payload: [
+            "game_id": gameID,
+            "removed": removed,
+            "strict_seki_mode": false // Default
+        ])
+    }
 
     
     func subscribeToSeekgraph() {
@@ -494,7 +605,12 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
     private func handleIncomingProtocolMessage(_ text: String) {
         if text.hasPrefix("0") { sendRaw("40"); return }
-        if text.hasPrefix("40") { startSocketHeartbeat(); sendSocketAuth(); return }
+        if text.hasPrefix("40") {
+             startSocketHeartbeat();
+             sendSocketAuth();
+             // SoundManager.shared.play("opponent_connected") // USER REQUEST: Silence
+             return
+        }
         if text == "2" { sendRaw("3"); return }
         
         // ACK Handling (43)
@@ -543,6 +659,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if eventName == "active_game" || (eventName == "notification" && payload["type"] as? String == "gameStarted") {
             // FIX: Do NOT default to "play". Require explicit phase.
             let phase = payload["phase"] as? String
+            DispatchQueue.main.async { self.phase = phase } // Update Local Phase Tracker
             if phase == "play" || phase == "stone removal" {
                 let bid = robustInt(payload["black_id"]) ?? robustInt((payload["black"] as? [String: Any])?["id"])
                 let wid = robustInt(payload["white_id"]) ?? robustInt((payload["white"] as? [String: Any])?["id"])
@@ -582,6 +699,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                                     self.stopChallengeKeepAlive() // Game started, stop pinging
                                     self.currentAutomatchUUID = nil
                                     self.connectToGame(gameID: gid)
+                                    SoundManager.shared.play("game_started")
                                  }
                             }
                         }
@@ -633,16 +751,25 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                let whomID = robustInt(p["requested_by"]),
                whomID != self.playerID {
                 let name = (whomID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((whomID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Opponent")
+                
                 DispatchQueue.main.async {
-                    // Deduplication Guard: Don't thrash UI if redundant event received
-                    if self.undoRequestedUsername != name {
-                        self.undoRequestedUsername = name
-                        self.undoRequestedMoveNumber = self.robustInt(p["move_number"])
-                    }
+                    self.undoRequestedUsername = name
+                    self.undoRequestedMoveNumber = p["move_number"] as? Int
                 }
             }
+        } else if eventName.hasSuffix("/stone_removal") {
+             if let removed = payload["removed"] as? String {
+                 NSLog("[OGS-SCORING] ♻️ Live Remove Update: \(removed)")
+                 DispatchQueue.main.async { self.handleInboundRemovedStones(removed) }
+             } else if let removedArr = payload["removed"] as? [String] {
+                 let joined = removedArr.joined()
+                 NSLog("[OGS-SCORING] ♻️ Live Remove Update (Arr): \(joined)")
+                 DispatchQueue.main.async { self.handleInboundRemovedStones(joined) }
+             }
+        }
 
-        } else if eventName.contains("undo_accepted") {
+
+        else if eventName.contains("undo_accepted") {
             // NSLog("OGS: ↩️ Undo Accepted event received: \(eventName). Triggering State Fetch.")
             
             // 2. Trigger Fetch to clear the board (Server Truth)
@@ -780,6 +907,24 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 self.blackCaptures = (prisoners["black"] as? Int) ?? self.blackCaptures
                 self.whiteCaptures = (prisoners["white"] as? Int) ?? self.whiteCaptures
             }
+
+            // Phase D: Dead Stone Parsing (Scoring)
+            if let ph = p["phase"] as? String {
+                self.phase = ph
+            }
+            
+            if let removedStr = p["removed"] as? String {
+                self.handleInboundRemovedStones(removedStr)
+            } else if let removedArr = p["removed"] as? [String] {
+                // If it's an array, join it? Or handle directly.
+                // Usually it's a single string "aabb". If array, maybe ["aa", "bb"].
+                // Let's concat.
+                let joined = removedArr.joined()
+                self.handleInboundRemovedStones(joined)
+            }
+            // ...
+
+
             
             // Phase C: Game End State
             // FIX: LATCH Logic. If we already know it's finished, don't reset to false unless explicit "play" phase seen.
@@ -823,15 +968,63 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 // So we construct: "[Name] wins by [Outcome]"
                 
                 if let wid = winnerID {
-                    self.activeGameOutcome = "\(winnerName) wins by \(outcome)"
+                    // Logic: Personalized Outcome Message & Structured Result
+                    if let pid = self.playerID {
+                        if wid == pid {
+                            self.activeGameOutcome = "You won by \(outcome)"
+                            self.activeGameResult = GameResult(
+                                title: "You Win",
+                                subtitle: "Your opponent \(winnerName == self.blackPlayerName ? (self.whitePlayerName ?? "White") : (self.blackPlayerName ?? "Black"))",
+                                method: "Lost by \(outcome.capitalized)",
+                                isMe: true
+                            )
+                        } else {
+                            // Opponent won
+                            let opponentName = (wid == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : (self.whitePlayerName ?? "White")
+                            self.activeGameOutcome = "Your opponent, \(opponentName), wins by \(outcome)"
+                             self.activeGameResult = GameResult(
+                                title: "You Lost",
+                                subtitle: "Your opponent \(opponentName)",
+                                method: "Won by \(outcome.capitalized)",
+                                isMe: false
+                            )
+                        }
+                        SoundManager.shared.playWinner(isMe: wid == pid, isDraw: false, method: outcome)
+                    } else {
+                        // Observer / No PID
+                        self.activeGameOutcome = "\(winnerName) wins by \(outcome)"
+                         self.activeGameResult = GameResult(
+                            title: "Game Over",
+                            subtitle: "\(winnerName) wins",
+                            method: "By \(outcome.capitalized)",
+                            isMe: false
+                        )
+                    }
                 } else {
                     self.activeGameOutcome = "Game Ended: \(outcome)"
+                    if outcome.lowercased().contains("draw") {
+                        self.activeGameResult = GameResult(title: "Draw", subtitle: "It is a draw", method: "", isMe: false)
+                        SoundManager.shared.playWinner(isMe: false, isDraw: true)
+                    } else {
+                         SoundManager.shared.play("game_over")
+                    }
                 }
                 
                 self.stopClockTimer()
                 self.stopEnginePulse()
             } else if let phase = p["phase"] as? String, phase == "finished" {
                 self.isGameFinished = true
+                
+                // Determine Winner for Sound
+                // Note: p["outcome"] might not be here, usually separate event. 
+                // But if we have outcome stored or inferred?
+                // Actually safer to rely on 'outcome' block above if available.
+                // Or just play generic 'game_over' here if we missed the specific outcome?
+                // Let's rely on the outcome block (lines 802-834) to call playWinner if possible.
+                // But lines 802-834 don't have playWinner call yet. Let's add it there in next step.
+                // For now, keep generic game_over here as fallback.
+                SoundManager.shared.play("game_over")
+                
                 self.stopClockTimer()
                 self.stopEnginePulse()
                 // FIX: Remove from Active List
@@ -973,6 +1166,17 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.isRequestingUndo = false
         }
         NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
+        
+        // Audio Trigger
+        // If it's MY turn now, play "Your Move"
+        if let next = self.currentPlayerID, next == self.playerID {
+             SoundManager.shared.play("your_move")
+        } else {
+             // Opponent played (or self played, but local echo handled by UI? No, strictly server echo here)
+             // OGS echoes my move too. If data["player_id"] != me, it's opponent.
+             // But simpler: just play click for everyone? User wants "Spoken Phrases".
+             // "Your Move" is the key request.
+        }
     }
 
     private func handleIncomingChat(_ data: [String: Any]) {
@@ -1051,14 +1255,30 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 let main = self.blackTimeRemaining ?? 0
                 if main > 0 {
                     self.blackTimeRemaining = max(0, main - delta)
+                    // Countdown Logic
+                    if main <= 10.0 && main >= 1.0 {
+                        SoundManager.shared.playCountdown(Int(floor(main)))
+                    }
+                    // FIX: Check updated value for transition to 0
+                    if (main - delta) <= 0 { 
+                         if self.playerID == self.blackPlayerID { SoundManager.shared.playByoyomiStart() }
+                    }
                 } else if var periods = self.blackClockPeriods, periods > 0 {
                     let pt = self.blackClockPeriodTime ?? 0
                     if pt > 0 {
                          self.blackClockPeriodTime = max(0, pt - delta)
+                         // Countdown Logic (Byoyomi)
+                         if pt <= 10.0 { SoundManager.shared.playCountdown(Int(floor(pt))) }
                      } else {
-                         // Transition
+                         // Transition: Period Expired
                          periods -= 1
                          self.blackClockPeriods = periods
+                         // Sound Trigger
+                         if self.playerID == self.blackPlayerID {
+                             if periods <= 0 { SoundManager.shared.play("timeout") }
+                             else { SoundManager.shared.playPeriodCount(periods) }
+                         }
+                         
                          if periods > 0, let len = self.blackPeriodLength {
                              self.blackClockPeriodTime = len
                          } else {
@@ -1070,14 +1290,30 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 let main = self.whiteTimeRemaining ?? 0
                 if main > 0 {
                     self.whiteTimeRemaining = max(0, main - delta)
+                    // Countdown Logic
+                    if main <= 10.0 && main >= 1.0 {
+                        SoundManager.shared.playCountdown(Int(floor(main)))
+                    }
+                    // FIX: Check updated value for transition to 0
+                    if (main - delta) <= 0 { 
+                         if self.playerID == self.whitePlayerID { SoundManager.shared.playByoyomiStart() }
+                    }
                 } else if var periods = self.whiteClockPeriods, periods > 0 {
                     let pt = self.whiteClockPeriodTime ?? 0
                     if pt > 0 {
                          self.whiteClockPeriodTime = max(0, pt - delta)
+                         // Countdown Logic (Byoyomi)
+                         if pt <= 10.0 { SoundManager.shared.playCountdown(Int(floor(pt))) }
                     } else {
                          // Transition
                          periods -= 1
                          self.whiteClockPeriods = periods
+                         
+                         if self.playerID == self.whitePlayerID {
+                            if periods <= 0 { SoundManager.shared.play("timeout") }
+                            else { SoundManager.shared.playPeriodCount(periods) }
+                         }
+                         
                          if periods > 0, let len = self.whitePeriodLength {
                              self.whiteClockPeriodTime = len
                          } else {
@@ -1188,5 +1424,20 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if let i = v as? Int { return Double(i) }
         return nil
     }
+    private func handleInboundRemovedStones(_ removedStr: String) {
+        var newRemoved: Set<BoardPosition> = []
+        let chars = Array(removedStr)
+        for i in stride(from: 0, to: chars.count, by: 2) {
+            if i + 1 < chars.count {
+                let s = String(chars[i...i+1])
+                if let (x, y) = SGFCoordinates.parse(s) {
+                    newRemoved.insert(BoardPosition(y, x))
+                }
+            }
+        }
+        self.removedStones = newRemoved
+        NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones. Raw: '\(removedStr)'")
+    }
+
 
 }

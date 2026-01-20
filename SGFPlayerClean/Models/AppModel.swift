@@ -98,9 +98,33 @@ final class AppModel: ObservableObject {
             }.store(in: &cancellables)
 
         ogsClient.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
-        setupAudio(); self.ogsClient.connect(); setupOGSObservers()
         
-        // Auto-load saved folder ONLY IF NOT ONLINE
+        setupAudio()
+        setupOGSObservers()
+        
+        // CONDITION: Only connect if we restore Online Mode
+        if wasOnline {
+            print("🚀 Auto-Connecting to OGS (Persistent Mode)")
+            self.ogsClient.connect()
+        }
+        
+        // Auto-Connect when switching tab to Online
+        $rightPanelTab
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] tab in
+                if tab == .online {
+                    print("🚀 Switching to Online Tab -> Connecting Socket")
+                    self?.ogsClient.connect()
+                    self?.isOnlineMode = true
+                    UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
+                } else {
+                    print("🚪 Switching to Local Mode -> Disconnecting Socket")
+                    self?.ogsClient.disconnect()
+                    self?.isOnlineMode = false
+                    UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
+                }
+            }.store(in: &cancellables)
         // This prevents the "confusing local game" issue when waking up in online mode.
         if !wasOnline, let url = AppSettings.shared.folderURL {
             print("📂 Auto-loading saved folder: \(url.path)")
@@ -108,6 +132,16 @@ final class AppModel: ObservableObject {
         }
         
         setupAutoAdvance()
+        
+        // Sync Stone Volume
+        AppSettings.shared.$stoneVolume
+            .receive(on: RunLoop.main)
+            .sink { [weak self] vol in
+                let f = Float(vol)
+                self?.clickPlayer?.volume = f
+                self?.captureSinglePlayer?.volume = f
+                self?.captureMultiPlayer?.volume = f
+            }.store(in: &cancellables)
     }
     
     // MARK: - Audio
@@ -120,6 +154,12 @@ final class AppModel: ObservableObject {
         self.clickPlayer = loadSound("Stone_click_1.mp3")
         self.captureSinglePlayer = loadSound("Capture_single.mp3")
         self.captureMultiPlayer = loadSound("Capture_multiple.mp3")
+        
+        // Apply Initial Volume
+        let v = Float(AppSettings.shared.stoneVolume)
+        clickPlayer?.volume = v
+        captureSinglePlayer?.volume = v
+        captureMultiPlayer?.volume = v
     }
     
     private func loadSound(_ name: String) -> AVAudioPlayer? {

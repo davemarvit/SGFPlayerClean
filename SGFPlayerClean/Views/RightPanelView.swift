@@ -39,6 +39,8 @@ struct RightPanelView: View {
         VStack {
             if app.ogsClient.activeGameID != nil && app.ogsClient.isConnected {
                 ActiveGamePanel().transition(.opacity)
+            } else if app.isCreatingChallenge {
+                OGSCreateChallengeView(isPresented: $app.isCreatingChallenge).transition(.opacity)
             } else {
                 OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in
                     app.joinOnlineGame(id: id)

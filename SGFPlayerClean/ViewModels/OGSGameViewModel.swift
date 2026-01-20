@@ -105,12 +105,29 @@ class OGSGameViewModel: ObservableObject {
             sender: safeUser,
             message: safeBody,
             isSelf: isMe,
-            type: type
+
+            type: type,
+            moveNumber: (data["move_number"] as? Int) ?? ogsClient.lastKnownRemoteMoveNumber
         )
         
         DispatchQueue.main.async {
+            // Deduplication Check
+            let newKey = "\(date.timeIntervalSince1970)-\(safeUser)-\(safeBody)"
+            // Check last 20 messages for duplicate (performance opt) makes sense, or check all.
+            // Since count < 100, checking all is fine.
+            let isDuplicate = self.chatMessages.contains { existing in
+                let existingKey = "\(existing.timestamp.timeIntervalSince1970)-\(existing.sender)-\(existing.message)"
+                return existingKey == newKey
+            }
+            
+            if isDuplicate {
+                NSLog("[OGS-CHAT-DEBUG] ♻️ Ignored Duplicate Message: \(safeBody)")
+                return
+            }
+            
             // Append and generic limit
             self.chatMessages.append(msg)
+            NSLog("[OGS-CHAT-DEBUG] 💬 Appended Message. New Count: \(self.chatMessages.count). Body: \(safeBody)")
             if self.chatMessages.count > 100 { self.chatMessages.removeFirst() }
         }
     }
@@ -122,6 +139,7 @@ class OGSGameViewModel: ObservableObject {
              guard let username = c["username"] as? String,
                    let body = c["body"] as? String else { continue }
              let isMe = (username == ogsClient.username)
+             if loaded.isEmpty { NSLog("[OGS-Chat] Keys: \(c.keys)") }
              let date = (c["date"] as? Int).map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? Date()
              
              loaded.append(OGSChatMessage(
@@ -129,14 +147,33 @@ class OGSGameViewModel: ObservableObject {
                 sender: username,
                 message: body,
                 isSelf: isMe,
-                type: (c["type"] as? String) ?? "main"
+                type: (c["type"] as? String) ?? "main",
+                moveNumber: c["move_number"] as? Int
              ))
         }
         // Sort by date just in case
         loaded.sort { $0.timestamp < $1.timestamp }
         
+        // Deduplicate loaded messages against themselves (based on content/time)
+        // and against existing messages if necessary (though usually we replace).
+        // Let's ensure 'loaded' itself has no duplicates.
+        var uniqueLoaded: [OGSChatMessage] = []
+        var seen = Set<String>()
+        
+        for msg in loaded {
+            let key = "\(msg.timestamp.timeIntervalSince1970)-\(msg.sender)-\(msg.message)"
+            if !seen.contains(key) {
+                seen.insert(key)
+                uniqueLoaded.append(msg)
+            }
+        }
+        
         DispatchQueue.main.async {
-            self.chatMessages = loaded
+            // If the content is identical to what we have, don't flicker.
+            // But IDs will differ.
+            // Let's just force replace.
+            self.chatMessages = uniqueLoaded
+            NSLog("[OGS-CHAT-DEBUG] 📜 parseInitialChat Replaced Chat History. Count: \(uniqueLoaded.count).")
         }
     }
     

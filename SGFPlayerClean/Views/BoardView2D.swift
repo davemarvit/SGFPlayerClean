@@ -50,8 +50,20 @@ struct BoardView2D: View {
                     let sS = (rs.color == .black ? 1.015 : 0.995) * cellP
                     StoneView2D(color: rs.color, position: rs.id)
                         .frame(width: sS, height: sS)
+                        .opacity(rs.isDead ? 0.4 : 1.0)
+                        .grayscale(rs.isDead ? 1.0 : 0.0)
                         .position(x: CGFloat(rs.id.col) * cellP + (rs.offset.x * cellP),
                                   y: CGFloat(rs.id.row) * rowP + (rs.offset.y * rowP))
+                }
+                
+                // Territory Layer
+                ForEach(Array(boardVM.territoryPoints.keys), id: \.self) { pos in
+                    if let color = boardVM.territoryPoints[pos] {
+                        Rectangle()
+                            .fill(color == .black ? Color.black : Color.white)
+                            .frame(width: cellP * 0.3, height: cellP * 0.3)
+                            .position(x: CGFloat(pos.col) * cellP, y: CGFloat(pos.row) * rowP)
+                    }
                 }
                 
                 if let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
