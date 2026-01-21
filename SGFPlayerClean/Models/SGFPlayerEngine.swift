@@ -15,6 +15,57 @@ final class SGFPlayer: ObservableObject {
     @Published var blackStonesCaptured: Int = 0
     let moveProcessed = PassthroughSubject<Void, Never>()
     
+    // MARK: - Snapshot
+    struct LocalGameSnapshot {
+        let moves: [(Stone, (Int,Int)?)]
+        let setup: [(Stone, Int, Int)]
+        let size: Int
+        let capturedWhite: Int
+        let capturedBlack: Int
+    }
+    
+    func createSnapshot() -> LocalGameSnapshot {
+        return LocalGameSnapshot(
+            moves: _moves,
+            setup: _baseSetup,
+            size: baseSize,
+            capturedWhite: whiteStonesCaptured,
+            capturedBlack: blackStonesCaptured
+        )
+    }
+    
+    func restoreSnapshot(_ s: LocalGameSnapshot) {
+        self.baseSize = s.size
+        self._moves = s.moves
+        self._baseSetup = s.setup
+        
+        // Rebuild State
+        // 1. Reset Board to Base Setup
+        // We use reset() which builds the grid from _baseSetup
+        let savedMoves = s.moves
+        self._moves = [] 
+        self.reset() 
+        
+        // 2. Replay Moves
+        self._moves = savedMoves
+        
+        // Reset counts purely for replay calculation
+        self.whiteStonesCaptured = 0 
+        self.blackStonesCaptured = 0 
+        
+        for i in 0..<_moves.count {
+            apply(moveAt: i)
+        }
+        
+        // 3. Trust Snapshot Captures (Optional override if replay differs?)
+        // Replay is authoritative for logic, but if we trust snapshot:
+        self.whiteStonesCaptured = s.capturedWhite
+        self.blackStonesCaptured = s.capturedBlack
+        
+        self.currentIndex = _moves.count
+        self.moveProcessed.send()
+    }
+    
     private var _moves: [(Stone, (Int,Int)?)] = []
     private var _baseSetup: [(Stone, Int, Int)] = []
     private var baseSize: Int = 19

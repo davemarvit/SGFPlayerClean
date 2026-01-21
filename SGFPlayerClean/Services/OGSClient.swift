@@ -558,13 +558,16 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         sendAction("stone_removal/accept", payload: ["game_id": gameID])
     }
     
-    func sendRemovedStones(gameID: Int, removed: String) {
-        NSLog("[OGS-SCORING] 📤 Updating Removed Stones: \(removed)")
-        sendAction("stone_removal/removed", payload: [
+    func sendRemovedStones(gameID: Int, stones: String, removed: Bool) {
+        NSLog("[OGS-SCORING] 📤 Updating Removed Stones Delta: \(removed ? "REMOVE" : "REVIVE") \(stones)")
+        // Web Protocol: { "game_id": 123, "removed": true/false, "stones": "aabb" }
+        // Event: "game/removed_stones/set"
+        let payload: [String: Any] = [
             "game_id": gameID,
             "removed": removed,
-            "strict_seki_mode": false // Default
-        ])
+            "stones": stones
+        ]
+        sendAction("game/removed_stones/set", payload: payload)
     }
 
     
@@ -642,7 +645,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
         // FIREHOSE LOGGING (Temporary)
         if eventName != "net/ping" && eventName != "net/pong" && eventName != "seekgraph/global" {
-             // NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload)")
+             // NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload.keys)")
         }
         
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
@@ -766,8 +769,19 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                  NSLog("[OGS-SCORING] ♻️ Live Remove Update (Arr): \(joined)")
                  DispatchQueue.main.async { self.handleInboundRemovedStones(joined) }
              }
+        } else if eventName.hasSuffix("/stone_removal") {
+             // ... existing logic ...
+        } else if eventName.hasSuffix("/removed_stones") {
+             // Web Protocol: { "removed": true, "stones": "...", "all_removed": "aabbcc" }
+             if let all = payload["all_removed"] as? String {
+                 NSLog("[OGS-SCORING] 📥 Received Full Update (all_removed): \(all)")
+                 DispatchQueue.main.async { self.handleInboundRemovedStones(all) }
+             } else if let stones = payload["stones"] as? String {
+                 // Fallback if all_removed missing (delta logic?)
+                 // But logs show all_removed is present.
+                 NSLog("[OGS-SCORING] ⚠️ Partial update receiving logic not fully implemented, relying on 'all_removed'. Stones: \(stones)")
+             }
         }
-
 
         else if eventName.contains("undo_accepted") {
             // NSLog("OGS: ↩️ Undo Accepted event received: \(eventName). Triggering State Fetch.")
@@ -916,11 +930,19 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             if let removedStr = p["removed"] as? String {
                 self.handleInboundRemovedStones(removedStr)
             } else if let removedArr = p["removed"] as? [String] {
-                // If it's an array, join it? Or handle directly.
-                // Usually it's a single string "aabb". If array, maybe ["aa", "bb"].
-                // Let's concat.
                 let joined = removedArr.joined()
                 self.handleInboundRemovedStones(joined)
+            } else if let scoreStones = p["score_stones"] as? [ [String: Any] ] {
+                 // Format: [ { "x": 16, "y": 16, "c": "b" }, ... ]
+                 // This acts as the DEFINITIVE list of dead stones in some contexts.
+                 var newRemoved: Set<BoardPosition> = []
+                 for stoneKey in scoreStones {
+                      if let x = stoneKey["x"] as? Int, let y = stoneKey["y"] as? Int {
+                          newRemoved.insert(BoardPosition(y, x))
+                      }
+                 }
+                 self.removedStones = newRemoved
+                 NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones from 'score_stones'")
             }
             // ...
 
@@ -1380,6 +1402,12 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     // ... (rest of methods) ...
 
     private func updateLobbyItem(_ dict: [String: Any]) {
+        // CASE 1: Delete Command { "delete": 12345 } or { "challenge_id": 123, "delete": true }
+        if let deleteID = robustInt(dict["delete"]) {
+            self.lobbyChallenges.removeValue(forKey: deleteID)
+            return
+        }
+        
         guard let id = robustInt(dict["challenge_id"]) ?? robustInt(dict["game_id"]) else { return }
         
         if dict["delete"] != nil { 
@@ -1437,6 +1465,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         }
         self.removedStones = newRemoved
         NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones. Raw: '\(removedStr)'")
+
     }
 
 

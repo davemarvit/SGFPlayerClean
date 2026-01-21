@@ -30,6 +30,7 @@ final class AppModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
     @Published var resumableGameID: Int? = nil
+    private var savedLocalSnapshot: SGFPlayer.LocalGameSnapshot? = nil
     
     // Audio
     enum SoundType { case place, captureSingle, captureMultiple }
@@ -113,22 +114,52 @@ final class AppModel: ObservableObject {
             .dropFirst()
             .receive(on: RunLoop.main)
             .sink { [weak self] tab in
+                guard let self = self else { return }
+                
                 if tab == .online {
-                    print("🚀 Switching to Online Tab -> Connecting Socket")
-                    self?.ogsClient.connect()
-                    self?.isOnlineMode = true
+                    print("🚀 Switching to Online Tab")
+                    // 1. Snapshot Local State
+                    if !self.isOnlineMode {
+                        self.savedLocalSnapshot = self.player.createSnapshot()
+                        print("💾 Local Game Saved (Moves: \(self.savedLocalSnapshot?.moves.count ?? 0))")
+                    }
+                    
+                    // 2. Connect & Clear
+                    self.boardVM?.resetToEmpty() // FIX: Ensures UI (glow) clears along with engine
+                    self.ogsClient.connect()
+                    self.isOnlineMode = true
                     UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
+                    
                 } else {
-                    print("🚪 Switching to Local Mode -> Disconnecting Socket")
-                    self?.ogsClient.disconnect()
-                    self?.isOnlineMode = false
+                    print("🚪 Switching to Local Mode")
+                    self.ogsClient.disconnect()
+                    self.isOnlineMode = false
                     UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
+                    
+                    // 3. Restore or Start New
+                    self.player.clear() // Ensure clean slate first
+                    
+                    if let snap = self.savedLocalSnapshot {
+                        print("♻️ Restoring Local Game...")
+                        self.player.restoreSnapshot(snap)
+                    } else if AppSettings.shared.startGameOnLaunch {
+                        print("✨ Starting New Game (StartOnLaunch)")
+                        self.startInstantGame()
+                    }
                 }
             }.store(in: &cancellables)
         // This prevents the "confusing local game" issue when waking up in online mode.
-        if !wasOnline, let url = AppSettings.shared.folderURL {
-            print("📂 Auto-loading saved folder: \(url.path)")
-            loadFolder(url)
+        if !wasOnline {
+            // Priority: Start Instant Game if enabled (guarantees playable board)
+            if AppSettings.shared.startGameOnLaunch {
+                self.startInstantGame()
+            }
+            
+            // Then attempt to load folder (async)
+            if let url = AppSettings.shared.folderURL {
+                print("📂 Auto-loading saved folder: \(url.path)")
+                loadFolder(url)
+            }
         }
         
         setupAutoAdvance()
@@ -142,6 +173,20 @@ final class AppModel: ObservableObject {
                 self?.captureSinglePlayer?.volume = f
                 self?.captureMultiPlayer?.volume = f
             }.store(in: &cancellables)
+    }
+    
+    private func startInstantGame() {
+        self.player.reset()
+        // Create Dummy Wrapper for UI
+        var newGame = SGFGame()
+        newGame.boardSize = 19
+        newGame.info.event = "Instant Game"
+        newGame.info.date = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short)
+        
+        let dummyURL = URL(fileURLWithPath: "/tmp/InstantGame.sgf")
+        let wrapper = SGFGameWrapper(url: dummyURL, game: newGame)
+        
+        self.selection = wrapper
     }
     
     // MARK: - Audio

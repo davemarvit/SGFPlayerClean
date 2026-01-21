@@ -101,6 +101,7 @@ struct OGSBrowserView: View {
             }
         }
         .listStyle(.inset).scrollContentBackground(.hidden)
+        .padding(.top, 1) // FIX: Prevent first item from clipping under certain headers
     }
 
     // FIX: Broken down into sub-expressions to prevent compiler timeout
@@ -156,38 +157,45 @@ struct OGSBrowserView: View {
 struct ChallengeRow: View {
     let challenge: OGSChallenge; let isMine: Bool; let onAction: () -> Void
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onAction) {
-                Text(isMine ? "CANCEL" : "ACCEPT").font(.system(size: 10, weight: .bold)).padding(.horizontal, 2).foregroundColor(isMine ? .black : .white)
-            }.buttonStyle(.borderedProminent).tint(isMine ? .yellow : .green).controlSize(.small)
+                Text(isMine ? "CANCEL" : "ACCEPT")
+                    .font(.system(size: 11, weight: .bold)) // Slightly increased
+                    .fixedSize() // Prevent truncation
+                    .padding(.horizontal, 4)
+                    .foregroundColor(isMine ? .black : .white)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(isMine ? .yellow : .green)
+            .controlSize(.regular) // Use regular size for better layout
             
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(challenge.challenger?.displayRank ?? "?").font(.system(size: 13, weight: .bold)).foregroundColor(rankColor)
-                    Text(challenge.challenger?.username ?? "Unknown").font(.system(size: 13, weight: .medium)).lineLimit(1)
+                    Text(challenge.challenger?.displayRank ?? "?").font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                    Text(challenge.challenger?.username ?? "Unknown").font(.system(size: 13, weight: .medium)).foregroundColor(.white).lineLimit(1)
                 }
                 Text(challenge.timeControlDisplay).font(.system(size: 11)).foregroundColor(.white.opacity(0.6))
-            }.frame(minWidth: 100, alignment: .leading)
+            }
             
             Spacer()
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text(challenge.boardSize).font(.system(size: 13, weight: .bold))
-                Text(challenge.game?.rules?.capitalized ?? "Japanese").font(.system(size: 11)).foregroundColor(.white.opacity(0.6))
-            }.frame(width: 60, alignment: .leading)
-            
-            if challenge.game?.ranked ?? false {
-                Text("RATED").font(.system(size: 10, weight: .heavy)).foregroundColor(.white.opacity(0.8)).padding(.horizontal, 6).padding(.vertical, 2).overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.3), lineWidth: 1))
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if challenge.game?.ranked ?? false {
+                        Text("RATED")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    Text(challenge.boardSize).font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                }
+                Text(challenge.game?.rules?.capitalized ?? "Japanese")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
             }
         }.padding(.vertical, 6).listRowBackground(Color.clear)
     }
 
-    var rankColor: Color {
-        guard let rank = challenge.challenger?.ranking else { return .gray }
-        if rank >= 30 { return .cyan }
-        if rank >= 20 { return .green }
-        return .orange
-    }
+    // rankColor helper removed as it is no longer used
 }
 
 // MARK: - Login View (Merged for Target Simplicity)

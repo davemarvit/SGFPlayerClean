@@ -47,6 +47,7 @@ class BoardViewModel: ObservableObject {
         // OGS Scoring Observers
         ogsClient.$removedStones.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         ogsClient.$phase.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
+
     }
     
     var boardSize: Int { self.engine.board.size }
@@ -55,6 +56,7 @@ class BoardViewModel: ObservableObject {
         // PILLAR: Atomic UI Flush
         self.engine.clear()
         self.stonesToRender = []
+        self.lastMovePosition = nil // FIX: Ensure glow is removed
         self.isOnlineContext = false
         self.lastObservedMoveIndex = 0 // FIX: Reset sound tracker
         self.syncState()
@@ -150,18 +152,18 @@ class BoardViewModel: ObservableObject {
                     // Let's use the engine helper to get the group.
                     
                     let group = self.engine.getGroup(at: pos)
-                    // If any stone in group is dead, revive whole group. Else kill whole group.
-                    let isAnyDead = group.contains { currentRemoved.contains($0) }
+                    // UX Fix: Base action on the SPECIFIC stone clicked.
+                    // If we click a Dead stone -> Revive Group (removed=false).
+                    // If we click an Alive stone -> Kill Group (removed=true).
+                    let isClickedStoneDead = currentRemoved.contains(pos)
+                    let newRemovedState = !isClickedStoneDead // If dead(true), new is false. If alive(false), new is true.
                     
-                    if isAnyDead {
-                        currentRemoved.subtract(group)
-                    } else {
-                        currentRemoved.formUnion(group)
-                    }
+                    // Optimistic update?
+                    if newRemovedState { currentRemoved.formUnion(group) } else { currentRemoved.subtract(group) }
                     
-                    // Convert back to string "aabbcc"
-                    let coords = currentRemoved.map { SGFCoordinates.toSGF(x: $0.col, y: $0.row) }.joined()
-                    ogsClient.sendRemovedStones(gameID: gameID, removed: coords)
+                    // Send Delta
+                    let coords = group.map { SGFCoordinates.toSGF(x: $0.col, y: $0.row) }.joined()
+                    ogsClient.sendRemovedStones(gameID: gameID, stones: coords, removed: newRemovedState)
                 }
             }
         }
@@ -341,4 +343,6 @@ class BoardViewModel: ObservableObject {
     func getJitterOffset(forPosition pos: BoardPosition) -> CGPoint {
         return self.jitterEngine.offset(forX: pos.col, y: pos.row, moveIndex: self.currentMoveIndex, stones: self.engine.board.stones)
     }
+    
+
 }
