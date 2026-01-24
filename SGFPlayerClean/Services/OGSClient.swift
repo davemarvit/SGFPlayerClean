@@ -18,7 +18,13 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var playerID: Int?
     @Published var userJWT: String?
     
-    @Published var activeGameID: Int?
+    @Published var activeGameID: Int? {
+        didSet {
+             if oldValue != activeGameID {
+                 NSLog("[OGS-DEBUG] 🎮 activeGameID CHANGED: \(oldValue ?? -1) -> \(activeGameID ?? -1)")
+             }
+        }
+    }
     @Published var myActiveGames: Set<Int> = []
     @Published var finishedGameIDs: Set<Int> = [] // NEW: Persistent filter for Zombie games // Discovered active games for this user
 
@@ -92,6 +98,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     // Scoring & Dead Stones
     @Published var phase: String? = "play"
     @Published var removedStones: Set<BoardPosition> = []
+    @Published var komi: Double? // NEW: Komi Display
     
     // Debugging
     @Published var lastReceivedEvent: String = ""
@@ -364,8 +371,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         sendAction("game/resign", payload: ["game_id": gameID])
     }
 
+    func fetchSGF(gameID: Int, completion: @escaping (Data?) -> Void) {
+        guard let url = URL(string: "https://online-go.com/api/v1/games/\(gameID)/sgf") else {
+            completion(nil); return
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        
+        urlSession?.dataTask(with: request) { data, _, error in
+            if let e = error { NSLog("[OGS-SGF] Failed to fetch SGF: \(e)"); completion(nil); return }
+            completion(data)
+        }.resume()
+    }
+
     func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
-        // Guard: Needs Player ID and JWT
         // Note: Added trailing slash to avoid potential 301 redirects dropping POST body
         guard let jwt = userJWT, let url = URL(string: "https://online-go.com/api/v1/challenges/") else {
              completion(false, "Not authenticated"); return
@@ -378,13 +398,13 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         request.httpMethod = "POST"
         request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        request.setValue(originHeader, forHTTPHeaderField: "Referer")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         
         if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
            let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value { 
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
-            request.setValue(csrf, forHTTPHeaderField: "X-CSRF-Token")
+            request.setValue(csrf, forHTTPHeaderField: "X-XSRF-TOKEN") // Redundancy for strict proxies
         }
         
         let payload = setup.toDictionary()
@@ -489,6 +509,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(originHeader, forHTTPHeaderField: "Referer") // Essential for Django CSRF
         
         // Add Cookies if needed (usually good idea)
         if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) {
@@ -496,12 +517,38 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
             if let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
                 request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+                request.setValue(csrf, forHTTPHeaderField: "X-XSRF-TOKEN") // Redundancy for strict proxies
+                NSLog("[OGS-AUTH-DEBUG] 🍪 Cookies Attached. CSRF Found: Yes. Count: \(cookies.count)")
+            } else {
+                NSLog("[OGS-AUTH-DEBUG] 🍪 Cookies Attached. CSRF Found: NO. Count: \(cookies.count)")
             }
+        } else {
+             NSLog("[OGS-AUTH-DEBUG] ⚠️ No Cookies Found for online-go.com")
         }
+        
+        NSLog("[OGS-AUTH-DEBUG] 🚀 Attempting Cancel Challenge \(challengeID). User: \(self.username ?? "nil") ID: \(self.playerID ?? -1). JWT Length: \(jwt.count)")
 
-        urlSession?.dataTask(with: request) { _, _, error in
+        urlSession?.dataTask(with: request) { [weak self] data, response, error in
+            if let http = response as? HTTPURLResponse {
+                NSLog("[OGS-CANCEL-DEBUG] 📡 Cancel Response: \(http.statusCode)")
+                if (200...299).contains(http.statusCode) || http.statusCode == 404 || http.statusCode == 403 {
+                     DispatchQueue.main.async {
+                         if self?.lobbyChallenges[challengeID] != nil {
+                             NSLog("[OGS-CANCEL-DEBUG] 🧹 Force Removing Challenge \(challengeID) from Local State (Status: \(http.statusCode)).")
+                             self?.lobbyChallenges.removeValue(forKey: challengeID)
+                             self?.refreshLobbyUI()
+                         }
+                     }
+                }
+                
+                if http.statusCode == 403 {
+                    NSLog("[OGS-AUTH-DEBUG] ⛔️ 403 Forbidden. Auth Mismatch? Triggering Config Refresh.")
+                    self?.fetchUserConfig()
+                }
+            }
+            
             if let e = error { NSLog("[OGS] ❌ Cancel Challenge Failed: \(e)") }
-            else { NSLog("[OGS] ✅ Challenge Cancelled: \(challengeID)") }
+            else { NSLog("[OGS] ✅ Challenge Cancel Request Sent: \(challengeID)") }
         }.resume()
         
         // Phase 1: Try Automatch Cancel (Priority)
@@ -553,9 +600,59 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     // MARK: - Scoring Actions
+    
+    // MARK: - Helper: Encode Stones for Protocol
+    private func encodeRemovedStones() -> String {
+        // Convert Set<BoardPosition> to OGS Coordinate String (e.g. "aabb")
+        // OGS uses 'aa' = 0,0. 'ba' = 1,0.
+        let sorted = self.removedStones.sorted { $0.row == $1.row ? $0.col < $1.col : $0.row < $1.row }
+        var result = ""
+        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        
+        for p in sorted {
+            if p.col >= 0, p.col < 52, p.row >= 0, p.row < 52 {
+                let xChar = letters[letters.index(letters.startIndex, offsetBy: p.col)]
+                let yChar = letters[letters.index(letters.startIndex, offsetBy: p.row)]
+                result.append(xChar)
+                result.append(yChar)
+            }
+        }
+        return result
+    }
+    
+    @Published var isScoreAccepted: Bool = false
+
     func acceptScore(gameID: Int) {
-        NSLog("[OGS-SCORING] 🤝 Accepting Score for \(gameID)")
-        sendAction("stone_removal/accept", payload: ["game_id": gameID])
+        // PER DOCS: Must send "stones" + "strict_seki_mode"
+        // Convert our Set<BoardPosition> to the "aa" string format
+        let stonesStr = self.encodeRemovedStones()
+        NSLog("[OGS-SCORING] 🤝 Accepting Score for \(gameID) with stones: '\(stonesStr)'")
+        
+        // Optimistic UI Update
+        self.isScoreAccepted = true
+        
+        NSLog("[OGS-SCORING-DEBUG] Sending ACCEPT. Stones: \(stonesStr)")
+        sendAction("game/removed_stones/accept", payload: [
+            "game_id": gameID,
+            "stones": stonesStr,
+            "strict_seki_mode": false
+        ])
+    }
+    
+    func rejectScore(gameID: Int) {
+        NSLog("[OGS-SCORING] 🙅 Rejecting Score for \(gameID) (Resume Game)")
+        // Verified Protocol: "game/removed_stones/reject" (No sequence)
+        
+        self.isScoreAccepted = false
+        
+        NSLog("[OGS-SCORING-DEBUG] Sending REJECT.")
+        sendAction("game/removed_stones/reject", payload: ["game_id": gameID])
+        
+        // Redundancy: Send explicit undo request just in case
+        sendAction("game/undo/request", payload: ["game_id": gameID, "move_number": (self.currentStateVersion)])
+        
+        // Internal state update: resume phase to 'play' optimistically?
+        // Wait for server "phase" -> "play" event.
     }
     
     func sendRemovedStones(gameID: Int, stones: String, removed: Bool) {
@@ -671,7 +768,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     if bid == self.playerID || wid == self.playerID {
                         if let gid = self.robustInt(payload["game_id"]) ?? self.robustInt(payload["id"]) {
                             // FIX: Only track as "Active" if Phase is Play AND No Outcome
-                            if (phase == "play" || phase == "stone removal") && payload["outcome"] == nil {
+                            if (phase == "play" || phase == "stone removal") && (payload["outcome"] == nil || payload["outcome"] is NSNull) {
                                 // FIX: Don't re-add if we know it's finished locally (Shield 2.0)
                                 let isKnownFinished = self.finishedGameIDs.contains(gid)
                                 let isCurrentFinished = (self.activeGameID == gid && self.isGameFinished)
@@ -730,7 +827,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.stopEnginePulse()
             self.stopClockTimer()
         }
-        if payload["outcome"] != nil {
+        if let outcome = payload["outcome"] as? String {
             self.isGameFinished = true
             self.stopClockTimer()
         }
@@ -840,6 +937,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.blackPlayerName = blackObj?["username"] as? String ?? self.blackPlayerName
             self.whitePlayerName = whiteObj?["username"] as? String ?? "White"
             
+            NSLog("[OGS-DEBUG-COLOR] 📥 Parsed Game Data. MyID: \(self.playerID ?? -1). BlackID: \(self.blackPlayerID ?? -1). WhiteID: \(self.whitePlayerID ?? -1).")
+
             let bR = (blackObj?["ranking"] as? Double) ?? (blackObj?["rank"] as? Double)
             let bR_int = (blackObj?["ranking"] as? Int) ?? (blackObj?["rank"] as? Int)
             self.blackPlayerRank = bR ?? bR_int.map { Double($0) }
@@ -852,7 +951,10 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             
             // Phase B: Game Rules & Ranked Status
             if let r = p["rules"] as? String { self.gameRules = r.capitalized }
+            if let r = p["rules"] as? String { self.gameRules = r.capitalized }
             if let ranked = p["ranked"] as? Bool { self.isRanked = ranked }
+            if let k = p["komi"] as? Double { self.komi = k }
+            else if let kstr = p["komi"] as? String { self.komi = Double(kstr) }
             
             
             // Phase B: Static Time Control
@@ -899,6 +1001,36 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             }
             
             // Phase C: Initial Clock State
+            if let clock = p["clock"] as? [String: Any] { 
+                self.lastClockSnapshot = clock
+                self.handleInboundClock(clock)
+            }
+            
+            // Phase D: Captures / Prisoners
+            // GameData usually has "players" -> "black" -> "captured" sometimes? 
+            // OR checks "prisoners" key directly.
+            // OGS 2025: players.black.prisoners is Int? or just rely on 'gamedata' level 'prisoners'?
+            // Let's check both.
+            if let priv = p["prisoners"] as? [String: Any] {
+                 self.blackCaptures = (priv["black"] as? Int) ?? self.blackCaptures
+                 self.whiteCaptures = (priv["white"] as? Int) ?? self.whiteCaptures
+            } else if let b = p["black_prisoners"] as? Int, let w = p["white_prisoners"] as? Int {
+                 // Alternate format
+                 self.blackCaptures = b
+                 self.whiteCaptures = w
+            }
+            
+            self.hasEnteredRoom = true
+            
+            // If the game is in 'stone removal' phase, ensure we request the latest state or parse it
+            if let phase = p["phase"] as? String, phase == "stone removal" {
+                 // Ensuring we have the latest removed stones is handled by 'removed_stones' events usually.
+                 // But if we just joined, we might need 'removed' key from gamedata?
+                 if let removed = p["removed"] as? String {
+                      self.handleInboundRemovedStones(removed)
+                 }
+            }
+
             // FIX: Parse 'clock' immediately so we have 'current_player' for tickClock()
             if let cAny = p["clock"] {
                 // DEBUG: Check Type of Clock
@@ -917,9 +1049,14 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             // print("DEBUG: ...")
             
             // Phase B: Captures
-            if let prisoners = p["score_prisoners"] as? [String: Any] {
+            // Check both 'prisoners' (common) and 'score_prisoners' (endgame)
+            if let prisoners = (p["prisoners"] as? [String: Any]) ?? (p["score_prisoners"] as? [String: Any]) {
                 self.blackCaptures = (prisoners["black"] as? Int) ?? self.blackCaptures
                 self.whiteCaptures = (prisoners["white"] as? Int) ?? self.whiteCaptures
+            } else if let bC = p["black_prisoners"] as? Int, let wC = p["white_prisoners"] as? Int {
+                 // Format 2: Direct keys
+                 self.blackCaptures = bC
+                 self.whiteCaptures = wC
             }
 
             // Phase D: Dead Stone Parsing (Scoring)
@@ -993,11 +1130,12 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     // Logic: Personalized Outcome Message & Structured Result
                     if let pid = self.playerID {
                         if wid == pid {
+                            let opponentName = (winnerName == self.blackPlayerName) ? (self.whitePlayerName ?? "White") : (self.blackPlayerName ?? "Black")
                             self.activeGameOutcome = "You won by \(outcome)"
                             self.activeGameResult = GameResult(
                                 title: "You Win",
-                                subtitle: "Your opponent \(winnerName == self.blackPlayerName ? (self.whitePlayerName ?? "White") : (self.blackPlayerName ?? "Black"))",
-                                method: "Lost by \(outcome.capitalized)",
+                                subtitle: "You beat \(opponentName) by \(outcome)",
+                                method: "Victory", // Simplified
                                 isMe: true
                             )
                         } else {
@@ -1006,8 +1144,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                             self.activeGameOutcome = "Your opponent, \(opponentName), wins by \(outcome)"
                              self.activeGameResult = GameResult(
                                 title: "You Lost",
-                                subtitle: "Your opponent \(opponentName)",
-                                method: "Won by \(outcome.capitalized)",
+                                subtitle: "You lost to \(opponentName) by \(outcome)",
+                                method: "Defeat", // Simplified
                                 isMe: false
                             )
                         }
@@ -1178,8 +1316,43 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         // Update Remote Move Number
         if let num = robustInt(data["move_number"]) {
             self.lastKnownRemoteMoveNumber = num
-            // NSLog("[OGS-CLIENT] 🔢 Move Event -> Remote Move Number: \(num)")
-        }
+            let moveStr = (data["move"] as? String) ?? "??"
+            NSLog("[OGS-MOVE-DEBUG] 📨 Incoming Move Packet: #\(num) Coords: \(moveStr). Full Keys: \(data.keys)")
+            
+            // Capture Update from Move Event
+            // OGS 'prisoners' dict keys = color of DEAD stones.
+            // { "black": 5 } -> 5 Black stones dead -> White has 5 prisoners.
+            // { "white": 2 } -> 2 White stones dead -> Black has 2 prisoners.
+            
+            if let prisoners = data["prisoners"] as? [String: Any] {
+                 DispatchQueue.main.async {
+                     // FIX: Swap mappings. 
+                     // blackCaptures (By Black) = Dead White Stones (prisoners["white"])
+                     // whiteCaptures (By White) = Dead Black Stones (prisoners["black"])
+                     let deadBlack = (prisoners["black"] as? Int) ?? self.whiteCaptures 
+                     let deadWhite = (prisoners["white"] as? Int) ?? self.blackCaptures
+                     
+                     self.whiteCaptures = deadBlack
+                     self.blackCaptures = deadWhite
+                     
+                     NSLog("[OGS-CAPTURES] 🎯 Updated: Black holds \(deadWhite) (dead white), White holds \(deadBlack) (dead black)")
+                 }
+            } else if let capturedArr = data["captured"] as? [[String: Any]], !capturedArr.isEmpty {
+                 // Fallback: If 'prisoners' total is missing, but 'captured' stones list exists
+                 if let pid = self.robustInt(data["player_id"]) {
+                     DispatchQueue.main.async {
+                         if pid == self.blackPlayerID {
+                             // PID did the capturing. He captured the stones in the array.
+                             self.blackCaptures += capturedArr.count
+                             NSLog("[OGS-CAPTURES] 🏴 Black Captured +\(capturedArr.count) (Total: \(self.blackCaptures))")
+                         } else if pid == self.whitePlayerID {
+                             self.whiteCaptures += capturedArr.count
+                             NSLog("[OGS-CAPTURES] 🏳️ White Captured +\(capturedArr.count) (Total: \(self.whiteCaptures))")
+                         }
+                     }
+                 }
+            }
+
     
         // Any incoming move invalidates pending undo requests (moot)
         DispatchQueue.main.async {
@@ -1200,6 +1373,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
              // "Your Move" is the key request.
         }
     }
+}
 
     private func handleIncomingChat(_ data: [String: Any]) {
         // Expected payload: { "player_id": 123, "username": "Foo", "body": "Hello", "type": "main" }
@@ -1374,9 +1548,18 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     private func identityLockCheck() {
-        guard let myID = self.playerID else { return }
+        guard let myID = self.playerID else { 
+            NSLog("[OGS-DEBUG-COLOR] ⚠️ identityLockCheck Skipped. No PlayerID.")
+            return 
+        }
+        
+        let oldColor = self.playerColor
         if myID == self.blackPlayerID { self.playerColor = .black }
         else if myID == self.whitePlayerID { self.playerColor = .white }
+        
+        if self.playerColor != oldColor {
+             NSLog("[OGS-DEBUG-COLOR] 🎨 Color Locked: \(self.playerColor.map { "\($0)" } ?? "nil") (MyID: \(myID) vs B:\(self.blackPlayerID ?? -1)/W:\(self.whitePlayerID ?? -1))")
+        }
     }
 
     private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
@@ -1404,6 +1587,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private func updateLobbyItem(_ dict: [String: Any]) {
         // CASE 1: Delete Command { "delete": 12345 } or { "challenge_id": 123, "delete": true }
         if let deleteID = robustInt(dict["delete"]) {
+            // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Command for \(deleteID)")
             self.lobbyChallenges.removeValue(forKey: deleteID)
             return
         }
@@ -1411,6 +1595,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         guard let id = robustInt(dict["challenge_id"]) ?? robustInt(dict["game_id"]) else { return }
         
         if dict["delete"] != nil { 
+            // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Flag for \(id)")
             self.lobbyChallenges.removeValue(forKey: id)
             return 
         }
@@ -1431,7 +1616,37 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     private func refreshLobbyUI() {
-        DispatchQueue.main.async { self.availableGames = self.lobbyChallenges.values.filter { $0.game != nil }.sorted(by: { $0.id > $1.id }); self.objectWillChange.send() }
+        DispatchQueue.main.async { [weak self] in
+            self?.performLobbyRefresh()
+        }
+    }
+
+    private func performLobbyRefresh() {
+        var filtered: [OGSChallenge] = []
+        for ch in self.lobbyChallenges.values {
+            // Filter: If this challenge represents a game I am already in
+            // Logic: Check if challenge ID matches an active game ID (common reuse)
+            // Or if I am the challenger
+            
+            var shouldSkip = false
+            let gid = ch.id // In many lobby payloads, id is the game_id
+            
+            if self.myActiveGames.contains(gid) || self.finishedGameIDs.contains(gid) {
+                 shouldSkip = true
+            } else if let mine = self.playerID, let cid = ch.challenger?.id, cid == mine {
+                 // I am the challenger, but is it Active?
+                 // If I created it, it might still be open. We usually want to show it so I can cancel it.
+                 // BUT if it's in myActiveGames, it's started.
+                 if self.myActiveGames.contains(gid) { shouldSkip = true }
+            }
+            
+            if !shouldSkip {
+                filtered.append(ch)
+            }
+        }
+        
+        self.availableGames = filtered.sorted(by: { $0.id > $1.id })
+        self.objectWillChange.send()
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {

@@ -68,7 +68,22 @@ struct SharedOverlays: View {
                                 .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
                         }
                         .buttonStyle(.plain)
+                        .buttonStyle(.plain)
                         .help("Toggle Full Screen")
+
+                        // D. Debug Dashboard (Restored)
+                        Button(action: {
+                            app.showDebugDashboard.toggle()
+                        }) {
+                            Image(systemName: "ladybug.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(Color.red.opacity(0.8))) // Distinct color
+                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Open Debug Dashboard")
                     }
                     
                     Spacer()

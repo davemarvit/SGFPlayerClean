@@ -100,8 +100,13 @@ struct ContentView3D: View {
     
     private func updateScene() {
         guard let bVM = app.boardVM else { return }
+        
+        // Dynamic Resize Check
+        sceneManager.updateBoardSize(bVM.boardSize) // Ensure 3D matches 2D physics
+        
         sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
+        sceneManager.updateTerritory(points: bVM.territoryPoints)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
         sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
     }

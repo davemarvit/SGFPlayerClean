@@ -23,9 +23,12 @@ struct ActiveGamePanel: View {
                 // Chat Section (Always Visible)
                 if let last = app.player.lastMove,
                    last.x == -1, last.y == -1,
-                   last.color != app.ogsClient.playerColor,
-                   !app.ogsClient.isGameFinished {
-                    Text("Opponent Passed")
+                   !app.ogsClient.isGameFinished,
+                   let myColor = app.ogsClient.playerColor {
+                   // last.color != myColor { // <-- Removed inconsistent check
+                    // User Report: "When White passes, our interface says Black passed." -> We flip the label to correct this.
+                    let passedColor = (last.color == .white) ? "Black" : "White"
+                    Text("\(passedColor) Passed")
                         .font(.headline)
                         .foregroundColor(.yellow)
                         .padding(.horizontal, 10)
@@ -80,6 +83,11 @@ struct ActiveGamePanel: View {
                 Text(outcome).font(.title2).foregroundColor(.yellow)
             }
             
+            // Save SGF moved to persistent controlsSection at bottom
+            
+            // Redundant "Return to Lobby" button removed to prevent blocking chat/board.
+            // User can use the "< Lobby" button in the header.
+            
 
             // Redundant "Return to Lobby" button removed to prevent blocking chat/board.
             // User can use the "< Lobby" button in the header.
@@ -123,6 +131,11 @@ struct ActiveGamePanel: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if let tc = app.ogsClient.activeGameTimeControl {
                     Text(tc).font(.subheadline).foregroundColor(.secondary)
+                }
+                if let k = app.ogsClient.komi {
+                    Text("Komi: \(k, specifier: "%.1f")")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.5))
                 }
                 HStack(spacing: 4) {
                     if let rules = app.ogsClient.gameRules {
@@ -236,60 +249,132 @@ struct ActiveGamePanel: View {
     }
     
     private var controlsSection: some View {
-        HStack {
-            // SCORING CONTROLS (Priority)
+        VStack(spacing: 8) {
+            controlButtons
+            saveSGFButton
+        }
+    }
+    
+    private var controlButtons: some View {
+        Group {
+            // SCORING CONTROLS
             if app.ogsClient.phase == "stone removal" {
-                Button(action: {
-                    if let id = app.ogsClient.activeGameID {
-                        app.ogsClient.acceptScore(gameID: id)
+                HStack(spacing: 12) {
+                    if app.ogsClient.isScoreAccepted {
+                         Text("Waiting for Opponent...")
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(8)
+                    } else {
+                        Button(action: {
+                            if let id = app.ogsClient.activeGameID {
+                                app.ogsClient.acceptScore(gameID: id)
+                            }
+                        }) {
+                            Text("Accept Removed Stones")
+                                .bold()
+                                .frame(maxWidth: .infinity)
+                        }
+                        .tint(.blue)
+                        .buttonStyle(.borderedProminent)
                     }
-                }) {
-                    Text("Accept Removed Stones")
-                        .bold()
-                        .frame(maxWidth: .infinity)
+                    
+                    Button(action: {
+                        if let id = app.ogsClient.activeGameID {
+                            app.ogsClient.rejectScore(gameID: id)
+                        }
+                    }) {
+                         Text("Resume Game")
+                            .frame(maxWidth: 100)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .tint(.blue)
-                .buttonStyle(.borderedProminent)
             } else {
                 // NORMAL CONTROLS
-                
-
-
-                Button("Undo") {
-                    if let id = app.ogsClient.activeGameID {
-                         app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
+                HStack {
+                    Button("Undo") {
+                        if let id = app.ogsClient.activeGameID {
+                             app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
+                        }
+                    }.disabled(app.ogsClient.isGameFinished || app.ogsClient.isRequestingUndo)
+                    
+                    if app.ogsClient.isRequestingUndo {
+                         Text("Requested...").font(.caption).foregroundColor(.orange)
                     }
-                }.disabled(app.ogsClient.isGameFinished || app.ogsClient.isRequestingUndo)
-                
-                if app.ogsClient.isRequestingUndo {
-                    Text("Requested...").font(.caption).foregroundColor(.orange)
-                }
-                
-                Spacer()
-
-
-                
-                Button("Pass") {
-                    if let id = app.ogsClient.activeGameID {
-                        SoundManager.shared.play("pass")
-                        app.ogsClient.sendPass(gameID: id)
+                    
+                    Spacer()
+                    
+                    Button("Pass") {
+                        if let id = app.ogsClient.activeGameID {
+                            SoundManager.shared.play("pass")
+                            app.ogsClient.sendPass(gameID: id)
+                        }
                     }
+                    .disabled(app.ogsClient.isGameFinished || app.ogsClient.currentPlayerID != app.ogsClient.playerID)
+                    
+                    Spacer()
+                    
+                    Button("Resign") {
+                        showResignConfirmation = true
+                    }
+                    .foregroundColor(.red)
+                    .disabled(app.ogsClient.isGameFinished)
                 }
-                .disabled(app.ogsClient.isGameFinished || app.ogsClient.currentPlayerID != app.ogsClient.playerID)
-                
-                Spacer()
-                
-                Button("Resign") {
-                    showResignConfirmation = true
-                }
-                .foregroundColor(.red)
-                .disabled(app.ogsClient.isGameFinished)
+                .padding()
+                .background(Color.black.opacity(0.2))
+                .cornerRadius(8)
+                .buttonStyle(.bordered)
             }
         }
-        .padding()
-        .background(Color.black.opacity(0.2))
-        .cornerRadius(8)
-        .buttonStyle(.bordered)
+    }
+    
+    @ViewBuilder
+    private var saveSGFButton: some View {
+        if app.ogsClient.activeGameID != nil {
+            Button(action: { saveSGF() }) {
+                HStack {
+                    Image(systemName: "arrow.down.doc")
+                    Text("Save SGF")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.bordered)
+            .tint(.green)
+            .padding(.top, 4)
+        }
+    }
+
+    
+
+
+    
+
+
+    
+    private func saveSGF() {
+        guard let gid = app.ogsClient.activeGameID else { return }
+        app.ogsClient.fetchSGF(gameID: gid) { data in
+            guard let data = data, let str = String(data: data, encoding: .utf8) else { return }
+            DispatchQueue.main.async {
+                let panel = NSSavePanel()
+                panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
+                
+                // Format: Black_vs_White_YYYY-MM-DD.sgf
+                let b = app.ogsClient.blackPlayerName?.replacingOccurrences(of: " ", with: "_") ?? "Black"
+                let w = app.ogsClient.whitePlayerName?.replacingOccurrences(of: " ", with: "_") ?? "White"
+                let date = Date().formatted(.iso8601.year().month().day())
+                panel.nameFieldStringValue = "\(b)_vs_\(w)_\(date).sgf"
+                
+                panel.begin { response in
+                    if response == .OK, let url = panel.url {
+                        try? str.write(to: url, atomically: true, encoding: .utf8)
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -8,7 +8,9 @@ struct StoneView2D: View {
     }
     var body: some View {
         ZStack {
-            Circle().fill(Color.black.opacity(0.35)).offset(x: 1.2, y: 1.2)
+
+            // Shadow: Larger and Softer
+            Circle().fill(Color.black.opacity(0.4)).offset(x: 2.7, y: 2.7).blur(radius: 3.0)
             if color == .black { SafeImage(name: "stone_black.png", resizingMode: .stretch) }
             else {
                 let idx = ((seedOverride ?? (position.row * 31 + position.col)) % 5) + 1

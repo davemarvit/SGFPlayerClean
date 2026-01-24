@@ -66,6 +66,13 @@ struct DebugDashboard: View {
                     DebugStateRow(label: "Engine Turn", value: appModel.player.turn.rawValue.capitalized)
                 }
                 
+                /*
+                Button("Simulate Game Load") {
+                    appModel.simulateOGSLoad()
+                }
+                .frame(maxWidth: .infinity).padding(8).background(Color.blue.opacity(0.6)).cornerRadius(8)
+                */
+                
                 Spacer()
                 Button("Close") { appModel.showDebugDashboard = false }
                     .frame(maxWidth: .infinity).padding().background(Color.white.opacity(0.1)).cornerRadius(8)

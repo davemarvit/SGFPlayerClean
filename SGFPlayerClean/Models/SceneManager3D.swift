@@ -20,8 +20,11 @@ class SceneManager3D: ObservableObject {
     private var boardNode: SCNNode?; private var ghostNode: SCNNode?
     private var upperLidStones: [SCNNode] = []; private var lowerLidStones: [SCNNode] = []
     private var upperLidNode: SCNNode?; private var lowerLidNode: SCNNode?
-    private var boardSize: Int = 19; private let boardThickness: CGFloat = 2.0
-    private let stoneRadius: CGFloat = 0.48; private let stoneScaleY: CGFloat = 0.486
+    private var boardSize: Int = 19
+    private let boardThickness: CGFloat = 2.0
+    // Dynamic Radius: 48% of cell width (leaves 4% gap)
+    private var stoneRadius: CGFloat { effectiveCellWidth * 0.48 }
+    private let stoneScaleY: CGFloat = 0.486
     private var previousLastMove: BoardPosition?
     private var effectiveCellWidth: CGFloat { CGFloat(18) / CGFloat(max(1, boardSize - 1)) }
     private var effectiveCellHeight: CGFloat { (CGFloat(18) / CGFloat(max(1, boardSize - 1))) * 1.0773 }
@@ -97,6 +100,30 @@ class SceneManager3D: ObservableObject {
         // Environment
         scene.lightingEnvironment.intensity = CGFloat(envIntensity)
         SCNTransaction.commit()
+        scene.lightingEnvironment.intensity = CGFloat(envIntensity)
+        SCNTransaction.commit()
+    }
+    
+    // MARK: - Dynamic Sizing
+    func updateBoardSize(_ size: Int) {
+        if self.boardSize != size {
+            print("🎨 [3D] Resizing Board to \(size)x\(size). CellWidth: \(String(format: "%.3f", effectiveCellWidth))")
+            self.boardSize = size
+            
+            // 1. Recreate Board (Wood & Grid)
+            createBoard()
+            
+            // 2. Recreate Stones (New Radius)
+            setupMaterials()
+            
+            // 3. Clear Entity Cache
+            stonesContainer.childNodes.forEach { $0.removeFromParentNode() }
+            stoneNodeMap.removeAll()
+            previousLastMove = nil
+            
+            // 4. Update Lids Position (Optional, but good for 9x9 centering)
+            createLids()
+        }
     }
     
     init() {
@@ -141,31 +168,39 @@ class SceneManager3D: ObservableObject {
     // (Please ensure you include the full file content from v4.401 or ask me to reprint the whole block if unsure)
     
     private func setupMaterials() {
+        // Clear old
+        clamGeometries.removeAll()
+        
+        // BLACK STONE: slightly larger (Standard Go Physics: Black absorbs light, looks smaller, so is made physically larger)
+        // We use base stoneRadius for Black.
         blackStoneGeometry = SCNSphere(radius: stoneRadius)
         let bM = SCNMaterial()
         bM.lightingModel = .physicallyBased
         bM.diffuse.contents = NSColor(white: 0.02, alpha: 1.0) // Deep Black
         bM.metalness.contents = 0.0
-        bM.roughness.contents = 0.41 // Fixed Preference
+        bM.roughness.contents = 0.41 
         blackStoneGeometry?.materials = [bM]
-        self.blackMaterial = bM // Store Ref
+        self.blackMaterial = bM
         
         let wM = SCNMaterial()
         wM.lightingModel = .physicallyBased
         wM.diffuse.contents = NSColor(white: 1.0, alpha: 1.0) // Natural White
         wM.metalness.contents = 0.0
-        wM.roughness.contents = 0.97 // User Pref
+        wM.roughness.contents = 0.97
         wM.emission.contents = NSColor(white: 0.0, alpha: 1.0)
-        wM.clearCoat.contents = 1.0 // User Pref
-        wM.clearCoatRoughness.contents = 0.31 // User Pref
-        self.whiteMaterial = wM // Store Ref
+        wM.clearCoat.contents = 1.0
+        wM.clearCoatRoughness.contents = 0.31
+        self.whiteMaterial = wM
         
-        // TEST: Use SCNSphere to match Stone Lab logic
+        // WHITE STONE: slightly smaller (approx 98% of Black) to compensate for irradiation illusion
+        let whiteRadius = stoneRadius * 0.98
+        
         for _ in 0..<5 {
-            let g = SCNSphere(radius: stoneRadius)
+            let g = SCNSphere(radius: whiteRadius)
             g.materials = [wM]
             clamGeometries.append(g)
         }
+        
         markerMaterial = SCNMaterial(); markerMaterial?.diffuse.contents = NSColor.red; markerMaterial?.emission.contents = NSColor.red
         glowMaterial = SCNMaterial(); glowMaterial?.lightingModel = .constant; glowMaterial?.blendMode = .alpha; glowMaterial?.diffuse.contents = generateRedGlowTexture(); glowMaterial?.writesToDepthBuffer = false
     }
@@ -196,14 +231,22 @@ class SceneManager3D: ObservableObject {
         }
     }
     func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings) {
-        SCNTransaction.begin(); SCNTransaction.animationDuration = 0
+        SCNTransaction.begin(); SCNTransaction.animationDuration = 0.2 // Soften transitions
         let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let offX = -w / 2.0; let offZ = -h / 2.0; let surfaceY = boardThickness / 2.0
         let currentPos = Set(cache.map { $0.id })
         for (pos, node) in stoneNodeMap { if !currentPos.contains(pos) { node.removeFromParentNode(); stoneNodeMap.removeValue(forKey: pos) } }
+        
         for rs in cache {
             let x = CGFloat(rs.id.col) * effectiveCellWidth + offX + (rs.offset.x * effectiveCellWidth)
             let z = CGFloat(rs.id.row) * effectiveCellHeight + offZ + (rs.offset.y * effectiveCellHeight)
-            if let n = stoneNodeMap[rs.id] { n.position = SCNVector3(x, surfaceY, z) } else {
+            
+            // User Feedback: "Less transparent" (0.3 was too faint). Try 0.5.
+            let targetOpacity: CGFloat = rs.isDead ? 0.5 : 1.0
+            
+            if let n = stoneNodeMap[rs.id] { 
+                n.position = SCNVector3(x, surfaceY, z)
+                n.opacity = targetOpacity
+            } else {
                 let anchor = SCNNode(); anchor.position = SCNVector3(x, surfaceY, z)
                 let geom = rs.color == .black ? blackStoneGeometry : clamGeometries[(rs.id.row * 19 + rs.id.col) % 5]
                 let s = SCNNode(geometry: geom); s.scale = SCNVector3(1, stoneScaleY, 1); s.eulerAngles.y = CGFloat(rs.id.col * rs.id.row); s.position = SCNVector3(0, stoneRadius * stoneScaleY, 0)
@@ -212,7 +255,12 @@ class SceneManager3D: ObservableObject {
                 s.categoryBitMask = MaskStones
                 
                 anchor.addChildNode(s); stonesContainer.addChildNode(anchor); stoneNodeMap[rs.id] = anchor
-                if settings.showDropInAnimation { anchor.opacity = 0; anchor.position.y += 1.0; anchor.runAction(.group([.fadeIn(duration: 0.15), .move(to: SCNVector3(x, surfaceY, z), duration: 0.15)])) }
+                anchor.opacity = targetOpacity
+                
+                if settings.showDropInAnimation { 
+                    anchor.opacity = 0; anchor.position.y += 1.0; 
+                    anchor.runAction(.group([.fadeOpacity(to: targetOpacity, duration: 0.15), .move(to: SCNVector3(x, surfaceY, z), duration: 0.15)])) 
+                }
             }
         }
         // Always rebuild markers to respond to settings changes immediately
@@ -223,6 +271,41 @@ class SceneManager3D: ObservableObject {
         }
         SCNTransaction.commit()
     }
+    
+    // NEW: Territory Rendering
+    private var territoryNodes: [SCNNode] = []
+    
+    func updateTerritory(points: [BoardPosition: Stone]) {
+        SCNTransaction.begin(); SCNTransaction.animationDuration = 0
+        territoryNodes.forEach { $0.removeFromParentNode() }
+        territoryNodes.removeAll()
+        
+        guard !points.isEmpty else { SCNTransaction.commit(); return }
+        
+        let w = CGFloat(boardSize - 1) * effectiveCellWidth
+        let h = CGFloat(boardSize - 1) * effectiveCellHeight
+        let offX = -w / 2.0; let offZ = -h / 2.0
+        let tY = boardThickness / 2.0 + 0.01 // Slightly above board
+        
+        let box = SCNBox(width: effectiveCellWidth * 0.3, height: 0.005, length: effectiveCellHeight * 0.3, chamferRadius: 0)
+        
+        for (pos, owner) in points {
+            let x = CGFloat(pos.col) * effectiveCellWidth + offX
+            let z = CGFloat(pos.row) * effectiveCellHeight + offZ
+            
+            let n = SCNNode(geometry: box)
+            // Black Territory -> Black Square, White -> White Square
+            n.geometry?.firstMaterial?.diffuse.contents = (owner == .black) ? NSColor.black : NSColor.white
+            n.position = SCNVector3(x, tY, z)
+            worldAnchor.addChildNode(n)
+            territoryNodes.append(n)
+            
+            // Optional: Add small X if it's a "neutral" or Dame?
+            // Usually points map has only B/W. 
+        }
+        SCNTransaction.commit()
+    }
+
     private func applyMarkers(to group: SCNNode, color: Stone, index: Int, settings: AppSettings) {
         let apex = (stoneRadius * stoneScaleY * 2.0) + 0.01; let tc = color == .black ? NSColor.white : NSColor.black
         if settings.showLastMoveDot { let d = SCNNode(geometry: SCNSphere(radius: stoneRadius * 0.12)); d.geometry?.firstMaterial = markerMaterial; d.name = "MARKER_DOT"; d.position = SCNVector3(0, apex + 0.02, 0); group.addChildNode(d) }
@@ -282,7 +365,7 @@ class SceneManager3D: ObservableObject {
         dir.light?.color = NSColor(white: lightIntensity, alpha: 1.0)
         dir.light?.castsShadow = true
         dir.light?.shadowColor = NSColor(white: 0.0, alpha: 0.75)
-        dir.light?.shadowRadius = 4.0
+        dir.light?.shadowRadius = 2.0
         dir.light?.shadowSampleCount = 16
         dir.position = SCNVector3(-15, 25, -15)
         dir.look(at: SCNVector3(x: 0, y: 0, z: 0))
@@ -317,7 +400,34 @@ class SceneManager3D: ObservableObject {
         n.categoryBitMask = MaskBoard
         createGridLines()
     }
-    private func createGridLines() { let tY = boardThickness / 2.0 + 0.02; let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; for i in 0..<boardSize { let lZ = SCNBox(width: w, height: 0.002, length: 0.02, chamferRadius: 0); lZ.firstMaterial?.diffuse.contents = NSColor.black; let nZ = SCNNode(geometry: lZ); nZ.categoryBitMask = MaskBoard; nZ.position = SCNVector3(x: 0, y: tY, z: CGFloat(i) * effectiveCellHeight - (h/2.0)); worldAnchor.addChildNode(nZ); let lX = SCNBox(width: 0.02, height: 0.002, length: h, chamferRadius: 0); lX.firstMaterial?.diffuse.contents = NSColor.black; let nX = SCNNode(geometry: lX); nX.categoryBitMask = MaskBoard; nX.position = SCNVector3(x: CGFloat(i) * effectiveCellWidth - (w/2.0), y: tY, z: 0); worldAnchor.addChildNode(nX) } }
+    private func createGridLines() { 
+        guard let board = boardNode else { return }
+        
+        let tY = boardThickness / 2.0 + 0.002 // Slightly above board
+        let w = CGFloat(boardSize - 1) * effectiveCellWidth
+        let h = CGFloat(boardSize - 1) * effectiveCellHeight
+        let lw = effectiveCellWidth * 0.02 // 2% thickness (Matches original 19x19 look of 0.02)
+        
+        for i in 0..<boardSize { 
+            // Vertical Lines (Z-axis length)
+            let lZ = SCNBox(width: lw, height: 0.001, length: h, chamferRadius: 0)
+            lZ.firstMaterial?.diffuse.contents = NSColor.black
+            let nZ = SCNNode(geometry: lZ)
+            nZ.categoryBitMask = MaskBoard
+            // X position varies, Z centered
+            nZ.position = SCNVector3(x: CGFloat(i) * effectiveCellWidth - (w/2.0), y: tY, z: 0)
+            board.addChildNode(nZ)
+            
+            // Horizontal Lines (X-axis length)
+            let lX = SCNBox(width: w, height: 0.001, length: lw, chamferRadius: 0)
+            lX.firstMaterial?.diffuse.contents = NSColor.black
+            let nX = SCNNode(geometry: lX)
+            nX.categoryBitMask = MaskBoard
+            // Z position varies, X centered
+            nX.position = SCNVector3(x: 0, y: tY, z: CGFloat(i) * effectiveCellHeight - (h/2.0))
+            board.addChildNode(nX) 
+        } 
+    }
     func createLids() { upperLidNode?.removeFromParentNode(); lowerLidNode?.removeFromParentNode(); upperLidNode = createLidNode(textureName: "go_lid_1", pos: SCNVector3(x: 14.0, y: -0.2, z: -5.0)); lowerLidNode = createLidNode(textureName: "go_lid_2", pos: SCNVector3(x: 14.0, y: -0.2, z: 5.0)); if let u = upperLidNode { worldAnchor.addChildNode(u) }; if let l = lowerLidNode { worldAnchor.addChildNode(l) } }
     private func createLidNode(textureName: String, pos: SCNVector3) -> SCNNode { let cyl = SCNCylinder(radius: 3.5, height: 0.3); let m = SCNMaterial(); m.diffuse.contents = NSImage(named: textureName) ?? NSColor.brown; cyl.materials = [m]; let n = SCNNode(geometry: cyl); n.position = pos; return n }
     private func setupGhostNode() { let s = SCNSphere(radius: stoneRadius); let m = SCNMaterial(); m.diffuse.contents = NSColor(white: 1.0, alpha: 0.5); s.materials = [m]; ghostNode = SCNNode(geometry: s); ghostNode?.opacity = 0.0; stonesContainer.addChildNode(ghostNode!) }

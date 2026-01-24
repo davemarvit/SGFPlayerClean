@@ -110,10 +110,11 @@ final class SGFPlayer: ObservableObject {
         NSLog("[OGS-ENGINE] ⚡️ applyOnlineMove used. Move: \(moveNumber). Expected: \(expected). TopVersion: \(highestKnownStateVersion)")
         
         guard moveNumber == expected else {
-            NSLog("[OGS-ENGINE] 🚫 REJECTING Out-of-Order Move \(moveNumber) (Expected \(expected)).")
+            NSLog("[OGS-ENGINE-DEBUG] 🚫 REJECTING Out-of-Order Move \(moveNumber) (Expected \(expected)). Sync Needed?")
             return
         }
         
+        NSLog("[OGS-ENGINE-DEBUG] ✅ Applying Online Move \(moveNumber) (Color: \(color), X:\(x), Y:\(y))")
         self.playMoveOptimistically(color: color, x: x, y: y)
     }
     
@@ -337,6 +338,11 @@ final class SGFPlayer: ObservableObject {
                     }
                     
                     // Determine Ownership
+                    // DEBUG: Log weird large fills
+                    if region.count > 100 {
+                        // NSLog("[TERRITORY-DEBUG] Large Region (\(region.count)) Colors: \(boundaryColors)")
+                    }
+                    
                     if boundaryColors.count == 1, let owner = boundaryColors.first {
                         for pt in region {
                             territory[BoardPosition(pt.y, pt.x)] = owner
@@ -345,6 +351,7 @@ final class SGFPlayer: ObservableObject {
                 }
             }
         }
+        // NSLog("[TERRITORY-FINAL] Dead: \(deadStones.count) -> Terr: \(territory.count)")
         return territory
     }
 }

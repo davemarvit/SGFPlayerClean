@@ -78,7 +78,29 @@ class AppSettings: ObservableObject {
     
     @Published var folderURL: URL? {
         didSet {
-            if let url = folderURL { try? UserDefaults.standard.set(url.bookmarkData(), forKey: "folderURLBookmark") }
+            if let url = folderURL {
+                do {
+                    let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    UserDefaults.standard.set(data, forKey: "folderURLBookmark")
+                } catch {
+                     print("❌ Failed to save folder bookmark: \(error)")
+                }
+            }
+        }
+    }
+    
+    @Published var lastPlayedGameURL: URL? {
+        didSet {
+            if let url = lastPlayedGameURL {
+                // For the specific file, we can also try security scope, or just rely on path if folder is open.
+                // Let's use security scope to be safe.
+                do {
+                    let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    UserDefaults.standard.set(data, forKey: "lastPlayedGameBookmark")
+                } catch {
+                    print("❌ Failed to save last game bookmark: \(error)")
+                }
+            }
         }
     }
 
@@ -112,7 +134,23 @@ class AppSettings: ObservableObject {
 
         if let data = UserDefaults.standard.data(forKey: "folderURLBookmark") {
             var isStale = false
-            self.folderURL = try? URL(resolvingBookmarkData: data, bookmarkDataIsStale: &isStale)
+            do {
+                let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                if isStale { print("⚠️ Folder bookmark is stale") }
+                self.folderURL = url
+            } catch {
+                print("❌ Failed to resolve folder bookmark: \(error)")
+            }
+        }
+        
+        if let data = UserDefaults.standard.data(forKey: "lastPlayedGameBookmark") {
+            var isStale = false
+            do {
+                let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                self.lastPlayedGameURL = url
+            } catch {
+                print("❌ Failed to resolve last game bookmark: \(error)")
+            }
         }
     }
 }

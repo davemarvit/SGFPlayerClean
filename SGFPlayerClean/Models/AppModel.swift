@@ -22,6 +22,8 @@ final class AppModel: ObservableObject {
     @Published var showDebugDashboard: Bool = false
     @Published var boardVM: BoardViewModel?
     @Published var isTypingInChat: Bool = false // Global flag to disable shortcuts
+    @Published var loadingStatus: String = "Idle" // Diagnostic Status
+    @Published var lastDebugLog: String = "Waiting for Move..."
     
     // UI Persistence
     @Published var rightPanelTab: PanelTab = .local
@@ -149,17 +151,27 @@ final class AppModel: ObservableObject {
                 }
             }.store(in: &cancellables)
         // This prevents the "confusing local game" issue when waking up in online mode.
+        // FIX: Always attempt to load the folder in background so it's ready if we switch to Local.
+        if let url = AppSettings.shared.folderURL {
+             print("📂 Auto-loading saved folder: \(url.path)")
+             // Update status before calling (function will overwrite it, but good for tracing)
+             self.loadingStatus = "Startup: Loading Folder..."
+             loadFolder(url)
+        } else {
+             self.loadingStatus = "Startup: No Folder Set"
+        }
+        
         if !wasOnline {
-            // Priority: Start Instant Game if enabled (guarantees playable board)
-            if AppSettings.shared.startGameOnLaunch {
+            // Enhanced Startup Logic: Prioritize Folder > Instant Game
+            // Only start "Instant Game" if we are definitively NOT restoring online mode.
+            if AppSettings.shared.folderURL == nil && AppSettings.shared.startGameOnLaunch {
+                self.loadingStatus = "Startup: Instant Game"
                 self.startInstantGame()
             }
-            
-            // Then attempt to load folder (async)
-            if let url = AppSettings.shared.folderURL {
-                print("📂 Auto-loading saved folder: \(url.path)")
-                loadFolder(url)
-            }
+        } else {
+            // If we ARE restoring Online Mode, ensure UI reflects it
+            self.rightPanelTab = .online
+            self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
         }
         
         setupAutoAdvance()
@@ -322,6 +334,12 @@ final class AppModel: ObservableObject {
     }
     
     func resumeOnlineGame(id: Int) {
+        // SIMULATION INTERCEPT
+        if id == 999999 {
+            simulateOGSLoad()
+            return
+        }
+
         // NSLog("[OGS-CS] 🚀 resumeOnlineGame CALLED for \(id)")
         
         self.player.clear()
@@ -371,6 +389,12 @@ final class AppModel: ObservableObject {
         // FORCE SYNC: Always reload board when full game data is received
         // This ensures undo/redo states are correctly reflected without caching issues
         if true {
+             // AUTO-SWITCH to Online Mode if data arrives
+             if !self.isOnlineMode {
+                 NSLog("[OGS-SYNC] 🔀 Auto-Switching to Online Mode due to Game Data")
+                 self.isOnlineMode = true
+             }
+             
             currentActiveInternalGameID = gameID
             resumableGameID = gameID // Track for Resume Button
             
@@ -386,77 +410,139 @@ final class AppModel: ObservableObject {
             
             // Use Engine's version as Truth (Avoids OGSClient eager update race)
             let engineVersion = boardVM?.engine.highestKnownStateVersion ?? 0
-            NSLog("[OGS-TRACE] D: Engine Current (\(engineVersion))")
             
-            NSLog("[OGS-SYNC] 🔄 Packet Version: \(incomingVersion). Engine Version: \(engineVersion). Moves: \(moves.count)")
-            
-            // STRICT MONOTONICITY: Only accept NEWER versions
-            // This blocks 'Pre-Undo' echoes (Same Version) and Stale packets (Lower Version)
-            // EXCEPTION: If move count DECREASES, it is a valid UNDO (or reset). Accept it.
-            let engineMoves = boardVM?.engine.maxIndex ?? 0
-            let isUndo = moves.count < engineMoves
-            
-            if incomingVersion <= engineVersion && !isUndo && engineMoves > 0 {
-                // NSLog("[OGS-SYNC] 🛡️ IGNORING STALE/EQUAL ECHO (v\(incomingVersion) <= v\(engineVersion)). Not an Undo (Incoming: \(moves.count) vs Engine: \(engineMoves)).")
-                return
+            // SIMULATION OVERRIDE: If ID is 999999, bypass version guards
+            if gameID == 999999 {
+                NSLog("[OGS-SYNC] 🧪 SIMULATION DETECTED. Bypassing version guards.")
+            } else {
+                 // STRICT MONOTONICITY: Only accept NEWER versions
+                let engineMoves = boardVM?.engine.maxIndex ?? 0
+                let isUndo = moves.count < engineMoves
+                
+                if incomingVersion <= engineVersion && !isUndo && engineMoves > 0 {
+                    return
+                }
             }
-            if isUndo {
-                // NSLog("[OGS-SYNC] ↩️ Undo Detected (Incoming \(moves.count) < Engine \(engineMoves)). BYPASSING Version Guard.")
-                // DO NOT disarm ghost guard here. Persist until next user move.
-            }
-            // else if incomingVersion > engineVersion { NSLog("[OGS-SYNC] ✅ New Version Detected (v\(incomingVersion) > v\(engineVersion)). Accepting.") }
-            // If versions match (or incoming is higher), we accept.
             
             // Force reset undo flag if we accepted a valid packet
              ogsClient.isRequestingUndo = false
             
-            // Legacy/Fallback Guard (Double Safety)
-            // Legacy Guard Removed - Relying on Version Control
-
-
             var initialStones: [BoardPosition: Stone] = [:]
             
             if let state = gameData["initial_state"] as? [String: Any] {
-                NSLog("[OGS-REST] Parsing Initial State")
-                let white = state["white"] as? String ?? ""
-                ["black", "white"].forEach { col in
-                    if let str = state[col] as? String {
-                        let color: Stone = col == "black" ? .black : .white
-                        let chars = Array(str)
-                        for i in stride(from: 0, to: chars.count, by: 2) {
-                            if i + 1 < chars.count, let (x, y) = SGFCoordinates.parse(String(chars[i...i+1])) {
-                                initialStones[BoardPosition(y, x)] = color
-                            }
-                        }
-                    }
-                }
-            }
-            
-            let initialTurnColor: Stone = (gameData["initial_player"] as? String == "white") ? .white : .black
-            // NSLog("[OGS-DEBUG] ♟️ Initial Player Raw: \(gameData["initial_player"] ?? "nil") -> Parsed: \(initialTurnColor)")
-            
-            let stateVersion = robustInt(gameData["state_version"]) ?? robustInt(gameData["move_number"]) ?? 0
-            
-            boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, stateVersion: stateVersion)
-            
-            let moveHistory = gameData["moves"] as? [[Any]] ?? []
-            var turnColor = initialTurnColor
-            for (idx, m) in moveHistory.enumerated() {
-                if m.count >= 2, let x = robustInt(m[0]), let y = robustInt(m[1]) {
-                    if x == -1 && y == -1 { // OGS represents passes as [-1, -1] in move history
-                        // Handle Pass
-                        // NSLog("[OGS-EVT] 🙈 Remote Pass Detected.")
-                        boardVM?.handleRemotePass(color: turnColor)
-                    } else if x >= 0 && y >= 0 {
-                        boardVM?.handleRemoteMove(x: x, y: y, color: turnColor)
-                    }
-                    turnColor = turnColor.opponent
-                }
-            }
+                 NSLog("[OGS-REST] Parsing Initial State")
+                 let white = state["white"] as? String ?? ""
+                 ["black", "white"].forEach { col in
+                     if let str = state[col] as? String {
+                         let color: Stone = col == "black" ? .black : .white
+                         let chars = Array(str)
+                         for i in stride(from: 0, to: chars.count, by: 2) {
+                             if i + 1 < chars.count, let (x, y) = SGFCoordinates.parse(String(chars[i...i+1])) {
+                                 initialStones[BoardPosition(y, x)] = color
+                             }
+                         }
+                     }
+                 }
+             }
+             
+             let initialTurnColor: Stone = (gameData["initial_player"] as? String == "white") ? .white : .black
+             
+             let stateVersion = robustInt(gameData["state_version"]) ?? robustInt(gameData["move_number"]) ?? 0
+             
+             boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, stateVersion: stateVersion)
+             
+             let moveHistory = gameData["moves"] as? [[Any]] ?? []
+             var turnColor = initialTurnColor
+             for (idx, m) in moveHistory.enumerated() {
+                 if m.count >= 2, let x = robustInt(m[0]), let y = robustInt(m[1]) {
+                     if x == -1 && y == -1 { // OGS represents passes as [-1, -1] in move history
+                         // Handle Pass
+                         boardVM?.handleRemotePass(color: turnColor)
+                     } else if x >= 0 && y >= 0 {
+                         boardVM?.handleRemoteMove(x: x, y: y, color: turnColor)
+                     }
+                     turnColor = turnColor.opponent
+                 }
+             }
+             
+             // Sync Captures to OGSClient (Engine Authority)
+             // FIX: Engine 'blackStonesCaptured' means "number of black stones removed from board" (Prisoners for White)
+             self.ogsClient.blackCaptures = boardVM?.engine.whiteStonesCaptured ?? 0
+             self.ogsClient.whiteCaptures = boardVM?.engine.blackStonesCaptured ?? 0
+             
+             // Update Player Names
+             let players = gameData["players"] as? [String: Any]
+             let blackObj = players?["black"] as? [String: Any]
+             let whiteObj = players?["white"] as? [String: Any]
+             
+             self.ogsClient.blackPlayerName = blackObj?["username"] as? String ?? "Black"
+             self.ogsClient.blackPlayerID = robustInt(blackObj?["id"])
+             
+             self.ogsClient.whitePlayerName = whiteObj?["username"] as? String ?? "White"
+             self.ogsClient.whitePlayerID = robustInt(whiteObj?["id"])
+             
+             // SCORING PHASE: Strict Server Authority
+             let phase = gameData["phase"] as? String ?? "play"
+             self.ogsClient.phase = phase
+             
+             if phase == "stone removal" || phase == "scoring" {
+                 if let removed = gameData["removed_stones"] as? [String] {
+                     var dead: Set<BoardPosition> = []
+                     for s in removed {
+                         if let (x, y) = SGFCoordinates.parse(s) {
+                             dead.insert(BoardPosition(y, x))
+                         }
+                     }
+                     self.ogsClient.removedStones = dead
+                     NSLog("[OGS-SYNC] 💀 Loaded \(dead.count) server-declared dead stones")
+                 }
+             } else {
+                 self.ogsClient.removedStones = []
+             }
         }
         
         boardVM?.syncState()
         self.objectWillChange.send()
+    }
+    
+    // MARK: - Local Verification / Simulation
+    func simulateOGSLoad() {
+        NSLog("[OGS-SIM] 🧪 Starting Offline OGS Simulation...")
+        
+        let dummyMoves: [[Any]] = [
+            [15, 3], [3, 15], [2, 2], [16, 16], [3, 2], [16, 2] // Added [3, 2] for dead stone test
+        ]
+        
+        // Mock OGS "gamedata" payload
+        let mockData: [String: Any] = [
+            "game_id": 999999,
+            "phase": "stone removal", // TRIGGER SCORING MODE
+            "name": "Simulation Game",
+            "width": 19,
+            "height": 19,
+            "moves": dummyMoves,
+            "state_version": 100,
+            "initial_player": "black",
+            "removed_stones": ["cc", "dc"], // 3-3 and 4-3 marked dead
+            "players": [ 
+                "black": ["id": 101, "username": "SimBlack", "ranking": 30],
+                "white": ["id": 102, "username": "SimWhite", "ranking": 29]
+            ],
+            "time_control": ["system": "byoyomi", "main_time": 600]
+        ]
+        
+        // Manually trigger the notification to simulate internal dispatch
+        // We set activeGameID first so the guard in handleOGSGameLoad passes
+        self.ogsClient.activeGameID = 999999
+        self.ogsClient.playerID = 101 // Pretend we are Black
+        
+        // Ensure we aren't blocked by stale version logic
+        self.boardVM?.engine.highestKnownStateVersion = 0
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": mockData])
+            NSLog("[OGS-SIM] 📨 Mock Data Posted.")
+        }
     }
     
     private func handleOGSMoveUpdate(_ notification: Notification) {
@@ -492,13 +578,58 @@ final class AppModel: ObservableObject {
         else if x >= 0 && y >= 0 {
             if let mn = robustInt(userInfo["move_number"]) {
                 // Ghost Guard Removed: We now rely on Strict Server Authority.
-                
                 let color: Stone
+                var reason = "Default"
                 if let pid = robustInt(userInfo["player_id"]) {
-                    color = (pid == ogsClient.blackPlayerID) ? .black : .white
+                    let bid = ogsClient.blackPlayerID
+                    let wid = ogsClient.whitePlayerID
+                    let myID = ogsClient.playerID
+                    let myColor = ogsClient.playerColor
+                    
+                    // HEURISTIC 1: Self-Identity (Authoritative for Player)
+                    if let myID = myID, let myColor = myColor {
+                        if pid == myID {
+                            color = myColor
+                            reason = "Matched MyID \(myID)"
+                        } else {
+                            // If it's not me, it's the opponent.
+                            color = myColor.opponent
+                            reason = "PID \(pid) != MyID \(myID) -> Opponent"
+                        }
+                    } 
+                    // HEURISTIC 2: Explicit ID Match (Authoritative for Observer)
+                    else if let bid = bid, pid == bid {
+                        color = .black
+                        reason = "Matched BlackID \(bid)"
+                    } else if let wid = wid, pid == wid {
+                        color = .white
+                        reason = "Matched WhiteID \(wid)"
+                    } else {
+                         // HEURISTIC 3: Fallback Math (Handicap aware)
+                        if ogsClient.currentHandicap > 1 {
+                            // Handi Game (H>=2): White moves first (Move 1).
+                            // Odd=White, Even=Black
+                            color = (mn % 2 != 0) ? .white : .black
+                        } else {
+                            // Standard (H=0 or 1): Black moves first.
+                            // Odd=Black, Even=White
+                            color = (mn % 2 != 0) ? .black : .white
+                        }
+                        reason = "ID Mismatch/Missing & No Identity. Fallback M%2"
+                    }
                 } else {
-                    color = (ogsClient.currentHandicap > 0) ? ((mn % 2 == 0) ? .black : .white) : ((mn % 2 == 0) ? .white : .black)
+                    // No PID. Pure Math.
+                   if ogsClient.currentHandicap > 1 {
+                        color = (mn % 2 != 0) ? .white : .black
+                    } else {
+                        color = (mn % 2 != 0) ? .black : .white
+                    }
+                    reason = "No PID. M%2 Logic (H:\(ogsClient.currentHandicap))"
                 }
+
+                let logMsg = "[OGS] Move: #\(mn). Logic: \(reason). Result: \(color)."
+                NSLog(logMsg)
+                DispatchQueue.main.async { self.lastDebugLog = logMsg }
                 
                 // Sound Trigger (Online)
                 // We rely on the Engine's truth because OGS's 'removed' payload is often empty/unreliable.
@@ -513,6 +644,13 @@ final class AppModel: ObservableObject {
                 let newW = boardVM?.engine.whiteStonesCaptured ?? 0
                 let captured = (newB - oldB) + (newW - oldW)
                 
+                // Sync Captures (Engine Authority)
+                DispatchQueue.main.async {
+                    // FIX: Engine 'blackStonesCaptured' means "number of black stones removed" (Prisoners for White)
+                    self.ogsClient.blackCaptures = newW
+                    self.ogsClient.whiteCaptures = newB
+                }
+                
                 if captured > 1 { self.playSound(.captureMultiple) }
                 else if captured == 1 { self.playSound(.captureSingle) }
                 else { 
@@ -526,7 +664,12 @@ final class AppModel: ObservableObject {
         }
     }
     
-    func selectGame(_ g: SGFGameWrapper) { selection = g; boardVM?.loadGame(g) }
+    func selectGame(_ g: SGFGameWrapper) { 
+        selection = g
+        boardVM?.loadGame(g) 
+        // Persist as last played
+        AppSettings.shared.lastPlayedGameURL = g.url
+    }
     func promptForFolder() {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
@@ -536,79 +679,128 @@ final class AppModel: ObservableObject {
         
         panel.begin { [weak self] response in
             if response == .OK, let url = panel.url {
+                // 1. Persist (Only when user explicitly chooses)
+                AppSettings.shared.folderURL = url
+                // 2. Load
                 self?.loadFolder(url)
             }
         }
     }
     
     func loadFolder(_ url: URL) {
-        // 1. Update Settings
-        AppSettings.shared.folderURL = url
-        
         // 2. Clear current library
         self.games = []
         self.selection = nil
+        self.loadingStatus = "Loading Folder..." 
         
         // 3. Background Load
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
-            // Security Scope: Essential for App Sandbox access to user-selected folder
+            DispatchQueue.main.async { self.loadingStatus = "Requesting Access..." }
+            
+            // Security Scope
             let accessing = url.startAccessingSecurityScopedResource()
-            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+            if !accessing {
+                DispatchQueue.main.async { 
+                    self.loadingStatus = "❌ Access Denied (Security Scope)" 
+                    AppSettings.shared.folderURL = nil
+                }
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            DispatchQueue.main.async { self.loadingStatus = "Reading Directory..." }
             
             let fm = FileManager.default
             var foundURLs: [URL] = []
             
-            if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
-                for case let fileURL as URL in enumerator {
-                    if fileURL.pathExtension.lowercased() == "sgf" {
-                        foundURLs.append(fileURL)
+            do {
+                // Check read access
+                let _ = try fm.contentsOfDirectory(atPath: url.path)
+                
+                let resourceKeys: [URLResourceKey] = [.isRegularFileKey]
+                let options: FileManager.DirectoryEnumerationOptions = [.skipsHiddenFiles]
+                
+                if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: resourceKeys, options: options) {
+                    for case let fileURL as URL in enumerator {
+                       if fileURL.pathExtension.lowercased() == "sgf" {
+                           foundURLs.append(fileURL)
+                       }
                     }
                 }
+            } catch {
+                let msg = "❌ Read Error: \(error.localizedDescription)"
+                DispatchQueue.main.async { self.loadingStatus = msg }
+                return
             }
             
-            // Sort
+            if foundURLs.isEmpty {
+                 DispatchQueue.main.async { self.loadingStatus = "⚠️ Folder is empty (0 SGF files)." }
+                 return
+            }
+            
+            DispatchQueue.main.async { self.loadingStatus = "Found \(foundURLs.count) files. Parsing..." }
+            
+            // Sort & Shuffle
             foundURLs.sort { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
-            
-            // Shuffle?
-            if AppSettings.shared.shuffleGameOrder {
-                foundURLs.shuffle()
-            }
+            if AppSettings.shared.shuffleGameOrder { foundURLs.shuffle() }
             
             // Parse Code
             var loaded: [SGFGameWrapper] = []
+            var parseErrors = 0
+            
             for sgfURL in foundURLs {
                 do {
                     let data = try Data(contentsOf: sgfURL)
-                    // Try UTF8, fallback to lossy
                     let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
-                    
                     let tree = try SGFParser.parse(text: text)
                     let game = SGFGame.from(tree: tree)
                     loaded.append(SGFGameWrapper(url: sgfURL, game: game))
                 } catch {
                     print("Failed to parse \(sgfURL.lastPathComponent): \(error)")
+                    parseErrors += 1
                 }
             }
             
             // 4. Update Main Actor
             DispatchQueue.main.async {
                 self.games = loaded
+                
+                if loaded.isEmpty {
+                    self.loadingStatus = "❌ Failed to parse ALL files."
+                } else if parseErrors > 0 {
+                    self.loadingStatus = "✅ Loaded \(loaded.count) games. (\(parseErrors) failed)"
+                } else {
+                    self.loadingStatus = "✅ Loaded \(loaded.count) games."
+                }
+                
                 print("📚 Loaded \(loaded.count) games from \(url.lastPathComponent)")
                 
                 // Auto-Behavior
                 // Auto-Behavior
-                if AppSettings.shared.startGameOnLaunch, let first = loaded.first {
-                    self.selectGame(first)
-                    // Trigger Playback
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.boardVM?.startAutoPlay()
-                    }
-                } else {
-                    if let first = loaded.first {
-                        self.selection = first
-                    }
+                var checkAutoPlay = AppSettings.shared.startGameOnLaunch
+                
+                // 1. Try to Resume Last Played Game
+                if let lastURL = AppSettings.shared.lastPlayedGameURL,
+                   let restored = loaded.first(where: { $0.url == lastURL }) {
+                    print("♻️ Resuming Last Played Game: \(restored.url.lastPathComponent)")
+                    self.selectGame(restored)
+                    
+                    // If resuming, we likely want to just be there. But if AutoPlay is ON, we play.
+                    // checkAutoPlay remains true/false based on preference.
+                } 
+                // 2. Else, Pick First (or already shuffled)
+                else if let first = loaded.first {
+                     self.selectGame(first)
+                }
+                
+                // 3. Trigger Auto-Play if Enabled
+                if checkAutoPlay && self.selection != nil {
+                     print("▶️ Auto-Play Triggered on Launch")
+                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                         self.boardVM?.startAutoPlay()
+                     }
                 }
             }
         }

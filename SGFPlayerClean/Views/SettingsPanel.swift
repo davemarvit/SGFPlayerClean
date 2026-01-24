@@ -207,11 +207,26 @@ struct SettingsPanel: View {
                 .buttonStyle(.plain)
                 
                 if let url = settings.folderURL {
-                    Text(url.lastPathComponent)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(url.lastPathComponent)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        
+                        Text(app.loadingStatus)
+                            .font(.caption)
+                            .foregroundColor(app.loadingStatus.contains("❌") ? .red : (app.loadingStatus.contains("✅") ? .green : .cyan))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Divider().padding(.vertical, 8)
+                        Text("Last OGS Event:")
+                            .font(.caption2).foregroundColor(.gray)
+                        Text(app.lastDebugLog)
+                            .font(.caption2).foregroundColor(.yellow)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer()
             }
