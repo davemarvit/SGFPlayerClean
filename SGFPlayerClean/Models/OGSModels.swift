@@ -51,18 +51,27 @@ struct TimeParameters: Codable, Hashable {
     let time_increment: Int?; let increment: Int?
     let stones_per_period: Int?
     let per_move: Int?
+    let speed: String? // Authoritative classification from Server
 }
 
 struct OGSChallenge: Identifiable, Decodable {
     let id: Int; let name: String?; let challenger: ChallengerInfo?; let game: ChallengeGameInfo?; let time_per_move: Int?
     let time_control: String?
     let time_control_parameters: TimeParameters?
+    let min_rank: Int?; let max_rank: Int?
+    let process_id: Int? // For tracking specific process/node on server
+    let game_started: Bool? // Critical for filtering zombies from REST
+    let phase: String? // "play", "finished", etc
+    let outcome: String?
+    let speed: String? // "live", "blitz", "correspondence"
+    let game_id: Int? // Added for duplicate detection
     
-    enum CodingKeys: String, CodingKey { case challenge_id, game_id, name, user_id, username, ranking, rank, professional, width, height, ranked, rules, time_per_move, black, white, time_control, time_control_parameters }
+    enum CodingKeys: String, CodingKey { case id, challenge_id, game_id, name, user_id, username, ranking, rank, professional, width, height, ranked, rules, time_per_move, black, white, challenger, time_control, time_control_parameters, min_rank, max_rank, process_id, game_started, phase, outcome, speed }
     
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = (try? c.decode(Int.self, forKey: .challenge_id)) ?? (try? c.decode(Int.self, forKey: .game_id)) ?? 0
+        self.game_id = try? c.decode(Int.self, forKey: .game_id)
+        self.id = (try? c.decode(Int.self, forKey: .id)) ?? (try? c.decode(Int.self, forKey: .challenge_id)) ?? (self.game_id) ?? 0
         self.name = try? c.decode(String.self, forKey: .name); self.time_per_move = try? c.decode(Int.self, forKey: .time_per_move)
         
         self.time_control = try? c.decode(String.self, forKey: .time_control)
@@ -70,6 +79,8 @@ struct OGSChallenge: Identifiable, Decodable {
         
         if c.contains(.black) || c.contains(.white) {
             self.challenger = (try? c.decode(ChallengerInfo.self, forKey: .black)) ?? (try? c.decode(ChallengerInfo.self, forKey: .white))
+        } else if c.contains(.challenger) {
+             self.challenger = try? c.decode(ChallengerInfo.self, forKey: .challenger)
         } else {
             let rankDouble = (try? c.decode(Double.self, forKey: .ranking)) ?? (try? c.decode(Double.self, forKey: .rank))
             let rankInt = (try? c.decode(Int.self, forKey: .ranking)) ?? (try? c.decode(Int.self, forKey: .rank))
@@ -86,12 +97,25 @@ struct OGSChallenge: Identifiable, Decodable {
         let rankedInt = try? c.decode(Int.self, forKey: .ranked)
         let isRanked = rankedBool ?? (rankedInt == 1)
         
+        
+        self.min_rank = try? c.decode(Int.self, forKey: .min_rank)
+        self.max_rank = try? c.decode(Int.self, forKey: .max_rank)
+        self.process_id = try? c.decode(Int.self, forKey: .process_id)
+        self.game_started = try? c.decode(Bool.self, forKey: .game_started)
+        self.phase = try? c.decode(String.self, forKey: .phase)
+        self.outcome = try? c.decode(String.self, forKey: .outcome)
+        self.speed = try? c.decode(String.self, forKey: .speed)
+        
         self.game = ChallengeGameInfo(ranked: isRanked, width: (try? c.decode(Int.self, forKey: .width)) ?? 19, height: (try? c.decode(Int.self, forKey: .height)) ?? 19, rules: try? c.decode(String.self, forKey: .rules))
     }
     var boardSize: String { "\(game?.width ?? 19)x\(game?.height ?? 19)" }
     var speedCategory: String {
+        // 1. Authoritative: Use server tag if available
+        if let s = time_control_parameters?.speed { return s }
+        
+        // 2. Fallback: Heuristic
         guard let tpm = time_per_move else { return "live" }
-        return tpm < 30 ? "blitz" : (tpm > 43200 ? "correspondence" : "live")
+        return tpm < 30 ? "blitz" : (tpm >= 3600 ? "correspondence" : "live")
     }
     var formattedTimeControl: String {
         return ChallengeHelpers.formatTimeControl(tc: time_control, params: time_control_parameters, perMove: time_per_move)
@@ -250,7 +274,7 @@ struct GameInfo: Codable, Hashable { let id: Int; let name: String?; let width, 
 enum ViewMode: String, CaseIterable, Identifiable { case view2D = "2D", view3D = "3D"; var id: String { rawValue } }
 enum OGSBrowserTab: String, CaseIterable { case challenge = "Challenge", watch = "Watch" }
 enum BoardSizeCategory: String, CaseIterable, Identifiable { case size19 = "19", size13 = "13", size9 = "9", other = "Other"; var id: String { rawValue } }
-enum GameSpeedFilter: String, CaseIterable, Identifiable { case all = "All Speeds", live = "Live", blitz = "Blitz", correspondence = "Correspondence"; var id: String { rawValue } }
+enum GameSpeedFilter: String, CaseIterable, Identifiable { case all = "All Speeds", realTime = "Real Time (Live+Blitz)", live = "Live", blitz = "Blitz", correspondence = "Correspondence"; var id: String { rawValue } }
 
 struct ChallengeSetup: Codable {
     var name = "Friendly Match"; var size = 19; var rules = "japanese"; var ranked = true
@@ -414,3 +438,5 @@ struct KeychainHelper {
         var item: AnyObject?; let status = SecItemCopyMatching(q as CFDictionary, &item); return status == noErr ? (item as? Data) : nil
     }
 }
+
+

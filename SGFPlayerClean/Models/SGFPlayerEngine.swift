@@ -71,6 +71,25 @@ final class SGFPlayer: ObservableObject {
     private var baseSize: Int = 19
     private var initialPlayer: Stone = .black
     
+    /// Generates the payload data required by the AI Engine for the current move index
+    func getCurrentAIPayload() -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
+        let initialStones = _baseSetup.map { (color: Stone, x: Int, y: Int) -> (color: String, x: Int, y: Int) in
+            return (color == .black ? "B" : "W", x, y)
+        }
+        
+        var history: [(color: String, x: Int, y: Int)] = []
+        for i in 0..<currentIndex {
+            let (color, coord) = _moves[i]
+            let cStr = (color == .black) ? "B" : "W"
+            if let (x, y) = coord, x >= 0, y >= 0 {
+                history.append((cStr, x, y))
+            } else {
+                history.append((cStr, -1, -1)) // Pass
+            }
+        }
+        return (initialStones, history)
+    }
+    
     /// In online mode, this tracks the OGS 'state_version'
     var highestKnownStateVersion: Int = 0
     private var timer: AnyCancellable?

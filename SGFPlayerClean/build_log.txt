@@ -1,0 +1,109 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project SGFPlayerClean.xcodeproj -scheme SGFPlayerClean -destination platform=macOS,arch=arm64 build
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'SGFPlayerClean' in project 'SGFPlayerClean' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk /Users/dave/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx15.5-24F74-8254517eb8b97d462ccbc072ba9094c9.sdkstatcache
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean/SGFPlayerClean.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk -o /Users/dave/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx15.5-24F74-8254517eb8b97d462ccbc072ba9094c9.sdkstatcache
+
+SwiftDriver SGFPlayerClean normal arm64 com.apple.xcode.tools.swift.compiler (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name SGFPlayerClean -Onone -enforce-exclusivity\=checked @/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk -target arm64-apple-macos15.5 -g -module-cache-path /Users/dave/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Index.noindex/DataStore -swift-version 5 -I /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug -F /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug -emit-localized-strings -emit-localized-strings-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx15.5-24F74-8254517eb8b97d462ccbc072ba9094c9.sdkstatcache -output-file-map /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/dave/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean_const_extract_protocols.json -Xcc -iquote -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-generated-files.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-own-target-headers.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-all-target-headers.hmap -Xcc -iquote -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-project-headers.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug/include -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources-normal/arm64 -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources/arm64 -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean-Swift.h -working-directory /Users/Dave/SGFPlayerClean/SGFPlayerClean -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ OGSClient.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+SwiftCompile normal arm64 /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:273:25: warning: initialization of immutable value 'body' was never used; consider replacing with assignment to '_' or removing it
+                    let body = String(data: data ?? Data(), encoding: .utf8) ?? ""
+                    ~~~~^~~~
+                    _
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:293:13: warning: initialization of immutable value 'trace' was never used; consider replacing with assignment to '_' or removing it
+        let trace = Thread.callStackSymbols.joined(separator: "\n")
+        ~~~~^~~~~
+        _
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:318:24: warning: value 'initialState' was defined but never used; consider replacing with boolean test
+                if let initialState = g["initial_state"] as? [String: Any] {
+                   ~~~~^~~~~~~~~~~~~~~                   ~~~
+                                                         is
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:851:32: warning: conditional cast from '[String : Any]' to '[String : Any]' always succeeds
+            if let p = payload as? [String: Any] {
+                               ^
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:857:37: warning: conditional cast from '[String : Any]' to '[String : Any]' always succeeds
+                 if let p = payload as? [String: Any] { self.lastClockSnapshot = p; handleInboundClock(p) }
+                                    ^
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:864:32: warning: conditional cast from '[String : Any]' to '[String : Any]' always succeeds
+            if let p = payload as? [String: Any],
+                               ^
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:844:16: warning: value 'outcome' was defined but never used; consider replacing with boolean test
+        if let outcome = payload["outcome"] as? String {
+           ~~~~^~~~~~~~~~                   ~~~
+                                            is
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:1001:57: error: missing argument for parameter 'speed' in call
+                    per_move: tcDict["per_move"] as? Int
+                                                        ^
+                                                        , speed: <#String?#>
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/OGSModels.swift:48:8: note: 'init(time_control:main_time:initial_time:periods:period_time:time_increment:increment:stones_per_period:per_move:speed:)' declared here
+struct TimeParameters: Codable, Hashable {
+       ^
+/Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift:1698:13: warning: initialization of immutable value 'rawLog' was never used; consider replacing with assignment to '_' or removing it
+        let rawLog = tightJson(dict)
+        ~~~~^~~~~~
+        _
+
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/RightPanelView.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/DiagnosticTests.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/AppSettings.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/OGSModels.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/SGFPlayerCleanApp.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/FileLoadingService.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/AppModel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/Logger.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/SharedOverlays.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/ViewModels/TimeControlManager.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/SGFPlayerEngine.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/StoneView2D.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ActiveGamePanel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/DebugOverlay.swift -primary-file /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/GameSettings.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/SceneManager3D.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/KeyboardShortcuts.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/StoneMeshFactory.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/OGSBrowserView.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/SimpleBowlView.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/SettingsPanel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/ViewModels/GameCacheManager.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/ViewModels/OGSGameViewModel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/OGSCreateChallengeView.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ContentView3D.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/ViewModels/LayoutViewModel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/BoardView2D.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/DebugDashboard.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/StoneJitter.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/ViewModels/BoardViewModel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/SupportingViews.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ContentView.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ContentView2D.swift -emit-dependencies-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.d -emit-const-values-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.swiftconstvalues -emit-reference-dependencies-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.swiftdeps -serialize-diagnostics-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.dia -emit-localized-strings -emit-localized-strings-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64 -target arm64-apple-macos15.5 -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk -I /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug -F /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug -no-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -module-cache-path /Users/dave/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -swift-version 5 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/SGFPlayerClean_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/dave/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/Dave/SGFPlayerClean/SGFPlayerClean -resource-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift -enable-anonymous-context-mangled-names -file-compilation-dir /Users/Dave/SGFPlayerClean/SGFPlayerClean -Xcc -ivfsstatcache -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/macosx15.5-24F74-8254517eb8b97d462ccbc072ba9094c9.sdkstatcache -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-generated-files.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-own-target-headers.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-all-target-headers.hmap -Xcc -iquote -Xcc /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/SGFPlayerClean-project-headers.hmap -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Products/Debug/include -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources-normal/arm64 -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources/arm64 -Xcc -I/Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/DerivedSources -Xcc -DDEBUG\=1 -module-name SGFPlayerClean -frontend-parseable-output -disable-clang-spi -target-sdk-version 15.5 -target-sdk-name macosx15.5 -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server -external-plugin-path /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/local/lib/swift/host/plugins\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -o /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Build/Intermediates.noindex/SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.o -index-unit-output-path /SGFPlayerClean.build/Debug/SGFPlayerClean.build/Objects-normal/arm64/OGSClient.o -index-store-path /Users/dave/Library/Developer/Xcode/DerivedData/SGFPlayerClean-dmhbjjmytvwhytffvzwazruxcndm/Index.noindex/DataStore -index-system-modules
+SwiftCompile normal arm64 Compiling\ DebugOverlay.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/DebugOverlay.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+SwiftCompile normal arm64 /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/DebugOverlay.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ SGFPlayerClean (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+EmitSwiftModule normal arm64 (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    
+
+SwiftCompile normal arm64 Compiling\ GameSettings.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/GameSettings.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+SwiftCompile normal arm64 /Users/Dave/SGFPlayerClean/SGFPlayerClean/Models/GameSettings.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    
+
+SwiftCompile normal arm64 Compiling\ ActiveGamePanel.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ActiveGamePanel.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+SwiftCompile normal arm64 /Users/Dave/SGFPlayerClean/SGFPlayerClean/Views/ActiveGamePanel.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+    cd /Users/Dave/SGFPlayerClean/SGFPlayerClean
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling GameSettings.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+SwiftDriverJobDiscovery normal arm64 Compiling DebugOverlay.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+	SwiftCompile normal arm64 Compiling\ OGSClient.swift /Users/Dave/SGFPlayerClean/SGFPlayerClean/Services/OGSClient.swift (in target 'SGFPlayerClean' from project 'SGFPlayerClean')
+	Building project SGFPlayerClean with scheme SGFPlayerClean
+(3 failures)

@@ -28,6 +28,9 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $appModel.showDebugDashboard) { DebugDashboard(appModel: appModel).frame(minWidth: 700, minHeight: 500) }
+        .onAppear {
+            appModel.handleStartup()
+        }
     }
 
     @ViewBuilder

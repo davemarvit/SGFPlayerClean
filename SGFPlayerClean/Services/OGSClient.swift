@@ -6,6 +6,9 @@
 import Foundation
 import Combine
 
+
+
+
 class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     let buildVersion = "16.185"
     
@@ -16,6 +19,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     @Published var lastError: String? = nil
     @Published var username: String?
     @Published var playerID: Int?
+    @Published var userRank: Int? // OGS Rank Integer (0=30k ... 29=1k, 30=1d)
     @Published var userJWT: String?
     
     @Published var activeGameID: Int? {
@@ -113,6 +117,13 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private var activeChallengeGameID: Int?
     
     private var isSearchingForGame: Bool = false
+    @Published var connectionStatus: String = "Disconnected"
+    @Published var serverLatency: Double = 0.0
+    
+    // Graveyard: Track deleted challenge IDs to prevent stale REST data from resurrecting them (Zombies)
+    // Map ID -> Time of Deletion. We keep them for ~30-60s.
+    private var graveyard: [Int: Date] = [:]
+    
     private var currentAutomatchUUID: String? // Track active Automatch request
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -120,6 +131,10 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private var handshakeTimer: Timer?
     private var enginePulseTimer: Timer?
     private var lobbyChallenges: [Int: OGSChallenge] = [:]
+    // Grace Period: Track when we locally added a challenge. 
+    // We will NOT prune a challenge via REST if it was added < 15s ago (Eventual Consistency Protection)
+    private var challengeCreationTimes: [Int: Date] = [:] 
+    private var challengePruneTimer: Timer?
     private var lastReportedLatency: Int = 85
     var currentStateVersion: Int = 0
     private var requestSequence: Int = 100 // Client-side request counter
@@ -135,6 +150,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         self.urlSession = URLSession(configuration: config, delegate: self, delegateQueue: .main)
         fetchUserConfig()
         startHandshakeMonitor()
+        startChallengePruner()
     }
 
     // MARK: - Robust Parsing
@@ -166,7 +182,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     if let user = json["user"] as? [String: Any] {
                         self.username = user["username"] as? String
                         self.playerID = self.robustInt(user["id"])
-                        NSLog("[OGS-AUTH] ✅ Config Loaded. User: \(self.username ?? "nil") ID: \(self.playerID ?? -1)")
+                        self.userRank = self.robustInt(user["ranking"])
+                        NSLog("[OGS-AUTH] ✅ Config Loaded. User: \(self.username ?? "nil") ID: \(self.playerID ?? -1) Rank: \(self.userRank ?? -999)")
                     } else {
                          NSLog("[OGS-AUTH] ⚠️ Config Loaded but no 'user' object found.")
                     }
@@ -198,6 +215,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         isConnected = false
         isSocketAuthenticated = false
         socketPingTimer?.invalidate()
+        stopChallengePruner()
     }
     
     // MARK: - Authentication
@@ -313,6 +331,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     func acceptChallenge(challengeID: Int, completion: @escaping (Int?, Error?) -> Void) {
+        NSLog("[OGS-ACTION] Accepting Challenge \(challengeID)...")
         self.isSearchingForGame = true
         guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/accept"), let jwt = userJWT else {
             completion(nil, nil); return
@@ -671,6 +690,9 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     func subscribeToSeekgraph() {
         sendAction("seek_graph/connect", payload: ["channel": "global"])
         self.isSubscribedToSeekgraph = true
+        // REST Sync Disabled to prevent "Flood" of stale/zombie games.
+        // We rely on the WebSocket 'seekgraph' events for Truth.
+        // self.syncLobbyUsingREST()
     }
     
     func performPostAuthSubscriptions() {
@@ -740,9 +762,34 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         
         let payload = array.count > 1 ? (array[1] as? [String: Any] ?? [:]) : [:]
 
-        // FIREHOSE LOGGING (Temporary)
-        if eventName != "net/ping" && eventName != "net/pong" && eventName != "seekgraph/global" {
-             // NSLog("[OGS-EVT] 📩 Event: \(eventName) Payload: \(payload.keys)")
+        // FIREHOSE LOGGING (Time Capsule Mode: Selective)
+        if eventName.contains("seek_graph") {
+             // NSLog("[OGS-TRACE] 🔍 Seekgraph Event: \(eventName)")
+             
+             // SeekGraph Logic Moved Here:
+             // seek_graph can be a LIST (Initial State) or a SINGLE Object (Update/Add)
+             if let data = try? JSONSerialization.data(withJSONObject: payload, options: []) {
+                 // 1. Try Array (Initial Batch)
+                 if let list = try? JSONDecoder().decode([OGSChallenge].self, from: data) {
+                     DispatchQueue.main.async {
+                         NSLog("[OGS-LOBBY] 📦 Received Batch of \(list.count) Challenges via Socket")
+                         for c in list { self.processSocketChallenge(c) }
+                         self.refreshLobbyUI()
+                     }
+                 } 
+                 // 2. Try Single Object (Incremental Update)
+                 else {
+                     do {
+                         let challenge = try JSONDecoder().decode(OGSChallenge.self, from: data)
+                         DispatchQueue.main.async {
+                             self.processSocketChallenge(challenge)
+                             self.refreshLobbyUI()
+                         }
+                     } catch {
+                         NSLog("[OGS-DECODE-ERR] ❌ Failed to decode seek_graph: \(error)")
+                     }
+                 }
+             }
         }
         
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
@@ -911,7 +958,21 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 self.undoRequestedMoveNumber = nil
             }
         } else if eventName == "seekgraph/global" {
-            if let items = array[1] as? [[String: Any]] { for i in items { updateLobbyItem(i) }; refreshLobbyUI() }
+            // FIX: Handle both Full Sync (Array) and Incremental Updates (Dictionary)
+            // Previously, receiving a Dictionary (e.g. delete:1) caused 'items' cast to fail
+            // but 'removeAll()' had already run, wiping the lobby.
+            
+            if let items = array[1] as? [[String: Any]] {
+                // FULL SYNC / BATCH UPDATE: Merge strategy.
+                // Do NOT wipe (removeAll) because the server sends partial batches here too.
+                // OGS sends explicit "delete" keys for removal.
+                for i in items { updateLobbyItem(i) }
+                refreshLobbyUI()
+            } else if let item = array[1] as? [String: Any] {
+                // INCREMENTAL UPDATE: Add/Update/Delete Single
+                updateLobbyItem(item)
+                refreshLobbyUI()
+            }
         } else if eventName == "net/ping" {
             handleNetPing(payload)
         }
@@ -970,7 +1031,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     time_increment: tcDict["time_increment"] as? Int,
                     increment: tcDict["increment"] as? Int,
                     stones_per_period: tcDict["stones_per_period"] as? Int,
-                    per_move: tcDict["per_move"] as? Int
+                    per_move: tcDict["per_move"] as? Int,
+                    speed: tcDict["speed"] as? String // FIX: Added missing field
                 )
                 self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: sys, params: tp, perMove: nil)
                 
@@ -990,7 +1052,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                     time_increment: params["time_increment"] as? Int,
                     increment: params["increment"] as? Int,
                     stones_per_period: params["stones_per_period"] as? Int,
-                    per_move: params["per_move"] as? Int
+                    per_move: params["per_move"] as? Int,
+                    speed: params["speed"] as? String // FIX: Added missing field
                 )
                 self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: tc, params: tp, perMove: nil)
                 
@@ -1065,7 +1128,12 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             }
             
             if let removedStr = p["removed"] as? String {
-                self.handleInboundRemovedStones(removedStr)
+                // FIX: OGS sometimes sends empty "removed" string in 'finished' phase, wiping dead stones.
+                if self.phase == "finished" && removedStr.isEmpty && !self.removedStones.isEmpty {
+                    NSLog("[OGS-SCORING] 🛡️ Ignoring empty 'removed' string in Finished phase. Retaining \(self.removedStones.count) stones.")
+                } else {
+                    self.handleInboundRemovedStones(removedStr)
+                }
             } else if let removedArr = p["removed"] as? [String] {
                 let joined = removedArr.joined()
                 self.handleInboundRemovedStones(joined)
@@ -1078,8 +1146,20 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                           newRemoved.insert(BoardPosition(y, x))
                       }
                  }
-                 self.removedStones = newRemoved
-                 NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones from 'score_stones'")
+                 
+                 // FIX: Safety Shield for 'score_stones' too.
+                 if self.phase == "finished" && newRemoved.isEmpty && !self.removedStones.isEmpty {
+                     NSLog("[OGS-SCORING] 🛡️ Ignoring empty 'score_stones' in Finished phase. Retaining \(self.removedStones.count) stones.")
+                 } else {
+                     self.removedStones = newRemoved
+                     NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones from 'score_stones'")
+                 }
+                 
+            } else {
+                 // Debug: If neither 'removed' nor 'score_stones' is present in 'finished' phase?
+                 if let ph = p["phase"] as? String, ph == "finished" {
+                     NSLog("[OGS-SCORING] ⚠️ Finished phase but no 'removed' or 'score_stones' key found. Retaining existing: \(self.removedStones.count)")
+                 }
             }
             // ...
 
@@ -1405,7 +1485,16 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         handshakeTimer?.invalidate()
         handshakeTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             guard let self = self, self.isConnected else { return }
+            
+            // 1. Ensure Auth
             if !self.isSocketAuthenticated { self.sendSocketAuth() }
+            
+            // 2. Ensure Lobby Subscription (if no active game)
+            else if !self.isSubscribedToSeekgraph && self.activeGameID == nil {
+                self.subscribeToSeekgraph()
+            }
+            
+            // 3. Ensure Game Room Connection
             if let gid = self.activeGameID, self.isSocketAuthenticated, !self.hasEnteredRoom {
                 self.connectToGame(gameID: gid)
             }
@@ -1565,7 +1654,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
         let json = tightJson(payload)
         let packet = (sequence != nil) ? "42[\"\(event)\",\(json),\(sequence!)]" : "42[\"\(event)\",\(json)]"
-        // if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") }
+        // if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") } // SILENCED FOR TIME CAPSULE
         sendRaw(packet)
     }
 
@@ -1582,13 +1671,165 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
 
 
-    // ... (rest of methods) ...
+    // Helper: Process Socket Challenges
+    private func processSocketChallenge(_ challenge: OGSChallenge) {
+        // FILTER: 1X10S Debug
+        let name = challenge.challenger?.username ?? "Unknown"
+        if name.lowercased().contains("1x10s") {
+            NSLog("[OGS-DEBUG-TARGET] 🎯 Found Target '1X10S'! ID: \(challenge.id). GameID: \(challenge.game_id ?? -1). Speed: \(challenge.speed ?? "nil"). Started: \(challenge.game_started ?? false)")
+        }
+
+        // DUPLICATE CHECK
+        let existing = self.lobbyChallenges.values.first(where: { $0.game_id != nil && $0.game_id == challenge.game_id })
+        if let ex = existing, ex.id != challenge.id {
+             // NSLog("[OGS-DUPE?] 👯‍♀️ Challenge \(challenge.id) is dupe of \(ex.id) (GameID: \(challenge.game_id ?? -1))")
+        }
+        
+        // ZOMBIE / FILTER CHECK
+        if challenge.game_started == true { return }
+        
+        self.lobbyChallenges[challenge.id] = challenge
+        self.challengeCreationTimes[challenge.id] = Date()
+    }
+
+
+    private func syncLobbyUsingREST() {
+        let rootURL = "https://online-go.com/api/v1/challenges/"
+        fetchAllPages(url: rootURL, accumulator: [])
+    }
+    
+    private func fetchAllPages(url: String, accumulator: [OGSChallenge]) {
+        guard let u = URL(string: url) else { return }
+        var request = URLRequest(url: u)
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        if let jwt = userJWT { request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization") }
+        
+
+        
+        urlSession?.dataTask(with: request) { [weak self] data, _, error in
+            guard let self = self else { return }
+            
+            if let e = error {
+                NSLog("[OGS-REST] ⚠️ Fetch failed: \(e.localizedDescription)")
+                return // Chain breaks, but at least we know.
+            }
+            
+            guard let d = data else { return }
+            
+            do {
+                // Try Page decode
+                let page = try JSONDecoder().decode(OGSChallengePaginationContainer_v2.self, from: d)
+                var currentList = accumulator
+                currentList.append(contentsOf: page.results)
+                
+                if let nextURL = page.next {
+                    self.fetchAllPages(url: nextURL, accumulator: currentList)
+                } else {
+                    self.finalizeLobbySync(currentList)
+                }
+            } catch {
+                // Fallback: Direct List
+                if let list = try? JSONDecoder().decode([OGSChallenge].self, from: d) {
+                     self.finalizeLobbySync(accumulator + list)
+                } else {
+                    NSLog("[OGS-REST] ❌ Decoding Error: \(error). dataLen: \(d.count)")
+                }
+            }
+        }.resume()
+    }
+    
+    private func finalizeLobbySync(_ challenges: [OGSChallenge]) {
+        DispatchQueue.main.async {
+            // 1. Correctly Identify Valid IDs (Filter out started/finished games to ensure they are Pruned)
+            let validIDs = Set(challenges.filter { 
+                $0.game_started != true && 
+                ($0.phase == nil || ($0.phase != "play" && $0.phase != "finished")) &&
+                $0.outcome == nil
+            }.map { $0.id })
+            
+            // 2. Prune Zombies
+            var prunedCount = 0
+            for k in self.lobbyChallenges.keys {
+                if !validIDs.contains(k) {
+                    // GRACE PERIOD CHECK:
+                    // If this challenge was added recently (e.g. < 15 seconds ago), it might not have propagated to the REST API yet.
+                    // Protecting it prevents "flickering" where a valid new game is deleted and then re-added.
+                    if let birth = self.challengeCreationTimes[k], Date().timeIntervalSince(birth) < 15.0 {
+                         // NSLog("[OGS-PRUNE] 👶 Saved potential zombie \(k) due to Grace Period (<15s old).")
+                         continue
+                    }
+                    
+                    self.lobbyChallenges.removeValue(forKey: k)
+                    self.challengeCreationTimes.removeValue(forKey: k) // Clean up timestamp
+                    prunedCount += 1
+                }
+            }
+            
+            
+            // 3. Upsert Valid Items (The "Fill" Logic)
+            // DISABLED: REST API contains stale/zombie games that flood the lobby.
+            // We now rely 100% on WebSocket cleanliness.
+            /*
+            self.cleanupGraveyard() // Clean first
+            
+            for c in challenges {
+                 // ... [Fill Logic Removed/Disabled to cure The Flood] ...
+            }
+            */
+            
+            if prunedCount > 0 {
+                NSLog("[OGS-LOBBY] 🧼 Pruned \(prunedCount) Zombies via REST Sync (Paginated).")
+            }
+            
+            self.refreshLobbyUI()
+            
+            if prunedCount > 0 {
+                NSLog("[OGS-LOBBY] 🧼 Pruned \(prunedCount) Zombies via REST Sync (Paginated).")
+            }
+            
+            self.refreshLobbyUI()
+        }
+    }
+
+    // MARK: - Graveyard Logic (Anti-Zombie)
+    private func addToGraveyard(_ id: Int) {
+        self.graveyard[id] = Date()
+        // NSLog("[OGS-GRAVE] ⚰️ Buried Challenge \(id) to prevent resurrection.")
+    }
+    
+    private func cleanupGraveyard() {
+        let now = Date()
+        // Keep explicitly deleted items dead for 45s (covering reasonably long socket/REST drifts)
+        let expiry: TimeInterval = 45 
+        let oldLimit = now.addingTimeInterval(-expiry)
+        
+        let initialCount = graveyard.count
+        graveyard = graveyard.filter { $0.value > oldLimit }
+        
+        if graveyard.count < initialCount {
+            // NSLog("[OGS-GRAVE] 🧹 Cleaned up \(initialCount - graveyard.count) expired grave records.")
+        }
+    }
+
+    /// Explicitly remove a challenge (e.g. when 404 is encountered on Accept)
+    func forceRemoveChallenge(id: Int) {
+        DispatchQueue.main.async { [weak self] in
+             guard let self = self else { return }
+             if self.lobbyChallenges[id] != nil {
+                 self.lobbyChallenges.removeValue(forKey: id)
+                 self.addToGraveyard(id) // Ensure it stays dead
+                 NSLog("[OGS-LOBBY] 🧹 Force-removed zombie challenge \(id)")
+                 self.refreshLobbyUI()
+             }
+        }
+    }
 
     private func updateLobbyItem(_ dict: [String: Any]) {
         // CASE 1: Delete Command { "delete": 12345 } or { "challenge_id": 123, "delete": true }
         if let deleteID = robustInt(dict["delete"]) {
             // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Command for \(deleteID)")
             self.lobbyChallenges.removeValue(forKey: deleteID)
+            self.addToGraveyard(deleteID)
             return
         }
         
@@ -1597,21 +1838,42 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         if dict["delete"] != nil { 
             // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Flag for \(id)")
             self.lobbyChallenges.removeValue(forKey: id)
+            self.addToGraveyard(id)
             return 
         }
         
-        // DEBUG: Trace incoming items to see if we see our own
+        // [DEBUG LOGGING: TIME CAPSULE MODE]
+        // Log RAW dictionary for direct comparison with Browser DevTools
+        // let rawLog = tightJson(dict)
+        // NSLog("[OGS-TRACE] RAW Item \(id): \(rawLog)") 
+
+        // HANDLE Game Started Events (Remove from Lobby)
+        if let started = dict["game_started"] as? Bool, started == true {
+             // NSLog("[OGS-LOBBY] 🏁 Game Started Event for \(id) -> REMOVING Challenge.")
+             self.lobbyChallenges.removeValue(forKey: id)
+             self.addToGraveyard(id)
+             return
+        }
+        
         if let data = try? JSONSerialization.data(withJSONObject: dict), 
            let ch = try? JSONDecoder().decode(OGSChallenge.self, from: data) {
             
+            // GUARD: Prevent invalid/broken challenges (e.g. Automatch leakage or bad decode)
+            // Fix: Explicitly check for nil username (which becomes "Unknown" in UI)
+            if ch.id == 0 || (ch.challenger?.username ?? "Unknown") == "Unknown" {
+                 // NSLog("[OGS-LOBBY] 🛡️ Ignored Invalid Challenge. ID: \(ch.id), User: \(ch.challenger?.username ?? "nil")")
+                 return
+            }
+
             self.lobbyChallenges[id] = ch
             
             // Check if it's mine
             if let pid = self.playerID, let creatorID = ch.challenger?.id, pid == creatorID {
-                NSLog("[OGS-LOBBY] 🟢 Found MY Challenge: \(id). Creator: \(ch.challenger?.username ?? "?") (\(creatorID))")
+                // NSLog("[OGS-TRACE] 🟢 Found MY Challenge: \(id). Creator: \(ch.challenger?.username ?? "?") (\(creatorID))")
             }
         } else {
-             NSLog("[OGS-LOBBY] ⚠️ Failed to decode item: \(dict)")
+             // LOGGING: Identify why we failed to decode
+             NSLog("[OGS-TRACE] ⚠️ Failed to decode item ID \(id): \(dict)")
         }
     }
 
@@ -1623,6 +1885,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
 
     private func performLobbyRefresh() {
         var filtered: [OGSChallenge] = []
+        var droppedCount = 0
+        
         for ch in self.lobbyChallenges.values {
             // Filter: If this challenge represents a game I am already in
             // Logic: Check if challenge ID matches an active game ID (common reuse)
@@ -1633,19 +1897,31 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             
             if self.myActiveGames.contains(gid) || self.finishedGameIDs.contains(gid) {
                  shouldSkip = true
+                 // NSLog("[OGS-FILTER] 🚫 Filtering challenge \(ch.id) (Game ID \(gid)) - Already in Active/Finished list.")
             } else if let mine = self.playerID, let cid = ch.challenger?.id, cid == mine {
                  // I am the challenger, but is it Active?
-                 // If I created it, it might still be open. We usually want to show it so I can cancel it.
-                 // BUT if it's in myActiveGames, it's started.
-                 if self.myActiveGames.contains(gid) { shouldSkip = true }
+                 if self.myActiveGames.contains(gid) { 
+                     shouldSkip = true 
+                     // NSLog("[OGS-FILTER] 🚫 Filtering my challenge \(ch.id) - It is now an active game.")
+                 }
             }
             
             if !shouldSkip {
                 filtered.append(ch)
+            } else {
+                droppedCount += 1
             }
         }
         
+        if droppedCount > 0 {
+            // NSLog("[OGS-LOBBY] Filtered out \(droppedCount) challenges (Active/Finished). Available: \(filtered.count)")
+        }
+        
         self.availableGames = filtered.sorted(by: { $0.id > $1.id })
+        
+        // LOGGING: Pipeline Stage 2 - Available for UI
+        NSLog("[OGS-TRACE] 📦 performLobbyRefresh complete. Available Games: \(self.availableGames.count) (Dropped: \(droppedCount))")
+        
         self.objectWillChange.send()
     }
 
@@ -1658,6 +1934,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.isConnected = false
             self?.isSocketAuthenticated = false
+            self?.isSubscribedToSeekgraph = false // FIX: Allow re-subscription on reconnect
+            self?.lobbyChallenges.removeAll() // FIX: Clear stale state on disconnect
             self?.stopClockTimer()
         }
     }
@@ -1684,4 +1962,121 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
 
+    // MARK: - Challenge Pruning (Zombie Cleanup)
+    
+    // We already added the property 'challengePruneTimer' in the property section.
+    
+    private func startChallengePruner() {
+        challengePruneTimer?.invalidate()
+        // Check every 60 seconds.
+        // This is a safety net. The main updates come from 'seekgraph', but if we miss a delete, this catches it.
+        challengePruneTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            // Optimization: Don't spam REST API if we are playing a game (Lobby hidden)
+            if self.activeGameID != nil { return }
+            self.checkActiveChallenges()
+        }
+        // Run immediately once (delayed slightly to allow auth to settle if just starting)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.checkActiveChallenges()
+        }
+    }
+    
+    private func stopChallengePruner() {
+        challengePruneTimer?.invalidate()
+        challengePruneTimer = nil
+    }
+    
+    func checkActiveChallenges() {
+        // Prevent concurrent fetches
+        if isSearchingForGame { return } // Re-using this flag or adding a new one? Let's use a local guard or just trust the frequency.
+        // Actually, let's create a dedicated flag if needed, but for now we'll just run.
+        
+        guard let url = URL(string: "https://online-go.com/api/v1/challenges/") else { return }
+        
+        // Root Recursive Call
+        self.fetchRecursiveChallenges(url: url, accumulated: []) { [weak self] fullList in
+            guard let self = self else { return }
+            
+            if !fullList.isEmpty {
+                 // NSLog("[OGS-PRUNE] 📦 Full Recursive Fetch Complete. Total: \(fullList.count) challenges.")
+                 // Hand off to the "Master Sync" logic
+                 self.finalizeLobbySync(fullList)
+            } else {
+                 // NSLog("[OGS-PRUNE] ⚠️ Recursive Fetch returned 0 items. Ignoring to prevent wiping lobby.")
+            }
+        }
+    }
+    
+    // Recursive Fetcher
+    private func fetchRecursiveChallenges(url: URL, accumulated: [OGSChallenge], completion: @escaping ([OGSChallenge]) -> Void) {
+        var request = URLRequest(url: url)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(originHeader, forHTTPHeaderField: "Origin")
+        
+        if let jwt = userJWT { 
+            request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization") 
+        } else {
+            NSLog("[OGS-PRUNE] ⚠️ No userJWT available. Expecting 401/403.")
+        }
+        
+        urlSession?.dataTask(with: request) { [weak self] data, _, error in
+            guard let self = self, let d = data else {
+                completion(accumulated)
+                return
+            }
+            
+            var newItems: [OGSChallenge] = []
+            var nextURL: URL? = nil
+            
+            do {
+                // Try decoding Pagination Container first (since we know it uses "results" and "next")
+                // Using the v2 struct we defined at the bottom
+                // We need to move the struct or just decode manually to Dictionary to get 'next'
+                
+                if let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
+                   let resultsArr = json["results"] as? [[String: Any]] {
+                    
+                    // Decode Items
+                    if let data = try? JSONSerialization.data(withJSONObject: resultsArr),
+                       let list = try? JSONDecoder().decode([OGSChallenge].self, from: data) {
+                        newItems = list
+                    }
+                    
+                    // Check Next Link
+                    if let nextLink = json["next"] as? String, let next = URL(string: nextLink) {
+                        nextURL = next
+                    }
+                } else {
+                    // Fallback: Try decoding plain array (if no pagination info provided)
+                    if let list = try? JSONDecoder().decode([OGSChallenge].self, from: d) {
+                        newItems = list
+                    } else {
+                        // Log decoding failure
+                        let raw = String(data: d, encoding: .utf8)?.prefix(200) ?? ""
+                        NSLog("[OGS-PRUNE-FATAL] ❌ Failed to decode recursive page. Raw: \(raw)")
+                    }
+                }
+                
+                let combined = accumulated + newItems
+                
+                if let next = nextURL {
+                    // Continue Recursion
+                    // NSLog("[OGS-PRUNE] 🔄 Fetching next page: \(next.absoluteString)")
+                    self.fetchRecursiveChallenges(url: next, accumulated: combined, completion: completion)
+                } else {
+                    // Base Case: No more pages
+                    completion(combined)
+                }
+                
+            } 
+        }.resume()
+    }
+
+}
+
+private struct OGSChallengePaginationContainer_v2: Decodable {
+    let count: Int?
+    let next: String?
+    let results: [OGSChallenge]
 }

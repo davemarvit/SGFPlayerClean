@@ -284,6 +284,27 @@ class BoardViewModel: ObservableObject {
         self.totalMoves = self.engine.maxIndex
         self.onRequestUpdate3D.send()
         self.objectWillChange.send()
+        
+        self.requestAnalysisIfNeeded()
+    }
+    
+    private func requestAnalysisIfNeeded() {
+        guard KataGoEngine.shared.isEngineRunning else { return }
+        
+        let isAIAvailable = !isOnlineContext || ogsClient.isGameFinished
+        guard isAIAvailable else { return }
+        
+        let payload = self.engine.getCurrentAIPayload()
+        let gameId = isOnlineContext ? (ogsClient.activeGameID.map { String($0) } ?? "local") : "local"
+        
+        KataGoEngine.shared.analyzeGame(
+            id: gameId,
+            initialStones: payload.initial,
+            moves: payload.moves,
+            size: self.boardSize,
+            komi: 6.5, // Could be extracted from game info if available
+            maxVisits: 500
+        )
     }
     
     func updateGhostStone(at pos: BoardPosition?) {

@@ -25,6 +25,11 @@ final class AppModel: ObservableObject {
     @Published var loadingStatus: String = "Idle" // Diagnostic Status
     @Published var lastDebugLog: String = "Waiting for Move..."
     
+    // AI Integration Flags
+    var isAIAvailable: Bool {
+        return !isOnlineMode || ogsClient.isGameFinished
+    }
+    
     // UI Persistence
     @Published var rightPanelTab: PanelTab = .local
     enum PanelTab: String { case local = "Local", online = "Online" }
@@ -53,6 +58,9 @@ final class AppModel: ObservableObject {
         
         // Initialize Audio
         setupAudio()
+        
+        // Start KataGo AI Engine in background
+        KataGoEngine.shared.start()
         
         // PERSISTENCE CHECK: Restore online mode state
         let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
@@ -107,8 +115,7 @@ final class AppModel: ObservableObject {
         
         // CONDITION: Only connect if we restore Online Mode
         if wasOnline {
-            print("🚀 Auto-Connecting to OGS (Persistent Mode)")
-            self.ogsClient.connect()
+            print("⏳ Persistence detected. Connection deferred to handleStartup().")
         }
         
         // Auto-Connect when switching tab to Online
@@ -156,7 +163,7 @@ final class AppModel: ObservableObject {
              print("📂 Auto-loading saved folder: \(url.path)")
              // Update status before calling (function will overwrite it, but good for tracing)
              self.loadingStatus = "Startup: Loading Folder..."
-             loadFolder(url)
+             loadFolder(url, autoSelect: !wasOnline)
         } else {
              self.loadingStatus = "Startup: No Folder Set"
         }
@@ -185,6 +192,18 @@ final class AppModel: ObservableObject {
                 self?.captureSinglePlayer?.volume = f
                 self?.captureMultiPlayer?.volume = f
             }.store(in: &cancellables)
+    }
+    
+    // Defer network operations until View is active
+    func handleStartup() {
+        let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
+        if wasOnline {
+            print("🚀 Executing Startup Connection (Persistent Mode)")
+            // Force delay to ensure socket/network stack is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.ogsClient.connect()
+            }
+        }
     }
     
     private func startInstantGame() {
@@ -321,6 +340,7 @@ final class AppModel: ObservableObject {
         // Verified: Helper methods restored in Client v16.305
         self.ogsClient.acceptChallenge(challengeID: id) { [weak self] (newGameID: Int?, error: Error?) in
             guard let self = self else { return }
+            
             if let gid = newGameID {
                 self.ogsClient.fetchGameState(gameID: gid) { [weak self] (rootJson: [String: Any]?) in
                     guard let root = rootJson else { return }
@@ -328,6 +348,12 @@ final class AppModel: ObservableObject {
                     DispatchQueue.main.async {
                         NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": data])
                     }
+                }
+            } else {
+                NSLog("[OGS-UI] ❌ Accept Failed for ID \(id): \(error?.localizedDescription ?? "Unknown")")
+                // ZOMBIE KILLER: If accept fails (404/400), it's likely a ghost. Remove it instantly.
+                DispatchQueue.main.async {
+                    self.ogsClient.forceRemoveChallenge(id: id)
                 }
             }
         }
@@ -452,16 +478,45 @@ final class AppModel: ObservableObject {
              boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, stateVersion: stateVersion)
              
              let moveHistory = gameData["moves"] as? [[Any]] ?? []
-             var turnColor = initialTurnColor
+             let handicap = robustInt(gameData["handicap"]) ?? 0
+             let isFreeHandicap = (gameData["free_handicap_placement"] as? Bool) ?? false
+             // Heuristic: If handicap > 0 but initial_state is empty, assume moves contain placement
+             let movesContainHandicap = isFreeHandicap || (handicap > 0 && initialStones.isEmpty)
+             
+             var turnColor = initialTurnColor // FIX: Restore variable
+             
              for (idx, m) in moveHistory.enumerated() {
                  if m.count >= 2, let x = robustInt(m[0]), let y = robustInt(m[1]) {
+                     
+                     // Determine Color
+                     let colorToPlay: Stone
+                     if movesContainHandicap && idx < handicap {
+                         colorToPlay = .black
+                     } else {
+                         colorToPlay = turnColor
+                     }
+                     
                      if x == -1 && y == -1 { // OGS represents passes as [-1, -1] in move history
                          // Handle Pass
-                         boardVM?.handleRemotePass(color: turnColor)
+                         boardVM?.handleRemotePass(color: colorToPlay)
                      } else if x >= 0 && y >= 0 {
-                         boardVM?.handleRemoteMove(x: x, y: y, color: turnColor)
+                         boardVM?.handleRemoteMove(x: x, y: y, color: colorToPlay)
                      }
-                     turnColor = turnColor.opponent
+                     
+                     // Prepare Next Turn
+                     if movesContainHandicap && idx < handicap {
+                         // Inside setup phase:
+                         // If this was the last setup stone, next is White.
+                         // Otherwise, stay Black.
+                         if idx == handicap - 1 {
+                             turnColor = .white
+                         } else {
+                             turnColor = .black
+                         }
+                     } else {
+                         // Normal Play: Alternate
+                         turnColor = colorToPlay.opponent
+                     }
                  }
              }
              
@@ -469,6 +524,8 @@ final class AppModel: ObservableObject {
              // FIX: Engine 'blackStonesCaptured' means "number of black stones removed from board" (Prisoners for White)
              self.ogsClient.blackCaptures = boardVM?.engine.whiteStonesCaptured ?? 0
              self.ogsClient.whiteCaptures = boardVM?.engine.blackStonesCaptured ?? 0
+             
+             NSLog("[OGS-SYNC] 💀 Sync Check: Removed Stones Count = \(self.ogsClient.removedStones.count). Phase: \(self.ogsClient.phase ?? "nil")")
              
              // Update Player Names
              let players = gameData["players"] as? [String: Any]
@@ -687,7 +744,7 @@ final class AppModel: ObservableObject {
         }
     }
     
-    func loadFolder(_ url: URL) {
+    func loadFolder(_ url: URL, autoSelect: Bool = true) {
         // 2. Clear current library
         self.games = []
         self.selection = nil
@@ -778,21 +835,27 @@ final class AppModel: ObservableObject {
                 print("📚 Loaded \(loaded.count) games from \(url.lastPathComponent)")
                 
                 // Auto-Behavior
-                // Auto-Behavior
                 var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                 
-                // 1. Try to Resume Last Played Game
-                if let lastURL = AppSettings.shared.lastPlayedGameURL,
-                   let restored = loaded.first(where: { $0.url == lastURL }) {
-                    print("♻️ Resuming Last Played Game: \(restored.url.lastPathComponent)")
-                    self.selectGame(restored)
-                    
-                    // If resuming, we likely want to just be there. But if AutoPlay is ON, we play.
-                    // checkAutoPlay remains true/false based on preference.
-                } 
-                // 2. Else, Pick First (or already shuffled)
-                else if let first = loaded.first {
-                     self.selectGame(first)
+                // GUARD: Only auto-select (and play) if permitted (e.g. Local Mode boot)
+                if autoSelect {
+                    // 1. Try to Resume Last Played Game
+                    if let lastURL = AppSettings.shared.lastPlayedGameURL,
+                       let restored = loaded.first(where: { $0.url == lastURL }) {
+                        print("♻️ Resuming Last Played Game: \(restored.url.lastPathComponent)")
+                        self.selectGame(restored)
+                        
+                        // If resuming, we likely want to just be there. But if AutoPlay is ON, we play.
+                        // checkAutoPlay remains true/false based on preference.
+                    } 
+                    // 2. Else, Pick First (or already shuffled)
+                    else if let first = loaded.first {
+                         self.selectGame(first)
+                    }
+                } else {
+                    print("🛑 Auto-Select skipped (Online Mode or explicit suppression)")
+                    // Ensure checkAutoPlay is disabled if we didn't select anything
+                    checkAutoPlay = false
                 }
                 
                 // 3. Trigger Auto-Play if Enabled

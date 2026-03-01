@@ -9,6 +9,7 @@ struct OGSBrowserView: View {
 
     @AppStorage("ogs_filter_speed") private var selectedSpeed: GameSpeedFilter = .all
     @AppStorage("ogs_filter_ranked") private var showRankedOnly: Bool = false
+    @AppStorage("ogs_filter_ineligible") private var showIneligible: Bool = false
     @AppStorage("ogs_filter_sizes") private var sizeFiltersRaw: String = "19,13,9,Other"
 
     private var sizeFilters: Set<BoardSizeCategory> {
@@ -82,6 +83,7 @@ struct OGSBrowserView: View {
                     ForEach(GameSpeedFilter.allCases) { speed in Text(speed.rawValue).tag(speed) }
                 }.labelsHidden().frame(width: 120).controlSize(.small)
                 Toggle("Rated Only", isOn: $showRankedOnly).toggleStyle(.checkbox).font(.caption)
+                Toggle("Ineligible", isOn: $showIneligible).toggleStyle(.checkbox).font(.caption).foregroundColor(.gray)
                 Spacer()
             }
         }.padding().background(Color.black.opacity(0.1))
@@ -92,16 +94,19 @@ struct OGSBrowserView: View {
     }
 
     private var challengeList: some View {
-        List {
-            ForEach(filteredChallenges) { challenge in
-                ChallengeRow(challenge: challenge, isMine: isChallengeMine(challenge)) {
-                    if isChallengeMine(challenge) { app.ogsClient.cancelChallenge(challengeID: challenge.id) }
-                    else { onJoin(challenge.id) }
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(filteredChallenges) { challenge in
+                    ChallengeRow(challenge: challenge, isMine: isChallengeMine(challenge)) {
+                        if isChallengeMine(challenge) { app.ogsClient.cancelChallenge(challengeID: challenge.id) }
+                        else { onJoin(challenge.id) }
+                    }
+                    Divider().background(Color.white.opacity(0.1))
                 }
             }
+            .padding(.vertical, 8)
         }
-        .listStyle(.inset).scrollContentBackground(.hidden)
-        .padding(.top, 1) // FIX: Prevent first item from clipping under certain headers
+        .scrollContentBackground(.hidden)
     }
 
     // FIX: Broken down into sub-expressions to prevent compiler timeout
@@ -120,21 +125,35 @@ struct OGSBrowserView: View {
             let cat: BoardSizeCategory = (w == 19 && h == 19) ? .size19 : (w == 13 && h == 13) ? .size13 : (w == 9 && h == 9) ? .size9 : .other
             if !sizeFilters.contains(cat) { return false }
             
+             if !sizeFilters.contains(cat) { return false }
+            
+            // Eligibility Check
+            if !showIneligible, let myRank = app.ogsClient.userRank {
+                let min = game.min_rank ?? -999
+                let max = game.max_rank ?? 999
+                if myRank < min || myRank > max { return false }
+            }
+            
             if selectedSpeed != .all {
                 let speed = game.speedCategory
+                if selectedSpeed == .realTime && (speed != "live" && speed != "blitz") { return false }
                 if selectedSpeed == .live && speed != "live" { return false }
                 if selectedSpeed == .blitz && speed != "blitz" { return false }
                 if selectedSpeed == .correspondence && speed != "correspondence" { return false }
             }
             return true
         }
-        return filtered.sorted { a, b in
+        let finalList = filtered.sorted { a, b in
             let mineA = isChallengeMine(a)
             let mineB = isChallengeMine(b)
             if mineA && !mineB { return true }
             if !mineA && mineB { return false }
             return a.id > b.id
         }
+        
+        // LOGGING: Pipeline Stage 3 - UI Filtering
+        NSLog("[OGS-TRACE] 🖥️ UI Showing \(finalList.count) challenges (Local Total: \(all.count))")
+        return finalList
     }
 
     private func isChallengeMine(_ challenge: OGSChallenge) -> Bool {
@@ -192,7 +211,10 @@ struct ChallengeRow: View {
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.6))
             }
-        }.padding(.vertical, 6).listRowBackground(Color.clear)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.white.opacity(0.001)) // Hit testing
     }
 
     // rankColor helper removed as it is no longer used
