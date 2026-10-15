@@ -22,7 +22,7 @@ A QUICK FIRST TEST
 
 MOVE SLIDER
 While dragging, the board and capture lids preview the position together at a
-limited update rate. Release applies the exact selected move. Preview moves are
+limit of five updates per second. Release applies the exact selected move. Preview moves are
 silent and new AI requests wait until release. Your source SGF is never rewritten.
 
 The on-screen back/forward arrows move one move per click. Hold Shift while

@@ -105,8 +105,8 @@ class BoardViewModel: ObservableObject {
         guard !isScrubbing else { return }
         isScrubbing = true
         engine.pause()
-        // At most 20 previews per second, with only the latest requested move retained.
-        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in self?.applyPendingScrub() }
+        // At most 5 previews per second, with only the latest requested move retained.
+        let timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in self?.applyPendingScrub() }
         scrubTimer = timer
         RunLoop.main.add(timer, forMode: .common)
     }

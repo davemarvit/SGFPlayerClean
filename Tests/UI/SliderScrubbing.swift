@@ -58,7 +58,7 @@ import SceneKit
             for i in 0..<200 { vm.scrub(to: i % 6) }
             vm.scrub(to: 5)
             check(moves == 0, "Raw drag events performed unbounded seeks")
-            track(0.08)
+            track(0.25)
             check(moves == 1 && vm.currentMoveIndex == 5, "Latest drag target was not coalesced into one preview")
             check(vm.whiteCapturedCount == 2 && vm.stonesToRender.count == 5, "Board/lids disagree during tracking")
             if let scene = findScene(host)?.scene {
@@ -76,26 +76,27 @@ import SceneKit
                 check(mode == .view2D, "Missing 3D scene")
             }
             for _ in 0..<100 { vm.scrub(to: 5) }
-            track(0.12)
+            track(0.25)
             check(moves == 1, "Duplicate positions caused repeated work")
+            let previewMoves = moves
             let started = Date()
             var requests = 0
-            while Date().timeIntervalSince(started) < 0.3 {
+            while Date().timeIntervalSince(started) < 0.65 {
                 vm.scrub(to: requests % 6); requests += 1
                 track(0.001)
             }
-            check(moves <= 8, "Preview rate exceeded its 20/s cap")
+            check(moves - previewMoves <= 4, "Preview rate exceeded its 5/s cap")
             vm.endScrubbing(at: 1)
             check(!vm.isScrubbing && vm.currentMoveIndex == 1 && model.player.currentIndex == 1,
                   "Release did not immediately apply the exact final position")
             check(vm.whiteCapturedCount == 0, "Final captures did not match released position")
             let releasedMoves = moves
-            track(0.12)
+            track(0.25)
             check(moves == releasedMoves, "Stale preview ran after release")
             check(sounds == 0, "Scrubbing generated playback sounds")
             vm.beginScrubbing(); vm.scrub(to: 5)
             model.selectGame(wrapper)
-            track(0.12)
+            track(0.25)
             check(vm.currentMoveIndex == 0 && !vm.isScrubbing, "Pending drag leaked into a new game")
             subscription.cancel()
 

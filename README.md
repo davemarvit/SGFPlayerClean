@@ -30,7 +30,7 @@ there is no variation-selection UI or SGF writer yet. The expanded automated sui
 Slider scrubbing now publishes completed board states in common run-loop modes, including
 AppKit event tracking. Default-mode delivery previously left board rendering queued until
 mouse-up while the directly observed 2D capture lids changed. Drag requests retain only the
-latest target and preview at most 20 times per second; release commits the exact target.
+latest target and preview at most 5 times per second (reduced for M1 rendering load); release commits the exact target.
 Preview seeks are silent, avoid new 3D drop animations, and defer new analysis requests until
 release. KataGo analysis is enabled only on the AI tab; opening an SGF selects Local.
 
