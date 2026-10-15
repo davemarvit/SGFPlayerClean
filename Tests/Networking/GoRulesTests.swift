@@ -2,6 +2,25 @@ import XCTest
 @testable import SGFPlayerNetworking
 
 final class GoRulesTests: XCTestCase {
+    func testTwoPassStatusFollowsVisibleHistoryAndResetsOnPlacement() throws {
+        let p = SGFPlayer()
+        p.load(game: SGFGame.from(tree: try SGFParser.parse(text: "(;SZ[9];B[aa];W[];B[])")))
+        XCTAssertFalse(p.lastTwoMovesWerePasses)
+        p.seek(to: 3)
+        XCTAssertTrue(p.lastTwoMovesWerePasses)
+        p.seek(to: 2)
+        XCTAssertFalse(p.lastTwoMovesWerePasses)
+        p.seek(to: 3)
+        XCTAssertNil(p.tryPlayMove(color: .white, x: 1, y: 1))
+        XCTAssertFalse(p.lastTwoMovesWerePasses)
+        XCTAssertNil(p.tryPlayMove(color: .black, x: -1, y: -1))
+        XCTAssertFalse(p.lastTwoMovesWerePasses)
+        XCTAssertNil(p.tryPlayMove(color: .white, x: -1, y: -1))
+        XCTAssertTrue(p.lastTwoMovesWerePasses)
+        p.reset()
+        XCTAssertFalse(p.lastTwoMovesWerePasses)
+    }
+
     private func player(_ rules: String = "japanese", online: Bool = false,
                         setup: [(Stone, Int, Int)] = [], size: Int = 5) -> SGFPlayer {
         var game = SGFGame()

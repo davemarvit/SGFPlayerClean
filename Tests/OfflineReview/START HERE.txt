@@ -19,6 +19,13 @@ A QUICK FIRST TEST
 5. Choose AI and check that analysis appears for the displayed position.
 
 SCORING DISPLAY
+Local play now has a Pass button beside the playback controls in 2D and 3D.
+Pause playback and go to the last recorded move to enable it. Passing changes
+the turn without adding or removing stones. You can rewind and replay passes.
+Two consecutive passes show a notice; local final scoring is not implemented.
+You may continue placing moves. The scoring window below is a display preview,
+not the result of passing in your current game.
+
 Click "Scoring review…" at the right of the orange banner.
 The first example should say "Final Score" beside "Alice White wins by
 6.5 points", with totals Black 29 and White 35.5.

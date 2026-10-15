@@ -313,6 +313,7 @@ python3 Tests/OfflineReview/build_review.py
 python3 Tests/UI/check_capture_rewind.py
 python3 Tests/UI/check_capture_rewind.py PlaybackAudio.swift
 python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift
+python3 Tests/UI/check_capture_rewind.py LocalPass.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -324,6 +325,9 @@ cover the saved Move Delay, speed changes while playing, pause/resume, and end-o
 The scoring check renders the production panel and uses OCR to verify visible winner text,
 fractional totals, draws, absent scores, long names, and the earlier-position notice. The
 offline app's banner opens these scoring examples without changing the current game.
+The local Pass check hosts both board views and verifies visible controls/status, turn changes,
+unchanged stones/captures, ko and rewind/replay behavior, and input guards. Two local passes
+show a notice; local final scoring is not yet implemented.
 
 ## Recovery without disturbing another checkout
 

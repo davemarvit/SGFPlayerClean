@@ -147,6 +147,14 @@ final class SGFPlayer: ObservableObject {
     }
     
     var maxIndex: Int { _moves.count }
+
+    var lastTwoMovesWerePasses: Bool {
+        guard currentIndex >= 2, currentIndex <= _moves.count else { return false }
+        return _moves[(currentIndex - 2)..<currentIndex].allSatisfy { _, point in
+            guard let (x, y) = point else { return true }
+            return x == -1 && y == -1
+        }
+    }
     
     /// Returns the coordinate of the actual next historical move in the playback queue, if any
     var nextHistoricalMovePosition: BoardPosition? {

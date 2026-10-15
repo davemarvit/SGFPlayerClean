@@ -134,6 +134,8 @@ struct ContentView3D: View {
                             PlaybackControlsView(boardVM: bVM)
                                 .padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
                                 .opacity(0)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
                         }
                     }
                 }

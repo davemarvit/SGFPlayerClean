@@ -126,6 +126,12 @@ struct PlaybackControlsView: View {
     @State private var localIdx: Double = 0
     var body: some View {
         VStack(spacing: 5) {
+            if let status = boardVM.localPassStatus {
+                Text(status).font(.caption).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(.black.opacity(0.65), in: Capsule())
+                    .accessibilityIdentifier("local-pass-status")
+            }
             if boardVM.territoryIsEstimate {
                 Text("Territory overlay is an estimate; OGS supplies the final score.")
                     .font(.caption).foregroundStyle(.orange)
@@ -137,6 +143,15 @@ struct PlaybackControlsView: View {
                 .background(.black.opacity(0.65), in: Capsule())
                 .accessibilityIdentifier("go-rule-status")
         HStack(spacing: 12) {
+            if !boardVM.isOnlineContext {
+                Button("Pass") { boardVM.passLocally() }
+                    .buttonStyle(.plain)
+                    .disabled(boardVM.localPassUnavailableReason != nil)
+                    .opacity(boardVM.localPassUnavailableReason == nil ? 1 : 0.4)
+                    .help(boardVM.localPassUnavailableReason ?? "Pass the turn without placing a stone")
+                    .accessibilityIdentifier("local-pass-button")
+                Divider().frame(height: 14).background(Color.white.opacity(0.3))
+            }
             HStack(spacing: 6) {
                 if app.isAIAvailable {
                     Button(action: { boardVM.seekPrevMistake() }) { 

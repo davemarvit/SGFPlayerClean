@@ -143,6 +143,32 @@ class BoardViewModel: ObservableObject {
     
     func stopAutoPlay() { engine.pause() }
     func startAutoPlay() { engine.play() }
+
+    var localPassUnavailableReason: String? {
+        if isOnlineContext { return "Use the online game's Pass control." }
+        if engine.isPlaying { return "Pause playback before passing." }
+        if engine.currentIndex != engine.maxIndex { return "Return to the latest position before passing." }
+        return engine.moveRejection(color: engine.turn, x: -1, y: -1)?.rawValue
+    }
+
+    var localPassStatus: String? {
+        guard !isOnlineContext, let last = engine.lastMove, last.x == -1, last.y == -1 else { return nil }
+        if engine.lastTwoMovesWerePasses {
+            return "Both players passed · Local final scoring is not available yet."
+        }
+        return "\(last.color == .black ? "Black" : "White") passed · \(engine.turn == .black ? "Black" : "White") to move"
+    }
+
+    func passLocally() {
+        if let reason = localPassUnavailableReason { moveError = reason; return }
+        if let rejection = engine.tryPlayMove(color: engine.turn, x: -1, y: -1) {
+            moveError = rejection.rawValue
+            return
+        }
+        ghostPosition = nil
+        moveError = nil
+        if KataGoEngine.shared.isEngineRunning { triggerFullGameAnalysis() }
+    }
     
     func handleRemoteMove(x: Int, y: Int, color: Stone) {
         self.engine.playMoveOptimistically(color: color, x: x, y: y)
@@ -317,7 +343,7 @@ class BoardViewModel: ObservableObject {
                  if captured > 0 { 
                      if captured > 1 { onPlaySound?(.captureMultiple) }
                      else { onPlaySound?(.captureSingle) }
-                 } else { 
+                 } else if last != nil {
                      onPlaySound?(.place) 
                  }
              }
