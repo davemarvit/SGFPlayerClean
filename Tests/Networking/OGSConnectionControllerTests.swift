@@ -227,7 +227,7 @@ final class OGSConnectionControllerTests: XCTestCase {
     }
 }
 
-private final class TestSocket: OGSWebSocket {
+final class TestSocket: OGSWebSocket {
     var onOpen: (() -> Void)?
     var onClose: ((Error?) -> Void)?
     var receivers: [(Result<String, Error>) -> Void] = []

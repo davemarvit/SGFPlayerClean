@@ -25,6 +25,7 @@ class OGSClient: NSObject, ObservableObject {
     @Published var activeGameID: Int? {
         didSet {
              if oldValue != activeGameID {
+                 gameEventGeneration += 1
                  if pendingGameID != activeGameID {
                      gameStateReader.cancel()
                      pendingGameID = nil
@@ -122,7 +123,7 @@ class OGSClient: NSObject, ObservableObject {
     private var activeChallengeID: Int?
     private var activeChallengeGameID: Int?
     
-    private var isSearchingForGame: Bool = false
+    private(set) var isSearchingForGame: Bool = false
     @Published var connectionStatus: String = "Disconnected"
     @Published var serverLatency: Double = 0.0
     
@@ -132,7 +133,8 @@ class OGSClient: NSObject, ObservableObject {
     
     private var currentAutomatchUUID: String? // Track active Automatch request
     private lazy var connection: OGSConnectionController = {
-        let controller = OGSConnectionController { [originHeader, userAgent] in
+        let controller = OGSConnectionController { [originHeader, userAgent, socketFactory] in
+            if let socketFactory { return socketFactory() }
             // Keep the existing Socket.IO endpoint and message format during lifecycle extraction.
             var request = URLRequest(url: URL(string: "wss://wsp.online-go.com/socket.io/?EIO=4&transport=websocket")!)
             request.setValue(originHeader, forHTTPHeaderField: "Origin")
@@ -148,8 +150,9 @@ class OGSClient: NSObject, ObservableObject {
         controller.onError = { [weak self] error in self?.lastError = error.localizedDescription }
         return controller
     }()
-    private var urlSession: URLSession?
-    private lazy var httpTransport = OGSURLSessionHTTPTransport(session: urlSession!)
+    private let urlSession: URLSession
+    private let socketFactory: (() -> OGSWebSocket)?
+    private lazy var httpTransport = OGSURLSessionHTTPTransport(session: urlSession)
     private lazy var lobbyReader = OGSPaginatedReader<OGSChallenge>(transport: httpTransport)
     private lazy var gameStateReader = OGSJSONReader(transport: httpTransport)
     private lazy var userConfigReader = OGSJSONReader(transport: httpTransport)
@@ -157,6 +160,10 @@ class OGSClient: NSObject, ObservableObject {
     private var initialLobbyCheck: OGSCancellable?
     private var loginTask: URLSessionDataTask?
     private var identityGeneration = 0
+    private var connectionEventGeneration = 0
+    private var gameEventGeneration = 0
+    private var challengeGeneration = 0
+    private var challengeTask: URLSessionDataTask?
 
     private var socketPingTimer: Timer?
     private var handshakeTimer: Timer?
@@ -173,12 +180,18 @@ class OGSClient: NSObject, ObservableObject {
     private let originHeader = "https://online-go.com"
     private let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     
-    override init() {
-        super.init()
+    override convenience init() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
         config.httpCookieAcceptPolicy = .always
-        self.urlSession = URLSession(configuration: config, delegate: nil, delegateQueue: .main)
+        self.init(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main))
+    }
+
+    /// The app and offline fixtures use the same client with different transport dependencies.
+    init(session: URLSession, socketFactory: (() -> OGSWebSocket)? = nil) {
+        self.urlSession = session
+        self.socketFactory = socketFactory
+        super.init()
         fetchUserConfig()
     }
 
@@ -228,6 +241,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func disconnect() {
+        invalidateChallengeRequest()
         connection.disconnect()
         stopChallengeKeepAlive()
     }
@@ -242,6 +256,8 @@ class OGSClient: NSObject, ObservableObject {
             return
         }
 
+        // Invalidate work already queued by the previous socket, as well as future callbacks.
+        connectionEventGeneration += 1
         // Subscriptions and room membership belong to one socket, not the whole app lifetime.
         isSocketAuthenticated = false
         isSubscribedToSeekgraph = false
@@ -278,9 +294,9 @@ class OGSClient: NSObject, ObservableObject {
         self.isAuthenticated = false
         
         // 3. Clear Cookies
-        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) {
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!) {
             for cookie in cookies {
-                HTTPCookieStorage.shared.deleteCookie(cookie)
+                urlSession.configuration.httpCookieStorage?.deleteCookie(cookie)
             }
         }
         
@@ -293,6 +309,7 @@ class OGSClient: NSObject, ObservableObject {
     func login(username: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         identityGeneration += 1
         let identity = identityGeneration
+        invalidateChallengeRequest()
         loginTask?.cancel()
         userConfigReader.cancel()
         // Attempt Session Login (Simulating Browser Form or API)
@@ -310,7 +327,7 @@ class OGSClient: NSObject, ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         
         // CSRF INJECTION
-        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!),
            let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
             req.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
             req.setValue(csrf, forHTTPHeaderField: "X-XSRF-TOKEN") // Redundancy
@@ -319,7 +336,7 @@ class OGSClient: NSObject, ObservableObject {
         let body = ["username": username, "password": password]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        loginTask = urlSession?.dataTask(with: req) { [weak self] data, response, error in
+        loginTask = urlSession.dataTask(with: req) { [weak self] data, response, error in
             guard let self, self.identityGeneration == identity else {
                 completion(false, "Login cancelled")
                 return
@@ -380,28 +397,74 @@ class OGSClient: NSObject, ObservableObject {
 
     func acceptChallenge(challengeID: Int, completion: @escaping (Int?, Error?) -> Void) {
         NSLog("[OGS-ACTION] Accepting Challenge \(challengeID)...")
-        self.isSearchingForGame = true
         guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/accept"), let jwt = userJWT else {
-            completion(nil, nil); return
+            completion(nil, OGSHTTPError.status(401)); return
         }
         var request = URLRequest(url: url); request.httpMethod = "POST"
         request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
         request.setValue(originHeader, forHTTPHeaderField: "Origin")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = "{}".data(using: .utf8)
-        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!),
            let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value { request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken") }
         
-        urlSession?.dataTask(with: request) { [weak self] data, response, error in
-            
-            guard let self = self else { return }
-            if let d = data, let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-               let gid = self.robustInt(json["id"]) ?? self.robustInt(json["game_id"]) ?? self.robustInt(json["game"]) {
-                DispatchQueue.main.async { completion(gid, nil) }
-            } else {
-                DispatchQueue.main.async { completion(nil, error) }
+        performChallengeRequest(request) { [weak self] result in
+            switch result {
+            case .success(let json):
+                guard let self else { completion(nil, URLError(.cancelled)); return }
+                if let id = self.robustInt(json["id"]) ?? self.robustInt(json["game_id"]) ?? self.robustInt(json["game"]) {
+                    completion(id, nil)
+                } else {
+                    self.isSearchingForGame = false
+                    completion(nil, OGSHTTPError.invalidJSON)
+                }
+            case .failure(let error): completion(nil, error)
             }
-        }.resume()
+        }
+    }
+
+    /// Challenge mutations are sent once. Never retry an ambiguously accepted POST.
+    private func performChallengeRequest(_ request: URLRequest,
+                                         completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard challengeTask == nil else {
+            completion(.failure(NSError(domain: "OGSClient", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "A challenge request is already in progress"])))
+            return
+        }
+        let generation = challengeGeneration
+        isSearchingForGame = true
+        challengeTask = urlSession.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                guard let self, self.challengeGeneration == generation else {
+                    completion(.failure(URLError(.cancelled)))
+                    return
+                }
+                self.challengeTask = nil
+                do {
+                    if let error { throw error }
+                    guard let response = response as? HTTPURLResponse, let data else {
+                        throw OGSHTTPError.invalidResponse
+                    }
+                    let body = try OGSHTTPResponse(data: data, response: response).validatedData()
+                    guard let json = try JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+                        throw OGSHTTPError.invalidJSON
+                    }
+                    completion(.success(json))
+                } catch {
+                    self.isSearchingForGame = false
+                    completion(.failure(error))
+                }
+            }
+        }
+        challengeTask?.resume()
+    }
+
+    private func invalidateChallengeRequest() {
+        challengeGeneration += 1
+        challengeTask?.cancel()
+        challengeTask = nil
+        isSearchingForGame = false
     }
 
 
@@ -446,10 +509,15 @@ class OGSClient: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         
-        urlSession?.dataTask(with: request) { data, _, error in
-            if let e = error { NSLog("[OGS-SGF] Failed to fetch SGF: \(e)"); completion(nil); return }
-            completion(data)
-        }.resume()
+        _ = httpTransport.get(request) { result in
+            do {
+                let response = try result.get()
+                completion(try response.validatedData())
+            } catch {
+                NSLog("[OGS-SGF] Download failed: \(error.localizedDescription)")
+                completion(nil)
+            }
+        }
     }
 
     func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
@@ -458,7 +526,6 @@ class OGSClient: NSObject, ObservableObject {
              completion(false, "Not authenticated"); return
         }
         
-        self.isSearchingForGame = true
         self.currentAutomatchUUID = nil
         
         var request = URLRequest(url: url)
@@ -468,7 +535,7 @@ class OGSClient: NSObject, ObservableObject {
         request.setValue(originHeader, forHTTPHeaderField: "Referer")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         
-        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!),
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!),
            let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value { 
             request.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
             request.setValue(csrf, forHTTPHeaderField: "X-XSRF-TOKEN") // Redundancy for strict proxies
@@ -482,47 +549,21 @@ class OGSClient: NSObject, ObservableObject {
             NSLog("[OGS-REST] 📤 Creating Challenge Payload:\n\(jsonString)")
         }
         
-        urlSession?.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                NSLog("[OGS-REST] ❌ Error: \(error)")
-                DispatchQueue.main.async { completion(false, error.localizedDescription) }
-                return
-            }
-            
-            if let d = data, let responseString = String(data: d, encoding: .utf8) {
-                // Log the raw response for debugging
-                NSLog("[OGS-REST] 📥 Raw Response:\n\(responseString)")
-                
-                if let json = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
-                    // Success Check: 'id', 'challenge_id', or 'challenge'
-                    if let id = self.robustInt(json["id"]) ?? 
-                                self.robustInt(json["challenge_id"]) ?? 
-                                self.robustInt(json["challenge"]) {
-                        NSLog("[OGS-REST] ✅ Challenge Created Successfully. ID: \(id)")
-                        
-                        // Capture Game ID if present for Keep-Alive
-                        let gid = self.robustInt(json["game"]) ?? self.robustInt(json["game_id"])
-                        
-                        DispatchQueue.main.async { 
-                            self.startChallengeKeepAlive(challengeID: id, gameID: gid)
-                            completion(true, nil) 
-                        }
-                    } else if let detail = json["detail"] as? String {
-                         NSLog("[OGS-REST] ⚠️ Failed: \(detail)")
-                         DispatchQueue.main.async { completion(false, detail) }
-                    } else {
-                         NSLog("[OGS-REST] ⚠️ Server Error or Unknown: \(json)")
-                         DispatchQueue.main.async { completion(false, "Server Error: \(responseString)") }
-                    }
+        performChallengeRequest(request) { [weak self] result in
+            switch result {
+            case .success(let json):
+                guard let self else { completion(false, "Request cancelled"); return }
+                if let id = self.robustInt(json["id"]) ?? self.robustInt(json["challenge_id"]) ?? self.robustInt(json["challenge"]) {
+                    let gameID = self.robustInt(json["game"]) ?? self.robustInt(json["game_id"])
+                    self.startChallengeKeepAlive(challengeID: id, gameID: gameID)
+                    completion(true, nil)
                 } else {
-                    DispatchQueue.main.async { completion(false, "Invalid data received") }
+                    self.isSearchingForGame = false
+                    completion(false, json["detail"] as? String ?? "Invalid challenge response")
                 }
-            } else {
-                    DispatchQueue.main.async { completion(false, "Empty response") }
+            case .failure(let error): completion(false, error.localizedDescription)
             }
-        }.resume()
+        }
     }
 
     func startChallengeKeepAlive(challengeID: Int, gameID: Int?) {
@@ -563,6 +604,9 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func cancelChallenge(challengeID: Int) {
+        invalidateChallengeRequest()
+        let generation = challengeGeneration
+        let identity = identityGeneration
         stopChallengeKeepAlive() // Stop pinging
         
         // OGS API: DELETE /api/v1/challenges/<id>/
@@ -579,7 +623,7 @@ class OGSClient: NSObject, ObservableObject {
         request.setValue(originHeader, forHTTPHeaderField: "Referer") // Essential for Django CSRF
         
         // Add Cookies if needed (usually good idea)
-        if let cookies = HTTPCookieStorage.shared.cookies(for: URL(string: "https://online-go.com")!) {
+        if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!) {
             let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
             request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
             if let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
@@ -595,22 +639,21 @@ class OGSClient: NSObject, ObservableObject {
         
         NSLog("[OGS-AUTH-DEBUG] 🚀 Attempting Cancel Challenge \(challengeID). User: \(self.username ?? "nil") ID: \(self.playerID ?? -1). JWT Length: \(jwt.count)")
 
-        urlSession?.dataTask(with: request) { [weak self] data, response, error in
+        urlSession.dataTask(with: request) { [weak self] data, response, error in
+            guard let self, self.identityGeneration == identity, self.challengeGeneration == generation else { return }
             if let http = response as? HTTPURLResponse {
                 NSLog("[OGS-CANCEL-DEBUG] 📡 Cancel Response: \(http.statusCode)")
                 if (200...299).contains(http.statusCode) || http.statusCode == 404 || http.statusCode == 403 {
-                     DispatchQueue.main.async {
-                         if self?.lobbyChallenges[challengeID] != nil {
+                     if self.lobbyChallenges[challengeID] != nil {
                              NSLog("[OGS-CANCEL-DEBUG] 🧹 Force Removing Challenge \(challengeID) from Local State (Status: \(http.statusCode)).")
-                             self?.lobbyChallenges.removeValue(forKey: challengeID)
-                             self?.refreshLobbyUI()
-                         }
+                             self.lobbyChallenges.removeValue(forKey: challengeID)
+                             self.refreshLobbyUI()
                      }
                 }
                 
                 if http.statusCode == 403 {
                     NSLog("[OGS-AUTH-DEBUG] ⛔️ 403 Forbidden. Auth Mismatch? Triggering Config Refresh.")
-                    self?.fetchUserConfig()
+                    self.fetchUserConfig()
                 }
             }
             
@@ -759,6 +802,17 @@ class OGSClient: NSObject, ObservableObject {
         }
     }
 
+    /// Preserve queue ordering while rejecting work from a disconnected socket or replaced game.
+    private func enqueueSocketUpdate(gameScoped: Bool = true, _ update: @escaping () -> Void) {
+        let connection = connectionEventGeneration
+        let game = gameEventGeneration
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.connectionEventGeneration == connection,
+                  !gameScoped || self.gameEventGeneration == game else { return }
+            update()
+        }
+    }
+
     // MARK: - Inbound Message Processing
     private func handleIncomingProtocolMessage(_ text: String) {
         if text.hasPrefix("0") { sendRaw("40"); return }
@@ -794,6 +848,11 @@ class OGSClient: NSObject, ObservableObject {
         guard let event = OGSSocketEvent(json: json) else { return }
         let eventName = event.name
         let payload = event.object
+        // Reject unrelated game packets before they can modify version, phase, or clocks.
+        if eventName.hasPrefix("game/") {
+            let parts = eventName.components(separatedBy: "/")
+            guard parts.count >= 3, let packetID = Int(parts[1]), packetID == activeGameID else { return }
+        }
 
         // FIREHOSE LOGGING (Time Capsule Mode: Selective)
         if eventName.contains("seek_graph") {
@@ -804,7 +863,7 @@ class OGSClient: NSObject, ObservableObject {
              if let data = event.containerData {
                  // 1. Try Array (Initial Batch)
                  if let list = try? JSONDecoder().decode([OGSChallenge].self, from: data) {
-                     DispatchQueue.main.async {
+                     self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                          NSLog("[OGS-LOBBY] 📦 Received Batch of \(list.count) Challenges via Socket")
                          for c in list { self.processSocketChallenge(c) }
                          self.refreshLobbyUI()
@@ -814,7 +873,7 @@ class OGSClient: NSObject, ObservableObject {
                  else {
                      do {
                          let challenge = try JSONDecoder().decode(OGSChallenge.self, from: data)
-                         DispatchQueue.main.async {
+                         self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                              self.processSocketChallenge(challenge)
                              self.refreshLobbyUI()
                          }
@@ -828,7 +887,7 @@ class OGSClient: NSObject, ObservableObject {
         if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
 
         if !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
-            DispatchQueue.main.async { 
+            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                 self.isSocketAuthenticated = true
                 self.subscribeToSeekgraph()
                 self.performPostAuthSubscriptions() // UPDATED
@@ -839,12 +898,12 @@ class OGSClient: NSObject, ObservableObject {
         if eventName == "active_game" || (eventName == "notification" && payload["type"] as? String == "gameStarted") {
             // FIX: Do NOT default to "play". Require explicit phase.
             let phase = payload["phase"] as? String
-            DispatchQueue.main.async { self.phase = phase } // Update Local Phase Tracker
+            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.phase = phase } // Update Local Phase Tracker
             if phase == "play" || phase == "stone removal" {
                 let bid = robustInt(payload["black_id"]) ?? robustInt((payload["black"] as? [String: Any])?["id"])
                 let wid = robustInt(payload["white_id"]) ?? robustInt((payload["white"] as? [String: Any])?["id"])
                 
-                DispatchQueue.main.async {
+                self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                     if bid == self.playerID || wid == self.playerID {
                         if let gid = self.robustInt(payload["game_id"]) ?? self.robustInt(payload["id"]) {
                             // FIX: Only track as "Active" if Phase is Play AND No Outcome
@@ -888,10 +947,6 @@ class OGSClient: NSObject, ObservableObject {
             }
         }
 
-        if let gid = self.activeGameID, eventName.contains("game/") {
-            let parts = eventName.components(separatedBy: "/")
-            if parts.count >= 2, let packetID = Int(parts[1]) { guard packetID == gid else { return } }
-        }
         
         // AUTOMATCH CONFIRMATION
         if eventName == "automatch/available/add" {
@@ -932,7 +987,7 @@ class OGSClient: NSObject, ObservableObject {
                whomID != self.playerID {
                 let name = (whomID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((whomID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Opponent")
                 
-                DispatchQueue.main.async {
+                self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                     self.undoRequestedUsername = name
                     self.undoRequestedMoveNumber = p["move_number"] as? Int
                 }
@@ -940,11 +995,11 @@ class OGSClient: NSObject, ObservableObject {
         } else if eventName.hasSuffix("/stone_removal") {
              if let removed = payload["removed"] as? String {
                  NSLog("[OGS-SCORING] ♻️ Live Remove Update: \(removed)")
-                 DispatchQueue.main.async { self.handleInboundRemovedStones(removed) }
+                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(removed) }
              } else if let removedArr = payload["removed"] as? [String] {
                  let joined = removedArr.joined()
                  NSLog("[OGS-SCORING] ♻️ Live Remove Update (Arr): \(joined)")
-                 DispatchQueue.main.async { self.handleInboundRemovedStones(joined) }
+                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(joined) }
              }
         } else if eventName.hasSuffix("/stone_removal") {
              // ... existing logic ...
@@ -952,7 +1007,7 @@ class OGSClient: NSObject, ObservableObject {
              // Web Protocol: { "removed": true, "stones": "...", "all_removed": "aabbcc" }
              if let all = payload["all_removed"] as? String {
                  NSLog("[OGS-SCORING] 📥 Received Full Update (all_removed): \(all)")
-                 DispatchQueue.main.async { self.handleInboundRemovedStones(all) }
+                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(all) }
              } else if let stones = payload["stones"] as? String {
                  // Fallback if all_removed missing (delta logic?)
                  // But logs show all_removed is present.
@@ -971,13 +1026,13 @@ class OGSClient: NSObject, ObservableObject {
                     guard let data = data else { return }
                     // Broadcast the fetched state so AppModel can update the board
                     let g = (data["gamedata"] as? [String: Any]) ?? data
-                    DispatchQueue.main.async {
+                    self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                          NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": g])
                     }
                 }
             }
             
-            DispatchQueue.main.async {
+            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                 self.undoRequestedUsername = nil
                 self.undoRequestedMoveNumber = nil
                 // DO NOT disarm ghost guard here. Wait for Sync.
@@ -985,7 +1040,7 @@ class OGSClient: NSObject, ObservableObject {
             
         } else if eventName.contains("/undo/reject") || eventName.contains("/undo/cancel") {
             NSLog("OGS: ↩️ Undo Cancelled/Rejected event received: \(eventName)")
-            DispatchQueue.main.async {
+            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                 self.isRequestingUndo = false
                 self.undoRequestedUsername = nil
                 self.undoRequestedMoveNumber = nil
@@ -1013,7 +1068,7 @@ class OGSClient: NSObject, ObservableObject {
 
     // MARK: - Logic Handlers (Atomic)
     private func handleInboundGameData(_ p: [String: Any]) {
-        DispatchQueue.main.async {
+        self.enqueueSocketUpdate {
             let gid = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"])
             NSLog("[OGS-DATA] 📦 handleInboundGameData for \(gid ?? -1). Keys: \(p.keys.sorted())")
             
@@ -1220,7 +1275,7 @@ class OGSClient: NSObject, ObservableObject {
                 // FIX: Use Game ID from payload directly.
                 let targetGID = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"]) ?? self.activeGameID
                 if let gid = targetGID { 
-                    DispatchQueue.main.async { 
+                    self.enqueueSocketUpdate {
                         self.finishedGameIDs.insert(gid)
                         NSLog("[OGS-DATA] 🏁 Marked Game \(gid) as Finished. (Shield Size: \(self.finishedGameIDs.count))")
                         // FIX: Remove from Active List immediately to kill Lobby Loop
@@ -1302,7 +1357,7 @@ class OGSClient: NSObject, ObservableObject {
                 self.stopEnginePulse()
                 // FIX: Remove from Active List
                 if let gid = self.activeGameID {
-                    DispatchQueue.main.async { 
+                    self.enqueueSocketUpdate {
                          self.myActiveGames.remove(gid)
                          self.finishedGameIDs.insert(gid)
                          NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) (Trigger: Phase Finished)")
@@ -1316,7 +1371,7 @@ class OGSClient: NSObject, ObservableObject {
                     self.activeGameOutcome = nil
                 } else if self.isGameFinished, let gid = self.activeGameID {
                     // FIX: If we confirmed it's finished (and phase != play), remove from Active List
-                     DispatchQueue.main.async { 
+                     self.enqueueSocketUpdate {
                          NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) from Active List (Count: \(self.myActiveGames.count))")
                          self.myActiveGames.remove(gid)
                          self.finishedGameIDs.insert(gid) // NEW: Remember it's finished
@@ -1338,7 +1393,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     private func handleInboundClock(_ data: [String: Any]) {
-        DispatchQueue.main.async {
+        self.enqueueSocketUpdate {
             // DEBUG: Log the Clock Data to catch "Reset" issues
             // NSLog("[OGS-CLOCK] 🕒 Received Clock: \(data)")
             
@@ -1438,7 +1493,7 @@ class OGSClient: NSObject, ObservableObject {
             // { "white": 2 } -> 2 White stones dead -> Black has 2 prisoners.
             
             if let prisoners = data["prisoners"] as? [String: Any] {
-                 DispatchQueue.main.async {
+                 self.enqueueSocketUpdate {
                      // FIX: Swap mappings. 
                      // blackCaptures (By Black) = Dead White Stones (prisoners["white"])
                      // whiteCaptures (By White) = Dead Black Stones (prisoners["black"])
@@ -1453,7 +1508,7 @@ class OGSClient: NSObject, ObservableObject {
             } else if let capturedArr = data["captured"] as? [[String: Any]], !capturedArr.isEmpty {
                  // Fallback: If 'prisoners' total is missing, but 'captured' stones list exists
                  if let pid = self.robustInt(data["player_id"]) {
-                     DispatchQueue.main.async {
+                     self.enqueueSocketUpdate {
                          if pid == self.blackPlayerID {
                              // PID did the capturing. He captured the stones in the array.
                              self.blackCaptures += capturedArr.count
@@ -1468,7 +1523,7 @@ class OGSClient: NSObject, ObservableObject {
 
     
         // Any incoming move invalidates pending undo requests (moot)
-        DispatchQueue.main.async {
+        self.enqueueSocketUpdate {
             self.undoRequestedUsername = nil
             self.undoRequestedMoveNumber = nil
             self.isRequestingUndo = false
@@ -1518,7 +1573,7 @@ class OGSClient: NSObject, ObservableObject {
         
         // NSLog("[OGS-CHAT] 💬 Chat Received: \(data["body"] ?? "") from \(data["username"] ?? "")")
         
-        DispatchQueue.main.async {
+        self.enqueueSocketUpdate {
              NotificationCenter.default.post(name: NSNotification.Name("OGSChatReceived"), object: nil, userInfo: data)
         }
     }
@@ -1584,7 +1639,7 @@ class OGSClient: NSObject, ObservableObject {
         else if let wid = whitePlayerID, current == wid { isBlack = false }
         else { return } // Not one of the players
         
-        DispatchQueue.main.async {
+        self.enqueueSocketUpdate {
             if isBlack {
                 let main = self.blackTimeRemaining ?? 0
                 if main > 0 {

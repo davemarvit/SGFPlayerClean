@@ -432,8 +432,9 @@ final class AppModel: ObservableObject {
                 }
             } else {
                 NSLog("[OGS-UI] ❌ Accept Failed for ID \(id): \(error?.localizedDescription ?? "Unknown")")
-                // ZOMBIE KILLER: If accept fails (404/400), it's likely a ghost. Remove it instantly.
-                DispatchQueue.main.async {
+                // Only a missing challenge justifies removing it. Timeouts, cancellation,
+                // and authentication failures do not establish that it disappeared.
+                if let error, case OGSHTTPError.status(404) = error {
                     self.ogsClient.forceRemoveChallenge(id: id)
                 }
             }
