@@ -65,9 +65,57 @@ challenge on HTTP 404; cancellation, authentication errors, and timeouts leave t
 SGF downloads also validate HTTP status before passing bytes to the file loader.
 
 The existing Socket.IO endpoint and outgoing game protocol are retained. Authentication
-confirmation/ACK handling, notifications already delivered to AppModel, and move/state-version
-reconciliation still need a separate review before changing their behavior. Local tests do not establish live
+confirmation/ACK handling and full move/state-version reconciliation still need separate work.
+Game notifications now carry connection/game context through AppModel and chat queues; stale
+notifications are rejected at consumption, including after switching away and back to the same game. Local tests do not establish live
 OGS login, challenge, or gameplay compatibility.
+
+## End-of-game scoring and UI
+
+Scoring consumes standalone phase events, full removal lists, removal/revival deltas, seki-mode
+updates, and acceptance events. Accepting sends the current server-derived marks/seki mode and
+shows a pending state until a matching confirmation arrives. Mark edits and resume requests also
+wait for server updates; a 15-second timeout releases pending controls without replaying actions.
+Disconnecting, switching games, changing marks, or changing seki mode invalidates acceptance.
+Resume sends only `game/removed_stones/reject`; it no longer also requests an undo.
+
+The client and board reject scoring edits for spectators, disconnected sessions, finished games,
+and historical board positions. Finished snapshots preserve omitted marks while respecting an
+explicit empty list. The shared scoring decoder is used for REST and socket game data before
+move-version replay guards. `score_stones` is not interpreted as dead-stone coordinates.
+
+The panel displays OGS-supplied totals and components (territory, stones, prisoners, komi,
+handicap), without recalculating totals or inventing missing components. Valid server scoring
+positions take precedence over the local overlay in both board views. The local flood fill is
+only an estimate; it is not a complete Japanese/seki/rules-aware scoring engine. Manual neutral
+point editing and a seki-mode toggle remain unimplemented; the server's seki mode is displayed
+and preserved on acceptance. Historical boards omit end-position overlays, and candidate-move
+hints are hidden during scoring. Dismissing the result overlay no longer destroys result state.
+Spectator outcomes and draws are not presented as personal losses.
+
+The protocol fixtures follow the [OGS real-time API](https://ogs.readme.io/docs/real-time-api)
+and the official Goban client at commit `d7eb38eb4e9e1c48ace12befb98d9f3c821ec2f3`:
+[server events](https://github.com/online-go/goban/blob/d7eb38eb4e9e1c48ace12befb98d9f3c821ec2f3/src/engine/protocol/ServerToClient.ts),
+[scoring commands](https://github.com/online-go/goban/blob/d7eb38eb4e9e1c48ace12befb98d9f3c821ec2f3/src/Goban/OGSConnectivity.ts).
+These are source/fixture checks, not live compatibility testing.
+
+Render the actual SwiftUI component with sample states, without starting the app or contacting OGS:
+
+```sh
+python3 Tests/Preview/render_scoring.py /private/tmp/sgfplayer-scoring-preview.png
+```
+
+## Remaining investigation boundaries
+
+- Authentication still infers readiness from several events, and ACK parsing/framing needs a
+  dedicated protocol fixture before changing the established endpoint or login exchange.
+- Move handling mixes move numbers and state versions and includes optimistic moves/passes.
+  Changing that requires replay fixtures covering handicap, undo, reconnect, and scoring transitions.
+- KataGo process callbacks are not tied to a process generation; a terminated older process can
+  clear a replacement's state. Analysis responses are indexed by turn without matching their
+  request/game identity, and cache work reads mutable state on background queues. These are
+  substantive remaining risks. A fake subprocess/temporary-cache harness can validate a separate
+  repair offline; no engine process or cache behavior is changed in this scoring pass.
 
 ## Local playback repairs
 
@@ -90,13 +138,14 @@ python3 Tests/Integration/run_loopback.py
 ```
 
 The root Swift package compiles the networking sources, OGSClient, shared models/settings,
-and playback engine used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
+playback engine, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 67 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 94 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
-handling, queued event invalidation, and local playback restoration/bounds. They use fake sockets,
+handling, queued notification invalidation, scoring transitions/confirmation/timeout,
+server score parsing, and local playback restoration/bounds. They use fake sockets,
 a controllable scheduler, and URLProtocol HTTP fixtures. Client tests exercise the production
 OGSClient with an ephemeral session and no shared cookies; every HTTP request is intercepted,
 and socket creation is injected. No production OGS connection is made by these tests. The loopback test compiles the production WebSocket transport

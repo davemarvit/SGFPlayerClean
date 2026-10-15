@@ -59,6 +59,7 @@ class BoardViewModel: ObservableObject {
         // OGS Scoring Observers
         ogsClient.$removedStones.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         ogsClient.$phase.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
+        ogsClient.$scoreSummary.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         
         // FIX: Sync Captures from OGSClient
         ogsClient.$blackCaptures.receive(on: RunLoop.main).sink { [weak self] val in
@@ -183,26 +184,18 @@ class BoardViewModel: ObservableObject {
              // NSLog("[OGS-DEBUG-COLOR] Resolved: \(resolvedColor). MyID: \(ogsClient.playerID ?? -1).")
         }
         
-        // 1. Dead Stone Removal
-        if ogsClient.isGameFinished || p == "stone removal" || p == "finished" {
-            self.ghostPosition = nil
-            if p == "stone removal" {
-                 if let gameID = ogsClient.activeGameID {
-                    var currentRemoved = ogsClient.removedStones
-                    let group = self.engine.getGroup(at: pos)
-                    // ... (rest of dead stone logic)
-                    let isClickedStoneDead = currentRemoved.contains(pos)
-                    let newRemovedState = !isClickedStoneDead
-                    if newRemovedState { currentRemoved.formUnion(group) } else { currentRemoved.subtract(group) }
-                    let coords = group.map { SGFCoordinates.toSGF(x: $0.col, y: $0.row) }.joined()
-                    ogsClient.sendRemovedStones(gameID: gameID, stones: coords, removed: newRemovedState)
-                }
-            } else {
-                NSLog("[Input] Ignored: Game Finished.")
-            }
+        // Only the live online board accepts scoring edits; local playback is independent.
+        if isOnline && (ogsClient.isGameFinished || ogsClient.isScoringPhase || p == "finished") {
+            ghostPosition = nil
+            guard ogsClient.canEditScore, engine.currentIndex == engine.maxIndex,
+                  let gameID = ogsClient.activeGameID else { return }
+            let group = engine.getGroup(at: pos)
+            guard !group.isEmpty else { return }
+            let coords = OGSScoring.encodePositions(group)
+            ogsClient.sendRemovedStones(gameID: gameID, stones: coords, removed: !ogsClient.removedStones.contains(pos))
             return
         }
-        
+
         // 2. Play Phase
         if isOnlineContext {
             // SECURITY CHECK 1: Engine Consistency
@@ -291,7 +284,7 @@ class BoardViewModel: ObservableObject {
             
             if isOnlineContext {
                let p = ogsClient.phase
-               if (p == "stone removal" || p == "finished") {
+               if (OGSScoring.isScoring(p) || p == "finished") && engine.currentIndex == engine.maxIndex {
                    if ogsClient.removedStones.contains(pos) { rs.isDead = true }
                }
             }
@@ -306,8 +299,9 @@ class BoardViewModel: ObservableObject {
         
         if isOnlineContext {
            let p = ogsClient.phase
-           if (p == "stone removal" || p == "finished") && self.engine.currentIndex == self.engine.maxIndex {
-                let t = self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
+           if (OGSScoring.isScoring(p) || p == "finished") && self.engine.currentIndex == self.engine.maxIndex {
+                let t = ogsClient.scoreSummary?.positions(width: snap.size, height: snap.size)
+                    ?? self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
 
                 // Debug Territory
                 if !t.isEmpty {
@@ -463,7 +457,7 @@ class BoardViewModel: ObservableObject {
         }
         
         let p = ogsClient.phase ?? "unknown"
-        if p == "stone removal" || p == "scoring" {
+        if OGSScoring.isScoring(p) || p == "finished" || ogsClient.isGameFinished {
             self.ghostPosition = nil
             return
         }

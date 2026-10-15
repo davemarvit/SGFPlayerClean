@@ -20,7 +20,8 @@ struct AITopMovesOverlay: View {
         let stoneRadius = cellWidth / 2.0
         
         // Ensure AI is allowed (security feature)
-        let isAIAvailable = app.isAIAvailable
+        let isAIAvailable = app.isAIAvailable && !(vm.isOnlineContext &&
+            (vm.ogsClient.isScoringPhase || vm.ogsClient.isGameFinished))
         guard isAIAvailable else { return AnyView(EmptyView()) }
         
         // Fetch current analysis

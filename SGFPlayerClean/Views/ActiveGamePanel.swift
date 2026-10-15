@@ -4,6 +4,7 @@ import SwiftUI
 struct ActiveGamePanel: View {
     @EnvironmentObject var app: AppModel
     @State private var showResignConfirmation = false
+    @State private var resultDismissed = false
     
     var body: some View {
         ZStack {
@@ -23,11 +24,8 @@ struct ActiveGamePanel: View {
                 // Chat Section (Always Visible)
                 if let last = app.player.lastMove,
                    last.x == -1, last.y == -1,
-                   !app.ogsClient.isGameFinished,
-                   let myColor = app.ogsClient.playerColor {
-                   // last.color != myColor { // <-- Removed inconsistent check
-                    // User Report: "When White passes, our interface says Black passed." -> We flip the label to correct this.
-                    let passedColor = (last.color == .white) ? "Black" : "White"
+                   !app.ogsClient.isGameFinished, !app.ogsClient.isScoringPhase {
+                    let passedColor = last.color == .black ? "Black" : "White"
                     Text("\(passedColor) Passed")
                         .font(.headline)
                         .foregroundColor(.yellow)
@@ -50,10 +48,11 @@ struct ActiveGamePanel: View {
             .padding()
             .animation(.easeInOut(duration: 0.5), value: app.ogsClient.undoRequestedUsername)
             
-            if app.ogsClient.isGameFinished && (app.ogsClient.activeGameResult != nil || app.ogsClient.activeGameOutcome != nil) {
+            if !resultDismissed && app.ogsClient.isGameFinished && (app.ogsClient.activeGameResult != nil || app.ogsClient.activeGameOutcome != nil) {
                 resultOverlay.transition(.opacity.combined(with: .scale))
             }
         }
+        .onChange(of: app.ogsClient.activeGameID) { _ in resultDismissed = false }
         .confirmationDialog("Are you sure you want to resign?", isPresented: $showResignConfirmation, titleVisibility: .visible) {
             Button("Resign Game", role: .destructive) {
                 if let id = app.ogsClient.activeGameID { app.ogsClient.resignGame(gameID: id) }
@@ -98,14 +97,14 @@ struct ActiveGamePanel: View {
         .overlay(
             Button(action: {
                 // Dimiss Overlay so user can chat/view board
-                app.ogsClient.activeGameResult = nil
-                app.ogsClient.activeGameOutcome = nil
+                resultDismissed = true
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.title)
                     .foregroundColor(.white.opacity(0.8))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss game result")
             .padding(16),
             alignment: .topTrailing
         )
@@ -250,6 +249,9 @@ struct ActiveGamePanel: View {
     
     private var controlsSection: some View {
         VStack(spacing: 8) {
+            if app.ogsClient.isGameFinished, let outcome = app.ogsClient.activeGameOutcome {
+                Text(outcome).font(.headline).multilineTextAlignment(.center)
+            }
             controlButtons
             saveSGFButton
         }
@@ -257,40 +259,21 @@ struct ActiveGamePanel: View {
     
     private var controlButtons: some View {
         Group {
-            // SCORING CONTROLS
-            if app.ogsClient.phase == "stone removal" {
-                HStack(spacing: 12) {
-                    if app.ogsClient.isScoreAccepted {
-                         Text("Waiting for Opponent...")
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(8)
-                    } else {
-                        Button(action: {
-                            if let id = app.ogsClient.activeGameID {
-                                app.ogsClient.acceptScore(gameID: id)
-                            }
-                        }) {
-                            Text("Accept Removed Stones")
-                                .bold()
-                                .frame(maxWidth: .infinity)
-                        }
-                        .tint(.blue)
-                        .buttonStyle(.borderedProminent)
-                    }
-                    
-                    Button(action: {
-                        if let id = app.ogsClient.activeGameID {
-                            app.ogsClient.rejectScore(gameID: id)
-                        }
-                    }) {
-                         Text("Resume Game")
-                            .frame(maxWidth: 100)
-                    }
-                    .buttonStyle(.bordered)
-                }
+            if app.ogsClient.isScoringPhase || app.ogsClient.isGameFinished {
+                OGSScoringPanel(
+                    finished: app.ogsClient.isGameFinished,
+                    connected: app.ogsClient.isConnected && app.ogsClient.isSocketAuthenticated,
+                    participant: app.ogsClient.isGameParticipant,
+                    atLivePosition: app.player.currentIndex == app.player.maxIndex,
+                    canEdit: app.ogsClient.canEditScore,
+                    acceptance: app.ogsClient.scoreAcceptance,
+                    strictSeki: app.ogsClient.strictSekiMode,
+                    summary: app.ogsClient.scoreSummary,
+                    serverTerritory: app.ogsClient.scoreSummary?.positions(width: app.player.board.size, height: app.player.board.size) != nil,
+                    error: app.ogsClient.scoringError,
+                    accept: { if let id = app.ogsClient.activeGameID { app.ogsClient.acceptScore(gameID: id) } },
+                    resume: { if let id = app.ogsClient.activeGameID { app.ogsClient.rejectScore(gameID: id) } }
+                )
             } else {
                 // NORMAL CONTROLS
                 HStack {

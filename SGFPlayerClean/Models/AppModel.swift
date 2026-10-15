@@ -126,6 +126,8 @@ final class AppModel: ObservableObject {
             .receive(on: RunLoop.main)
             .dropFirst() // FIX: Ignore initial 'nil' to prevent overwriting persistence restore
             .sink { [weak self] gid in
+                guard let self, gid == self.ogsClient.activeGameID,
+                      self.ogsClient.isConnected || gid == 999999 else { return }
                 let isOnline = (gid != nil)
                 
                 // Only change mode if we are actually entering/leaving a game
@@ -134,7 +136,7 @@ final class AppModel: ObservableObject {
                 // If gid becomes non-nil, we are definitely in Online Mode.
                 
                 if let id = gid {
-                    self?.isOnlineMode = true
+                    self.isOnlineMode = true
                 } 
                 // Note: We DO NOT auto-switch to Local Mode just because activeGameID is nil.
                 // The user must explicitly disconnect or switch modes.
@@ -145,7 +147,7 @@ final class AppModel: ObservableObject {
                 // If activeGameID is nil, we might be consistently in Online Lobby.
                 
                 if isOnline {
-                     self?.isOnlineMode = true
+                     self.isOnlineMode = true
                      UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
                 }
             }.store(in: &cancellables)
@@ -176,7 +178,7 @@ final class AppModel: ObservableObject {
             .dropFirst()
             .receive(on: RunLoop.main)
             .sink { [weak self] tab in
-                guard let self = self else { return }
+                guard let self = self, self.rightPanelTab == tab else { return }
                 
                 if tab == .ai {
                     // Kickstart analysis immediately if user views AI tab
@@ -424,11 +426,10 @@ final class AppModel: ObservableObject {
             
             if let gid = newGameID {
                 self.ogsClient.fetchGameState(gameID: gid) { [weak self] (rootJson: [String: Any]?) in
-                    guard let root = rootJson else { return }
+                    guard let self, let root = rootJson else { return }
                     let data = (root["gamedata"] as? [String: Any]) ?? root
-                    DispatchQueue.main.async {
-                        NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": data])
-                    }
+                    NotificationCenter.default.post(self.ogsClient.makeGameNotification(
+                        name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": data]))
                 }
             } else {
                 NSLog("[OGS-UI] ❌ Accept Failed for ID \(id): \(error?.localizedDescription ?? "Unknown")")
@@ -463,11 +464,10 @@ final class AppModel: ObservableObject {
         
         // Fetch State
         self.ogsClient.fetchGameState(gameID: id) { [weak self] rootJson in
-            guard let root = rootJson else { return }
+            guard let self, let root = rootJson else { return }
             let data = (root["gamedata"] as? [String: Any]) ?? root
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": data])
-            }
+            NotificationCenter.default.post(self.ogsClient.makeGameNotification(
+                name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": data]))
         }
     }
     
@@ -482,6 +482,7 @@ final class AppModel: ObservableObject {
     
     
     private func handleOGSGameLoad_V2(_ notification: Notification) {
+        guard ogsClient.acceptsGameNotification(notification) else { return }
         guard let userInfo = notification.userInfo, let gameData = userInfo["gameData"] as? [String: Any] else { return }
         
         // NSLog("[OGS-DEBUG] handleOGSGameLoad Entry. isRequestingUndo: \(ogsClient.isRequestingUndo)")
@@ -494,6 +495,9 @@ final class AppModel: ObservableObject {
             return
         }
         
+        // Scoring can change without a new move/version, so apply it before replay guards.
+        ogsClient.applyScoringSnapshot(gameData)
+
         // FORCE SYNC: Always reload board when full game data is received
         // This ensures undo/redo states are correctly reflected without caching issues
         if true {
@@ -628,24 +632,9 @@ final class AppModel: ObservableObject {
              
              NSLog("[OGS-SYNC] 💀 Sync Check: Removed Stones Count = \(self.ogsClient.removedStones.count). Phase: \(self.ogsClient.phase ?? "nil")")
              
-             // SCORING PHASE: Strict Server Authority
-             let phase = gameData["phase"] as? String ?? "play"
-             self.ogsClient.phase = phase
-             
-             if phase == "stone removal" || phase == "scoring" {
-                 if let removed = gameData["removed_stones"] as? [String] {
-                     var dead: Set<BoardPosition> = []
-                     for s in removed {
-                         if let (x, y) = SGFCoordinates.parse(s) {
-                             dead.insert(BoardPosition(y, x))
-                         }
-                     }
-                     self.ogsClient.removedStones = dead
-                     NSLog("[OGS-SYNC] 💀 Loaded \(dead.count) server-declared dead stones")
-                 }
-             } else {
-                 self.ogsClient.removedStones = []
-             }
+             // Share scoring decoding with socket updates; finished games retain their marks.
+             self.ogsClient.applyScoringSnapshot(gameData)
+
         }
         
         boardVM?.syncState()
@@ -686,13 +675,16 @@ final class AppModel: ObservableObject {
         // Ensure we aren't blocked by stale version logic
         self.boardVM?.engine.highestKnownStateVersion = 0
         
+        let notification = ogsClient.makeGameNotification(name: NSNotification.Name("OGSGameDataReceived"),
+            userInfo: ["gameData": mockData], offlineSimulation: true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": mockData])
+            NotificationCenter.default.post(notification)
             NSLog("[OGS-SIM] 📨 Mock Data Posted.")
         }
     }
     
     private func handleOGSMoveUpdate(_ notification: Notification) {
+        guard ogsClient.acceptsGameNotification(notification) else { return }
         guard let userInfo = notification.userInfo else { return }
         if let gid = robustInt(userInfo["game_id"]), gid != ogsClient.activeGameID { return }
         

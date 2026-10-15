@@ -26,6 +26,17 @@ class OGSClient: NSObject, ObservableObject {
         didSet {
              if oldValue != activeGameID {
                  gameEventGeneration += 1
+                 resetScoringSubmission()
+                 removedStones = []
+                 scoreSummary = nil
+                 strictSekiMode = false
+                 phase = nil
+                 isGameFinished = false
+                 activeGameResult = nil
+                 activeGameOutcome = nil
+                 blackPlayerID = nil
+                 whitePlayerID = nil
+                 playerColor = nil
                  if pendingGameID != activeGameID {
                      gameStateReader.cancel()
                      pendingGameID = nil
@@ -107,8 +118,27 @@ class OGSClient: NSObject, ObservableObject {
     @Published var whitePeriodLength: Double?
     
     // Scoring & Dead Stones
-    @Published var phase: String? = "play"
-    @Published var removedStones: Set<BoardPosition> = []
+    @Published var phase: String? = "play" {
+        didSet {
+            if phase != oldValue {
+                resetScoringSubmission()
+                if phase == "play" { removedStones = []; scoreSummary = nil }
+            }
+        }
+    }
+    @Published var removedStones: Set<BoardPosition> = [] {
+        didSet { if removedStones != oldValue { resetScoringSubmission() } }
+    }
+    @Published private(set) var scoreSummary: OGSScoreSummary?
+    @Published private(set) var strictSekiMode = false {
+        didSet { if strictSekiMode != oldValue { resetScoringSubmission() } }
+    }
+    @Published private(set) var scoreAcceptance: OGSScoreAcceptance = .none
+    @Published private(set) var scoringError: String?
+    private var scoringTimeout: OGSCancellable?
+    private var scoringSubmissionGeneration = 0
+    private var scoringBoardWidth = 19
+    private var scoringBoardHeight = 19
     @Published var komi: Double? // NEW: Komi Display
     
     // Debugging
@@ -152,6 +182,7 @@ class OGSClient: NSObject, ObservableObject {
     }()
     private let urlSession: URLSession
     private let socketFactory: (() -> OGSWebSocket)?
+    private let scoringScheduler: OGSConnectionScheduler
     private lazy var httpTransport = OGSURLSessionHTTPTransport(session: urlSession)
     private lazy var lobbyReader = OGSPaginatedReader<OGSChallenge>(transport: httpTransport)
     private lazy var gameStateReader = OGSJSONReader(transport: httpTransport)
@@ -188,7 +219,9 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     /// The app and offline fixtures use the same client with different transport dependencies.
-    init(session: URLSession, socketFactory: (() -> OGSWebSocket)? = nil) {
+    init(session: URLSession, socketFactory: (() -> OGSWebSocket)? = nil,
+         scoringScheduler: OGSConnectionScheduler = OGSMainQueueScheduler()) {
+        self.scoringScheduler = scoringScheduler
         self.urlSession = session
         self.socketFactory = socketFactory
         super.init()
@@ -258,6 +291,7 @@ class OGSClient: NSObject, ObservableObject {
 
         // Invalidate work already queued by the previous socket, as well as future callbacks.
         connectionEventGeneration += 1
+        resetScoringSubmission()
         // Subscriptions and room membership belong to one socket, not the whole app lifetime.
         isSocketAuthenticated = false
         isSubscribedToSeekgraph = false
@@ -709,75 +743,120 @@ class OGSClient: NSObject, ObservableObject {
         sendAction("game/undo/cancel", payload: ["game_id": gameID])
     }
     
-    // MARK: - Scoring Actions
-    
-    // MARK: - Helper: Encode Stones for Protocol
-    private func encodeRemovedStones() -> String {
-        // Convert Set<BoardPosition> to OGS Coordinate String (e.g. "aabb")
-        // OGS uses 'aa' = 0,0. 'ba' = 1,0.
-        let sorted = self.removedStones.sorted { $0.row == $1.row ? $0.col < $1.col : $0.row < $1.row }
-        var result = ""
-        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        
-        for p in sorted {
-            if p.col >= 0, p.col < 52, p.row >= 0, p.row < 52 {
-                let xChar = letters[letters.index(letters.startIndex, offsetBy: p.col)]
-                let yChar = letters[letters.index(letters.startIndex, offsetBy: p.row)]
-                result.append(xChar)
-                result.append(yChar)
-            }
-        }
-        return result
+    // MARK: - Scoring
+    var isScoringPhase: Bool { OGSScoring.isScoring(phase) }
+    var isScoreAccepted: Bool { scoreAcceptance == .confirmed }
+    var isGameParticipant: Bool {
+        guard let playerID, playerID > 0 else { return false }
+        return playerID == blackPlayerID || playerID == whitePlayerID
     }
-    
-    @Published var isScoreAccepted: Bool = false
+    var canEditScore: Bool {
+        isConnected && isSocketAuthenticated && isGameParticipant && activeGameID != nil &&
+        isScoringPhase && !isGameFinished && scoreAcceptance != .resuming && scoreAcceptance != .updating
+    }
+
+    private func resetScoringSubmission() {
+        scoringSubmissionGeneration += 1
+        scoringTimeout?.cancel(); scoringTimeout = nil
+        scoreAcceptance = .none
+        scoringError = nil
+    }
+
+    private func beginScoringSubmission(_ state: OGSScoreAcceptance) {
+        resetScoringSubmission()
+        scoreAcceptance = state
+        let game = gameEventGeneration
+        let connection = connectionEventGeneration
+        let submission = scoringSubmissionGeneration
+        scoringTimeout = scoringScheduler.schedule(after: 15) { [weak self] in
+            guard let self, self.gameEventGeneration == game,
+                  self.connectionEventGeneration == connection, self.scoringSubmissionGeneration == submission,
+                  self.scoreAcceptance == state else { return }
+            self.resetScoringSubmission()
+            self.scoringError = "OGS has not confirmed this request. Check the connection and review the board before trying again."
+        }
+    }
 
     func acceptScore(gameID: Int) {
-        // PER DOCS: Must send "stones" + "strict_seki_mode"
-        // Convert our Set<BoardPosition> to the "aa" string format
-        let stonesStr = self.encodeRemovedStones()
-        NSLog("[OGS-SCORING] 🤝 Accepting Score for \(gameID) with stones: '\(stonesStr)'")
-        
-        // Optimistic UI Update
-        self.isScoreAccepted = true
-        
-        NSLog("[OGS-SCORING-DEBUG] Sending ACCEPT. Stones: \(stonesStr)")
+        guard activeGameID == gameID, canEditScore, scoreAcceptance == .none else { return }
+        beginScoringSubmission(.submitting)
         sendAction("game/removed_stones/accept", payload: [
             "game_id": gameID,
-            "stones": stonesStr,
-            "strict_seki_mode": false
+            "stones": OGSScoring.encodePositions(removedStones),
+            "strict_seki_mode": strictSekiMode
         ])
     }
-    
+
     func rejectScore(gameID: Int) {
-        NSLog("[OGS-SCORING] 🙅 Rejecting Score for \(gameID) (Resume Game)")
-        // Verified Protocol: "game/removed_stones/reject" (No sequence)
-        
-        self.isScoreAccepted = false
-        
-        NSLog("[OGS-SCORING-DEBUG] Sending REJECT.")
+        guard activeGameID == gameID, canEditScore else { return }
+        beginScoringSubmission(.resuming)
+        // OGS resumes play through this command; an undo is a separate action.
         sendAction("game/removed_stones/reject", payload: ["game_id": gameID])
-        
-        // Redundancy: Send explicit undo request just in case
-        sendAction("game/undo/request", payload: ["game_id": gameID, "move_number": (self.currentStateVersion)])
-        
-        // Internal state update: resume phase to 'play' optimistically?
-        // Wait for server "phase" -> "play" event.
-    }
-    
-    func sendRemovedStones(gameID: Int, stones: String, removed: Bool) {
-        NSLog("[OGS-SCORING] 📤 Updating Removed Stones Delta: \(removed ? "REMOVE" : "REVIVE") \(stones)")
-        // Web Protocol: { "game_id": 123, "removed": true/false, "stones": "aabb" }
-        // Event: "game/removed_stones/set"
-        let payload: [String: Any] = [
-            "game_id": gameID,
-            "removed": removed,
-            "stones": stones
-        ]
-        sendAction("game/removed_stones/set", payload: payload)
     }
 
-    
+    func sendRemovedStones(gameID: Int, stones: String, removed: Bool) {
+        guard activeGameID == gameID, canEditScore, !stones.isEmpty,
+              OGSScoring.decodePositions(stones, width: scoringBoardWidth, height: scoringBoardHeight) != nil else { return }
+        beginScoringSubmission(.updating)
+        sendAction("game/removed_stones/set", payload: ["game_id": gameID, "removed": removed, "stones": stones])
+    }
+
+    private func applyGamePhase(_ newPhase: String) {
+        guard ["play", "stone removal", "scoring", "finished"].contains(newPhase) else { return }
+        phase = newPhase
+        if newPhase == "play" {
+            isGameFinished = false
+            activeGameResult = nil
+            activeGameOutcome = nil
+            startClockTimer()
+        } else {
+            stopClockTimer()
+            if newPhase == "finished" { isGameFinished = true; stopEnginePulse() }
+        }
+    }
+
+    /// Used by both socket gamedata and REST game loading. Omitted marks preserve prior state;
+    /// an explicit empty string clears them, including at game end.
+    func applyScoringSnapshot(_ data: [String: Any]) {
+        if let id = robustInt(data["game_id"]) ?? robustInt(data["id"]), id != activeGameID { return }
+        if let width = robustInt(data["width"]), (1...52).contains(width) { scoringBoardWidth = width }
+        if let height = robustInt(data["height"]), (1...52).contains(height) { scoringBoardHeight = height }
+        if let value = data["phase"] as? String { applyGamePhase(value) }
+        if let strict = data["strict_seki_mode"] as? Bool { strictSekiMode = strict }
+        if let text = data["removed"] as? String { handleInboundRemovedStones(text) }
+        else if let values = data["removed"] as? [String] { handleInboundRemovedStones(values.joined()) }
+        else if let values = data["removed_stones"] as? [String] { handleInboundRemovedStones(values.joined()) }
+        if data["score"] != nil { scoreSummary = OGSScoreSummary.parse(data["score"]) }
+        if let players = data["players"] as? [String: Any] {
+            for color in ["black", "white"] {
+                guard let player = players[color] as? [String: Any],
+                      let id = robustInt(player["id"]), id == playerID,
+                      let stones = player["accepted_stones"] as? String else { continue }
+                confirmScore(playerID: id, stones: stones, strict: player["accepted_strict_seki_mode"] as? Bool ?? false)
+            }
+        }
+    }
+
+    private func confirmScore(playerID id: Int, stones: String, strict: Bool) {
+        guard isScoringPhase, isGameParticipant, scoreAcceptance != .updating, scoreAcceptance != .resuming,
+              id == playerID || id == 0,
+              OGSScoring.decodePositions(stones, width: scoringBoardWidth, height: scoringBoardHeight) == removedStones,
+              strict == strictSekiMode else { return }
+        resetScoringSubmission()
+        scoreAcceptance = .confirmed
+    }
+
+    private func handleRemovedStonesUpdate(_ data: [String: Any]) {
+        guard isScoringPhase || phase == "finished" else { return }
+        if let strict = data["strict_seki_mode"] as? Bool { strictSekiMode = strict }
+        if let all = data["all_removed"] as? String { handleInboundRemovedStones(all) }
+        else if let text = data["stones"] as? String, let removed = data["removed"] as? Bool,
+                let positions = OGSScoring.decodePositions(text, width: scoringBoardWidth, height: scoringBoardHeight) {
+            if removed { removedStones.formUnion(positions) }
+            else { removedStones.subtract(positions) }
+        }
+    }
+
     func subscribeToSeekgraph() {
         sendAction("seek_graph/connect", payload: ["channel": "global"])
         self.isSubscribedToSeekgraph = true
@@ -811,6 +890,29 @@ class OGSClient: NSObject, ObservableObject {
                   !gameScoped || self.gameEventGeneration == game else { return }
             update()
         }
+    }
+
+    private struct GameNotificationContext {
+        let connection: Int
+        let game: Int
+        let gameID: Int?
+        let offlineSimulation: Bool
+    }
+
+    /// Capture this before deferring delivery. Consumers validate it after their own queue hop.
+    func makeGameNotification(name: Notification.Name, userInfo: [AnyHashable: Any],
+                              offlineSimulation: Bool = false) -> Notification {
+        var info = userInfo
+        info["_ogsContext"] = GameNotificationContext(connection: connectionEventGeneration,
+            game: gameEventGeneration, gameID: activeGameID, offlineSimulation: offlineSimulation)
+        return Notification(name: name, object: self, userInfo: info)
+    }
+
+    func acceptsGameNotification(_ notification: Notification) -> Bool {
+        guard notification.object as? OGSClient === self,
+              let context = notification.userInfo?["_ogsContext"] as? GameNotificationContext else { return false }
+        return (isConnected || context.offlineSimulation) && context.connection == connectionEventGeneration &&
+            context.game == gameEventGeneration && context.gameID == activeGameID && activeGameID != nil
     }
 
     // MARK: - Inbound Message Processing
@@ -854,6 +956,20 @@ class OGSClient: NSObject, ObservableObject {
             guard parts.count >= 3, let packetID = Int(parts[1]), packetID == activeGameID else { return }
         }
 
+        if eventName.hasSuffix("/phase"), let value = event.payload as? String {
+            applyGamePhase(value)
+            return
+        }
+        if eventName.hasSuffix("/removed_stones_accepted") {
+            applyScoringSnapshot(payload)
+            if phase == "finished", let stones = payload["stones"] as? String { handleInboundRemovedStones(stones) }
+            if payload["outcome"] != nil || payload["phase"] as? String == "finished" { applyGameResult(payload) }
+            if let id = robustInt(payload["player_id"]), let stones = payload["stones"] as? String {
+                confirmScore(playerID: id, stones: stones, strict: payload["strict_seki_mode"] as? Bool ?? false)
+            }
+            return
+        }
+
         // FIREHOSE LOGGING (Time Capsule Mode: Selective)
         if eventName.contains("seek_graph") {
              // NSLog("[OGS-TRACE] 🔍 Seekgraph Event: \(eventName)")
@@ -884,7 +1000,9 @@ class OGSClient: NSObject, ObservableObject {
              }
         }
         
-        if let sv = robustInt(payload["state_version"]) { self.currentStateVersion = max(self.currentStateVersion, sv) }
+        if eventName.hasPrefix("game/"), let sv = robustInt(payload["state_version"]) {
+            self.currentStateVersion = max(self.currentStateVersion, sv)
+        }
 
         if !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
             self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
@@ -898,7 +1016,6 @@ class OGSClient: NSObject, ObservableObject {
         if eventName == "active_game" || (eventName == "notification" && payload["type"] as? String == "gameStarted") {
             // FIX: Do NOT default to "play". Require explicit phase.
             let phase = payload["phase"] as? String
-            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.phase = phase } // Update Local Phase Tracker
             if phase == "play" || phase == "stone removal" {
                 let bid = robustInt(payload["black_id"]) ?? robustInt((payload["black"] as? [String: Any])?["id"])
                 let wid = robustInt(payload["white_id"]) ?? robustInt((payload["white"] as? [String: Any])?["id"])
@@ -906,6 +1023,7 @@ class OGSClient: NSObject, ObservableObject {
                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                     if bid == self.playerID || wid == self.playerID {
                         if let gid = self.robustInt(payload["game_id"]) ?? self.robustInt(payload["id"]) {
+                            if self.activeGameID == gid, let phase { self.applyGamePhase(phase) }
                             // FIX: Only track as "Active" if Phase is Play AND No Outcome
                             if (phase == "play" || phase == "stone removal") && (payload["outcome"] == nil || payload["outcome"] is NSNull) {
                                 // FIX: Don't re-add if we know it's finished locally (Shield 2.0)
@@ -957,12 +1075,12 @@ class OGSClient: NSObject, ObservableObject {
         }
 
         // Check for Game Over signals immediately
-        if let phase = payload["phase"] as? String, phase == "finished" {
+        if eventName.hasPrefix("game/"), let phase = payload["phase"] as? String, phase == "finished" {
             self.isGameFinished = true
             self.stopEnginePulse()
             self.stopClockTimer()
         }
-        if let outcome = payload["outcome"] as? String {
+        if eventName.hasPrefix("game/"), payload["outcome"] is String {
             self.isGameFinished = true
             self.stopClockTimer()
         }
@@ -993,26 +1111,10 @@ class OGSClient: NSObject, ObservableObject {
                 }
             }
         } else if eventName.hasSuffix("/stone_removal") {
-             if let removed = payload["removed"] as? String {
-                 NSLog("[OGS-SCORING] ♻️ Live Remove Update: \(removed)")
-                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(removed) }
-             } else if let removedArr = payload["removed"] as? [String] {
-                 let joined = removedArr.joined()
-                 NSLog("[OGS-SCORING] ♻️ Live Remove Update (Arr): \(joined)")
-                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(joined) }
-             }
-        } else if eventName.hasSuffix("/stone_removal") {
-             // ... existing logic ...
+            if let text = payload["removed"] as? String { handleInboundRemovedStones(text) }
+            else if let values = payload["removed"] as? [String] { handleInboundRemovedStones(values.joined()) }
         } else if eventName.hasSuffix("/removed_stones") {
-             // Web Protocol: { "removed": true, "stones": "...", "all_removed": "aabbcc" }
-             if let all = payload["all_removed"] as? String {
-                 NSLog("[OGS-SCORING] 📥 Received Full Update (all_removed): \(all)")
-                 self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) { self.handleInboundRemovedStones(all) }
-             } else if let stones = payload["stones"] as? String {
-                 // Fallback if all_removed missing (delta logic?)
-                 // But logs show all_removed is present.
-                 NSLog("[OGS-SCORING] ⚠️ Partial update receiving logic not fully implemented, relying on 'all_removed'. Stones: \(stones)")
-             }
+            handleRemovedStonesUpdate(payload)
         }
 
         else if eventName.contains("undo_accepted") {
@@ -1027,7 +1129,7 @@ class OGSClient: NSObject, ObservableObject {
                     // Broadcast the fetched state so AppModel can update the board
                     let g = (data["gamedata"] as? [String: Any]) ?? data
                     self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                         NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": g])
+                         NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": g]))
                     }
                 }
             }
@@ -1210,49 +1312,8 @@ class OGSClient: NSObject, ObservableObject {
                  self.whiteCaptures = wC
             }
 
-            // Phase D: Dead Stone Parsing (Scoring)
-            if let ph = p["phase"] as? String {
-                self.phase = ph
-            }
-            
-            if let removedStr = p["removed"] as? String {
-                // FIX: OGS sometimes sends empty "removed" string in 'finished' phase, wiping dead stones.
-                if self.phase == "finished" && removedStr.isEmpty && !self.removedStones.isEmpty {
-                    NSLog("[OGS-SCORING] 🛡️ Ignoring empty 'removed' string in Finished phase. Retaining \(self.removedStones.count) stones.")
-                } else {
-                    self.handleInboundRemovedStones(removedStr)
-                }
-            } else if let removedArr = p["removed"] as? [String] {
-                let joined = removedArr.joined()
-                self.handleInboundRemovedStones(joined)
-            } else if let scoreStones = p["score_stones"] as? [ [String: Any] ] {
-                 // Format: [ { "x": 16, "y": 16, "c": "b" }, ... ]
-                 // This acts as the DEFINITIVE list of dead stones in some contexts.
-                 var newRemoved: Set<BoardPosition> = []
-                 for stoneKey in scoreStones {
-                      if let x = stoneKey["x"] as? Int, let y = stoneKey["y"] as? Int {
-                          newRemoved.insert(BoardPosition(y, x))
-                      }
-                 }
-                 
-                 // FIX: Safety Shield for 'score_stones' too.
-                 if self.phase == "finished" && newRemoved.isEmpty && !self.removedStones.isEmpty {
-                     NSLog("[OGS-SCORING] 🛡️ Ignoring empty 'score_stones' in Finished phase. Retaining \(self.removedStones.count) stones.")
-                 } else {
-                     self.removedStones = newRemoved
-                     NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones from 'score_stones'")
-                 }
-                 
-            } else {
-                 // Debug: If neither 'removed' nor 'score_stones' is present in 'finished' phase?
-                 if let ph = p["phase"] as? String, ph == "finished" {
-                     NSLog("[OGS-SCORING] ⚠️ Finished phase but no 'removed' or 'score_stones' key found. Retaining existing: \(self.removedStones.count)")
-                 }
-            }
-            // ...
+            self.applyScoringSnapshot(p)
 
-
-            
             // Phase C: Game End State
             // FIX: LATCH Logic. If we already know it's finished, don't reset to false unless explicit "play" phase seen.
             if let moves = p["moves"] as? [[Any]] {
@@ -1270,125 +1331,129 @@ class OGSClient: NSObject, ObservableObject {
                  // 'move_number' in gamedata root is usually the *last* move number?
                  // Let's trust 'moves.count' + initial if available, else this.
             }
-            if let outcome = p["outcome"] as? String {
-                self.isGameFinished = true
-                // FIX: Use Game ID from payload directly.
-                let targetGID = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"]) ?? self.activeGameID
-                if let gid = targetGID { 
-                    self.enqueueSocketUpdate {
-                        self.finishedGameIDs.insert(gid)
-                        NSLog("[OGS-DATA] 🏁 Marked Game \(gid) as Finished. (Shield Size: \(self.finishedGameIDs.count))")
-                        // FIX: Remove from Active List immediately to kill Lobby Loop
-                        if self.myActiveGames.contains(gid) {
-                            self.myActiveGames.remove(gid)
-                            NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) (Trigger: Outcome)")
-                        }
-                    } 
+            self.applyGameResult(p)
+
+            self.identityLockCheck()
+            NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": p]))
+            self.objectWillChange.send()
+
+            // Re-Ensure Clock is Running (in case connectToGame started it but we didn't have players yet)
+            if !self.isGameFinished && self.phase == "play" {
+                self.startClockTimer()
+            }
+        }
+    }
+
+    private func applyGameResult(_ p: [String: Any]) {
+        if let outcome = p["outcome"] as? String {
+            self.isGameFinished = true
+            // FIX: Use Game ID from payload directly.
+            let targetGID = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"]) ?? self.activeGameID
+            if let gid = targetGID {
+                self.enqueueSocketUpdate {
+                    self.finishedGameIDs.insert(gid)
+                    NSLog("[OGS-DATA] 🏁 Marked Game \(gid) as Finished. (Shield Size: \(self.finishedGameIDs.count))")
+                    // FIX: Remove from Active List immediately to kill Lobby Loop
+                    if self.myActiveGames.contains(gid) {
+                        self.myActiveGames.remove(gid)
+                        NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) (Trigger: Outcome)")
+                    }
                 }
-                
-                // Detailed Result Formatting
-                let winnerID = self.robustInt(p["winner"])
-                let winnerName = (winnerID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((winnerID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Draw")
-                
-                // If outcome is just "Resignation", prepend winner. Otherwise usage: "White+Resign" (Raw) vs "White wins by Resignation" (Human)
-                // OGS 'outcome' is usually like "Resignation" or "Timeout" or "3.5 points"
-                // So we construct: "[Name] wins by [Outcome]"
-                
-                if let wid = winnerID {
-                    // Logic: Personalized Outcome Message & Structured Result
-                    if let pid = self.playerID {
-                        if wid == pid {
-                            let opponentName = (winnerName == self.blackPlayerName) ? (self.whitePlayerName ?? "White") : (self.blackPlayerName ?? "Black")
-                            self.activeGameOutcome = "You won by \(outcome)"
-                            self.activeGameResult = GameResult(
-                                title: "You Win",
-                                subtitle: "You beat \(opponentName) by \(outcome)",
-                                method: "Victory", // Simplified
-                                isMe: true
-                            )
-                        } else {
-                            // Opponent won
-                            let opponentName = (wid == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : (self.whitePlayerName ?? "White")
-                            self.activeGameOutcome = "Your opponent, \(opponentName), wins by \(outcome)"
-                             self.activeGameResult = GameResult(
-                                title: "You Lost",
-                                subtitle: "You lost to \(opponentName) by \(outcome)",
-                                method: "Defeat", // Simplified
-                                isMe: false
-                            )
-                        }
-                        SoundManager.shared.playWinner(isMe: wid == pid, isDraw: false, method: outcome)
+            }
+
+            // Detailed Result Formatting
+            let winnerID = self.robustInt(p["winner"])
+            let winnerName = (winnerID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((winnerID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Draw")
+
+            // If outcome is just "Resignation", prepend winner. Otherwise usage: "White+Resign" (Raw) vs "White wins by Resignation" (Human)
+            // OGS 'outcome' is usually like "Resignation" or "Timeout" or "3.5 points"
+            // So we construct: "[Name] wins by [Outcome]"
+
+            if let wid = winnerID, wid > 0 {
+                // Logic: Personalized Outcome Message & Structured Result
+                if let pid = self.playerID, self.isGameParticipant {
+                    if wid == pid {
+                        let opponentName = (winnerName == self.blackPlayerName) ? (self.whitePlayerName ?? "White") : (self.blackPlayerName ?? "Black")
+                        self.activeGameOutcome = "You won by \(outcome)"
+                        self.activeGameResult = GameResult(
+                            title: "You Win",
+                            subtitle: "You beat \(opponentName) by \(outcome)",
+                            method: "Victory", // Simplified
+                            isMe: true
+                        )
                     } else {
-                        // Observer / No PID
-                        self.activeGameOutcome = "\(winnerName) wins by \(outcome)"
+                        // Opponent won
+                        let opponentName = (wid == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : (self.whitePlayerName ?? "White")
+                        self.activeGameOutcome = "Your opponent, \(opponentName), wins by \(outcome)"
                          self.activeGameResult = GameResult(
-                            title: "Game Over",
-                            subtitle: "\(winnerName) wins",
-                            method: "By \(outcome.capitalized)",
+                            title: "You Lost",
+                            subtitle: "You lost to \(opponentName) by \(outcome)",
+                            method: "Defeat", // Simplified
                             isMe: false
                         )
                     }
+                    SoundManager.shared.playWinner(isMe: wid == pid, isDraw: false, method: outcome)
                 } else {
-                    self.activeGameOutcome = "Game Ended: \(outcome)"
-                    if outcome.lowercased().contains("draw") {
-                        self.activeGameResult = GameResult(title: "Draw", subtitle: "It is a draw", method: "", isMe: false)
-                        SoundManager.shared.playWinner(isMe: false, isDraw: true)
-                    } else {
-                         SoundManager.shared.play("game_over")
-                    }
-                }
-                
-                self.stopClockTimer()
-                self.stopEnginePulse()
-            } else if let phase = p["phase"] as? String, phase == "finished" {
-                self.isGameFinished = true
-                
-                // Determine Winner for Sound
-                // Note: p["outcome"] might not be here, usually separate event. 
-                // But if we have outcome stored or inferred?
-                // Actually safer to rely on 'outcome' block above if available.
-                // Or just play generic 'game_over' here if we missed the specific outcome?
-                // Let's rely on the outcome block (lines 802-834) to call playWinner if possible.
-                // But lines 802-834 don't have playWinner call yet. Let's add it there in next step.
-                // For now, keep generic game_over here as fallback.
-                SoundManager.shared.play("game_over")
-                
-                self.stopClockTimer()
-                self.stopEnginePulse()
-                // FIX: Remove from Active List
-                if let gid = self.activeGameID {
-                    self.enqueueSocketUpdate {
-                         self.myActiveGames.remove(gid)
-                         self.finishedGameIDs.insert(gid)
-                         NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) (Trigger: Phase Finished)")
-                    }
+                    // Observer / No PID
+                    self.activeGameOutcome = "\(winnerName) wins by \(outcome)"
+                     self.activeGameResult = GameResult(
+                        title: "Game Over",
+                        subtitle: "\(winnerName) wins",
+                        method: "By \(outcome.capitalized)",
+                        isMe: false
+                    )
                 }
             } else {
-                // Only reset if we are sure it's active (e.g. phase is explicit "play")
-                // Otherwise keep existing state vs "Zombie" partial updates.
-                if let phase = p["phase"] as? String, phase == "play" {
-                    self.isGameFinished = false
-                    self.activeGameOutcome = nil
-                } else if self.isGameFinished, let gid = self.activeGameID {
-                    // FIX: If we confirmed it's finished (and phase != play), remove from Active List
-                     self.enqueueSocketUpdate {
-                         NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) from Active List (Count: \(self.myActiveGames.count))")
-                         self.myActiveGames.remove(gid)
-                         self.finishedGameIDs.insert(gid) // NEW: Remember it's finished
-                     }
+                self.activeGameOutcome = "Game Ended: \(outcome)"
+                if outcome.lowercased().contains("draw") || (winnerID == 0 && ["0", "0 points", "0.0 points", "jigo"].contains(outcome.lowercased())) {
+                    self.activeGameResult = GameResult(title: "Draw", subtitle: "It is a draw", method: "", isMe: false)
+                    SoundManager.shared.playWinner(isMe: false, isDraw: true)
+                } else {
+                     SoundManager.shared.play("game_over")
                 }
-                // If phase is missing, DO NOT CHANGE isGameFinished. 
-                // (It might be a partial update for a finished game)
             }
 
-            self.identityLockCheck()
-            NotificationCenter.default.post(name: NSNotification.Name("OGSGameDataReceived"), object: nil, userInfo: ["gameData": p])
-            self.objectWillChange.send()
-            
-            // Re-Ensure Clock is Running (in case connectToGame started it but we didn't have players yet)
-            if !self.isGameFinished {
-                self.startClockTimer()
+            self.stopClockTimer()
+            self.stopEnginePulse()
+        } else if let phase = p["phase"] as? String, phase == "finished" {
+            self.isGameFinished = true
+
+            // Determine Winner for Sound
+            // Note: p["outcome"] might not be here, usually separate event.
+            // But if we have outcome stored or inferred?
+            // Actually safer to rely on 'outcome' block above if available.
+            // Or just play generic 'game_over' here if we missed the specific outcome?
+            // Let's rely on the outcome block (lines 802-834) to call playWinner if possible.
+            // But lines 802-834 don't have playWinner call yet. Let's add it there in next step.
+            // For now, keep generic game_over here as fallback.
+            SoundManager.shared.play("game_over")
+
+            self.stopClockTimer()
+            self.stopEnginePulse()
+            // FIX: Remove from Active List
+            if let gid = self.activeGameID {
+                self.enqueueSocketUpdate {
+                     self.myActiveGames.remove(gid)
+                     self.finishedGameIDs.insert(gid)
+                     NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) (Trigger: Phase Finished)")
+                }
             }
+        } else {
+            // Only reset if we are sure it's active (e.g. phase is explicit "play")
+            // Otherwise keep existing state vs "Zombie" partial updates.
+            if let phase = p["phase"] as? String, phase == "play" {
+                self.isGameFinished = false
+                self.activeGameOutcome = nil
+            } else if self.isGameFinished, let gid = self.activeGameID {
+                // FIX: If we confirmed it's finished (and phase != play), remove from Active List
+                 self.enqueueSocketUpdate {
+                     NSLog("[OGS-LOBBY] 🧼 REMOVING Finished Game \(gid) from Active List (Count: \(self.myActiveGames.count))")
+                     self.myActiveGames.remove(gid)
+                     self.finishedGameIDs.insert(gid) // NEW: Remember it's finished
+                 }
+            }
+            // If phase is missing, DO NOT CHANGE isGameFinished.
+            // (It might be a partial update for a finished game)
         }
     }
 
@@ -1544,7 +1609,7 @@ class OGSClient: NSObject, ObservableObject {
                 }
             }
         }
-        NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
+        NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSMoveReceived"), userInfo: data))
         
         // Audio Trigger
         // If it's MY turn now, play "Your Move"
@@ -1574,7 +1639,7 @@ class OGSClient: NSObject, ObservableObject {
         // NSLog("[OGS-CHAT] 💬 Chat Received: \(data["body"] ?? "") from \(data["username"] ?? "")")
         
         self.enqueueSocketUpdate {
-             NotificationCenter.default.post(name: NSNotification.Name("OGSChatReceived"), object: nil, userInfo: data)
+             NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSChatReceived"), userInfo: data))
         }
     }
 
@@ -1964,27 +2029,13 @@ class OGSClient: NSObject, ObservableObject {
         if let i = v as? Int { return Double(i) }
         return nil
     }
-    private func handleInboundRemovedStones(_ removedStr: String) {
-        var newRemoved: Set<BoardPosition> = []
-        let chars = Array(removedStr)
-        for i in stride(from: 0, to: chars.count, by: 2) {
-            if i + 1 < chars.count {
-                let s = String(chars[i...i+1])
-                if let (x, y) = SGFCoordinates.parse(s) {
-                    newRemoved.insert(BoardPosition(y, x))
-                }
-            }
-        }
-        self.removedStones = newRemoved
-        NSLog("[OGS-SCORING] 💀 Parsed \(newRemoved.count) Dead Stones. Raw: '\(removedStr)'")
-
+    private func handleInboundRemovedStones(_ text: String) {
+        guard isScoringPhase || phase == "finished",
+              let positions = OGSScoring.decodePositions(text, width: scoringBoardWidth, height: scoringBoardHeight) else { return }
+        if scoreAcceptance == .updating { resetScoringSubmission() }
+        removedStones = positions
     }
 
-
-    // MARK: - Challenge Pruning (Zombie Cleanup)
-    
-    // We already added the property 'challengePruneTimer' in the property section.
-    
     private func startChallengePruner() {
         stopChallengePruner()
         guard isConnected, activeGameID == nil else { return }

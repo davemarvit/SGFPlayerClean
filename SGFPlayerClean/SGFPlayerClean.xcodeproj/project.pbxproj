@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE00000000000000000023 /* OGSScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000022 /* OGSScoringPanel.swift */; };
+		C0DE00000000000000000021 /* OGSScoringState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000020 /* OGSScoringState.swift */; };
 		C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000D /* OGSSocketEvent.swift */; };
 		C0DE00000000000000000016 /* OGSJSONReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000C /* OGSJSONReader.swift */; };
 		C0DE00000000000000000015 /* OGSPaginatedReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000B /* OGSPaginatedReader.swift */; };
@@ -109,6 +111,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE00000000000000000022 /* OGSScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSScoringPanel.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000020 /* OGSScoringState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSScoringState.swift; sourceTree = "<group>"; };
 		C0DE0000000000000000000D /* OGSSocketEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSSocketEvent.swift; sourceTree = "<group>"; };
 		C0DE0000000000000000000C /* OGSJSONReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSJSONReader.swift; sourceTree = "<group>"; };
 		C0DE0000000000000000000B /* OGSPaginatedReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSPaginatedReader.swift; sourceTree = "<group>"; };
@@ -320,6 +324,7 @@
 				55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */,
 				55EEB54F2EFFEAC600030E2A /* GameSettings.swift */,
 				55EEB5502EFFEAC600030E2A /* OGSModels.swift */,
+				C0DE00000000000000000020 /* OGSScoringState.swift */,
 				55EEB5512EFFEAC600030E2A /* SceneManager3D.swift */,
 				55EEB5552EFFEAC600030E2A /* SGFPlayerCleanApp.swift */,
 				55EEB5562EFFEAC600030E2A /* SGFPlayerEngine.swift */,
@@ -363,6 +368,7 @@
 			isa = PBXGroup;
 			children = (
 				55EEB5642EFFEAC600030E2A /* ActiveGamePanel.swift */,
+				C0DE00000000000000000022 /* OGSScoringPanel.swift */,
 				55EEB5652EFFEAC600030E2A /* BoardView2D.swift */,
 				55EEB5662EFFEAC600030E2A /* ContentView.swift */,
 				55EEB5672EFFEAC600030E2A /* ContentView2D.swift */,
@@ -530,6 +536,7 @@
 				55EEB5782EFFEAC600030E2A /* DiagnosticTests.swift in Sources */,
 				55EEB5792EFFEAC600030E2A /* AppSettings.swift in Sources */,
 				55EEB57A2EFFEAC600030E2A /* OGSModels.swift in Sources */,
+				C0DE00000000000000000021 /* OGSScoringState.swift in Sources */,
 				55EEB57C2EFFEAC600030E2A /* SGFPlayerCleanApp.swift in Sources */,
 				55EEB57D2EFFEAC600030E2A /* FileLoadingService.swift in Sources */,
 				55EEB57E2EFFEAC600030E2A /* AppModel.swift in Sources */,
@@ -539,6 +546,7 @@
 				55EEB5862EFFEAC600030E2A /* SGFPlayerEngine.swift in Sources */,
 				55EEB5872EFFEAC600030E2A /* StoneView2D.swift in Sources */,
 				55EEB5882EFFEAC600030E2A /* ActiveGamePanel.swift in Sources */,
+				C0DE00000000000000000023 /* OGSScoringPanel.swift in Sources */,
 				55EEB5892EFFEAC600030E2A /* DebugOverlay.swift in Sources */,
 				55EEB58A2EFFEAC600030E2A /* OGSClient.swift in Sources */,
 				55EEB59F2EFFEB2100030E2A /* GameSettings.swift in Sources */,
