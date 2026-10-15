@@ -20,6 +20,9 @@ final class SGFPlayer: ObservableObject {
         let moves: [(Stone, (Int,Int)?)]
         let setup: [(Stone, Int, Int)]
         let size: Int
+        let currentIndex: Int
+        let initialPlayer: Stone
+        let stateVersion: Int
         let capturedWhite: Int
         let capturedBlack: Int
     }
@@ -29,45 +32,33 @@ final class SGFPlayer: ObservableObject {
             moves: _moves,
             setup: _baseSetup,
             size: baseSize,
+            currentIndex: currentIndex,
+            initialPlayer: initialPlayer,
+            stateVersion: highestKnownStateVersion,
             capturedWhite: whiteStonesCaptured,
             capturedBlack: blackStonesCaptured
         )
     }
     
-    func restoreSnapshot(_ s: LocalGameSnapshot) {
-        self.baseSize = s.size
-        self._moves = s.moves
-        self._baseSetup = s.setup
-        
-        // Rebuild State
-        // 1. Reset Board to Base Setup
-        // We use reset() which builds the grid from _baseSetup
-        let savedMoves = s.moves
-        self._moves = [] 
-        self.reset() 
-        
-        // 2. Replay Moves
-        self._moves = savedMoves
-        
-        // Reset counts purely for replay calculation
-        self.whiteStonesCaptured = 0 
-        self.blackStonesCaptured = 0 
-        
-        var g = board.grid
-        for i in 0..<_moves.count {
-            apply(moveAt: i, to: &g, updateSnapshot: false)
-        }
-        syncSnapshot(grid: g)
-        
-        // 3. Trust Snapshot Captures (Optional override if replay differs?)
-        // Replay is authoritative for logic, but if we trust snapshot:
-        self.whiteStonesCaptured = s.capturedWhite
-        self.blackStonesCaptured = s.capturedBlack
-        
-        self.currentIndex = _moves.count
-        self.moveProcessed.send()
+    func restoreSnapshot(_ snapshot: LocalGameSnapshot) {
+        baseSize = snapshot.size
+        _moves = snapshot.moves
+        _baseSetup = snapshot.setup
+        initialPlayer = snapshot.initialPlayer
+        highestKnownStateVersion = snapshot.stateVersion
+        reset(sync: false)
+
+        // Rebuild only the position that was visible when local mode was left.
+        let index = max(0, min(snapshot.currentIndex, _moves.count))
+        var grid = board.grid
+        for i in 0..<index { apply(moveAt: i, to: &grid, updateSnapshot: false) }
+        whiteStonesCaptured = snapshot.capturedWhite
+        blackStonesCaptured = snapshot.capturedBlack
+        currentIndex = index
+        syncSnapshot(grid: grid)
+        moveProcessed.send()
     }
-    
+
     private var _moves: [(Stone, (Int,Int)?)] = []
     private var _baseSetup: [(Stone, Int, Int)] = []
     private var baseSize: Int = 19
@@ -124,8 +115,9 @@ final class SGFPlayer: ObservableObject {
     
     /// Identifies the player to move at the given state index (0 = before first move)
     func playerToMove(at stateIndex: Int) -> Stone {
-        if stateIndex < _moves.count {
-            return _moves[stateIndex].0
+        let index = max(0, stateIndex)
+        if index < _moves.count {
+            return _moves[index].0
         }
         if let last = _moves.last {
             return last.0 == .black ? .white : .black
@@ -137,7 +129,7 @@ final class SGFPlayer: ObservableObject {
     
     /// Returns the coordinate of the actual next historical move in the playback queue, if any
     var nextHistoricalMovePosition: BoardPosition? {
-        guard currentIndex < _moves.count else { return nil }
+        guard currentIndex >= 0, currentIndex < _moves.count else { return nil }
         let (_, coord) = _moves[currentIndex]
         guard let (x, y) = coord, x >= 0, y >= 0 else { return nil }
         return BoardPosition(y, x) // UI represents BoardPosition as (row, col) == (y, x)
@@ -222,12 +214,12 @@ final class SGFPlayer: ObservableObject {
         }
     }
     
-    func stepForward() { guard currentIndex < _moves.count else { pause(); return }; var g = board.grid; apply(moveAt: currentIndex, to: &g); currentIndex += 1; moveProcessed.send() }
+    func stepForward() { guard currentIndex >= 0, currentIndex < _moves.count else { pause(); return }; var g = board.grid; apply(moveAt: currentIndex, to: &g); currentIndex += 1; moveProcessed.send() }
     func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
     func seek(to idx: Int) {
         let target = max(0, min(idx, _moves.count))
         var g: [[Stone?]]
-        if target < currentIndex {
+        if currentIndex < 0 || target < currentIndex {
             reset(sync: false)
             g = board.grid
             for i in 0..<target { apply(moveAt: i, to: &g, updateSnapshot: false) }
@@ -246,6 +238,7 @@ final class SGFPlayer: ObservableObject {
     func clear() {
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
+        lastMove = nil; initialPlayer = .black
         whiteStonesCaptured = 0; blackStonesCaptured = 0; highestKnownStateVersion = 0
         syncSnapshot(grid: Array(repeating: Array(repeating: nil, count: baseSize), count: baseSize))
         moveProcessed.send()
@@ -256,7 +249,7 @@ final class SGFPlayer: ObservableObject {
         currentIndex = 0; whiteStonesCaptured = 0; blackStonesCaptured = 0
         var grid = Array(repeating: Array(repeating: Stone?.none, count: baseSize), count: baseSize)
         
-        for (stone, x, y) in _baseSetup where x < baseSize && y < baseSize {
+        for (stone, x, y) in _baseSetup where x >= 0 && y >= 0 && x < baseSize && y < baseSize {
             grid[y][x] = stone
         }
         
@@ -284,7 +277,7 @@ final class SGFPlayer: ObservableObject {
     // MARK: - Public Group Helper
     func getGroup(at pos: BoardPosition) -> Set<BoardPosition> {
         let grid = self.board.grid
-        guard pos.row < baseSize, pos.col < baseSize, let color = grid[pos.row][pos.col] else { return [] }
+        guard pos.row >= 0, pos.col >= 0, pos.row < baseSize, pos.col < baseSize, let color = grid[pos.row][pos.col] else { return [] }
         
         var visited = Set<Point>()
         let pts = collectGroup(from: Point(x: pos.col, y: pos.row), color: color, grid: grid, visited: &visited)
@@ -296,7 +289,7 @@ final class SGFPlayer: ObservableObject {
         while let p = stack.popLast() {
             if visited.contains(p) { continue }
             visited.insert(p)
-            guard p.y < h, p.x < w, grid[p.y][p.x] == color else { continue }
+            guard p.y >= 0, p.x >= 0, p.y < h, p.x < w, grid[p.y][p.x] == color else { continue }
             group.append(p)
             for (nx, ny) in [(p.x-1, p.y), (p.x+1, p.y), (p.x, p.y-1), (p.x, p.y+1)] where nx >= 0 && nx < w && ny >= 0 && ny < h {
                 if grid[ny][nx] == color { stack.append(Point(x: nx, y: ny)) }
@@ -363,7 +356,7 @@ final class SGFPlayer: ObservableObject {
         
         // 1. Remove Dead Stones from Grid View
         for pos in deadStones {
-            if pos.row < size && pos.col < size {
+            if pos.row >= 0 && pos.col >= 0 && pos.row < size && pos.col < size {
                 grid[pos.row][pos.col] = nil
             }
         }

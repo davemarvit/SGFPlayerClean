@@ -56,10 +56,26 @@ cancel their previous tasks; logout also invalidates pending login/config respon
 cannot masquerade as successful JSON snapshots. Existing empty-lobby and 15-second grace-period
 safeguards remain in place.
 
+Queued socket updates carry connection/game generations, so they cannot restore authentication
+after disconnect or apply scoring/clock data after changing games. Game packets are filtered
+before updating the state-version counter. Challenge creation/acceptance validates HTTP status,
+rejects overlapping POSTs, releases busy state on failure, and invalidates pending callbacks when
+cancelled or disconnected. No mutation is automatically retried. Failed accepts only remove a
+challenge on HTTP 404; cancellation, authentication errors, and timeouts leave the listing intact.
+SGF downloads also validate HTTP status before passing bytes to the file loader.
+
 The existing Socket.IO endpoint and outgoing game protocol are retained. Authentication
-confirmation/ACK handling, delayed game notifications, and move/state-version reconciliation
-still need a separate review before changing their behavior. Local tests do not establish live
+confirmation/ACK handling, notifications already delivered to AppModel, and move/state-version
+reconciliation still need a separate review before changing their behavior. Local tests do not establish live
 OGS login, challenge, or gameplay compatibility.
+
+## Local playback repairs
+
+Local snapshots retain the viewed move index, initial player, state version, and capture counts.
+Returning from online mode reconstructs that saved position and keeps the remaining moves
+available for playback. Clearing the board clears the last-move/turn state. Negative setup
+coordinates, group/territory positions, and playback indices are checked before array access.
+These changes use the existing move/capture implementation; they do not change Go rules.
 
 ## Build and automated validation
 
@@ -73,20 +89,23 @@ swift test
 python3 Tests/Integration/run_loopback.py
 ```
 
-The root Swift package compiles the same networking sources used by Xcode. It is a networking
-test harness, not a replacement app target. The original local, untracked nested Swift package
+The root Swift package compiles the networking sources, OGSClient, shared models/settings,
+and playback engine used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 45 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 67 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
-HTTP errors, rate-limit cooldowns, cancellation, and event payload shapes. They use fake sockets,
-a controllable scheduler, and URLProtocol HTTP fixtures that exercise the production URLSession
-adapter without external requests. The loopback test compiles the production WebSocket transport
+HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
+handling, queued event invalidation, and local playback restoration/bounds. They use fake sockets,
+a controllable scheduler, and URLProtocol HTTP fixtures. Client tests exercise the production
+OGSClient with an ephemeral session and no shared cookies; every HTTP request is intercepted,
+and socket creation is injected. No production OGS connection is made by these tests. The loopback test compiles the production WebSocket transport
 and runs against a localhost-only Python standard-library fixture, exercising real text/binary
 delivery, sending, abrupt connection loss, reconnect, ping/pong, and disconnect. Neither suite
 uses OGS credentials or creates games.
 
-Before merging or replacing the working app, verify local playback, login, challenge creation,
+Keep the draft isolated while collecting these repairs. One combined acceptance session before
+merging or replacing the working app should verify local playback, login, challenge creation,
 reconnection during an active game, and return to local mode in the built app. KataGo requires
 an installed executable (default `/opt/homebrew/bin/katago`); its model is included in the preserved resources.
 
