@@ -397,8 +397,13 @@ struct GameClockView: View {
     let side: Side
     var isDark: Bool = true // New Parameter for Text Color
     
-    private func fmt(_ sec: Double) -> String {
-        let s = Int(sec)
+    static func formattedTime(_ sec: Double) -> String {
+        guard sec.isFinite else { return "--:--" }
+        // OGS Clock.tsx uses ceil((milliseconds - 1) / 1000). Match its display
+        // rounding, including the 1 ms boundary tolerance, without altering clock state.
+        let rounded = ceil(max(0, sec - 0.001))
+        guard rounded < Double(Int.max) else { return "--:--" }
+        let s = Int(rounded)
         let m = s / 60
         let remS = s % 60
         return String(format: "%d:%02d", m, remS)
@@ -416,7 +421,7 @@ struct GameClockView: View {
                 // BYOYOMI (Large)
                 if let p = periods, let pt = periodTime {
                     let pStr = (p == 1) ? "SD" : "\(p)"
-                    Text("\(fmt(pt)) (\(pStr))")
+                    Text("\(Self.formattedTime(pt)) (\(pStr))")
                         .font(.title2).monospacedDigit().bold() // Promoted Size
                         .foregroundColor(isDark ? .white : .black) // Standard Color
                 }
@@ -428,14 +433,14 @@ struct GameClockView: View {
                 
             } else {
                 // NORMAL MAIN TIME (Large)
-                Text(fmt(mainTime ?? 0))
+                Text(Self.formattedTime(mainTime ?? 0))
                     .font(.title2).monospacedDigit().bold()
                     .foregroundColor(isDark ? .white : .black)
                 
                 // BYOYOMI (Small/Secondary)
                 if let p = periods, let pt = periodTime {
                     let pStr = (p == 1) ? "SD" : "\(p)"
-                    Text("+ \(fmt(pt)) (\(pStr))")
+                    Text("+ \(Self.formattedTime(pt)) (\(pStr))")
                         .font(.body).monospacedDigit()
                         .foregroundColor(isDark ? .white.opacity(0.7) : .black.opacity(0.6))
                 }

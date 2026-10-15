@@ -90,6 +90,20 @@ both paths and only the sheet closes. Test-check failures exit normally rather t
 and producing macOS crash dialogs. Rebuilt-app live observation still needs another user try;
 no additional OGS connection was initiated during this repair.
 
+Dave subsequently confirmed observation works, but reported the clocks looking 1.5–2 seconds
+lower than the browser. His screenshot shows both clocks exactly one displayed second lower,
+including the inactive player. `GameClockView` truncated fractional seconds; it now follows
+[OGS's clock display rounding](https://github.com/online-go/online-go.com/blob/5c88f56577cd21b6dd8ca9ec65fff4eeebb04d48/src/components/Clock/Clock.tsx#L241)
+(round up with the same 1 ms boundary tolerance). This affects main-time and byoyomi labels,
+not the underlying time values or timeout decisions. Run
+`python3 Tests/OGSReview/check_review.py ClockDisplay.swift` for fractional/boundary checks
+and actual rendered clock labels. Exact live synchronization is not established by this fix.
+Before enabling play, further clock work should cover server drift/latency estimation,
+snapshot anchoring, pauses, and overtime transitions. The current client still uses its
+older expiration-based calculation, fixed reported latency, and decrementing timer;
+it does not yet implement the web client's full timestamp/relative-latency calculation.
+Keep this package observation-only while those behaviors remain unverified.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
