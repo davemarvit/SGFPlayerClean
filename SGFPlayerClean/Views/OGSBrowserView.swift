@@ -373,8 +373,7 @@ struct OGSObservationBrowserView: View {
                     Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
                 }
             }
-            if let name = app.ogsClient.username, app.ogsClient.isAuthenticated {
-                Text("Logged in as \(name)")
+            if app.ogsClient.isAuthenticated {
                 Text(app.ogsClient.isSocketAuthenticated ? "Ready to observe" : app.ogsClient.connectionStatus)
                     .font(.caption).foregroundColor(.secondary)
                 HStack {
@@ -438,13 +437,16 @@ struct OGSObservationBrowserView: View {
                                 Text([game.boardSize, game.moveCount.map { "\($0) moves" } ?? "Moves unavailable"]
                                     .filter { !$0.isEmpty }.joined(separator: " · "))
                                     .font(.caption).foregroundColor(.secondary)
-                                Text(game.timeControl ?? "Time control unavailable")
+                                Text(app.ogsClient.observedTimeControlLabel(for: game))
                                     .font(.caption).foregroundColor(.secondary)
                             }
                             Spacer()
                             Button("Observe") { observe(id: game.id) }
                                 .disabled(!app.ogsClient.isSocketAuthenticated)
                                 .accessibilityLabel("Observe \(game.blackName) versus \(game.whiteName)")
+                        }
+                        .task(id: app.ogsClient.observedMetadataGeneration) {
+                            app.ogsClient.loadObservedTimeControl(for: game)
                         }
                         Divider()
                     }

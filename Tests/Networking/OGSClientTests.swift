@@ -1135,6 +1135,82 @@ final class OGSClientTests: XCTestCase {
         XCTAssertNotNil(client.observedGamesError)
     }
 
+    func testObservedClockDetailsAreLazyBoundedCachedAndIndependentOfActiveGame() throws {
+        connect(); client.isSocketAuthenticated = true
+        client.activeGameID = 99
+        client.fetchObservedGames()
+        let (id, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(id)" + #"[{"size":4,"results":[{"id":7},{"id":8},{"id":9},{"id":10}]}]"#))
+        var held: [ClientHTTPFixture] = []
+        let firstThree = expectation(description: "At most three concurrent metadata reads")
+        firstThree.expectedFulfillmentCount = 3
+        let fourth = expectation(description: "Queued row starts after a slot opens")
+        ClientHTTPFixture.handler = { fixture in
+            XCTAssertEqual(fixture.request.httpMethod, "GET")
+            held.append(fixture)
+            if held.count <= 3 { firstThree.fulfill() } else { fourth.fulfill() }
+        }
+        XCTAssertTrue(held.isEmpty, "Listing alone must not download every game's detail")
+        for row in client.observedGames { client.loadObservedTimeControl(for: row) }
+        wait(for: [firstThree], timeout: 3)
+        XCTAssertEqual(held.count, 3)
+        let path = held[0].request.url!.lastPathComponent
+        let loaded = expectation(description: "Full clock displayed")
+        let observation = client.$observedTimeControls.filter { $0[Int(path)!] == "20m + 5×30s" }.sink { _ in loaded.fulfill() }
+        held[0].respond(status: 200, body: #"{"gamedata":{"time_control":{"system":"byoyomi","main_time":1200,"periods":5,"period_time":30}}}"#)
+        wait(for: [loaded, fourth], timeout: 3)
+        observation.cancel()
+        for row in client.observedGames { client.loadObservedTimeControl(for: row) }
+        XCTAssertEqual(held.count, 4, "Repeated appearances reuse the cached/in-flight read")
+        XCTAssertEqual(client.activeGameID, 99)
+        XCTAssertFalse(socket.sentMessages.contains { $0.contains("game/connect") })
+        client.disconnect()
+        drainMainQueue()
+        XCTAssertTrue(client.observedTimeControls.isEmpty)
+    }
+
+    func testObservedClockFailureRequiresRefreshAndOldCompletionIsDiscarded() throws {
+        connect(); client.isSocketAuthenticated = true
+        client.fetchObservedGames()
+        let (id, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(id)" + #"[{"size":1,"results":[{"id":7}]}]"#))
+        let failed = expectation(description: "Failure shown on row")
+        let observation = client.$observedTimeControls.filter { $0[7]?.contains("Refresh") == true }.sink { _ in failed.fulfill() }
+        var requests = 0
+        ClientHTTPFixture.handler = { fixture in requests += 1; fixture.respond(status: 503, body: "{}") }
+        client.loadObservedTimeControl(for: client.observedGames[0])
+        wait(for: [failed], timeout: 3); observation.cancel()
+        client.loadObservedTimeControl(for: client.observedGames[0]); drainMainQueue()
+        XCTAssertEqual(requests, 1)
+        client.fetchObservedGames()
+        let (refresh, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(refresh)" + #"[{"size":1,"results":[{"id":7}]}]"#))
+        let requested = expectation(description: "Refresh permits retry")
+        ClientHTTPFixture.handler = { fixture in
+            requests += 1
+            // Completion is queued, then invalidated before it can touch the new list.
+            fixture.respond(status: 200, body: #"{"gamedata":{"time_control":{"system":"none"}}}"#)
+            self.client.disconnect()
+            requested.fulfill()
+        }
+        client.loadObservedTimeControl(for: client.observedGames[0])
+        wait(for: [requested], timeout: 3); drainMainQueue()
+        XCTAssertEqual(requests, 2)
+        XCTAssertTrue(client.observedTimeControls.isEmpty)
+    }
+
+    func testObservedWinnerIncludesActualColorForEitherPlayer() {
+        startScoring(); client.playerID = 99
+        client.blackPlayerName = "Alice"; client.whitePlayerName = "Bob"
+        socket.deliver(.success(#"42["game/7/removed_stones_accepted",{"phase":"finished","winner":1,"outcome":"3.5 points"}]"#))
+        XCTAssertEqual(client.activeGameResult?.subtitle, "Alice [Black] wins")
+        socket.deliver(.success(#"42["game/7/removed_stones_accepted",{"phase":"finished","winner":2,"outcome":"Resignation"}]"#))
+        XCTAssertEqual(client.activeGameResult?.subtitle, "Bob [White] wins")
+        XCTAssertEqual(client.activeGameOutcome, "Bob [White] wins by Resignation")
+        socket.deliver(.success(#"42["game/7/removed_stones_accepted",{"phase":"finished","winner":0,"outcome":"0 points"}]"#))
+        XCTAssertEqual(client.activeGameResult?.title, "Draw")
+    }
+
     func testObserveGameInputAcceptsOnlyPositiveIDsAndOGSGameLinks() {
         for input in ["12345", " 12345\n", "https://online-go.com/game/12345",
                       "https://online-go.com/game/12345/?move=20", "https://www.online-go.com/game/12345"] {

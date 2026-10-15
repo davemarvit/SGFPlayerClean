@@ -12,12 +12,15 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String = "
 }
 
 private final class BrowserHTTPFixture: URLProtocol {
+    static var detailRequests = 0
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
         let config = request.url?.path == "/api/v1/ui/config"
-        let body = config ? #"{"user":{"id":99,"username":"Review Fixture"},"user_jwt":"fixture"}"# : "{}"
-        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: config ? 200 : 404,
+        let detail = request.url?.path.hasPrefix("/api/v1/games/") == true
+        if detail { Self.detailRequests += 1 }
+        let body = config ? #"{"user":{"id":99,"username":"Review Fixture"},"user_jwt":"fixture"}"# : #"{"gamedata":{"time_control":{"system":"byoyomi","main_time":1200,"periods":5,"period_time":30}}}"#
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: config || detail ? 200 : 404,
             httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))
         client?.urlProtocolDidFinishLoading(self)
@@ -44,9 +47,8 @@ private final class BrowserSocketFixture: OGSWebSocket {
             for i in offset..<min(offset + 20, 53) {
                 let black: [String: Any] = ["username": i == 0 ? "Alice" : "Player \(i)", "ranking": 35.0 - Double(i) / 100]
                 let white: [String: Any] = ["username": "Bob", "ranking": 30]
-                let time: [String: Any] = ["system": "byoyomi", "main_time": 1200, "periods": 5, "period_time": 30]
-                let snapshot: [String: Any] = ["moves": Array(repeating: [0, 0], count: 93), "time_control": time]
-                rows.append(["id": 1001 + i, "black": black, "white": white, "width": 19, "height": 19, "json": snapshot])
+                // The actual gamelist response has no json/time_control object.
+                rows.append(["id": 1001 + i, "black": black, "white": white, "width": 19, "height": 19, "move_number": 93, "time_per_move": 45])
             }
             let data = try! JSONSerialization.data(withJSONObject: [["size": 53, "results": rows]])
             let reply = "43\(id)" + String(data: data, encoding: .utf8)!
@@ -93,6 +95,8 @@ private final class BrowserSocketFixture: OGSWebSocket {
         for label in ["alice", "6d", "93 moves", "20m", "30s", "strongest player first"] {
             require(text.contains(label), "Missing \(label): \(text)")
         }
+        require(!text.contains("logged in as"), "Duplicate account label: \(text)")
+        require(BrowserHTTPFixture.detailRequests > 0 && BrowserHTTPFixture.detailRequests < 20, "Only visible rows fetch details")
         require(!text.contains("1001") && !text.contains("page 1") && !text.contains("previous"), text)
         require(socket.offsets == [0] && client.observedGames.count == 20, "Initial display must not eagerly fetch everything: \(socket.offsets)")
         func scrollView(_ view: NSView) -> NSScrollView? {

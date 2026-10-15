@@ -16,6 +16,17 @@ final class OGSObservedGameTests: XCTestCase {
         XCTAssertEqual(row.timeControl, "20m + 5×30s")
     }
 
+    func testRealListOmitsClockAndRESTSuppliesIt() throws {
+        let row = try game(#"{"id":7,"move_number":93,"time_per_move":45}"#)
+        XCTAssertEqual(row.moveCount, 93)
+        XCTAssertNil(row.timeControl, "Estimated seconds per move is not the actual time control")
+        let parameters: [String: Any] = ["system": "byoyomi", "main_time": 30, "periods": 5, "period_time": 10]
+        XCTAssertEqual(OGSObservedGame.timeControlDescription(["gamedata": ["time_control": parameters]]), "30s + 5×10s")
+        let encoded = String(data: try JSONSerialization.data(withJSONObject: parameters), encoding: .utf8)!
+        XCTAssertEqual(OGSObservedGame.timeControlDescription(["time_control": "byoyomi", "time_control_parameters": encoded]), "30s + 5×10s")
+        XCTAssertNil(OGSObservedGame.timeControlDescription(["time_control_parameters": "malformed"]))
+    }
+
     func testSortUsesStrongerPlayerNotAverageAndKeepsTiesStable() throws {
         let rows = try [
             #"{"id":1,"black":{"ranking":33},"white":{"ranking":33}}"#,

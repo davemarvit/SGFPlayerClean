@@ -72,14 +72,28 @@ struct OGSObservedGame: Identifiable {
         } else if let count = json["move_number"] as? Int, count >= 0 {
             moveCount = count
         } else { moveCount = nil }
-        var timeParameters = snapshot["time_control"] as? [String: Any]
-            ?? snapshot["time_control_parameters"] as? [String: Any]
-            ?? json["time_control_parameters"] as? [String: Any]
-            ?? json["time_control"] as? [String: Any]
-        if timeParameters?["system"] == nil, timeParameters?["time_control"] == nil {
-            timeParameters?["system"] = (snapshot["time_control"] as? String) ?? (json["time_control"] as? String)
+        timeControl = Self.timeControlDescription(json)
+    }
+
+    /// Both live-list snapshots and the REST game detail use this formatter.
+    static func timeControlDescription(_ json: [String: Any]) -> String? {
+        let snapshot = (json["gamedata"] ?? json["json"]) as? [String: Any] ?? [:]
+        func object(_ value: Any?) -> [String: Any]? {
+            if let value = value as? [String: Any] { return value }
+            // REST also exposes time_control_parameters as a JSON-encoded string.
+            if let value = value as? String, let data = value.data(using: .utf8) {
+                return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            }
+            return nil
         }
-        timeControl = Self.timeControl(timeParameters)
+        var parameters = object(snapshot["time_control"])
+            ?? object(snapshot["time_control_parameters"])
+            ?? object(json["time_control_parameters"])
+            ?? object(json["time_control"])
+        if parameters?["system"] == nil, parameters?["time_control"] == nil {
+            parameters?["system"] = (snapshot["time_control"] as? String) ?? (json["time_control"] as? String)
+        }
+        return timeControl(parameters)
     }
 
     /// Compare the stronger player, retaining server order when strengths tie or are unknown.

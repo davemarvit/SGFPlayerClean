@@ -123,6 +123,11 @@ class OGSClient: NSObject, ObservableObject {
     @Published private(set) var hasMoreObservedGames = false
     @Published private(set) var isLoadingObservedGames = false
     @Published private(set) var observedGamesError: String?
+    @Published private(set) var observedMetadataGeneration = UUID()
+    @Published private(set) var observedTimeControls: [Int: String] = [:]
+    private var observedMetadataTasks: [Int: URLSessionDataTask] = [:]
+    private var observedMetadataQueue: [Int] = []
+    private var observedMetadataAttempted: Set<Int> = []
     static let observedGamesPageSize = 20
     private var observedGamesRequest: (id: Int, page: Int)?
     private var observedGamesTimeout: OGSCancellable?
@@ -1518,7 +1523,9 @@ class OGSClient: NSObject, ObservableObject {
 
             // Detailed Result Formatting
             let winnerID = self.robustInt(p["winner"])
-            let winnerName = (winnerID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((winnerID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Draw")
+            let winnerName = (winnerID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((winnerID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Winner")
+            let winnerColor = winnerID == self.blackPlayerID ? "Black" : (winnerID == self.whitePlayerID ? "White" : nil)
+            let winnerLabel = winnerName + (winnerColor.map { " [\($0)]" } ?? "")
 
             // If outcome is just "Resignation", prepend winner. Otherwise usage: "White+Resign" (Raw) vs "White wins by Resignation" (Human)
             // OGS 'outcome' is usually like "Resignation" or "Timeout" or "3.5 points"
@@ -1550,10 +1557,10 @@ class OGSClient: NSObject, ObservableObject {
                     SoundManager.shared.playWinner(isMe: wid == pid, isDraw: false, method: outcome)
                 } else {
                     // Observer / No PID
-                    self.activeGameOutcome = "\(winnerName) wins by \(outcome)"
+                    self.activeGameOutcome = "\(winnerLabel) wins by \(outcome)"
                      self.activeGameResult = GameResult(
                         title: "Game Over",
-                        subtitle: "\(winnerName) wins",
+                        subtitle: "\(winnerLabel) wins",
                         method: "By \(outcome.capitalized)",
                         isMe: false
                     )
@@ -1953,7 +1960,61 @@ class OGSClient: NSObject, ObservableObject {
         #endif
     }
 
+    func observedTimeControlLabel(for game: OGSObservedGame) -> String {
+        game.timeControl ?? observedTimeControls[game.id] ?? "Loading time control…"
+    }
+
+    /// Read only metadata for visible rows. Never use the active game's state reader:
+    /// that would cancel move reconciliation and change pendingGameID.
+    func loadObservedTimeControl(for game: OGSObservedGame) {
+        #if !SGF_OFFLINE_REVIEW
+        guard isConnected, isSocketAuthenticated, game.timeControl == nil,
+              observedGames.contains(where: { $0.id == game.id }),
+              observedMetadataAttempted.insert(game.id).inserted else { return }
+        observedMetadataQueue.append(game.id)
+        startObservedMetadataRequests()
+        #endif
+    }
+
+    private func startObservedMetadataRequests() {
+        while observedMetadataTasks.count < 3, !observedMetadataQueue.isEmpty {
+            let id = observedMetadataQueue.removeFirst()
+            let generation = observedMetadataGeneration
+            var request = URLRequest(url: URL(string: "https://online-go.com/api/v1/games/\(id)")!)
+            request.timeoutInterval = 12
+            request.setValue(originHeader, forHTTPHeaderField: "Origin")
+            if let jwt = userJWT { request.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization") }
+            let task = urlSession.dataTask(with: request) { [weak self] data, response, error in
+                var label: String?
+                if error == nil, let response = response as? HTTPURLResponse,
+                   (200..<300).contains(response.statusCode), let data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    label = OGSObservedGame.timeControlDescription(json)
+                }
+                let result = label ?? "Time control unavailable · Refresh to retry"
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.observedMetadataGeneration == generation else { return }
+                    self.observedMetadataTasks.removeValue(forKey: id)
+                    self.observedTimeControls[id] = result
+                    self.startObservedMetadataRequests()
+                }
+            }
+            observedMetadataTasks[id] = task
+            task.resume()
+        }
+    }
+
+    private func clearObservedMetadata() {
+        observedMetadataGeneration = UUID()
+        observedMetadataTasks.values.forEach { $0.cancel() }
+        observedMetadataTasks.removeAll()
+        observedMetadataQueue.removeAll()
+        observedMetadataAttempted.removeAll()
+        observedTimeControls.removeAll()
+    }
+
     private func clearObservedGames() {
+        clearObservedMetadata()
         observedGamesRequest = nil
         observedGamesTimeout?.cancel(); observedGamesTimeout = nil
         isLoadingObservedGames = false
@@ -1990,6 +2051,7 @@ class OGSClient: NSObject, ObservableObject {
             if let index = indices[game.id] { combined[index] = game }
             else { indices[game.id] = combined.count; combined.append(game) }
         }
+        if pending.page == 0 { clearObservedMetadata() }
         observedGames = OGSObservedGame.strongestFirst(combined)
         observedGamesPage = pending.page
         observedGamesTotal = size

@@ -77,9 +77,16 @@ private final class PlaySocket: OGSWebSocket {
         let request = VNRecognizeTextRequest(); request.recognitionLevel = .accurate
         do { try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request]) }
         catch { fail("Cannot locate button: \(error)") }
+        func normalized(_ text: String) -> String {
+            text.lowercased().replacingOccurrences(of: "…", with: "")
+                .replacingOccurrences(of: ".", with: "").trimmingCharacters(in: .whitespaces)
+        }
         guard let label = request.results?.first(where: {
-            $0.topCandidates(1).first?.string.lowercased().replacingOccurrences(of: "…", with: "...") == title.lowercased().replacingOccurrences(of: "…", with: "...")
-        }) else { fail("Button text not found: \(title)") }
+            $0.topCandidates(3).contains { normalized($0.string) == normalized(title) }
+        }) else {
+            try? bitmap.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "/private/tmp/sgf-play-controls-missing.png"))
+            fail("Button text not found: \(title); visible: \((request.results ?? []).compactMap { $0.topCandidates(1).first?.string })")
+        }
         let box = label.boundingBox
         let point = NSPoint(x: host.bounds.width * box.midX,
                             y: host.bounds.height * (host.isFlipped ? 1 - box.midY : box.midY))

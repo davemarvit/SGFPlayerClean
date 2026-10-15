@@ -39,8 +39,9 @@ struct ContentView3D: View {
         ZStack {
             if let bVM = app.boardVM {
                 GeometryReader { geo in
-                    let w = geo.size.width
-                    let overscan = w * 0.4
+                    // Keep board and both lids within the reserved viewport even
+                    // when AI narrows it. Camera gestures/preferences stay intact.
+                    let sceneHeight = min(geo.size.height, geo.size.width / 1.3)
                     UnifiedInteractiveSceneView(
                         scene: sceneManager.scene,
                     cameraNode: sceneManager.cameraNode,
@@ -72,8 +73,8 @@ struct ContentView3D: View {
                         saveViewport()
                     }
                 )
-                .frame(width: geo.size.width + (geo.size.width * 0.4), height: geo.size.height)
-                .offset(x: -(geo.size.width * 0.2))
+                .frame(width: geo.size.width * 1.4, height: sceneHeight)
+                .offset(x: -(geo.size.width * 0.29), y: (geo.size.height - sceneHeight) / 2)
                 }
                 .edgesIgnoringSafeArea(.all)
                 
@@ -85,7 +86,7 @@ struct ContentView3D: View {
                 .onChange(of: bVM.ghostColor) { _, _ in updateScene() }
                 
                 // Floating Metadata + AI Table (Aligned identically to 2D)
-                if let game = app.selection {
+                if !app.isAIAvailable, let game = app.selection {
                     GeometryReader { geo in
                         let L = getLayout(area: geo.size)
                         let margin = L.bW * 0.065
@@ -104,15 +105,7 @@ struct ContentView3D: View {
                                             .scaleEffect(0.9)
                                             .fixedSize()
                                         
-                                        if app.isAIAvailable {
-                                            let evals = KataGoEngine.shared.evaluateGameQuality(upTo: bVM.totalMoves, engine: bVM.engine)
-                                            let isFullyAnalyzed = KataGoEngine.shared.currentAnalysisData.count >= bVM.totalMoves && bVM.totalMoves > 5
-                                            if isFullyAnalyzed {
-                                                MoveQualitySummaryView(evals: Array(evals.values))
-                                                    .scaleEffect(0.9)
-                                                    .fixedSize()
-                                            }
-                                        }
+
                                     }
                                     .frame(width: L.lidD, alignment: .leading)
                                     .offset(y: -45)
@@ -139,31 +132,7 @@ struct ContentView3D: View {
                         }
                     }
                 }
-                
-                // Analytics Overlay (Always on the right)
-                if app.isAIAvailable {
-                    GeometryReader { geo in
-                        let L = getLayout(area: geo.size)
-                        let contentWidth = L.bW + L.gap + L.lidD
-                        let rightEdgeOfBoard = (geo.size.width / 2.0) - 50.0 - (contentWidth / 2.0) + L.bW
-                        let idealGraphWidth = max(280, geo.size.width - rightEdgeOfBoard - 40)
-                        
-                        HStack {
-                            Spacer()
-                            VStack {
-                                Spacer()
-                                WinRateGraphView(vm: bVM)
-                                    .frame(width: idealGraphWidth)
-                                    .frame(height: 250)
-                                    .padding(.trailing, 20)
-                                Spacer()
-                            }
-                        }
-                    }
-                }
-                
-                // Right Panel Overlay (Covers the analytics when open)
-                RightSidebarOverlay(vm: bVM)
+
             }
         }
         .focused($isBoardFocused)

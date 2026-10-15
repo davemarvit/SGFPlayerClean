@@ -14,7 +14,8 @@ Local Play: place moves for both sides. New Game starts a fresh board.
 Observe: choose a live game, or enter its OGS link/ID. Browse games opens the
   popup; Cancel or Escape closes it. Games returns to the list.
   Games are ordered by the stronger player, with ranks, move count and time
-  control. Scroll to load more; Refresh updates the list and move counts.
+  control. Full clock settings load as rows appear. Scroll to load more;
+  Refresh updates the list and retries unavailable clock settings.
 Review: load saved SGFs and use playback. To add moves, choose Continue this
   position in Local Play. Local Play and Review preserve separate positions
   while switching modes within this session.
@@ -22,6 +23,9 @@ Review: load saved SGFs and use playback. To add moves, choose Continue this
 AI analysis is a separate toggle. It works in Local Play, Review, and Observe
 for other players' games. It is unavailable in Play Online and while your
 signed-in account has a known ongoing online game, even if you change modes.
+The AI graph stays to the right of the board. In a narrower window the game
+panel can cover it; close that panel with its X to reveal the graph. On wider
+windows both fit beside the board. Space below the graph holds analysis details.
 Observe is read-only. Play Online now permits actual game/challenge actions.
 
 Your username and Log Out are at the top. Sign in from Play Online or Observe

@@ -133,7 +133,16 @@ private final class ModeSocket: OGSWebSocket {
             return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ").lowercased()
         }
         let controls = try render(AppModeControls()).replacingOccurrences(of: "al analysis", with: "ai analysis")
-        for label in ["play online", "local play", "observe", "review", "ai analysis", "testingaccount", "log out"] {
+        // Recognize the checkbox label separately: including its tick glyph in
+        // a full-window OCR line can turn “AI analysis” into “all analyst”.
+        let controlImage = NSImage(contentsOfFile: "/private/tmp/sgf-four-modes-preview.png")!
+        let bitmap = NSBitmapImageRep(data: controlImage.tiffRepresentation!)!
+        let labelRequest = VNRecognizeTextRequest(); labelRequest.recognitionLevel = .accurate
+        labelRequest.regionOfInterest = CGRect(x: 0.435, y: 0.47, width: 0.10, height: 0.06)
+        try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([labelRequest])
+        let aiLabel = (labelRequest.results ?? []).flatMap { $0.topCandidates(3).map(\.string) }.joined(separator: " ").lowercased()
+        require(aiLabel.contains("ai analysis") || aiLabel.contains("al analysis"), "Missing AI label: \(aiLabel)")
+        for label in ["play online", "local play", "observe", "review", "testingaccount", "log out"] {
             require(controls.contains(label), "Missing control \(label): \(controls)")
         }
         model.mode = .playOnline; model.showOnlineBrowser(); settle()

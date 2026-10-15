@@ -4,11 +4,10 @@ import SwiftUI
 struct ContentView2D: View {
     @EnvironmentObject var app: AppModel
     private let boardAspectRatio: CGFloat = 1.0773
-    private let sidebarW: CGFloat = 320
     
     private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
-        // Reduced from 1.412 to 1.30 to scale up the raw board rendering area.
-        let totalWFactor: CGFloat = 1.30 
+        // Fit board, gap and lids inside the space reserved by BoardWorkspaceView.
+        let totalWFactor: CGFloat = 1 + 1 / 19 + boardAspectRatio / 3
         let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
         let bW = bH / boardAspectRatio
         return (bW, bH, bH / 3.0, bW / 19.0)
@@ -16,9 +15,7 @@ struct ContentView2D: View {
     
     var body: some View {
         GeometryReader { window in
-            // FIX: Use FULL window width for board layout (ignoring sidebar overlay)
-            // This aligns with 3D behavior where the panel overlays the scene.
-            let area = window.size // CGSize(width: window.size.width, height: window.size.height)
+            let area = window.size
             let L = getLayout(area: area)
             let margin = L.bW * 0.065
 
@@ -46,21 +43,12 @@ struct ContentView2D: View {
                                      .padding(.top, margin / 2 - L.lidD * (79.0 / 1024.0))
                              }
                              
-                             if let game = app.selection, let bvm = app.boardVM {
+                             if !app.isAIAvailable, let game = app.selection, let bvm = app.boardVM {
                                  HStack(alignment: .center, spacing: 12) {
                                      LocalGameMetadataView(game: game, boardVM: bvm, isOverlay: true)
                                          .scaleEffect(0.9)
                                          .fixedSize()
-                                     
-                                     if app.isAIAvailable {
-                                         let evals = KataGoEngine.shared.evaluateGameQuality(upTo: bvm.totalMoves, engine: bvm.engine)
-                                         let isFullyAnalyzed = KataGoEngine.shared.currentAnalysisData.count >= bvm.totalMoves && bvm.totalMoves > 5
-                                         if isFullyAnalyzed {
-                                             MoveQualitySummaryView(evals: Array(evals.values))
-                                                 .scaleEffect(0.9)
-                                                 .fixedSize()
-                                         }
-                                     }
+
                                  }
                                  .frame(width: L.lidD, alignment: .leading) // Forces overflow exclusively to the right
                                  .offset(y: -45) // Nudge it upwards halfway between old 2D and old 3D
@@ -78,7 +66,6 @@ struct ContentView2D: View {
                          .frame(height: L.bH)
                     }
                     .frame(width: L.bW + L.gap + L.lidD)
-                    .padding(.trailing, 100) // Nudge the board chunk to the left manually instead of true-centering
                     
                     Spacer()
                     
@@ -87,28 +74,7 @@ struct ContentView2D: View {
                     }
                 }
                 .frame(width: window.size.width, height: window.size.height) // Full Window Frame
-                
-                // Analytics Overlay (Always on the right)
-                if app.isAIAvailable, let bvm = app.boardVM {
-                    let contentWidth = L.bW + L.gap + L.lidD
-                    let rightEdgeOfBoard = (window.size.width / 2.0) - 50.0 - (contentWidth / 2.0) + L.bW
-                    let idealGraphWidth = max(280, window.size.width - rightEdgeOfBoard - 40)
-                    
-                    HStack {
-                        Spacer()
-                        VStack {
-                            Spacer()
-                            WinRateGraphView(vm: bvm)
-                                .frame(width: idealGraphWidth)
-                                .frame(height: 250) // Increased vertical allowance significantly
-                                .padding(.trailing, 20)
-                            Spacer()
-                        }
-                    }
-                }
-                
-                // 3. Right Panel Overlay (Aligned Trailing)
-                if let vm = app.boardVM { RightSidebarOverlay(vm: vm) }
+
             }.keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         }
     }

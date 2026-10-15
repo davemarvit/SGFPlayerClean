@@ -6,6 +6,16 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+Observe follow-up: removed the duplicate signed-in label; visible list rows now read full
+time controls through separate, bounded REST requests because the actual live-list payload
+contains only an estimated `time_per_move`. Game-over messages include the winner's color.
+AI has a persistent right-hand column in 2D and 3D, with less empty space to the left of the
+board and room below the graph. On wide windows the game panel gets its own space; on
+narrower windows it may cover the AI column until dismissed. AI never moves below the board.
+The 3D viewport fits the board and capture lids without rewriting camera preferences.
+This follow-up passed 215 unit tests and nine network-denied UI suites.
+
+
 The overnight review adds guarded online game actions, adjacent Pass/Resign controls,
 game-specific resignation confirmation, a live-position return button, visible connection
 and export errors, and preservation of the active panel during disconnection. New-game
@@ -23,7 +33,7 @@ ordering and sorts loaded games by the stronger player's rank. Rows show player 
 move count (including passes), board size and time control; internal game IDs and page
 buttons are omitted. Missing metadata is identified, never guessed. Counts are snapshots
 at fetch time; Refresh starts a fresh list. Duplicate IDs merge, timeouts retain prior
-rows, retry is explicit, and refresh/logout fence late replies. Data shape follows the
+rows, retry is explicit, and refresh/logout fence late replies. Optional snapshot parsing also supports the
 [OGS GameList](https://github.com/online-go/online-go.com/blob/main/src/components/GameList/GameList.tsx)
 and rating conversion follows its `rank_utils.ts`.
 Challenge Cancel now has a visible standard button and Escape shortcut; Cancel remains
