@@ -312,6 +312,7 @@ The isolated app also supports offline checks against the compiled app model and
 python3 Tests/OfflineReview/build_review.py
 python3 Tests/UI/check_capture_rewind.py
 python3 Tests/UI/check_capture_rewind.py PlaybackAudio.swift
+python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -320,6 +321,9 @@ volume, checking actual AVAudioPlayer progress through automatic 2D/3D playback 
 on rewind. Both use a separate probe preferences domain and the review's network-deny
 sandbox. Speaker audibility remains a manual check. Playback timing tests in `swift test`
 cover the saved Move Delay, speed changes while playing, pause/resume, and end-of-game stop.
+The scoring check renders the production panel and uses OCR to verify visible winner text,
+fractional totals, draws, absent scores, long names, and the earlier-position notice. The
+offline app's banner opens these scoring examples without changing the current game.
 
 ## Recovery without disturbing another checkout
 

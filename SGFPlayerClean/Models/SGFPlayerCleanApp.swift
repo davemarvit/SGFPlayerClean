@@ -36,6 +36,7 @@ struct SGFPlayerCleanApp: App {
     // Single source of truth for the entire application lifecycle
     #if SGF_OFFLINE_REVIEW
     @StateObject private var appModel = makeOfflineReviewModel()
+    @State private var showScoringReview = false
     #else
     @StateObject private var appModel = AppModel()
     #endif
@@ -44,13 +45,18 @@ struct SGFPlayerCleanApp: App {
         WindowGroup {
             #if SGF_OFFLINE_REVIEW
             VStack(spacing: 0) {
-                Text("OFFLINE REVIEW • OGS connections blocked • Separate settings")
-                    .font(.caption).padding(6).frame(maxWidth: .infinity)
-                    .background(Color.orange.opacity(0.2))
+                HStack {
+                    Text("OFFLINE REVIEW • OGS connections blocked • Separate settings")
+                    Spacer()
+                    Button("Scoring review…") { showScoringReview = true }
+                }
+                .font(.caption).padding(6).frame(maxWidth: .infinity)
+                .background(Color.orange.opacity(0.2))
                 ContentView()
             }
                 .environmentObject(appModel)
                 .frame(minWidth: 1000, minHeight: 700)
+                .sheet(isPresented: $showScoringReview) { OfflineScoringReview() }
             #else
             ContentView()
                 .environmentObject(appModel)

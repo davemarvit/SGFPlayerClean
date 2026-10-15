@@ -102,11 +102,80 @@ struct OGSScoringPanel: View {
     private func row(_ title: String, _ black: Double?, _ white: Double?) -> some View {
         GridRow {
             Text(title).foregroundStyle(.secondary)
-            Text(black.map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—")
-            Text(white.map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—")
+            Text(black.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? "—")
+            Text(white.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? "—")
         }
     }
 }
+
+#if SGF_OFFLINE_REVIEW
+/// Display fixtures only: no AppModel, OGSClient, networking, or game mutations.
+enum OfflineScoringExample: String, CaseIterable, Identifiable {
+    case whiteWin = "White wins by 6.5 points"
+    case blackWin = "Black wins by 1 point"
+    case draw = "Draw"
+    case fractional = "White wins by 6.25 points"
+    case missingScore = "No numeric score (resignation or timeout)"
+    var id: String { rawValue }
+
+    var summary: OGSScoreSummary? {
+        let blackTotal: Double
+        let whiteKomi: Double
+        switch self {
+        case .whiteWin: blackTotal = 29; whiteKomi = 6.5
+        case .blackWin: blackTotal = 36; whiteKomi = 6
+        case .draw: blackTotal = 29; whiteKomi = 0
+        case .fractional: blackTotal = 29; whiteKomi = 6.25
+        case .missingScore: return nil
+        }
+        return OGSScoreSummary.parse([
+            "black": ["total": blackTotal, "territory": blackTotal - 4, "stones": 0, "prisoners": 4, "komi": 0],
+            "white": ["total": 29 + whiteKomi, "territory": 25, "stones": 0, "prisoners": 4, "komi": whiteKomi]
+        ])
+    }
+}
+
+struct OfflineScoringReview: View {
+    @Environment(\.dismiss) private var dismiss
+    @State var example: OfflineScoringExample = .whiteWin
+    @State private var blackName = "Dave"
+    @State private var whiteName = "Alice"
+    @State private var earlierPosition = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Offline scoring review").font(.title2.bold())
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            Text("Illustrative scores, unrelated to the board behind this window. No OGS connection.")
+                .font(.callout).foregroundStyle(.secondary)
+            Picker("Example", selection: $example) {
+                ForEach(OfflineScoringExample.allCases) { Text($0.rawValue).tag($0) }
+            }
+            HStack {
+                TextField("Black player", text: $blackName).accessibilityLabel("Black player name")
+                TextField("White player", text: $whiteName).accessibilityLabel("White player name")
+            }.textFieldStyle(.roundedBorder)
+            Toggle("Show the earlier-position notice", isOn: $earlierPosition)
+            ScrollView {
+                OGSScoringPanel(finished: true, connected: false, participant: false,
+                    atLivePosition: !earlierPosition, canEdit: false, acceptance: .none,
+                    strictSeki: false, summary: example.summary,
+                    winnerDescription: example.summary?.winnerDescription(blackName: blackName, whiteName: whiteName),
+                    error: nil, accept: {}, resume: {})
+                    .frame(width: 330)
+                    .frame(maxWidth: .infinity)
+            }
+            Text("This previews the final-score display. Dead-stone marking and the players’ scoring agreement still need a separate test.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(24)
+        .frame(width: 560, height: 610)
+    }
+}
+#endif
 
 private struct ScoringButtonStyle: ButtonStyle {
     let prominent: Bool

@@ -18,6 +18,21 @@ A QUICK FIRST TEST
 4. Switch between 2D and 3D. Rotate the 3D board and watch the lid stone.
 5. Choose AI and check that analysis appears for the displayed position.
 
+SCORING DISPLAY
+Click "Scoring review…" at the right of the orange banner.
+The first example should say "Final Score" beside "Alice White wins by
+6.5 points", with totals Black 29 and White 35.5.
+Use the Example menu to check a Black win, draw, fractional score, and a
+game with no numeric score. Edit the player names to try long or empty names.
+The earlier-position toggle shows the notice used when reviewing past moves
+after a game has finished. Click Done (or Escape) to return to your board.
+These are illustrative display examples; they do not score or change your game.
+
+PLAYBACK SPEED AND SOUND
+Settings > Move Delay controls the time between moves (smaller is faster).
+Changes apply while playing; changing it while paused does not start playback.
+Settings > Stone Volume controls both placement and capture audio.
+
 MORE EXAMPLES
 Select examples in the Local list. They stay paused until you press Play.
 The two self-capture examples deliberately start with the same stones and have
