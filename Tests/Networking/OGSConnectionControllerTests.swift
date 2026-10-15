@@ -248,7 +248,7 @@ private final class TestSocket: OGSWebSocket {
     func deliver(_ result: Result<String, Error>) { receivers.removeFirst()(result) }
 }
 
-private final class TestScheduler: OGSConnectionScheduler {
+final class TestScheduler: OGSConnectionScheduler {
     final class Job: OGSCancellable {
         let due: TimeInterval
         let action: () -> Void

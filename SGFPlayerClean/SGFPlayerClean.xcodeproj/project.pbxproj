@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000D /* OGSSocketEvent.swift */; };
+		C0DE00000000000000000016 /* OGSJSONReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000C /* OGSJSONReader.swift */; };
+		C0DE00000000000000000015 /* OGSPaginatedReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000B /* OGSPaginatedReader.swift */; };
+		C0DE00000000000000000014 /* OGSHTTPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000A /* OGSHTTPTransport.swift */; };
 		C0DE00000000000000000004 /* OGSURLSessionSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* OGSURLSessionSocket.swift */; };
 		C0DE00000000000000000002 /* OGSConnectionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000001 /* OGSConnectionController.swift */; };
 		1A854BADA457198CB0A17A14 /* WinRateGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694141A29BCB8918A5938805 /* WinRateGraphView.swift */; };
@@ -105,6 +109,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE0000000000000000000D /* OGSSocketEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSSocketEvent.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000000C /* OGSJSONReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSJSONReader.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000000B /* OGSPaginatedReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSPaginatedReader.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000000A /* OGSHTTPTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSHTTPTransport.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000003 /* OGSURLSessionSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSURLSessionSocket.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000001 /* OGSConnectionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSConnectionController.swift; sourceTree = "<group>"; };
 		2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */ = {isa = PBXFileReference; lastKnownFileType = None; name = "kata1-b18.bin.gz"; path = "Resources/kata1-b18.bin.gz"; sourceTree = SOURCE_ROOT; };
@@ -327,6 +335,10 @@
 			children = (
 				55EEB55A2EFFEAC600030E2A /* FileLoadingService.swift */,
 				55EEB55B2EFFEAC600030E2A /* OGSClient.swift */,
+				C0DE0000000000000000000D /* OGSSocketEvent.swift */,
+				C0DE0000000000000000000C /* OGSJSONReader.swift */,
+				C0DE0000000000000000000B /* OGSPaginatedReader.swift */,
+				C0DE0000000000000000000A /* OGSHTTPTransport.swift */,
 				C0DE00000000000000000003 /* OGSURLSessionSocket.swift */,
 				C0DE00000000000000000001 /* OGSConnectionController.swift */,
 				EE8448639E01F803E00A0F2B /* KataGoEngine.swift */,
@@ -508,6 +520,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */,
+				C0DE00000000000000000016 /* OGSJSONReader.swift in Sources */,
+				C0DE00000000000000000015 /* OGSPaginatedReader.swift in Sources */,
+				C0DE00000000000000000014 /* OGSHTTPTransport.swift in Sources */,
 				C0DE00000000000000000004 /* OGSURLSessionSocket.swift in Sources */,
 				C0DE00000000000000000002 /* OGSConnectionController.swift in Sources */,
 				55EEB5772EFFEAC600030E2A /* RightPanelView.swift in Sources */,

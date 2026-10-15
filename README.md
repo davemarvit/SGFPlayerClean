@@ -24,16 +24,24 @@ The original checkout at `/Users/Dave/SGFPlayerClean` remains on `main` with its
 Development is isolated in `/Users/Dave/Documents/SGF PLayer/SGFPlayerClean-review`.
 Neither `main` nor the preservation branch should be used for ongoing refactoring.
 
-## Connection architecture
+## Networking architecture
 
-`OGSClient` continues to own the existing OGS message encoding, authentication flow, game rules,
-clocks, and lobby behavior. Its socket lifecycle now delegates to:
+`OGSClient` continues to own OGS message encoding, authentication flow, game rules, clocks,
+and lobby policy. Socket lifecycle and HTTP reads delegate to independently testable components:
 
 - `Services/Networking/OGSConnectionController.swift`: one connection attempt and receive loop,
   generation checks for stale callbacks, cancellable exponential retries (1–30 seconds), a
   15-second connection deadline, and WebSocket ping/pong liveness checks.
 - `Services/Networking/OGSURLSessionSocket.swift`: the production URLSession adapter, including
   text/binary decoding and forwarding of close, receive, and send failures.
+- `Services/Networking/OGSHTTPTransport.swift`: cancellable URLSession GET requests with
+  main-queue completion and explicit HTTP status validation.
+- `Services/Networking/OGSPaginatedReader.swift`: one complete lobby snapshot at a time,
+  cancellation across every page, same-origin pagination limits, and cooldowns for HTTP 429/503.
+- `Services/Networking/OGSJSONReader.swift`: latest-request-wins identity and game reads,
+  completing cancelled callers once and discarding late responses.
+- `Services/Networking/OGSSocketEvent.swift`: checked event-envelope decoding that preserves
+  both array batches and dictionary updates without indexing a missing payload.
 
 The controller serializes state and observer callbacks on the main queue. Intentional disconnect
 cancels retry and heartbeat work. A new socket resets authentication/subscription/room flags so
@@ -41,10 +49,17 @@ the existing handshake can restore subscriptions. Send failures trigger recovery
 game commands, whose server acceptance may be unknown. Authentication tokens are redacted from
 outgoing diagnostic history.
 
-The existing Socket.IO endpoint and game protocol are retained in this first extraction.
-Authentication confirmation/ACK handling and REST request coordination still need a separate,
-fixture-backed review before changing their behavior. Local loopback testing does not establish
-live OGS login, challenge, or gameplay compatibility.
+A failed or malformed lobby page now discards the whole refresh; it cannot prune challenges
+using a partial list. Polls cannot overlap, and a server `Retry-After` cooldown survives reconnects.
+Lobby reads stop when entering a game or disconnecting. Replaced game reads and identity reads
+cancel their previous tasks; logout also invalidates pending login/config responses. HTTP errors
+cannot masquerade as successful JSON snapshots. Existing empty-lobby and 15-second grace-period
+safeguards remain in place.
+
+The existing Socket.IO endpoint and outgoing game protocol are retained. Authentication
+confirmation/ACK handling, delayed game notifications, and move/state-version reconciliation
+still need a separate review before changing their behavior. Local tests do not establish live
+OGS login, challenge, or gameplay compatibility.
 
 ## Build and automated validation
 
@@ -62,12 +77,14 @@ The root Swift package compiles the same networking sources used by Xcode. It is
 test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The deterministic tests use fake sockets and a controllable scheduler. They cover disconnect,
-failed receives/sends, retry cancellation and bounds, stale callbacks, connection/heartbeat
-timeouts, observer reentrancy, and main-queue delivery. The loopback test compiles the production
-transport and runs against a localhost-only Python standard-library WebSocket fixture, exercising
-real text/binary delivery, sending, abrupt connection loss, reconnect, ping/pong, and disconnect.
-Neither test suite uses OGS credentials or creates games.
+The 45 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
+HTTP errors, rate-limit cooldowns, cancellation, and event payload shapes. They use fake sockets,
+a controllable scheduler, and URLProtocol HTTP fixtures that exercise the production URLSession
+adapter without external requests. The loopback test compiles the production WebSocket transport
+and runs against a localhost-only Python standard-library fixture, exercising real text/binary
+delivery, sending, abrupt connection loss, reconnect, ping/pong, and disconnect. Neither suite
+uses OGS credentials or creates games.
 
 Before merging or replacing the working app, verify local playback, login, challenge creation,
 reconnection during an active game, and return to local mode in the built app. KataGo requires
