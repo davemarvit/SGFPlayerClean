@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE00000000000000000081 /* AppIcons.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000080 /* AppIcons.xcassets */; };
 		C0DE00000000000000000043 /* LocalScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000042 /* LocalScoringPanel.swift */; };
 		C0DE00000000000000000041 /* LocalScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000040 /* LocalScoring.swift */; };
 		C0DE00000000000000000023 /* OGSScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000022 /* OGSScoringPanel.swift */; };
@@ -113,6 +114,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE00000000000000000080 /* AppIcons.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = AppIcons.xcassets; sourceTree = "<group>"; };
 		C0DE00000000000000000042 /* LocalScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoringPanel.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000040 /* LocalScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoring.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000022 /* OGSScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSScoringPanel.swift; sourceTree = "<group>"; };
@@ -303,6 +305,7 @@
 		55EEB4D92EFFE34000030E2A /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE00000000000000000080 /* AppIcons.xcassets */,
 				55EEB4CE2EFFE34000030E2A /* board_kaya.jpg */,
 				55EEB4CF2EFFE34000030E2A /* clam_01.png */,
 				55EEB4D02EFFE34000030E2A /* clam_02.png */,
@@ -467,6 +470,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE00000000000000000081 /* AppIcons.xcassets in Resources */,
 				55EEB5352EFFE34000030E2A /* clam_05.png in Resources */,
 				55EEB5362EFFE34000030E2A /* stone_white.png in Resources */,
 				55EEB5372EFFE34000030E2A /* clam_04.png in Resources */,

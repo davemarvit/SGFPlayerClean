@@ -3,6 +3,8 @@ SGF PLAYER — OGS REVIEW
 In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
 Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
 The working app and Offline Review app remain separate.
+The review app now has a wooden Go-board icon with one black and one white stone.
+Quit and reopen the review app to see its new Dock icon.
 
 FOUR MODES
 Play Online: your challenge lobby, with the existing board size, speed, rated,

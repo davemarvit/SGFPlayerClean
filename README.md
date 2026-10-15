@@ -6,6 +6,10 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The shared app target now includes a Go-board icon with black and white stones, packaged
+at all ten standard macOS icon sizes. Only the separate OGS review app was installed;
+the working app remains untouched. Artwork and generation prompts are in `Design/AppIcon`.
+
 The 3D workspace now uses the same dark backdrop as the SceneKit scene, including viewport
 margins and analysis/sidebar areas; tatami remains exclusive to 2D. A speaker beside the
 account controls mutes all app audio on click and opens a master-volume popover on hold or

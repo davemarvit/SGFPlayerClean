@@ -1,0 +1,4 @@
+Final artwork: sgf-player-icon-v2.png
+Built-in image-generation edit of sgf-player-icon-v1.png, October 15, 2026.
+
+Use case: precise-object-edit. This is an app icon. Preserve the wooden rounded-square board, the exact two stones, all grid lines, colors, lighting, framing, and canvas size. Change ONLY the transparent background cleanup: remove every stray yellow, white, brown, or colored speck and floating fragment outside the board silhouette, especially above the top edge. The outside must be clean true transparency with at most a narrow smooth soft contact shadow at the board edge. No detached particles, no halo noise, no new objects. Keep alpha transparency. Do not alter the design inside the board.
