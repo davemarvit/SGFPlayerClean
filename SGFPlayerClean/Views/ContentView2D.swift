@@ -7,8 +7,9 @@ struct ContentView2D: View {
     private let sidebarW: CGFloat = 320
     
     private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
-        let totalWFactor: CGFloat = 1.412
-        let bH = min((area.width * 0.88 / totalWFactor) * boardAspectRatio, area.height * 0.78)
+        // Reduced from 1.412 to 1.30 to scale up the raw board rendering area.
+        let totalWFactor: CGFloat = 1.30 
+        let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
         let bW = bH / boardAspectRatio
         return (bW, bH, bH / 3.0, bW / 19.0)
     }
@@ -40,14 +41,38 @@ struct ContentView2D: View {
                              // WHITE PLAYER SIDE (TOP): Captured Black stones
                              SimpleLidView(stoneColor: .black, stoneCount: app.boardVM?.whiteCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
                                  .padding(.top, margin - (L.lidD / 2))
+                             
+                             if let game = app.selection, let bvm = app.boardVM {
+                                 HStack(alignment: .center, spacing: 12) {
+                                     LocalGameMetadataView(game: game, boardVM: bvm, isOverlay: true)
+                                         .scaleEffect(0.9)
+                                         .fixedSize()
+                                     
+                                     if app.isAIAvailable {
+                                         let evals = KataGoEngine.shared.evaluateGameQuality(upTo: bvm.totalMoves, engine: bvm.engine)
+                                         let isFullyAnalyzed = KataGoEngine.shared.currentAnalysisData.count >= bvm.totalMoves && bvm.totalMoves > 5
+                                         if isFullyAnalyzed {
+                                             MoveQualitySummaryView(evals: Array(evals.values))
+                                                 .scaleEffect(0.9)
+                                                 .fixedSize()
+                                         }
+                                     }
+                                 }
+                                 .frame(width: L.lidD, alignment: .leading) // Forces overflow exclusively to the right
+                                 .offset(y: -45) // Nudge it upwards halfway between old 2D and old 3D
+                                 .frame(height: 80)
+                             }
+                             
                              Spacer()
+                             
                              // BLACK PLAYER SIDE (BOTTOM): Captured White stones
                              SimpleLidView(stoneColor: .white, stoneCount: app.boardVM?.blackCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
                                  .padding(.bottom, margin - (L.lidD / 2))
                          }
-                         .frame(height: L.bH).frame(width: L.lidD)
+                         .frame(height: L.bH)
                     }
                     .frame(width: L.bW + L.gap + L.lidD)
+                    .padding(.trailing, 100) // Nudge the board chunk to the left manually instead of true-centering
                     
                     Spacer()
                     
@@ -57,13 +82,34 @@ struct ContentView2D: View {
                 }
                 .frame(width: window.size.width, height: window.size.height) // Full Window Frame
                 
+                // Analytics Overlay (Always on the right)
+                if app.isAIAvailable, let bvm = app.boardVM {
+                    let contentWidth = L.bW + L.gap + L.lidD
+                    let rightEdgeOfBoard = (window.size.width / 2.0) - 50.0 - (contentWidth / 2.0) + L.bW
+                    let idealGraphWidth = max(280, window.size.width - rightEdgeOfBoard - 40)
+                    
+                    HStack {
+                        Spacer()
+                        VStack {
+                            Spacer()
+                            WinRateGraphView(vm: bvm)
+                                .frame(width: idealGraphWidth)
+                                .frame(height: 250) // Increased vertical allowance significantly
+                                .padding(.trailing, 20)
+                            Spacer()
+                        }
+                    }
+                }
+                
                 // 3. Right Panel Overlay (Aligned Trailing)
-                HStack {
-                    Spacer()
-                    RightPanelView()
-                        .frame(width: sidebarW)
-                        .background(Color.black.opacity(0.15))
-                        // .ignoresSafeArea() // CAUSE OF CUTOFF: Removed to respect window title bar
+                if app.showRightPanel {
+                    HStack {
+                        Spacer()
+                        RightPanelView()
+                            .frame(width: sidebarW)
+                            .background(Color.black.opacity(0.15))
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
                 }
             }.keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         }
@@ -71,16 +117,27 @@ struct ContentView2D: View {
 }
 
 struct PlaybackControlsView: View {
+    @EnvironmentObject var app: AppModel
     @ObservedObject var boardVM: BoardViewModel
     @State private var localIdx: Double = 0
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
+                if app.isAIAvailable {
+                    Button(action: { boardVM.seekPrevMistake() }) { 
+                        Image(systemName: "arrowtriangle.backward.fill")
+                    }.foregroundColor(.red).buttonStyle(.plain)
+                    Divider().frame(height: 12).background(Color.white.opacity(0.3))
+                }
                 Button(action: { boardVM.goToStart() }) { Image(systemName: "backward.end.fill") }.buttonStyle(.plain)
                 Button(action: { boardVM.stepBackward() }) { Image(systemName: "backward.fill") }.buttonStyle(.plain)
                 Button(action: { boardVM.toggleAutoPlay() }) { Image(systemName: boardVM.isAutoPlaying ? "pause.fill" : "play.fill") }.buttonStyle(.plain)
                 Button(action: { boardVM.stepForward() }) { Image(systemName: "forward.fill") }.buttonStyle(.plain)
                 Button(action: { boardVM.goToEnd() }) { Image(systemName: "forward.end.fill") }.buttonStyle(.plain)
+                if app.isAIAvailable {
+                    Divider().frame(height: 12).background(Color.white.opacity(0.3))
+                    Button(action: { boardVM.seekNextMistake() }) { Image(systemName: "arrowtriangle.forward.fill") }.foregroundColor(.red).buttonStyle(.plain)
+                }
             }
             .font(.system(size: 13, weight: .bold))
             Divider().frame(height: 14).background(Color.white.opacity(0.3))

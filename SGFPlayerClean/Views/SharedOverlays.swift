@@ -68,7 +68,6 @@ struct SharedOverlays: View {
                                 .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
                         }
                         .buttonStyle(.plain)
-                        .buttonStyle(.plain)
                         .help("Toggle Full Screen")
 
                         // D. Debug Dashboard (Restored)
@@ -91,6 +90,33 @@ struct SharedOverlays: View {
                 .padding(20)
                 .transition(.opacity)
                 
+                Spacer()
+            }
+            
+            // 3. Floating Buttons (Top RIGHT Alignment)
+            VStack {
+                HStack {
+                    Spacer()
+                    if buttonsVisible && !app.showRightPanel {
+                        // C2. Sidebar Toggle (moved to right)
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.35)) {
+                                app.showRightPanel.toggle()
+                            }
+                        }) {
+                            Image(systemName: "sidebar.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Show Right Panel")
+                        .padding(20)
+                        .transition(.opacity)
+                    }
+                }
                 Spacer()
             }
         }

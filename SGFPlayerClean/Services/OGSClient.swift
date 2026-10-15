@@ -1439,6 +1439,22 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
             self.undoRequestedUsername = nil
             self.undoRequestedMoveNumber = nil
             self.isRequestingUndo = false
+            
+            // FIX: Eagerly toggle currentPlayerID to prevent UI locking while waiting for Clock packet
+            if let pid = self.robustInt(data["player_id"]) {
+                if pid == self.blackPlayerID {
+                    self.currentPlayerID = self.whitePlayerID
+                } else if pid == self.whitePlayerID {
+                    self.currentPlayerID = self.blackPlayerID
+                }
+            } else if let current = self.currentPlayerID {
+                // Fallback toggle
+                if current == self.blackPlayerID {
+                    self.currentPlayerID = self.whitePlayerID
+                } else if current == self.whitePlayerID {
+                    self.currentPlayerID = self.blackPlayerID
+                }
+            }
         }
         NotificationCenter.default.post(name: NSNotification.Name("OGSMoveReceived"), object: nil, userInfo: data)
         
@@ -2061,9 +2077,11 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
                 let combined = accumulated + newItems
                 
                 if let next = nextURL {
-                    // Continue Recursion
+                    // Continue Recursion with a 1.0s delay to prevent HTTP 429 OGS Rate Limiting
                     // NSLog("[OGS-PRUNE] 🔄 Fetching next page: \(next.absoluteString)")
-                    self.fetchRecursiveChallenges(url: next, accumulated: combined, completion: completion)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                        self?.fetchRecursiveChallenges(url: next, accumulated: combined, completion: completion)
+                    }
                 } else {
                     // Base Case: No more pages
                     completion(combined)

@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A854BADA457198CB0A17A14 /* WinRateGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694141A29BCB8918A5938805 /* WinRateGraphView.swift */; };
+		1DE44E609B6DA6E58604EA7B /* kata1-b18.bin.gz in Resources */ = {isa = PBXBuildFile; fileRef = 2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */; };
+		3DAC4D66B1CBF8B7A90F4FD3 /* KataGoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8448639E01F803E00A0F2B /* KataGoEngine.swift */; };
 		5577B04B2F1F06C40031F12B /* connection_restored.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 5577B02B2F1F06C40031F12B /* connection_restored.aiff */; };
 		5577B04C2F1F06C40031F12B /* undo_requested.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 5577B0462F1F06C40031F12B /* undo_requested.aiff */; };
 		5577B04D2F1F06C40031F12B /* opponent_connected.aiff in Resources */ = {isa = PBXBuildFile; fileRef = 5577B03A2F1F06C40031F12B /* opponent_connected.aiff */; };
@@ -94,9 +97,13 @@
 		55EEB59D2EFFEAC600030E2A /* ContentView2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5672EFFEAC600030E2A /* ContentView2D.swift */; };
 		55EEB59E2EFFEAC600030E2A /* VIEWMODELS_README.md in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB5622EFFEAC600030E2A /* VIEWMODELS_README.md */; };
 		55EEB59F2EFFEB2100030E2A /* GameSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB54F2EFFEAC600030E2A /* GameSettings.swift */; };
+		59C642C493786897ADB99BA0 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE854988B61CB60E83D1A103 /* AIModels.swift */; };
+		A9F040FFBF3A3C4AD2071882 /* analysis.cfg in Resources */ = {isa = PBXBuildFile; fileRef = FF114AFAB279900C135568FB /* analysis.cfg */; };
+		BB0A41E1BB261FCBDF8DA7F5 /* AITopMovesOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612B4CE189AB85FFECF7C8AD /* AITopMovesOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */ = {isa = PBXFileReference; lastKnownFileType = None; name = "kata1-b18.bin.gz"; path = "Resources/kata1-b18.bin.gz"; sourceTree = SOURCE_ROOT; };
 		5577B0282F1F06C40031F12B /* byoyomi_simple.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = byoyomi_simple.aiff; sourceTree = "<group>"; };
 		5577B0292F1F06C40031F12B /* byoyomi_start.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = byoyomi_start.aiff; sourceTree = "<group>"; };
 		5577B02A2F1F06C40031F12B /* connection_lost.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = connection_lost.aiff; sourceTree = "<group>"; };
@@ -186,6 +193,11 @@
 		55EEB5742EFFEAC600030E2A /* StoneView2D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoneView2D.swift; sourceTree = "<group>"; };
 		55EEB5752EFFEAC600030E2A /* SupportingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportingViews.swift; sourceTree = "<group>"; };
 		55EEB5A42F0118D400030E2A /* SGFPlayerClean.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SGFPlayerClean.entitlements; sourceTree = "<group>"; };
+		612B4CE189AB85FFECF7C8AD /* AITopMovesOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AITopMovesOverlay.swift; path = Views/AITopMovesOverlay.swift; sourceTree = SOURCE_ROOT; };
+		694141A29BCB8918A5938805 /* WinRateGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WinRateGraphView.swift; path = Views/WinRateGraphView.swift; sourceTree = SOURCE_ROOT; };
+		BE854988B61CB60E83D1A103 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIModels.swift; path = Models/AIModels.swift; sourceTree = SOURCE_ROOT; };
+		EE8448639E01F803E00A0F2B /* KataGoEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KataGoEngine.swift; path = Services/KataGoEngine.swift; sourceTree = SOURCE_ROOT; };
+		FF114AFAB279900C135568FB /* analysis.cfg */ = {isa = PBXFileReference; lastKnownFileType = None; name = analysis.cfg; path = Resources/analysis.cfg; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -256,6 +268,7 @@
 				55EEB5762EFFEAC600030E2A /* Views */,
 				55EEB4D92EFFE34000030E2A /* Assets */,
 				55B9DD702ECEE05200066FA3 /* Products */,
+				F7F842C4AB259AA9C8DC2C98 /* Resources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -300,6 +313,7 @@
 				55EEB5562EFFEAC600030E2A /* SGFPlayerEngine.swift */,
 				55EEB5572EFFEAC600030E2A /* StoneJitter.swift */,
 				55EEB5582EFFEAC600030E2A /* StoneMeshFactory.swift */,
+				BE854988B61CB60E83D1A103 /* AIModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -309,6 +323,7 @@
 			children = (
 				55EEB55A2EFFEAC600030E2A /* FileLoadingService.swift */,
 				55EEB55B2EFFEAC600030E2A /* OGSClient.swift */,
+				EE8448639E01F803E00A0F2B /* KataGoEngine.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -346,8 +361,19 @@
 				55EEB5732EFFEAC600030E2A /* SimpleBowlView.swift */,
 				55EEB5742EFFEAC600030E2A /* StoneView2D.swift */,
 				55EEB5752EFFEAC600030E2A /* SupportingViews.swift */,
+				612B4CE189AB85FFECF7C8AD /* AITopMovesOverlay.swift */,
+				694141A29BCB8918A5938805 /* WinRateGraphView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		F7F842C4AB259AA9C8DC2C98 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				FF114AFAB279900C135568FB /* analysis.cfg */,
+				2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */,
+			);
+			name = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -464,6 +490,8 @@
 				5577B0792F1F19B00031F12B /* lost_timeout.aiff in Resources */,
 				5577B07A2F1F19B00031F12B /* won_timeout.aiff in Resources */,
 				55EEB5402EFFE34000030E2A /* tatami.jpg in Resources */,
+				A9F040FFBF3A3C4AD2071882 /* analysis.cfg in Resources */,
+				1DE44E609B6DA6E58604EA7B /* kata1-b18.bin.gz in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -508,6 +536,10 @@
 				55EEB59B2EFFEAC600030E2A /* SupportingViews.swift in Sources */,
 				55EEB59C2EFFEAC600030E2A /* ContentView.swift in Sources */,
 				55EEB59D2EFFEAC600030E2A /* ContentView2D.swift in Sources */,
+				59C642C493786897ADB99BA0 /* AIModels.swift in Sources */,
+				3DAC4D66B1CBF8B7A90F4FD3 /* KataGoEngine.swift in Sources */,
+				BB0A41E1BB261FCBDF8DA7F5 /* AITopMovesOverlay.swift in Sources */,
+				1A854BADA457198CB0A17A14 /* WinRateGraphView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

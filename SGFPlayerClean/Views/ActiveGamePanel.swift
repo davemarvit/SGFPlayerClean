@@ -318,7 +318,19 @@ struct ActiveGamePanel: View {
                             app.ogsClient.sendPass(gameID: id)
                         }
                     }
-                    .disabled(app.ogsClient.isGameFinished || app.ogsClient.currentPlayerID != app.ogsClient.playerID)
+                    .disabled({ () -> Bool in
+                        if app.ogsClient.isGameFinished { return true }
+                        
+                        // Default Server Authority
+                        var itIsMyTurn = (app.ogsClient.currentPlayerID != nil && app.ogsClient.currentPlayerID == app.ogsClient.playerID)
+                        
+                        // Fallback: Engine Sync (Matches BoardViewModel's placeStone logic)
+                        if !itIsMyTurn, let myColor = app.ogsClient.playerColor, app.boardVM?.engine.turn == myColor {
+                            itIsMyTurn = true
+                        }
+                        
+                        return !itIsMyTurn
+                    }())
                     
                     Spacer()
                     

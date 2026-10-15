@@ -347,8 +347,8 @@ struct ChallengeSetup: Codable {
         return [
             "game": gameObj,
             "initialized": false,            // From Payload
-            "min_ranking": minRank,          // -1000 in payload, user likely wants loose bounds or specific
-            "max_ranking": maxRank,
+            "min_ranking": minRank,          
+            "max_ranking": maxRank,          
             "challenger_color": finalColor,
             "aga_ranked": false,             // From Payload
             "invite_only": false,

@@ -76,6 +76,14 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(panelDiffusiveness, forKey: "panelDiffusiveness") }
     }
     
+    // MARK: - AI Settings
+    @Published var customKataGoPath: String {
+        didSet { UserDefaults.standard.set(customKataGoPath, forKey: "customKataGoPath") }
+    }
+    @Published var customAIModelPath: String {
+        didSet { UserDefaults.standard.set(customAIModelPath, forKey: "customAIModelPath") }
+    }
+    
     @Published var folderURL: URL? {
         didSet {
             if let url = folderURL {
@@ -126,11 +134,15 @@ class AppSettings: ObservableObject {
         self.panelDiffusiveness = UserDefaults.standard.object(forKey: "panelDiffusiveness") as? Double ?? 0.8
 
         // Load 3D Defaults (or Natural Perspective if empty)
-        self.camera3DRotationX = UserDefaults.standard.object(forKey: "cam3D.rotX") as? Double ?? 0.75
+        self.camera3DRotationX = UserDefaults.standard.object(forKey: "cam3D.rotX") as? Double ?? 0.45
         self.camera3DRotationY = UserDefaults.standard.object(forKey: "cam3D.rotY") as? Double ?? 0.0
         self.camera3DDistance = UserDefaults.standard.object(forKey: "cam3D.dist") as? Double ?? 25.0
         self.camera3DPanX = UserDefaults.standard.object(forKey: "cam3D.panX") as? Double ?? 0.0
         self.camera3DPanY = UserDefaults.standard.object(forKey: "cam3D.panY") as? Double ?? 0.0
+
+        // AI System Defaults
+        self.customKataGoPath = UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago"
+        self.customAIModelPath = UserDefaults.standard.string(forKey: "customAIModelPath") ?? ""
 
         if let data = UserDefaults.standard.data(forKey: "folderURLBookmark") {
             var isStale = false

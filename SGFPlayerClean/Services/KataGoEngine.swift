@@ -14,8 +14,13 @@ class KataGoEngine: ObservableObject {
     @Published var currentAnalysisData: [Int: AIAnalysis] = [:] // Map Turn Number -> Analysis
     @Published var engineStartupError: String? = nil
     
+    private var lastStderrString: String = "" // Keep track of the last stderr line for crash reporting
+    
+    var currentGameId: String = "local"
+    
     private var readSource: DispatchSourceRead?
     private var isTerminating = false
+    private var cacheSaveWorkItem: DispatchWorkItem?
     
     // Default installed via Homebrew. We will allow users to override in Settings later.
     private var katagoPath: String {
@@ -36,6 +41,7 @@ class KataGoEngine: ObservableObject {
     func start() {
         guard process == nil else { return } // Already running
         engineStartupError = nil
+        lastStderrString = "Unknown Engine Crash."
         isTerminating = false
         
         // Safety Check
@@ -56,6 +62,12 @@ class KataGoEngine: ObservableObject {
         
         let p = Process()
         p.executableURL = URL(fileURLWithPath: katagoPath)
+        
+        // Ensure KataGo has a writable working directory, otherwise it crashes trying to create `logs`
+        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let katagoWorkDir = cacheURL.appendingPathComponent("SGFPlayerClean/KataGoWork")
+        try? FileManager.default.createDirectory(at: katagoWorkDir, withIntermediateDirectories: true, attributes: nil)
+        p.currentDirectoryURL = katagoWorkDir
         
         var args = ["analysis", "-model", modelArg]
         if let cfg = configPath, fm.fileExists(atPath: cfg) {
@@ -78,7 +90,7 @@ class KataGoEngine: ObservableObject {
                  self?.isEngineRunning = false
                  self?.process = nil
                  if self?.isTerminating == false {
-                     self?.engineStartupError = "KataGo crashed unexpectedly."
+                     self?.engineStartupError = "Crash: \(self?.lastStderrString ?? "Unknown Error")"
                  }
              }
         }
@@ -91,6 +103,7 @@ class KataGoEngine: ObservableObject {
              NSLog("[AI] ✅ KataGo Engine Started Successfully (PID: \(p.processIdentifier))")
             
             startListening(outPipe!)
+            startListeningError(errPipe!)
             
         } catch {
              NSLog("[AI] ❌ Failed to start KataGo: \(error)")
@@ -106,11 +119,71 @@ class KataGoEngine: ObservableObject {
         readSource?.cancel()
         readSource = nil
         
+        saveAnalysisCache(for: currentGameId)
+        
         DispatchQueue.main.async {
              self.isEngineRunning = false
              self.currentAnalysisData.removeAll()
         }
         NSLog("[AI] 🛑 KataGo Engine Stopped")
+    }
+    
+    // MARK: - Caching
+    func saveAnalysisCache(for gameId: String) {
+        guard !currentAnalysisData.isEmpty else { return }
+        guard gameId != "local" else { return }
+        
+        // Use a background queue so we don't stall the UI
+        let dataToSave = currentAnalysisData
+        DispatchQueue.global(qos: .background).async {
+            do {
+                let data = try JSONEncoder().encode(dataToSave)
+                let urls = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+                let dir = urls[0].appendingPathComponent("SGFPlayerClean/AICache")
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
+                
+                let safeName = gameId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "backup"
+                let fileURL = dir.appendingPathComponent("\(safeName).json")
+                try data.write(to: fileURL)
+                NSLog("[AI] 💾 Saved analysis cache to \(fileURL.lastPathComponent)")
+            } catch {
+                NSLog("[AI] ❌ Failed to save cache: \(error)")
+            }
+        }
+    }
+    
+    func loadAnalysisCache(for gameId: String) -> Bool {
+        // Save the old cache before loading the new one
+        if self.currentGameId != "local" && !self.currentAnalysisData.isEmpty {
+            saveAnalysisCache(for: self.currentGameId)
+        }
+        
+        guard gameId != "local" else { return false }
+        self.currentGameId = gameId
+        
+        let urls = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+        let dir = urls[0].appendingPathComponent("SGFPlayerClean/AICache")
+        let safeName = gameId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "backup"
+        let fileURL = dir.appendingPathComponent("\(safeName).json")
+        
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let loaded = try JSONDecoder().decode([Int: AIAnalysis].self, from: data)
+            DispatchQueue.main.async {
+                self.currentAnalysisData = loaded
+            }
+            NSLog("[AI] 📂 Loaded analysis cache for \(gameId)")
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    func restart() {
+        self.stop()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.start()
+        }
     }
     
     // MARK: - I/O Handling
@@ -138,27 +211,49 @@ class KataGoEngine: ObservableObject {
         readSource?.resume()
     }
     
-    private func processBuffer(_ buffer: inout Data) {
-        // KataGo outputs one JSON object per line (\n separated)
-        guard let stringData = String(data: buffer, encoding: .utf8) else { return }
-        let lines = stringData.components(separatedBy: "\n")
+    private func startListeningError(_ pipe: Pipe) {
+        let fd = pipe.fileHandleForReading.fileDescriptor
+        let errSource = DispatchSource.makeReadSource(fileDescriptor: fd, queue: DispatchQueue.global(qos: .utility))
         
-        // Keep the last incomplete line
-        if lines.last?.isEmpty == false {
-            if let last = lines.last?.data(using: .utf8) {
-                buffer = last
-            } else { buffer = Data() }
+        errSource.setEventHandler { [weak self] in
+            let data = pipe.fileHandleForReading.availableData
+            if data.isEmpty {
+                errSource.cancel()
+                return
+            }
+            if let stringData = String(data: data, encoding: .utf8) {
+                for line in stringData.components(separatedBy: "\n") where !line.isEmpty {
+                    NSLog("[AI-ERR] \(line)")
+                    self?.lastStderrString = line
+                }
+            }
+        }
+        errSource.resume()
+    }
+    
+    private func processBuffer(_ buffer: inout Data) {
+        // KataGo outputs exactly one JSON object per line (\n separated)
+        guard let stringData = String(data: buffer, encoding: .utf8) else { return }
+        
+        var lines = stringData.components(separatedBy: "\n")
+        
+        // If the string doesn't end with a newline, the last element is incomplete
+        if !stringData.hasSuffix("\n") {
+            let incomplete = lines.removeLast()
+            buffer = incomplete.data(using: .utf8) ?? Data()
         } else {
+            // It perfectly ended with a newline. Swift's split leaves an empty trailing element.
             buffer = Data()
         }
         
-        for i in 0..<(lines.count - 1) { // -1 because the last element is the remainder
-            let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
-            if line.hasPrefix("{") {
-                parseJSONResponse(line)
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            
+            if trimmed.hasPrefix("{") {
+                parseJSONResponse(trimmed)
             } else {
-                // Warning or init message from KataGo (stderr might also bleed here if piped identically, though we pipe split)
-                NSLog("[AI Output]: \(line)")
+                NSLog("[AI Output]: \(trimmed)")
             }
         }
     }
@@ -171,11 +266,22 @@ class KataGoEngine: ObservableObject {
             
             DispatchQueue.main.async {
                 self.currentAnalysisData[analysis.turnNumber] = analysis
+                self.scheduleCacheSave()
             }
         } catch {
             // Ignore partial parse failures if it's info or warning JSON
-             NSLog("[AI] JSON Parse Warning: \(error) on string: \(jsonStr.prefix(100))...")
+             NSLog("[AI] ❌ JSON Parse Error: \(error)")
         }
+    }
+    
+    private func scheduleCacheSave() {
+        cacheSaveWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.saveAnalysisCache(for: self.currentGameId)
+        }
+        cacheSaveWorkItem = item
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 5.0, execute: item)
     }
     
     // MARK: - Command Generation
@@ -213,8 +319,6 @@ class KataGoEngine: ObservableObject {
         // We only care about analyzing the CURRENT turn for live feedback.
         let query: [String: Any] = [
             "id": "\(id)_t\(turn)",
-            "action": "analyze",
-            "compileMoves": [],
             "rules": "chinese", // Usually safe default
             "komi": komi,
             "boardXSize": size,
@@ -256,3 +360,50 @@ class KataGoEngine: ObservableObject {
         }
     }
 }
+
+extension KataGoEngine {
+    /// Computes the winrate and score deltas for all historical moves analyzed so far to rank their quality
+    func evaluateGameQuality(upTo maxIndex: Int, engine: SGFPlayer) -> [Int: MoveEvaluation] {
+        var evaluations: [Int: MoveEvaluation] = [:]
+        
+        // We need data for turn N and N+1 to evaluate the move made at N.
+        for t in 0..<maxIndex {
+            guard let cur = currentAnalysisData[t]?.rootInfo,
+                  let next = currentAnalysisData[t+1]?.rootInfo,
+                  let player = engine.moveColor(at: t) else { continue }
+            
+            let wPrev = cur.winrate
+            let wNext = next.winrate
+            
+            // KataGo winrate is strictly from the perspective of the player to move.
+            // At turn `t`, player `t` is about to move. Winrate for `t` is wPrev.
+            // At turn `t+1`, player `t+1` (opponent) is about to move. Winrate for opponent is wNext.
+            // So after player `t` moves, their resulting winrate is (1.0 - wNext).
+            // The value of their move is (1.0 - wNext) - wPrev.
+            let winDelta = (1.0 - wNext) - wPrev // > 0 is good
+            
+            let sPrev = cur.scoreLead
+            let sNext = next.scoreLead
+            // Same perspective inversion logic for score.
+            let scoreDelta = -sNext - sPrev
+            
+            let quality: MoveQuality
+            if winDelta < -0.20 || scoreDelta < -8.0 {
+                quality = .disastrous
+            } else if winDelta < -0.10 || scoreDelta < -4.0 {
+                quality = .poor
+            } else if winDelta < -0.05 || scoreDelta < -2.0 {
+                quality = .mediocre
+            } else if winDelta < -0.015 || scoreDelta < -0.5 {
+                quality = .good
+            } else {
+                quality = .excellent
+            }
+            
+            evaluations[t] = MoveEvaluation(turn: t, quality: quality, winDelta: winDelta, scoreDelta: scoreDelta, player: player)
+        }
+        
+        return evaluations
+    }
+}
+

@@ -156,8 +156,15 @@ struct OGSCreateChallengeView: View {
         // Reset typing flag when submitting
         app.isTypingInChat = false
         setup.save(); isSending = true; errorMessage = nil
-        app.ogsClient.createChallenge(setup: setup) { success, _ in
-            DispatchQueue.main.async { self.isSending = false; if success { isPresented = false } else { errorMessage = "Creation failed" } }
+        app.ogsClient.createChallenge(setup: setup) { success, errorDetail in
+            DispatchQueue.main.async { 
+                self.isSending = false
+                if success { 
+                    self.isPresented = false 
+                } else { 
+                    self.errorMessage = "Failed: \(errorDetail ?? "Unknown error")" 
+                } 
+            }
         }
     }
     private func formatRank(_ val: Int) -> String { val < 30 ? "\(30 - val)k" : "\(val - 29)d" }

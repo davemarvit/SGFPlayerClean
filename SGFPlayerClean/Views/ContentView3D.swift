@@ -18,6 +18,14 @@ struct ContentView3D: View {
     @State private var panX: CGFloat
     @State private var panY: CGFloat
     
+    private let boardAspectRatio: CGFloat = 1.0773
+    private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
+        let totalWFactor: CGFloat = 1.30 
+        let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
+        let bW = bH / boardAspectRatio
+        return (bW, bH, bH / 3.0, bW / 19.0)
+    }
+    
     init() {
         let settings = AppSettings.shared
         _rotX = State(initialValue: Float(settings.camera3DRotationX))
@@ -30,8 +38,11 @@ struct ContentView3D: View {
     var body: some View {
         ZStack {
             if let bVM = app.boardVM {
-                UnifiedInteractiveSceneView(
-                    scene: sceneManager.scene,
+                GeometryReader { geo in
+                    let w = geo.size.width
+                    let overscan = w * 0.4
+                    UnifiedInteractiveSceneView(
+                        scene: sceneManager.scene,
                     cameraNode: sceneManager.cameraNode,
                     rotationX: $rotX,
                     rotationY: $rotY,
@@ -61,18 +72,102 @@ struct ContentView3D: View {
                         saveViewport()
                     }
                 )
+                .frame(width: geo.size.width + (geo.size.width * 0.4), height: geo.size.height)
+                .offset(x: -(geo.size.width * 0.2))
+                }
                 .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 0) {
-                    HStack(spacing: 0) {
-                        Color.clear.allowsHitTesting(false)
-                        RightPanelView().frame(width: 320)
-                    }
                     Spacer()
                     PlaybackControlsView(boardVM: bVM).padding(.bottom, 25)
                 }
                 .onChange(of: bVM.ghostPosition) { _, _ in updateScene() }
                 .onChange(of: bVM.ghostColor) { _, _ in updateScene() }
+                
+                // Floating Metadata + AI Table (Aligned identically to 2D)
+                if let game = app.selection {
+                    GeometryReader { geo in
+                        let L = getLayout(area: geo.size)
+                        let margin = L.bW * 0.065
+                        
+                        VStack(spacing: 0) {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                HStack(alignment: .top, spacing: L.gap) {
+                                    Color.clear.frame(width: L.bW, height: L.bH) // Fake Board
+                                VStack(spacing: 0) {
+                                    Color.clear.frame(width: L.lidD, height: L.lidD).padding(.top, margin - (L.lidD / 2))
+                                    
+                                    HStack(alignment: .center, spacing: 12) {
+                                        LocalGameMetadataView(game: game, boardVM: bVM, isOverlay: true)
+                                            .scaleEffect(0.9)
+                                            .fixedSize()
+                                        
+                                        if app.isAIAvailable {
+                                            let evals = KataGoEngine.shared.evaluateGameQuality(upTo: bVM.totalMoves, engine: bVM.engine)
+                                            let isFullyAnalyzed = KataGoEngine.shared.currentAnalysisData.count >= bVM.totalMoves && bVM.totalMoves > 5
+                                            if isFullyAnalyzed {
+                                                MoveQualitySummaryView(evals: Array(evals.values))
+                                                    .scaleEffect(0.9)
+                                                    .fixedSize()
+                                            }
+                                        }
+                                    }
+                                    .frame(width: L.lidD, alignment: .leading)
+                                    .offset(y: -45)
+                                    .frame(height: 80)
+                                    
+                                    Spacer()
+                                    Color.clear.frame(width: L.lidD, height: L.lidD).padding(.bottom, margin - (L.lidD / 2))
+                                }
+                                .frame(height: L.bH)
+                                }
+                                .frame(width: L.bW + L.gap + L.lidD)
+                                .padding(.trailing, 100) // Nudge
+                                
+                                Spacer()
+                            }
+                            Spacer()
+                            
+                            // Emulate 2D bottom constraint exactly so Spacers share identical math
+                            PlaybackControlsView(boardVM: bVM)
+                                .padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
+                                .opacity(0)
+                        }
+                    }
+                }
+                
+                // Analytics Overlay (Always on the right)
+                if app.isAIAvailable {
+                    GeometryReader { geo in
+                        let L = getLayout(area: geo.size)
+                        let contentWidth = L.bW + L.gap + L.lidD
+                        let rightEdgeOfBoard = (geo.size.width / 2.0) - 50.0 - (contentWidth / 2.0) + L.bW
+                        let idealGraphWidth = max(280, geo.size.width - rightEdgeOfBoard - 40)
+                        
+                        HStack {
+                            Spacer()
+                            VStack {
+                                Spacer()
+                                WinRateGraphView(vm: bVM)
+                                    .frame(width: idealGraphWidth)
+                                    .frame(height: 250)
+                                    .padding(.trailing, 20)
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+                
+                // Right Panel Overlay (Covers the analytics when open)
+                if app.showRightPanel {
+                    HStack {
+                        Spacer()
+                        RightPanelView().frame(width: 320)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
             }
         }
         .focused($isBoardFocused)
@@ -84,6 +179,7 @@ struct ContentView3D: View {
         .onReceive(app.boardVM?.onRequestUpdate3D ?? PassthroughSubject<Void, Never>()) { _ in updateScene() }
         .onReceive(AppSettings.shared.$showBoardGlow) { _ in DispatchQueue.main.async { updateScene() } }
         .onReceive(AppSettings.shared.$showEnhancedGlow) { _ in DispatchQueue.main.async { updateScene() } }
+        .onReceive(KataGoEngine.shared.objectWillChange) { _ in DispatchQueue.main.async { updateScene() } }
         // Fallback for other settings
         .onReceive(AppSettings.shared.objectWillChange) { _ in DispatchQueue.main.async { updateScene() } }
         
@@ -109,6 +205,15 @@ struct ContentView3D: View {
         sceneManager.updateTerritory(points: bVM.territoryPoints)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
         sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
+        
+        // AI Hints
+        let isAIAvailable = app.isAIAvailable
+        let turn = bVM.currentMoveIndex
+        let analysis = KataGoEngine.shared.currentAnalysisData[turn]
+        let moves = analysis?.moveInfos ?? []
+        let root = analysis?.rootInfo
+        let nextMove = bVM.engine.nextHistoricalMovePosition
+        sceneManager.updateAIHints(moves: moves, isAvailable: isAIAvailable, root: root, nextMove: nextMove)
     }
     
     private func saveViewport() {

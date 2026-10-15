@@ -66,6 +66,9 @@ struct BoardView2D: View {
                     }
                 }
                 
+                // AI Top Moves Layer
+                AITopMovesOverlay(vm: boardVM, availableSize: size, padding: margin)
+                
                 if let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
                     StoneView2D(color: color, position: ghostPos)
                         .frame(width: cellP, height: cellP)

@@ -46,6 +46,8 @@ struct SettingsPanel: View {
                         Divider().background(Color.white.opacity(0.3))
                         markersSection
                         Divider().background(Color.white.opacity(0.3))
+                        aiSection
+                        Divider().background(Color.white.opacity(0.3))
                         librarySection
                     }
                     .padding()
@@ -186,8 +188,60 @@ struct SettingsPanel: View {
             .foregroundColor(.white)
             .padding(.leading, 10)
             .padding(.top, 5)
+            
+            // 3D Camera Reset Control
+            Button(action: {
+                settings.camera3DRotationX = 0.45
+                settings.camera3DRotationY = 0.0
+                settings.camera3DDistance = 25.0
+                settings.camera3DPanX = 0.0
+                settings.camera3DPanY = 0.0
+            }) {
+                HStack {
+                    Image(systemName: "camera.viewfinder")
+                    Text("Reset 3D Camera Default")
+                }
+                .font(.caption)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(app.viewMode == .view2D ? Color.white.opacity(0.05) : Color.blue.opacity(0.8))
+                .cornerRadius(6)
+            }
+            .buttonStyle(.plain)
+            .disabled(app.viewMode == .view2D)
+            .foregroundColor(app.viewMode == .view2D ? .white.opacity(0.4) : .white)
+            .padding(.top, 8)
         }
         .font(.headline).foregroundColor(.white).accentColor(.white)
+    }
+    
+    private var aiSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("AI Engine", systemImage: "cpu")
+                .font(.headline).foregroundColor(.white)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("KataGo Executable Path")
+                    .font(.caption).foregroundColor(.white.opacity(0.8))
+                TextField("/opt/homebrew/bin/katago", text: $settings.customKataGoPath)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+                    .onChange(of: settings.customKataGoPath) { _, _ in
+                        KataGoEngine.shared.restart()
+                    }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Custom Neural Net Model (.bin.gz)")
+                    .font(.caption).foregroundColor(.white.opacity(0.8))
+                TextField("Optional custom model path", text: $settings.customAIModelPath)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+                    .onChange(of: settings.customAIModelPath) { _, _ in
+                        KataGoEngine.shared.restart()
+                    }
+            }
+        }
     }
     
     private var librarySection: some View {

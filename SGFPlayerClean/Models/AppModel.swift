@@ -11,6 +11,26 @@ import AVFoundation
 final class AppModel: ObservableObject {
     @AppStorage("viewMode") var viewMode: ViewMode = .view2D
     @Published var games: [SGFGameWrapper] = []
+    
+    var sortedGames: [SGFGameWrapper] {
+        switch gameSortMethod {
+        case .defaultIndex:
+            return games
+        case .name:
+            return games.sorted { 
+                let name1 = "\($0.game.info.playerBlack ?? "") \($0.game.info.playerWhite ?? "")"
+                let name2 = "\($1.game.info.playerBlack ?? "") \($1.game.info.playerWhite ?? "")"
+                return name1.caseInsensitiveCompare(name2) == .orderedAscending 
+            }
+        case .date:
+            return games.sorted { 
+                let d1 = $0.game.info.date ?? ""
+                let d2 = $1.game.info.date ?? ""
+                return d1 > d2 // Descending latest first (YYYY-MM-DD typical format)
+            }
+        }
+    }
+    
     @Published var selection: SGFGameWrapper? = nil
     @Published var player = SGFPlayer()
     @Published var ogsClient = OGSClient()
@@ -27,12 +47,25 @@ final class AppModel: ObservableObject {
     
     // AI Integration Flags
     var isAIAvailable: Bool {
-        return !isOnlineMode || ogsClient.isGameFinished
+        return rightPanelTab == .ai && (!isOnlineMode || ogsClient.isGameFinished)
     }
     
     // UI Persistence
+    @Published var showRightPanel: Bool = UserDefaults.standard.object(forKey: "showRightPanel") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showRightPanel, forKey: "showRightPanel") }
+    }
+    
     @Published var rightPanelTab: PanelTab = .local
-    enum PanelTab: String { case local = "Local", online = "Online" }
+    enum PanelTab: String { case local = "Local", online = "Online", ai = "AI" }
+    
+    @Published var gameSortMethod: GameSortMethod = GameSortMethod(rawValue: UserDefaults.standard.string(forKey: "gameSortMethod") ?? "Default") ?? .defaultIndex {
+        didSet { UserDefaults.standard.set(gameSortMethod.rawValue, forKey: "gameSortMethod") }
+    }
+    enum GameSortMethod: String, CaseIterable {
+        case defaultIndex = "Default"
+        case name = "Name"
+        case date = "Date"
+    }
     
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
@@ -47,7 +80,10 @@ final class AppModel: ObservableObject {
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
     init() {
-        let bVM = BoardViewModel(player: player, ogsClient: ogsClient)
+        let bVM = BoardViewModel(player: player, ogsClient: ogsClient, isAIAllowed: { [weak self] in
+            // Must capture weakly and dynamically evaluate
+            return self?.isAIAvailable == true
+        })
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
         
@@ -59,8 +95,25 @@ final class AppModel: ObservableObject {
         // Initialize Audio
         setupAudio()
         
-        // Start KataGo AI Engine in background
-        KataGoEngine.shared.start()
+        // Start KataGo AI Engine in background without stalling App initialization
+        DispatchQueue.global(qos: .userInitiated).async {
+            KataGoEngine.shared.start()
+        }
+        
+        // Auto-load previously opened local games directory
+        if let bookmarkData = UserDefaults.standard.data(forKey: "folderURLBookmark") {
+            var isStale = false
+            do {
+                let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                if !isStale {
+                    print("💾 Restoring Local Library: \(url.lastPathComponent)")
+                    AppSettings.shared.folderURL = url
+                    self.loadFolder(url, autoSelect: true)
+                }
+            } catch {
+                print("❌ Failed to resolve folder bookmark: \(error)")
+            }
+        }
         
         // PERSISTENCE CHECK: Restore online mode state
         let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
@@ -125,7 +178,11 @@ final class AppModel: ObservableObject {
             .sink { [weak self] tab in
                 guard let self = self else { return }
                 
-                if tab == .online {
+                if tab == .ai {
+                    // Kickstart analysis immediately if user views AI tab
+                    self.boardVM?.triggerFullGameAnalysis()
+                } else if tab == .online {
+                    if self.isOnlineMode { return } // Already online
                     print("🚀 Switching to Online Tab")
                     // 1. Snapshot Local State
                     if !self.isOnlineMode {
@@ -139,7 +196,8 @@ final class AppModel: ObservableObject {
                     self.isOnlineMode = true
                     UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
                     
-                } else {
+                } else if tab == .local {
+                    if !self.isOnlineMode { return } // Already offline
                     print("🚪 Switching to Local Mode")
                     self.ogsClient.disconnect()
                     self.isOnlineMode = false
@@ -147,15 +205,19 @@ final class AppModel: ObservableObject {
                     
                     // 3. Restore or Start New
                     self.player.clear() // Ensure clean slate first
+                    self.boardVM?.resetToEmpty() // Also reset the view model properly to clear ghost stones
                     
                     if let snap = self.savedLocalSnapshot {
                         print("♻️ Restoring Local Game...")
                         self.player.restoreSnapshot(snap)
+                        // Sync BoardVM after restoring
+                        self.boardVM?.syncState()
                     } else if AppSettings.shared.startGameOnLaunch {
                         print("✨ Starting New Game (StartOnLaunch)")
                         self.startInstantGame()
                     }
                 }
+                // If tab == .ai, do nothing to the game state.
             }.store(in: &cancellables)
         // This prevents the "confusing local game" issue when waking up in online mode.
         // FIX: Always attempt to load the folder in background so it's ready if we switch to Local.
@@ -260,26 +322,44 @@ final class AppModel: ObservableObject {
         // standard stones usually cut off previous click?
         // Let's allow mix for rapid play, but maybe re-trigger.
         
-        var p: AVAudioPlayer?
         switch type {
-        case .place: p = clickPlayer
-        case .captureSingle: p = captureSinglePlayer
-        case .captureMultiple: p = captureMultiPlayer
+        case .place:
+            let delay = (viewMode == .view3D && AppSettings.shared.showDropInAnimation) ? 0.15 : 0.0
+            if delay > 0 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    guard let p = self?.clickPlayer else { return }
+                    if p.isPlaying { p.stop(); p.currentTime = 0 }
+                    p.play()
+                }
+            } else {
+                guard let player = clickPlayer else { return }
+                if player.isPlaying {
+                    player.stop()
+                    player.currentTime = 0
+                }
+                player.play()
+            }
+            
+        case .captureSingle, .captureMultiple:
+            // In 3D mode, the SceneManager3D handles capture sounds via precise physics collisions.
+            if viewMode == .view3D { return }
+            
+            // Delay capture sounds slightly so they sound like they are hitting the bowl
+            let delayTime: TimeInterval = type == .captureSingle ? 0.25 : 0.4
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) { [weak self] in
+                guard let self = self else { return }
+                let player = type == .captureSingle ? self.captureSinglePlayer : self.captureMultiPlayer
+                guard let p = player else { return }
+                
+                if p.isPlaying {
+                    p.stop()
+                    p.currentTime = 0
+                }
+                p.play()
+            }
         }
-        
-        guard let player = p else {
-             NSLog("[SOUND] ⚠️ Request to play \(type) but player is nil")
-             return
-        }
-        
-        // NSLog("[SOUND] Playing: \(type)") // Silenced to reduce noise
-        if player.isPlaying {
-            player.stop()
-            player.currentTime = 0
-        }
-        player.play()
     }
-
     private func setupAutoAdvance() {
         player.$isPlaying
             .dropFirst()
@@ -301,8 +381,8 @@ final class AppModel: ObservableObject {
     
     private func tryAutoAdvance() {
         // Re-check state to ensure user didn't start scrubbing or playing again
-        // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating)
-        guard !isOnlineMode, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
+        // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating) or AI Analysis mode
+        guard !isOnlineMode, rightPanelTab != .ai, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
         playNextGame()
     }
     
@@ -520,13 +600,6 @@ final class AppModel: ObservableObject {
                  }
              }
              
-             // Sync Captures to OGSClient (Engine Authority)
-             // FIX: Engine 'blackStonesCaptured' means "number of black stones removed from board" (Prisoners for White)
-             self.ogsClient.blackCaptures = boardVM?.engine.whiteStonesCaptured ?? 0
-             self.ogsClient.whiteCaptures = boardVM?.engine.blackStonesCaptured ?? 0
-             
-             NSLog("[OGS-SYNC] 💀 Sync Check: Removed Stones Count = \(self.ogsClient.removedStones.count). Phase: \(self.ogsClient.phase ?? "nil")")
-             
              // Update Player Names
              let players = gameData["players"] as? [String: Any]
              let blackObj = players?["black"] as? [String: Any]
@@ -537,6 +610,21 @@ final class AppModel: ObservableObject {
              
              self.ogsClient.whitePlayerName = whiteObj?["username"] as? String ?? "White"
              self.ogsClient.whitePlayerID = robustInt(whiteObj?["id"])
+             
+             // FIX: Eagerly set currentPlayerID after parsing historical moves so we don't lock the UI waiting for a clock packet. 
+             // We use `turnColor` which accurately tracks the next player considering handicap logic.
+             if turnColor == .black {
+                 self.ogsClient.currentPlayerID = self.ogsClient.blackPlayerID
+             } else {
+                 self.ogsClient.currentPlayerID = self.ogsClient.whitePlayerID
+             }
+             
+             // Sync Captures to OGSClient (Engine Authority)
+             // FIX: Engine 'blackStonesCaptured' means "number of black stones removed from board" (Prisoners for White)
+             self.ogsClient.blackCaptures = boardVM?.engine.whiteStonesCaptured ?? 0
+             self.ogsClient.whiteCaptures = boardVM?.engine.blackStonesCaptured ?? 0
+             
+             NSLog("[OGS-SYNC] 💀 Sync Check: Removed Stones Count = \(self.ogsClient.removedStones.count). Phase: \(self.ogsClient.phase ?? "nil")")
              
              // SCORING PHASE: Strict Server Authority
              let phase = gameData["phase"] as? String ?? "play"
@@ -726,6 +814,8 @@ final class AppModel: ObservableObject {
         boardVM?.loadGame(g) 
         // Persist as last played
         AppSettings.shared.lastPlayedGameURL = g.url
+        // Kickstart AI for the first view
+        boardVM?.syncState()
     }
     func promptForFolder() {
         let panel = NSOpenPanel()
@@ -806,65 +896,73 @@ final class AppModel: ObservableObject {
             // Parse Code
             var loaded: [SGFGameWrapper] = []
             var parseErrors = 0
+            var hasAutoSelected = false
+            let batchSize = 25
             
-            for sgfURL in foundURLs {
+            for (index, sgfURL) in foundURLs.enumerated() {
                 do {
                     let data = try Data(contentsOf: sgfURL)
                     let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
                     let tree = try SGFParser.parse(text: text)
                     let game = SGFGame.from(tree: tree)
                     loaded.append(SGFGameWrapper(url: sgfURL, game: game))
+                    
+                    if loaded.count == batchSize {
+                        let batch = loaded
+                        DispatchQueue.main.async {
+                            self.games = batch
+                            self.loadingStatus = "Loaded \(batch.count)..."
+                            
+                            if autoSelect && !hasAutoSelected {
+                                hasAutoSelected = true
+                                var checkAutoPlay = AppSettings.shared.startGameOnLaunch
+                                if let lastURL = AppSettings.shared.lastPlayedGameURL,
+                                   let restored = batch.first(where: { $0.url == lastURL }) {
+                                    self.selectGame(restored)
+                                } else if let first = batch.first {
+                                    self.selectGame(first)
+                                } else {
+                                    checkAutoPlay = false
+                                }
+                                if checkAutoPlay && self.selection != nil { 
+                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.boardVM?.startAutoPlay() }
+                                }
+                            }
+                        }
+                    } else if loaded.count > batchSize, loaded.count % 100 == 0 {
+                        let batch = loaded
+                        DispatchQueue.main.async { self.games = batch; self.loadingStatus = "Loaded \(batch.count)..." }
+                    }
                 } catch {
                     print("Failed to parse \(sgfURL.lastPathComponent): \(error)")
                     parseErrors += 1
                 }
             }
             
-            // 4. Update Main Actor
+            // 4. Update Main Actor (Final Flush)
             DispatchQueue.main.async {
                 self.games = loaded
                 
-                if loaded.isEmpty {
-                    self.loadingStatus = "❌ Failed to parse ALL files."
-                } else if parseErrors > 0 {
-                    self.loadingStatus = "✅ Loaded \(loaded.count) games. (\(parseErrors) failed)"
-                } else {
-                    self.loadingStatus = "✅ Loaded \(loaded.count) games."
-                }
-                
-                print("📚 Loaded \(loaded.count) games from \(url.lastPathComponent)")
-                
-                // Auto-Behavior
-                var checkAutoPlay = AppSettings.shared.startGameOnLaunch
-                
-                // GUARD: Only auto-select (and play) if permitted (e.g. Local Mode boot)
-                if autoSelect {
-                    // 1. Try to Resume Last Played Game
+                if autoSelect && !hasAutoSelected {
+                    var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                     if let lastURL = AppSettings.shared.lastPlayedGameURL,
                        let restored = loaded.first(where: { $0.url == lastURL }) {
-                        print("♻️ Resuming Last Played Game: \(restored.url.lastPathComponent)")
                         self.selectGame(restored)
-                        
-                        // If resuming, we likely want to just be there. But if AutoPlay is ON, we play.
-                        // checkAutoPlay remains true/false based on preference.
-                    } 
-                    // 2. Else, Pick First (or already shuffled)
-                    else if let first = loaded.first {
-                         self.selectGame(first)
+                    } else if let first = loaded.first {
+                        self.selectGame(first)
+                    } else {
+                        checkAutoPlay = false
                     }
-                } else {
-                    print("🛑 Auto-Select skipped (Online Mode or explicit suppression)")
-                    // Ensure checkAutoPlay is disabled if we didn't select anything
-                    checkAutoPlay = false
+                    if checkAutoPlay && self.selection != nil { 
+                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.boardVM?.startAutoPlay() }
+                    }
                 }
                 
-                // 3. Trigger Auto-Play if Enabled
-                if checkAutoPlay && self.selection != nil {
-                     print("▶️ Auto-Play Triggered on Launch")
-                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                         self.boardVM?.startAutoPlay()
-                     }
-                }
+                if loaded.isEmpty { self.loadingStatus = "❌ Failed to parse ALL files." }
+                else if parseErrors > 0 { self.loadingStatus = "✅ Loaded \(loaded.count) games. (\(parseErrors) failed)" }
+                else { self.loadingStatus = "✅ Loaded \(loaded.count) games." }
+                
+                print("📚 Loaded \(loaded.count) games from \(url.lastPathComponent)")
             }
         }
     }

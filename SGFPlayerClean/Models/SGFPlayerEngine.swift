@@ -53,9 +53,11 @@ final class SGFPlayer: ObservableObject {
         self.whiteStonesCaptured = 0 
         self.blackStonesCaptured = 0 
         
+        var g = board.grid
         for i in 0..<_moves.count {
-            apply(moveAt: i)
+            apply(moveAt: i, to: &g, updateSnapshot: false)
         }
+        syncSnapshot(grid: g)
         
         // 3. Trust Snapshot Captures (Optional override if replay differs?)
         // Replay is authoritative for logic, but if we trust snapshot:
@@ -73,12 +75,18 @@ final class SGFPlayer: ObservableObject {
     
     /// Generates the payload data required by the AI Engine for the current move index
     func getCurrentAIPayload() -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
+        return getAIPayload(at: currentIndex)
+    }
+    
+    /// Generates the payload data required by the AI Engine for a specific historical index
+    func getAIPayload(at limitIndex: Int) -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
         let initialStones = _baseSetup.map { (color: Stone, x: Int, y: Int) -> (color: String, x: Int, y: Int) in
             return (color == .black ? "B" : "W", x, y)
         }
         
         var history: [(color: String, x: Int, y: Int)] = []
-        for i in 0..<currentIndex {
+        let safeLimit = max(0, min(limitIndex, _moves.count))
+        for i in 0..<safeLimit {
             let (color, coord) = _moves[i]
             let cStr = (color == .black) ? "B" : "W"
             if let (x, y) = coord, x >= 0, y >= 0 {
@@ -108,7 +116,32 @@ final class SGFPlayer: ObservableObject {
         return initialPlayer
     }
     
+    /// Identifies the player who made the move at the exact target index
+    func moveColor(at index: Int) -> Stone? {
+        guard index >= 0 && index < _moves.count else { return nil }
+        return _moves[index].0
+    }
+    
+    /// Identifies the player to move at the given state index (0 = before first move)
+    func playerToMove(at stateIndex: Int) -> Stone {
+        if stateIndex < _moves.count {
+            return _moves[stateIndex].0
+        }
+        if let last = _moves.last {
+            return last.0 == .black ? .white : .black
+        }
+        return initialPlayer
+    }
+    
     var maxIndex: Int { _moves.count }
+    
+    /// Returns the coordinate of the actual next historical move in the playback queue, if any
+    var nextHistoricalMovePosition: BoardPosition? {
+        guard currentIndex < _moves.count else { return nil }
+        let (_, coord) = _moves[currentIndex]
+        guard let (x, y) = coord, x >= 0, y >= 0 else { return nil }
+        return BoardPosition(y, x) // UI represents BoardPosition as (row, col) == (y, x)
+    }
     
     // Updated loadOnline to separate MoveCount logic from StateVersion logic
     func loadOnline(size: Int, setup: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
@@ -137,6 +170,79 @@ final class SGFPlayer: ObservableObject {
         self.playMoveOptimistically(color: color, x: x, y: y)
     }
     
+
+    func playMoveOptimistically(color: Stone, x: Int, y: Int) {
+        _moves.append((color, (x, y)))
+        var g = board.grid
+        apply(moveAt: _moves.count - 1, to: &g)
+        currentIndex = _moves.count
+        moveProcessed.send()
+    }
+    
+    private func apply(moveAt i: Int, to grid: inout [[Stone?]], updateSnapshot: Bool = true) {
+        let (color, coord) = _moves[i]
+        guard let (x, y) = coord else { 
+            self.lastMove = MoveRef(color: color, x: -1, y: -1)
+            if updateSnapshot { syncSnapshot(grid: grid) }
+            return 
+        }
+        
+        if x >= 0, y >= 0, x < baseSize, y < baseSize {
+            grid[y][x] = color
+            let opponent = color.opponent
+            var captured = 0
+            var processed = Set<Point>()
+            
+            for (nx, ny) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)] where nx >= 0 && nx < baseSize && ny >= 0 && ny < baseSize {
+                let p = Point(x: nx, y: ny)
+                if grid[ny][nx] == opponent && !processed.contains(p) {
+                    var visited = Set<Point>()
+                    let group = collectGroup(from: p, color: opponent, grid: grid, visited: &visited)
+                    processed.formUnion(visited)
+                    if liberties(of: group, in: grid).isEmpty {
+                        captured += group.count
+                        for s in group { grid[s.y][s.x] = nil }
+                    }
+                }
+            }
+            if color == .black { whiteStonesCaptured += captured } else { blackStonesCaptured += captured }
+            
+            var sV = Set<Point>()
+            let sG = collectGroup(from: Point(x: x, y: y), color: color, grid: grid, visited: &sV)
+            if liberties(of: sG, in: grid).isEmpty {
+                if color == .black { blackStonesCaptured += sG.count } else { whiteStonesCaptured += sG.count }
+                for s in sG { grid[s.y][s.x] = nil }
+            }
+            
+            self.lastMove = MoveRef(color: color, x: x, y: y)
+            if updateSnapshot { syncSnapshot(grid: grid) }
+        } else {
+            self.lastMove = MoveRef(color: color, x: -1, y: -1)
+            if updateSnapshot { syncSnapshot(grid: grid) }
+        }
+    }
+    
+    func stepForward() { guard currentIndex < _moves.count else { pause(); return }; var g = board.grid; apply(moveAt: currentIndex, to: &g); currentIndex += 1; moveProcessed.send() }
+    func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
+    func seek(to idx: Int) {
+        let target = max(0, min(idx, _moves.count))
+        var g: [[Stone?]]
+        if target < currentIndex {
+            reset(sync: false)
+            g = board.grid
+            for i in 0..<target { apply(moveAt: i, to: &g, updateSnapshot: false) }
+        } else {
+            g = board.grid
+            for i in currentIndex..<target { apply(moveAt: i, to: &g, updateSnapshot: false) }
+        }
+        syncSnapshot(grid: g)
+        currentIndex = target
+        moveProcessed.send()
+    }
+    
+    func play() { if isPlaying { return }; isPlaying = true; timer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.stepForward() } }
+    func pause() { isPlaying = false; timer?.cancel(); timer = nil }
+    
     func clear() {
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
@@ -145,7 +251,7 @@ final class SGFPlayer: ObservableObject {
         moveProcessed.send()
     }
     
-    func reset() {
+    func reset(sync: Bool = true) {
         pause()
         currentIndex = 0; whiteStonesCaptured = 0; blackStonesCaptured = 0
         var grid = Array(repeating: Array(repeating: Stone?.none, count: baseSize), count: baseSize)
@@ -155,79 +261,14 @@ final class SGFPlayer: ObservableObject {
         }
         
         self.lastMove = nil
-        syncSnapshot(grid: grid)
-        moveProcessed.send()
-    }
-    
-    func playMoveOptimistically(color: Stone, x: Int, y: Int) {
-        _moves.append((color, (x, y)))
-        apply(moveAt: _moves.count - 1)
-        currentIndex = _moves.count
-        moveProcessed.send()
-    }
-    
-    private func apply(moveAt i: Int) {
-        let (color, coord) = _moves[i]
-        var g = board.grid
-        guard let (x, y) = coord else { syncSnapshot(grid: g); return }
-        
-        if x >= 0, y >= 0, x < baseSize, y < baseSize {
-            g[y][x] = color
-            let opponent = color.opponent
-            var captured = 0
-            var processed = Set<Point>()
-            
-            for (nx, ny) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)] where nx >= 0 && nx < baseSize && ny >= 0 && ny < baseSize {
-                let p = Point(x: nx, y: ny)
-                if g[ny][nx] == opponent && !processed.contains(p) {
-                    var visited = Set<Point>()
-                    let group = collectGroup(from: p, color: opponent, grid: g, visited: &visited)
-                    processed.formUnion(visited)
-                    if liberties(of: group, in: g).isEmpty {
-                        captured += group.count
-                        for s in group { g[s.y][s.x] = nil }
-                        // NSLog("[SOUND-DEBUG] Engine: Captured Group of \(group.count) at \(group[0])")
-                    }
-                }
-            }
-            if color == .black { whiteStonesCaptured += captured } else { blackStonesCaptured += captured }
-            // if captured > 0 { NSLog("[SOUND-DEBUG] Engine: Total Captured this move: \(captured). New Totals - B:\(blackStonesCaptured) W:\(whiteStonesCaptured)") }
-            
-            var sV = Set<Point>()
-            let sG = collectGroup(from: Point(x: x, y: y), color: color, grid: g, visited: &sV)
-            if liberties(of: sG, in: g).isEmpty {
-                if color == .black { blackStonesCaptured += sG.count } else { whiteStonesCaptured += sG.count }
-                for s in sG { g[s.y][s.x] = nil }
-            }
-            
-            self.lastMove = MoveRef(color: color, x: x, y: y)
-            syncSnapshot(grid: g)
+        if sync {
+            syncSnapshot(grid: grid)
+            moveProcessed.send()
         } else {
-            // PASS HANDLING
-            // If coords are invalid (e.g. -1), treat as Pass.
-            // Crucial: Update lastMove so Turn logic flips!
-            self.lastMove = MoveRef(color: color, x: x ?? -1, y: y ?? -1)
-            syncSnapshot(grid: g)
+            // Write directly to internal state without publishing if we are about to simulate
+            self.board = BoardSnapshot(size: baseSize, grid: grid, stones: [:])
         }
     }
-    
-    func stepForward() { guard currentIndex < _moves.count else { pause(); return }; apply(moveAt: currentIndex); currentIndex += 1; moveProcessed.send() }
-    func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
-    func seek(to idx: Int) {
-        let target = max(0, min(idx, _moves.count))
-        if target < currentIndex {
-            reset()
-            for i in 0..<target { apply(moveAt: i) }
-        } else {
-            for i in currentIndex..<target { apply(moveAt: i) }
-        }
-        currentIndex = target
-        moveProcessed.send()
-    }
-    
-    func play() { if isPlaying { return }; isPlaying = true; timer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.stepForward() } }
-    func pause() { isPlaying = false; timer?.cancel(); timer = nil }
-    
     private func syncSnapshot(grid: [[Stone?]]) {
         var flat: [BoardPosition: Stone] = [:]
         for r in 0..<baseSize {
