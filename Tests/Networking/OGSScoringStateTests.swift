@@ -2,6 +2,14 @@ import XCTest
 @testable import SGFPlayerNetworking
 
 final class OGSScoringStateTests: XCTestCase {
+    func testPointOutcomesExcludeNonScoringEndings() {
+        for value in ["3.5 points", "1 point", "0", "Draw", "Jigo", "W+6.5", " B+2 "] {
+            XCTAssertTrue(OGSScoring.isPointsOutcome(value), value)
+        }
+        for value in ["Resignation", "Timeout", "Cancellation", "Void", "B+R", "W+T", "", "nan", "inf", "-3"] {
+            XCTAssertFalse(OGSScoring.isPointsOutcome(value), value)
+        }
+    }
     func testFinalScoreNamesColorAndMargin() throws {
         for (b, w, expected) in [(29.0, 35.5, "Alice [White] wins by 6.5 points"),
                                   (31.0, 29.0, "Dave [Black] wins by 2 points"),

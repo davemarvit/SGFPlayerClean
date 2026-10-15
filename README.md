@@ -6,6 +6,11 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The selected mode now survives restart; the OGS review app defaults to Play Online
+instead of forcing Observe. Resignation, timeout and other non-point endings no
+longer show estimated territory, dead-stone shading or a cached numeric score.
+Normal scoring and scored results retain their markers.
+
 Scoring tables now hide components that do not apply to the game's rules,
 respecting explicit OGS scoring overrides. Handicap adjustments are labeled
 “Handicap compensation” and omitted when zero. Server totals are unchanged.

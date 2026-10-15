@@ -3,6 +3,9 @@ SGF PLAYER — OGS REVIEW
 In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
 Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
 The working app and Offline Review app remain separate.
+The last selected tab is remembered on restart. With no saved tab, this OGS review
+opens in Play Online. Resignation and timeout leave a clean final board without
+territory dots or dead-stone shading; scored games keep their scoring markers.
 Score tables show only applicable components: Japanese rules omit Stones;
 area scoring omits Prisoners. Nonzero handicap adjustments are labeled
 Handicap compensation. Scores themselves are unchanged.

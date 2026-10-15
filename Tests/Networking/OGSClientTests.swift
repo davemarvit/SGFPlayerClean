@@ -620,6 +620,29 @@ final class OGSClientTests: XCTestCase {
         XCTAssertEqual(client.scoreSummary?.black.total, 40)
         XCTAssertEqual(client.removedStones, [BoardPosition(0, 0)])
         XCTAssertEqual(client.activeGameResult?.title, "You Win")
+        XCTAssertTrue(client.showsScoringMarks)
+        XCTAssertNotNil(client.scoringDisplaySummary)
+    }
+
+    func testNonPointsResultsHideCachedScoringAndResetWithNextGame() {
+        startScoring()
+        client.applyScoringSnapshot(["game_id": 7, "removed": "aa", "score": [
+            "black": ["total": 10, "scoring_positions": "bb"],
+            "white": ["total": 6.5, "scoring_positions": "cc"]]])
+        XCTAssertTrue(client.showsScoringMarks)
+        for outcome in ["Resignation", "Timeout", "Cancellation", "Abandoned", "Void"] {
+            client.applyScoringSnapshot(["game_id": 7, "phase": "finished", "outcome": outcome])
+            XCTAssertFalse(client.showsScoringMarks, outcome)
+            XCTAssertNil(client.scoringDisplaySummary, outcome)
+            XCTAssertNotNil(client.scoreSummary, "Keep server data; suppress only its presentation")
+        }
+        client.activeGameID = 8
+        XCTAssertNil(client.scoringOutcome)
+        XCTAssertNil(client.scoringDisplaySummary)
+        client.applyScoringSnapshot(["game_id": 8, "phase": "stone removal"])
+        XCTAssertTrue(client.showsScoringMarks)
+        client.applyScoringSnapshot(["game_id": 8, "phase": "finished"])
+        XCTAssertFalse(client.showsScoringMarks, "A finished phase alone is not a scored result")
     }
 
     func testSpectatorResultAndZeroWinnerAreNotPersonalLosses() {

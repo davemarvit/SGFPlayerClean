@@ -112,11 +112,21 @@ final class AppModel: ObservableObject {
     private var captureMultiPlayer: AVAudioPlayer?
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
-    init(ogsClient injectedClient: OGSClient? = nil) {
+    init(ogsClient injectedClient: OGSClient? = nil, defaultMode: AppMode = .localPlay) {
+        let savedMode = UserDefaults.standard.string(forKey: "lastAppMode").flatMap(AppMode.init(rawValue:))
+        #if SGF_OFFLINE_REVIEW
+        // The offline build must never restore an online workspace.
+        let startupMode = savedMode.flatMap { $0.usesOGS ? nil : $0 } ?? .localPlay
+        #else
+        let startupMode = savedMode ?? (UserDefaults.standard.bool(forKey: "isOnlineModePersistent") ? .playOnline : defaultMode)
+        #endif
+        _mode = Published(initialValue: startupMode)
+        isOnlineMode = startupMode.usesOGS
+        UserDefaults.standard.set(startupMode.rawValue, forKey: "lastAppMode")
+        UserDefaults.standard.set(startupMode.usesOGS, forKey: "isOnlineModePersistent")
         self.ogsClient = injectedClient ?? OGSClient()
-        self.ogsClient.observationOnly = true
+        self.ogsClient.observationOnly = startupMode != .playOnline
         #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
-        UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
         UserDefaults.standard.register(defaults: ["startGameOnLaunch": true])
         #endif
         let bVM = BoardViewModel(player: player, ogsClient: ogsClient, isAIAllowed: { [weak self] in
@@ -149,19 +159,13 @@ final class AppModel: ObservableObject {
                 if !isStale {
                     print("💾 Restoring Local Library: \(url.lastPathComponent)")
                     AppSettings.shared.folderURL = url
-                    self.loadFolder(url, autoSelect: true)
                 }
             } catch {
                 print("❌ Failed to resolve folder bookmark: \(error)")
             }
         }
         
-        // PERSISTENCE CHECK: Restore online mode state
-        let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
-        if wasOnline {
-            print("💾 Restoring Online Mode State (User was online)")
-            self.isOnlineMode = true
-        }
+        let wasOnline = startupMode.usesOGS
 
         ogsClient.$myActiveGames
             .receive(on: RunLoop.main)
@@ -193,7 +197,8 @@ final class AppModel: ObservableObject {
              print("📂 Auto-loading saved folder: \(url.path)")
              // Update status before calling (function will overwrite it, but good for tracing)
              self.loadingStatus = "Startup: Loading Folder..."
-             loadFolder(url, autoSelect: !wasOnline)
+             // Loading the library must not replace a restored Local Play tab.
+             loadFolder(url, autoSelect: startupMode == .review || (savedMode == nil && !wasOnline))
         } else {
              self.loadingStatus = "Startup: No Folder Set"
         }
@@ -201,13 +206,11 @@ final class AppModel: ObservableObject {
         if !wasOnline {
             // Enhanced Startup Logic: Prioritize Folder > Instant Game
             // Only start "Instant Game" if we are definitively NOT restoring online mode.
-            if AppSettings.shared.folderURL == nil && AppSettings.shared.startGameOnLaunch {
+            if startupMode == .localPlay && AppSettings.shared.folderURL == nil && AppSettings.shared.startGameOnLaunch {
                 self.loadingStatus = "Startup: Instant Game"
                 self.startInstantGame()
             }
         } else {
-            // If we ARE restoring Online Mode, ensure UI reflects it
-            self.mode = .playOnline
             self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
         }
         
@@ -232,8 +235,7 @@ final class AppModel: ObservableObject {
     
     // Defer network operations until View is active
     func handleStartup() {
-        let wasOnline = UserDefaults.standard.bool(forKey: "isOnlineModePersistent")
-        if wasOnline {
+        if mode.usesOGS {
             print("🚀 Executing Startup Connection (Persistent Mode)")
             // Force delay to ensure socket/network stack is ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -278,6 +280,7 @@ final class AppModel: ObservableObject {
         currentActiveInternalGameID = nil
         ogsClient.observationOnly = mode != .playOnline
         isOnlineMode = mode.usesOGS
+        UserDefaults.standard.set(mode.rawValue, forKey: "lastAppMode")
         UserDefaults.standard.set(mode.usesOGS, forKey: "isOnlineModePersistent")
         boardVM?.resetToEmpty()
         selection = nil

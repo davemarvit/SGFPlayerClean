@@ -6,6 +6,19 @@ enum OGSScoreAcceptance: Equatable {
 }
 
 enum OGSScoring {
+    /// A terminal result is not necessarily a scored board (resignation, timeout,
+    /// cancellation, etc.). Only point results and draws justify final scoring.
+    static func isPointsOutcome(_ outcome: String) -> Bool {
+        var value = outcome.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if ["draw", "jigo"].contains(value) { return true }
+        if value.hasPrefix("b+") || value.hasPrefix("w+") { value = String(value.dropFirst(2)) }
+        for suffix in [" points", " point"] where value.hasSuffix(suffix) {
+            value = String(value.dropLast(suffix.count))
+        }
+        guard let points = Double(value), points.isFinite, points >= 0 else { return false }
+        return true
+    }
+
     static func isScoring(_ phase: String?) -> Bool {
         phase == "stone removal" || phase == "scoring"
     }

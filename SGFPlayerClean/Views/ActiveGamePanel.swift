@@ -290,10 +290,10 @@ struct ActiveGamePanel: View {
                     canEdit: app.ogsClient.canEditScore,
                     acceptance: app.ogsClient.scoreAcceptance,
                     strictSeki: app.ogsClient.strictSekiMode,
-                    summary: app.ogsClient.scoreSummary,
+                    summary: app.ogsClient.scoringDisplaySummary,
                     scoringSettings: app.player.analysisSettings,
-                    winnerDescription: app.ogsClient.scoreSummary?.winnerDescription(blackName: app.ogsClient.blackPlayerName, whiteName: app.ogsClient.whitePlayerName),
-                    serverTerritory: app.ogsClient.scoreSummary?.positions(width: app.player.board.size, height: app.player.board.size) != nil,
+                    winnerDescription: app.ogsClient.scoringDisplaySummary?.winnerDescription(blackName: app.ogsClient.blackPlayerName, whiteName: app.ogsClient.whitePlayerName),
+                    serverTerritory: app.ogsClient.scoringDisplaySummary?.positions(width: app.player.board.size, height: app.player.board.size) != nil,
                     error: app.ogsClient.scoringError,
                     accept: { if let id = app.ogsClient.activeGameID { app.ogsClient.acceptScore(gameID: id) } },
                     resume: { if let id = app.ogsClient.activeGameID { app.ogsClient.rejectScore(gameID: id) } }

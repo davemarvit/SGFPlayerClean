@@ -92,6 +92,8 @@ class BoardViewModel: ObservableObject {
         ogsClient.$removedStones.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         ogsClient.$phase.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         ogsClient.$scoreSummary.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
+        ogsClient.$scoringOutcome.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
+        ogsClient.$isGameFinished.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         
         // Trigger initial analysis once engine boots up
         KataGoEngine.shared.$isEngineRunning.receive(on: RunLoop.main).sink { [weak self] isRunning in
@@ -442,8 +444,7 @@ class BoardViewModel: ObservableObject {
             var rs = RenderStone(id: pos, color: col, offset: off)
             
             if isOnlineContext {
-               let p = ogsClient.phase
-               if (OGSScoring.isScoring(p) || p == "finished") && engine.currentIndex == engine.maxIndex {
+               if ogsClient.showsScoringMarks && engine.currentIndex == engine.maxIndex {
                    if ogsClient.removedStones.contains(pos) { rs.isDead = true }
                }
             }
@@ -459,9 +460,8 @@ class BoardViewModel: ObservableObject {
         
         territoryIsEstimate = false
         if isOnlineContext {
-           let p = ogsClient.phase
-           if (OGSScoring.isScoring(p) || p == "finished") && self.engine.currentIndex == self.engine.maxIndex {
-                let serverPositions = ogsClient.scoreSummary?.positions(width: snap.size, height: snap.size)
+           if ogsClient.showsScoringMarks && self.engine.currentIndex == self.engine.maxIndex {
+                let serverPositions = ogsClient.scoringDisplaySummary?.positions(width: snap.size, height: snap.size)
                 territoryIsEstimate = serverPositions == nil
                 let t = serverPositions ?? self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
 

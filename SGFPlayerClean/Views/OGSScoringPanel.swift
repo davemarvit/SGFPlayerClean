@@ -35,11 +35,13 @@ struct OGSScoringPanel: View {
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 Text(finished
-                     ? "No numeric score supplied by OGS. Games ending by resignation or timeout may not have one."
+                     ? "No numeric score applies or is available. Games ending by resignation or timeout do not require territory scoring."
                      : "Click a stone group to mark it dead or alive. Faded stones are marked dead.")
                     .font(.callout)
-                Text("Territory markers are a local estimate, not a final score.")
-                    .font(.caption).foregroundStyle(.secondary)
+                if !finished {
+                    Text("Territory markers are a local estimate, not a final score.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             if finished && !atLivePosition {
                 Text("This is the final score; the board is showing an earlier position.")

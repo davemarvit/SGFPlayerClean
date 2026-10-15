@@ -58,6 +58,7 @@ class OGSClient: NSObject, ObservableObject {
                  resetScoringSubmission()
                  removedStones = []
                  scoreSummary = nil
+                 scoringOutcome = nil
                  strictSekiMode = false
                  phase = nil
                  isGameFinished = false
@@ -187,7 +188,7 @@ class OGSClient: NSObject, ObservableObject {
         didSet {
             if phase != oldValue {
                 resetScoringSubmission()
-                if phase == "play" { removedStones = []; scoreSummary = nil }
+                if phase == "play" { removedStones = []; scoreSummary = nil; scoringOutcome = nil }
             }
         }
     }
@@ -195,6 +196,17 @@ class OGSClient: NSObject, ObservableObject {
         didSet { if removedStones != oldValue { resetScoringSubmission() } }
     }
     @Published private(set) var scoreSummary: OGSScoreSummary?
+    @Published private(set) var scoringOutcome: String?
+    var scoringDisplaySummary: OGSScoreSummary? {
+        if let outcome = scoringOutcome, !OGSScoring.isPointsOutcome(outcome) { return nil }
+        return scoreSummary
+    }
+    var showsScoringMarks: Bool {
+        if isGameFinished || phase == "finished" || scoringOutcome != nil {
+            return scoringDisplaySummary != nil
+        }
+        return isScoringPhase
+    }
     @Published private(set) var strictSekiMode = false {
         didSet { if strictSekiMode != oldValue { resetScoringSubmission() } }
     }
@@ -1067,6 +1079,7 @@ class OGSClient: NSObject, ObservableObject {
         if let width = robustInt(data["width"]), (1...52).contains(width) { scoringBoardWidth = width }
         if let height = robustInt(data["height"]), (1...52).contains(height) { scoringBoardHeight = height }
         if let value = data["phase"] as? String { applyGamePhase(value) }
+        if let outcome = data["outcome"] as? String { scoringOutcome = outcome }
         if let strict = data["strict_seki_mode"] as? Bool { strictSekiMode = strict }
         if let text = data["removed"] as? String { handleInboundRemovedStones(text) }
         else if let values = data["removed"] as? [String] { handleInboundRemovedStones(values.joined()) }
@@ -1494,6 +1507,7 @@ class OGSClient: NSObject, ObservableObject {
 
     private func applyGameResult(_ p: [String: Any]) {
         if let outcome = p["outcome"] as? String {
+            scoringOutcome = outcome
             self.isGameFinished = true
             // FIX: Use Game ID from payload directly.
             let targetGID = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"]) ?? self.activeGameID

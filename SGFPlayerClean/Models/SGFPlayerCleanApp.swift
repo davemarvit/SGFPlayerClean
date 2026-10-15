@@ -37,9 +37,8 @@ private func installOGSReviewGuard()
 
 @MainActor private func makeOGSReviewModel() -> AppModel {
     installOGSReviewGuard()
-    let model = AppModel()
+    let model = AppModel(defaultMode: .playOnline)
     model.showRightPanel = true
-    model.mode = .observe
     return model
 }
 #endif
