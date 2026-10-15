@@ -194,48 +194,116 @@ struct ChallengeHelpers {
 
 // MARK: - SGF Parser & Game Models
 struct SGFNode { var props: [String:[String]] }
-struct SGFTree { let nodes: [SGFNode] }
+/// Complete tree for the first game in a collection. Branch indices avoid recursive
+/// traversal/storage limits in files that wrap every move in its own continuation.
+struct SGFTree {
+    struct Branch {
+        var sequence: [SGFNode] = []
+        var children: [Int] = []
+    }
+    let branches: [Branch] // Root is index 0; children retain their file order.
+
+    /// Default playback policy only. Alternatives and all their properties remain stored.
+    var mainLineNodes: [SGFNode] {
+        var result: [SGFNode] = []
+        var index: Int? = branches.isEmpty ? nil : 0
+        while let current = index {
+            result.append(contentsOf: branches[current].sequence)
+            index = branches[current].children.first
+        }
+        return result
+    }
+}
 enum SGFError: Error { case parseError(String) }
 
 enum SGFParser {
+    /// Retain every branch and property; choosing a playback path is a separate step.
     static func parse(text: String) throws -> SGFTree {
-        let s = text.replacingOccurrences(of: "\r", with: ""); var i = s.startIndex
+        let s = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        var i = s.startIndex
         func peek() -> Character? { i < s.endIndex ? s[i] : nil }
         func advance() { if i < s.endIndex { i = s.index(after: i) } }
-        func skipWS() { while let cc = peek(), cc.isWhitespace { advance() } }
-        var nodes: [SGFNode] = []; skipWS()
-        guard peek() == "(" else { throw SGFError.parseError("Missing '('") }
-        func consume() throws {
-            advance(); skipWS()
-            while let c = peek() {
-                if c == ";" { advance(); nodes.append(try parseNode()); skipWS() }
-                else if c == "(" { try skipSubtree(); skipWS() }
-                else if c == ")" { advance(); break } else { advance() }
-            }
-        }
+        func skipWS() { while let c = peek(), c.isWhitespace { advance() } }
         func parseNode() throws -> SGFNode {
-            var props: [String:[String]] = [:]; skipWS()
+            var props: [String: [String]] = [:]
+            skipWS()
             while let c = peek(), c.isLetter {
-                let sk = i; while let cc = peek(), cc.isLetter { advance() }
-                let key = String(s[sk..<i]).uppercased(); var values: [String] = []; skipWS()
+                let start = i
+                while let c = peek(), c.isLetter { advance() }
+                let key = String(s[start..<i]).uppercased()
+                var values: [String] = []
+                skipWS()
+                guard peek() == "[" else { throw SGFError.parseError("Missing value for \(key)") }
                 while peek() == "[" {
-                    advance(); var val = ""
-                    while let cc = peek() {
-                        if cc == "\\" { advance(); if let nxt = peek() { val.append(nxt); advance() } }
-                        else if cc == "]" { advance(); break } else { val.append(cc); advance() }
+                    advance()
+                    var value = ""
+                    var closed = false
+                    while let c = peek() {
+                        advance()
+                        if c == "\\" {
+                            guard let escaped = peek() else { break }
+                            advance()
+                            // An escaped line break continues the value without a newline.
+                            if escaped != "\n" { value.append(escaped) }
+                        } else if c == "]" {
+                            closed = true
+                            break
+                        } else {
+                            value.append(c)
+                        }
                     }
-                    values.append(val); skipWS()
+                    guard closed else { throw SGFError.parseError("Unterminated value for \(key)") }
+                    values.append(value)
+                    skipWS()
                 }
-                props[key] = values; skipWS()
+                props[key] = values
             }
             return SGFNode(props: props)
         }
-        func skipSubtree() throws { advance(); var d = 0; while let cc = peek() { advance(); if cc == "(" { d += 1 } else if cc == ")" { if d == 0 { break } else { d -= 1 } } } }
-        try consume(); return SGFTree(nodes: nodes)
+
+        // Read every branch, including siblings. Parentheses inside values are text.
+        var branches: [SGFTree.Branch] = []
+        var stack: [Int] = []
+        if peek() == "\u{FEFF}" { advance() }
+        skipWS()
+        guard peek() == "(" else { throw SGFError.parseError("Missing '('") }
+        while let c = peek() {
+            switch c {
+            case "(":
+                let child = branches.count
+                if let parent = stack.last {
+                    guard !branches[parent].sequence.isEmpty else { throw SGFError.parseError("Empty game tree") }
+                    branches[parent].children.append(child)
+                }
+                branches.append(SGFTree.Branch())
+                stack.append(child)
+                advance()
+            case ";":
+                guard let current = stack.last, branches[current].children.isEmpty else {
+                    throw SGFError.parseError("Move sequence after variations")
+                }
+                advance()
+                branches[current].sequence.append(try parseNode())
+            case ")":
+                guard let current = stack.popLast(), !branches[current].sequence.isEmpty else {
+                    throw SGFError.parseError("Empty game tree")
+                }
+                advance()
+                // Preserve the existing one-game-per-file playback policy for collections.
+                if stack.isEmpty { return SGFTree(branches: branches) }
+            default:
+                throw SGFError.parseError("Unexpected character outside a property value")
+            }
+            skipWS()
+        }
+        throw SGFError.parseError("Unterminated game tree")
     }
 }
 
 struct SGFGame {
+    // Retain the imported tree for future variation navigation/editing. Local played moves
+    // change the playback history, not this source record; no SGF writer is implied.
+    var sourceTree: SGFTree?
     struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String? }
     var boardSize: Int = 19; var info: Info = .init(); var setup: [(Stone, Int, Int)] = []; var moves: [(Stone, (Int,Int)?)] = []
     var initialPlayer: Stone?
@@ -251,7 +319,8 @@ struct SGFGame {
     }
     static func from(tree: SGFTree) -> SGFGame {
         var g = SGFGame()
-        for node in tree.nodes {
+        g.sourceTree = tree
+        for node in tree.mainLineNodes {
             for (k, vals) in node.props {
                 switch k {
                 case "SZ": if let v = vals.first { g.boardSize = Int(v.components(separatedBy: ":").first ?? "19") ?? 19 }

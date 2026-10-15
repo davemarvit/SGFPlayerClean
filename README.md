@@ -21,6 +21,12 @@ in `../Offline Review/build-info.json`. Consult that file for the current packag
 Subsequent shared formatting changes put the winner color in brackets, for example
 “Alice [White] wins by 7 points”. Documentation-only commits do not require rebuilding the app.
 
+The subsequent SGF playback repair retains the complete imported variation tree in
+`SGFGame.sourceTree`; default playback follows its first-child main line. Nested OGS exports
+previously stopped at their first subtree (one move in the reported 132-move game). Alternatives,
+comments, markup, and unknown properties now remain available for future navigation/editing;
+there is no variation-selection UI or SGF writer yet. The expanded automated suite has 180 tests.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
@@ -299,9 +305,15 @@ This is not a complete local referee or scoring engine. In particular:
 - Japanese/Korean long-cycle no-result adjudication, Ing rules, and unusual custom repetition
   schemes are not implemented locally. KataGo presets approximate national rules; in particular,
   OGS self-capture handling and KataGo's multi-stone-suicide rule are not identical in every case.
-- The SGF loader is a playback loader, not a full editor: it does not faithfully represent all
-  variations, midgame setup/removal edits, or turn-changing properties. This pass does not rewrite
-  imported records or certify arbitrary recorded histories as legal.
+- The SGF loader preserves every branch and property of the first game tree, following the
+  first child at each fork for default playback, as described by the
+  [SGF variation examples](https://red-bean.com/sgf/var.html). It uses iterative traversal/storage
+  so deeply nested exports do not exhaust a recursive stack. Comments/escaped brackets do not
+  affect tree structure; malformed unfinished trees produce an error instead of a partial game.
+  `SGFGame.sourceTree` retains the imported record separately from local playback additions.
+  Selecting/editing variations, writing SGFs, additional games in collections, and faithful
+  playback of midgame setup/removal or turn-changing properties remain future work. This does
+  not rewrite imported records or certify arbitrary recorded histories as legal.
 
 The rules tests include ko threats, pass/repetition differences, snapback, multi-group captures,
 self-capture, fixed/free handicap, and undo/seek restoration. Render a sample ko position offline:
@@ -350,7 +362,7 @@ The root Swift package compiles the networking sources, OGSClient, shared models
 playback engine, SceneKit board scene, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 172 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 180 automated tests cover SGF main-line/variation parsing, disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
@@ -382,6 +394,7 @@ python3 Tests/UI/check_capture_rewind.py PlaybackAudio.swift
 python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift
 python3 Tests/UI/check_capture_rewind.py LocalPass.swift
 python3 Tests/UI/check_capture_rewind.py LocalScoring.swift
+python3 Tests/UI/check_capture_rewind.py SGFPlayback.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -397,6 +410,10 @@ The local Pass check hosts both board views and verifies visible controls/status
 unchanged stones/captures, ko and rewind/replay behavior, and input guards. The local scoring
 check exercises both full board views, open/closed sidebars, group/neutral marking, live totals,
 both territory colors, confirmation, frozen results, rewind/replay, resumption and game changes.
+The SGF playback check loads a nested 132-move game, verifies visible counters in both board
+views, and checks forward steps, seeking, end, rewind/replay, and retention of the imported tree.
+Set `SGF_PLAYBACK_TEST_FILE` and `SGF_PLAYBACK_EXPECTED_MOVES` to check an external SGF read-only;
+no personal game contents are included in the committed regression fixtures.
 
 Scoring marks/results are in-memory review data, never edits to the source SGF. Unknown rules
 and missing/invalid komi block confirmation until explicitly selected/entered. Manual agreement
