@@ -65,7 +65,7 @@ challenge on HTTP 404; cancellation, authentication errors, and timeouts leave t
 SGF downloads also validate HTTP status before passing bytes to the file loader.
 
 The existing Socket.IO endpoint and outgoing game protocol are retained. Authentication
-confirmation/ACK handling and full move/state-version reconciliation still need separate work.
+confirmation/ACK handling still needs live compatibility verification.
 Game notifications now carry connection/game context through AppModel and chat queues; stale
 notifications are rejected at consumption, including after switching away and back to the same game. Local tests do not establish live
 OGS login, challenge, or gameplay compatibility.
@@ -81,8 +81,9 @@ Resume sends only `game/removed_stones/reject`; it no longer also requests an un
 
 The client and board reject scoring edits for spectators, disconnected sessions, finished games,
 and historical board positions. Finished snapshots preserve omitted marks while respecting an
-explicit empty list. The shared scoring decoder is used for REST and socket game data before
-move-version replay guards. `score_stones` is not interpreted as dead-stone coordinates.
+explicit empty list. Full REST/socket snapshots update scoring only after their board history
+passes reconciliation. Standalone scoring events do not require a new move. `score_stones` is
+not interpreted as dead-stone coordinates.
 
 The panel displays OGS-supplied totals and components (territory, stones, prisoners, komi,
 handicap), without recalculating totals or inventing missing components. Valid server scoring
@@ -123,16 +124,32 @@ checked again before consumption. New moves received while reviewing history are
 live position and preserve the viewed index. Disconnected, spectator, and historical-board input
 cannot apply optimistic online moves or passes.
 
+Full snapshots distinguish state revisions from move numbers. A shorter or conflicting history
+without a newer revision triggers a fresh read; it is not automatically treated as undo. Undo
+acceptance also requests the complete state, covering numeric, string, and object event payloads.
+Moves, passes, score edits, and undo requests are blocked during reconciliation. Fixed handicap
+setup and free handicap placement have separate turn handling; setup stones do not add move
+numbers or captures. Unsupported rectangular boards, truncated histories, and edited moves are
+rejected before altering the board. Snapshot metadata, clocks, and scoring are applied only after
+the history is accepted.
+
 KataGo process callbacks are fenced by generation, both output readers own their pipe lifetime,
 and pending restarts are cancellable. Unique request IDs reject results from another game,
 replaced process, superseded same-turn request, or unexpected turn. Input writes run on a serial
 queue instead of blocking the UI. Analysis requests validate coordinates and coalesce pending
 work; game switches cancel the background sweep. Cache snapshots are captured on the main queue
-and written atomically on a serial queue, using fixed-length hashed filenames. Versioned `v2-`
+and written atomically on a serial queue, using fixed-length hashed filenames. Versioned `v3-`
 caches leave older caches untouched; the first analysis after this update may need recomputation.
-Position fingerprints prevent reuse when a requested position differs from the cached position.
+All cached positions are checked against the loaded game's history and settings before display,
+including after undo. Position fingerprints prevent reuse when a requested position differs.
 The analysis configuration explicitly uses `SIDETOMOVE`, matching the UI, and move-quality
 comparisons handle consecutive moves by the same color.
+
+SGF and OGS rules, komi (including zero), and initial player now reach every analysis request.
+OGS Chinese rules use KataGo's `chinese-ogs` preset; explicit OGS handicap compensation settings
+are passed through. Changing settings invalidates old results and pending replies. Unsupported
+rules or invalid komi pause analysis with an explanation. Missing metadata keeps the existing
+Chinese/6.5 defaults but labels that assumption in the analysis panel.
 
 These checks follow KataGo's official [analysis protocol](https://github.com/lightvector/KataGo/blob/master/docs/Analysis_Engine.md)
 and [configuration example](https://github.com/lightvector/KataGo/blob/master/cpp/configs/analysis_example.cfg).
@@ -148,12 +165,12 @@ do not produce a fabricated margin.
 - Socket authentication still accepts legacy readiness events after credentials are sent;
   replacing that with explicit ACK verification requires confirming the deployed protocol.
   Socket.IO ACK framing and the existing move-command sequence field remain unchanged.
-- Full game snapshots still mix move numbers and state versions outside the new recovery path.
-  Complex undo, handicap, and reconnect sequences need combined acceptance testing before release.
-  Ordinary stale full snapshots, particularly shorter histories, remain a separate reconciliation risk.
-- KataGo callers still supply Chinese rules and 6.5 komi by default. Rules, komi, and initial-player
-  metadata need a separate end-to-end pass before treating its estimates as rules-accurate scores.
-  Cache loading is synchronous and cached positions are validated when requested, not all at load.
+- Undo, handicap, and reconnect behavior still needs combined live acceptance testing before
+  release. Ambiguous snapshot conflicts require a successful fresh read; recovery failures leave
+  game input blocked with an error instead of guessing the position. Rectangular boards,
+  truncated histories, and edited online moves remain unsupported.
+- KataGo cache loading and validation remain synchronous. Rules presets are the engine's
+  approximations of their respective rule sets, not a replacement for OGS's final score.
 - The fake subprocess validates process/pipe behavior, not model compatibility, GPU startup,
   or performance of the installed KataGo engine. Live OGS and real-engine acceptance remain deferred.
 
@@ -164,6 +181,23 @@ Returning from online mode reconstructs that saved position and keeps the remain
 available for playback. Clearing the board clears the last-move/turn state. Negative setup
 coordinates, group/territory positions, and playback indices are checked before array access.
 These changes use the existing move/capture implementation; they do not change Go rules.
+
+## Capture lids
+
+Lids and sidebar capture counters now use the same replayed board position. They count stones
+actually captured during play, not additional dead stones included in end-of-game scoring.
+Undo and history navigation recalculate those counts. Queued server counters no longer overwrite
+them. Black's lid contains captured white stones; White's contains captured black stones.
+
+The 2D lid no longer stops drawing at 35 captures. The 3D lid retains its stones when rebuilt or
+resized, uses a fixed stone size independent of board size, and spaces simultaneous captures to
+avoid starting with intersecting physics bodies. Both views show an exact numeric count, since
+stones in a pile can obscure each other. Offline tests inspect actual SceneKit nodes for color,
+count, size, spacing, resize, undo, and reset; the offscreen preview checks a 40-stone pile on 9x9:
+
+```sh
+python3 Tests/Preview/render_captures.py /private/tmp/sgfplayer-captures-preview.png
+```
 
 ## Build and automated validation
 
@@ -178,15 +212,15 @@ python3 Tests/Integration/run_loopback.py
 ```
 
 The root Swift package compiles the networking sources, OGSClient, shared models/settings,
-playback engine, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
+playback engine, SceneKit board scene, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 119 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 139 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
 server score parsing, local playback restoration/bounds, credential races, ordered move reconciliation,
-and KataGo subprocess/cache isolation. They use fake sockets,
+undo/handicap snapshots, capture lids, rules/komi propagation, and KataGo subprocess/cache isolation. They use fake sockets,
 a controllable scheduler, and URLProtocol HTTP fixtures. Client tests exercise the production
 OGSClient with an ephemeral session and no shared cookies; every HTTP request is intercepted,
 and socket creation is injected. No production OGS connection is made by these tests. The loopback test compiles the production WebSocket transport

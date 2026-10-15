@@ -157,20 +157,20 @@ final class OGSClientTests: XCTestCase {
         XCTAssertFalse(client.acceptsGameNotification(snapshot!))
     }
 
-    func testDuplicateMoveDoesNotToggleTurnOrAddCapturesTwice() {
+    func testMovePacketsLeaveCaptureAndTurnUpdatesToBoardReconciliation() {
         connect()
         client.activeGameID = 7
         client.blackPlayerID = 1; client.whitePlayerID = 2; client.currentPlayerID = 1
         let packet = #"42["game/7/move",{"move_number":1,"move":[0,0],"player_id":1,"captured":[{"x":1,"y":0}]}]"#
         socket.deliver(.success(packet))
         drainMainQueue()
-        XCTAssertEqual(client.blackCaptures, 1)
-        XCTAssertEqual(client.currentPlayerID, 2)
+        XCTAssertEqual(client.blackCaptures, 0)
+        XCTAssertEqual(client.currentPlayerID, 1)
         socket.deliver(.success(packet))
         socket.deliver(.success(#"42["game/7/move",{"move_number":1,"move":[0,0]}]"#))
         drainMainQueue()
-        XCTAssertEqual(client.blackCaptures, 1)
-        XCTAssertEqual(client.currentPlayerID, 2)
+        XCTAssertEqual(client.blackCaptures, 0)
+        XCTAssertEqual(client.currentPlayerID, 1)
         XCTAssertEqual(client.lastKnownRemoteMoveNumber, 1)
         client.activeGameID = 8
         XCTAssertNil(client.lastKnownRemoteMoveNumber)
@@ -213,6 +213,50 @@ final class OGSClientTests: XCTestCase {
             XCTAssertEqual(client.isAuthenticated, status == 503)
             XCTAssertEqual(client.playerID, status == 503 ? 1 : nil)
         }
+    }
+
+    func testUndoAcceptedPayloadVariantsUseFencedRecoveryInsteadOfLocalGuess() {
+        connect(); client.activeGameID = 7
+        for payload in ["5", "\"5\"", #"{"move_number":5,"undo_move_count":2}"#] {
+            let delivered = expectation(description: "Post-undo snapshot")
+            ClientHTTPFixture.handler = { fixture in
+                XCTAssertEqual(fixture.request.httpMethod, "GET")
+                fixture.respond(status: 200, body: #"{"id":7,"width":9,"moves":[[0,0]]}"#)
+            }
+            let observer = NotificationCenter.default.addObserver(forName: Notification.Name("OGSGameDataReceived"), object: nil, queue: nil) { note in
+                XCTAssertEqual(note.userInfo?["reconcileMoves"] as? Bool, true)
+                XCTAssertTrue(self.client.acceptsGameNotification(note))
+                delivered.fulfill()
+            }
+            socket.deliver(.success("42[\"game/7/undo_accepted\",\(payload)]"))
+            wait(for: [delivered], timeout: 3)
+            XCTAssertTrue(client.isReconcilingMoves, "Remain blocked until the board accepts the snapshot")
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    func testUndoRequestedAndCancelledSupportLegacyAndObjectPayloads() {
+        connect(); client.activeGameID = 7
+        client.blackPlayerID = 1; client.whitePlayerID = 2; client.whitePlayerName = "Opponent"
+        for payload in ["3", "\"3\"", #"{"move_number":"3","requested_by":2}"#] {
+            socket.deliver(.success("42[\"game/7/undo_requested\",\(payload)]"))
+            XCTAssertEqual(client.undoRequestedMoveNumber, 3)
+            XCTAssertEqual(client.undoRequestedUsername, "Opponent")
+            socket.deliver(.success(#"42["game/7/undo_canceled",{}]"#))
+            drainMainQueue()
+            XCTAssertNil(client.undoRequestedMoveNumber)
+        }
+    }
+
+    func testFullSnapshotCannotChangeMetadataBeforeHistoryAdmission() {
+        connect(); client.activeGameID = 7
+        client.blackCaptures = 3; client.komi = 7.5; client.phase = "play"
+        socket.deliver(.success(#"42["game/7/gamedata",{"id":7,"moves":[],"phase":"finished","komi":0.5,"state_version":500,"prisoners":{"black":99}}]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.phase, "play")
+        XCTAssertEqual(client.komi, 7.5)
+        XCTAssertEqual(client.blackCaptures, 3)
+        XCTAssertEqual(client.currentStateVersion, 0)
     }
 
     func testUnauthenticatedAcceptDoesNotLeaveLobbyBusy() {

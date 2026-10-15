@@ -8,6 +8,8 @@ class KataGoEngine: ObservableObject {
     @Published private(set) var isEngineRunning = false
     @Published var currentAnalysisData: [Int: AIAnalysis] = [:]
     @Published private(set) var engineStartupError: String?
+    @Published private(set) var analysisNotice: String?
+    private var contextFingerprint: String?
 
     var currentGameId = "local" {
         didSet { if currentGameId != oldValue { invalidateAnalysis() } }
@@ -143,17 +145,19 @@ class KataGoEngine: ObservableObject {
         requests.removeAll()
         pendingVisits.removeAll()
         fingerprints.removeAll()
+        contextFingerprint = nil
         currentAnalysisData.removeAll()
     }
 
     private struct Cache: Codable {
         let analyses: [Int: AIAnalysis]
         let fingerprints: [Int: String]
+        let contextFingerprint: String?
     }
 
     private func cacheURL(for gameID: String) -> URL {
         // Fixed-length names avoid slashes, path traversal, and very long local SGF paths.
-        cacheDirectory.appendingPathComponent("v2-\(digest(Data(gameID.utf8))).json")
+        cacheDirectory.appendingPathComponent("v3-\(digest(Data(gameID.utf8))).json")
     }
 
     private func digest(_ data: Data) -> String {
@@ -163,7 +167,7 @@ class KataGoEngine: ObservableObject {
     func saveAnalysisCache(for gameID: String) {
         dispatchPrecondition(condition: .onQueue(.main))
         guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty else { return }
-        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints)
+        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint)
         let url = cacheURL(for: gameID)
         cacheQueue.async {
             do {
@@ -174,7 +178,7 @@ class KataGoEngine: ObservableObject {
     }
 
     @discardableResult
-    func loadAnalysisCache(for gameID: String) -> Bool {
+    func loadAnalysisCache(for gameID: String, game: SGFPlayer? = nil) -> Bool {
         dispatchPrecondition(condition: .onQueue(.main))
         saveAnalysisCache(for: currentGameId)
         currentGameId = gameID
@@ -186,9 +190,23 @@ class KataGoEngine: ObservableObject {
             guard let data = try? Data(contentsOf: url) else { return nil }
             return try? JSONDecoder().decode(Cache.self, from: data)
         }) else { return false }
-        currentAnalysisData = loaded.analyses
-        fingerprints = loaded.fingerprints
-        return true
+        var valid = loaded.analyses
+        if let game {
+            analysisNotice = game.analysisSettings.notice
+            // Validate every cached position before publishing, including prefixes and turns beyond undo.
+            valid = valid.filter { turn, _ in
+                guard (0...game.maxIndex).contains(turn) else { return false }
+                let payload = game.getAIPayload(at: turn)
+                guard let query = positionQuery(initialStones: payload.initial, moves: payload.moves,
+                    size: game.board.size, settings: game.analysisSettings),
+                    let data = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return false }
+                return loaded.fingerprints[turn] == digest(data)
+            }
+        }
+        currentAnalysisData = valid
+        fingerprints = loaded.fingerprints.filter { valid[$0.key] != nil }
+        contextFingerprint = valid.isEmpty ? nil : loaded.contextFingerprint
+        return !valid.isEmpty
     }
 
     private func scheduleCacheSave() {
@@ -199,13 +217,12 @@ class KataGoEngine: ObservableObject {
         }
     }
 
-    /// One unique ID per request: results can arrive out of order, even at the same turn.
-    func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
-                     moves: [(color: String, x: Int, y: Int)], size: Int = 19,
-                     komi: Double = 6.5, maxVisits: Int = 100) {
-        dispatchPrecondition(condition: .onQueue(.main))
-        guard isEngineRunning, id == currentGameId, (2...19).contains(size),
-              komi.isFinite, (-400...400).contains(komi), maxVisits > 0 else { return }
+    private func positionQuery(initialStones: [(color: String, x: Int, y: Int)],
+                               moves: [(color: String, x: Int, y: Int)], size: Int,
+                               settings: GameAnalysisSettings) -> [String: Any]? {
+        let komi = settings.effectiveKomi
+        guard let rules = settings.kataRules, komi.isFinite, (-400...400).contains(komi),
+              (komi * 2).rounded() == komi * 2, (2...19).contains(size) else { return nil }
         func coordinates(_ value: (color: String, x: Int, y: Int), allowPass: Bool) -> [String]? {
             guard value.color == "B" || value.color == "W" else { return nil }
             if allowPass && value.x == -1 && value.y == -1 { return [value.color, "pass"] }
@@ -215,11 +232,33 @@ class KataGoEngine: ObservableObject {
         }
         let jsonMoves = moves.compactMap { coordinates($0, allowPass: true) }
         let jsonInitial = initialStones.compactMap { coordinates($0, allowPass: false) }
-        guard jsonMoves.count == moves.count, jsonInitial.count == initialStones.count else { return }
-        let turn = moves.count
-        var query: [String: Any] = ["rules": "chinese", "komi": komi, "boardXSize": size, "boardYSize": size,
+        guard jsonMoves.count == moves.count, jsonInitial.count == initialStones.count else { return nil }
+        var query: [String: Any] = ["rules": rules, "komi": komi, "boardXSize": size, "boardYSize": size,
             "initialStones": jsonInitial, "moves": jsonMoves, "includePolicy": false, "includeOwnership": true,
-            "analyzeTurns": [turn]]
+            "analyzeTurns": [moves.count], "initialPlayer": settings.initialPlayer == .black ? "B" : "W"]
+        if let bonus = settings.whiteHandicapBonus { query["whiteHandicapBonus"] = bonus }
+        return query
+    }
+
+    /// One unique ID per request: results can arrive out of order, even at the same turn.
+    func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
+                     moves: [(color: String, x: Int, y: Int)], size: Int = 19,
+                     komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        let settings = settings ?? GameAnalysisSettings(rules: "chinese", komi: komi)
+        analysisNotice = settings.notice
+        let komi = settings.effectiveKomi
+        guard id == currentGameId else { return }
+        guard settings.kataRules != nil, komi.isFinite, (-400...400).contains(komi),
+              (komi * 2).rounded() == komi * 2 else { invalidateAnalysis(); return }
+        guard isEngineRunning, (2...19).contains(size), maxVisits > 0 else { return }
+        guard var query = positionQuery(initialStones: initialStones, moves: moves, size: size, settings: settings) else { return }
+        let turn = moves.count
+        var context = query
+        context.removeValue(forKey: "moves"); context.removeValue(forKey: "analyzeTurns")
+        guard let contextData = try? JSONSerialization.data(withJSONObject: context, options: .sortedKeys) else { return }
+        let contextKey = digest(contextData)
+        if contextFingerprint != contextKey { invalidateAnalysis(); contextFingerprint = contextKey }
         guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
         let fingerprint = digest(position)
         if fingerprints[turn] == fingerprint {

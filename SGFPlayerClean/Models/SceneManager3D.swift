@@ -28,6 +28,7 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     // Dynamic Radius: 48% of cell width (leaves 4% gap)
     private var stoneRadius: CGFloat { effectiveCellWidth * 0.48 }
     private let stoneScaleY: CGFloat = 0.486
+    private let capturedStoneRadius: CGFloat = 0.48
     private var previousLastMove: BoardPosition?
     private var effectiveCellWidth: CGFloat { CGFloat(18) / CGFloat(max(1, boardSize - 1)) }
     private var effectiveCellHeight: CGFloat { (CGFloat(18) / CGFloat(max(1, boardSize - 1))) * 1.0773 }
@@ -606,7 +607,35 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         let localDown = SCNVector3(0, -19.62, 0) // Double gravity for snappier dropping
         scene.physicsWorld.gravity = worldAnchor.convertVector(localDown, to: nil)
     }
-    func updateCapturedStones(black: Int, white: Int) { guard let u = upperLidNode, let l = lowerLidNode else { return }; SCNTransaction.begin(); SCNTransaction.animationDuration = 0; updateLidDiff(lid: u, current: &upperLidStones, target: black, isWhite: true); updateLidDiff(lid: l, current: &lowerLidStones, target: white, isWhite: false); SCNTransaction.commit() }
+    /// Counts are by capturing player. White's upper lid holds black stones, and vice versa.
+    func updateCapturedStones(black: Int, white: Int) {
+        guard let upper = upperLidNode, let lower = lowerLidNode else { return }
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0
+        updateLidDiff(lid: upper, current: &upperLidStones, target: max(0, white), isWhite: false)
+        updateLidDiff(lid: lower, current: &lowerLidStones, target: max(0, black), isWhite: true)
+        updateCaptureLabel(lid: upper, count: max(0, white))
+        updateCaptureLabel(lid: lower, count: max(0, black))
+        SCNTransaction.commit()
+    }
+
+    private func updateCaptureLabel(lid: SCNNode, count: Int) {
+        if let label = lid.childNode(withName: "capture-count", recursively: false)?.geometry as? SCNText {
+            label.string = String(count)
+            return
+        }
+        let text = SCNText(string: String(count), extrusionDepth: 0)
+        text.font = NSFont.monospacedDigitSystemFont(ofSize: 0.6, weight: .bold)
+        text.firstMaterial?.diffuse.contents = NSColor.white
+        text.firstMaterial?.lightingModel = .constant
+        let node = SCNNode(geometry: text)
+        node.name = "capture-count"
+        node.eulerAngles.x = -.pi / 2
+        // Keep the exact count outside the pile, where stones cannot obscure it.
+        node.position = SCNVector3(-0.4, 0.2, 4.0)
+        lid.addChildNode(node)
+    }
+
     private func updateLidDiff(lid: SCNNode, current: inout [SCNNode], target: Int, isWhite: Bool) { 
         if current.count == target { return }
         
@@ -619,23 +648,28 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
             for i in current.count..<target { 
                 let g = isWhite ? clamGeometries[i % 5] : blackStoneGeometry
                 let n = SCNNode(geometry: g)
+                n.name = isWhite ? "captured-white" : "captured-black"
                 
-                // Spawn position: Floating slightly above the lid center (y: 1.0) with random X/Z scatter
-                let spread: CGFloat = 1.0
-                let rx = CGFloat.random(in: -spread...spread)
-                let rz = CGFloat.random(in: -spread...spread)
-                n.position = SCNVector3(x: rx, y: 1.5, z: rz)
-                // Spawn them mostly flat so they don't land and stick on their edges (since friction is very high)
-                n.eulerAngles = SCNVector3(CGFloat.random(in: -0.2...0.2), CGFloat.random(in: 0...2 * .pi), CGFloat.random(in: -0.2...0.2))
-                
-                // Visual Flattening
-                n.scale = SCNVector3(1, stoneScaleY, 1) // Flatten captured stone to match board appearance
-                
+                // Lids have a fixed size even when the board changes to 9x9 or 13x13.
+                // Space simultaneous captures in layers so physics starts without intersections.
+                var positions: [(CGFloat, CGFloat)] = []
+                for row in -2...2 {
+                    for col in -2...2 where row * row + col * col <= 5 {
+                        positions.append((CGFloat(col) * 1.05, CGFloat(row) * 1.05))
+                    }
+                }
+                let position = positions[i % positions.count]
+                let layer = i / positions.count
+                n.position = SCNVector3(position.0, 0.8 + CGFloat(layer) * 0.52, position.1)
+                n.eulerAngles = SCNVector3(0, CGFloat(i) * 2.39996, 0)
+                let scale = capturedStoneRadius / stoneRadius
+                n.scale = SCNVector3(scale, scale * stoneScaleY, scale)
+
                 // Physics setup
                 // sceneKit ignores SCNNode.scale when calculating primitive options:nil bounding boxes!
                 // This means visual stones were flattened, but their physics bodies were still giant spheres.
                 // We create a separate explicit physics primitive (a short, flat cylinder) matching the visual scale.
-                let physGeom = SCNCylinder(radius: stoneRadius, height: stoneRadius * stoneScaleY * 2.0)
+                let physGeom = SCNCylinder(radius: capturedStoneRadius, height: capturedStoneRadius * stoneScaleY * 2.0)
                 let shape = SCNPhysicsShape(geometry: physGeom, options: nil)
                 let body = SCNPhysicsBody(type: .dynamic, shape: shape)
                 body.mass = 0.5 // Higher mass so they slam down
@@ -752,7 +786,10 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
             board.addChildNode(nX) 
         } 
     }
-    func createLids() { 
+    func createLids() {
+        let black = lowerLidStones.count, white = upperLidStones.count
+        upperLidStones.removeAll()
+        lowerLidStones.removeAll()
         upperLidNode?.removeFromParentNode()
         lowerLidNode?.removeFromParentNode()
         
@@ -761,6 +798,9 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         
         if let u = upperLidNode { worldAnchor.addChildNode(u) }
         if let l = lowerLidNode { worldAnchor.addChildNode(l) }
+        upperLidNode?.name = "white-player-lid"
+        lowerLidNode?.name = "black-player-lid"
+        updateCapturedStones(black: black, white: white)
     }
     
     private func createLidNode(textureName: String, pos: SCNVector3) -> SCNNode {

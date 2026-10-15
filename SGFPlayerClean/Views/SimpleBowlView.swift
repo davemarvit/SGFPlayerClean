@@ -7,8 +7,13 @@ struct SimpleLidView: View {
         ZStack {
             SafeImage(name: lidNumber == 1 ? "go_lid_1.png" : "go_lid_2.png", resizingMode: .stretch)
                 .frame(width: lidSize, height: lidSize).shadow(color: .black.opacity(0.4), radius: 8, x: 10, y: 10)
-            if stoneCount > 0 { LidStonesPile(color: stoneColor, count: min(stoneCount, 35), stoneSize: stoneSize, lidSize: lidSize) }
+            if stoneCount > 0 { LidStonesPile(color: stoneColor, count: stoneCount, stoneSize: stoneSize, lidSize: lidSize) }
         }.frame(width: lidSize, height: lidSize)
+            .overlay(alignment: .bottomTrailing) {
+                Text("\(max(0, stoneCount))").font(.caption.bold()).monospacedDigit()
+                    .padding(5).background(.regularMaterial, in: Capsule())
+            }
+            .accessibilityLabel("\(stoneColor == .black ? "Black" : "White") stones captured: \(max(0, stoneCount))")
     }
 }
 struct LidStonesPile: View {

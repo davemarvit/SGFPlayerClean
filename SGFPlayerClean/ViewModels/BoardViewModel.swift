@@ -61,15 +61,6 @@ class BoardViewModel: ObservableObject {
         ogsClient.$phase.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         ogsClient.$scoreSummary.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         
-        // FIX: Sync Captures from OGSClient
-        ogsClient.$blackCaptures.receive(on: RunLoop.main).sink { [weak self] val in
-            if self?.isOnlineContext == true { self?.blackCapturedCount = val }
-        }.store(in: &cancellables)
-        
-        ogsClient.$whiteCaptures.receive(on: RunLoop.main).sink { [weak self] val in
-             if self?.isOnlineContext == true { self?.whiteCapturedCount = val }
-        }.store(in: &cancellables)
-        
         // Trigger initial analysis once engine boots up
         KataGoEngine.shared.$isEngineRunning.receive(on: RunLoop.main).sink { [weak self] isRunning in
             if isRunning {
@@ -106,9 +97,8 @@ class BoardViewModel: ObservableObject {
         self.isOnlineContext = false
         
         let newGameId = wrapper.url.path.replacingOccurrences(of: "/", with: "_")
-        _ = KataGoEngine.shared.loadAnalysisCache(for: newGameId)
-        
         self.engine.load(game: wrapper.game)
+        _ = KataGoEngine.shared.loadAnalysisCache(for: newGameId, game: engine)
         self.jitterEngine = StoneJitter(boardSize: self.boardSize)
         self.lastObservedMoveIndex = self.engine.currentIndex
         self.syncState()
@@ -156,20 +146,15 @@ class BoardViewModel: ObservableObject {
         self.engine.playMoveOptimistically(color: color, x: -1, y: -1)
     }
     
-    func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
+    func finishOnlineGameLoad(gameID: Int) {
         fullGameAnalysisTask?.cancel()
-        _ = KataGoEngine.shared.loadAnalysisCache(for: ogsClient.activeGameID.map(String.init) ?? "local")
-        self.stonesToRender = []
-        self.objectWillChange.send()
-        self.isOnlineContext = true
-        self.jitterEngine = StoneJitter(boardSize: width)
-        self.engine.clear()
-        NSLog("[OGS-BVM] 🧹 Engine Cleared. Loading Online Game (Version: \(stateVersion))")
-        self.engine.loadOnline(size: width, setup: initialStones, nextPlayer: nextPlayer, stateVersion: stateVersion)
-        self.isSyncing = false
-        Task { @MainActor in self.syncState() }
+        _ = KataGoEngine.shared.loadAnalysisCache(for: String(gameID), game: engine)
+        isOnlineContext = true
+        jitterEngine = StoneJitter(boardSize: engine.board.size)
+        isSyncing = false
+        syncState()
     }
-    
+
     func placeStone(at pos: BoardPosition) {
         let p = ogsClient.phase ?? "unknown"
         let isOnline = isOnlineContext
@@ -198,6 +183,7 @@ class BoardViewModel: ObservableObject {
         // 2. Play Phase
         if isOnlineContext {
             guard ogsClient.isConnected, ogsClient.isSocketAuthenticated, ogsClient.isGameParticipant,
+                  !ogsClient.isReconcilingMoves,
                   engine.currentIndex == engine.maxIndex else { return }
             // SECURITY CHECK 1: Engine Consistency
             // If the local engine already knows it's the opponent's turn, we must block consecutive plays locally.
@@ -340,20 +326,13 @@ class BoardViewModel: ObservableObject {
         self.lastMovePosition = last
         self.currentMoveIndex = idx
         
+        self.blackCapturedCount = engine.capturesByBlack
+        self.whiteCapturedCount = engine.capturesByWhite
         if isOnlineContext {
-            // Use Server's authoritative capture counts
-            self.blackCapturedCount = ogsClient.blackCaptures
-            self.whiteCapturedCount = ogsClient.whiteCaptures
-            
-            // Debug Log for Critical Zero-Capture Issue
-            // NSLog("[OGS-SYNC] 🔄 Sync Captures: B:\(self.blackCapturedCount) W:\(self.whiteCapturedCount) (Client: \(ogsClient.blackCaptures)/\(ogsClient.whiteCaptures))")
-            self.whiteCapturedCount = ogsClient.whiteCaptures
-        } else {
-            // Use Local Engine's calculated counts
-            self.blackCapturedCount = self.engine.whiteStonesCaptured
-            self.whiteCapturedCount = self.engine.blackStonesCaptured
+            ogsClient.blackCaptures = blackCapturedCount
+            ogsClient.whiteCaptures = whiteCapturedCount
         }
-        
+
         self.isAutoPlaying = self.engine.isPlaying
         self.totalMoves = self.engine.maxIndex
         self.onRequestUpdate3D.send()
@@ -374,8 +353,8 @@ class BoardViewModel: ObservableObject {
             initialStones: payload.initial,
             moves: payload.moves,
             size: self.boardSize,
-            komi: 6.5, // Could be extracted from game info if available
-            maxVisits: 50 // Fast background sync sweep
+            maxVisits: 50,
+            settings: engine.analysisSettings
         )
     }
     func triggerFullGameAnalysis() {
@@ -424,8 +403,8 @@ class BoardViewModel: ObservableObject {
                         initialStones: payload.initial,
                         moves: payload.moves,
                         size: self.boardSize,
-                        komi: 6.5,
-                        maxVisits: depth
+                        maxVisits: depth,
+                        settings: engine.analysisSettings
                     )
                     
                     completedOperations += 1

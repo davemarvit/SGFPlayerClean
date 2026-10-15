@@ -15,6 +15,7 @@ class OGSClient: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var isConnected = false
     @Published var isSocketAuthenticated = false
+    @Published var isReconcilingMoves = false
     @Published var isAuthenticated = false
     @Published var lastError: String? = nil
     @Published var username: String?
@@ -39,6 +40,9 @@ class OGSClient: NSObject, ObservableObject {
                  playerColor = nil
                  lastKnownRemoteMoveNumber = nil
                  currentStateVersion = 0
+                 blackCaptures = 0; whiteCaptures = 0
+                 isReconcilingMoves = false
+                 komi = nil; gameRules = nil
                  if pendingGameID != activeGameID {
                      gameStateReader.cancel()
                      pendingGameID = nil
@@ -440,6 +444,7 @@ class OGSClient: NSObject, ObservableObject {
     func fetchGameState(gameID: Int, completion: @escaping ([String: Any]?) -> Void) {
         gameStateReader.cancel()
         pendingGameID = gameID
+        let revision = gameMoveRevision
         let ts = Int(Date().timeIntervalSince1970)
         let url = URL(string: "https://online-go.com/api/v1/games/\(gameID)?t=\(ts)")!
         var request = URLRequest(url: url)
@@ -451,11 +456,10 @@ class OGSClient: NSObject, ObservableObject {
             self.pendingGameID = nil
             switch result {
             case .success(let json):
-                let game = (json["gamedata"] as? [String: Any]) ?? json
-                // A background fetch must not change the version of another active game.
-                if self.activeGameID == gameID,
-                   let version = self.robustInt(game["state_version"]) ?? self.robustInt(game["move_number"]) {
-                    self.currentStateVersion = max(self.currentStateVersion, version)
+                if self.activeGameID == gameID, self.gameMoveRevision != revision {
+                    completion(nil)
+                    self.requestMoveResync()
+                    return
                 }
                 completion(json)
             case .failure(let error):
@@ -467,7 +471,9 @@ class OGSClient: NSObject, ObservableObject {
 
     /// Recover gaps/conflicts with a read, never by resending a move.
     func requestMoveResync() {
-        guard isConnected, let id = activeGameID, pendingGameID == nil else { return }
+        guard isConnected, let id = activeGameID else { return }
+        isReconcilingMoves = true
+        guard pendingGameID == nil else { return }
         let context = makeGameNotification(name: Notification.Name("OGSGameDataReceived"), userInfo: [:])
         let revision = gameMoveRevision
         fetchGameState(gameID: id) { [weak self] root in
@@ -777,6 +783,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func sendUndoRequest(gameID: Int, moveNumber: Int) {
+        guard gameID == activeGameID, isConnected, isSocketAuthenticated, isGameParticipant, !isReconcilingMoves else { return }
         self.isRequestingUndo = true
         // self.lastUndoneMoveNumber = moveNumber // REMOVED: Do not limit future moves!
         // NSLog("[OGS-CLIENT] ↩️ sendUndoRequest: Flag SET to TRUE. Guard Armed for \(moveNumber)")
@@ -789,6 +796,7 @@ class OGSClient: NSObject, ObservableObject {
 
 
     func sendUndoAccept(gameID: Int, moveNumber: Int) {
+         guard gameID == activeGameID, isConnected, isSocketAuthenticated, isGameParticipant, !isReconcilingMoves else { return }
          self.isRequestingUndo = true
          NSLog("[OGS-CLIENT] ↩️ sendUndoAccept: Flag SET to TRUE")
         sendAction("game/undo/accept", payload: ["game_id": gameID, "move_number": moveNumber], sequence: currentStateVersion + 1)
@@ -806,7 +814,7 @@ class OGSClient: NSObject, ObservableObject {
         return playerID == blackPlayerID || playerID == whitePlayerID
     }
     var canEditScore: Bool {
-        isConnected && isSocketAuthenticated && isGameParticipant && activeGameID != nil &&
+        isConnected && isSocketAuthenticated && isGameParticipant && !isReconcilingMoves && activeGameID != nil &&
         isScoringPhase && !isGameFinished && scoreAcceptance != .resuming && scoreAcceptance != .updating
     }
 
@@ -1014,6 +1022,12 @@ class OGSClient: NSObject, ObservableObject {
             if ["move", "gamedata", "undo_accepted"].contains(parts[2]) { gameMoveRevision += 1 }
         }
 
+        if eventName.hasSuffix("/gamedata") {
+            let notification = makeGameNotification(name: Notification.Name("OGSGameDataReceived"), userInfo: ["gameData": payload])
+            NotificationCenter.default.post(notification)
+            return
+        }
+
         if eventName.hasSuffix("/phase"), let value = event.payload as? String {
             applyGamePhase(value)
             return
@@ -1145,13 +1159,7 @@ class OGSClient: NSObject, ObservableObject {
             self.stopClockTimer()
         }
 
-        if eventName.hasSuffix("/gamedata") {
-            self.hasEnteredRoom = true
-            if let p = payload as? [String: Any] {
-                if let clock = p["clock"] as? [String: Any] { self.lastClockSnapshot = clock }
-                handleInboundGameData(p)
-            }
-        } else if eventName.hasSuffix("/clock") {
+        if eventName.hasSuffix("/clock") {
             if !self.isGameFinished {
                  if let p = payload as? [String: Any] { self.lastClockSnapshot = p; handleInboundClock(p) }
             }
@@ -1160,15 +1168,13 @@ class OGSClient: NSObject, ObservableObject {
         } else if eventName.hasSuffix("/chat") {
             handleIncomingChat(payload)
         } else if eventName.hasSuffix("/undo_requested") {
-            if let p = payload as? [String: Any],
-               let whomID = robustInt(p["requested_by"]),
-               whomID != self.playerID {
-                let name = (whomID == self.blackPlayerID) ? (self.blackPlayerName ?? "Black") : ((whomID == self.whitePlayerID) ? (self.whitePlayerName ?? "White") : "Opponent")
-                
-                self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                    self.undoRequestedUsername = name
-                    self.undoRequestedMoveNumber = p["move_number"] as? Int
-                }
+            let number = robustInt(payload["move_number"]) ?? robustInt(event.payload)
+            let requester = robustInt(payload["requested_by"])
+            if let number, number > 0, isGameParticipant,
+               requester != playerID, requester != nil || !isRequestingUndo {
+                undoRequestedUsername = requester == blackPlayerID ? (blackPlayerName ?? "Black") :
+                    requester == whitePlayerID ? (whitePlayerName ?? "White") : (opponentName(for: playerID) ?? "Opponent")
+                undoRequestedMoveNumber = number
             }
         } else if eventName.hasSuffix("/stone_removal") {
             if let text = payload["removed"] as? String { handleInboundRemovedStones(text) }
@@ -1177,30 +1183,15 @@ class OGSClient: NSObject, ObservableObject {
             handleRemovedStonesUpdate(payload)
         }
 
-        else if eventName.contains("undo_accepted") {
-            // NSLog("OGS: ↩️ Undo Accepted event received: \(eventName). Triggering State Fetch.")
-            
-            // 2. Trigger Fetch to clear the board (Server Truth)
-            // The Proactive Fetch might have been blocked or too early. This is the confirmation.
-            // We use activeGameID because the payload might not have it in this event format
-            if let gid = self.activeGameID {
-                self.fetchGameState(gameID: gid) { data in
-                    guard let data = data else { return }
-                    // Broadcast the fetched state so AppModel can update the board
-                    let g = (data["gamedata"] as? [String: Any]) ?? data
-                    self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                         NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": g]))
-                    }
-                }
-            }
-            
-            self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                self.undoRequestedUsername = nil
-                self.undoRequestedMoveNumber = nil
-                // DO NOT disarm ghost guard here. Wait for Sync.
-            }
-            
-        } else if eventName.contains("/undo/reject") || eventName.contains("/undo/cancel") {
+        else if eventName.hasSuffix("/undo_accepted") {
+            // The payload can be a number, string, or object. Fetch the complete post-undo state
+            // instead of guessing whether the number is a move index or a count of removed moves.
+            gameStateReader.cancel()
+            pendingGameID = nil
+            undoRequestedUsername = nil
+            undoRequestedMoveNumber = nil
+            requestMoveResync()
+        } else if eventName.contains("/undo/reject") || eventName.contains("/undo/cancel") || eventName.hasSuffix("/undo_canceled") {
             NSLog("OGS: ↩️ Undo Cancelled/Rejected event received: \(eventName)")
             self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
                 self.isRequestingUndo = false
@@ -1229,180 +1220,112 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     // MARK: - Logic Handlers (Atomic)
-    private func handleInboundGameData(_ p: [String: Any]) {
-        self.enqueueSocketUpdate {
-            let gid = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"])
-            NSLog("[OGS-DATA] 📦 handleInboundGameData for \(gid ?? -1). Keys: \(p.keys.sorted())")
-            
-            guard gid == self.activeGameID else { return }
-            let players = p["players"] as? [String: Any]
-            self.currentHandicap = self.robustInt(p["handicap"]) ?? 0
-            
-            // Phase A: Identity & Rank Parsing
-            let blackObj = (players?["black"] as? [String: Any])
-            let whiteObj = (players?["white"] as? [String: Any])
-            
-            self.blackPlayerID = self.robustInt(blackObj?["id"]) ?? self.robustInt(p["black_player_id"])
-            self.whitePlayerID = self.robustInt(whiteObj?["id"]) ?? self.robustInt(p["white_player_id"])
-            
-            self.blackPlayerName = blackObj?["username"] as? String ?? self.blackPlayerName
-            self.whitePlayerName = whiteObj?["username"] as? String ?? "White"
-            
-            NSLog("[OGS-DEBUG-COLOR] 📥 Parsed Game Data. MyID: \(self.playerID ?? -1). BlackID: \(self.blackPlayerID ?? -1). WhiteID: \(self.whitePlayerID ?? -1).")
+    func applyAcceptedGameData(_ p: [String: Any]) {
+        let gid = self.robustInt(p["game_id"]) ?? self.robustInt(p["id"]) ?? activeGameID
+        NSLog("[OGS-DATA] 📦 handleInboundGameData for \(gid ?? -1). Keys: \(p.keys.sorted())")
 
-            let bR = (blackObj?["ranking"] as? Double) ?? (blackObj?["rank"] as? Double)
-            let bR_int = (blackObj?["ranking"] as? Int) ?? (blackObj?["rank"] as? Int)
-            self.blackPlayerRank = bR ?? bR_int.map { Double($0) }
-            
-            let wR = (whiteObj?["ranking"] as? Double) ?? (whiteObj?["rank"] as? Double)
-            let wR_int = (whiteObj?["ranking"] as? Int) ?? (whiteObj?["rank"] as? Int)
-            self.whitePlayerRank = wR ?? wR_int.map { Double($0) }
-            self.blackPlayerCountry = blackObj?["country"] as? String
-            self.whitePlayerCountry = whiteObj?["country"] as? String
-            
-            // Phase B: Game Rules & Ranked Status
-            if let r = p["rules"] as? String { self.gameRules = r.capitalized }
-            if let r = p["rules"] as? String { self.gameRules = r.capitalized }
-            if let ranked = p["ranked"] as? Bool { self.isRanked = ranked }
-            if let k = p["komi"] as? Double { self.komi = k }
-            else if let kstr = p["komi"] as? String { self.komi = Double(kstr) }
-            
-            
-            // Phase B: Static Time Control
-            // Case 1: time_control is a dictionary (common in GameData)
-            if let tcDict = p["time_control"] as? [String: Any] {
-                let sys = (tcDict["system"] as? String) ?? (tcDict["time_control"] as? String)
-                let tp = TimeParameters(
-                    time_control: sys,
-                    main_time: (tcDict["main_time"] as? Int) ?? (tcDict["initial_time"] as? Int),
-                    initial_time: tcDict["initial_time"] as? Int,
-                    periods: tcDict["periods"] as? Int,
-                    period_time: tcDict["period_time"] as? Int,
-                    time_increment: tcDict["time_increment"] as? Int,
-                    increment: tcDict["increment"] as? Int,
-                    stones_per_period: tcDict["stones_per_period"] as? Int,
-                    per_move: tcDict["per_move"] as? Int,
-                    speed: tcDict["speed"] as? String // FIX: Added missing field
-                )
-                self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: sys, params: tp, perMove: nil)
-                
-                if let pt = tp.period_time {
-                    self.blackPeriodLength = Double(pt)
-                    self.whitePeriodLength = Double(pt)
-                }
-            }
-            // Case 2: time_control is a string and params are separate (common in Challenges)
-            else if let tc = p["time_control"] as? String, let params = p["time_control_parameters"] as? [String: Any] {
-                let tp = TimeParameters(
-                    time_control: params["time_control"] as? String,
-                    main_time: (params["main_time"] as? Int) ?? (params["initial_time"] as? Int),
-                    initial_time: params["initial_time"] as? Int,
-                    periods: params["periods"] as? Int,
-                    period_time: params["period_time"] as? Int,
-                    time_increment: params["time_increment"] as? Int,
-                    increment: params["increment"] as? Int,
-                    stones_per_period: params["stones_per_period"] as? Int,
-                    per_move: params["per_move"] as? Int,
-                    speed: params["speed"] as? String // FIX: Added missing field
-                )
-                self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: tc, params: tp, perMove: nil)
-                
-                if let pt = tp.period_time {
-                    self.blackPeriodLength = Double(pt)
-                    self.whitePeriodLength = Double(pt)
-                }
-            }
-            
-            // Phase C: Initial Clock State
-            if let clock = p["clock"] as? [String: Any] { 
-                self.lastClockSnapshot = clock
-                self.handleInboundClock(clock)
-            }
-            
-            // Phase D: Captures / Prisoners
-            // GameData usually has "players" -> "black" -> "captured" sometimes? 
-            // OR checks "prisoners" key directly.
-            // OGS 2025: players.black.prisoners is Int? or just rely on 'gamedata' level 'prisoners'?
-            // Let's check both.
-            if let priv = p["prisoners"] as? [String: Any] {
-                 self.blackCaptures = (priv["black"] as? Int) ?? self.blackCaptures
-                 self.whiteCaptures = (priv["white"] as? Int) ?? self.whiteCaptures
-            } else if let b = p["black_prisoners"] as? Int, let w = p["white_prisoners"] as? Int {
-                 // Alternate format
-                 self.blackCaptures = b
-                 self.whiteCaptures = w
-            }
-            
-            self.hasEnteredRoom = true
-            
-            // If the game is in 'stone removal' phase, ensure we request the latest state or parse it
-            if let phase = p["phase"] as? String, phase == "stone removal" {
-                 // Ensuring we have the latest removed stones is handled by 'removed_stones' events usually.
-                 // But if we just joined, we might need 'removed' key from gamedata?
-                 if let removed = p["removed"] as? String {
-                      self.handleInboundRemovedStones(removed)
-                 }
-            }
+        guard gid == self.activeGameID else { return }
+        let players = p["players"] as? [String: Any]
+        self.currentHandicap = self.robustInt(p["handicap"]) ?? 0
+        self.lastKnownRemoteMoveNumber = (p["moves"] as? [[Any]])?.count
 
-            // FIX: Parse 'clock' immediately so we have 'current_player' for tickClock()
-            if let cAny = p["clock"] {
-                // DEBUG: Check Type of Clock
-                NSLog("[OGS-CLOCK] 🔍 Check 'clock' Type: \(type(of: cAny))")
-                if let clockData = cAny as? [String: Any] {
-                     self.handleInboundClock(clockData)
-                } else {
-                     NSLog("[OGS-CLOCK] ❌ 'clock' is NOT [String:Any]. It is \(type(of: cAny))")
-                }
-            } else {
-                 // Fallback: If no clock object, try to find 'current_player' at root?
-                 // Usually gamedata has 'clock'.
-            }
-            
-            // Remove debugs
-            // print("DEBUG: ...")
-            
-            // Phase B: Captures
-            // Check both 'prisoners' (common) and 'score_prisoners' (endgame)
-            if let prisoners = (p["prisoners"] as? [String: Any]) ?? (p["score_prisoners"] as? [String: Any]) {
-                self.blackCaptures = (prisoners["black"] as? Int) ?? self.blackCaptures
-                self.whiteCaptures = (prisoners["white"] as? Int) ?? self.whiteCaptures
-            } else if let bC = p["black_prisoners"] as? Int, let wC = p["white_prisoners"] as? Int {
-                 // Format 2: Direct keys
-                 self.blackCaptures = bC
-                 self.whiteCaptures = wC
-            }
+        // Phase A: Identity & Rank Parsing
+        let blackObj = (players?["black"] as? [String: Any])
+        let whiteObj = (players?["white"] as? [String: Any])
 
-            self.applyScoringSnapshot(p)
+        self.blackPlayerID = self.robustInt(blackObj?["id"]) ?? self.robustInt(p["black_player_id"])
+        self.whitePlayerID = self.robustInt(whiteObj?["id"]) ?? self.robustInt(p["white_player_id"])
 
-            // Phase C: Game End State
-            // FIX: LATCH Logic. If we already know it's finished, don't reset to false unless explicit "play" phase seen.
-            if let moves = p["moves"] as? [[Any]] {
-                 // Update Remote Move Number (Critical for Undo)
-                 let initial = self.robustInt((p["initial_state"] as? [String:Any])?["move_number"]) ?? 0
-                 self.lastKnownRemoteMoveNumber = moves.count + initial
-                 // NSLog("[OGS-CLIENT] 🔢 Updated Remote Move Number to \(self.lastKnownRemoteMoveNumber ?? -1) (Moves: \(moves.count) + Initial: \(initial))")
-            }
+        self.blackPlayerName = blackObj?["username"] as? String ?? self.blackPlayerName
+        self.whitePlayerName = whiteObj?["username"] as? String ?? "White"
 
-            // Phase C: Game End State
-            // FIX: LATCH Logic. If we already know it's finished, don't reset to false unless explicit "play" phase seen.
-            if let movenum = p["move_number"] as? Int {
-                 self.currentStateVersion = movenum
-                 // self.lastKnownRemoteMoveNumber = movenum // Redundant or conflicting? 
-                 // 'move_number' in gamedata root is usually the *last* move number?
-                 // Let's trust 'moves.count' + initial if available, else this.
-            }
-            self.applyGameResult(p)
+        NSLog("[OGS-DEBUG-COLOR] 📥 Parsed Game Data. MyID: \(self.playerID ?? -1). BlackID: \(self.blackPlayerID ?? -1). WhiteID: \(self.whitePlayerID ?? -1).")
 
-            self.identityLockCheck()
-            NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": p]))
-            self.objectWillChange.send()
+        let bR = (blackObj?["ranking"] as? Double) ?? (blackObj?["rank"] as? Double)
+        let bR_int = (blackObj?["ranking"] as? Int) ?? (blackObj?["rank"] as? Int)
+        self.blackPlayerRank = bR ?? bR_int.map { Double($0) }
 
-            // Re-Ensure Clock is Running (in case connectToGame started it but we didn't have players yet)
-            if !self.isGameFinished && self.phase == "play" {
-                self.startClockTimer()
+        let wR = (whiteObj?["ranking"] as? Double) ?? (whiteObj?["rank"] as? Double)
+        let wR_int = (whiteObj?["ranking"] as? Int) ?? (whiteObj?["rank"] as? Int)
+        self.whitePlayerRank = wR ?? wR_int.map { Double($0) }
+        self.blackPlayerCountry = blackObj?["country"] as? String
+        self.whitePlayerCountry = whiteObj?["country"] as? String
+
+        // Phase B: Game Rules & Ranked Status
+        self.gameRules = p["rules"] as? String
+        if let ranked = p["ranked"] as? Bool { self.isRanked = ranked }
+        if let k = p["komi"] as? Double { self.komi = k }
+        else if let kstr = p["komi"] as? String { self.komi = Double(kstr) }
+
+
+        // Phase B: Static Time Control
+        // Case 1: time_control is a dictionary (common in GameData)
+        if let tcDict = p["time_control"] as? [String: Any] {
+            let sys = (tcDict["system"] as? String) ?? (tcDict["time_control"] as? String)
+            let tp = TimeParameters(
+                time_control: sys,
+                main_time: (tcDict["main_time"] as? Int) ?? (tcDict["initial_time"] as? Int),
+                initial_time: tcDict["initial_time"] as? Int,
+                periods: tcDict["periods"] as? Int,
+                period_time: tcDict["period_time"] as? Int,
+                time_increment: tcDict["time_increment"] as? Int,
+                increment: tcDict["increment"] as? Int,
+                stones_per_period: tcDict["stones_per_period"] as? Int,
+                per_move: tcDict["per_move"] as? Int,
+                speed: tcDict["speed"] as? String // FIX: Added missing field
+            )
+            self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: sys, params: tp, perMove: nil)
+
+            if let pt = tp.period_time {
+                self.blackPeriodLength = Double(pt)
+                self.whitePeriodLength = Double(pt)
             }
         }
+        // Case 2: time_control is a string and params are separate (common in Challenges)
+        else if let tc = p["time_control"] as? String, let params = p["time_control_parameters"] as? [String: Any] {
+            let tp = TimeParameters(
+                time_control: params["time_control"] as? String,
+                main_time: (params["main_time"] as? Int) ?? (params["initial_time"] as? Int),
+                initial_time: params["initial_time"] as? Int,
+                periods: params["periods"] as? Int,
+                period_time: params["period_time"] as? Int,
+                time_increment: params["time_increment"] as? Int,
+                increment: params["increment"] as? Int,
+                stones_per_period: params["stones_per_period"] as? Int,
+                per_move: params["per_move"] as? Int,
+                speed: params["speed"] as? String // FIX: Added missing field
+            )
+            self.activeGameTimeControl = ChallengeHelpers.formatTimeControl(tc: tc, params: tp, perMove: nil)
+
+            if let pt = tp.period_time {
+                self.blackPeriodLength = Double(pt)
+                self.whitePeriodLength = Double(pt)
+            }
+        }
+
+        // Phase C: Initial Clock State
+        if let clock = p["clock"] as? [String: Any] {
+            self.lastClockSnapshot = clock
+            self.handleInboundClock(clock)
+        }
+
+        self.hasEnteredRoom = true
+
+        self.applyScoringSnapshot(p)
+
+        if let version = robustInt(p["state_version"]) { currentStateVersion = version }
+        self.applyGameResult(p)
+
+        self.identityLockCheck()
+        self.objectWillChange.send()
+
+        // Re-Ensure Clock is Running (in case connectToGame started it but we didn't have players yet)
+        if !self.isGameFinished && self.phase == "play" {
+            self.startClockTimer()
+        }
     }
+
+
 
     private func applyGameResult(_ p: [String: Any]) {
         if let outcome = p["outcome"] as? String {
@@ -1607,89 +1530,15 @@ class OGSClient: NSObject, ObservableObject {
 
     private func handleIncomingMove(_ data: [String: Any]) {
         guard let number = robustInt(data["move_number"]), number > 0 else { requestMoveResync(); return }
-        // Still deliver to the board reconciler so a conflicting echo triggers a snapshot read,
-        // but do not toggle clocks or add captured stones twice for an old sequence number.
-        if let previous = lastKnownRemoteMoveNumber, number <= previous {
-            NotificationCenter.default.post(makeGameNotification(name: Notification.Name("OGSMoveReceived"), userInfo: data))
-            return
+        if number > (lastKnownRemoteMoveNumber ?? 0) {
+            lastKnownRemoteMoveNumber = number
+            undoRequestedUsername = nil
+            undoRequestedMoveNumber = nil
+            isRequestingUndo = false
         }
-        // Update Remote Move Number
-        if let num = robustInt(data["move_number"]) {
-            self.lastKnownRemoteMoveNumber = num
-            let moveStr = (data["move"] as? String) ?? "??"
-            NSLog("[OGS-MOVE-DEBUG] 📨 Incoming Move Packet: #\(num) Coords: \(moveStr). Full Keys: \(data.keys)")
-            
-            // Capture Update from Move Event
-            // OGS 'prisoners' dict keys = color of DEAD stones.
-            // { "black": 5 } -> 5 Black stones dead -> White has 5 prisoners.
-            // { "white": 2 } -> 2 White stones dead -> Black has 2 prisoners.
-            
-            if let prisoners = data["prisoners"] as? [String: Any] {
-                 self.enqueueSocketUpdate {
-                     // FIX: Swap mappings. 
-                     // blackCaptures (By Black) = Dead White Stones (prisoners["white"])
-                     // whiteCaptures (By White) = Dead Black Stones (prisoners["black"])
-                     let deadBlack = (prisoners["black"] as? Int) ?? self.whiteCaptures 
-                     let deadWhite = (prisoners["white"] as? Int) ?? self.blackCaptures
-                     
-                     self.whiteCaptures = deadBlack
-                     self.blackCaptures = deadWhite
-                     
-                     NSLog("[OGS-CAPTURES] 🎯 Updated: Black holds \(deadWhite) (dead white), White holds \(deadBlack) (dead black)")
-                 }
-            } else if let capturedArr = data["captured"] as? [[String: Any]], !capturedArr.isEmpty {
-                 // Fallback: If 'prisoners' total is missing, but 'captured' stones list exists
-                 if let pid = self.robustInt(data["player_id"]) {
-                     self.enqueueSocketUpdate {
-                         if pid == self.blackPlayerID {
-                             // PID did the capturing. He captured the stones in the array.
-                             self.blackCaptures += capturedArr.count
-                             NSLog("[OGS-CAPTURES] 🏴 Black Captured +\(capturedArr.count) (Total: \(self.blackCaptures))")
-                         } else if pid == self.whitePlayerID {
-                             self.whiteCaptures += capturedArr.count
-                             NSLog("[OGS-CAPTURES] 🏳️ White Captured +\(capturedArr.count) (Total: \(self.whiteCaptures))")
-                         }
-                     }
-                 }
-            }
-
-    
-        // Any incoming move invalidates pending undo requests (moot)
-        self.enqueueSocketUpdate {
-            self.undoRequestedUsername = nil
-            self.undoRequestedMoveNumber = nil
-            self.isRequestingUndo = false
-            
-            // FIX: Eagerly toggle currentPlayerID to prevent UI locking while waiting for Clock packet
-            if let pid = self.robustInt(data["player_id"]) {
-                if pid == self.blackPlayerID {
-                    self.currentPlayerID = self.whitePlayerID
-                } else if pid == self.whitePlayerID {
-                    self.currentPlayerID = self.blackPlayerID
-                }
-            } else if let current = self.currentPlayerID {
-                // Fallback toggle
-                if current == self.blackPlayerID {
-                    self.currentPlayerID = self.whitePlayerID
-                } else if current == self.whitePlayerID {
-                    self.currentPlayerID = self.blackPlayerID
-                }
-            }
-        }
-        NotificationCenter.default.post(self.makeGameNotification(name: NSNotification.Name("OGSMoveReceived"), userInfo: data))
-        
-        // Audio Trigger
-        // If it's MY turn now, play "Your Move"
-        if let next = self.currentPlayerID, next == self.playerID {
-             SoundManager.shared.play("your_move")
-        } else {
-             // Opponent played (or self played, but local echo handled by UI? No, strictly server echo here)
-             // OGS echoes my move too. If data["player_id"] != me, it's opponent.
-             // But simpler: just play click for everyone? User wants "Spoken Phrases".
-             // "Your Move" is the key request.
-        }
+        // Board reconciliation determines the turn and captures, including handicap and duplicates.
+        NotificationCenter.default.post(makeGameNotification(name: NSNotification.Name("OGSMoveReceived"), userInfo: data))
     }
-}
 
     private func handleIncomingChat(_ data: [String: Any]) {
         // Expected payload: { "player_id": 123, "username": "Foo", "body": "Hello", "type": "main" }

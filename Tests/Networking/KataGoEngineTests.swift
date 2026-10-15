@@ -105,6 +105,84 @@ final class KataGoEngineTests: XCTestCase {
         XCTAssertTrue(engine.evaluateGameQuality(upTo: -1, engine: player).isEmpty)
     }
 
+    func testActualQueryUsesRulesKomiInitialPlayerAndHandicapBonus() throws {
+        try hold(); engine.start()
+        let settings = GameAnalysisSettings(rules: "Japanese", komi: 0.5, initialPlayer: .white, online: true, whiteHandicapBonus: "0")
+        engine.analyzeGame(id: "game-a", initialStones: [("B", 2, 2), ("B", 6, 6)], moves: [], size: 9, settings: settings)
+        let query = queries(1)[0]
+        XCTAssertEqual(query["rules"] as? String, "japanese")
+        XCTAssertEqual(query["komi"] as? Double, 0.5)
+        XCTAssertEqual(query["initialPlayer"] as? String, "W")
+        XCTAssertEqual(query["whiteHandicapBonus"] as? String, "0")
+        XCTAssertEqual(query["initialStones"] as? [[String]], [["B","C7"],["B","G3"]])
+        XCTAssertNil(engine.analysisNotice)
+    }
+
+    func testRulesAndKomiChangesInvalidateAllTurnsAndPendingReplies() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9,
+            settings: GameAnalysisSettings(rules: "chinese", komi: 7.5, online: true))
+        let old = queries(1)[0]
+        XCTAssertEqual(old["rules"] as? String, "chinese-ogs")
+        engine.receiveAnalysisLine(try response(old))
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [("B", 0, 0)], size: 9,
+            settings: GameAnalysisSettings(rules: "japanese", komi: 0))
+        let changed = queries(2)[1]
+        XCTAssertEqual(changed["komi"] as? Double, 0)
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+        engine.receiveAnalysisLine(try response(old))
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+        engine.receiveAnalysisLine(try response(changed))
+        XCTAssertNotNil(engine.currentAnalysisData[1])
+    }
+
+    func testUnknownRulesAndInvalidKomiDoNotSilentlyUseChineseDefaults() throws {
+        try hold(); engine.start()
+        for settings in [GameAnalysisSettings(rules: "Ing", komi: 8),
+                         GameAnalysisSettings(rules: "japanese", komi: .nan),
+                         GameAnalysisSettings(rules: "japanese", komi: 6.25)] {
+            engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, settings: settings)
+            XCTAssertTrue(engine.analysisNotice?.contains("unavailable") == true)
+        }
+        analyze()
+        XCTAssertEqual(queries(1).count, 1)
+    }
+
+    func testMissingMetadataIsExplicitAndZeroKomiIsPreserved() {
+        engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, settings: GameAnalysisSettings())
+        XCTAssertTrue(engine.analysisNotice?.contains("assumes") == true)
+        let query = queries(1)[0]
+        XCTAssertEqual(query["komi"] as? Double, 6.5)
+        XCTAssertEqual(GameAnalysisSettings(rules: "New_Zealand", komi: 0).kataRules, "new-zealand")
+        XCTAssertEqual(GameAnalysisSettings(rules: "AGA", komi: 0).effectiveKomi, 0)
+    }
+
+    func testCacheLoadRejectsChangedRulesAndTurnsBeyondUndoBeforePublishing() throws {
+        try hold(); engine.start()
+        let player = SGFPlayer()
+        var game = SGFGame()
+        game.boardSize = 9; game.info.rules = "japanese"; game.info.komi = "0.5"
+        game.moves = [(.black, (0,0)), (.white, (1,1))]
+        player.load(game: game)
+        for turn in 0...2 {
+            let payload = player.getAIPayload(at: turn)
+            engine.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves,
+                size: 9, settings: player.analysisSettings)
+            let query = queries(turn + 1)[turn]
+            engine.receiveAnalysisLine(try response(query))
+        }
+        engine.saveAnalysisCache(for: "game-a")
+        game.moves.removeLast()
+        player.load(game: game)
+        XCTAssertTrue(engine.loadAnalysisCache(for: "game-a", game: player))
+        XCTAssertEqual(Set(engine.currentAnalysisData.keys), [0,1])
+        game.info.komi = "7.5"
+        player.load(game: game)
+        XCTAssertFalse(engine.loadAnalysisCache(for: "game-a", game: player))
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+    }
+
     func testRealPipesDecodeSplitUTF8AndInvalidLines() {
         engine.start()
         XCTAssertTrue(engine.isEngineRunning)

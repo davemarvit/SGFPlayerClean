@@ -23,6 +23,10 @@ struct WinRateGraphView: View {
         let worstTurns = Set(worstMoves.map { $0.key })
         
         VStack(spacing: 4) {
+            if isAIAvailable, let notice = aiEngine.analysisNotice {
+                Text(notice).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !isAIAvailable {
                 Text("AI Analysis Hidden (Live Game)")
                     .font(.caption)

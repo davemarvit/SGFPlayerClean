@@ -1,5 +1,6 @@
 // MARK: - File: OGSModels.swift (v4.246)
 import Foundation
+import CoreFoundation
 import SwiftUI
 
 // MARK: - Core Go Models
@@ -235,8 +236,18 @@ enum SGFParser {
 }
 
 struct SGFGame {
-    struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi: String? }
+    struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String? }
     var boardSize: Int = 19; var info: Info = .init(); var setup: [(Stone, Int, Int)] = []; var moves: [(Stone, (Int,Int)?)] = []
+    var initialPlayer: Stone?
+    var handicap = 0
+    var freeHandicapPlacement = false
+    var analysisOnline = false
+    var whiteHandicapBonus: String?
+    var analysisSettings: GameAnalysisSettings {
+        GameAnalysisSettings(rules: info.rules, komi: info.komi.map { Double($0) ?? .nan },
+            initialPlayer: initialPlayer ?? moves.first?.0 ?? (handicap > 1 ? .white : .black),
+            online: analysisOnline, whiteHandicapBonus: whiteHandicapBonus)
+    }
     static func from(tree: SGFTree) -> SGFGame {
         var g = SGFGame()
         for node in tree.nodes {
@@ -250,6 +261,9 @@ struct SGFGame {
                 case "RE": g.info.result = vals.first
                 case "DT": g.info.date = vals.first
                 case "KM": g.info.komi = vals.first
+                case "RU": g.info.rules = vals.first
+                case "HA": g.handicap = Int(vals.first ?? "") ?? 0
+                case "PL": g.initialPlayer = vals.first == "W" ? .white : .black
                 case "EV": g.info.event = vals.first
                 case "AB": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.black, x, y)) } }
                 case "AW": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.white, x, y)) } }
@@ -440,3 +454,103 @@ struct KeychainHelper {
 }
 
 
+
+
+/// Metadata sent to analysis; missing values retain the old defaults with a visible notice.
+struct GameAnalysisSettings: Codable, Equatable {
+    var rules: String?
+    var komi: Double?
+    var initialPlayer: Stone = .black
+    var online = false
+    var whiteHandicapBonus: String?
+
+    var kataRules: String? {
+        let value = (rules ?? "chinese").trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().replacingOccurrences(of: "_", with: "-")
+        switch value {
+        case "japanese", "japan": return "japanese"
+        case "korean", "korea": return "korean"
+        case "chinese", "china": return online ? "chinese-ogs" : "chinese"
+        case "aga", "bga", "tromp-taylor", "chinese-ogs", "chinese-kgs", "stone-scoring", "aga-button": return value
+        case "new zealand", "new-zealand", "nz": return "new-zealand"
+        default: return nil
+        }
+    }
+    var effectiveKomi: Double { komi ?? 6.5 }
+    var notice: String? {
+        if kataRules == nil { return "Analysis unavailable: unsupported rules ‘\(rules ?? "")’." }
+        guard effectiveKomi.isFinite, (-400...400).contains(effectiveKomi), (effectiveKomi * 2).rounded() == effectiveKomi * 2 else {
+            return "Analysis unavailable: invalid komi."
+        }
+        if rules == nil && komi == nil { return "Rules and komi are missing; analysis assumes Chinese rules and 6.5 komi." }
+        if rules == nil { return "Rules are missing; analysis assumes Chinese rules." }
+        if komi == nil { return "Komi is missing; analysis assumes 6.5 komi." }
+        return nil
+    }
+}
+
+/// Validate a complete OGS history before changing the board, clocks, scoring, or analysis.
+struct OGSGameSnapshot {
+    let game: SGFGame
+    let stateVersion: Int?
+    let freeHandicapMoves: Int
+
+    init?(_ data: [String: Any]) {
+        func integer(_ value: Any?) -> Int? {
+            if let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+               number.doubleValue.isFinite, number.doubleValue.rounded() == number.doubleValue {
+                return Int(exactly: number.doubleValue)
+            }
+            if let text = value as? String { return Int(text) }
+            return nil
+        }
+        let width = integer(data["width"]) ?? 19
+        let height = integer(data["height"]) ?? width
+        guard (2...52).contains(width), width == height, let moves = data["moves"] as? [[Any]] else { return nil }
+        var game = SGFGame()
+        game.boardSize = width
+        game.info.rules = data["rules"] as? String
+        if let komi = data["komi"] as? String { game.info.komi = komi }
+        else if let komi = data["komi"] as? NSNumber, CFGetTypeID(komi) != CFBooleanGetTypeID() { game.info.komi = komi.stringValue }
+        else if let komi = data["komi"], !(komi is NSNull) { game.info.komi = "invalid" }
+        let handicap = max(0, integer(data["handicap"]) ?? 0)
+        if let setup = data["initial_state"] as? [String: Any] {
+            // Truncated histories require initial prisoner and move-number handling; don't silently miscount.
+            guard (integer(setup["move_number"]) ?? 0) == 0 else { return nil }
+            for color in Stone.allCases {
+                guard let points = OGSScoring.decodePositions(setup[color.rawValue] as? String ?? "", width: width, height: height) else { return nil }
+                game.setup += points.map { (color, $0.col, $0.row) }
+            }
+            guard Set(game.setup.map { BoardPosition($0.2, $0.1) }).count == game.setup.count else { return nil }
+        }
+        let free = data["free_handicap_placement"] as? Bool ?? false
+        freeHandicapMoves = free ? handicap : 0
+        // Fixed handicap is setup, never additional moves in the numbered history.
+        if let player = data["initial_player"] as? String {
+            guard let color = Stone(rawValue: player) else { return nil }
+            game.initialPlayer = color
+        } else { game.initialPlayer = !free && handicap > 1 ? .white : .black }
+        game.handicap = handicap
+        game.freeHandicapPlacement = free
+        var color = game.initialPlayer ?? .black
+        for (index, move) in moves.enumerated() {
+            guard move.count >= 2, let x = integer(move[0]), let y = integer(move[1]),
+                  (x == -1 && y == -1) || ((0..<width).contains(x) && (0..<height).contains(y)) else { return nil }
+            // Packed moves carry optional color at index 3 and extra properties at index 4.
+            if move.count > 4, let extra = move[4] as? [String: Any], extra["edited"] as? Bool == true { return nil }
+            if move.count > 3, let explicit = integer(move[3]), explicit != 0 {
+                guard explicit == 1 || explicit == 2 else { return nil }
+                color = explicit == 1 ? .black : .white
+            }
+            if index < freeHandicapMoves { color = .black; guard x >= 0 else { return nil } }
+            game.moves.append((color, x == -1 ? nil : (x, y)))
+            if index + 1 >= freeHandicapMoves { color = color.opponent }
+        }
+        game.analysisOnline = true
+        if let scoreHandicap = data["score_handicap"] as? Bool {
+            game.whiteHandicapBonus = scoreHandicap ? ((data["aga_handicap_scoring"] as? Bool == true) ? "N-1" : "N") : "0"
+        }
+        self.game = game
+        stateVersion = integer(data["state_version"])
+    }
+}

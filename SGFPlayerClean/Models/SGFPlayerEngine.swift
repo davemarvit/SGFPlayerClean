@@ -23,6 +23,8 @@ final class SGFPlayer: ObservableObject {
         let currentIndex: Int
         let initialPlayer: Stone
         let stateVersion: Int
+        let analysisSettings: GameAnalysisSettings
+        let freeHandicapMoves: Int
         let capturedWhite: Int
         let capturedBlack: Int
     }
@@ -35,6 +37,8 @@ final class SGFPlayer: ObservableObject {
             currentIndex: currentIndex,
             initialPlayer: initialPlayer,
             stateVersion: highestKnownStateVersion,
+            analysisSettings: analysisSettings,
+            freeHandicapMoves: freeHandicapMoves,
             capturedWhite: whiteStonesCaptured,
             capturedBlack: blackStonesCaptured
         )
@@ -45,6 +49,8 @@ final class SGFPlayer: ObservableObject {
         _moves = snapshot.moves
         _baseSetup = snapshot.setup
         initialPlayer = snapshot.initialPlayer
+        analysisSettings = snapshot.analysisSettings
+        freeHandicapMoves = snapshot.freeHandicapMoves
         highestKnownStateVersion = snapshot.stateVersion
         reset(sync: false)
 
@@ -63,6 +69,11 @@ final class SGFPlayer: ObservableObject {
     private var _baseSetup: [(Stone, Int, Int)] = []
     private var baseSize: Int = 19
     private var initialPlayer: Stone = .black
+    private var freeHandicapMoves = 0
+    private(set) var analysisSettings = GameAnalysisSettings()
+    private var onlineStateVersion: Int?
+    var capturesByBlack: Int { whiteStonesCaptured }
+    var capturesByWhite: Int { blackStonesCaptured }
     
     /// Generates the payload data required by the AI Engine for the current move index
     func getCurrentAIPayload() -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
@@ -71,7 +82,7 @@ final class SGFPlayer: ObservableObject {
     
     /// Generates the payload data required by the AI Engine for a specific historical index
     func getAIPayload(at limitIndex: Int) -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
-        let initialStones = _baseSetup.map { (color: Stone, x: Int, y: Int) -> (color: String, x: Int, y: Int) in
+        let initialStones = _baseSetup.sorted { ($0.2, $0.1, $0.0.rawValue) < ($1.2, $1.1, $1.0.rawValue) }.map { (color: Stone, x: Int, y: Int) -> (color: String, x: Int, y: Int) in
             return (color == .black ? "B" : "W", x, y)
         }
         
@@ -97,16 +108,8 @@ final class SGFPlayer: ObservableObject {
         self.board = BoardSnapshot(size: 19, grid: Array(repeating: Array(repeating: nil, count: 19), count: 19), stones: [:])
     }
     
-    var turn: Stone {
-        // PILLAR: Turn Priority
-        if let last = lastMove {
-             NSLog("[OGS-TURN] Turn by Move: \(last.color.opponent) (Last: \(last.color)). History: \(_moves.count)")
-             return last.color == .black ? .white : .black
-        }
-        NSLog("[OGS-TURN] Turn by Initial: \(initialPlayer)")
-        return initialPlayer
-    }
-    
+    var turn: Stone { playerToMove(at: currentIndex) }
+
     /// Identifies the player who made the move at the exact target index
     func moveColor(at index: Int) -> Stone? {
         guard index >= 0 && index < _moves.count else { return nil }
@@ -119,6 +122,7 @@ final class SGFPlayer: ObservableObject {
         if index < _moves.count {
             return _moves[index].0
         }
+        if index < freeHandicapMoves { return .black }
         if let last = _moves.last {
             return last.0 == .black ? .white : .black
         }
@@ -142,10 +146,47 @@ final class SGFPlayer: ObservableObject {
         self._moves = []
         self._baseSetup = setup.map { ($1, $0.col, $0.row) }
         self.initialPlayer = nextPlayer
+        self.freeHandicapMoves = 0
+        self.analysisSettings = GameAnalysisSettings(initialPlayer: nextPlayer, online: true)
+        self.onlineStateVersion = stateVersion
         self.highestKnownStateVersion = stateVersion
         self.reset()
     }
     
+    enum SnapshotResult { case applied, stale, needsResync }
+
+    /// A shorter history is not proof of undo. Only a newer revision or a fenced recovery read
+    /// may replace history; move_number is deliberately not used as a state version.
+    func reconcileOnlineSnapshot(_ snapshot: OGSGameSnapshot, recovery: Bool = false,
+                                 newGame: Bool = false) -> SnapshotResult {
+        let incoming = snapshot.game
+        if !newGame, let version = snapshot.stateVersion, let known = onlineStateVersion, version < known { return .stale }
+        if !newGame && !recovery {
+            let newer = snapshot.stateVersion.map { $0 > (onlineStateVersion ?? -1) } ?? false
+            if !newer {
+                let setup = Dictionary(uniqueKeysWithValues: incoming.setup.map { (BoardPosition($0.2, $0.1), $0.0) })
+                let currentSetup = Dictionary(uniqueKeysWithValues: _baseSetup.map { (BoardPosition($0.2, $0.1), $0.0) })
+                let prefixMatches = incoming.moves.count >= _moves.count && zip(_moves, incoming.moves).allSatisfy {
+                    $0.0 == $1.0 && ($0.1?.0 ?? -1) == ($1.1?.0 ?? -1) && ($0.1?.1 ?? -1) == ($1.1?.1 ?? -1)
+                }
+                guard incoming.boardSize == baseSize, setup == currentSetup, prefixMatches else { return .needsResync }
+            }
+        }
+        let viewed = currentIndex
+        let reviewing = !newGame && viewed < _moves.count
+        let knownVersion = onlineStateVersion
+        load(game: incoming)
+        freeHandicapMoves = snapshot.freeHandicapMoves
+        onlineStateVersion = snapshot.stateVersion ?? (newGame ? nil : knownVersion)
+        highestKnownStateVersion = onlineStateVersion ?? 0
+        seek(to: reviewing ? min(viewed, maxIndex) : maxIndex)
+        return .applied
+    }
+
+    func recordOnlineVersion(_ version: Int?) {
+        if let version { onlineStateVersion = max(onlineStateVersion ?? version, version); highestKnownStateVersion = onlineStateVersion! }
+    }
+
     enum OnlineMoveResult: Equatable { case applied, duplicate, needsResync }
 
     /// Compare server sequence numbers against history, including optimistic moves and passes.
@@ -160,7 +201,7 @@ final class SGFPlayer: ObservableObject {
             let existingX = coord?.0 ?? -1, existingY = coord?.1 ?? -1
             return existingColor == color && existingX == x && existingY == y ? .duplicate : .needsResync
         }
-        guard moveNumber == _moves.count + 1 else { return .needsResync }
+        guard moveNumber == _moves.count + 1, color == playerToMove(at: _moves.count) else { return .needsResync }
         let viewedIndex = currentIndex
         let reviewing = viewedIndex < _moves.count
         playMoveOptimistically(color: color, x: x, y: y)
@@ -246,6 +287,7 @@ final class SGFPlayer: ObservableObject {
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
         lastMove = nil; initialPlayer = .black
+        freeHandicapMoves = 0; onlineStateVersion = nil; analysisSettings = GameAnalysisSettings()
         whiteStonesCaptured = 0; blackStonesCaptured = 0; highestKnownStateVersion = 0
         syncSnapshot(grid: Array(repeating: Array(repeating: nil, count: baseSize), count: baseSize))
         moveProcessed.send()
@@ -350,7 +392,10 @@ final class SGFPlayer: ObservableObject {
         self.baseSize = game.boardSize
         self._baseSetup = game.setup
         self._moves = game.moves
-        self.initialPlayer = .black
+        self.analysisSettings = game.analysisSettings
+        self.initialPlayer = analysisSettings.initialPlayer
+        self.freeHandicapMoves = game.freeHandicapPlacement ? game.handicap : 0
+        self.onlineStateVersion = nil
         self.highestKnownStateVersion = 0
         self.reset()
     }

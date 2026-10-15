@@ -259,6 +259,9 @@ struct ActiveGamePanel: View {
     
     private var controlButtons: some View {
         Group {
+            if app.ogsClient.isReconcilingMoves {
+                Label("Refreshing game state…", systemImage: "arrow.clockwise").font(.caption)
+            }
             if app.ogsClient.isScoringPhase || app.ogsClient.isGameFinished {
                 OGSScoringPanel(
                     finished: app.ogsClient.isGameFinished,
@@ -303,7 +306,7 @@ struct ActiveGamePanel: View {
                         }
                     }
                     .disabled({ () -> Bool in
-                        if app.ogsClient.isGameFinished || !app.ogsClient.isConnected ||
+                        if app.ogsClient.isGameFinished || app.ogsClient.isReconcilingMoves || !app.ogsClient.isConnected ||
                             !app.ogsClient.isSocketAuthenticated || !app.ogsClient.isGameParticipant ||
                             app.player.currentIndex != app.player.maxIndex { return true }
                         

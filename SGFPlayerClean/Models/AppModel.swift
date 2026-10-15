@@ -483,167 +483,37 @@ final class AppModel: ObservableObject {
     
     
     private func handleOGSGameLoad_V2(_ notification: Notification) {
-        guard ogsClient.acceptsGameNotification(notification) else { return }
-        guard let userInfo = notification.userInfo, let gameData = userInfo["gameData"] as? [String: Any] else { return }
-        
-        // NSLog("[OGS-DEBUG] handleOGSGameLoad Entry. isRequestingUndo: \(ogsClient.isRequestingUndo)")
-        // print("🔥🔥🔥 BUILD VERIFICATION: v4.886 - TRACER ACTIVE 🔥🔥🔥")
-        
-        let gameID = robustInt(gameData["game_id"]) ?? robustInt(gameData["id"]) ?? 0
-        // NSLog("[OGS-DEBUG] 🚨 AppModel received GameData for \(gameID). Active: \(ogsClient.activeGameID ?? -1)")
-        guard gameID == ogsClient.activeGameID else {
-            NSLog("[OGS-DEBUG] ❌ Game ID Mismatch. Ignoring.")
+        guard ogsClient.acceptsGameNotification(notification), let info = notification.userInfo,
+              let data = info["gameData"] as? [String: Any], let boardVM else { return }
+        let id = robustInt(data["game_id"]) ?? robustInt(data["id"]) ?? ogsClient.activeGameID
+        guard let id, id == ogsClient.activeGameID else { return }
+        guard let snapshot = OGSGameSnapshot(data) else {
+            ogsClient.lastError = "Cannot load this game history: incomplete, malformed, or unsupported board data."
             return
         }
-        
-        // Scoring can change without a new move/version, so apply it before replay guards.
-        ogsClient.applyScoringSnapshot(gameData)
-
-        // FORCE SYNC: Always reload board when full game data is received
-        // This ensures undo/redo states are correctly reflected without caching issues
-        if true {
-             // AUTO-SWITCH to Online Mode if data arrives
-             if !self.isOnlineMode {
-                 NSLog("[OGS-SYNC] 🔀 Auto-Switching to Online Mode due to Game Data")
-                 self.isOnlineMode = true
-             }
-             
-            currentActiveInternalGameID = gameID
-            resumableGameID = gameID // Track for Resume Button
-            
-            NSLog("[OGS-TRACE] A: Start Parsing")
-            let width = gameData["width"] as? Int ?? 19
-            let height = gameData["height"] as? Int ?? 19
-            let moves = (gameData["moves"] as? [[Any]]) ?? []
-            NSLog("[OGS-TRACE] B: Moves Parsed (\(moves.count))")
-            
-            // VERSION GUARD (Deterministic - Engine Based)
-            let incomingVersion = robustInt(gameData["state_version"]) ?? robustInt(gameData["move_number"]) ?? 0
-            NSLog("[OGS-TRACE] C: Incoming Version Parsed (\(incomingVersion))")
-            
-            // Use Engine's version as Truth (Avoids OGSClient eager update race)
-            let engineVersion = boardVM?.engine.highestKnownStateVersion ?? 0
-            
-            // SIMULATION OVERRIDE: If ID is 999999, bypass version guards
-            if gameID == 999999 {
-                NSLog("[OGS-SYNC] 🧪 SIMULATION DETECTED. Bypassing version guards.")
-            } else {
-                 // STRICT MONOTONICITY: Only accept NEWER versions
-                let engineMoves = boardVM?.engine.maxIndex ?? 0
-                let isUndo = moves.count < engineMoves
-                
-                if incomingVersion <= engineVersion && !isUndo && engineMoves > 0 && userInfo["reconcileMoves"] as? Bool != true {
-                    return
-                }
+        let newGame = currentActiveInternalGameID != id || !boardVM.isOnlineContext
+        switch boardVM.engine.reconcileOnlineSnapshot(snapshot, recovery: info["reconcileMoves"] as? Bool == true, newGame: newGame) {
+        case .stale:
+            if info["reconcileMoves"] as? Bool == true {
+                ogsClient.lastError = "OGS returned an older game state. Reconnect to refresh."
             }
-            
-            // Force reset undo flag if we accepted a valid packet
-             ogsClient.isRequestingUndo = false
-            
-            var initialStones: [BoardPosition: Stone] = [:]
-            
-            if let state = gameData["initial_state"] as? [String: Any] {
-                 NSLog("[OGS-REST] Parsing Initial State")
-                 let white = state["white"] as? String ?? ""
-                 ["black", "white"].forEach { col in
-                     if let str = state[col] as? String {
-                         let color: Stone = col == "black" ? .black : .white
-                         let chars = Array(str)
-                         for i in stride(from: 0, to: chars.count, by: 2) {
-                             if i + 1 < chars.count, let (x, y) = SGFCoordinates.parse(String(chars[i...i+1])) {
-                                 initialStones[BoardPosition(y, x)] = color
-                             }
-                         }
-                     }
-                 }
-             }
-             
-             let initialTurnColor: Stone = (gameData["initial_player"] as? String == "white") ? .white : .black
-             
-             let stateVersion = robustInt(gameData["state_version"]) ?? robustInt(gameData["move_number"]) ?? 0
-             
-             boardVM?.initializeOnlineGame(width: width, height: height, initialStones: initialStones, nextPlayer: initialTurnColor, stateVersion: stateVersion)
-             
-             let moveHistory = gameData["moves"] as? [[Any]] ?? []
-             let handicap = robustInt(gameData["handicap"]) ?? 0
-             let isFreeHandicap = (gameData["free_handicap_placement"] as? Bool) ?? false
-             // Heuristic: If handicap > 0 but initial_state is empty, assume moves contain placement
-             let movesContainHandicap = isFreeHandicap || (handicap > 0 && initialStones.isEmpty)
-             
-             var turnColor = initialTurnColor // FIX: Restore variable
-             
-             for (idx, m) in moveHistory.enumerated() {
-                 if m.count >= 2, let x = robustInt(m[0]), let y = robustInt(m[1]) {
-                     
-                     // Determine Color
-                     let colorToPlay: Stone
-                     if movesContainHandicap && idx < handicap {
-                         colorToPlay = .black
-                     } else {
-                         colorToPlay = turnColor
-                     }
-                     
-                     if x == -1 && y == -1 { // OGS represents passes as [-1, -1] in move history
-                         // Handle Pass
-                         boardVM?.handleRemotePass(color: colorToPlay)
-                     } else if x >= 0 && y >= 0 {
-                         boardVM?.handleRemoteMove(x: x, y: y, color: colorToPlay)
-                     }
-                     
-                     // Prepare Next Turn
-                     if movesContainHandicap && idx < handicap {
-                         // Inside setup phase:
-                         // If this was the last setup stone, next is White.
-                         // Otherwise, stay Black.
-                         if idx == handicap - 1 {
-                             turnColor = .white
-                         } else {
-                             turnColor = .black
-                         }
-                     } else {
-                         // Normal Play: Alternate
-                         turnColor = colorToPlay.opponent
-                     }
-                 }
-             }
-             
-             ogsClient.lastKnownRemoteMoveNumber = moveHistory.count
-
-             // Update Player Names
-             let players = gameData["players"] as? [String: Any]
-             let blackObj = players?["black"] as? [String: Any]
-             let whiteObj = players?["white"] as? [String: Any]
-             
-             self.ogsClient.blackPlayerName = blackObj?["username"] as? String ?? "Black"
-             self.ogsClient.blackPlayerID = robustInt(blackObj?["id"])
-             
-             self.ogsClient.whitePlayerName = whiteObj?["username"] as? String ?? "White"
-             self.ogsClient.whitePlayerID = robustInt(whiteObj?["id"])
-             
-             // FIX: Eagerly set currentPlayerID after parsing historical moves so we don't lock the UI waiting for a clock packet. 
-             // We use `turnColor` which accurately tracks the next player considering handicap logic.
-             if turnColor == .black {
-                 self.ogsClient.currentPlayerID = self.ogsClient.blackPlayerID
-             } else {
-                 self.ogsClient.currentPlayerID = self.ogsClient.whitePlayerID
-             }
-             
-             // Sync Captures to OGSClient (Engine Authority)
-             // FIX: Engine 'blackStonesCaptured' means "number of black stones removed from board" (Prisoners for White)
-             self.ogsClient.blackCaptures = boardVM?.engine.whiteStonesCaptured ?? 0
-             self.ogsClient.whiteCaptures = boardVM?.engine.blackStonesCaptured ?? 0
-             
-             NSLog("[OGS-SYNC] 💀 Sync Check: Removed Stones Count = \(self.ogsClient.removedStones.count). Phase: \(self.ogsClient.phase ?? "nil")")
-             
-             // Share scoring decoding with socket updates; finished games retain their marks.
-             self.ogsClient.applyScoringSnapshot(gameData)
-
+            return
+        case .needsResync: ogsClient.requestMoveResync(); return
+        case .applied: break
         }
-        
-        boardVM?.syncState()
-        self.objectWillChange.send()
+        currentActiveInternalGameID = id
+        resumableGameID = id
+        isOnlineMode = true
+        ogsClient.applyAcceptedGameData(data)
+        ogsClient.isRequestingUndo = false
+        ogsClient.isReconcilingMoves = false
+        let next = boardVM.engine.playerToMove(at: boardVM.engine.maxIndex)
+        ogsClient.currentPlayerID = next == .black ? ogsClient.blackPlayerID : ogsClient.whitePlayerID
+        // The sidebar/lids follow the viewed board, not scoring prisoners or a later clock packet.
+        boardVM.finishOnlineGameLoad(gameID: id)
+        objectWillChange.send()
     }
-    
+
     // MARK: - Local Verification / Simulation
     func simulateOGSLoad() {
         NSLog("[OGS-SIM] 🧪 Starting Offline OGS Simulation...")
@@ -715,9 +585,14 @@ final class AppModel: ObservableObject {
         }
         let captures = engine.blackStonesCaptured + engine.whiteStonesCaptured
         switch engine.applyOnlineMove(color: color, x: x, y: y, moveNumber: number) {
-        case .duplicate: return
+        case .duplicate:
+            engine.recordOnlineVersion(robustInt(info["state_version"]))
+            return
         case .needsResync: ogsClient.requestMoveResync()
         case .applied:
+            engine.recordOnlineVersion(robustInt(info["state_version"]))
+            let next = engine.playerToMove(at: engine.maxIndex)
+            ogsClient.currentPlayerID = next == .black ? ogsClient.blackPlayerID : ogsClient.whitePlayerID
             // Capture counters describe the viewed position while reviewing history.
             guard engine.currentIndex == engine.maxIndex else { return }
             ogsClient.blackCaptures = engine.whiteStonesCaptured
