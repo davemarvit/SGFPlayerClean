@@ -25,6 +25,10 @@ While dragging, the board and capture lids preview the position together at a
 limited update rate. Release applies the exact selected move. Preview moves are
 silent and new AI requests wait until release. Your source SGF is never rewritten.
 
+The on-screen back/forward arrows move one move per click. Hold Shift while
+clicking to move ten moves, just like Shift + Left/Right Arrow on the keyboard.
+This works in both 2D and 3D.
+
 LOCAL FINAL SCORING
 Local play now has a Pass button beside the playback controls in 2D and 3D.
 Pause playback and go to the last recorded move to enable it. Passing changes

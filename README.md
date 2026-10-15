@@ -41,6 +41,8 @@ retains the existing local wake-up behavior, and invalidates changed history aft
 prefix. A private replay engine builds layout frames without UI/audio/AI observers. Loading a
 game also honors the saved jitter setting. This repair expands the unit suite to 185 tests;
 an external-game app-model check verified the reported 92–93 transition and distant-stone stability.
+The shared 2D/3D playback back/forward buttons now honor Shift-click for ten moves,
+matching the existing keyboard shortcuts; an ordinary click still advances one move.
 
 Changes included in both builds:
 

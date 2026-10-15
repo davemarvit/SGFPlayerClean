@@ -152,9 +152,15 @@ struct PlaybackControlsView: View {
                     Divider().frame(height: 12).background(Color.white.opacity(0.3))
                 }
                 Button(action: { boardVM.goToStart() }) { Image(systemName: "backward.end.fill") }.buttonStyle(.plain)
-                Button(action: { boardVM.stepBackward() }) { Image(systemName: "backward.fill") }.buttonStyle(.plain)
+                Button(action: {
+                    NSEvent.modifierFlags.contains(.shift) ? boardVM.stepBackwardTen() : boardVM.stepBackward()
+                }) { Image(systemName: "backward.fill") }.buttonStyle(.plain)
+                    .help("Previous move (Shift-click: 10 moves)")
                 Button(action: { boardVM.toggleAutoPlay() }) { Image(systemName: boardVM.isAutoPlaying ? "pause.fill" : "play.fill") }.buttonStyle(.plain)
-                Button(action: { boardVM.stepForward() }) { Image(systemName: "forward.fill") }.buttonStyle(.plain)
+                Button(action: {
+                    NSEvent.modifierFlags.contains(.shift) ? boardVM.stepForwardTen() : boardVM.stepForward()
+                }) { Image(systemName: "forward.fill") }.buttonStyle(.plain)
+                    .help("Next move (Shift-click: 10 moves)")
                 Button(action: { boardVM.goToEnd() }) { Image(systemName: "forward.end.fill") }.buttonStyle(.plain)
                 if app.isAIAvailable {
                     Divider().frame(height: 12).background(Color.white.opacity(0.3))
