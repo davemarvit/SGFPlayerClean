@@ -262,7 +262,6 @@ struct ActiveGamePanel: View {
             }
             if !app.ogsClient.isConnected || !app.ogsClient.isSocketAuthenticated {
                 Text(app.ogsClient.connectionStatus).font(.caption).foregroundColor(.orange)
-                Button("Reconnect") { app.ogsClient.disconnect(); app.ogsClient.connect() }
             }
             if app.player.currentIndex != app.player.maxIndex {
                 Text("Showing move \(app.player.currentIndex) of \(app.player.maxIndex)")

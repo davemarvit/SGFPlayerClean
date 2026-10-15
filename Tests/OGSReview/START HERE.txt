@@ -16,11 +16,15 @@ Local Play: place moves for both sides. New Game starts a fresh board.
 Observe: choose a live game, or enter its OGS link/ID. Browse games opens the
   popup; Cancel or Escape closes it. Games returns to the list.
   Games are ordered by the stronger player, with ranks, move count and time
-  control. Full clock settings load as rows appear. Scroll to load more;
-  Refresh updates the list and retries unavailable clock settings.
+  control. Full clock settings load as rows appear. Scroll to load more.
+  The Select a Game picker refreshes every ten seconds while open, retaining
+  loaded batches and retrying unavailable clock settings automatically.
 Review: load saved SGFs and use playback. To add moves, choose Continue this
   position in Local Play. Local Play and Review preserve separate positions
   while switching modes within this session.
+
+AI analysis stays to the right and may overlap the lids so the board can stay
+larger. Playback controls remain clear of the AI panel.
 
 AI analysis is a separate toggle. It works in Local Play, Review, and Observe
 for other players' games. It is unavailable in Play Online and while your
@@ -45,7 +49,8 @@ it. Changing modes does not sign you out or close the OGS connection.
 UPDATED GAME CONTROLS
 Pass and Resign are next to each other. Resign asks before sending anything.
 If you rewind an online game, Return to latest move restores the live position.
-A dropped connection keeps the game panel open and offers Reconnect.
+A dropped connection keeps the game panel open. Reconnect replaces Connected
+beneath your username in the top toolbar; Log Out is only in that toolbar.
 Undo requests can be declined or cancelled. Failed SGF downloads show an error.
 
 NEXT TEST

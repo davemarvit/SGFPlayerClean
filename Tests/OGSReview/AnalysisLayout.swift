@@ -61,6 +61,9 @@ private final class LayoutHTTP: URLProtocol {
                 let size = CGSize(width: width, height: height)
                 let geometry = BoardWorkspaceGeometry(size: size, aiEnabled: true, sidebarVisible: sidebar)
                 require(geometry.aiWidth >= 280 && geometry.boardWidth > 0, "AI remains a usable right-hand column")
+                require(geometry.boardWidth > geometry.aiOrigin, "AI can overlap lids to recover board space")
+                // A width-limited 2D board should gain at least 15% versus the previous separate-column layout.
+                if width == 900 { require(geometry.boardWidth / geometry.aiOrigin > 1.15, "Recover meaningful board size") }
                 require(geometry.reservesSidebar == (sidebar && width >= 1500), "Game panel overlays only in tighter windows")
                 let host = NSHostingView(rootView: BoardWorkspaceView(vm: vm, analysisEngine: ai) {
                     if mode == .view2D { ContentView2D() } else { ContentView3D() }
@@ -81,7 +84,7 @@ private final class LayoutHTTP: URLProtocol {
                     require(margin.redComponent < 0.08 && margin.greenComponent < 0.08 && margin.blueComponent < 0.12,
                             "3D viewport margins must not expose tatami in \(name)")
                     if !sidebar || geometry.reservesSidebar {
-                        let analysisBackground = pixel(geometry.boardWidth + geometry.aiWidth / 2, size.height - 30)
+                        let analysisBackground = pixel(geometry.aiOrigin + geometry.aiWidth / 2, size.height - 30)
                         require(analysisBackground.redComponent < 0.08 && analysisBackground.greenComponent < 0.08,
                                 "3D analysis column must share the dark workspace in \(name)")
                     }
@@ -97,7 +100,7 @@ private final class LayoutHTTP: URLProtocol {
                         require(false, "AI header is visible in \(name)"); return
                     }
                     let x = label.boundingBox.minX * size.width
-                    require(x >= geometry.boardWidth && x < geometry.boardWidth + geometry.aiWidth, "AI stays to the right, never below the board")
+                    require(x >= geometry.aiOrigin && x < geometry.aiOrigin + geometry.aiWidth, "AI stays to the right, never below the board")
                     let labels = request.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ") ?? ""
                     require(labels.contains("Alice") && labels.contains("Bob"), "Metadata fits beneath graph: \(labels)")
                 }
@@ -119,7 +122,7 @@ private final class LayoutHTTP: URLProtocol {
                     NSGraphicsContext.saveGraphicsState()
                     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
                     let context = NSGraphicsContext.current!.cgContext
-                    context.clip(to: CGRect(x: 0, y: 0, width: geometry.boardWidth, height: size.height))
+                    context.clip(to: CGRect(x: 0, y: 0, width: geometry.aiOrigin, height: size.height))
                     let y = host.isFlipped ? size.height - extent.maxY : extent.minY
                     rendered.draw(in: NSRect(x: extent.minX, y: y,
                         width: extent.width, height: extent.height))
@@ -138,7 +141,8 @@ private final class LayoutHTTP: URLProtocol {
                                 for z in [bounds.min.z, bounds.max.z] {
                                     let point = renderer.projectPoint(node.convertPosition(SCNVector3(x, y, z), to: nil))
                                     let screenX = CGFloat(point.x) + extent.minX
-                                    require(screenX >= 0 && screenX <= geometry.boardWidth,
+                                    let rightEdge = node.geometry is SCNBox ? geometry.aiOrigin : geometry.boardWidth
+                                    require(screenX >= 0 && screenX <= rightEdge,
                                         "3D board/lid cropped in \(name): \(node.name ?? "board") at \(screenX), width \(geometry.boardWidth)")
                                 }
                             }

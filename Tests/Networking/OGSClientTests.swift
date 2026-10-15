@@ -1175,7 +1175,7 @@ final class OGSClientTests: XCTestCase {
         let (id, _) = try lastGameListRequest()
         socket.deliver(.success("43\(id)" + #"[{"size":1,"results":[{"id":7}]}]"#))
         let failed = expectation(description: "Failure shown on row")
-        let observation = client.$observedTimeControls.filter { $0[7]?.contains("Refresh") == true }.sink { _ in failed.fulfill() }
+        let observation = client.$observedTimeControls.filter { $0[7]?.contains("Retrying") == true }.sink { _ in failed.fulfill() }
         var requests = 0
         ClientHTTPFixture.handler = { fixture in requests += 1; fixture.respond(status: 503, body: "{}") }
         client.loadObservedTimeControl(for: client.observedGames[0])
@@ -1197,6 +1197,91 @@ final class OGSClientTests: XCTestCase {
         wait(for: [requested], timeout: 3); drainMainQueue()
         XCTAssertEqual(requests, 2)
         XCTAssertTrue(client.observedTimeControls.isEmpty)
+    }
+
+    func testAutomaticObservedRefreshPreservesLoadedDepthAndCommitsAtomically() throws {
+        connect(); client.isSocketAuthenticated = true
+        func reply(_ ids: [Int], total: Int = 45, moves: Int = 1) throws {
+            let (id, _) = try lastGameListRequest()
+            let rows = ids.map { ["id": $0, "move_number": moves] }
+            let data = try JSONSerialization.data(withJSONObject: [["size": total, "results": rows]])
+            socket.deliver(.success("43\(id)" + String(decoding: data, as: UTF8.self)))
+        }
+        client.fetchObservedGames(); try reply(Array(1...20))
+        client.loadMoreObservedGames(); try reply(Array(21...40))
+        let old = client.observedGames.map(\.id)
+        client.refreshObservedGames()
+        let (first, _) = try lastGameListRequest()
+        client.refreshObservedGames(); client.loadMoreObservedGames()
+        XCTAssertEqual(try lastGameListRequest().0, first, "Coalesce refresh and pagination")
+        try reply(Array(2...21), moves: 9)
+        XCTAssertEqual(try lastGameListRequest().1["from"] as? Int, 20)
+        XCTAssertEqual(client.observedGames.map(\.id), old, "Keep old list until every loaded batch arrives")
+        XCTAssertTrue(client.isLoadingObservedGames)
+        try reply(Array(22...41), moves: 9)
+        XCTAssertEqual(Set(client.observedGames.map(\.id)), Set(2...41))
+        XCTAssertEqual(client.observedGamesPage, 1)
+        XCTAssertTrue(client.hasMoreObservedGames)
+        XCTAssertTrue(client.observedGames.allSatisfy { $0.moveCount == 9 })
+        XCTAssertFalse(client.isLoadingObservedGames)
+        client.refreshObservedGames()
+        try reply([42], total: 1)
+        XCTAssertEqual(client.observedGames.map(\.id), [42], "Finished games disappear; a shorter list ends early")
+        XCTAssertEqual(client.observedGamesPage, 0)
+        XCTAssertFalse(client.hasMoreObservedGames)
+        XCTAssertNil(client.activeGameID)
+    }
+
+    func testAutomaticObservedRefreshTimeoutCancellationAndLogoutFenceReplies() throws {
+        connect(); client.isSocketAuthenticated = true
+        client.fetchObservedGames()
+        let (initial, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(initial)" + #"[{"size":1,"results":[{"id":7}]}]"#))
+        client.refreshObservedGames()
+        let (cancelled, _) = try lastGameListRequest()
+        client.cancelObservedGamesRefresh()
+        socket.deliver(.success("43\(cancelled)" + #"[{"size":1,"results":[{"id":8}]}]"#))
+        XCTAssertEqual(client.observedGames.map(\.id), [7])
+        XCTAssertFalse(client.isLoadingObservedGames)
+        client.refreshObservedGames()
+        let (timedOut, _) = try lastGameListRequest()
+        scoringScheduler.advance(by: 12)
+        XCTAssertNotNil(client.observedGamesError)
+        XCTAssertEqual(client.observedGames.map(\.id), [7])
+        client.refreshObservedGames()
+        let (current, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(timedOut)" + #"[{"size":1,"results":[{"id":9}]}]"#))
+        XCTAssertTrue(client.isLoadingObservedGames)
+        client.logout()
+        socket.deliver(.success("43\(current)" + #"[{"size":1,"results":[{"id":10}]}]"#))
+        XCTAssertTrue(client.observedGames.isEmpty)
+        XCTAssertFalse(client.isLoadingObservedGames)
+        let sent = socket.sentMessages.count
+        client.refreshObservedGames()
+        XCTAssertEqual(socket.sentMessages.count, sent)
+    }
+
+    func testAutomaticObservedRefreshRetainsSuccessfulAndInFlightTimeControls() throws {
+        connect(); client.isSocketAuthenticated = true
+        func reply() throws {
+            let (id, _) = try lastGameListRequest()
+            socket.deliver(.success("43\(id)" + #"[{"size":2,"results":[{"id":7},{"id":8}]}]"#))
+        }
+        client.refreshObservedGames(); try reply()
+        var held: ClientHTTPFixture?
+        let requested = expectation(description: "Detail in flight")
+        ClientHTTPFixture.handler = { fixture in held = fixture; requested.fulfill() }
+        client.loadObservedTimeControl(for: client.observedGames[0])
+        wait(for: [requested], timeout: 3)
+        client.refreshObservedGames(); try reply()
+        let loaded = expectation(description: "Detail survives refresh")
+        let subscription = client.$observedTimeControls.filter { $0[7] == "No time limit" }.sink { _ in loaded.fulfill() }
+        held?.respond(status: 200, body: #"{"gamedata":{"time_control":{"system":"none"}}}"#)
+        wait(for: [loaded], timeout: 3); subscription.cancel()
+        client.refreshObservedGames(); try reply()
+        XCTAssertEqual(client.observedTimeControls[7], "No time limit")
+        ClientHTTPFixture.handler = { _ in XCTFail("Successful time control should stay cached") }
+        client.loadObservedTimeControl(for: client.observedGames[0]); drainMainQueue()
     }
 
     func testObservedWinnerIncludesActualColorForEitherPlayer() {

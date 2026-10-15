@@ -357,35 +357,34 @@ struct OGSObservationBrowserView: View {
     // Only the presenting sheet supplies a close action. The sidebar must stay open.
     var didObserve: () -> Void = {}
     var onCancel: (() -> Void)?
+    var showsTitle: Bool
+    var refreshInterval: UInt64
 
-    init(gameLink: String = "", didObserve: @escaping () -> Void = {}, onCancel: (() -> Void)? = nil) {
+    init(gameLink: String = "", didObserve: @escaping () -> Void = {}, onCancel: (() -> Void)? = nil,
+         showsTitle: Bool = true, refreshInterval: UInt64 = 10_000_000_000) {
         _gameLink = State(initialValue: gameLink)
         self.didObserve = didObserve
         self.onCancel = onCancel
+        self.showsTitle = showsTitle
+        self.refreshInterval = refreshInterval
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Observe an OGS game").font(.headline)
-                Spacer()
-                if let onCancel {
-                    Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
+            if showsTitle || onCancel != nil {
+                HStack {
+                    if showsTitle { Text("Select a Game").font(.headline) }
+                    Spacer()
+                    if let onCancel {
+                        Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
+                    }
                 }
             }
-            if app.ogsClient.isAuthenticated {
-                Text(app.ogsClient.isSocketAuthenticated ? "Ready to observe" : app.ogsClient.connectionStatus)
-                    .font(.caption).foregroundColor(.secondary)
-                HStack {
-                    Button("Reconnect") { app.ogsClient.disconnect(); app.ogsClient.connect() }
-                    Button("Log Out") { app.ogsClient.logout() }
-                }
-            } else {
+            if !app.ogsClient.isAuthenticated {
                 Text("Sign in with your OGS account. This app has its own login session.")
                     .font(.caption)
                 Button("Log In") { showLogin = true }.buttonStyle(.borderedProminent)
             }
-            Divider()
             currentGames
             Divider()
             Text("Open a game by link or ID").font(.subheadline)
@@ -401,23 +400,29 @@ struct OGSObservationBrowserView: View {
         }
         .padding()
         .sheet(isPresented: $showLogin) { OGSLoginView(isPresented: $showLogin).environmentObject(app) }
-        .onAppear { if app.ogsClient.isSocketAuthenticated { app.ogsClient.fetchObservedGames() } }
-        .onChange(of: app.ogsClient.isSocketAuthenticated) { ready in
-            if ready { app.ogsClient.fetchObservedGames() }
+        .task(id: app.ogsClient.isSocketAuthenticated) {
+            guard app.ogsClient.isSocketAuthenticated else { return }
+            app.ogsClient.refreshObservedGames()
+            while !Task.isCancelled {
+                do { try await Task.sleep(nanoseconds: refreshInterval) }
+                catch { return }
+                guard !Task.isCancelled else { return }
+                app.ogsClient.refreshObservedGames()
+            }
         }
-        .onDisappear { app.isTypingInChat = false }
+        .onDisappear {
+            app.isTypingInChat = false
+            app.ogsClient.cancelObservedGamesRefresh()
+        }
     }
 
     private var currentGames: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Live games").font(.headline)
+                Text("Strongest player first").font(.caption).foregroundColor(.secondary)
                 Spacer()
                 if app.ogsClient.isLoadingObservedGames { ProgressView().controlSize(.small) }
-                Button("Refresh") { app.ogsClient.fetchObservedGames() }
-                    .disabled(!app.ogsClient.isSocketAuthenticated || app.ogsClient.isLoadingObservedGames)
             }
-            Text("Strongest player first").font(.caption).foregroundColor(.secondary)
             if let error = app.ogsClient.observedGamesError {
                 Text(error).font(.caption).foregroundColor(.orange)
             }
@@ -426,7 +431,7 @@ struct OGSObservationBrowserView: View {
                     if app.ogsClient.observedGames.isEmpty {
                         Text(!app.ogsClient.isSocketAuthenticated ? "Sign in and connect to see current games." :
                             (app.ogsClient.isLoadingObservedGames ? "Loading games…" :
-                                (app.ogsClient.observedGamesError == nil ? "No live games. Try Refresh." : "Game list unavailable.")))
+                                (app.ogsClient.observedGamesError == nil ? "No live games right now." : "Game list unavailable.")))
                             .font(.caption).foregroundColor(.secondary)
                     }
                     ForEach(app.ogsClient.observedGames) { game in

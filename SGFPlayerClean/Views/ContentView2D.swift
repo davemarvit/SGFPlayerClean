@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView2D: View {
     @EnvironmentObject var app: AppModel
+    @Environment(\.boardControlsWidth) private var controlsWidth
     private let boardAspectRatio: CGFloat = 1.0773
     
     private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
@@ -71,6 +72,8 @@ struct ContentView2D: View {
                     
                     if let bvm = app.boardVM {
                         PlaybackControlsView(boardVM: bvm).padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
+                            .frame(width: controlsWidth ?? area.width)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .frame(width: window.size.width, height: window.size.height) // Full Window Frame

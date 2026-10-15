@@ -125,11 +125,13 @@ class OGSClient: NSObject, ObservableObject {
     @Published private(set) var observedGamesError: String?
     @Published private(set) var observedMetadataGeneration = UUID()
     @Published private(set) var observedTimeControls: [Int: String] = [:]
+    private var observedMetadataRequestGeneration = UUID()
     private var observedMetadataTasks: [Int: URLSessionDataTask] = [:]
     private var observedMetadataQueue: [Int] = []
     private var observedMetadataAttempted: Set<Int> = []
     static let observedGamesPageSize = 20
-    private var observedGamesRequest: (id: Int, page: Int)?
+    private var observedGamesRequest: (id: Int, page: Int, refreshThrough: Int?)?
+    private var observedRefreshRows: [OGSObservedGame] = []
     private var observedGamesTimeout: OGSCancellable?
     @Published var blackBoxContent: String = ""
     @Published var isSubscribedToSeekgraph = false
@@ -1929,6 +1931,26 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func fetchObservedGames(page: Int = 0) {
+        requestObservedGames(page: page, refreshThrough: nil)
+    }
+
+    /// Refresh all loaded batches atomically, without truncating a scrolled list.
+    /// The picker owns the timer; coalesce overlapping picker/pagination requests.
+    func refreshObservedGames() {
+        guard isSocketAuthenticated, isConnected, observedGamesRequest == nil else { return }
+        observedRefreshRows = []
+        requestObservedGames(page: 0, refreshThrough: observedGamesPage)
+    }
+
+    func cancelObservedGamesRefresh() {
+        guard observedGamesRequest?.refreshThrough != nil else { return }
+        observedGamesRequest = nil
+        observedGamesTimeout?.cancel(); observedGamesTimeout = nil
+        observedRefreshRows = []
+        isLoadingObservedGames = false
+    }
+
+    private func requestObservedGames(page: Int, refreshThrough: Int?) {
         #if SGF_OFFLINE_REVIEW
         observedGamesError = "OGS is disabled in the offline review app."
         return
@@ -1938,22 +1960,24 @@ class OGSClient: NSObject, ObservableObject {
             return
         }
         guard page >= 0, page < Int.max / Self.observedGamesPageSize else { return }
-        if page > 0 {
+        if page > 0 && refreshThrough == nil {
             guard hasMoreObservedGames, page == observedGamesPage + 1, observedGamesRequest == nil else { return }
         }
         if observedGamesRequest?.page == page { return }
         observedGamesTimeout?.cancel()
         requestSequence += 1
         let id = requestSequence
-        observedGamesRequest = (id, page)
+        if refreshThrough == nil { observedRefreshRows = [] }
+        observedGamesRequest = (id, page, refreshThrough)
         isLoadingObservedGames = true
         observedGamesError = nil
         observedGamesTimeout = scoringScheduler.schedule(after: 12) { [weak self] in
             guard let self, self.observedGamesRequest?.id == id else { return }
             self.observedGamesRequest = nil
             self.observedGamesTimeout = nil
+            self.observedRefreshRows = []
             self.isLoadingObservedGames = false
-            self.observedGamesError = "The game list did not arrive. Try Refresh."
+            self.observedGamesError = "The game list did not arrive. Retrying automatically…"
         }
         sendAction("gamelist/query", payload: ["list": "live", "sort_by": "rank", "where": [:],
             "from": page * Self.observedGamesPageSize, "limit": Self.observedGamesPageSize], acknowledgementID: id)
@@ -1979,7 +2003,7 @@ class OGSClient: NSObject, ObservableObject {
     private func startObservedMetadataRequests() {
         while observedMetadataTasks.count < 3, !observedMetadataQueue.isEmpty {
             let id = observedMetadataQueue.removeFirst()
-            let generation = observedMetadataGeneration
+            let generation = observedMetadataRequestGeneration
             var request = URLRequest(url: URL(string: "https://online-go.com/api/v1/games/\(id)")!)
             request.timeoutInterval = 12
             request.setValue(originHeader, forHTTPHeaderField: "Origin")
@@ -1991,9 +2015,9 @@ class OGSClient: NSObject, ObservableObject {
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     label = OGSObservedGame.timeControlDescription(json)
                 }
-                let result = label ?? "Time control unavailable · Refresh to retry"
+                let result = label ?? "Time control unavailable · Retrying automatically"
                 DispatchQueue.main.async { [weak self] in
-                    guard let self, self.observedMetadataGeneration == generation else { return }
+                    guard let self, self.observedMetadataRequestGeneration == generation else { return }
                     self.observedMetadataTasks.removeValue(forKey: id)
                     self.observedTimeControls[id] = result
                     self.startObservedMetadataRequests()
@@ -2005,17 +2029,30 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     private func clearObservedMetadata() {
+        observedMetadataRequestGeneration = UUID()
         observedMetadataGeneration = UUID()
         observedMetadataTasks.values.forEach { $0.cancel() }
         observedMetadataTasks.removeAll()
         observedMetadataQueue.removeAll()
-        observedMetadataAttempted.removeAll()
         observedTimeControls.removeAll()
+        observedMetadataAttempted.removeAll()
+    }
+
+    private func retryFailedObservedMetadata() {
+        // A ten-second list refresh must not cancel a detail request whose timeout
+        // is twelve seconds. Keep successful labels and in-flight requests intact.
+        let failed = observedTimeControls.filter { $0.value.hasPrefix("Time control unavailable") }.map(\.key)
+        for id in failed {
+            observedTimeControls.removeValue(forKey: id)
+            observedMetadataAttempted.remove(id)
+        }
+        observedMetadataGeneration = UUID()
     }
 
     private func clearObservedGames() {
         clearObservedMetadata()
         observedGamesRequest = nil
+        observedRefreshRows = []
         observedGamesTimeout?.cancel(); observedGamesTimeout = nil
         isLoadingObservedGames = false
         observedGames = []
@@ -2031,19 +2068,20 @@ class OGSClient: NSObject, ObservableObject {
         guard let id = Int(digits), let pending = observedGamesRequest, pending.id == id else { return }
         observedGamesRequest = nil
         observedGamesTimeout?.cancel(); observedGamesTimeout = nil
-        isLoadingObservedGames = false
         guard let data = String(body.dropFirst(digits.count)).data(using: .utf8),
               let args = try? JSONSerialization.jsonObject(with: data) as? [Any],
               let response = args.first as? [String: Any],
               let size = response["size"] as? Int, size >= 0,
               let rows = response["results"] as? [[String: Any]],
               args.count < 2 || args[1] is NSNull else {
-            observedGamesError = "Could not load current games. Try Refresh."
+            isLoadingObservedGames = false
+            observedRefreshRows = []
+            observedGamesError = "Could not load current games. Retrying automatically…"
             return
         }
         // Games may move between server pages while being played. Update duplicate IDs
         // in place, rather than rendering duplicates or dropping earlier loaded games.
-        var combined = pending.page == 0 ? [] : observedGames
+        var combined = pending.refreshThrough != nil ? observedRefreshRows : (pending.page == 0 ? [] : observedGames)
         var indices = Dictionary(uniqueKeysWithValues: combined.enumerated().map { ($0.element.id, $0.offset) })
         var seen: Set<Int> = []
         for game in rows.prefix(Self.observedGamesPageSize).compactMap(OGSObservedGame.init)
@@ -2051,11 +2089,21 @@ class OGSClient: NSObject, ObservableObject {
             if let index = indices[game.id] { combined[index] = game }
             else { indices[game.id] = combined.count; combined.append(game) }
         }
-        if pending.page == 0 { clearObservedMetadata() }
+        let hasMore = !rows.isEmpty && pending.page * Self.observedGamesPageSize + min(rows.count, Self.observedGamesPageSize) < size
+        if let through = pending.refreshThrough {
+            if hasMore && pending.page < through {
+                observedRefreshRows = combined
+                requestObservedGames(page: pending.page + 1, refreshThrough: through)
+                return
+            }
+            retryFailedObservedMetadata()
+            observedRefreshRows = []
+        } else if pending.page == 0 { clearObservedMetadata() }
+        isLoadingObservedGames = false
         observedGames = OGSObservedGame.strongestFirst(combined)
         observedGamesPage = pending.page
         observedGamesTotal = size
-        hasMoreObservedGames = !rows.isEmpty && pending.page * Self.observedGamesPageSize + min(rows.count, Self.observedGamesPageSize) < size
+        hasMoreObservedGames = hasMore
         observedGamesError = nil
     }
 

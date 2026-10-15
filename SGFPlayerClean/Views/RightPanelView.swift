@@ -28,8 +28,15 @@ struct AppModeControls: View {
                 #if !SGF_OFFLINE_REVIEW
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(app.ogsClient.username ?? "Not signed in").font(.caption).bold()
-                    Text(app.ogsClient.isSocketAuthenticated ? "Connected" : app.ogsClient.connectionStatus)
-                        .font(.caption2).foregroundColor(.secondary)
+                    if app.ogsClient.isAuthenticated && !app.ogsClient.isSocketAuthenticated {
+                        Button("Reconnect") { app.ogsClient.disconnect(); app.ogsClient.connect() }
+                            .font(.caption2)
+                            .help(app.ogsClient.connectionStatus)
+                            .accessibilityIdentifier("account-reconnect")
+                    } else {
+                        Text(app.ogsClient.isSocketAuthenticated ? "Connected" : app.ogsClient.connectionStatus)
+                            .font(.caption2).foregroundColor(.secondary)
+                    }
                 }
                 if app.ogsClient.isAuthenticated {
                     Button("Log Out") { app.ogsClient.logout() }
@@ -55,7 +62,8 @@ struct RightPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(app.mode.rawValue).font(.headline)
+                Text(app.mode == .observe && app.ogsClient.activeGameID == nil ? "Select a Game" : app.mode.rawValue)
+                    .font(.headline)
                 Spacer()
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.35)) {
@@ -201,7 +209,7 @@ struct RightPanelView: View {
                 OGSCreateChallengeView(isPresented: $app.isCreatingChallenge).transition(.opacity)
             } else {
                 if app.mode == .observe {
-                    OGSObservationBrowserView()
+                    OGSObservationBrowserView(showsTitle: false)
                 } else {
                 OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in
                     app.joinOnlineGame(id: id)

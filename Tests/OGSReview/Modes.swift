@@ -145,6 +145,18 @@ private final class ModeSocket: OGSWebSocket {
         for label in ["play online", "local play", "observe", "review", "testingaccount", "log out"] {
             require(controls.contains(label), "Missing control \(label): \(controls)")
         }
+        require(controls.contains("connected") && !controls.contains("reconnect"), "Connected account needs no reconnect button")
+        client.disconnect(); settle()
+        let disconnectedControls = try render(AppModeControls())
+        require(disconnectedControls.contains("testingaccount") && disconnectedControls.contains("reconnect") &&
+                disconnectedControls.contains("log out"), "Disconnected account keeps identity/logout and offers reconnect")
+        client.connect(); socket.onOpen?(); client.isSocketAuthenticated = true; settle()
+        model.mode = .observe; model.showOnlineBrowser(); settle()
+        let picker = try render(RightPanelView().frame(width: 320, height: 620))
+        require(picker.components(separatedBy: "select a game").count == 2, "Exactly one picker heading: \(picker)")
+        for redundant in ["observe an ogs game", "ready to observe", "reconnect", "log out", "live games", "refresh"] {
+            require(!picker.contains(redundant), "Redundant picker label: \(redundant)")
+        }
         model.mode = .playOnline; model.showOnlineBrowser(); settle()
         let fixtures = #"[{"id":1,"username":"NineRated","user_id":10,"width":9,"height":9,"ranked":true,"time_per_move":60},{"id":2,"username":"Nineteen","user_id":11,"width":19,"height":19,"ranked":false,"time_per_move":60},{"id":3,"username":"Correspondence","user_id":12,"width":9,"height":9,"ranked":true,"time_per_move":86400},{"id":4,"username":"Ineligible","user_id":13,"width":9,"height":9,"ranked":true,"time_per_move":60,"min_rank":40}]"#
         client.availableGames = try JSONDecoder().decode([OGSChallenge].self, from: Data(fixtures.utf8))

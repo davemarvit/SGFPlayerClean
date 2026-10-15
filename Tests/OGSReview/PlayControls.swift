@@ -164,7 +164,7 @@ private final class PlaySocket: OGSWebSocket {
 
         client.isSocketAuthenticated = false; await settle()
         let offline = text(in: window)
-        require(offline.contains("reconnect") && offline.contains("testingaccount") && offline.contains("pass"), "Disconnect must retain active-game panel: \(offline)")
+        require(!offline.contains("reconnect") && offline.contains("testingaccount") && offline.contains("pass"), "Disconnect retains game panel; reconnect belongs in account toolbar: \(offline)")
         let count = socket.messages.filter { $0.contains("game/move") }.count
         press("Pass", in: window); await settle()
         require(socket.messages.filter { $0.contains("game/move") }.count == count, "Disconnected pass sent")

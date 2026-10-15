@@ -62,18 +62,18 @@ struct BoardWorkspaceView<Board: View>: View {
             let layout = BoardWorkspaceGeometry(size: geo.size, aiEnabled: app.isAIAvailable,
                 sidebarVisible: app.showRightPanel || vm.localScoringVisible)
             ZStack(alignment: .leading) {
-                HStack(spacing: 0) {
-                    board()
-                        .frame(width: layout.boardWidth, height: geo.size.height)
-                        .clipped()
-                    if app.isAIAvailable {
-                        AIWorkspacePanel(vm: vm, ai: analysisEngine)
-                            .frame(width: layout.aiWidth, height: geo.size.height)
-                    }
-                    if layout.reservesSidebar { Color.clear.frame(width: 320) }
+                board()
+                    .environment(\.boardControlsWidth, layout.aiOrigin)
+                    .frame(width: layout.boardWidth, height: geo.size.height)
+                    .clipped()
+                if app.isAIAvailable {
+                    AIWorkspacePanel(vm: vm, ai: analysisEngine)
+                        .frame(width: layout.aiWidth, height: geo.size.height)
+                        .offset(x: layout.aiOrigin)
                 }
                 if layout.hasSidebar { RightSidebarOverlay(vm: vm) }
             }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
             .background {
                 if app.viewMode == .view3D {
                     Color(nsColor: SceneManager3D.backgroundColor)
@@ -90,6 +90,7 @@ struct BoardWorkspaceGeometry {
     let reservesSidebar: Bool
     let boardWidth: CGFloat
     let aiWidth: CGFloat
+    let aiOrigin: CGFloat
 
     init(size: CGSize, aiEnabled: Bool, sidebarVisible: Bool) {
         hasSidebar = sidebarVisible
@@ -101,7 +102,22 @@ struct BoardWorkspaceGeometry {
         let fittedBoardWidth = size.height * 0.85 / boardAspect * groupFactor / 0.92
         let preferredAI = max(280, min(400, available * 0.27))
         aiWidth = aiEnabled ? min(available * 0.5, max(preferredAI, available - fittedBoardWidth)) : 0
-        boardWidth = available - aiWidth
+        aiOrigin = available - aiWidth
+        // Analysis may cover the outer lid area. Preserve the playable board and
+        // use the recovered width to enlarge it, rather than reserving every lid pixel.
+        let overlap = aiEnabled ? min(aiWidth * 0.65, aiOrigin * 0.25) : 0
+        boardWidth = aiOrigin + overlap
+    }
+}
+
+private struct BoardControlsWidthKey: EnvironmentKey {
+    static let defaultValue: CGFloat? = nil
+}
+
+extension EnvironmentValues {
+    var boardControlsWidth: CGFloat? {
+        get { self[BoardControlsWidthKey.self] }
+        set { self[BoardControlsWidthKey.self] = newValue }
     }
 }
 

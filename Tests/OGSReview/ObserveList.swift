@@ -92,10 +92,12 @@ private final class BrowserSocketFixture: OGSWebSocket {
         }
         let labels = try capture("/private/tmp/sgf-observe-list-preview.png")
         let text = labels.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ").lowercased()
-        for label in ["alice", "6d", "93 moves", "20m", "30s", "strongest player first"] {
+        for label in ["alice", "6d", "93 moves", "20m", "30s", "strongest player first", "select a game"] {
             require(text.contains(label), "Missing \(label): \(text)")
         }
-        require(!text.contains("logged in as"), "Duplicate account label: \(text)")
+        for redundant in ["logged in as", "ready to observe", "observe an ogs game", "reconnect", "log out", "refresh", "live games"] {
+            require(!text.contains(redundant), "Redundant browser control: \(redundant)")
+        }
         require(BrowserHTTPFixture.detailRequests > 0 && BrowserHTTPFixture.detailRequests < 20, "Only visible rows fetch details")
         require(!text.contains("1001") && !text.contains("page 1") && !text.contains("previous"), text)
         require(socket.offsets == [0] && client.observedGames.count == 20, "Initial display must not eagerly fetch everything: \(socket.offsets)")
@@ -115,6 +117,19 @@ private final class BrowserSocketFixture: OGSWebSocket {
         require(socket.offsets == [0, 20, 40] && !client.hasMoreObservedGames, "Stop at final batch")
         require(Set(client.observedGames.map(\.id)).count == 53, "Unique rows")
         require(client.activeGameID == nil, "Browsing must not observe or join")
+        // Accelerate only this fixture's picker timer; production uses ten seconds.
+        let detailCount = BrowserHTTPFixture.detailRequests
+        window.contentView = NSHostingView(rootView: OGSObservationBrowserView(refreshInterval: 200_000_000)
+            .environmentObject(model).frame(width: 560, height: 700))
+        settle(); settle()
+        require(socket.offsets.count > 3, "Visible picker automatically refreshes")
+        require(client.observedGames.count == 53, "Refresh retains loaded depth")
+        window.contentView = NSHostingView(rootView: Text("Closed"))
+        settle()
+        let requestsAfterClosing = socket.offsets.count
+        settle()
+        require(socket.offsets.count == requestsAfterClosing, "Hidden picker stops refreshing")
+        require(BrowserHTTPFixture.detailRequests <= detailCount + 4, "Automatic refresh reuses successful clock metadata")
         window.contentView = NSHostingView(rootView: OGSCreateChallengeView(isPresented: .constant(true))
             .environmentObject(model).frame(width: 380, height: 700).background(Color(nsColor: .windowBackgroundColor)))
         settle()

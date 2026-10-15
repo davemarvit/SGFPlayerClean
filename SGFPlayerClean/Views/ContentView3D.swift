@@ -8,6 +8,7 @@ import Combine
 
 struct ContentView3D: View {
     @EnvironmentObject var app: AppModel
+    @Environment(\.boardControlsWidth) private var controlsWidth
     @StateObject private var sceneManager = SceneManager3D()
     @FocusState private var isBoardFocused: Bool
     
@@ -81,6 +82,8 @@ struct ContentView3D: View {
                 VStack(spacing: 0) {
                     Spacer()
                     PlaybackControlsView(boardVM: bVM).padding(.bottom, 25)
+                        .frame(width: controlsWidth)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: bVM.ghostPosition) { _, _ in updateScene() }
                 .onChange(of: bVM.ghostColor) { _, _ in updateScene() }

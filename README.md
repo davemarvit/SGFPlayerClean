@@ -6,6 +6,12 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+Observe now has one “Select a Game” heading and no duplicate account controls.
+Reconnect appears beneath the username only when the signed-in connection is down.
+The picker refreshes every ten seconds while visible, preserving loaded depth and
+cached clock details. AI can overlap the capture lids to give the board more room;
+the playable board and playback controls stay clear.
+
 The shared app target now includes a Go-board icon with black and white stones, packaged
 at all ten standard macOS icon sizes. Only the separate OGS review app was installed;
 the working app remains untouched. Artwork and generation prompts are in `Design/AppIcon`.
