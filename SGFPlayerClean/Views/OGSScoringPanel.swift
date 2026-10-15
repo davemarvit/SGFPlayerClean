@@ -10,6 +10,7 @@ struct OGSScoringPanel: View {
     let acceptance: OGSScoreAcceptance
     let strictSeki: Bool
     let summary: OGSScoreSummary?
+    var winnerDescription: String? = nil
     var serverTerritory = false
     let error: String?
     let accept: () -> Void
@@ -17,8 +18,14 @@ struct OGSScoringPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(finished ? "Final score" : "Review scoring", systemImage: "flag.checkered")
-                .font(.headline)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Label(finished ? "Final Score" : "Review scoring", systemImage: "flag.checkered")
+                    .font(.headline).fixedSize()
+                if finished, let winnerDescription {
+                    Text(winnerDescription).font(.callout.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if let summary {
                 scoreGrid(summary)
                 Text("Score supplied by OGS, including komi and other adjustments.")

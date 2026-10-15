@@ -9,6 +9,7 @@ final class OGSClientTests: XCTestCase {
     private var scoringScheduler: TestScheduler!
 
     override func setUp() {
+        ClientHTTPFixture.configHandler = nil
         socket = TestSocket()
         scoringScheduler = TestScheduler()
         ClientHTTPFixture.handler = { fixture in
@@ -33,6 +34,7 @@ final class OGSClientTests: XCTestCase {
         session = nil
         socket = nil
         ClientHTTPFixture.handler = nil
+        ClientHTTPFixture.configHandler = nil
     }
 
     private func connect() {
@@ -44,6 +46,173 @@ final class OGSClientTests: XCTestCase {
         let drained = expectation(description: "Queued updates processed")
         DispatchQueue.main.async { drained.fulfill() }
         wait(for: [drained], timeout: 3)
+    }
+
+    func testLoginWaitsForValidatedCredentials() {
+        connect()
+        client.isSocketAuthenticated = true
+        let configRequested = expectation(description: "Config requested")
+        var held: ClientHTTPFixture?
+        ClientHTTPFixture.handler = { $0.respond(status: 204, body: "") }
+        ClientHTTPFixture.configHandler = { held = $0; configRequested.fulfill() }
+        var completed = false
+        let done = expectation(description: "Credentials loaded")
+        client.login(username: "second", password: "fixture") { success, error in
+            completed = true
+            XCTAssertTrue(success)
+            XCTAssertNil(error)
+            XCTAssertEqual(self.client.playerID, 2)
+            XCTAssertEqual(self.client.userJWT, "new-token")
+            done.fulfill()
+        }
+        XCTAssertFalse(client.isConnected)
+        XCTAssertFalse(client.isSocketAuthenticated)
+        XCTAssertNil(client.playerID)
+        wait(for: [configRequested], timeout: 3)
+        XCTAssertFalse(completed)
+        held?.respond(status: 200, body: #"{"user":{"id":2,"username":"second"},"user_jwt":"new-token"}"#)
+        wait(for: [done], timeout: 3)
+    }
+
+    func testLoginRejectsAnonymousMissingAndFailedConfig() {
+        for (status, body) in [(200, "{}"), (200, #"{"user":{"id":0},"user_jwt":"guest"}"#),
+                               (200, #"{"user":{"id":2},"user_jwt":" "}"#), (503, "{}")] {
+            ClientHTTPFixture.handler = { $0.respond(status: 200, body: "{}") }
+            ClientHTTPFixture.configHandler = { $0.respond(status: status, body: body) }
+            let done = expectation(description: "Rejected invalid identity")
+            client.login(username: "fixture", password: "fixture") { success, error in
+                XCTAssertFalse(success); XCTAssertNotNil(error); done.fulfill()
+            }
+            wait(for: [done], timeout: 3)
+            XCTAssertFalse(client.isAuthenticated)
+            XCTAssertNil(client.userJWT)
+            XCTAssertNil(client.playerID)
+        }
+    }
+
+    func testLogoutDuringConfigCannotRestoreIdentityOrReportSuccess() {
+        let requested = expectation(description: "Config held")
+        var held: ClientHTTPFixture?
+        ClientHTTPFixture.handler = { $0.respond(status: 200, body: "{}") }
+        ClientHTTPFixture.configHandler = { held = $0; requested.fulfill() }
+        let done = expectation(description: "Cancelled once")
+        done.assertForOverFulfill = true
+        client.login(username: "fixture", password: "fixture") { success, error in
+            XCTAssertFalse(success); XCTAssertNotNil(error); done.fulfill()
+        }
+        wait(for: [requested], timeout: 3)
+        client.logout()
+        held?.respond(status: 200, body: #"{"user":{"id":2},"user_jwt":"late"}"#)
+        wait(for: [done], timeout: 3)
+        drainMainQueue()
+        XCTAssertFalse(client.isAuthenticated)
+        XCTAssertNil(client.playerID)
+    }
+
+    func testAnonymousRefreshClearsPreviousIdentity() {
+        ClientHTTPFixture.configHandler = { $0.respond(status: 200, body: #"{"user":{"id":0},"user_jwt":""}"#) }
+        let done = expectation(description: "Refreshed")
+        client.fetchUserConfig { success, _ in XCTAssertFalse(success); done.fulfill() }
+        wait(for: [done], timeout: 3)
+        XCTAssertNil(client.playerID)
+        XCTAssertNil(client.userJWT)
+        XCTAssertFalse(client.isSocketAuthenticated)
+    }
+
+    func testSocketAuthenticationWaitsForNamespaceAndDoesNotSpam() {
+        connect()
+        socket.deliver(.success(#"42["notification",{}]"#))
+        drainMainQueue()
+        XCTAssertFalse(client.isSocketAuthenticated)
+        socket.deliver(.success("40"))
+        socket.deliver(.success("40"))
+        XCTAssertEqual(socket.sentMessages.filter { $0.contains("authenticate") }.count, 1)
+        scoringScheduler.advance(by: 15)
+        XCTAssertNotNil(client.lastError)
+        XCTAssertFalse(client.isSocketAuthenticated)
+        socket.deliver(.success(#"42["authenticated",{}]"#))
+        drainMainQueue()
+        XCTAssertTrue(client.isSocketAuthenticated)
+    }
+
+    func testMoveResyncCoalescesReadsAndFencesQueuedSnapshotAgainstNewMove() {
+        connect()
+        client.activeGameID = 7
+        var held: ClientHTTPFixture?
+        let requested = expectation(description: "One snapshot read")
+        ClientHTTPFixture.handler = { held = $0; requested.fulfill() }
+        var snapshot: Notification?
+        let observer = NotificationCenter.default.addObserver(forName: Notification.Name("OGSGameDataReceived"), object: nil, queue: nil) { snapshot = $0 }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        client.requestMoveResync()
+        client.requestMoveResync()
+        wait(for: [requested], timeout: 3)
+        let delivered = expectation(description: "Snapshot delivered")
+        let second = NotificationCenter.default.addObserver(forName: Notification.Name("OGSGameDataReceived"), object: nil, queue: nil) { _ in delivered.fulfill() }
+        defer { NotificationCenter.default.removeObserver(second) }
+        held?.respond(status: 200, body: #"{"id":7,"moves":[[0,0]]}"#)
+        wait(for: [delivered], timeout: 3)
+        XCTAssertTrue(client.acceptsGameNotification(snapshot!))
+        socket.deliver(.success(#"42["game/7/move",{"move_number":2,"move":[1,1]}]"#))
+        XCTAssertFalse(client.acceptsGameNotification(snapshot!))
+    }
+
+    func testDuplicateMoveDoesNotToggleTurnOrAddCapturesTwice() {
+        connect()
+        client.activeGameID = 7
+        client.blackPlayerID = 1; client.whitePlayerID = 2; client.currentPlayerID = 1
+        let packet = #"42["game/7/move",{"move_number":1,"move":[0,0],"player_id":1,"captured":[{"x":1,"y":0}]}]"#
+        socket.deliver(.success(packet))
+        drainMainQueue()
+        XCTAssertEqual(client.blackCaptures, 1)
+        XCTAssertEqual(client.currentPlayerID, 2)
+        socket.deliver(.success(packet))
+        socket.deliver(.success(#"42["game/7/move",{"move_number":1,"move":[0,0]}]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.blackCaptures, 1)
+        XCTAssertEqual(client.currentPlayerID, 2)
+        XCTAssertEqual(client.lastKnownRemoteMoveNumber, 1)
+        client.activeGameID = 8
+        XCTAssertNil(client.lastKnownRemoteMoveNumber)
+        XCTAssertEqual(client.currentStateVersion, 0)
+    }
+
+    func testMoveDuringSnapshotReadDiscardsOldResponseAndReadsAgain() {
+        connect(); client.activeGameID = 7
+        let firstRequested = expectation(description: "First snapshot")
+        let secondRequested = expectation(description: "Fresh snapshot")
+        var held: ClientHTTPFixture?
+        var calls = 0
+        ClientHTTPFixture.handler = { fixture in
+            calls += 1
+            if calls == 1 { held = fixture; firstRequested.fulfill() }
+            else { secondRequested.fulfill(); fixture.respond(status: 200, body: #"{"id":7,"moves":[[0,0],[1,1]]}"#) }
+        }
+        let posted = expectation(description: "Only fresh snapshot delivered")
+        posted.assertForOverFulfill = true
+        let observer = NotificationCenter.default.addObserver(forName: Notification.Name("OGSGameDataReceived"), object: nil, queue: nil) { note in
+            let game = note.userInfo?["gameData"] as? [String: Any]
+            XCTAssertEqual((game?["moves"] as? [[Int]])?.count, 2)
+            posted.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        client.requestMoveResync()
+        wait(for: [firstRequested], timeout: 3)
+        socket.deliver(.success(#"42["game/7/move",{"move_number":2,"move":[1,1]}]"#))
+        held?.respond(status: 200, body: #"{"id":7,"moves":[[0,0]]}"#)
+        wait(for: [secondRequested, posted], timeout: 3)
+        XCTAssertEqual(calls, 2)
+    }
+
+    func testIdentityRefreshKeepsCredentialsOnTransientFailureButRevokesOnUnauthorized() {
+        for status in [503, 401] {
+            ClientHTTPFixture.configHandler = { $0.respond(status: status, body: "{}") }
+            let done = expectation(description: "Config failed")
+            client.fetchUserConfig { success, _ in XCTAssertFalse(success); done.fulfill() }
+            wait(for: [done], timeout: 3)
+            XCTAssertEqual(client.isAuthenticated, status == 503)
+            XCTAssertEqual(client.playerID, status == 503 ? 1 : nil)
+        }
     }
 
     func testUnauthenticatedAcceptDoesNotLeaveLobbyBusy() {
@@ -495,12 +664,14 @@ final class OGSClientTests: XCTestCase {
 /// All URLs, including production-looking OGS URLs, are intercepted. There is no network fallback.
 private final class ClientHTTPFixture: URLProtocol {
     static var handler: ((ClientHTTPFixture) -> Void)?
+    static var configHandler: ((ClientHTTPFixture) -> Void)?
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
         DispatchQueue.main.async {
             if self.request.url?.path == "/api/v1/ui/config" {
-                self.respond(status: 200, body: #"{"user":{"id":1,"username":"fixture"},"user_jwt":"fixture-token"}"#)
+                if let handler = Self.configHandler { handler(self) }
+                else { self.respond(status: 200, body: #"{"user":{"id":1,"username":"fixture"},"user_jwt":"fixture-token"}"#) }
             } else if let handler = Self.handler { handler(self) }
             else { self.fail(URLError(.unsupportedURL)) }
         }

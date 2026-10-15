@@ -269,6 +269,7 @@ struct ActiveGamePanel: View {
                     acceptance: app.ogsClient.scoreAcceptance,
                     strictSeki: app.ogsClient.strictSekiMode,
                     summary: app.ogsClient.scoreSummary,
+                    winnerDescription: app.ogsClient.scoreSummary?.winnerDescription(blackName: app.ogsClient.blackPlayerName, whiteName: app.ogsClient.whitePlayerName),
                     serverTerritory: app.ogsClient.scoreSummary?.positions(width: app.player.board.size, height: app.player.board.size) != nil,
                     error: app.ogsClient.scoringError,
                     accept: { if let id = app.ogsClient.activeGameID { app.ogsClient.acceptScore(gameID: id) } },
@@ -302,7 +303,9 @@ struct ActiveGamePanel: View {
                         }
                     }
                     .disabled({ () -> Bool in
-                        if app.ogsClient.isGameFinished { return true }
+                        if app.ogsClient.isGameFinished || !app.ogsClient.isConnected ||
+                            !app.ogsClient.isSocketAuthenticated || !app.ogsClient.isGameParticipant ||
+                            app.player.currentIndex != app.player.maxIndex { return true }
                         
                         // Default Server Authority
                         var itIsMyTurn = (app.ogsClient.currentPlayerID != nil && app.ogsClient.currentPlayerID == app.ogsClient.playerID)

@@ -81,11 +81,12 @@ class BoardViewModel: ObservableObject {
     var boardSize: Int { self.engine.board.size }
     
     func resetToEmpty() {
+        fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
             KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
         }
         KataGoEngine.shared.currentGameId = "local"
-        KataGoEngine.shared.currentAnalysisData.removeAll()
+        KataGoEngine.shared.invalidateAnalysis()
         
         self.engine.clear()
         self.stonesToRender = []
@@ -95,11 +96,12 @@ class BoardViewModel: ObservableObject {
         self.syncState()
     }
     
-    func loadGame(_ wrapper: SGFGameWrapper) { 
+    func loadGame(_ wrapper: SGFGameWrapper) {
+        fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
             KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
         }
-        KataGoEngine.shared.currentAnalysisData.removeAll()
+        KataGoEngine.shared.invalidateAnalysis()
         
         self.isOnlineContext = false
         
@@ -146,11 +148,6 @@ class BoardViewModel: ObservableObject {
     func startAutoPlay() { engine.play() }
     
     func handleRemoteMove(x: Int, y: Int, color: Stone) {
-        // Deduplicate locally played optimistic moves echoed back by the server
-        if let last = self.engine.lastMove, last.color == color, last.x == x, last.y == y {
-            NSLog("[OGS-BVM] 🛑 Ignored Remote Move Echo: Already played optimistically at (\(x), \(y))")
-            return
-        }
         self.engine.playMoveOptimistically(color: color, x: x, y: y)
     }
     
@@ -160,6 +157,8 @@ class BoardViewModel: ObservableObject {
     }
     
     func initializeOnlineGame(width: Int, height: Int, initialStones: [BoardPosition: Stone], nextPlayer: Stone, stateVersion: Int) {
+        fullGameAnalysisTask?.cancel()
+        _ = KataGoEngine.shared.loadAnalysisCache(for: ogsClient.activeGameID.map(String.init) ?? "local")
         self.stonesToRender = []
         self.objectWillChange.send()
         self.isOnlineContext = true
@@ -198,6 +197,8 @@ class BoardViewModel: ObservableObject {
 
         // 2. Play Phase
         if isOnlineContext {
+            guard ogsClient.isConnected, ogsClient.isSocketAuthenticated, ogsClient.isGameParticipant,
+                  engine.currentIndex == engine.maxIndex else { return }
             // SECURITY CHECK 1: Engine Consistency
             // If the local engine already knows it's the opponent's turn, we must block consecutive plays locally.
             // This prevents rapidly placing multiple stones if the server's turn packet is delayed.
@@ -366,12 +367,6 @@ class BoardViewModel: ObservableObject {
         if let allowed = isAIAllowed, !allowed() { return }
         
         let payload = self.engine.getCurrentAIPayload()
-        let turnIdx = payload.moves.count
-        
-        if KataGoEngine.shared.currentAnalysisData[turnIdx] != nil {
-            return // Use cached analysis
-        }
-        
         let gameId = isOnlineContext ? (ogsClient.activeGameID.map { String($0) } ?? "local") : KataGoEngine.shared.currentGameId
         
         KataGoEngine.shared.analyzeGame(
@@ -390,7 +385,7 @@ class BoardViewModel: ObservableObject {
         }
         
         fullGameAnalysisTask?.cancel()
-        fullGameAnalysisTask = Task {
+        fullGameAnalysisTask = Task { @MainActor in
             let total = self.totalMoves
             guard total > 0 else { return }
             
@@ -413,7 +408,7 @@ class BoardViewModel: ObservableObject {
                     if existingVisits >= depth {
                         completedOperations += 1
                         let prog = completedOperations / totalOperations
-                        Task { @MainActor in self.aiAnalysisProgress = prog }
+                        self.aiAnalysisProgress = prog
                         continue // Already analyzed to this depth implicitly
                     }
                     
@@ -421,7 +416,8 @@ class BoardViewModel: ObservableObject {
                     
                     // Yield runloop before heavy SGF processing to eliminate UI beachball lag
                     await Task.yield()
-                    
+                    try Task.checkCancellation()
+                    guard KataGoEngine.shared.currentGameId == gameId else { return }
                     let payload = self.engine.getAIPayload(at: i)
                     KataGoEngine.shared.analyzeGame(
                         id: gameId,
@@ -434,7 +430,7 @@ class BoardViewModel: ObservableObject {
                     
                     completedOperations += 1
                     let prog = completedOperations / totalOperations
-                    Task { @MainActor in self.aiAnalysisProgress = prog }
+                    self.aiAnalysisProgress = prog
                     
                     // Allow UI/Manual Analysis requests to jump the queue inherently because they fire without delay
                     // Sleep duration scales slightly with depth to give the engine time to process

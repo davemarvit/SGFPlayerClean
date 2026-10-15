@@ -1,364 +1,319 @@
 import Foundation
 import Combine
-import SwiftUI
+import CryptoKit
 
+/// State and published values are owned by the main queue. Pipe and cache I/O are serialized separately.
 class KataGoEngine: ObservableObject {
     static let shared = KataGoEngine()
-    
+    @Published private(set) var isEngineRunning = false
+    @Published var currentAnalysisData: [Int: AIAnalysis] = [:]
+    @Published private(set) var engineStartupError: String?
+
+    var currentGameId = "local" {
+        didSet { if currentGameId != oldValue { invalidateAnalysis() } }
+    }
     private var process: Process?
-    private var inPipe: Pipe?
-    private var outPipe: Pipe?
-    private var errPipe: Pipe?
-    
-    @Published var isEngineRunning = false
-    @Published var currentAnalysisData: [Int: AIAnalysis] = [:] // Map Turn Number -> Analysis
-    @Published var engineStartupError: String? = nil
-    
-    private var lastStderrString: String = "" // Keep track of the last stderr line for crash reporting
-    
-    var currentGameId: String = "local"
-    
-    private var readSource: DispatchSourceRead?
-    private var isTerminating = false
-    private var cacheSaveWorkItem: DispatchWorkItem?
-    
-    // Default installed via Homebrew. We will allow users to override in Settings later.
-    private var katagoPath: String {
-        return UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago"
-    }
-    
-    private var defaultModelPath: String? {
-        // Fallback to bundled or expected model
-        return Bundle.main.path(forResource: "kata1-b18", ofType: "bin.gz") ?? "/tmp/default_model.bin.gz" 
-        // We will improve path resolution later. For dev we can hardcode /Users/Dave... if necessary
-    }
-    
-    private var configPath: String? {
-        return Bundle.main.path(forResource: "analysis", ofType: "cfg")
+    private var input: FileHandle?
+    private var readers: [KataGoLineReader] = []
+    private var processGeneration = 0
+    private var restartTask: OGSCancellable?
+    private var cacheSaveTask: OGSCancellable?
+    private var lastStderr = "Unknown engine error."
+    private var requests: [Int: String] = [:]
+    private var pendingVisits: [Int: Int] = [:]
+    private var fingerprints: [Int: String] = [:]
+    private let writeQueue = DispatchQueue(label: "SGFPlayer.KataGo.input")
+    private let cacheQueue = DispatchQueue(label: "SGFPlayer.KataGo.cache", qos: .utility)
+    private let scheduler: OGSConnectionScheduler
+    private let executableOverride: URL?
+    private let modelOverride: URL?
+    private let cacheDirectory: URL
+
+    init(executableURL: URL? = nil, modelURL: URL? = nil, cacheDirectory: URL? = nil,
+         scheduler: OGSConnectionScheduler = OGSMainQueueScheduler()) {
+        executableOverride = executableURL
+        modelOverride = modelURL
+        self.scheduler = scheduler
+        self.cacheDirectory = cacheDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("SGFPlayerClean/AICache")
     }
 
-    /// Starts the background KataGo analysis daemon
     func start() {
-        guard process == nil else { return } // Already running
+        dispatchPrecondition(condition: .onQueue(.main))
+        restartTask?.cancel(); restartTask = nil
+        guard process == nil else { return }
         engineStartupError = nil
-        lastStderrString = "Unknown Engine Crash."
-        isTerminating = false
-        
-        // Safety Check
         let fm = FileManager.default
-        if !fm.fileExists(atPath: katagoPath) {
-            NSLog("[AI] ❌ KataGo executable not found at \(katagoPath)")
-            engineStartupError = "KataGo executable not found."
-            return
+        let executable = executableOverride ?? URL(fileURLWithPath:
+            UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago")
+        guard fm.isExecutableFile(atPath: executable.path) else {
+            engineStartupError = "KataGo executable not found or not executable."; return
         }
-        
         let customModel = UserDefaults.standard.string(forKey: "customAIModelPath")
-        let modelArg = (customModel != nil && fm.fileExists(atPath: customModel!)) ? customModel! : (defaultModelPath ?? "")
-        guard !modelArg.isEmpty, fm.fileExists(atPath: modelArg) else {
-             NSLog("[AI] ❌ KataGo Model not found at \(modelArg)")
-             engineStartupError = "Neural network model not found."
-             return
-        }
-        
+        let model = modelOverride?.path ?? customModel.flatMap { fm.fileExists(atPath: $0) ? $0 : nil }
+            ?? Bundle.main.path(forResource: "kata1-b18", ofType: "bin.gz") ?? "/tmp/default_model.bin.gz"
+        guard fm.fileExists(atPath: model) else { engineStartupError = "Neural network model not found."; return }
         let p = Process()
-        p.executableURL = URL(fileURLWithPath: katagoPath)
-        
-        // Ensure KataGo has a writable working directory, otherwise it crashes trying to create `logs`
-        let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let katagoWorkDir = cacheURL.appendingPathComponent("SGFPlayerClean/KataGoWork")
-        try? FileManager.default.createDirectory(at: katagoWorkDir, withIntermediateDirectories: true, attributes: nil)
-        p.currentDirectoryURL = katagoWorkDir
-        
-        var args = ["analysis", "-model", modelArg]
-        if let cfg = configPath, fm.fileExists(atPath: cfg) {
-            args.append(contentsOf: ["-config", cfg])
+        p.executableURL = executable
+        // Tests supply a temporary cache root; no application cache or working model is touched.
+        let work = cacheDirectory.appendingPathComponent("KataGoWork", isDirectory: true)
+        do { try fm.createDirectory(at: work, withIntermediateDirectories: true) }
+        catch { engineStartupError = error.localizedDescription; return }
+        p.currentDirectoryURL = work
+        p.arguments = ["analysis", "-model", model]
+        if let config = Bundle.main.path(forResource: "analysis", ofType: "cfg") {
+            p.arguments! += ["-config", config]
         }
-        
-        p.arguments = args
-        
-        inPipe = Pipe()
-        outPipe = Pipe()
-        errPipe = Pipe()
-        
-        p.standardInput = inPipe
-        p.standardOutput = outPipe
-        p.standardError = errPipe
-        
-        p.terminationHandler = { [weak self] _ in
-             NSLog("[AI] ⚠️ KataGo process terminated.")
-             DispatchQueue.main.async {
-                 self?.isEngineRunning = false
-                 self?.process = nil
-                 if self?.isTerminating == false {
-                     self?.engineStartupError = "Crash: \(self?.lastStderrString ?? "Unknown Error")"
-                 }
-             }
+        let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
+        p.standardInput = stdin; p.standardOutput = stdout; p.standardError = stderr
+        processGeneration += 1
+        let generation = processGeneration
+        lastStderr = "Unknown engine error."
+        p.terminationHandler = { [weak self] ended in
+            let status = ended.terminationStatus
+            DispatchQueue.main.async {
+                guard let self, self.processGeneration == generation else { return }
+                self.releaseProcess()
+                self.engineStartupError = "KataGo exited (\(status)): \(self.lastStderr)"
+            }
         }
-        
         do {
             try p.run()
             process = p
-            
-            DispatchQueue.main.async { self.isEngineRunning = true }
-             NSLog("[AI] ✅ KataGo Engine Started Successfully (PID: \(p.processIdentifier))")
-            
-            startListening(outPipe!)
-            startListeningError(errPipe!)
-            
+            input = stdin.fileHandleForWriting
+            // The child has its own descriptors. Close the parent's unused pipe ends.
+            try? stdin.fileHandleForReading.close()
+            try? stdout.fileHandleForWriting.close()
+            try? stderr.fileHandleForWriting.close()
+            readers = [KataGoLineReader(stdout.fileHandleForReading) { [weak self] line in
+                DispatchQueue.main.async {
+                    guard let self, self.processGeneration == generation else { return }
+                    self.receiveAnalysisLine(line)
+                }
+            }, KataGoLineReader(stderr.fileHandleForReading) { [weak self] line in
+                DispatchQueue.main.async {
+                    guard let self, self.processGeneration == generation else { return }
+                    self.lastStderr = String(decoding: line, as: UTF8.self)
+                }
+            }]
+            isEngineRunning = true
         } catch {
-             NSLog("[AI] ❌ Failed to start KataGo: \(error)")
-             engineStartupError = "Failed to launch process: \(error.localizedDescription)"
+            p.terminationHandler = nil
+            for pipe in [stdin, stdout, stderr] {
+                try? pipe.fileHandleForReading.close(); try? pipe.fileHandleForWriting.close()
+            }
+            engineStartupError = "Failed to launch process: \(error.localizedDescription)"
         }
     }
-    
-    func stop() {
-        isTerminating = true
-        inPipe?.fileHandleForWriting.closeFile()
-        process?.terminate()
+
+    private func releaseProcess() {
+        processGeneration += 1
+        requests.removeAll()
+        pendingVisits.removeAll()
+        readers.removeAll() // Each reader cancels and closes only its own descriptor.
+        let oldInput = input
+        input = nil
+        writeQueue.async { try? oldInput?.close() }
         process = nil
-        readSource?.cancel()
-        readSource = nil
-        
+        isEngineRunning = false
+    }
+
+    func stop() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        restartTask?.cancel(); restartTask = nil
+        cacheSaveTask?.cancel(); cacheSaveTask = nil
         saveAnalysisCache(for: currentGameId)
-        
-        DispatchQueue.main.async {
-             self.isEngineRunning = false
-             self.currentAnalysisData.removeAll()
-        }
-        NSLog("[AI] 🛑 KataGo Engine Stopped")
+        let oldProcess = process
+        releaseProcess() // Fence callbacks before terminating, even if start() follows immediately.
+        if oldProcess?.isRunning == true { oldProcess?.terminate() }
+        invalidateAnalysis()
     }
-    
-    // MARK: - Caching
-    func saveAnalysisCache(for gameId: String) {
-        guard !currentAnalysisData.isEmpty else { return }
-        guard gameId != "local" else { return }
-        
-        // Use a background queue so we don't stall the UI
-        let dataToSave = currentAnalysisData
-        DispatchQueue.global(qos: .background).async {
-            do {
-                let data = try JSONEncoder().encode(dataToSave)
-                let urls = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
-                let dir = urls[0].appendingPathComponent("SGFPlayerClean/AICache")
-                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true, attributes: nil)
-                
-                let safeName = gameId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "backup"
-                let fileURL = dir.appendingPathComponent("\(safeName).json")
-                try data.write(to: fileURL)
-                NSLog("[AI] 💾 Saved analysis cache to \(fileURL.lastPathComponent)")
-            } catch {
-                NSLog("[AI] ❌ Failed to save cache: \(error)")
-            }
-        }
-    }
-    
-    func loadAnalysisCache(for gameId: String) -> Bool {
-        // Save the old cache before loading the new one
-        if self.currentGameId != "local" && !self.currentAnalysisData.isEmpty {
-            saveAnalysisCache(for: self.currentGameId)
-        }
-        
-        guard gameId != "local" else { return false }
-        self.currentGameId = gameId
-        
-        let urls = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
-        let dir = urls[0].appendingPathComponent("SGFPlayerClean/AICache")
-        let safeName = gameId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? "backup"
-        let fileURL = dir.appendingPathComponent("\(safeName).json")
-        
-        do {
-            let data = try Data(contentsOf: fileURL)
-            let loaded = try JSONDecoder().decode([Int: AIAnalysis].self, from: data)
-            DispatchQueue.main.async {
-                self.currentAnalysisData = loaded
-            }
-            NSLog("[AI] 📂 Loaded analysis cache for \(gameId)")
-            return true
-        } catch {
-            return false
-        }
-    }
-    
+
     func restart() {
-        self.stop()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        stop()
+        let generation = processGeneration
+        restartTask = scheduler.schedule(after: 1) { [weak self] in
+            guard let self, self.processGeneration == generation else { return }
             self.start()
         }
     }
-    
-    // MARK: - I/O Handling
-    
-    private func startListening(_ pipe: Pipe) {
-        let fd = pipe.fileHandleForReading.fileDescriptor
-        
-        // Use GCD to monitor file descriptor asynchronously without blocking
-        readSource = DispatchSource.makeReadSource(fileDescriptor: fd, queue: DispatchQueue.global(qos: .userInitiated))
-        
-        var buffer = Data()
-        
-        readSource?.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            let data = pipe.fileHandleForReading.availableData
-            if data.isEmpty {
-                self.readSource?.cancel()
-                return
-            }
-            
-            buffer.append(data)
-            self.processBuffer(&buffer)
-        }
-        
-        readSource?.resume()
+
+    func invalidateAnalysis() {
+        cacheSaveTask?.cancel(); cacheSaveTask = nil
+        requests.removeAll()
+        pendingVisits.removeAll()
+        fingerprints.removeAll()
+        currentAnalysisData.removeAll()
     }
-    
-    private func startListeningError(_ pipe: Pipe) {
-        let fd = pipe.fileHandleForReading.fileDescriptor
-        let errSource = DispatchSource.makeReadSource(fileDescriptor: fd, queue: DispatchQueue.global(qos: .utility))
-        
-        errSource.setEventHandler { [weak self] in
-            let data = pipe.fileHandleForReading.availableData
-            if data.isEmpty {
-                errSource.cancel()
-                return
-            }
-            if let stringData = String(data: data, encoding: .utf8) {
-                for line in stringData.components(separatedBy: "\n") where !line.isEmpty {
-                    NSLog("[AI-ERR] \(line)")
-                    self?.lastStderrString = line
-                }
-            }
-        }
-        errSource.resume()
+
+    private struct Cache: Codable {
+        let analyses: [Int: AIAnalysis]
+        let fingerprints: [Int: String]
     }
-    
-    private func processBuffer(_ buffer: inout Data) {
-        // KataGo outputs exactly one JSON object per line (\n separated)
-        guard let stringData = String(data: buffer, encoding: .utf8) else { return }
-        
-        var lines = stringData.components(separatedBy: "\n")
-        
-        // If the string doesn't end with a newline, the last element is incomplete
-        if !stringData.hasSuffix("\n") {
-            let incomplete = lines.removeLast()
-            buffer = incomplete.data(using: .utf8) ?? Data()
-        } else {
-            // It perfectly ended with a newline. Swift's split leaves an empty trailing element.
-            buffer = Data()
-        }
-        
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            
-            if trimmed.hasPrefix("{") {
-                parseJSONResponse(trimmed)
-            } else {
-                NSLog("[AI Output]: \(trimmed)")
-            }
+
+    private func cacheURL(for gameID: String) -> URL {
+        // Fixed-length names avoid slashes, path traversal, and very long local SGF paths.
+        cacheDirectory.appendingPathComponent("v2-\(digest(Data(gameID.utf8))).json")
+    }
+
+    private func digest(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    func saveAnalysisCache(for gameID: String) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty else { return }
+        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints)
+        let url = cacheURL(for: gameID)
+        cacheQueue.async {
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
+            } catch { NSLog("[AI] Cache write failed: \(error.localizedDescription)") }
         }
     }
-    
-    private func parseJSONResponse(_ jsonStr: String) {
-        guard let data = jsonStr.data(using: .utf8) else { return }
-        do {
-            let decoder = JSONDecoder()
-            let analysis = try decoder.decode(AIAnalysis.self, from: data)
-            
-            DispatchQueue.main.async {
-                self.currentAnalysisData[analysis.turnNumber] = analysis
-                self.scheduleCacheSave()
-            }
-        } catch {
-            // Ignore partial parse failures if it's info or warning JSON
-             NSLog("[AI] ❌ JSON Parse Error: \(error)")
-        }
+
+    @discardableResult
+    func loadAnalysisCache(for gameID: String) -> Bool {
+        dispatchPrecondition(condition: .onQueue(.main))
+        saveAnalysisCache(for: currentGameId)
+        currentGameId = gameID
+        invalidateAnalysis()
+        guard gameID != "local" else { return false }
+        let url = cacheURL(for: gameID)
+        // Ordered after pending writes; apply synchronously so a deferred old load cannot replace a new game.
+        guard let loaded = cacheQueue.sync(execute: { () -> Cache? in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return try? JSONDecoder().decode(Cache.self, from: data)
+        }) else { return false }
+        currentAnalysisData = loaded.analyses
+        fingerprints = loaded.fingerprints
+        return true
     }
-    
+
     private func scheduleCacheSave() {
-        cacheSaveWorkItem?.cancel()
-        let item = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
+        cacheSaveTask?.cancel()
+        cacheSaveTask = scheduler.schedule(after: 5) { [weak self] in
+            guard let self else { return }
             self.saveAnalysisCache(for: self.currentGameId)
         }
-        cacheSaveWorkItem = item
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 5.0, execute: item)
     }
-    
-    // MARK: - Command Generation
-    
-    /// Translates our 1-indexed moves or BoardPositions to standard SGF letter coordinates (e.g. Q16, A1, etc.)
-    /// KataGo format: A-T skipping I, 1-19 (1 is bottom)
-    private func formatCoords(x: Int, y: Int, size: Int = 19) -> String {
-        let letters = "ABCDEFGHJKLMNOPQRST" // Standard GTP skip I
-        guard x >= 0, x < letters.count, y >= 0, y < size else { return "pass" } // KataGo uses 0-based index or letter
-        let letter = String(letters[letters.index(letters.startIndex, offsetBy: x)])
-        // KataGo uses standard mathematical Y (1 is bottom). But UI uses 0 at top. 
-        // Wait! In KataGo JSON, y coordinate is usually just standard SGF or GTP?
-        // KataGo JSON protocol expects GTP standard! letter + (size - y)
-        let gtpY = size - y
-        return "\(letter)\(gtpY)"
-    }
-    
-    /// Requests analysis for the current path of a game up to the specified turn limit
-    func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)], size: Int = 19, komi: Double = 6.5, maxVisits: Int = 100) {
-        
-        var jsonMoves: [[String]] = []
-        for m in moves {
-            let coord = formatCoords(x: m.x, y: m.y, size: size)
-            jsonMoves.append([m.color, coord]) // "B", "Q16"
+
+    /// One unique ID per request: results can arrive out of order, even at the same turn.
+    func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
+                     moves: [(color: String, x: Int, y: Int)], size: Int = 19,
+                     komi: Double = 6.5, maxVisits: Int = 100) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard isEngineRunning, id == currentGameId, (2...19).contains(size),
+              komi.isFinite, (-400...400).contains(komi), maxVisits > 0 else { return }
+        func coordinates(_ value: (color: String, x: Int, y: Int), allowPass: Bool) -> [String]? {
+            guard value.color == "B" || value.color == "W" else { return nil }
+            if allowPass && value.x == -1 && value.y == -1 { return [value.color, "pass"] }
+            guard (0..<size).contains(value.x), (0..<size).contains(value.y) else { return nil }
+            let letters = Array("ABCDEFGHJKLMNOPQRST")
+            return [value.color, "\(letters[value.x])\(size - value.y)"]
         }
-        
-        var jsonInitial: [[String]] = []
-        for s in initialStones {
-            let coord = formatCoords(x: s.x, y: s.y, size: size)
-            jsonInitial.append([s.color, coord])
-        }
-        
+        let jsonMoves = moves.compactMap { coordinates($0, allowPass: true) }
+        let jsonInitial = initialStones.compactMap { coordinates($0, allowPass: false) }
+        guard jsonMoves.count == moves.count, jsonInitial.count == initialStones.count else { return }
         let turn = moves.count
-        
-        // We only care about analyzing the CURRENT turn for live feedback.
-        let query: [String: Any] = [
-            "id": "\(id)_t\(turn)",
-            "rules": "chinese", // Usually safe default
-            "komi": komi,
-            "boardXSize": size,
-            "boardYSize": size,
-            "initialStones": jsonInitial,
-            "moves": jsonMoves,
-            "includePolicy": false, // We just want winrate + score lead
-            "includeOwnership": true, // To draw heatmaps later!
-            "maxVisits": maxVisits,
-            "analyzeTurns": [turn] // Just analyze the current node!
-        ]
-        
-        do {
-             let data = try JSONSerialization.data(withJSONObject: query, options: [])
-             if let str = String(data: data, encoding: .utf8) {
-                 sendQuery(str)
-             }
-        } catch {
-             NSLog("[AI] Failed to serialize JSON query: \(error)")
+        var query: [String: Any] = ["rules": "chinese", "komi": komi, "boardXSize": size, "boardYSize": size,
+            "initialStones": jsonInitial, "moves": jsonMoves, "includePolicy": false, "includeOwnership": true,
+            "analyzeTurns": [turn]]
+        guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
+        let fingerprint = digest(position)
+        if fingerprints[turn] == fingerprint {
+            if (currentAnalysisData[turn]?.rootInfo?.visits ?? 0) >= maxVisits { return }
+            if requests[turn] != nil, (pendingVisits[turn] ?? 0) >= maxVisits { return }
         }
-    }
-    
-    private func sendQuery(_ json: String) {
-        guard let inPipe = inPipe else { return }
-        let payload = json + "\n"
-        if let data = payload.data(using: .utf8) {
-            do {
-                 // write is deprecated but straightforward for small payloads. Alternatively use writeableData.
-                if #available(macOS 10.15.4, *) {
-                    try inPipe.fileHandleForWriting.write(contentsOf: data)
-                } else {
-                    inPipe.fileHandleForWriting.write(data)
+        if let previous = fingerprints[turn], previous != fingerprint {
+            // Undo/variation at a known turn invalidates that turn and all its descendants.
+            currentAnalysisData = currentAnalysisData.filter { $0.key < turn }
+            fingerprints = fingerprints.filter { $0.key < turn }
+            requests = requests.filter { $0.key < turn }
+            pendingVisits = pendingVisits.filter { $0.key < turn }
+        }
+        let requestID = UUID().uuidString
+        requests[turn] = requestID
+        pendingVisits[turn] = maxVisits
+        fingerprints[turn] = fingerprint
+        query["id"] = requestID
+        query["maxVisits"] = maxVisits
+        guard var data = try? JSONSerialization.data(withJSONObject: query), let input else { return }
+        data.append(10)
+        let generation = processGeneration
+        writeQueue.async { [weak self] in
+            do { try input.write(contentsOf: data) }
+            catch {
+                DispatchQueue.main.async {
+                    guard let self, self.processGeneration == generation else { return }
+                    self.stop()
+                    self.engineStartupError = "Could not send analysis: \(error.localizedDescription)"
                 }
-            } catch {
-                NSLog("[AI] Error writing to KataGo pipe: \(error)")
-                // Engine might have died
-                stop()
             }
         }
     }
+
+    // Internal for offline protocol fixtures; production calls arrive from the fenced stdout reader.
+    func receiveAnalysisLine(_ data: Data) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        if let error = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let message = error["error"] as? String, let id = error["id"] as? String,
+           let turn = requests.first(where: { $0.value == id })?.key {
+            requests.removeValue(forKey: turn); pendingVisits.removeValue(forKey: turn)
+            engineStartupError = "Analysis failed: \(message)"
+            return
+        }
+        guard let analysis = try? JSONDecoder().decode(AIAnalysis.self, from: data),
+              requests[analysis.turnNumber] == analysis.id else { return }
+        currentAnalysisData[analysis.turnNumber] = analysis
+        if analysis.isDuringSearch != true {
+            requests.removeValue(forKey: analysis.turnNumber)
+            pendingVisits.removeValue(forKey: analysis.turnNumber)
+        }
+        scheduleCacheSave()
+    }
+
+    deinit {
+        restartTask?.cancel(); cacheSaveTask?.cancel()
+        if process?.isRunning == true { process?.terminate() }
+        let oldInput = input
+        writeQueue.async { try? oldInput?.close() }
+    }
+}
+
+/// Handles partial lines and split UTF-8 without retaining the engine or another process's pipe.
+private final class KataGoLineReader {
+    private let source: DispatchSourceRead
+    private let handle: FileHandle
+    private var buffer = Data()
+    private let receive: (Data) -> Void
+
+    init(_ handle: FileHandle, receive: @escaping (Data) -> Void) {
+        self.handle = handle
+        self.receive = receive
+        source = DispatchSource.makeReadSource(fileDescriptor: handle.fileDescriptor,
+            queue: DispatchQueue(label: "SGFPlayer.KataGo.reader", qos: .utility))
+        source.setCancelHandler { try? handle.close() }
+        source.setEventHandler { [weak self] in self?.read() }
+        source.resume()
+    }
+
+    private func read() {
+        let data = handle.availableData
+        if data.isEmpty {
+            if !buffer.isEmpty { receive(buffer); buffer.removeAll() }
+            source.cancel()
+            return
+        }
+        buffer.append(data)
+        while let newline = buffer.firstIndex(of: 10) {
+            receive(Data(buffer[..<newline]))
+            buffer.removeSubrange(...newline)
+        }
+    }
+
+    deinit { source.cancel() }
 }
 
 extension KataGoEngine {
@@ -367,7 +322,7 @@ extension KataGoEngine {
         var evaluations: [Int: MoveEvaluation] = [:]
         
         // We need data for turn N and N+1 to evaluate the move made at N.
-        for t in 0..<maxIndex {
+        for t in 0..<max(0, min(maxIndex, engine.maxIndex)) {
             guard let cur = currentAnalysisData[t]?.rootInfo,
                   let next = currentAnalysisData[t+1]?.rootInfo,
                   let player = engine.moveColor(at: t) else { continue }
@@ -380,12 +335,13 @@ extension KataGoEngine {
             // At turn `t+1`, player `t+1` (opponent) is about to move. Winrate for opponent is wNext.
             // So after player `t` moves, their resulting winrate is (1.0 - wNext).
             // The value of their move is (1.0 - wNext) - wPrev.
-            let winDelta = (1.0 - wNext) - wPrev // > 0 is good
+            let samePlayer = engine.playerToMove(at: t + 1) == player
+            let winDelta = (samePlayer ? wNext : 1.0 - wNext) - wPrev
             
             let sPrev = cur.scoreLead
             let sNext = next.scoreLead
             // Same perspective inversion logic for score.
-            let scoreDelta = -sNext - sPrev
+            let scoreDelta = (samePlayer ? sNext : -sNext) - sPrev
             
             let quality: MoveQuality
             if winDelta < -0.20 || scoreDelta < -8.0 {

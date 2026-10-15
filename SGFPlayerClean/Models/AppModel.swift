@@ -95,8 +95,9 @@ final class AppModel: ObservableObject {
         // Initialize Audio
         setupAudio()
         
-        // Start KataGo AI Engine in background without stalling App initialization
-        DispatchQueue.global(qos: .userInitiated).async {
+        // Defer process launch until initialization finishes. Engine state belongs to the main queue;
+        // model loading and analysis run in the child process, and pipe I/O uses its own queues.
+        DispatchQueue.main.async {
             KataGoEngine.shared.start()
         }
         
@@ -531,7 +532,7 @@ final class AppModel: ObservableObject {
                 let engineMoves = boardVM?.engine.maxIndex ?? 0
                 let isUndo = moves.count < engineMoves
                 
-                if incomingVersion <= engineVersion && !isUndo && engineMoves > 0 {
+                if incomingVersion <= engineVersion && !isUndo && engineMoves > 0 && userInfo["reconcileMoves"] as? Bool != true {
                     return
                 }
             }
@@ -606,6 +607,8 @@ final class AppModel: ObservableObject {
                  }
              }
              
+             ogsClient.lastKnownRemoteMoveNumber = moveHistory.count
+
              // Update Player Names
              let players = gameData["players"] as? [String: Any]
              let blackObj = players?["black"] as? [String: Any]
@@ -684,125 +687,49 @@ final class AppModel: ObservableObject {
     }
     
     private func handleOGSMoveUpdate(_ notification: Notification) {
-        guard ogsClient.acceptsGameNotification(notification) else { return }
-        guard let userInfo = notification.userInfo else { return }
-        if let gid = robustInt(userInfo["game_id"]), gid != ogsClient.activeGameID { return }
-        
-        NSLog("[OGS-EVT] 📩 Move Event Received. Payload: \(userInfo)")
-
-        var x: Int = -1
-        var y: Int = -1
-        var isPass = false
-        
-        if let mArr = userInfo["move"] as? [Any], mArr.count >= 2 {
-            x = robustInt(mArr[0]) ?? -1
-            y = robustInt(mArr[1]) ?? -1
-            if x == -1 && y == -1 { isPass = true }
-        } else if let mStr = userInfo["move"] as? String {
-            if mStr == ".." || mStr == "pass" { isPass = true }
-            else if let (sx, sy) = SGFCoordinates.parse(mStr) { x = sx; y = sy }
+        guard ogsClient.acceptsGameNotification(notification),
+              let info = notification.userInfo, let engine = boardVM?.engine else { return }
+        if let id = robustInt(info["game_id"]), id != ogsClient.activeGameID { return }
+        guard currentActiveInternalGameID == ogsClient.activeGameID, isOnlineMode else {
+            ogsClient.requestMoveResync(); return
         }
-        
-        if isPass {
-            if let mn = robustInt(userInfo["move_number"]) {
-                 let color: Stone
-                 if let pid = robustInt(userInfo["player_id"]) {
-                     color = (pid == ogsClient.blackPlayerID) ? .black : .white
-                 } else {
-                     color = (ogsClient.currentHandicap > 0) ? ((mn % 2 == 0) ? .black : .white) : ((mn % 2 == 0) ? .white : .black)
-                 }
-                boardVM?.handleRemotePass(color: color)
-            }
+        guard let number = robustInt(info["move_number"]), number > 0 else {
+            ogsClient.requestMoveResync(); return
         }
-        else if x >= 0 && y >= 0 {
-            if let mn = robustInt(userInfo["move_number"]) {
-                // Ghost Guard Removed: We now rely on Strict Server Authority.
-                let color: Stone
-                var reason = "Default"
-                if let pid = robustInt(userInfo["player_id"]) {
-                    let bid = ogsClient.blackPlayerID
-                    let wid = ogsClient.whitePlayerID
-                    let myID = ogsClient.playerID
-                    let myColor = ogsClient.playerColor
-                    
-                    // HEURISTIC 1: Self-Identity (Authoritative for Player)
-                    if let myID = myID, let myColor = myColor {
-                        if pid == myID {
-                            color = myColor
-                            reason = "Matched MyID \(myID)"
-                        } else {
-                            // If it's not me, it's the opponent.
-                            color = myColor.opponent
-                            reason = "PID \(pid) != MyID \(myID) -> Opponent"
-                        }
-                    } 
-                    // HEURISTIC 2: Explicit ID Match (Authoritative for Observer)
-                    else if let bid = bid, pid == bid {
-                        color = .black
-                        reason = "Matched BlackID \(bid)"
-                    } else if let wid = wid, pid == wid {
-                        color = .white
-                        reason = "Matched WhiteID \(wid)"
-                    } else {
-                         // HEURISTIC 3: Fallback Math (Handicap aware)
-                        if ogsClient.currentHandicap > 1 {
-                            // Handi Game (H>=2): White moves first (Move 1).
-                            // Odd=White, Even=Black
-                            color = (mn % 2 != 0) ? .white : .black
-                        } else {
-                            // Standard (H=0 or 1): Black moves first.
-                            // Odd=Black, Even=White
-                            color = (mn % 2 != 0) ? .black : .white
-                        }
-                        reason = "ID Mismatch/Missing & No Identity. Fallback M%2"
-                    }
-                } else {
-                    // No PID. Pure Math.
-                   if ogsClient.currentHandicap > 1 {
-                        color = (mn % 2 != 0) ? .white : .black
-                    } else {
-                        color = (mn % 2 != 0) ? .black : .white
-                    }
-                    reason = "No PID. M%2 Logic (H:\(ogsClient.currentHandicap))"
-                }
+        let position: (Int, Int)?
+        if let move = info["move"] as? [Any], move.count >= 2,
+           let x = robustInt(move[0]), let y = robustInt(move[1]) { position = (x, y) }
+        else if let move = info["move"] as? String {
+            position = (move == ".." || move == "pass") ? (-1, -1) : SGFCoordinates.parse(move)
+        } else { position = nil }
+        guard let (x, y) = position else { ogsClient.requestMoveResync(); return }
 
-                let logMsg = "[OGS] Move: #\(mn). Logic: \(reason). Result: \(color)."
-                NSLog(logMsg)
-                DispatchQueue.main.async { self.lastDebugLog = logMsg }
-                
-                // Sound Trigger (Online)
-                // We rely on the Engine's truth because OGS's 'removed' payload is often empty/unreliable.
-                let oldB = boardVM?.engine.blackStonesCaptured ?? 0
-                let oldW = boardVM?.engine.whiteStonesCaptured ?? 0
-                
-                // Apply Move
-                boardVM?.handleRemoteMove(x: x, y: y, color: color)
-                
-                // Check Engine Diff
-                let newB = boardVM?.engine.blackStonesCaptured ?? 0
-                let newW = boardVM?.engine.whiteStonesCaptured ?? 0
-                let captured = (newB - oldB) + (newW - oldW)
-                
-                // Sync Captures (Engine Authority)
-                DispatchQueue.main.async {
-                    // FIX: Engine 'blackStonesCaptured' means "number of black stones removed" (Prisoners for White)
-                    self.ogsClient.blackCaptures = newW
-                    self.ogsClient.whiteCaptures = newB
-                }
-                
-                if captured > 1 { self.playSound(.captureMultiple) }
-                else if captured == 1 { self.playSound(.captureSingle) }
-                else { 
-                    // Prevent double-playing 'place' for self (handled optimistically)
-                    let myColor = ogsClient.playerColor ?? .white
-                    if color != myColor {
-                        self.playSound(.place) 
-                    }
-                }
-            }
+        let color: Stone
+        if let id = robustInt(info["player_id"]) {
+            if id == ogsClient.blackPlayerID { color = .black }
+            else if id == ogsClient.whitePlayerID { color = .white }
+            else { ogsClient.requestMoveResync(); return }
+        } else {
+            // History knows the initial player and any handicap placements; avoid parity guesses.
+            color = engine.playerToMove(at: number - 1)
+        }
+        let captures = engine.blackStonesCaptured + engine.whiteStonesCaptured
+        switch engine.applyOnlineMove(color: color, x: x, y: y, moveNumber: number) {
+        case .duplicate: return
+        case .needsResync: ogsClient.requestMoveResync()
+        case .applied:
+            // Capture counters describe the viewed position while reviewing history.
+            guard engine.currentIndex == engine.maxIndex else { return }
+            ogsClient.blackCaptures = engine.whiteStonesCaptured
+            ogsClient.whiteCaptures = engine.blackStonesCaptured
+            let captured = engine.blackStonesCaptured + engine.whiteStonesCaptured - captures
+            if x == -1 && y == -1 { SoundManager.shared.play("pass") }
+            else if captured > 1 { playSound(.captureMultiple) }
+            else if captured == 1 { playSound(.captureSingle) }
+            else if color != ogsClient.playerColor { playSound(.place) }
         }
     }
-    
+
     func selectGame(_ g: SGFGameWrapper) { 
         selection = g
         boardVM?.loadGame(g) 

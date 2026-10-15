@@ -105,17 +105,57 @@ Render the actual SwiftUI component with sample states, without starting the app
 python3 Tests/Preview/render_scoring.py /private/tmp/sgfplayer-scoring-preview.png
 ```
 
-## Remaining investigation boundaries
+## Authentication, move reconciliation, and KataGo
 
-- Authentication still infers readiness from several events, and ACK parsing/framing needs a
-  dedicated protocol fixture before changing the established endpoint or login exchange.
-- Move handling mixes move numbers and state versions and includes optimistic moves/passes.
-  Changing that requires replay fixtures covering handicap, undo, reconnect, and scoring transitions.
-- KataGo process callbacks are not tied to a process generation; a terminated older process can
-  clear a replacement's state. Analysis responses are indexed by turn without matching their
-  request/game identity, and cache work reads mutable state on background queues. These are
-  substantive remaining risks. A fake subprocess/temporary-cache harness can validate a separate
-  repair offline; no engine process or cache behavior is changed in this scoring pass.
+Login now completes only after the configuration read returns a positive account ID and a
+nonempty JWT. A new login disconnects the previous account's socket and clears identity; logout
+or a superseding request invalidates pending credential reads. Anonymous/unauthorized responses
+clear credentials, while transient refresh failures preserve the existing identity. Socket auth
+waits for the namespace handshake and sends once per connection, with a visible confirmation
+timeout instead of retrying credentials every two seconds. The existing legacy readiness events
+and wire framing are retained pending live compatibility verification.
+
+Move reconciliation compares sequence number, color, and coordinates against the complete move
+history, including optimistic moves and passes. Duplicate events do not append moves, toggle
+turns, or add captures twice. Gaps/conflicts trigger a coalesced snapshot read, never a move replay.
+Snapshots crossing a newer move are discarded and refreshed; queued recovery snapshots are
+checked again before consumption. New moves received while reviewing history are applied to the
+live position and preserve the viewed index. Disconnected, spectator, and historical-board input
+cannot apply optimistic online moves or passes.
+
+KataGo process callbacks are fenced by generation, both output readers own their pipe lifetime,
+and pending restarts are cancellable. Unique request IDs reject results from another game,
+replaced process, superseded same-turn request, or unexpected turn. Input writes run on a serial
+queue instead of blocking the UI. Analysis requests validate coordinates and coalesce pending
+work; game switches cancel the background sweep. Cache snapshots are captured on the main queue
+and written atomically on a serial queue, using fixed-length hashed filenames. Versioned `v2-`
+caches leave older caches untouched; the first analysis after this update may need recomputation.
+Position fingerprints prevent reuse when a requested position differs from the cached position.
+The analysis configuration explicitly uses `SIDETOMOVE`, matching the UI, and move-quality
+comparisons handle consecutive moves by the same color.
+
+These checks follow KataGo's official [analysis protocol](https://github.com/lightvector/KataGo/blob/master/docs/Analysis_Engine.md)
+and [configuration example](https://github.com/lightvector/KataGo/blob/master/cpp/configs/analysis_example.cfg).
+Tests use a temporary Python subprocess and fixture model file; they do not run the installed
+KataGo executable, use the GPU, or touch the working app's analysis caches.
+
+The final-score header includes the winning name, color, and difference between OGS totals
+(for example, “Alice White wins by 6.5 points”). Equal totals show “Draw”; missing numeric scores
+do not produce a fabricated margin.
+
+### Remaining investigation boundaries
+
+- Socket authentication still accepts legacy readiness events after credentials are sent;
+  replacing that with explicit ACK verification requires confirming the deployed protocol.
+  Socket.IO ACK framing and the existing move-command sequence field remain unchanged.
+- Full game snapshots still mix move numbers and state versions outside the new recovery path.
+  Complex undo, handicap, and reconnect sequences need combined acceptance testing before release.
+  Ordinary stale full snapshots, particularly shorter histories, remain a separate reconciliation risk.
+- KataGo callers still supply Chinese rules and 6.5 komi by default. Rules, komi, and initial-player
+  metadata need a separate end-to-end pass before treating its estimates as rules-accurate scores.
+  Cache loading is synchronous and cached positions are validated when requested, not all at load.
+- The fake subprocess validates process/pipe behavior, not model compatibility, GPU startup,
+  or performance of the installed KataGo engine. Live OGS and real-engine acceptance remain deferred.
 
 ## Local playback repairs
 
@@ -138,14 +178,15 @@ python3 Tests/Integration/run_loopback.py
 ```
 
 The root Swift package compiles the networking sources, OGSClient, shared models/settings,
-playback engine, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
+playback engine, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 94 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 119 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
-server score parsing, and local playback restoration/bounds. They use fake sockets,
+server score parsing, local playback restoration/bounds, credential races, ordered move reconciliation,
+and KataGo subprocess/cache isolation. They use fake sockets,
 a controllable scheduler, and URLProtocol HTTP fixtures. Client tests exercise the production
 OGSClient with an ephemeral session and no shared cookies; every HTTP request is intercepted,
 and socket creation is injected. No production OGS connection is made by these tests. The loopback test compiles the production WebSocket transport

@@ -18,7 +18,8 @@ struct ScoringPreview {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("3 · Finished (sample scores)").font(.subheadline.bold())
                     OGSScoringPanel(finished: true, connected: true, participant: true, atLivePosition: true,
-                        canEdit: false, acceptance: .none, strictSeki: false, summary: sample, error: nil,
+                        canEdit: false, acceptance: .none, strictSeki: false, summary: sample,
+                        winnerDescription: sample.winnerDescription(blackName: "Dave", whiteName: "Alice"), error: nil,
                         accept: {}, resume: {})
                 }.frame(width: 330)
             }

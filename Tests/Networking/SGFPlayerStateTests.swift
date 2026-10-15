@@ -2,6 +2,41 @@ import XCTest
 @testable import SGFPlayerNetworking
 
 final class SGFPlayerStateTests: XCTestCase {
+    func testOnlineEchoesAndDuplicatePassesDoNotAppend() {
+        let player = SGFPlayer()
+        player.playMoveOptimistically(color: .black, x: -1, y: -1)
+        XCTAssertEqual(player.applyOnlineMove(color: .black, x: -1, y: -1, moveNumber: 1), .duplicate)
+        XCTAssertEqual(player.applyOnlineMove(color: .white, x: -1, y: -1, moveNumber: 2), .applied)
+        XCTAssertEqual(player.applyOnlineMove(color: .white, x: -1, y: -1, moveNumber: 2), .duplicate)
+        XCTAssertEqual(player.maxIndex, 2)
+    }
+
+    func testOutOfOrderConflictAndMalformedMovesLeaveBoardUntouched() {
+        let player = SGFPlayer()
+        player.playMoveOptimistically(color: .black, x: 0, y: 0)
+        let board = player.board
+        for (x, y, number) in [(1, 1, 3), (1, 1, 1), (-1, 0, 2), (19, 0, 2), (0, 0, 0)] {
+            XCTAssertEqual(player.applyOnlineMove(color: .white, x: x, y: y, moveNumber: number), .needsResync)
+            XCTAssertEqual(player.board, board)
+            XCTAssertEqual(player.maxIndex, 1)
+        }
+    }
+
+    func testRemoteMoveWhileReviewingUsesLiveBoardAndPreservesView() {
+        let player = SGFPlayer()
+        player.load(game: game())
+        player.seek(to: 1)
+        let viewed = player.board
+        XCTAssertEqual(player.applyOnlineMove(color: .black, x: 3, y: 3, moveNumber: 5), .applied)
+        XCTAssertEqual(player.currentIndex, 1)
+        XCTAssertEqual(player.board, viewed)
+        // Duplicate detection uses history even when the visible last move is different.
+        XCTAssertEqual(player.applyOnlineMove(color: .white, x: 2, y: 2, moveNumber: 4), .duplicate)
+        player.seek(to: 5)
+        XCTAssertEqual(player.board.stones.count, 4)
+        XCTAssertEqual(player.board.stones[BoardPosition(3, 3)], .black)
+    }
+
     private func game() -> SGFGame {
         var game = SGFGame()
         game.boardSize = 9

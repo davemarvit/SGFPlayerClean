@@ -82,6 +82,16 @@ struct OGSScoreSummary: Decodable, Equatable {
         return try? JSONDecoder().decode(Self.self, from: data)
     }
 
+    func winnerDescription(blackName: String?, whiteName: String?) -> String {
+        let difference = black.total - white.total
+        guard difference != 0 else { return "Draw" }
+        let color = difference > 0 ? "Black" : "White"
+        let name = (difference > 0 ? blackName : whiteName)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let winner = name.flatMap { $0.isEmpty ? nil : $0 }.map { "\($0) \(color)" } ?? color
+        let margin = abs(difference).formatted(.number.precision(.fractionLength(0...2)))
+        return "\(winner) wins by \(margin) \(abs(difference) == 1 ? "point" : "points")"
+    }
+
     /// nil means unavailable/invalid; an empty dictionary is an authoritative empty overlay.
     func positions(width: Int, height: Int) -> [BoardPosition: Stone]? {
         guard let b = black.scoringPositions, let w = white.scoringPositions,

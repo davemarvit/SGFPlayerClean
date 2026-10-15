@@ -37,6 +37,8 @@ class OGSClient: NSObject, ObservableObject {
                  blackPlayerID = nil
                  whitePlayerID = nil
                  playerColor = nil
+                 lastKnownRemoteMoveNumber = nil
+                 currentStateVersion = 0
                  if pendingGameID != activeGameID {
                      gameStateReader.cancel()
                      pendingGameID = nil
@@ -193,11 +195,15 @@ class OGSClient: NSObject, ObservableObject {
     private var identityGeneration = 0
     private var connectionEventGeneration = 0
     private var gameEventGeneration = 0
+    private var gameMoveRevision = 0
     private var challengeGeneration = 0
     private var challengeTask: URLSessionDataTask?
 
     private var socketPingTimer: Timer?
     private var handshakeTimer: Timer?
+    private var socketNamespaceReady = false
+    private var socketAuthAttempted = false
+    private var socketAuthTimeout: OGSCancellable?
     private var enginePulseTimer: Timer?
     private var lobbyChallenges: [Int: OGSChallenge] = [:]
     // Grace Period: Track when we locally added a challenge. 
@@ -245,28 +251,57 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     // MARK: - Connection & Handshake
-    func fetchUserConfig() {
+    func fetchUserConfig(completion: ((Bool, String?) -> Void)? = nil) {
+        let identity = identityGeneration
         let url = URL(string: "https://online-go.com/api/v1/ui/config")!
         var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue(originHeader, forHTTPHeaderField: "Origin")
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         userConfigReader.load(request) { [weak self] result in
-            guard let self else { return }
+            guard let self, self.identityGeneration == identity else {
+                completion?(false, "Login cancelled"); return
+            }
             switch result {
             case .success(let json):
-                if let user = json["user"] as? [String: Any] {
-                    self.username = user["username"] as? String
-                    self.playerID = self.robustInt(user["id"])
-                    self.userRank = self.robustInt(user["ranking"])
+                guard let user = json["user"] as? [String: Any],
+                      let id = self.robustInt(user["id"]), id > 0,
+                      let jwt = json["user_jwt"] as? String,
+                      !jwt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    self.disconnect()
+                    self.clearIdentity()
+                    completion?(false, "OGS did not return a signed-in account.")
+                    return
                 }
-                self.userJWT = json["user_jwt"] as? String
-                self.isAuthenticated = self.userJWT != nil
+                // Never carry a socket authenticated as another account into this identity.
+                if let oldID = self.playerID, oldID != id { self.disconnect() }
+                self.username = user["username"] as? String
+                self.playerID = id
+                self.userRank = self.robustInt(user["ranking"])
+                self.userJWT = jwt
+                self.isAuthenticated = true
+                completion?(true, nil)
             case .failure(let error):
-                if (error as? URLError)?.code != .cancelled {
-                    self.lastError = error.localizedDescription
+                if let httpError = error as? OGSHTTPError, case .status(let status) = httpError,
+                   status == 401 || status == 403 {
+                    self.disconnect()
+                    self.clearIdentity()
                 }
+                if (error as? URLError)?.code != .cancelled { self.lastError = error.localizedDescription }
+                completion?(false, error.localizedDescription)
             }
         }
+    }
+
+    private func clearIdentity() {
+        userJWT = nil
+        playerID = nil
+        username = nil
+        userRank = nil
+        playerColor = nil
+        myActiveGames.removeAll()
+        isAuthenticated = false
+        isSocketAuthenticated = false
     }
 
     func connect() {
@@ -294,6 +329,9 @@ class OGSClient: NSObject, ObservableObject {
         resetScoringSubmission()
         // Subscriptions and room membership belong to one socket, not the whole app lifetime.
         isSocketAuthenticated = false
+        socketNamespaceReady = false
+        socketAuthAttempted = false
+        socketAuthTimeout?.cancel(); socketAuthTimeout = nil
         isSubscribedToSeekgraph = false
         gameStateReader.cancel()
         pendingGameID = nil
@@ -321,11 +359,7 @@ class OGSClient: NSObject, ObservableObject {
         // 1. Disconnect Socket
         disconnect()
         
-        // 2. Clear Session Data
-        self.userJWT = nil
-        self.playerID = nil
-        self.username = nil
-        self.isAuthenticated = false
+        clearIdentity()
         
         // 3. Clear Cookies
         if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!) {
@@ -346,6 +380,9 @@ class OGSClient: NSObject, ObservableObject {
         invalidateChallengeRequest()
         loginTask?.cancel()
         userConfigReader.cancel()
+        guard identityGeneration == identity else { completion(false, "Login cancelled"); return }
+        disconnect()
+        clearIdentity()
         // Attempt Session Login (Simulating Browser Form or API)
         // Note: For a robust 3rd party app, OAuth2 is preferred but requires Client ID/Secret.
         // We will try the undocumented UI login or simple legacy auth if available.
@@ -381,8 +418,7 @@ class OGSClient: NSObject, ObservableObject {
                 if http.statusCode == 200 || http.statusCode == 204 {
                     // Success! Cookies should be set automatically by URLSession.
                     // Now refresh config to get JWT.
-                    self.fetchUserConfig()
-                    completion(true, nil)
+                    self.fetchUserConfig(completion: completion)
                 } else {
                     completion(false, "Login failed (Code \(http.statusCode))")
                 }
@@ -426,6 +462,25 @@ class OGSClient: NSObject, ObservableObject {
                 if (error as? URLError)?.code != .cancelled { self.lastError = error.localizedDescription }
                 completion(nil)
             }
+        }
+    }
+
+    /// Recover gaps/conflicts with a read, never by resending a move.
+    func requestMoveResync() {
+        guard isConnected, let id = activeGameID, pendingGameID == nil else { return }
+        let context = makeGameNotification(name: Notification.Name("OGSGameDataReceived"), userInfo: [:])
+        let revision = gameMoveRevision
+        fetchGameState(gameID: id) { [weak self] root in
+            guard let self, self.acceptsGameNotification(context) else { return }
+            guard let root else { return }
+            // A snapshot requested before a newer move must not undo that move.
+            guard self.gameMoveRevision == revision else {
+                self.requestMoveResync(); return
+            }
+            var game = (root["gamedata"] as? [String: Any]) ?? root
+            if game["id"] == nil && game["game_id"] == nil { game["game_id"] = id }
+            NotificationCenter.default.post(self.makeGameNotification(name: context.name,
+                userInfo: ["gameData": game, "reconcileMoves": true, "moveRevision": revision]))
         }
     }
 
@@ -911,6 +966,7 @@ class OGSClient: NSObject, ObservableObject {
     func acceptsGameNotification(_ notification: Notification) -> Bool {
         guard notification.object as? OGSClient === self,
               let context = notification.userInfo?["_ogsContext"] as? GameNotificationContext else { return false }
+        if let revision = notification.userInfo?["moveRevision"] as? Int, revision != gameMoveRevision { return false }
         return (isConnected || context.offlineSimulation) && context.connection == connectionEventGeneration &&
             context.game == gameEventGeneration && context.gameID == activeGameID && activeGameID != nil
     }
@@ -919,6 +975,7 @@ class OGSClient: NSObject, ObservableObject {
     private func handleIncomingProtocolMessage(_ text: String) {
         if text.hasPrefix("0") { sendRaw("40"); return }
         if text.hasPrefix("40") {
+             socketNamespaceReady = true
              startSocketHeartbeat();
              sendSocketAuth();
              // SoundManager.shared.play("opponent_connected") // USER REQUEST: Silence
@@ -954,6 +1011,7 @@ class OGSClient: NSObject, ObservableObject {
         if eventName.hasPrefix("game/") {
             let parts = eventName.components(separatedBy: "/")
             guard parts.count >= 3, let packetID = Int(parts[1]), packetID == activeGameID else { return }
+            if ["move", "gamedata", "undo_accepted"].contains(parts[2]) { gameMoveRevision += 1 }
         }
 
         if eventName.hasSuffix("/phase"), let value = event.payload as? String {
@@ -1004,8 +1062,10 @@ class OGSClient: NSObject, ObservableObject {
             self.currentStateVersion = max(self.currentStateVersion, sv)
         }
 
-        if !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
+        if isAuthenticated && socketAuthAttempted && !isSocketAuthenticated && (eventName == "authenticated" || eventName == "notification" || eventName.contains("seekgraph")) {
             self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
+                guard !self.isSocketAuthenticated else { return }
+                self.socketAuthTimeout?.cancel(); self.socketAuthTimeout = nil
                 self.isSocketAuthenticated = true
                 self.subscribeToSeekgraph()
                 self.performPostAuthSubscriptions() // UPDATED
@@ -1546,6 +1606,13 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     private func handleIncomingMove(_ data: [String: Any]) {
+        guard let number = robustInt(data["move_number"]), number > 0 else { requestMoveResync(); return }
+        // Still deliver to the board reconciler so a conflicting echo triggers a snapshot read,
+        // but do not toggle clocks or add captured stones twice for an old sequence number.
+        if let previous = lastKnownRemoteMoveNumber, number <= previous {
+            NotificationCenter.default.post(makeGameNotification(name: Notification.Name("OGSMoveReceived"), userInfo: data))
+            return
+        }
         // Update Remote Move Number
         if let num = robustInt(data["move_number"]) {
             self.lastKnownRemoteMoveNumber = num
@@ -1799,7 +1866,14 @@ class OGSClient: NSObject, ObservableObject {
     private func stopEnginePulse() { enginePulseTimer?.invalidate(); enginePulseTimer = nil; hasEnteredRoom = false }
 
     private func sendSocketAuth() {
-        guard let jwt = userJWT, let pid = playerID, isConnected else { return }
+        guard let jwt = userJWT, !jwt.isEmpty, let pid = playerID, pid > 0,
+              isConnected, socketNamespaceReady, !socketAuthAttempted else { return }
+        socketAuthAttempted = true
+        let generation = connectionEventGeneration
+        socketAuthTimeout = scoringScheduler.schedule(after: 15) { [weak self] in
+            guard let self, self.connectionEventGeneration == generation, !self.isSocketAuthenticated else { return }
+            self.lastError = "Socket authentication could not be confirmed. Reconnect to retry."
+        }
         let payload: [String: Any] = ["jwt": jwt, "player_id": pid, "username": username ?? ""]
         NSLog("[OGS-AUTH] Authenticating WebSocket")
         sendAction("authenticate", payload: payload)

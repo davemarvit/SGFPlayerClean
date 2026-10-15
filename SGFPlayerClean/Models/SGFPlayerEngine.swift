@@ -146,24 +146,31 @@ final class SGFPlayer: ObservableObject {
         self.reset()
     }
     
-    func applyOnlineMove(color: Stone, x: Int, y: Int, moveNumber: Int) {
-        // LOGIC FIX: Enforce Sequential Consistency
-        let expected = _moves.count + 1
-        
-        // Debug Log
-        NSLog("[OGS-ENGINE] ⚡️ applyOnlineMove used. Move: \(moveNumber). Expected: \(expected). TopVersion: \(highestKnownStateVersion)")
-        
-        guard moveNumber == expected else {
-            NSLog("[OGS-ENGINE-DEBUG] 🚫 REJECTING Out-of-Order Move \(moveNumber) (Expected \(expected)). Sync Needed?")
-            return
+    enum OnlineMoveResult: Equatable { case applied, duplicate, needsResync }
+
+    /// Compare server sequence numbers against history, including optimistic moves and passes.
+    @discardableResult
+    func applyOnlineMove(color: Stone, x: Int, y: Int, moveNumber: Int) -> OnlineMoveResult {
+        guard moveNumber > 0,
+              (x == -1 && y == -1) || (x >= 0 && x < baseSize && y >= 0 && y < baseSize) else {
+            return .needsResync
         }
-        
-        NSLog("[OGS-ENGINE-DEBUG] ✅ Applying Online Move \(moveNumber) (Color: \(color), X:\(x), Y:\(y))")
-        self.playMoveOptimistically(color: color, x: x, y: y)
+        if moveNumber <= _moves.count {
+            let (existingColor, coord) = _moves[moveNumber - 1]
+            let existingX = coord?.0 ?? -1, existingY = coord?.1 ?? -1
+            return existingColor == color && existingX == x && existingY == y ? .duplicate : .needsResync
+        }
+        guard moveNumber == _moves.count + 1 else { return .needsResync }
+        let viewedIndex = currentIndex
+        let reviewing = viewedIndex < _moves.count
+        playMoveOptimistically(color: color, x: x, y: y)
+        if reviewing { seek(to: viewedIndex) }
+        return .applied
     }
-    
 
     func playMoveOptimistically(color: Stone, x: Int, y: Int) {
+        // An incoming move belongs after the complete history, never on the viewed old board.
+        if currentIndex != _moves.count { seek(to: _moves.count) }
         _moves.append((color, (x, y)))
         var g = board.grid
         apply(moveAt: _moves.count - 1, to: &g)
