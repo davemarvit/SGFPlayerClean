@@ -270,6 +270,7 @@ class OGSClient: NSObject, ObservableObject {
     private var socketAuthTimeout: OGSCancellable?
     private var enginePulseTimer: Timer?
     private var lobbyChallenges: [Int: OGSChallenge] = [:]
+    private var lobbyEventGeneration = 0
     // Grace Period: Track when we locally added a challenge. 
     // We will NOT prune a challenge via REST if it was added < 15s ago (Eventual Consistency Protection)
     private var challengeCreationTimes: [Int: Date] = [:] 
@@ -457,7 +458,9 @@ class OGSClient: NSObject, ObservableObject {
         stopClockTimer()
         stopChallengePruner()
         lastClockSnapshot = nil
+        lobbyEventGeneration += 1
         lobbyChallenges.removeAll()
+        challengeCreationTimes.removeAll()
         availableGames = []
         switch state {
         case .disconnected: connectionStatus = "Disconnected"
@@ -633,6 +636,8 @@ class OGSClient: NSObject, ObservableObject {
                 guard let self else { completion(nil, URLError(.cancelled)); return }
                 if let id = self.robustInt(json["id"]) ?? self.robustInt(json["game_id"]) ?? self.robustInt(json["game"]) {
                     self.isSearchingForGame = false
+                    self.removeLobbyChallenge(challengeID)
+                    self.performLobbyRefresh()
                     completion(id, nil)
                 } else {
                     self.isSearchingForGame = false
@@ -1098,12 +1103,27 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func subscribeToSeekgraph() {
+        guard isConnected, isSocketAuthenticated, !isSubscribedToSeekgraph else { return }
         sendAction("seek_graph/connect", payload: ["channel": "global"])
-        self.isSubscribedToSeekgraph = true
-        // REST Sync Disabled to prevent "Flood" of stale/zombie games.
-        // We rely on the WebSocket 'seekgraph' events for Truth.
+        isSubscribedToSeekgraph = true
     }
-    
+
+    /// A newly opened lobby needs a new subscription snapshot, not the list left
+    /// behind before the previous game. This changes only the lobby subscription.
+    func refreshChallengeLobby() {
+        guard isConnected, isSocketAuthenticated, activeGameID == nil else { return }
+        lobbyReader.cancel()
+        lobbyEventGeneration += 1
+        if isSubscribedToSeekgraph {
+            sendAction("seek_graph/disconnect", payload: ["channel": "global"])
+        }
+        isSubscribedToSeekgraph = false
+        lobbyChallenges.removeAll()
+        challengeCreationTimes.removeAll()
+        availableGames = []
+        subscribeToSeekgraph()
+    }
+
     func performPostAuthSubscriptions() {
         guard isConnected else { return }
         // PILLAR: Full Handshake from Web Trace
@@ -1213,36 +1233,18 @@ class OGSClient: NSObject, ObservableObject {
             return
         }
 
-        // FIREHOSE LOGGING (Time Capsule Mode: Selective)
-        if eventName.contains("seek_graph") {
-             // NSLog("[OGS-TRACE] 🔍 Seekgraph Event: \(eventName)")
-             
-             // SeekGraph Logic Moved Here:
-             // seek_graph can be a LIST (Initial State) or a SINGLE Object (Update/Add)
-             if let data = event.containerData {
-                 // 1. Try Array (Initial Batch)
-                 if let list = try? JSONDecoder().decode([OGSChallenge].self, from: data) {
-                     self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                         NSLog("[OGS-LOBBY] 📦 Received Batch of \(list.count) Challenges via Socket")
-                         for c in list { self.processSocketChallenge(c) }
-                         self.refreshLobbyUI()
-                     }
-                 } 
-                 // 2. Try Single Object (Incremental Update)
-                 else {
-                     do {
-                         let challenge = try JSONDecoder().decode(OGSChallenge.self, from: data)
-                         self.enqueueSocketUpdate(gameScoped: eventName.hasPrefix("game/")) {
-                             self.processSocketChallenge(challenge)
-                             self.refreshLobbyUI()
-                         }
-                     } catch {
-                         NSLog("[OGS-DECODE-ERR] ❌ Failed to decode seek_graph: \(error)")
-                     }
-                 }
-             }
+        // Both historical event spellings carry add/update/delete commands,
+        // including mixed batches. Decode the command before decoding a challenge.
+        if eventName == "seekgraph/global" || eventName == "seek_graph/global" {
+            let generation = lobbyEventGeneration
+            let items = (event.payload as? [[String: Any]]) ?? (event.payload as? [String: Any]).map { [$0] } ?? []
+            enqueueSocketUpdate(gameScoped: false) {
+                guard self.lobbyEventGeneration == generation else { return }
+                for item in items { self.updateLobbyItem(item) }
+                self.refreshLobbyUI()
+            }
         }
-        
+
         if eventName.hasPrefix("game/"), let sv = robustInt(payload["state_version"]) {
             self.currentStateVersion = max(self.currentStateVersion, sv)
         }
@@ -1376,22 +1378,6 @@ class OGSClient: NSObject, ObservableObject {
                 self.isRequestingUndo = false
                 self.undoRequestedUsername = nil
                 self.undoRequestedMoveNumber = nil
-            }
-        } else if eventName == "seekgraph/global" {
-            // FIX: Handle both Full Sync (Array) and Incremental Updates (Dictionary)
-            // Previously, receiving a Dictionary (e.g. delete:1) caused 'items' cast to fail
-            // but 'removeAll()' had already run, wiping the lobby.
-            
-            if let items = event.payload as? [[String: Any]] {
-                // FULL SYNC / BATCH UPDATE: Merge strategy.
-                // Do NOT wipe (removeAll) because the server sends partial batches here too.
-                // OGS sends explicit "delete" keys for removal.
-                for i in items { updateLobbyItem(i) }
-                refreshLobbyUI()
-            } else if let item = event.payload as? [String: Any] {
-                // INCREMENTAL UPDATE: Add/Update/Delete Single
-                updateLobbyItem(item)
-                refreshLobbyUI()
             }
         } else if eventName == "net/ping" {
             handleNetPing(payload)
@@ -2106,7 +2092,7 @@ class OGSClient: NSObject, ObservableObject {
     private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil, acknowledgementID: Int? = nil) {
         if observationOnly {
             let allowed: Set<String> = ["authenticate", "game/connect", "game/disconnect",
-                "net/ping", "net/pong", "game/latency", "seek_graph/connect",
+                "net/ping", "net/pong", "game/latency", "seek_graph/connect", "seek_graph/disconnect",
                 "ui-pushes/subscribe", "automatch/available/subscribe", "automatch/list", "user/monitor", "gamelist/query"]
             guard allowed.contains(event) else {
                 lastError = observationError.localizedDescription
@@ -2132,28 +2118,6 @@ class OGSClient: NSObject, ObservableObject {
         return str
     }
 
-
-
-    // Helper: Process Socket Challenges
-    private func processSocketChallenge(_ challenge: OGSChallenge) {
-        // FILTER: 1X10S Debug
-        let name = challenge.challenger?.username ?? "Unknown"
-        if name.lowercased().contains("1x10s") {
-            NSLog("[OGS-DEBUG-TARGET] 🎯 Found Target '1X10S'! ID: \(challenge.id). GameID: \(challenge.game_id ?? -1). Speed: \(challenge.speed ?? "nil"). Started: \(challenge.game_started ?? false)")
-        }
-
-        // DUPLICATE CHECK
-        let existing = self.lobbyChallenges.values.first(where: { $0.game_id != nil && $0.game_id == challenge.game_id })
-        if let ex = existing, ex.id != challenge.id {
-             // NSLog("[OGS-DUPE?] 👯‍♀️ Challenge \(challenge.id) is dupe of \(ex.id) (GameID: \(challenge.game_id ?? -1))")
-        }
-        
-        // ZOMBIE / FILTER CHECK
-        if challenge.game_started == true { return }
-        
-        self.lobbyChallenges[challenge.id] = challenge
-        self.challengeCreationTimes[challenge.id] = Date()
-    }
 
 
     private func finalizeLobbySync(_ challenges: [OGSChallenge]) {
@@ -2202,70 +2166,59 @@ class OGSClient: NSObject, ObservableObject {
         }
     }
 
-    /// Explicitly remove a challenge (e.g. when 404 is encountered on Accept)
+    /// Challenge IDs and game IDs are different namespaces. Never interpret a
+    /// JSON boolean (NSNumber true == 1) as a numeric challenge ID.
+    private func lobbyID(_ value: Any?) -> Int? {
+        if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() { return nil }
+        guard let id = robustInt(value), id > 0 else { return nil }
+        return id
+    }
+
+    private func removeLobbyChallenge(_ id: Int) {
+        lobbyChallenges.removeValue(forKey: id)
+        challengeCreationTimes.removeValue(forKey: id)
+        addToGraveyard(id)
+    }
+
+    /// Explicitly remove a challenge (e.g. confirmed acceptance or a 404).
     func forceRemoveChallenge(id: Int) {
-        DispatchQueue.main.async { [weak self] in
-             guard let self = self else { return }
-             if self.lobbyChallenges[id] != nil {
-                 self.lobbyChallenges.removeValue(forKey: id)
-                 self.addToGraveyard(id) // Ensure it stays dead
-                 NSLog("[OGS-LOBBY] 🧹 Force-removed zombie challenge \(id)")
-                 self.refreshLobbyUI()
-             }
-        }
+        removeLobbyChallenge(id)
+        refreshLobbyUI()
     }
 
     private func updateLobbyItem(_ dict: [String: Any]) {
-        // CASE 1: Delete Command { "delete": 12345 } or { "challenge_id": 123, "delete": true }
-        if let deleteID = robustInt(dict["delete"]) {
-            // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Command for \(deleteID)")
-            self.lobbyChallenges.removeValue(forKey: deleteID)
-            self.addToGraveyard(deleteID)
+        let explicitID = lobbyID(dict["challenge_id"]) ?? lobbyID(dict["id"])
+        // Canonical OGS deletion is {challenge_id: N, delete: true}; also accept
+        // the older numeric shorthand {delete: N}. False is not a deletion.
+        if let deletion = dict["delete"], !(deletion is NSNull) {
+            if let flag = deletion as? NSNumber, CFGetTypeID(flag) == CFBooleanGetTypeID() {
+                if flag.boolValue, let id = explicitID { removeLobbyChallenge(id); return }
+            } else if let id = explicitID ?? lobbyID(deletion) {
+                removeLobbyChallenge(id); return
+            }
+        }
+        if (dict["game_started"] as? Bool) == true ||
+            ["play", "finished"].contains(dict["phase"] as? String ?? "") ||
+            (dict["outcome"] != nil && !(dict["outcome"] is NSNull)) {
+            if let id = explicitID { removeLobbyChallenge(id) }
+            else if let gameID = lobbyID(dict["game_id"]) {
+                for challenge in lobbyChallenges.values where challenge.game_id == gameID {
+                    removeLobbyChallenge(challenge.id)
+                }
+            }
             return
         }
-        
-        guard let id = robustInt(dict["challenge_id"]) ?? robustInt(dict["game_id"]) else { return }
-        
-        if dict["delete"] != nil { 
-            // NSLog("[OGS-LOBBY-DEBUG] 🗑️ Socket Delete Flag for \(id)")
-            self.lobbyChallenges.removeValue(forKey: id)
-            self.addToGraveyard(id)
-            return 
-        }
-        
-        // [DEBUG LOGGING: TIME CAPSULE MODE]
-        // Log RAW dictionary for direct comparison with Browser DevTools
-        // let rawLog = tightJson(dict)
-        // NSLog("[OGS-TRACE] RAW Item \(id): \(rawLog)") 
-
-        // HANDLE Game Started Events (Remove from Lobby)
-        if let started = dict["game_started"] as? Bool, started == true {
-             // NSLog("[OGS-LOBBY] 🏁 Game Started Event for \(id) -> REMOVING Challenge.")
-             self.lobbyChallenges.removeValue(forKey: id)
-             self.addToGraveyard(id)
-             return
-        }
-        
-        if let data = try? JSONSerialization.data(withJSONObject: dict), 
-           let ch = try? JSONDecoder().decode(OGSChallenge.self, from: data) {
-            
-            // GUARD: Prevent invalid/broken challenges (e.g. Automatch leakage or bad decode)
-            // Fix: Explicitly check for nil username (which becomes "Unknown" in UI)
-            if ch.id == 0 || (ch.challenger?.username ?? "Unknown") == "Unknown" {
-                 // NSLog("[OGS-LOBBY] 🛡️ Ignored Invalid Challenge. ID: \(ch.id), User: \(ch.challenger?.username ?? "nil")")
-                 return
-            }
-
-            self.lobbyChallenges[id] = ch
-            
-            // Check if it's mine
-            if let pid = self.playerID, let creatorID = ch.challenger?.id, pid == creatorID {
-                // NSLog("[OGS-TRACE] 🟢 Found MY Challenge: \(id). Creator: \(ch.challenger?.username ?? "?") (\(creatorID))")
-            }
-        } else {
-             // LOGGING: Identify why we failed to decode
-             NSLog("[OGS-TRACE] ⚠️ Failed to decode item ID \(id): \(dict)")
-        }
+        guard let id = explicitID ?? lobbyID(dict["game_id"]) else { return }
+        cleanupGraveyard()
+        guard graveyard[id] == nil else { return }
+        var normalized = dict
+        normalized["id"] = id
+        guard let data = try? JSONSerialization.data(withJSONObject: normalized),
+              let challenge = try? JSONDecoder().decode(OGSChallenge.self, from: data),
+              let name = challenge.challenger?.username, !name.isEmpty, name != "Unknown" else { return }
+        lobbyChallenges[id] = challenge
+        // Updates do not indefinitely renew the grace period for pruning stale rows.
+        if challengeCreationTimes[id] == nil { challengeCreationTimes[id] = Date() }
     }
 
     private func refreshLobbyUI() {
@@ -2279,24 +2232,12 @@ class OGSClient: NSObject, ObservableObject {
         var droppedCount = 0
         
         for ch in self.lobbyChallenges.values {
-            // Filter: If this challenge represents a game I am already in
-            // Logic: Check if challenge ID matches an active game ID (common reuse)
-            // Or if I am the challenger
-            
-            var shouldSkip = false
-            let gid = ch.id // In many lobby payloads, id is the game_id
-            
-            if self.myActiveGames.contains(gid) || self.finishedGameIDs.contains(gid) {
-                 shouldSkip = true
-                 // NSLog("[OGS-FILTER] 🚫 Filtering challenge \(ch.id) (Game ID \(gid)) - Already in Active/Finished list.")
-            } else if let mine = self.playerID, let cid = ch.challenger?.id, cid == mine {
-                 // I am the challenger, but is it Active?
-                 if self.myActiveGames.contains(gid) { 
-                     shouldSkip = true 
-                     // NSLog("[OGS-FILTER] 🚫 Filtering my challenge \(ch.id) - It is now an active game.")
-                 }
-            }
-            
+            // Never compare a challenge ID with a game ID: those may coincide
+            // by accident, or differ for the challenge that created this game.
+            let shouldSkip = ch.game_id.map {
+                self.myActiveGames.contains($0) || self.finishedGameIDs.contains($0)
+            } ?? false
+
             if !shouldSkip {
                 filtered.append(ch)
             } else {

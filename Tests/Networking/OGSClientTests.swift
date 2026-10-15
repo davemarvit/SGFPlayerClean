@@ -882,6 +882,99 @@ final class OGSClientTests: XCTestCase {
         XCTAssertFalse(client.isSearchingForGame)
     }
 
+    func testLobbyDeleteFlagsAndMixedBatchesUseChallengeIDForBothEventNames() {
+        connect(); client.isSocketAuthenticated = true
+        for event in ["seekgraph/global", "seek_graph/global"] {
+            client.refreshChallengeLobby()
+            socket.deliver(.success("42[\"\(event)\",[{\"challenge_id\":1,\"username\":\"Keep\"},{\"challenge_id\":7,\"username\":\"Remove\"}]]"))
+            drainMainQueue(); drainMainQueue()
+            XCTAssertEqual(Set(client.availableGames.map(\.id)), [1, 7])
+            socket.deliver(.success("42[\"\(event)\",[{\"challenge_id\":7,\"delete\":true},{\"challenge_id\":8,\"username\":\"New\"}]]"))
+            drainMainQueue(); drainMainQueue()
+            XCTAssertEqual(Set(client.availableGames.map(\.id)), [1, 8], "Boolean true must not remove challenge 1")
+            socket.deliver(.success("42[\"\(event)\",{\"challenge_id\":8,\"game_started\":true}]"))
+            socket.deliver(.success("42[\"\(event)\",{\"challenge_id\":8,\"username\":\"Stale late add\"}]"))
+            drainMainQueue(); drainMainQueue()
+            XCTAssertEqual(client.availableGames.map(\.id), [1], "Started/deleted challenges cannot immediately reappear")
+            // Tombstones intentionally span a subscription refresh. Use a new client/socket for the next spelling.
+            client.disconnect()
+            socket = TestSocket()
+            client = OGSClient(session: session, socketFactory: { [socket = socket!] in socket }, scoringScheduler: scoringScheduler)
+            let ready = expectation(description: "New fixture identity loaded")
+            let subscription = client.$isAuthenticated.filter { $0 }.sink { _ in ready.fulfill() }
+            wait(for: [ready], timeout: 3); subscription.cancel()
+            connect(); client.isSocketAuthenticated = true
+        }
+    }
+
+    func testLobbyReturningRequestsFreshSubscriptionAndEmptyBatchKeepsItEmpty() {
+        connect(); client.isSocketAuthenticated = true
+        client.subscribeToSeekgraph()
+        socket.deliver(.success(#"42["seekgraph/global",[{"challenge_id":7,"username":"Old"}]]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertEqual(client.availableGames.map(\.id), [7])
+        client.activeGameID = 99
+        client.isGameFinished = true
+        client.leaveViewedGame()
+        client.refreshChallengeLobby()
+        XCTAssertTrue(client.availableGames.isEmpty)
+        let messages = socket.sentMessages.filter { $0.contains("seek_graph/") }
+        XCTAssertTrue(messages.suffix(2).first!.contains("seek_graph/disconnect"))
+        XCTAssertTrue(messages.last!.contains("seek_graph/connect"))
+        socket.deliver(.success(#"42["seekgraph/global",[]]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertTrue(client.availableGames.isEmpty, "An empty fresh subscription must not retain the old challenge")
+        XCTAssertTrue(client.isConnected && client.isAuthenticated)
+        XCTAssertFalse(socket.sentMessages.contains { $0.contains("game/resign") || $0.contains("challenge/remove") })
+    }
+
+    func testLobbyRefreshFencesQueuedOldBatchAndDoesNotClearPartialLiveUpdates() {
+        connect(); client.isSocketAuthenticated = true
+        socket.deliver(.success(#"42["seekgraph/global",[{"id":7,"username":"Old"}]]"#))
+        client.refreshChallengeLobby()
+        drainMainQueue(); drainMainQueue()
+        XCTAssertTrue(client.availableGames.isEmpty)
+        socket.deliver(.success(#"42["seekgraph/global",[{"id":8,"username":"A"}]]"#))
+        socket.deliver(.success(#"42["seek_graph/global",[{"id":9,"username":"B"}]]"#))
+        socket.deliver(.success(#"42["seekgraph/global",[]]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertEqual(Set(client.availableGames.map(\.id)), [8, 9], "Incremental batches must merge")
+        socket.deliver(.success(#"42["seekgraph/global",{"delete":8}]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertEqual(client.availableGames.map(\.id), [9])
+        socket.deliver(.success(#"42["seekgraph/global",{"id":9,"delete":false,"username":"B"}]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertEqual(client.availableGames.map(\.id), [9], "False is not a deletion")
+    }
+
+    func testLobbyGameAndChallengeIdentifiersAreNotInterchangeable() {
+        connect(); client.isSocketAuthenticated = true
+        client.finishedGameIDs = [7, 99]
+        socket.deliver(.success(#"42["seekgraph/global",[{"challenge_id":7,"game_id":100,"username":"Unrelated challenge"},{"challenge_id":8,"game_id":99,"username":"Finished game"}]]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertEqual(client.availableGames.map(\.id), [7])
+        socket.deliver(.success(#"42["seekgraph/global",{"game_id":100,"game_started":true}]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertTrue(client.availableGames.isEmpty)
+    }
+
+    func testConfirmedAcceptanceRemovesChallengeWithoutWaitingForSocketDelete() {
+        connect(); client.isSocketAuthenticated = true
+        socket.deliver(.success(#"42["seekgraph/global",[{"challenge_id":7,"username":"Opponent"}]]"#))
+        drainMainQueue(); drainMainQueue()
+        ClientHTTPFixture.handler = { $0.respond(status: 200, body: #"{"game_id":99}"#) }
+        let done = expectation(description: "Accepted and removed")
+        client.acceptChallenge(challengeID: 7) { id, error in
+            XCTAssertEqual(id, 99); XCTAssertNil(error)
+            XCTAssertTrue(self.client.availableGames.isEmpty)
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 3)
+        socket.deliver(.success(#"42["seekgraph/global",{"challenge_id":7,"username":"Late old row"}]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertTrue(client.availableGames.isEmpty)
+    }
+
     func testForbiddenChallengeCancellationDoesNotHideChallengeAndRetryCanRemoveIt() {
         connect(); client.isSocketAuthenticated = true
         socket.deliver(.success(#"42["seek_graph/global",[{"id":7,"user_id":1,"username":"fixture","width":19,"height":19,"time_per_move":60}]]"#))

@@ -30,8 +30,9 @@ struct OGSBrowserView: View {
             }
         }
         .sheet(isPresented: $isPresentingLogin) { OGSLoginView(isPresented: $isPresentingLogin) }
-        .onAppear {
-            if !app.ogsClient.isSubscribedToSeekgraph { app.ogsClient.subscribeToSeekgraph() }
+        .onAppear { app.ogsClient.refreshChallengeLobby() }
+        .onChange(of: app.ogsClient.isSocketAuthenticated) { ready in
+            if ready { app.ogsClient.refreshChallengeLobby() }
         }
     }
 

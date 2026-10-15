@@ -6,6 +6,11 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The Play Online lobby now processes challenge deletions and starts consistently,
+removes confirmed accepted challenges immediately, and requests a fresh subscription
+when reopened. Challenge IDs are kept separate from game IDs; late deleted rows
+are suppressed instead of reappearing after a finished game.
+
 The AI overlay can now extend further over the lids, with a leftward 3D viewport
 adjustment to keep the larger board clear. Spoken countdowns use the updated clock
 value and round upward, matching OGS: “3” begins near three seconds remaining,

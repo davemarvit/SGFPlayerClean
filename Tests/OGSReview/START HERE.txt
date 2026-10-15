@@ -9,7 +9,8 @@ Quit and reopen the review app to see its new Dock icon.
 FOUR MODES
 Play Online: your challenge lobby, with the existing board size, speed, rated,
   and eligibility filters. Create or accept a challenge here. Lobby returns
-  to the list without resigning; Return to Game reopens your game.
+  to a fresh challenge list without resigning; Return to Game reopens your game.
+  Accepted/cancelled challenges disappear as their updates arrive.
 Local Play: place moves for both sides. New Game starts a fresh board.
   Pass and playback controls are at the bottom. Review this game makes a
   separate review copy.

@@ -35,9 +35,15 @@ private final class ModeSocket: OGSWebSocket {
     var receiver: ((Result<String, Error>) -> Void)?
     var messages: [String] = []
     var cancellations = 0
+    var lobbyFixture: String?
     func resume() {}
     func receive(_ completion: @escaping (Result<String, Error>) -> Void) { receiver = completion }
-    func send(_ text: String, completion: @escaping (Error?) -> Void) { messages.append(text); completion(nil) }
+    func send(_ text: String, completion: @escaping (Error?) -> Void) {
+        messages.append(text); completion(nil)
+        if text.contains("seek_graph/connect"), let fixture = lobbyFixture {
+            DispatchQueue.main.async { self.receiver?(.success("42[\"seekgraph/global\",\(fixture)]")) }
+        }
+    }
     func ping(_ completion: @escaping (Error?) -> Void) { completion(nil) }
     func cancel() { cancellations += 1 }
 }
@@ -159,13 +165,18 @@ private final class ModeSocket: OGSWebSocket {
         }
         model.mode = .playOnline; model.showOnlineBrowser(); settle()
         let fixtures = #"[{"id":1,"username":"NineRated","user_id":10,"width":9,"height":9,"ranked":true,"time_per_move":60},{"id":2,"username":"Nineteen","user_id":11,"width":19,"height":19,"ranked":false,"time_per_move":60},{"id":3,"username":"Correspondence","user_id":12,"width":9,"height":9,"ranked":true,"time_per_move":86400},{"id":4,"username":"Ineligible","user_id":13,"width":9,"height":9,"ranked":true,"time_per_move":60,"min_rank":40}]"#
-        client.availableGames = try JSONDecoder().decode([OGSChallenge].self, from: Data(fixtures.utf8))
+        socket.receiver?(.success(#"42["seekgraph/global",[{"challenge_id":12345,"username":"OldFinishedChallenge","width":9,"ranked":true,"time_per_move":60}]]"#))
+        settle()
+        require(client.availableGames.contains { $0.id == 12345 }, "Fixture must contain stale row before opening lobby")
+        socket.lobbyFixture = fixtures
         UserDefaults.standard.set("9", forKey: "ogs_filter_sizes")
         UserDefaults.standard.set("Live", forKey: "ogs_filter_speed")
         UserDefaults.standard.set(true, forKey: "ogs_filter_ranked")
         UserDefaults.standard.set(false, forKey: "ogs_filter_ineligible")
         let lobby = try render(RightPanelView().frame(width: 320, height: 620))
         require(lobby.contains("ninerated") && lobby.contains("accept") && lobby.contains("create"), "Lobby missing: \(lobby)")
+        require(!lobby.contains("oldfinishedchallenge") && !client.availableGames.contains { $0.id == 12345 },
+                "Opening lobby replaces stale challenge with fresh server snapshot")
         require(!lobby.contains("nineteen") && !lobby.contains("correspondence"), "Size/speed filters failed")
         require(lobby.components(separatedBy: "ineligible").count == 2, "Ineligible challenge should be filtered; only toggle should remain")
         for key in ["ogs_filter_sizes", "ogs_filter_speed", "ogs_filter_ranked", "ogs_filter_ineligible"] {
