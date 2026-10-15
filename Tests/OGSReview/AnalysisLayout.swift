@@ -62,8 +62,8 @@ private final class LayoutHTTP: URLProtocol {
                 let geometry = BoardWorkspaceGeometry(size: size, aiEnabled: true, sidebarVisible: sidebar)
                 require(geometry.aiWidth >= 280 && geometry.boardWidth > 0, "AI remains a usable right-hand column")
                 require(geometry.boardWidth > geometry.aiOrigin, "AI can overlap lids to recover board space")
-                // A width-limited 2D board should gain at least 15% versus the previous separate-column layout.
-                if width == 900 { require(geometry.boardWidth / geometry.aiOrigin > 1.15, "Recover meaningful board size") }
+                // A width-limited 2D board should gain at least 30% versus the previous separate-column layout.
+                if width == 900 { require(geometry.boardWidth / geometry.aiOrigin > 1.30, "Recover meaningful board size") }
                 require(geometry.reservesSidebar == (sidebar && width >= 1500), "Game panel overlays only in tighter windows")
                 let host = NSHostingView(rootView: BoardWorkspaceView(vm: vm, analysisEngine: ai) {
                     if mode == .view2D { ContentView2D() } else { ContentView3D() }

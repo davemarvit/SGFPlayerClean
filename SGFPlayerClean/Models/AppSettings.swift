@@ -266,6 +266,17 @@ class SoundManager: ObservableObject {
         player.play()
     }
     
+    /// Speak at the whole-second boundary, matching OGS's ceil-based countdown.
+    /// E.g. 3.9 seconds belongs to "4", and "3" starts at 3.0, not 3.9.
+    static func countdownSecond(remaining: TimeInterval) -> Int? {
+        guard remaining.isFinite, remaining > 0, remaining <= 10 else { return nil }
+        return Int(ceil(remaining))
+    }
+
+    func playCountdown(remaining: TimeInterval) {
+        playCountdown(Self.countdownSecond(remaining: remaining) ?? 0)
+    }
+
     func playCountdown(_ number: Int) {
         // Debounce: Don't repeat the same number
         guard lastPlayedCountdown != number else { return }

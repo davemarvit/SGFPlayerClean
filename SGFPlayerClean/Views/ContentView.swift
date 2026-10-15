@@ -105,7 +105,7 @@ struct BoardWorkspaceGeometry {
         aiOrigin = available - aiWidth
         // Analysis may cover the outer lid area. Preserve the playable board and
         // use the recovered width to enlarge it, rather than reserving every lid pixel.
-        let overlap = aiEnabled ? min(aiWidth * 0.65, aiOrigin * 0.25) : 0
+        let overlap = aiEnabled ? min(aiWidth * 0.95, aiOrigin * 0.36) : 0
         boardWidth = aiOrigin + overlap
     }
 }

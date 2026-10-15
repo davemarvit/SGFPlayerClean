@@ -6,6 +6,11 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The AI overlay can now extend further over the lids, with a leftward 3D viewport
+adjustment to keep the larger board clear. Spoken countdowns use the updated clock
+value and round upward, matching OGS: “3” begins near three seconds remaining,
+not at 3.9. Displayed time and server time allowances are unchanged.
+
 Observe now has one “Select a Game” heading and no duplicate account controls.
 Reconnect appears beneath the username only when the signed-in connection is down.
 The picker refreshes every ten seconds while visible, preserving loaded depth and

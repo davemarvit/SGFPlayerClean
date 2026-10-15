@@ -1806,10 +1806,8 @@ class OGSClient: NSObject, ObservableObject {
                 let main = self.blackTimeRemaining ?? 0
                 if main > 0 {
                     self.blackTimeRemaining = max(0, main - delta)
-                    // Countdown Logic
-                    if main <= 10.0 && main >= 1.0 {
-                        SoundManager.shared.playCountdown(Int(floor(main)))
-                    }
+                    // Announce the updated time shown by the clock, at integer boundaries.
+                    SoundManager.shared.playCountdown(remaining: main - delta)
                     // FIX: Check updated value for transition to 0
                     if (main - delta) <= 0 { 
                          if self.playerID == self.blackPlayerID { SoundManager.shared.playByoyomiStart() }
@@ -1819,7 +1817,7 @@ class OGSClient: NSObject, ObservableObject {
                     if pt > 0 {
                          self.blackClockPeriodTime = max(0, pt - delta)
                          // Countdown Logic (Byoyomi)
-                         if pt <= 10.0 { SoundManager.shared.playCountdown(Int(floor(pt))) }
+                         SoundManager.shared.playCountdown(remaining: pt - delta)
                      } else {
                          // Transition: Period Expired
                          periods -= 1
@@ -1841,10 +1839,8 @@ class OGSClient: NSObject, ObservableObject {
                 let main = self.whiteTimeRemaining ?? 0
                 if main > 0 {
                     self.whiteTimeRemaining = max(0, main - delta)
-                    // Countdown Logic
-                    if main <= 10.0 && main >= 1.0 {
-                        SoundManager.shared.playCountdown(Int(floor(main)))
-                    }
+                    // Announce the updated time shown by the clock, at integer boundaries.
+                    SoundManager.shared.playCountdown(remaining: main - delta)
                     // FIX: Check updated value for transition to 0
                     if (main - delta) <= 0 { 
                          if self.playerID == self.whitePlayerID { SoundManager.shared.playByoyomiStart() }
@@ -1854,7 +1850,7 @@ class OGSClient: NSObject, ObservableObject {
                     if pt > 0 {
                          self.whiteClockPeriodTime = max(0, pt - delta)
                          // Countdown Logic (Byoyomi)
-                         if pt <= 10.0 { SoundManager.shared.playCountdown(Int(floor(pt))) }
+                         SoundManager.shared.playCountdown(remaining: pt - delta)
                     } else {
                          // Transition
                          periods -= 1

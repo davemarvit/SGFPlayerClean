@@ -24,7 +24,11 @@ Review: load saved SGFs and use playback. To add moves, choose Continue this
   while switching modes within this session.
 
 AI analysis stays to the right and may overlap the lids so the board can stay
-larger. Playback controls remain clear of the AI panel.
+larger. The overlay now extends further over the lids; 3D uses more of the left
+margin while AI is enabled. Playback controls remain clear of the AI panel.
+
+Spoken countdowns now start each number at its whole-second boundary: “3” near
+3.0 seconds remaining and “1” near 1.0, matching OGS. Clock values are unchanged.
 
 AI analysis is a separate toggle. It works in Local Play, Review, and Observe
 for other players' games. It is unavailable in Play Online and while your

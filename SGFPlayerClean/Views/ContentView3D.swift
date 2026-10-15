@@ -75,7 +75,9 @@ struct ContentView3D: View {
                     }
                 )
                 .frame(width: geo.size.width * 1.4, height: sceneHeight)
-                .offset(x: -(geo.size.width * 0.29), y: (geo.size.height - sceneHeight) / 2)
+                // With analysis over the lids, use more of the left margin to keep
+                // the enlarged board clear of the overlay, including portrait windows.
+                .offset(x: -(geo.size.width * (app.isAIAvailable ? 0.32 : 0.29)), y: (geo.size.height - sceneHeight) / 2)
                 }
                 .edgesIgnoringSafeArea(.all)
                 
