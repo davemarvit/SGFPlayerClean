@@ -177,7 +177,7 @@ class BoardViewModel: ObservableObject {
         let newGameId = wrapper.url.path.replacingOccurrences(of: "/", with: "_")
         self.engine.load(game: wrapper.game)
         _ = KataGoEngine.shared.loadAnalysisCache(for: newGameId, game: engine)
-        self.jitterEngine = StoneJitter(boardSize: self.boardSize)
+        self.jitterEngine = StoneJitter(boardSize: self.boardSize, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         self.lastObservedMoveIndex = self.engine.currentIndex
         self.syncState()
     }
@@ -298,7 +298,7 @@ class BoardViewModel: ObservableObject {
         fullGameAnalysisTask?.cancel()
         _ = KataGoEngine.shared.loadAnalysisCache(for: String(gameID), game: engine)
         isOnlineContext = true
-        jitterEngine = StoneJitter(boardSize: engine.board.size)
+        jitterEngine = StoneJitter(boardSize: engine.board.size, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         isSyncing = false
         syncState()
     }
@@ -412,7 +412,7 @@ class BoardViewModel: ObservableObject {
         }
         let snap = self.engine.board
         
-        self.jitterEngine.prepare(forMove: idx, stones: snap.stones)
+        self.jitterEngine.prepare(player: engine)
         var list: [RenderStone] = []
         for (pos, col) in snap.stones {
             let off = self.jitterEngine.offset(forX: pos.col, y: pos.row, moveIndex: idx, stones: snap.stones)

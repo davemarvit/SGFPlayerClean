@@ -34,6 +34,14 @@ latest target and preview at most 20 times per second; release commits the exact
 Preview seeks are silent, avoid new 3D drop animations, and defer new analysis requests until
 release. KataGo analysis is enabled only on the AI tab; opening an SGF selects Local.
 
+Stone jitter now reconstructs missing layouts from the recorded move sequence instead of
+re-seeding existing stones when a preceding display frame is absent. Arrow stepping, seeking,
+and revisiting cached positions therefore agree. Collision processing has a stable order,
+retains the existing local wake-up behavior, and invalidates changed history after the shared
+prefix. A private replay engine builds layout frames without UI/audio/AI observers. Loading a
+game also honors the saved jitter setting. This repair expands the unit suite to 185 tests;
+an external-game app-model check verified the reported 92–93 transition and distant-stone stability.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
@@ -369,7 +377,7 @@ The root Swift package compiles the networking sources, OGSClient, shared models
 playback engine, SceneKit board scene, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 180 automated tests cover SGF main-line/variation parsing, disconnect, failed receives/sends, retry cancellation and bounds,
+The 185 automated tests cover navigation-independent stone jitter, SGF main-line/variation parsing, disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
@@ -403,6 +411,7 @@ python3 Tests/UI/check_capture_rewind.py LocalPass.swift
 python3 Tests/UI/check_capture_rewind.py LocalScoring.swift
 python3 Tests/UI/check_capture_rewind.py SGFPlayback.swift
 python3 Tests/UI/check_capture_rewind.py SliderScrubbing.swift
+python3 Tests/UI/check_capture_rewind.py StoneJitter.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -426,6 +435,11 @@ The scrubbing check reproduces the default-mode stall, then exercises preview up
 AppKit's event-tracking run-loop mode with both hosted board views. It checks board/lid agreement,
 burst coalescing, rate limiting, duplicate suppression, silence, exact release, and cancellation
 when loading another game. Physical mouse-drag feel remains a manual acceptance check.
+The jitter check compares offsets at moves 92 and 93 reached by the same step-forward/backward
+methods as the arrow keys, fresh sequential play, and seeks. `SGF_JITTER_TEST_FILE` optionally
+selects an external SGF to inspect read-only; the default is an anonymous regression fixture.
+Unit tests also cover retained neighbor movement, unchanged distant stones, replacement history,
+passes/captures, appending moves, board/setup changes, and changing the jitter setting.
 
 Scoring marks/results are in-memory review data, never edits to the source SGF. Unknown rules
 and missing/invalid komi block confirmation until explicitly selected/entered. Manual agreement
