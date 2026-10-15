@@ -1,63 +1,86 @@
-# SGFPlayerClean - Clean Architecture Rebuild
+# SGFPlayerClean
 
-**Created**: 2025-11-19
-**Purpose**: Fresh rebuild of SGF Player with clean, maintainable architecture
+Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo analysis.
+The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
+The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
-## Project Structure
+## Preserved baseline — October 14, 2026
 
+GitHub `main` was at `c30c12e` when this review began. The local app had substantial uncommitted
+changes, including KataGo integration, a new model, and two analysis views.
+
+Those runtime changes and required resources are preserved in commit `4a290e4` on
+[`codex/preserve-local-work-2026-10-14`](https://github.com/davemarvit/SGFPlayerClean/tree/codex/preserve-local-work-2026-10-14).
+That snapshot built successfully before the connection refactor. It is a recovery point,
+not a claim that live gameplay has passed acceptance testing.
+
+A separately verified local archive includes the entire original working directory, Git history,
+untracked files, logs, and local documentation. Its location is
+`/Users/Dave/Documents/SGF PLayer/recovery/2026-10-14/SGFPlayerClean-before-refactor.tar.gz`.
+The adjacent `backup-verification.json` records its SHA-256 and 994 verified files.
+Logs, editor state, unrelated personal files, and duplicate assets were not added to the GitHub snapshot.
+
+The original checkout at `/Users/Dave/SGFPlayerClean` remains on `main` with its pre-existing working changes.
+Development is isolated in `/Users/Dave/Documents/SGF PLayer/SGFPlayerClean-review`.
+Neither `main` nor the preservation branch should be used for ongoing refactoring.
+
+## Connection architecture
+
+`OGSClient` continues to own the existing OGS message encoding, authentication flow, game rules,
+clocks, and lobby behavior. Its socket lifecycle now delegates to:
+
+- `Services/Networking/OGSConnectionController.swift`: one connection attempt and receive loop,
+  generation checks for stale callbacks, cancellable exponential retries (1–30 seconds), a
+  15-second connection deadline, and WebSocket ping/pong liveness checks.
+- `Services/Networking/OGSURLSessionSocket.swift`: the production URLSession adapter, including
+  text/binary decoding and forwarding of close, receive, and send failures.
+
+The controller serializes state and observer callbacks on the main queue. Intentional disconnect
+cancels retry and heartbeat work. A new socket resets authentication/subscription/room flags so
+the existing handshake can restore subscriptions. Send failures trigger recovery but never replay
+game commands, whose server acceptance may be unknown. Authentication tokens are redacted from
+outgoing diagnostic history.
+
+The existing Socket.IO endpoint and game protocol are retained in this first extraction.
+Authentication confirmation/ACK handling and REST request coordination still need a separate,
+fixture-backed review before changing their behavior. Local loopback testing does not establish
+live OGS login, challenge, or gameplay compatibility.
+
+## Build and automated validation
+
+Run from the repository root:
+
+```sh
+xcodebuild -project SGFPlayerClean/SGFPlayerClean.xcodeproj \
+  -scheme SGFPlayerClean -configuration Debug \
+  -derivedDataPath /private/tmp/SGFPlayerCleanReview build
+swift test
+python3 Tests/Integration/run_loopback.py
 ```
-SGFPlayerClean/
-├── ViewModels/          # State management & business logic
-│   ├── BoardViewModel.swift
-│   ├── LayoutViewModel.swift
-│   └── OGSGameViewModel.swift (reference old code)
-│
-├── Views/               # SwiftUI views (pure UI)
-│   ├── ContentView2D.swift
-│   ├── ContentView3D.swift
-│   ├── BoardView.swift
-│   ├── SimpleBowlView.swift
-│   ├── ChatPanel.swift
-│   └── OGSControlsPanel.swift
-│
-├── Models/              # Data structures
-│   ├── Stone.swift
-│   ├── BoardPosition.swift
-│   └── GameState.swift
-│
-├── Services/            # External integrations
-│   ├── OGSService.swift
-│   └── SoundService.swift
-│
-└── Documentation/       # Architecture docs
-    ├── ARCHITECTURE.md
-    └── MIGRATION_GUIDE.md
+
+The root Swift package compiles the same networking sources used by Xcode. It is a networking
+test harness, not a replacement app target. The original local, untracked nested Swift package
+was a Hello World executable and is not used here.
+
+The deterministic tests use fake sockets and a controllable scheduler. They cover disconnect,
+failed receives/sends, retry cancellation and bounds, stale callbacks, connection/heartbeat
+timeouts, observer reentrancy, and main-queue delivery. The loopback test compiles the production
+transport and runs against a localhost-only Python standard-library WebSocket fixture, exercising
+real text/binary delivery, sending, abrupt connection loss, reconnect, ping/pong, and disconnect.
+Neither test suite uses OGS credentials or creates games.
+
+Before merging or replacing the working app, verify local playback, login, challenge creation,
+reconnection during an active game, and return to local mode in the built app. KataGo requires
+an installed executable (default `/opt/homebrew/bin/katago`); its model is included in the preserved resources.
+
+## Recovery without disturbing another checkout
+
+Create a fresh checkout of the preservation branch:
+
+```sh
+git fetch origin
+git worktree add ../SGFPlayerClean-preserved origin/codex/preserve-local-work-2026-10-14
 ```
 
-## Key Principles
-
-1. **Separation of Concerns** - ViewModels handle state, Views handle UI
-2. **Single Source of Truth** - No duplicate state
-3. **Testability** - ViewModels can be tested without UI
-4. **2D & 3D Support** - Both modes use same ViewModels
-5. **Local Mode First** - SGF playback is primary use case
-6. **OGS Second** - Live games built on top
-
-## Reference Old Code
-
-Located at: `/Users/Dave/SGFPlayer/SGFPlayer3D/SGFPlayer3D/`
-
-Reference but don't copy the entangled architecture.
-
-## Build Phases
-
-- [ ] Phase 1: Local SGF playback (2D)
-- [ ] Phase 2: Responsive layout + bowls
-- [ ] Phase 3: OGS integration
-- [ ] Phase 4: Chat feature
-- [ ] Phase 5: 3D mode support
-- [ ] Phase 6: Polish & migration
-
-## Next Steps
-
-See: `/Users/Dave/SGFPlayer/CLEAN_ARCHITECTURE_REBUILD_PLAN.md`
+Open its Xcode project to build the pre-refactor app. Keep the preservation branch and full local
+archive until the refactored version has passed live acceptance testing.

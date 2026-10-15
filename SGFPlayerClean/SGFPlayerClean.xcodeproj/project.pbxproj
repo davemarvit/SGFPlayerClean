@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE00000000000000000004 /* OGSURLSessionSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000003 /* OGSURLSessionSocket.swift */; };
+		C0DE00000000000000000002 /* OGSConnectionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000001 /* OGSConnectionController.swift */; };
 		1A854BADA457198CB0A17A14 /* WinRateGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 694141A29BCB8918A5938805 /* WinRateGraphView.swift */; };
 		1DE44E609B6DA6E58604EA7B /* kata1-b18.bin.gz in Resources */ = {isa = PBXBuildFile; fileRef = 2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */; };
 		3DAC4D66B1CBF8B7A90F4FD3 /* KataGoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8448639E01F803E00A0F2B /* KataGoEngine.swift */; };
@@ -103,6 +105,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE00000000000000000003 /* OGSURLSessionSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSURLSessionSocket.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000001 /* OGSConnectionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSConnectionController.swift; sourceTree = "<group>"; };
 		2EA148BD9363338A87F2670B /* kata1-b18.bin.gz */ = {isa = PBXFileReference; lastKnownFileType = None; name = "kata1-b18.bin.gz"; path = "Resources/kata1-b18.bin.gz"; sourceTree = SOURCE_ROOT; };
 		5577B0282F1F06C40031F12B /* byoyomi_simple.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = byoyomi_simple.aiff; sourceTree = "<group>"; };
 		5577B0292F1F06C40031F12B /* byoyomi_start.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = byoyomi_start.aiff; sourceTree = "<group>"; };
@@ -323,6 +327,8 @@
 			children = (
 				55EEB55A2EFFEAC600030E2A /* FileLoadingService.swift */,
 				55EEB55B2EFFEAC600030E2A /* OGSClient.swift */,
+				C0DE00000000000000000003 /* OGSURLSessionSocket.swift */,
+				C0DE00000000000000000001 /* OGSConnectionController.swift */,
 				EE8448639E01F803E00A0F2B /* KataGoEngine.swift */,
 			);
 			path = Services;
@@ -502,6 +508,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE00000000000000000004 /* OGSURLSessionSocket.swift in Sources */,
+				C0DE00000000000000000002 /* OGSConnectionController.swift in Sources */,
 				55EEB5772EFFEAC600030E2A /* RightPanelView.swift in Sources */,
 				55EEB5782EFFEAC600030E2A /* DiagnosticTests.swift in Sources */,
 				55EEB5792EFFEAC600030E2A /* AppSettings.swift in Sources */,

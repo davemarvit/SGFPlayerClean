@@ -9,7 +9,7 @@ import Combine
 
 
 
-class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
+class OGSClient: NSObject, ObservableObject {
     let buildVersion = "16.185"
     
     // MARK: - Published Properties
@@ -125,7 +125,23 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private var graveyard: [Int: Date] = [:]
     
     private var currentAutomatchUUID: String? // Track active Automatch request
-    private var webSocketTask: URLSessionWebSocketTask?
+    private lazy var connection: OGSConnectionController = {
+        let controller = OGSConnectionController { [originHeader, userAgent] in
+            // Keep the existing Socket.IO endpoint and message format during lifecycle extraction.
+            var request = URLRequest(url: URL(string: "wss://wsp.online-go.com/socket.io/?EIO=4&transport=websocket")!)
+            request.setValue(originHeader, forHTTPHeaderField: "Origin")
+            request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+            return OGSURLSessionSocket(request: request)
+        }
+        controller.onStateChange = { [weak self] state in self?.handleConnectionState(state) }
+        controller.onMessage = { [weak self] text in
+            guard let self else { return }
+            if text != "2" && text != "3" { self.writeToBlackBox(text, direction: "IN") }
+            self.handleIncomingProtocolMessage(text)
+        }
+        controller.onError = { [weak self] error in self?.lastError = error.localizedDescription }
+        return controller
+    }()
     private var urlSession: URLSession?
     private var socketPingTimer: Timer?
     private var handshakeTimer: Timer?
@@ -147,10 +163,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
         config.httpCookieAcceptPolicy = .always
-        self.urlSession = URLSession(configuration: config, delegate: self, delegateQueue: .main)
+        self.urlSession = URLSession(configuration: config, delegate: nil, delegateQueue: .main)
         fetchUserConfig()
-        startHandshakeMonitor()
-        startChallengePruner()
     }
 
     // MARK: - Robust Parsing
@@ -199,25 +213,43 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     func connect() {
-        guard webSocketTask == nil || webSocketTask?.state == .completed else { return }
-        guard let url = URL(string: "wss://wsp.online-go.com/socket.io/?EIO=4&transport=websocket") else { return }
-        var request = URLRequest(url: url)
-        request.setValue(originHeader, forHTTPHeaderField: "Origin")
-        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-        webSocketTask = urlSession?.webSocketTask(with: request)
-        webSocketTask?.resume()
-        receiveMessage()
+        connection.connect()
     }
 
     func disconnect() {
-        webSocketTask?.cancel(with: .normalClosure, reason: nil)
-        webSocketTask = nil
-        isConnected = false
-        isSocketAuthenticated = false
-        socketPingTimer?.invalidate()
-        stopChallengePruner()
+        connection.disconnect()
+        stopChallengeKeepAlive()
     }
-    
+
+    private func handleConnectionState(_ state: OGSConnectionState) {
+        isConnected = state == .connected
+        if isConnected {
+            connectionStatus = "Connected"
+            lastError = nil
+            startHandshakeMonitor()
+            startChallengePruner()
+            return
+        }
+
+        // Subscriptions and room membership belong to one socket, not the whole app lifetime.
+        isSocketAuthenticated = false
+        isSubscribedToSeekgraph = false
+        handshakeTimer?.invalidate(); handshakeTimer = nil
+        socketPingTimer?.invalidate(); socketPingTimer = nil
+        stopEnginePulse()
+        stopClockTimer()
+        stopChallengePruner()
+        lastClockSnapshot = nil
+        lobbyChallenges.removeAll()
+        availableGames = []
+        switch state {
+        case .disconnected: connectionStatus = "Disconnected"
+        case .connecting: connectionStatus = "Connecting…"
+        case .reconnecting(let delay): connectionStatus = "Reconnecting in \(Int(delay))s…"
+        case .connected: break
+        }
+    }
+
     // MARK: - Authentication
     func logout() {
         // 1. Disconnect Socket
@@ -495,7 +527,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     private func sendKeepAlive() {
-        guard let cid = activeChallengeID else { return }
+        guard isConnected, let cid = activeChallengeID else { return }
         var payload: [String: Any] = ["challenge_id": cid]
         if let gid = activeChallengeGameID { payload["game_id"] = gid }
         
@@ -713,18 +745,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     // MARK: - Inbound Message Processing
-    private func receiveMessage() {
-        webSocketTask?.receive { [weak self] result in
-            guard let self = self else { return }
-            if case .success(let message) = result, case .string(let text) = message {
-                DispatchQueue.main.async { if !self.isConnected { self.isConnected = true } }
-                if text != "2" && text != "3" { self.writeToBlackBox(text, direction: "IN") }
-                DispatchQueue.main.async { self.handleIncomingProtocolMessage(text) }
-                self.receiveMessage()
-            }
-        }
-    }
-
     private func handleIncomingProtocolMessage(_ text: String) {
         if text.hasPrefix("0") { sendRaw("40"); return }
         if text.hasPrefix("40") {
@@ -1648,7 +1668,7 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     private func sendSocketAuth() {
         guard let jwt = userJWT, let pid = playerID, isConnected else { return }
         let payload: [String: Any] = ["jwt": jwt, "player_id": pid, "username": username ?? ""]
-        NSLog("[OGS-AUTH] 🔐 Authenticating with: \(payload)")
+        NSLog("[OGS-AUTH] Authenticating WebSocket")
         sendAction("authenticate", payload: payload)
     }
 
@@ -1675,9 +1695,10 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
 
     private func sendRaw(_ text: String) {
-        writeToBlackBox(text, direction: "OUT ATTEMPT")
-        guard let task = webSocketTask, task.state == .running else { return }
-        task.send(.string(text)) { _ in }
+        // Authentication packets contain a bearer token; keep it out of debug history.
+        let loggedText = text.contains("\"authenticate\"") ? "authenticate [credentials redacted]" : text
+        writeToBlackBox(loggedText, direction: "OUT ATTEMPT")
+        connection.send(text)
     }
 
     private func tightJson(_ obj: Any) -> String {
@@ -1941,20 +1962,6 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
         self.objectWillChange.send()
     }
 
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        DispatchQueue.main.async { self.isConnected = true; self.objectWillChange.send() }
-    }
-    
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        NSLog("OGS: 🔌 WebSocket CLOSED.")
-        DispatchQueue.main.async { [weak self] in
-            self?.isConnected = false
-            self?.isSocketAuthenticated = false
-            self?.isSubscribedToSeekgraph = false // FIX: Allow re-subscription on reconnect
-            self?.lobbyChallenges.removeAll() // FIX: Clear stale state on disconnect
-            self?.stopClockTimer()
-        }
-    }
     func robustDouble(_ v: Any?) -> Double? {
         if let d = v as? Double { return d }
         if let s = v as? String { return Double(s) }
@@ -2004,6 +2011,8 @@ class OGSClient: NSObject, ObservableObject, URLSessionWebSocketDelegate {
     }
     
     func checkActiveChallenges() {
+        // A delayed startup check may fire after the user has left online mode.
+        guard isConnected, activeGameID == nil else { return }
         // Prevent concurrent fetches
         if isSearchingForGame { return } // Re-using this flag or adding a new one? Let's use a local guard or just trust the frequency.
         // Actually, let's create a dedicated flag if needed, but for now we'll just run.

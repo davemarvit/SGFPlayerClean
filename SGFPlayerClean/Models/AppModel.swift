@@ -263,7 +263,8 @@ final class AppModel: ObservableObject {
             print("🚀 Executing Startup Connection (Persistent Mode)")
             // Force delay to ensure socket/network stack is ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.ogsClient.connect()
+                guard let self, self.isOnlineMode else { return }
+                self.ogsClient.connect()
             }
         }
     }
