@@ -693,6 +693,12 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                         positions.append((CGFloat(col) * 1.05, CGFloat(row) * 1.05))
                     }
                 }
+                // Start small captures in the middle, rather than filling the outer row first.
+                positions.sort {
+                    let a = $0.0 * $0.0 + $0.1 * $0.1, b = $1.0 * $1.0 + $1.1 * $1.1
+                    if a != b { return a < b }
+                    return $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 < $1.1
+                }
                 let position = positions[i % positions.count]
                 let layer = (i - start) / positions.count
                 n.position = SCNVector3(position.0, dropHeight + CGFloat(layer) * 0.52, position.1)

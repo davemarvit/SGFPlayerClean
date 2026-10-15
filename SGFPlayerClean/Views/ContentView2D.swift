@@ -39,8 +39,10 @@ struct ContentView2D: View {
                          // Lids (Captures)
                          VStack(spacing: 0) {
                              // WHITE PLAYER SIDE (TOP): Captured Black stones
-                             SimpleLidView(stoneColor: .black, stoneCount: app.boardVM?.whiteCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
-                                 .padding(.top, margin - (L.lidD / 2))
+                             if let bvm = app.boardVM {
+                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .black, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
+                                     .padding(.top, margin - (L.lidD / 2))
+                             }
                              
                              if let game = app.selection, let bvm = app.boardVM {
                                  HStack(alignment: .center, spacing: 12) {
@@ -66,8 +68,10 @@ struct ContentView2D: View {
                              Spacer()
                              
                              // BLACK PLAYER SIDE (BOTTOM): Captured White stones
-                             SimpleLidView(stoneColor: .white, stoneCount: app.boardVM?.blackCapturedCount ?? 0, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
-                                 .padding(.bottom, margin - (L.lidD / 2))
+                             if let bvm = app.boardVM {
+                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .white, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
+                                     .padding(.bottom, margin - (L.lidD / 2))
+                             }
                          }
                          .frame(height: L.bH)
                     }

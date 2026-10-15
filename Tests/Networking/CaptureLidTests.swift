@@ -4,6 +4,37 @@ import simd
 @testable import SGFPlayerNetworking
 
 final class CaptureLidTests: XCTestCase {
+    func testRewindAfterAddedHandicapGameMovesRemovesCapturedBlackStones() throws {
+        let player = SGFPlayer()
+        player.load(game: SGFGame.from(tree: try SGFParser.parse(text:
+            "(;SZ[9]RU[Chinese-OGS]KM[0.5]HA[2]PL[W]AB[cg][gc];W[cc];B[gg];W[ee])")))
+        player.seek(to: player.maxIndex)
+        for (x, y) in [(0,0), (2,0), (1,0), (0,1), (-1,-1), (1,1)] {
+            XCTAssertNil(player.tryPlayMove(color: player.turn, x: x, y: y))
+        }
+        let end = player.maxIndex
+        XCTAssertEqual(player.capturesByWhite, 2)
+        let scene = SceneManager3D(); scene.updateBoardSize(9)
+        let renderer = SCNRenderer(device: nil, options: nil)
+        renderer.scene = scene.scene; renderer.pointOfView = scene.cameraNode
+        var time = 0.0
+        for (index, expected) in [(end, 2), (end - 1, 0), (end, 2), (0, 0), (end, 2), (0, 0)] {
+            player.seek(to: index)
+            scene.updateCapturedStones(black: player.capturesByBlack, white: player.capturesByWhite)
+            SCNTransaction.flush()
+            for _ in 0..<10 {
+                _ = renderer.snapshot(atTime: time, with: CGSize(width: 96, height: 96), antialiasingMode: .none)
+                time += 1.0 / 60
+            }
+            let lid = try XCTUnwrap(scene.scene.rootNode.childNode(withName: "white-player-lid", recursively: true))
+            XCTAssertEqual(lid.childNodes.filter { $0.name == "captured-black" }.count, expected)
+            XCTAssertEqual(lid.presentation.childNodes.filter { $0.name == "captured-black" }.count, expected)
+            let label = lid.childNode(withName: "capture-count", recursively: false)?.geometry as? SCNText
+            XCTAssertEqual(label?.string as? String, String(expected))
+        }
+        XCTAssertEqual(player.board.stones.count, 2, "Rewind restores the original handicap stones")
+    }
+
     func testPhysicsKeepsLargeCapturePileInsideLidsAcrossSizesAndCameraTilt() throws {
         let manager = SceneManager3D()
         let renderer = SCNRenderer(device: nil, options: nil)

@@ -351,8 +351,8 @@ final class AppModel: ObservableObject {
             }
             
         case .captureSingle, .captureMultiple:
-            // In 3D mode, the SceneManager3D handles capture sounds via precise physics collisions.
-            if viewMode == .view3D { return }
+            // The played stone still lands on the board. Lid impacts have their own physics audio.
+            if viewMode == .view3D { playSound(.place); return }
             
             // Delay capture sounds slightly so they sound like they are hitting the bowl
             let delayTime: TimeInterval = type == .captureSingle ? 0.25 : 0.4
