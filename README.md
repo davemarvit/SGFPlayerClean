@@ -4,7 +4,48 @@ Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
-## Continuation handoff — October 14, 2026
+## Current review — October 15, 2026
+
+Dave authorized Play Online in the isolated OGS review app and has two accounts for
+controlled live tests. This app is no longer restricted to observation. The original
+working app, checkout, and settings must still remain untouched. Build with
+`python3 Tests/OfflineReview/build_review.py --ogs-review` (`--ogs-observer` remains
+an alias). The same separate bundle ID, session file, and native file-write guard remain.
+Only the OGS review package was rebuilt; the installed offline review was not changed.
+
+The shared UI now has four modes in one top control: Play Online (existing challenge
+lobby and its size/speed/ranked/eligibility filters), Local Play, Observe, and Review.
+Account username, socket status, and Log Out remain visible independently of mode.
+Observe retains the live-game browser and its cancellable Browse games sheet. Play Online
+enables challenge/game actions; Observe continues to block mutations, even for one's own game.
+
+`AppModel.mode` controls the displayed activity; connection lifetime is separate. Moving
+away from an online board unsubscribes that board without closing the socket or signing
+out, retains a return-to-game ID, and fences late game updates. Local Play and Review
+have separate in-memory board snapshots, including position, rules/komi, capture counts,
+selection/source variation tree, and local scoring state. Selecting an SGF enters Review;
+Review does not add moves. “Continue this position in Local Play” makes a local copy.
+“Review this game” copies a local/online position into Review. These are session snapshots,
+not new SGF exports or a promise to save unsaved local games across application restarts.
+
+AI analysis is an independent, initially-off toggle. It is available for Local Play,
+Review, and observing other players once game identity is known. It is disabled in Play
+Online and whenever the signed-in account has a known ongoing game, across all modes.
+Actual account participation is separate from the read-only interaction flag. Leaving a
+board preserves ongoing-game tracking; finished-game events release it. Toggle/mode
+changes cancel analysis sweeps and invalidate pending results, with permission checked
+again inside the analysis loop. Local scoring temporarily disables AI as before.
+
+Offline verification: 197 unit tests; `Tests/OGSReview/Modes.swift` exercises actual
+AppModel transitions, challenge acceptance via fixture HTTP, AI permission, independent
+boards, stale moves, unchanged socket/login, rendered username/controls, and restored
+lobby filtering. `ObservationWindow.swift` clicks Cancel, Escape, manual Observe, and a
+fixture game row in real SwiftUI windows. All app UI checks deny network and inject fake
+transports where needed. No live moves or challenges were initiated by this work.
+The next user test is a private/unranked game between the two accounts, with one account
+in this review app and the other in the browser. Live play remains an acceptance test.
+
+## Earlier continuation handoff — October 14, 2026
 
 **The offline review and normal online-capable app use the same application sources and
 Xcode target.** Continue development on

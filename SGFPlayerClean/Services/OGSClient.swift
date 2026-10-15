@@ -11,12 +11,8 @@ import Combine
 
 class OGSClient: NSObject, ObservableObject {
     let buildVersion = "16.185"
-    #if SGF_OGS_REVIEW
-    static let defaultObservationOnly = true
-    #else
     static let defaultObservationOnly = false
-    #endif
-    let observationOnly: Bool
+    @Published var observationOnly: Bool
     private let observationError = NSError(domain: "OGSReview", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "This review app supports observation only."])
 
@@ -609,6 +605,7 @@ class OGSClient: NSObject, ObservableObject {
             case .success(let json):
                 guard let self else { completion(nil, URLError(.cancelled)); return }
                 if let id = self.robustInt(json["id"]) ?? self.robustInt(json["game_id"]) ?? self.robustInt(json["game"]) {
+                    self.isSearchingForGame = false
                     completion(id, nil)
                 } else {
                     self.isSearchingForGame = false
@@ -916,8 +913,28 @@ class OGSClient: NSObject, ObservableObject {
     var isScoreAccepted: Bool { scoreAcceptance == .confirmed }
     var isGameParticipant: Bool {
         guard !observationOnly else { return false }
+        return isAccountGameParticipant
+    }
+
+    /// Identity is independent of the selected UI mode and its read-only policy.
+    var isAccountGameParticipant: Bool {
         guard let playerID, playerID > 0 else { return false }
         return playerID == blackPlayerID || playerID == whitePlayerID
+    }
+
+    var hasOngoingAccountGame: Bool {
+        (!isGameFinished && activeGameID != nil && isAccountGameParticipant) ||
+            !myActiveGames.subtracting(finishedGameIDs).isEmpty
+    }
+
+    /// Stop viewing a board without signing out, resigning, or closing the socket.
+    func leaveViewedGame() {
+        if let id = activeGameID {
+            if isAccountGameParticipant && !isGameFinished { myActiveGames.insert(id) }
+            sendAction("game/disconnect", payload: ["game_id": id])
+        }
+        stopEnginePulse(); stopClockTimer()
+        activeGameID = nil
     }
     var canEditScore: Bool {
         isConnected && isSocketAuthenticated && isGameParticipant && !isReconcilingMoves && activeGameID != nil &&
@@ -980,7 +997,10 @@ class OGSClient: NSObject, ObservableObject {
             startClockTimer()
         } else {
             stopClockTimer()
-            if newPhase == "finished" { isGameFinished = true; stopEnginePulse() }
+            if newPhase == "finished" {
+                isGameFinished = true; stopEnginePulse()
+                if let id = activeGameID { finishedGameIDs.insert(id); myActiveGames.remove(id) }
+            }
         }
     }
 
@@ -1190,6 +1210,14 @@ class OGSClient: NSObject, ObservableObject {
         if eventName == "active_game" || (eventName == "notification" && payload["type"] as? String == "gameStarted") {
             // FIX: Do NOT default to "play". Require explicit phase.
             let phase = payload["phase"] as? String
+            if phase == "finished", let id = robustInt(payload["game_id"]) ?? robustInt(payload["id"]) {
+                enqueueSocketUpdate {
+                    guard self.myActiveGames.contains(id) else { return }
+                    self.finishedGameIDs.insert(id)
+                    self.myActiveGames.remove(id)
+                    if id == self.activeGameID { self.applyGamePhase("finished") }
+                }
+            }
             if phase == "play" || phase == "stone removal" {
                 let bid = robustInt(payload["black_id"]) ?? robustInt((payload["black"] as? [String: Any])?["id"])
                 let wid = robustInt(payload["white_id"]) ?? robustInt((payload["white"] as? [String: Any])?["id"])
@@ -1220,7 +1248,7 @@ class OGSClient: NSObject, ObservableObject {
                             // CLEANUP: Removed garbage 'moves' parsing block.
                             
                             
-                            if self.isSearchingForGame || self.activeGameID == gid {
+                            if (!self.observationOnly && self.isSearchingForGame) || self.activeGameID == gid {
                                  // FIX: Debounce connection. Strict Check.
                                  if self.activeGameID == gid {
                                      // NSLog("[OGS-LOBBY] 🛑 Debounced connect for \(gid). Already Active.")

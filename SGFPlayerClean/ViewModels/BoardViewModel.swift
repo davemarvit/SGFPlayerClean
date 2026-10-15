@@ -29,6 +29,20 @@ class BoardViewModel: ObservableObject {
     @Published private(set) var localScoring: LocalScoringSession?
     private var localHandicap = 0
     private var scoringDismissedAtIndex: Int?
+    struct LocalViewState {
+        let scoring: LocalScoringSession?
+        let handicap: Int
+        let dismissedAtIndex: Int?
+    }
+    func localViewState() -> LocalViewState {
+        LocalViewState(scoring: localScoring, handicap: localHandicap, dismissedAtIndex: scoringDismissedAtIndex)
+    }
+    func restoreLocalViewState(_ state: LocalViewState) {
+        localScoring = state.scoring
+        localHandicap = state.handicap
+        scoringDismissedAtIndex = state.dismissedAtIndex
+        syncState()
+    }
     var localScoringVisible: Bool {
         !isOnlineContext && localScoring?.index == engine.currentIndex && engine.currentIndex == engine.maxIndex
     }
@@ -39,6 +53,7 @@ class BoardViewModel: ObservableObject {
     var ogsClient: OGSClient
     var onPlaySound: ((AppModel.SoundType) -> Void)?
     var isAIAllowed: (() -> Bool)?
+    var canEditLocally: (() -> Bool)?
     
     private var jitterEngine: StoneJitter
     private var isSyncing = false
@@ -216,6 +231,7 @@ class BoardViewModel: ObservableObject {
     func startAutoPlay() { engine.play() }
 
     var localPassUnavailableReason: String? {
+        if canEditLocally?() == false { return "Switch to Local Play to add moves." }
         if isOnlineContext { return "Use the online game's Pass control." }
         if localScoringVisible { return "Resume play before passing again." }
         if engine.isPlaying { return "Pause playback before passing." }
@@ -309,6 +325,10 @@ class BoardViewModel: ObservableObject {
                 if session.tool == .deadGroups { session.toggleDeadGroup(at: pos) }
                 else { session.toggleNeutralArea(at: pos) }
             }
+            return
+        }
+        if !isOnlineContext && canEditLocally?() == false {
+            moveError = "Switch to Local Play to add moves."
             return
         }
         let p = ogsClient.phase ?? "unknown"
@@ -512,6 +532,17 @@ class BoardViewModel: ObservableObject {
             settings: engine.analysisSettings
         )
     }
+    func updateAnalysisPermission() {
+        fullGameAnalysisTask?.cancel()
+        KataGoEngine.shared.invalidateAnalysis()
+        onRequestUpdate3D.send()
+        objectWillChange.send()
+        if isAIAllowed?() == true {
+            requestAnalysisIfNeeded()
+            triggerFullGameAnalysis()
+        }
+    }
+
     func triggerFullGameAnalysis() {
         if let allowed = isAIAllowed, !allowed() {
             fullGameAnalysisTask?.cancel()
@@ -537,11 +568,13 @@ class BoardViewModel: ObservableObject {
                 // Sweep through all moves to see if they meet the current target depth
                 for i in 0...total {
                     try Task.checkCancellation()
+                    guard self.isAIAllowed?() != false else { return }
                     
                     // Do not build a large subprocess queue while the engine is still working.
                     while KataGoEngine.shared.hasPendingAnalysis || self.isScrubbing {
                         try await Task.sleep(nanoseconds: 100_000_000)
                         try Task.checkCancellation()
+                        guard self.isAIAllowed?() != false else { return }
                         guard KataGoEngine.shared.currentGameId == gameId else { return }
                     }
                     guard KataGoEngine.shared.isEngineRunning else { return }
@@ -558,6 +591,7 @@ class BoardViewModel: ObservableObject {
                     // Yield runloop before heavy SGF processing to eliminate UI beachball lag
                     await Task.yield()
                     try Task.checkCancellation()
+                    guard self.isAIAllowed?() != false else { return }
                     guard KataGoEngine.shared.currentGameId == gameId else { return }
                     let payload = self.engine.getAIPayload(at: i)
                     KataGoEngine.shared.analyzeGame(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a separately identified offline or OGS observation review app.
+"""Build a separately identified offline or OGS review app.
 
 No original checkout, app, preference domain, cookies, or AI cache is changed.
 The output is deliberately outside the checkout; no Xcode project settings change.
@@ -29,8 +29,8 @@ def run(args, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--ogs-observer', action='store_true',
-                        help='Build a separate network-enabled, observation-only review app.')
+    parser.add_argument('--ogs-review', '--ogs-observer', dest='ogs_observer', action='store_true',
+                        help='Build a separate network-enabled review app with Play Online and Observe.')
     args = parser.parse_args()
     online = args.ogs_observer
     output = ROOT.parent / ('OGS Review' if online else 'Offline Review')
@@ -126,7 +126,7 @@ def main():
         'buildDirectory': str(work),
         'preferences': f'~/Library/Preferences/{identifier}.plist',
         'aiCache': f'~/Library/Caches/{identifier}/AICache',
-        'network': ('Enabled for login and observation; review client blocks game mutations.' if online else
+        'network': ('Enabled for login, Play Online, and Observe; Observe mode blocks game mutations.' if online else
                     'All socket networking denied before AppModel is constructed; children inherit the restriction.'),
     }, indent=2) + '\n')
     with (output / 'isolation-check.log').open('w') as log:

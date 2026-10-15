@@ -3,6 +3,11 @@ import Foundation
 import CoreFoundation
 import SwiftUI
 
+enum AppMode: String, CaseIterable {
+    case playOnline = "Play Online", localPlay = "Local Play", observe = "Observe", review = "Review"
+    var usesOGS: Bool { self == .playOnline || self == .observe }
+}
+
 // MARK: - Core Go Models
 enum Stone: String, Codable, CaseIterable {
     case black, white

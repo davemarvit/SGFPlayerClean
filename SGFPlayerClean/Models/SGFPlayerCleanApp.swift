@@ -39,7 +39,7 @@ private func installOGSReviewGuard()
     installOGSReviewGuard()
     let model = AppModel()
     model.showRightPanel = true
-    model.rightPanelTab = .online
+    model.mode = .observe
     return model
 }
 #endif
@@ -52,7 +52,6 @@ struct SGFPlayerCleanApp: App {
     @State private var showScoringReview = false
     #elseif SGF_OGS_REVIEW
     @StateObject private var appModel = makeOGSReviewModel()
-    @State private var showObserveGame = false
     #else
     @StateObject private var appModel = AppModel()
     #endif
@@ -76,13 +75,9 @@ struct SGFPlayerCleanApp: App {
             #elseif SGF_OGS_REVIEW
             VStack(spacing: 0) {
                 HStack {
-                    Text("OGS REVIEW • Observation only • Separate settings")
+                    Text("OGS REVIEW • Separate app and settings")
                     Spacer()
-                    Text(appModel.ogsClient.isSocketAuthenticated ? "Signed in" : appModel.ogsClient.connectionStatus)
-                    Button("Observe game…") { showObserveGame = true }
-                    if appModel.ogsClient.isAuthenticated {
-                        Button("Log Out") { appModel.ogsClient.logout() }
-                    }
+
                 }
                 .font(.caption).padding(6).background(Color.blue.opacity(0.2))
                 if let error = appModel.ogsClient.lastError {
@@ -92,11 +87,7 @@ struct SGFPlayerCleanApp: App {
             }
             .environmentObject(appModel)
             .frame(minWidth: 1000, minHeight: 700)
-            .sheet(isPresented: $showObserveGame) {
-                OGSObservationBrowserView(didObserve: { showObserveGame = false },
-                                          onCancel: { showObserveGame = false })
-                    .environmentObject(appModel).frame(width: 560, height: 620)
-            }
+
             #else
             ContentView()
                 .environmentObject(appModel)
@@ -135,7 +126,7 @@ struct SGFPlayerCleanApp: App {
                     let text = try String(contentsOf: url)
                     let wrapper = SGFGameWrapper(url: url, game: SGFGame.from(tree: try SGFParser.parse(text: text)))
                     appModel.boardVM?.stopAutoPlay()
-                    appModel.rightPanelTab = .local
+                    appModel.mode = .review
                     appModel.selectGame(wrapper)
                 } catch {
                     let alert = NSAlert()

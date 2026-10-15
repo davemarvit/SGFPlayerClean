@@ -115,11 +115,11 @@ struct ActiveGamePanel: View {
     private var headerSection: some View {
         HStack {
             Button(action: {
-                app.ogsClient.activeGameID = nil
+                app.showOnlineBrowser()
             }) {
                 HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
-                    Text("Lobby")
+                    Text(app.mode == .observe ? "Games" : "Lobby")
                 }
             }
 
@@ -254,6 +254,7 @@ struct ActiveGamePanel: View {
             }
             controlButtons
             saveSGFButton
+            Button("Review this game") { app.copyCurrentBoard(to: .review) }
         }
     }
     
@@ -280,7 +281,7 @@ struct ActiveGamePanel: View {
                 )
             } else {
                 // NORMAL CONTROLS
-                if app.ogsClient.observationOnly {
+                if !app.ogsClient.isGameParticipant {
                     Text("Observing • Game actions disabled").font(.caption).foregroundColor(.secondary)
                 } else {
                 HStack {

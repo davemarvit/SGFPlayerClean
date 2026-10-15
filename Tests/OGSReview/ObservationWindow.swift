@@ -48,21 +48,20 @@ private final class BrowserSocketFixture: OGSWebSocket {
     @Published var showSheet = false
     var started = false
     var sheetCompleted = false
-    private let socket = BrowserSocketFixture()
+    private let socket: BrowserSocketFixture
     private var changes: AnyCancellable?
 
     init() {
         require(Bundle.main.bundleIdentifier == "com.davemarvit.SGFPlayerClean.ogs-ui-probe")
         UserDefaults.standard.set("/nonexistent/katago-test-disabled", forKey: "customKataGoPath")
         AppSettings.shared.stoneVolume = 0
-        model = AppModel()
-        model.ogsClient.disconnect()
+        let socket = BrowserSocketFixture()
+        self.socket = socket
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [BrowserHTTPFixture.self]
         config.httpCookieStorage = nil
-        model.ogsClient = OGSClient(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main),
-                                    socketFactory: { [socket] in socket })
-        changes = model.ogsClient.objectWillChange.sink { [weak model] _ in model?.objectWillChange.send() }
+        model = AppModel(ogsClient: OGSClient(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main),
+                                    socketFactory: { socket }))
     }
 
     func ready() {

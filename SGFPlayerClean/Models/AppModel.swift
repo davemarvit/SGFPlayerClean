@@ -33,7 +33,7 @@ final class AppModel: ObservableObject {
     
     @Published var selection: SGFGameWrapper? = nil
     @Published var player = SGFPlayer()
-    @Published var ogsClient = OGSClient()
+    @Published var ogsClient: OGSClient
     @Published var layoutVM = LayoutViewModel()
     @Published var timeControl = TimeControlManager()
     @Published var ogsGame: OGSGameViewModel?
@@ -45,9 +45,33 @@ final class AppModel: ObservableObject {
     @Published var loadingStatus: String = "Idle" // Diagnostic Status
     @Published var lastDebugLog: String = "Waiting for Move..."
     
-    // AI Integration Flags
-    var isAIAvailable: Bool {
-        return rightPanelTab == .ai && boardVM?.localScoringVisible != true && (!isOnlineMode || ogsClient.isGameFinished)
+    @Published var aiAnalysisEnabled = false { didSet { refreshAIPolicy() } }
+    var aiUnavailableReason: String? {
+        if isChangingMode { return "Changing board…" }
+        if mode == .playOnline { return "AI is unavailable in Play Online." }
+        if ogsClient.hasOngoingAccountGame { return "AI is unavailable while you have an ongoing online game." }
+        if boardVM?.localScoringVisible == true { return "Resume play or close scoring to use AI." }
+        if mode == .observe && (ogsClient.activeGameID == nil || boardVM?.isOnlineContext != true ||
+            (ogsClient.blackPlayerID ?? 0) <= 0 || (ogsClient.whitePlayerID ?? 0) <= 0) {
+            return "Choose a game and wait for its players to load."
+        }
+        return nil
+    }
+    var isAIAvailable: Bool { aiAnalysisEnabled && aiUnavailableReason == nil }
+    private var lastAIAvailability = false
+    private var isChangingMode = false
+    private func refreshAIPolicy(restartAnalysis: Bool = false) {
+        let available = isAIAvailable
+        guard available != lastAIAvailability else {
+            if available && restartAnalysis {
+                boardVM?.syncState()
+                boardVM?.triggerFullGameAnalysis()
+            }
+            return
+        }
+        lastAIAvailability = available
+        boardVM?.updateAnalysisPermission()
+        objectWillChange.send()
     }
     
     // UI Persistence
@@ -55,8 +79,9 @@ final class AppModel: ObservableObject {
         didSet { UserDefaults.standard.set(showRightPanel, forKey: "showRightPanel") }
     }
     
-    @Published var rightPanelTab: PanelTab = .local
-    enum PanelTab: String { case local = "Local", online = "Online", ai = "AI" }
+    @Published var mode: AppMode = .localPlay {
+        didSet { if mode != oldValue { changeMode(from: oldValue) } }
+    }
     
     @Published var gameSortMethod: GameSortMethod = GameSortMethod(rawValue: UserDefaults.standard.string(forKey: "gameSortMethod") ?? "Default") ?? .defaultIndex {
         didSet { UserDefaults.standard.set(gameSortMethod.rawValue, forKey: "gameSortMethod") }
@@ -70,7 +95,14 @@ final class AppModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
     @Published var resumableGameID: Int? = nil
-    private var savedLocalSnapshot: SGFPlayer.LocalGameSnapshot? = nil
+    private struct SavedBoard {
+        let snapshot: SGFPlayer.LocalGameSnapshot
+        let selection: SGFGameWrapper?
+        let analysisID: String
+        let viewState: BoardViewModel.LocalViewState?
+    }
+    private var savedBoards: [AppMode: SavedBoard] = [:]
+    private var onlineBoards: [AppMode: Int] = [:]
     
     // Audio
     enum SoundType { case place, captureSingle, captureMultiple }
@@ -79,7 +111,9 @@ final class AppModel: ObservableObject {
     private var captureMultiPlayer: AVAudioPlayer?
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
-    init() {
+    init(ogsClient injectedClient: OGSClient? = nil) {
+        self.ogsClient = injectedClient ?? OGSClient()
+        self.ogsClient.observationOnly = true
         #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
         UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
         UserDefaults.standard.register(defaults: ["startGameOnLaunch": true])
@@ -88,6 +122,7 @@ final class AppModel: ObservableObject {
             // Must capture weakly and dynamically evaluate
             return self?.isAIAvailable == true
         })
+        bVM.canEditLocally = { [weak self] in self?.mode == .localPlay }
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
         
@@ -127,36 +162,6 @@ final class AppModel: ObservableObject {
             self.isOnlineMode = true
         }
 
-        ogsClient.$activeGameID
-            .receive(on: RunLoop.main)
-            .dropFirst() // FIX: Ignore initial 'nil' to prevent overwriting persistence restore
-            .sink { [weak self] gid in
-                guard let self, gid == self.ogsClient.activeGameID,
-                      self.ogsClient.isConnected || gid == 999999 else { return }
-                let isOnline = (gid != nil)
-                
-                // Only change mode if we are actually entering/leaving a game
-                // If we are already online (restored), and gid is nil, that's fine (Lobby).
-                // Wait: If gid becomes nil (game ends), we stay in Online Mode (Lobby).
-                // If gid becomes non-nil, we are definitely in Online Mode.
-                
-                if let id = gid {
-                    self.isOnlineMode = true
-                } 
-                // Note: We DO NOT auto-switch to Local Mode just because activeGameID is nil.
-                // The user must explicitly disconnect or switch modes.
-                // However, we DO want to persist the "Online" state.
-                
-                // Let's defer "Offline" switch to user action, OR ensure we track "Intended Mode".
-                // Current logic: If activeGameID is valid, we are Online.
-                // If activeGameID is nil, we might be consistently in Online Lobby.
-                
-                if isOnline {
-                     self.isOnlineMode = true
-                     UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
-                }
-            }.store(in: &cancellables)
-            
         ogsClient.$myActiveGames
             .receive(on: RunLoop.main)
             .sink { [weak self] games in
@@ -168,7 +173,10 @@ final class AppModel: ObservableObject {
                 }
             }.store(in: &cancellables)
 
-        ogsClient.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &cancellables)
+        ogsClient.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+            DispatchQueue.main.async { [weak self] in self?.refreshAIPolicy() }
+        }.store(in: &cancellables)
         
         setupAudio()
         setupOGSObservers()
@@ -178,54 +186,6 @@ final class AppModel: ObservableObject {
             print("⏳ Persistence detected. Connection deferred to handleStartup().")
         }
         
-        // Auto-Connect when switching tab to Online
-        $rightPanelTab
-            .dropFirst()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] tab in
-                guard let self = self, self.rightPanelTab == tab else { return }
-                
-                if tab == .ai {
-                    // Kickstart analysis immediately if user views AI tab
-                    self.boardVM?.triggerFullGameAnalysis()
-                } else if tab == .online {
-                    if self.isOnlineMode { return } // Already online
-                    print("🚀 Switching to Online Tab")
-                    // 1. Snapshot Local State
-                    if !self.isOnlineMode {
-                        self.savedLocalSnapshot = self.player.createSnapshot()
-                        print("💾 Local Game Saved (Moves: \(self.savedLocalSnapshot?.moves.count ?? 0))")
-                    }
-                    
-                    // 2. Connect & Clear
-                    self.boardVM?.resetToEmpty() // FIX: Ensures UI (glow) clears along with engine
-                    self.ogsClient.connect()
-                    self.isOnlineMode = true
-                    UserDefaults.standard.set(true, forKey: "isOnlineModePersistent")
-                    
-                } else if tab == .local {
-                    if !self.isOnlineMode { return } // Already offline
-                    print("🚪 Switching to Local Mode")
-                    self.ogsClient.disconnect()
-                    self.isOnlineMode = false
-                    UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
-                    
-                    // 3. Restore or Start New
-                    self.player.clear() // Ensure clean slate first
-                    self.boardVM?.resetToEmpty() // Also reset the view model properly to clear ghost stones
-                    
-                    if let snap = self.savedLocalSnapshot {
-                        print("♻️ Restoring Local Game...")
-                        self.player.restoreSnapshot(snap)
-                        // Sync BoardVM after restoring
-                        self.boardVM?.syncState()
-                    } else if AppSettings.shared.startGameOnLaunch {
-                        print("✨ Starting New Game (StartOnLaunch)")
-                        self.startInstantGame()
-                    }
-                }
-                // If tab == .ai, do nothing to the game state.
-            }.store(in: &cancellables)
         // This prevents the "confusing local game" issue when waking up in online mode.
         // FIX: Always attempt to load the folder in background so it's ready if we switch to Local.
         if let url = AppSettings.shared.folderURL {
@@ -246,7 +206,7 @@ final class AppModel: ObservableObject {
             }
         } else {
             // If we ARE restoring Online Mode, ensure UI reflects it
-            self.rightPanelTab = .online
+            self.mode = .playOnline
             self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
         }
         
@@ -254,6 +214,7 @@ final class AppModel: ObservableObject {
         setupAutoAdvance()
         #endif
         
+        ogsClient.observationOnly = mode != .playOnline
         // Sync Stone Volume
         AppSettings.shared.$stoneVolume
             .receive(on: RunLoop.main)
@@ -279,6 +240,7 @@ final class AppModel: ObservableObject {
     }
     
     private func startInstantGame() {
+        self.boardVM?.resetToEmpty()
         self.player.reset()
         // Create Dummy Wrapper for UI
         var newGame = SGFGame()
@@ -292,6 +254,66 @@ final class AppModel: ObservableObject {
         self.selection = wrapper
     }
     
+    private func saveCurrentBoard(for previous: AppMode) {
+        if previous.usesOGS {
+            if let id = ogsClient.activeGameID { onlineBoards[previous] = id }
+        } else {
+            savedBoards[previous] = SavedBoard(snapshot: player.createSnapshot(), selection: selection,
+                                             analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState())
+        }
+    }
+
+    private func changeMode(from previous: AppMode) {
+        isChangingMode = true
+        defer { isChangingMode = false; refreshAIPolicy(restartAnalysis: true) }
+        player.pause()
+        saveCurrentBoard(for: previous)
+        if previous.usesOGS { ogsClient.leaveViewedGame() }
+        isCreatingChallenge = false
+        isTypingInChat = false
+        currentActiveInternalGameID = nil
+        ogsClient.observationOnly = mode != .playOnline
+        isOnlineMode = mode.usesOGS
+        UserDefaults.standard.set(mode.usesOGS, forKey: "isOnlineModePersistent")
+        boardVM?.resetToEmpty()
+        selection = nil
+        if mode.usesOGS {
+            ogsClient.connect()
+            if let id = onlineBoards[mode] { resumeOnlineGame(id: id) }
+        } else if let saved = savedBoards[mode] {
+            selection = saved.selection
+            player.restoreSnapshot(saved.snapshot)
+            _ = KataGoEngine.shared.loadAnalysisCache(for: saved.analysisID, game: player)
+            if let state = saved.viewState { boardVM?.restoreLocalViewState(state) }
+            boardVM?.syncState()
+        } else if mode == .localPlay { startInstantGame() }
+    }
+
+    func newLocalGame() {
+        mode = .localPlay
+        startInstantGame()
+        boardVM?.syncState()
+    }
+
+    func copyCurrentBoard(to destination: AppMode) {
+        guard !destination.usesOGS, destination != mode else { return }
+        savedBoards[destination] = SavedBoard(snapshot: player.createSnapshot(), selection: selection,
+                                              analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState())
+        mode = destination
+    }
+
+    func showOnlineBrowser() {
+        if let id = ogsClient.activeGameID { onlineBoards[mode] = id }
+        ogsClient.leaveViewedGame()
+        boardVM?.resetToEmpty()
+        currentActiveInternalGameID = nil
+    }
+
+    var returnToOnlineGameID: Int? {
+        if let id = onlineBoards[mode] { return id }
+        return mode == .playOnline ? resumableGameID : nil
+    }
+
     // MARK: - Audio
     private func setupAudio() {
         // macOS does not require AVAudioSession configuration for simple playback
@@ -395,7 +417,7 @@ final class AppModel: ObservableObject {
         guard boardVM?.localScoringVisible != true, boardVM?.isScrubbing != true else { return }
         // Re-check state to ensure user didn't start scrubbing or playing again
         // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating) or AI Analysis mode
-        guard !isOnlineMode, rightPanelTab != .ai, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
+        guard !isOnlineMode, !aiAnalysisEnabled && mode == .review, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
         playNextGame()
     }
     
@@ -409,7 +431,8 @@ final class AppModel: ObservableObject {
         
         // Short delay to ensure load completes before playing
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.boardVM?.startAutoPlay()
+            guard let self, self.mode == .review, self.selection?.id == nextGame.id else { return }
+            self.boardVM?.startAutoPlay()
         }
     }
     
@@ -421,6 +444,7 @@ final class AppModel: ObservableObject {
     }
     
     func joinOnlineGame(id: Int) {
+        guard mode == .playOnline else { return }
         // DEBUG TRACE: Who is calling joinOnlineGame?
         let trace = Thread.callStackSymbols.joined(separator: "\n")
         // NSLog("[OGS-CS] 🚀 joinOnlineGame CALLED for \(id). Stack:\n\(trace)")
@@ -435,13 +459,10 @@ final class AppModel: ObservableObject {
             guard let self = self else { return }
             
             if let gid = newGameID {
-                self.ogsClient.fetchGameState(gameID: gid) { [weak self] (rootJson: [String: Any]?) in
-                    guard let self, let root = rootJson else { return }
-                    let data = (root["gamedata"] as? [String: Any]) ?? root
-                    NotificationCenter.default.post(self.ogsClient.makeGameNotification(
-                        name: NSNotification.Name("OGSGameDataReceived"), userInfo: ["gameData": data]))
-                }
+                self.ogsClient.myActiveGames.insert(gid)
+                if self.mode == .playOnline { self.resumeOnlineGame(id: gid) }
             } else {
+                self.ogsClient.lastError = error?.localizedDescription ?? "Could not accept this challenge."
                 NSLog("[OGS-UI] ❌ Accept Failed for ID \(id): \(error?.localizedDescription ?? "Unknown")")
                 // Only a missing challenge justifies removing it. Timeouts, cancellation,
                 // and authentication failures do not establish that it disappeared.
@@ -453,6 +474,9 @@ final class AppModel: ObservableObject {
     }
     
     func resumeOnlineGame(id: Int) {
+        guard mode.usesOGS else { return }
+        onlineBoards[mode] = id
+        ogsClient.leaveViewedGame()
         // The observation review must treat every entered ID as an actual game.
         #if !SGF_OGS_REVIEW
         // SIMULATION INTERCEPT
@@ -495,7 +519,7 @@ final class AppModel: ObservableObject {
     
     
     private func handleOGSGameLoad_V2(_ notification: Notification) {
-        guard ogsClient.acceptsGameNotification(notification), let info = notification.userInfo,
+        guard mode.usesOGS, ogsClient.acceptsGameNotification(notification), let info = notification.userInfo,
               let data = info["gameData"] as? [String: Any], let boardVM else { return }
         let id = robustInt(data["game_id"]) ?? robustInt(data["id"]) ?? ogsClient.activeGameID
         guard let id, id == ogsClient.activeGameID else { return }
@@ -514,15 +538,17 @@ final class AppModel: ObservableObject {
         case .applied: break
         }
         currentActiveInternalGameID = id
-        resumableGameID = id
+        onlineBoards[mode] = id
         isOnlineMode = true
         ogsClient.applyAcceptedGameData(data)
+        if ogsClient.isAccountGameParticipant && !ogsClient.isGameFinished { ogsClient.myActiveGames.insert(id) }
         ogsClient.isRequestingUndo = false
         ogsClient.isReconcilingMoves = false
         let next = boardVM.engine.playerToMove(at: boardVM.engine.maxIndex)
         ogsClient.currentPlayerID = next == .black ? ogsClient.blackPlayerID : ogsClient.whitePlayerID
         // The sidebar/lids follow the viewed board, not scoring prisoners or a later clock packet.
         boardVM.finishOnlineGameLoad(gameID: id)
+        refreshAIPolicy(restartAnalysis: true)
         objectWillChange.send()
     }
 
@@ -618,12 +644,14 @@ final class AppModel: ObservableObject {
     }
 
     func selectGame(_ g: SGFGameWrapper) { 
+        mode = .review
         selection = g
         boardVM?.loadGame(g) 
         // Persist as last played
         AppSettings.shared.lastPlayedGameURL = g.url
         // Kickstart AI for the first view
         boardVM?.syncState()
+        boardVM?.triggerFullGameAnalysis()
     }
     func promptForFolder() {
         let panel = NSOpenPanel()
@@ -721,7 +749,7 @@ final class AppModel: ObservableObject {
                             self.games = batch
                             self.loadingStatus = "Loaded \(batch.count)..."
                             
-                            if autoSelect && !hasAutoSelected {
+                            if autoSelect && !hasAutoSelected && !self.mode.usesOGS {
                                 hasAutoSelected = true
                                 var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                                 if let lastURL = AppSettings.shared.lastPlayedGameURL,
@@ -733,7 +761,10 @@ final class AppModel: ObservableObject {
                                     checkAutoPlay = false
                                 }
                                 if checkAutoPlay && self.selection != nil { 
-                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.boardVM?.startAutoPlay() }
+                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            guard self.mode == .review else { return }
+                            self.boardVM?.startAutoPlay()
+                         }
                                 }
                             }
                         }
@@ -751,7 +782,7 @@ final class AppModel: ObservableObject {
             DispatchQueue.main.async {
                 self.games = loaded
                 
-                if autoSelect && !hasAutoSelected {
+                if autoSelect && !hasAutoSelected && !self.mode.usesOGS {
                     var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                     if let lastURL = AppSettings.shared.lastPlayedGameURL,
                        let restored = loaded.first(where: { $0.url == lastURL }) {
@@ -762,7 +793,10 @@ final class AppModel: ObservableObject {
                         checkAutoPlay = false
                     }
                     if checkAutoPlay && self.selection != nil { 
-                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { self.boardVM?.startAutoPlay() }
+                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            guard self.mode == .review else { return }
+                            self.boardVM?.startAutoPlay()
+                         }
                     }
                 }
                 

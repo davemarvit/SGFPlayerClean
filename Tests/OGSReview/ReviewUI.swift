@@ -16,7 +16,7 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String = "
         UserDefaults.standard.set("/nonexistent/katago-test-disabled", forKey: "customKataGoPath")
         AppSettings.shared.stoneVolume = 0
         let model = AppModel()
-        require(model.ogsClient.observationOnly, "Actual compiled review must default to observation only")
+        require(model.ogsClient.observationOnly, "Local mode must disable online mutations")
         let window = NSWindow(contentRect: NSRect(x: 100, y: 100, width: 560, height: 620),
                               styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .darkAqua)
@@ -51,6 +51,6 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String = "
         let active = try render(ActiveGamePanel())
         require(active.contains("game actions disabled"), active)
         require(!active.contains("resign") && !active.contains("say something"), active)
-        print("PASS: Compiled OGS review is observation-only; login, game-link entry, ready status, and disabled game/chat UI render. All networking denied.")
+        print("PASS: Observe mode blocks game actions; login, game-link entry, ready status, and disabled game/chat UI render. All networking denied.")
     }
 }

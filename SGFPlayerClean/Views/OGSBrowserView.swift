@@ -59,7 +59,7 @@ struct OGSBrowserView: View {
                 }
             }
             // Resume Button
-            if let rid = app.resumableGameID {
+            if let rid = app.returnToOnlineGameID {
                 Button(action: { app.resumeOnlineGame(id: rid) }) {
                     HStack {
                         Image(systemName: "arrow.uturn.backward")
@@ -332,7 +332,6 @@ struct OGSLoginView: View {
     }
 }
 
-#if SGF_OGS_REVIEW
 /// Read-only discovery of games in progress, with direct link/ID entry as well.
 struct OGSObservationBrowserView: View {
     @EnvironmentObject var app: AppModel
@@ -382,7 +381,7 @@ struct OGSObservationBrowserView: View {
             Button("Observe Game") { observe() }
                 .buttonStyle(.borderedProminent)
                 .disabled(!app.ogsClient.isSocketAuthenticated || OGSClient.observationGameID(gameLink) == nil)
-            Text("Moves, challenges, and chat sending are disabled in this review.")
+            Text("Observing does not let you play moves or send chat.")
                 .font(.caption).foregroundColor(.secondary)
         }
         .padding()
@@ -452,10 +451,9 @@ struct OGSObservationBrowserView: View {
     private func observe(id: Int) {
         guard app.ogsClient.isSocketAuthenticated else { return }
         app.ogsClient.lastError = nil
-        app.rightPanelTab = .online
+        app.mode = .observe
         app.showRightPanel = true
         app.resumeOnlineGame(id: id)
         didObserve()
     }
 }
-#endif

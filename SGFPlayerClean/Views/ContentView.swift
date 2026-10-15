@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var buttonsVisible: Bool = true
 
     var body: some View {
+        VStack(spacing: 0) {
+        AppModeControls()
         ZStack {
             mainInterface // .disabled(appModel.isCreatingChallenge) removed
             if let vm = appModel.boardVM {
@@ -27,6 +29,7 @@ struct ContentView: View {
                 Spacer()
             }
             // Challenge View Removed (Moved to Right Panel)
+        }
         }
         .preferredColorScheme(.dark)
         .sheet(isPresented: $appModel.showDebugDashboard) { DebugDashboard(appModel: appModel).frame(minWidth: 700, minHeight: 500) }

@@ -4,43 +4,49 @@ In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
 Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
 The working app and Offline Review app remain separate.
 
-LOGIN, BROWSE, AND OBSERVE
-1. Click Log In in the Online sidebar. Enter your OGS credentials in the app.
-2. Wait for "Ready to observe" and your username.
-3. Live games load below your login. Click Observe beside a pair of players.
-   Use Refresh to update the list, or Previous/Next to browse more games.
-4. Alternatively, paste an OGS game link (or numeric ID) into the field and
-   click Observe Game. Direct entry also works for games not in the live list.
-5. Check that the players, board, and latest move match the browser. For a live
-   game, wait for a new move and check that it arrives without reopening it.
-6. Try 2D and 3D. To choose another game, click Observe game… in the blue banner.
-   Cancel or Escape closes that popup without changing your current game.
-7. Quit and reopen the app: your login should return once OGS validates it.
-   Click Log Out in the blue banner to remove the saved login from this app.
+FOUR MODES
+Play Online: your challenge lobby, with the existing board size, speed, rated,
+  and eligibility filters. Create or accept a challenge here. Lobby returns
+  to the list without resigning; Return to Game reopens your game.
+Local Play: place moves for both sides. New Game starts a fresh board.
+  Pass and playback controls are at the bottom. Review this game makes a
+  separate review copy.
+Observe: choose a live game, or enter its OGS link/ID. Browse games opens the
+  popup; Cancel or Escape closes it. Games returns to the list.
+Review: load saved SGFs and use playback. To add moves, choose Continue this
+  position in Local Play. Local Play and Review preserve separate positions
+  while switching modes within this session.
 
-This build cannot submit moves, passes, resignations, undo, scoring agreement,
-challenges, automatch requests, or chat messages. It can read game chat.
-Even your own games are treated as observation only. KataGo stays disabled
-while observing a live game.
+AI analysis is a separate toggle. It works in Local Play, Review, and Observe
+for other players' games. It is unavailable in Play Online and while your
+signed-in account has a known ongoing online game, even if you change modes.
+Observe is read-only. Play Online now permits actual game/challenge actions.
 
-Sign in once after this update. Login then persists across closing/reopening or
-quitting/restarting, unless you click Log Out or OGS expires/revokes the session.
+Your username and Log Out are at the top. Sign in from Play Online or Observe
+if needed. Login persists across restarts unless you log out or OGS expires
+it. Changing modes does not sign you out or close the OGS connection.
+
+NEXT TEST
+1. Reopen this updated review app. Check your username at the top.
+2. Switch among the four modes; check the lobby filters and AI toggle.
+3. For a controlled online test, use your other account in the browser and
+   arrange an unranked game between your two accounts. Use Play Online in
+   this app to create or accept the matching challenge.
+4. Verify alternating moves, captures, passing, and scoring in 2D and 3D.
+   AI should remain unavailable until your online game ends.
+
 Only session cookies are saved, in this app's private data folder; no password
 is saved. No working-app credentials, settings, or library are imported.
-Network access is enabled in this app; the Offline Review app remains blocked.
-
-If login or observation fails, report the visible error and which step failed.
-Do not send your password, cookies, or authentication tokens.
+Unsaved local games are not automatically exported on quit.
+Network access is enabled here; the installed Offline Review app remains blocked.
 
 TECHNICAL NOTES
-Build: python3 Tests/OfflineReview/build_review.py --ogs-observer
+Build: python3 Tests/OfflineReview/build_review.py --ogs-review
 Preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.ogs-review.plist
 Session: ~/Library/Application Support/com.davemarvit.SGFPlayerClean.ogs-review/SessionCookies.plist
 AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.ogs-review/AICache
 Reports: ../OGS Review/
 An embedded native guard blocks writes to the working checkout, original app,
 known original settings/caches, and offline-review app/settings/cache paths.
-Packaging checks use loopback only and exit before the app model starts.
-Live login and observation have been confirmed; persistent login still needs
-a real quit/relaunch check. The live-game list also needs a real OGS check.
-Automated session and browser tests use fake credentials and game-list replies.
+Automated tests use fake credentials/games and network-denied UI probes.
+The developer has not initiated a live game during this update.

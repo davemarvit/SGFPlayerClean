@@ -294,6 +294,7 @@ struct SettingsPanel: View {
                                 close()
                                 // Delayed Auto-Play
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    guard app.mode == .review, app.selection?.id == wrapper.id else { return }
                                     app.boardVM?.startAutoPlay()
                                 }
                             }) {

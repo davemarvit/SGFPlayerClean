@@ -1,20 +1,59 @@
 // MARK: - File: RightPanelView.swift (v8.102)
 import SwiftUI
 
+/// Activity, analysis, and account controls have independent responsibilities.
+struct AppModeControls: View {
+    @EnvironmentObject var app: AppModel
+    @State private var showGames = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                Picker("Mode", selection: $app.mode) {
+                    ForEach(AppMode.allCases, id: \.self) { mode in
+                        #if SGF_OFFLINE_REVIEW
+                        if !mode.usesOGS { Text(mode.rawValue).tag(mode) }
+                        #else
+                        Text(mode.rawValue).tag(mode)
+                        #endif
+                    }
+                }.pickerStyle(.segmented).labelsHidden().frame(width: 400)
+                Toggle("AI analysis", isOn: Binding(get: { app.isAIAvailable }, set: { app.aiAnalysisEnabled = $0 }))
+                    .disabled(app.aiUnavailableReason != nil)
+                    .help(app.aiUnavailableReason ?? "Show KataGo analysis for this board")
+                if app.mode == .observe {
+                    Button("Browse games…") { showGames = true }
+                }
+                Spacer(minLength: 0)
+                #if !SGF_OFFLINE_REVIEW
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(app.ogsClient.username ?? "Not signed in").font(.caption).bold()
+                    Text(app.ogsClient.isSocketAuthenticated ? "Connected" : app.ogsClient.connectionStatus)
+                        .font(.caption2).foregroundColor(.secondary)
+                }
+                if app.ogsClient.isAuthenticated {
+                    Button("Log Out") { app.ogsClient.logout() }
+                }
+                #endif
+            }
+            if app.aiAnalysisEnabled, let reason = app.aiUnavailableReason {
+                Text(reason).font(.caption).foregroundColor(.secondary)
+            }
+        }.padding(8)
+        .sheet(isPresented: $showGames) {
+            OGSObservationBrowserView(didObserve: { showGames = false }, onCancel: { showGames = false })
+                .environmentObject(app).frame(width: 560, height: 620)
+        }
+    }
+}
+
 struct RightPanelView: View {
     @EnvironmentObject var app: AppModel
     
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Picker("Mode", selection: $app.rightPanelTab) {
-                    Text("Local").tag(AppModel.PanelTab.local)
-                    #if !SGF_OFFLINE_REVIEW
-                    Text("Online").tag(AppModel.PanelTab.online)
-                    #endif
-                    Text("AI").tag(AppModel.PanelTab.ai)
-                }.pickerStyle(.segmented)
-                
+                Text(app.mode.rawValue).font(.headline)
+                Spacer()
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         app.showRightPanel = false
@@ -32,12 +71,10 @@ struct RightPanelView: View {
             Divider().background(Color.white.opacity(0.1))
             
             ZStack {
-                if app.rightPanelTab == .local {
-                    localTabContent
-                } else if app.rightPanelTab == .online {
-                    onlineTabContent
-                } else if app.rightPanelTab == .ai {
-                    aiTabContent
+                switch app.mode {
+                case .review: localTabContent
+                case .localPlay: localPlayContent
+                case .playOnline, .observe: onlineTabContent
                 }
             }
         }.frostedGlassStyle()
@@ -46,6 +83,8 @@ struct RightPanelView: View {
     @ViewBuilder
     private var localTabContent: some View {
         VStack(spacing: 0) {
+            Button("Continue this position in Local Play") { app.copyCurrentBoard(to: .localPlay) }
+                .padding(8)
             // Folder Selection & Sorting Header
             HStack {
                 Button(action: { app.promptForFolder() }) {
@@ -87,6 +126,7 @@ struct RightPanelView: View {
                                 #if !SGF_OFFLINE_REVIEW
                                 // Delayed Auto-Play
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    guard app.mode == .review, app.selection?.id == wrapper.id else { return }
                                     app.boardVM?.startAutoPlay()
                                 }
                                 #endif
@@ -109,30 +149,28 @@ struct RightPanelView: View {
         .frame(maxHeight: .infinity, alignment: .top)
     }
     
-    @ViewBuilder
-    private var aiTabContent: some View {
-        VStack(spacing: 20) {
-            Text("AI Analysis")
-                .font(.headline)
-            
-            if app.isAIAvailable {
-                Text("KataGo engine is active for this game.")
-                    .font(.caption)
-                    .foregroundColor(.green)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text("AI is disabled during live online matches.")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
+    @State private var confirmNewGame = false
+    private var localPlayContent: some View {
+        VStack(spacing: 14) {
+            Text("Play both sides on this board.").font(.caption)
+            if let game = app.selection, let vm = app.boardVM {
+                LocalGameMetadataView(game: game, boardVM: vm)
             }
-            
+            Button("New Game") {
+                if app.player.maxIndex > 0 { confirmNewGame = true }
+                else { app.newLocalGame() }
+            }
+            Button("Review this game") { app.copyCurrentBoard(to: .review) }
+            Text("Pass and playback controls are along the bottom of the board.")
+                .font(.caption).foregroundColor(.secondary)
             Spacer()
+        }.padding()
+        .confirmationDialog("Start a new local game?", isPresented: $confirmNewGame) {
+            Button("New Game", role: .destructive) { app.newLocalGame() }
+            Button("Cancel", role: .cancel) {}
         }
-        .padding()
-        .frame(maxHeight: .infinity, alignment: .top)
     }
-    
+
     @ViewBuilder
     private var onlineTabContent: some View {
         VStack {
@@ -141,13 +179,13 @@ struct RightPanelView: View {
             } else if app.isCreatingChallenge {
                 OGSCreateChallengeView(isPresented: $app.isCreatingChallenge).transition(.opacity)
             } else {
-                #if SGF_OGS_REVIEW
-                OGSObservationBrowserView()
-                #else
+                if app.mode == .observe {
+                    OGSObservationBrowserView()
+                } else {
                 OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in
                     app.joinOnlineGame(id: id)
                 }.transition(.opacity)
-                #endif
+                }
             }
         }
     }

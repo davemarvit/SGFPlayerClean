@@ -295,7 +295,7 @@ final class OGSClientTests: XCTestCase {
             done.fulfill()
         }
         wait(for: [done], timeout: 3)
-        XCTAssertTrue(client.isSearchingForGame)
+        XCTAssertFalse(client.isSearchingForGame, "The accepted game ID is ready; do not wait for another notification")
     }
 
     func testFailedCreateReleasesBusyFlagWithoutStartingKeepalive() {
@@ -744,6 +744,46 @@ final class OGSClientTests: XCTestCase {
         XCTAssertFalse(client.isSearchingForGame)
         XCTAssertEqual(socket.sentMessages, before)
         drainMainQueue() // Unexpected REST mutations fail through ClientHTTPFixture.handler.
+    }
+
+    func testAccountParticipationSurvivesReadOnlyModeAndLeavingBoard() {
+        connect(); client.isSocketAuthenticated = true
+        client.activeGameID = 7
+        client.blackPlayerID = client.playerID
+        client.whitePlayerID = 2
+        XCTAssertTrue(client.isGameParticipant)
+        XCTAssertTrue(client.hasOngoingAccountGame)
+        client.observationOnly = true
+        XCTAssertFalse(client.isGameParticipant)
+        XCTAssertTrue(client.isAccountGameParticipant)
+        XCTAssertTrue(client.hasOngoingAccountGame)
+        client.leaveViewedGame()
+        XCTAssertTrue(client.isConnected)
+        XCTAssertTrue(client.isAuthenticated)
+        XCTAssertNil(client.activeGameID)
+        XCTAssertTrue(client.hasOngoingAccountGame)
+        XCTAssertTrue(client.myActiveGames.contains(7))
+        XCTAssertTrue(socket.sentMessages.contains { $0.contains("game/disconnect") })
+        socket.deliver(.success(#"42["active_game",{"id":7,"phase":"finished"}]"#))
+        drainMainQueue()
+        XCTAssertFalse(client.hasOngoingAccountGame)
+    }
+
+    func testPlayModeEnablesMovesAndObserveModeBlocksThemAgain() {
+        connect(); client.isSocketAuthenticated = true
+        client.activeGameID = 7
+        client.blackPlayerID = client.playerID
+        client.observationOnly = true
+        let before = socket.sentMessages.count
+        client.sendMove(gameID: 7, x: 0, y: 0)
+        XCTAssertEqual(socket.sentMessages.count, before)
+        client.observationOnly = false
+        client.sendMove(gameID: 7, x: 0, y: 0)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
+        XCTAssertTrue(socket.sentMessages.last!.contains("game/move"))
+        client.observationOnly = true
+        client.sendPass(gameID: 7)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
     }
 
     func testReviewCookiesAreInMemoryAndSeparateFromOtherSessions() throws {
