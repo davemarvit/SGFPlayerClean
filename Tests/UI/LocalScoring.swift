@@ -74,7 +74,7 @@ import Vision
             check(vm.localScoring?.result?.black.territory == 22, "Neutral area toggle was not reversible")
             vm.confirmLocalScore(); wait()
             let text = try snapshot(host, "\(mode)-final")
-            check(text.contains("finalscore") && text.contains("alicewhitewinsby9.5points"), "Final winner text missing/clipped")
+            check(text.contains("finalscore") && text.contains("alice[white]winsby9.5points"), "Final winner text missing/clipped")
             vm.placeStone(at: BoardPosition(0,0)); wait()
             check(vm.localScoring?.deadStones.count == 2, "Confirmed score was editable")
             vm.stepBackward(); wait()

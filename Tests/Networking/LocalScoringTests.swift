@@ -27,7 +27,7 @@ final class LocalScoringTests: XCTestCase {
         XCTAssertEqual(result.black.markedDead, 2)
         XCTAssertEqual(result.black.total, 19)
         XCTAssertEqual(result.white.total, 24.5)
-        XCTAssertEqual(result.winnerDescription(blackName: "Dave", whiteName: "Alice"), "Alice White wins by 5.5 points")
+        XCTAssertEqual(result.winnerDescription(blackName: "Dave", whiteName: "Alice"), "Alice [White] wins by 5.5 points")
         XCTAssertEqual(player.board, board)
         XCTAssertEqual(player.capturesByBlack, 3); XCTAssertEqual(player.capturesByWhite, 4)
         scoring.toggleNeutralArea(at: BoardPosition(2,0))

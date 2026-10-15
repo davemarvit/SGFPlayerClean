@@ -14,11 +14,12 @@ The integration review is [draft PR #1](https://github.com/davemarvit/SGFPlayerC
 This branch contains the preserved local work as well as the subsequent repairs; do not
 reconstruct changes from chat history or copy individual files back into the original checkout.
 
-The latest application source checkpoint is `0b54b7feb5749dd0cabff366418705a62edbc070`
+The initial completed local-scoring checkpoint is `0b54b7feb5749dd0cabff366418705a62edbc070`
 (`Add local scoring review with dead groups and soft territory markers`). It was verified
-on GitHub as well as locally. The packaged offline review identifies that same source commit
-in `../Offline Review/build-info.json`; subsequent documentation-only commits do not require
-rebuilding that package.
+on GitHub as well as locally. The packaged offline review identifies its source commit
+in `../Offline Review/build-info.json`. Consult that file for the current packaged commit.
+Subsequent shared formatting changes put the winner color in brackets, for example
+“Alice [White] wins by 7 points”. Documentation-only commits do not require rebuilding the app.
 
 Changes included in both builds:
 
@@ -231,7 +232,7 @@ update the metadata notice. Explicit custom legality/scoring settings that diffe
 pause analysis instead of silently using that preset.
 
 The final-score header includes the winning name, color, and difference between OGS totals
-(for example, “Alice White wins by 6.5 points”). Equal totals show “Draw”; missing numeric scores
+(for example, “Alice [White] wins by 6.5 points”). Equal totals show “Draw”; missing numeric scores
 do not produce a fabricated margin.
 
 ### Remaining investigation boundaries

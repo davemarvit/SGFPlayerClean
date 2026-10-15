@@ -3,17 +3,17 @@ import XCTest
 
 final class OGSScoringStateTests: XCTestCase {
     func testFinalScoreNamesColorAndMargin() throws {
-        for (b, w, expected) in [(29.0, 35.5, "Alice White wins by 6.5 points"),
-                                  (31.0, 29.0, "Dave Black wins by 2 points"),
-                                  (30.0, 29.0, "Dave Black wins by 1 point"),
-                                  (29.0, 35.25, "Alice White wins by 6.25 points"),
+        for (b, w, expected) in [(29.0, 35.5, "Alice [White] wins by 6.5 points"),
+                                  (31.0, 29.0, "Dave [Black] wins by 2 points"),
+                                  (30.0, 29.0, "Dave [Black] wins by 1 point"),
+                                  (29.0, 35.25, "Alice [White] wins by 6.25 points"),
                                   (29.0, 29.0, "Draw")] {
             let score = try XCTUnwrap(OGSScoreSummary.parse(["black": ["total": b], "white": ["total": w]]))
             XCTAssertEqual(score.winnerDescription(blackName: "Dave", whiteName: "Alice"), expected)
         }
         let score = try XCTUnwrap(OGSScoreSummary.parse(["black": ["total": 4], "white": ["total": 0]]))
         XCTAssertEqual(score.winnerDescription(blackName: " ", whiteName: nil), "Black wins by 4 points")
-        XCTAssertEqual(score.winnerDescription(blackName: "  Dave\n", whiteName: nil), "Dave Black wins by 4 points")
+        XCTAssertEqual(score.winnerDescription(blackName: "  Dave\n", whiteName: nil), "Dave [Black] wins by 4 points")
     }
 
     func testCoordinateRoundTripAndCanonicalOrder() {

@@ -30,7 +30,7 @@ After two passes, the scoring sidebar opens automatically.
    Both should fade. Soft black and white dots show each player's territory;
    empty points without dots are neutral.
 4. Check Black 24, White 33.5, then click Confirm score.
-   Final Score should say "Alice White wins by 9.5 points".
+   Final Score should say "Alice [White] wins by 9.5 points".
 5. Edit scoring lets you change the marks; Resume play restores the board for
    normal moves. Rewinding hides scoring marks; returning to the end restores
    the review, including a confirmed result.
@@ -50,7 +50,7 @@ rewritten. Changing games or quitting clears the local review.
 
 SCORING DISPLAY EXAMPLES
 Click "Score examples…" at the right of the orange banner.
-The first example should say "Final Score" beside "Alice White wins by
+The first example should say "Final Score" beside "Alice [White] wins by
 6.5 points", with totals Black 29 and White 35.5.
 Use the Example menu to check a Black win, draw, fractional score, and a
 game with no numeric score. Edit the player names to try long or empty names.

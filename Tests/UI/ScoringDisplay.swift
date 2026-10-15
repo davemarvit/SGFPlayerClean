@@ -35,10 +35,10 @@ import Vision
             return image
         }
         let cases: [(OfflineScoringExample, String?)] = [
-            (.whiteWin, "Alice White wins by 6.5 points"),
-            (.blackWin, "Dave Black wins by 1 point"),
+            (.whiteWin, "Alice [White] wins by 6.5 points"),
+            (.blackWin, "Dave [Black] wins by 1 point"),
             (.draw, "Draw"),
-            (.fractional, "Alice White wins by 6.25 points"),
+            (.fractional, "Alice [White] wins by 6.25 points"),
             (.missingScore, nil)
         ]
         for (index, fixture) in cases.enumerated() {
@@ -66,7 +66,7 @@ import Vision
             error: nil, accept: {}, resume: {})
             .frame(width: 330).padding(16).background(Color(nsColor: .windowBackgroundColor))
         let longText = try recognize(render(longPanel, "long-name-earlier-position"))
-        check(longText.contains(compact(longName + " White wins by 6.5 points")), "Long winner name is clipped")
+        check(longText.contains(compact(longName + " [White] wins by 6.5 points")), "Long winner name is clipped")
         check(longText.contains("earlierposition"), "Earlier-position notice is missing")
         // ImageRenderer cannot draw native macOS controls or ScrollView contents. Host the
         // complete sheet in a real window to verify the user can actually see the panel.
@@ -86,7 +86,7 @@ import Vision
         try bitmap.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent("review-window.png"))
         let windowText = try recognize(bitmap.cgImage!)
         check(windowText.contains("finalscore"), "Score panel is not visible in the review window")
-        check(windowText.contains("alicewhitewinsby6.5points"), "Winner is not visible in the review window")
+        check(windowText.contains("alice[white]winsby6.5points"), "Winner is not visible in the review window")
         check(windowText.contains("done") && windowText.contains("example"), "Review controls are not visible")
         if !failures.isEmpty {
             for failure in failures { fputs("FAIL: \(failure)\n", stderr) }

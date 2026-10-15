@@ -103,7 +103,7 @@ func winningScoreDescription(black: Double, white: Double, blackName: String?, w
     guard difference != 0 else { return "Draw" }
     let color = difference > 0 ? "Black" : "White"
     let name = (difference > 0 ? blackName : whiteName)?.trimmingCharacters(in: .whitespacesAndNewlines)
-    let winner = name.flatMap { $0.isEmpty ? nil : $0 }.map { "\($0) \(color)" } ?? color
+    let winner = name.flatMap { $0.isEmpty ? nil : $0 }.map { "\($0) [\(color)]" } ?? color
     let margin = abs(difference).formatted(.number.precision(.fractionLength(0...2)))
     return "\(winner) wins by \(margin) \(abs(difference) == 1 ? "point" : "points")"
 }
