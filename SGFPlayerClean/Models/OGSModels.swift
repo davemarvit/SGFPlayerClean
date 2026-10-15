@@ -243,10 +243,11 @@ struct SGFGame {
     var freeHandicapPlacement = false
     var analysisOnline = false
     var whiteHandicapBonus: String?
+    var ruleOverrides: GoRuleOverrides?
     var analysisSettings: GameAnalysisSettings {
         GameAnalysisSettings(rules: info.rules, komi: info.komi.map { Double($0) ?? .nan },
             initialPlayer: initialPlayer ?? moves.first?.0 ?? (handicap > 1 ? .white : .black),
-            online: analysisOnline, whiteHandicapBonus: whiteHandicapBonus)
+            online: analysisOnline, whiteHandicapBonus: whiteHandicapBonus, ruleOverrides: ruleOverrides)
     }
     static func from(tree: SGFTree) -> SGFGame {
         var g = SGFGame()
@@ -463,6 +464,7 @@ struct GameAnalysisSettings: Codable, Equatable {
     var initialPlayer: Stone = .black
     var online = false
     var whiteHandicapBonus: String?
+    var ruleOverrides: GoRuleOverrides?
 
     var kataRules: String? {
         let value = (rules ?? "chinese").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -476,9 +478,23 @@ struct GameAnalysisSettings: Codable, Equatable {
         default: return nil
         }
     }
+    var playRules: GoRulePolicy? { GoRulePolicy(settings: self) }
     var effectiveKomi: Double { komi ?? 6.5 }
+    var analysisRulesSupported: Bool {
+        guard kataRules != nil, let actual = playRules else { return false }
+        var preset = self
+        preset.ruleOverrides = nil
+        guard actual == preset.playRules else { return false }
+        let territory = ["japanese", "korean"].contains(kataRules ?? "")
+        if let value = ruleOverrides?.scoreTerritory, !value { return false }
+        if let value = ruleOverrides?.scoreStones, value == territory { return false }
+        if let value = ruleOverrides?.scorePrisoners, value != territory { return false }
+        if let value = ruleOverrides?.scoreTerritoryInSeki, value == territory { return false }
+        return true
+    }
     var notice: String? {
         if kataRules == nil { return "Analysis unavailable: unsupported rules ‘\(rules ?? "")’." }
+        if !analysisRulesSupported { return "Analysis unavailable: custom rule settings are not supported by this KataGo preset." }
         guard effectiveKomi.isFinite, (-400...400).contains(effectiveKomi), (effectiveKomi * 2).rounded() == effectiveKomi * 2 else {
             return "Analysis unavailable: invalid komi."
         }
@@ -547,10 +563,77 @@ struct OGSGameSnapshot {
             if index + 1 >= freeHandicapMoves { color = color.opponent }
         }
         game.analysisOnline = true
+        game.ruleOverrides = GoRuleOverrides(allowSelfCapture: data["allow_self_capture"] as? Bool,
+            allowKo: data["allow_ko"] as? Bool, allowSuperko: data["allow_superko"] as? Bool,
+            superkoAlgorithm: data["superko_algorithm"] as? String,
+            scoreTerritory: data["score_territory"] as? Bool, scoreStones: data["score_stones"] as? Bool,
+            scorePrisoners: data["score_prisoners"] as? Bool, scoreTerritoryInSeki: data["score_territory_in_seki"] as? Bool)
         if let scoreHandicap = data["score_handicap"] as? Bool {
             game.whiteHandicapBonus = scoreHandicap ? ((data["aga_handicap_scoring"] as? Bool == true) ? "N-1" : "N") : "0"
         }
         self.game = game
         stateVersion = integer(data["state_version"])
+    }
+}
+
+/// Explicit OGS settings take precedence over the rule-set name.
+struct GoRuleOverrides: Codable, Equatable {
+    var allowSelfCapture: Bool?
+    var allowKo: Bool?
+    var allowSuperko: Bool?
+    var superkoAlgorithm: String?
+    var scoreTerritory: Bool?
+    var scoreStones: Bool?
+    var scorePrisoners: Bool?
+    var scoreTerritoryInSeki: Bool?
+}
+
+struct GoRulePolicy: Equatable {
+    enum Repetition: String { case none, simple, positional, situational }
+    var repetition: Repetition
+    var allowsSelfCapture: Bool
+
+    init?(settings: GameAnalysisSettings) {
+        switch settings.kataRules {
+        case "japanese", "korean", "chinese", "stone-scoring":
+            repetition = .simple; allowsSelfCapture = false
+        case "chinese-ogs", "chinese-kgs":
+            repetition = .positional; allowsSelfCapture = false
+        case "aga", "bga", "aga-button":
+            repetition = .situational; allowsSelfCapture = false
+        case "new-zealand": repetition = .situational; allowsSelfCapture = true
+        case "tromp-taylor": repetition = .positional; allowsSelfCapture = true
+        default: return nil
+        }
+        if let overrides = settings.ruleOverrides {
+            // Allowing immediate ko while separately restricting longer cycles needs a custom
+            // repetition policy; do not silently treat that combination as a standard preset.
+            if overrides.allowKo == true && overrides.allowSuperko != true { return nil }
+            if overrides.allowSuperko == false && repetition == .simple && overrides.superkoAlgorithm == nil { return nil }
+            if let suicide = overrides.allowSelfCapture { allowsSelfCapture = suicide }
+            if overrides.allowSuperko == true {
+                repetition = overrides.allowKo == true ? .none : .simple
+            } else if let algorithm = overrides.superkoAlgorithm {
+                switch algorithm.lowercased() {
+                case "psk", "csk": repetition = .positional
+                case "ssk": repetition = .situational
+                case "noresult":
+                    guard overrides.allowSuperko != false else { return nil }
+                    repetition = overrides.allowKo == true ? .none : .simple
+                default: return nil
+                }
+            } else if overrides.allowKo == true && repetition == .simple { repetition = .none }
+        }
+    }
+
+    var summary: String {
+        let ko: String
+        switch repetition {
+        case .none: ko = "Repetition allowed"
+        case .simple: ko = "Simple ko"
+        case .positional: ko = "Positional superko"
+        case .situational: ko = "Situational superko"
+        }
+        return ko + (allowsSelfCapture ? " · Self-capture allowed" : " · No self-capture")
     }
 }

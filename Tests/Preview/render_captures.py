@@ -14,5 +14,5 @@ with tempfile.TemporaryDirectory(prefix='sgf-capture-preview-') as directory:
     binary = Path(directory) / 'preview'
     subprocess.run(['swiftc', '-parse-as-library', '-I', str(build / 'Modules'),
                     str(root / 'Tests/Preview/CapturePreview.swift'), *map(str, objects), '-o', str(binary)], check=True)
-    subprocess.run([str(binary), str(root / 'SGFPlayerClean/Assets'), str(output)], check=True)
+    subprocess.run([str(binary), str(root / 'SGFPlayerClean/Assets'), str(output), *sys.argv[2:]], check=True)
 print(output)

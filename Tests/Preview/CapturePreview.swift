@@ -18,6 +18,18 @@ struct CapturePreview {
         manager.updateCapturedStones(black: 40, white: 3)
         manager.updateBoardSize(9)
         manager.updateCapturedStones(black: 40, white: 3)
+        if CommandLine.arguments.dropFirst(3).contains("ko") {
+            var game = SGFGame()
+            game.boardSize = 9; game.info.rules = "japanese"
+            game.setup = [(.black,1,0),(.black,0,1),(.black,1,2),
+                          (.white,1,1),(.white,2,0),(.white,3,1),(.white,2,2)]
+            let player = SGFPlayer(); player.load(game: game)
+            precondition(player.tryPlayMove(color: .black, x: 2, y: 1) == nil)
+            let stones = player.board.stones.map { RenderStone(id: $0.key, color: $0.value, offset: .zero) }
+            manager.updateStones(from: stones, lastMove: BoardPosition(1,2), moveIndex: 1, settings: AppSettings.shared, animate: false)
+            manager.updateKoMarker(at: player.koPoint)
+            manager.updateCapturedStones(black: player.capturesByBlack, white: player.capturesByWhite)
+        }
         // Freeze the layout and omit invisible collision meshes in this static preview.
         manager.scene.physicsWorld.speed = 0
         manager.scene.rootNode.enumerateChildNodes { node, _ in node.physicsBody = nil }

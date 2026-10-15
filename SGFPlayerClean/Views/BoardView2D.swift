@@ -56,6 +56,17 @@ struct BoardView2D: View {
                                   y: CGFloat(rs.id.row) * rowP + (rs.offset.y * rowP))
                 }
                 
+                if let point = boardVM.koPoint {
+                    Text("Ko").font(.system(size: cellP * 0.32, weight: .bold))
+                        .foregroundStyle(.red)
+                        .frame(width: cellP * 0.7, height: cellP * 0.7)
+                        .background(.regularMaterial, in: Circle())
+                        .overlay(Circle().stroke(.red, lineWidth: 1.5))
+                        .position(x: CGFloat(point.col) * cellP, y: CGFloat(point.row) * rowP)
+                        .help("Ko: immediate recapture is not allowed")
+                        .accessibilityLabel("Ko: immediate recapture is not allowed")
+                }
+
                 // Territory Layer
                 ForEach(Array(boardVM.territoryPoints.keys), id: \.self) { pos in
                     if let color = boardVM.territoryPoints[pos] {

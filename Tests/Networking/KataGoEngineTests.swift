@@ -81,6 +81,76 @@ final class KataGoEngineTests: XCTestCase {
             "isDuringSearch": false, "rootInfo": ["winrate": 0.7, "scoreLead": 2.5, "visits": visits]])
     }
 
+    func testFailedPositionIsNotAutomaticallyResubmittedAndManualRetryWorks() throws {
+        try hold(); engine.start(); analyze()
+        let first = queries(1)[0]
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id":first["id"]!, "error":"illegal ko move"]))
+        XCTAssertEqual(engine.analysisError, "Analysis failed: illegal ko move")
+        analyze()
+        let drained = expectation(description: "No automatic retry")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+        XCTAssertEqual(queries(1).count, 1)
+        engine.retryFailedAnalysis(); analyze()
+        XCTAssertEqual(queries(2).count, 2)
+        XCTAssertNil(engine.analysisError)
+    }
+
+    func testTimedOutReplyIsIgnoredAndDoesNotResubmitUntilRetry() throws {
+        try hold(); engine.start(); analyze()
+        let first = queries(1)[0]
+        scheduler.advance(by: 121)
+        XCTAssertTrue(engine.analysisError?.contains("timed out") == true)
+        engine.receiveAnalysisLine(try response(first))
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+        engine.retryFailedAnalysis(); analyze()
+        let retry = queries(2)[1]
+        engine.receiveAnalysisLine(try response(retry))
+        XCTAssertNotNil(engine.currentAnalysisData[0])
+        scheduler.advance(by: 121)
+        XCTAssertNil(engine.analysisError)
+    }
+
+    func testCustomRulesDoNotSilentlyAnalyzeWithDifferentPreset() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9,
+            settings: GameAnalysisSettings(rules: "japanese", komi: 6.5,
+                ruleOverrides: GoRuleOverrides(allowSelfCapture: true)))
+        XCTAssertTrue(engine.analysisNotice?.contains("custom rule") == true)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("requests.jsonl").path))
+    }
+
+    func testInvalidWinRateDoesNotEnterCacheOrDisplay() throws {
+        try hold(); engine.start(); analyze()
+        let query = queries(1)[0]
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id":query["id"]!, "turnNumber":0,
+            "rootInfo":["winrate":2,"scoreLead":1,"visits":50]]))
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+        XCTAssertNotNil(engine.analysisError)
+    }
+
+    func testRulesWarningsAreVisibleOnlyForCurrentRequests() throws {
+        try hold(); engine.start(); analyze()
+        let q = queries(1)[0]
+        XCTAssertTrue(engine.hasPendingAnalysis)
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id":"old", "warning":"old rules"]))
+        XCTAssertNil(engine.analysisWarning)
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id":q["id"]!, "warning":"rules approximated"]))
+        XCTAssertEqual(engine.analysisWarning, "KataGo: rules approximated")
+        engine.receiveAnalysisLine(try response(q))
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        engine.currentGameId = "other"
+        XCTAssertNil(engine.analysisWarning)
+    }
+
+    func testMissingCacheStillUpdatesMetadataNotice() {
+        let player = SGFPlayer()
+        var game = SGFGame(); game.info.rules = "unknown rules"
+        player.load(game: game)
+        XCTAssertFalse(engine.loadAnalysisCache(for: "never-cached", game: player))
+        XCTAssertTrue(engine.analysisNotice?.contains("unsupported rules") == true)
+    }
+
     func testMissingExecutableFailsWithoutLeavingRunningState() {
         let missing = KataGoEngine(executableURL: directory.appendingPathComponent("missing"), cacheDirectory: directory)
         missing.start()
@@ -305,6 +375,6 @@ final class KataGoEngineTests: XCTestCase {
         engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id": "unknown", "error": "old error"]))
         XCTAssertNil(engine.engineStartupError)
         engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id": query["id"]!, "error": "bad rules"]))
-        XCTAssertEqual(engine.engineStartupError, "Analysis failed: bad rules")
+        XCTAssertEqual(engine.analysisError, "Analysis failed: bad rules")
     }
 }

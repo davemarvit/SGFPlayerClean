@@ -9,6 +9,11 @@ class KataGoEngine: ObservableObject {
     @Published var currentAnalysisData: [Int: AIAnalysis] = [:]
     @Published private(set) var engineStartupError: String?
     @Published private(set) var analysisNotice: String?
+    @Published private(set) var analysisError: String?
+    @Published private(set) var analysisWarning: String?
+    var hasPendingAnalysis: Bool { !requests.isEmpty }
+    private var failedPositions = Set<String>()
+    private var requestTimeouts: [Int: OGSCancellable] = [:]
     private var contextFingerprint: String?
 
     var currentGameId = "local" {
@@ -110,6 +115,7 @@ class KataGoEngine: ObservableObject {
 
     private func releaseProcess() {
         processGeneration += 1
+        requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
         requests.removeAll()
         pendingVisits.removeAll()
         readers.removeAll() // Each reader cancels and closes only its own descriptor.
@@ -141,7 +147,11 @@ class KataGoEngine: ObservableObject {
     }
 
     func invalidateAnalysis() {
+        analysisWarning = nil
+        analysisError = nil
+        failedPositions.removeAll()
         cacheSaveTask?.cancel(); cacheSaveTask = nil
+        requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
         requests.removeAll()
         pendingVisits.removeAll()
         fingerprints.removeAll()
@@ -153,6 +163,7 @@ class KataGoEngine: ObservableObject {
         let analyses: [Int: AIAnalysis]
         let fingerprints: [Int: String]
         let contextFingerprint: String?
+        let warning: String?
     }
 
     private func cacheURL(for gameID: String) -> URL {
@@ -167,7 +178,7 @@ class KataGoEngine: ObservableObject {
     func saveAnalysisCache(for gameID: String) {
         dispatchPrecondition(condition: .onQueue(.main))
         guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty else { return }
-        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint)
+        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint, warning: analysisWarning)
         let url = cacheURL(for: gameID)
         cacheQueue.async {
             do {
@@ -183,6 +194,7 @@ class KataGoEngine: ObservableObject {
         saveAnalysisCache(for: currentGameId)
         currentGameId = gameID
         invalidateAnalysis()
+        analysisNotice = game?.analysisSettings.notice
         guard gameID != "local" else { return false }
         let url = cacheURL(for: gameID)
         // Ordered after pending writes; apply synchronously so a deferred old load cannot replace a new game.
@@ -206,6 +218,7 @@ class KataGoEngine: ObservableObject {
         currentAnalysisData = valid
         fingerprints = loaded.fingerprints.filter { valid[$0.key] != nil }
         contextFingerprint = valid.isEmpty ? nil : loaded.contextFingerprint
+        analysisWarning = valid.isEmpty ? nil : loaded.warning
         return !valid.isEmpty
     }
 
@@ -221,7 +234,7 @@ class KataGoEngine: ObservableObject {
                                moves: [(color: String, x: Int, y: Int)], size: Int,
                                settings: GameAnalysisSettings) -> [String: Any]? {
         let komi = settings.effectiveKomi
-        guard let rules = settings.kataRules, komi.isFinite, (-400...400).contains(komi),
+        guard settings.analysisRulesSupported, let rules = settings.kataRules, komi.isFinite, (-400...400).contains(komi),
               (komi * 2).rounded() == komi * 2, (2...19).contains(size) else { return nil }
         func coordinates(_ value: (color: String, x: Int, y: Int), allowPass: Bool) -> [String]? {
             guard value.color == "B" || value.color == "W" else { return nil }
@@ -246,10 +259,10 @@ class KataGoEngine: ObservableObject {
                      komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil) {
         dispatchPrecondition(condition: .onQueue(.main))
         let settings = settings ?? GameAnalysisSettings(rules: "chinese", komi: komi)
+        guard id == currentGameId else { return }
         analysisNotice = settings.notice
         let komi = settings.effectiveKomi
-        guard id == currentGameId else { return }
-        guard settings.kataRules != nil, komi.isFinite, (-400...400).contains(komi),
+        guard settings.analysisRulesSupported, komi.isFinite, (-400...400).contains(komi),
               (komi * 2).rounded() == komi * 2 else { invalidateAnalysis(); return }
         guard isEngineRunning, (2...19).contains(size), maxVisits > 0 else { return }
         guard var query = positionQuery(initialStones: initialStones, moves: moves, size: size, settings: settings) else { return }
@@ -261,6 +274,7 @@ class KataGoEngine: ObservableObject {
         if contextFingerprint != contextKey { invalidateAnalysis(); contextFingerprint = contextKey }
         guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
         let fingerprint = digest(position)
+        guard !failedPositions.contains(fingerprint) else { return }
         if fingerprints[turn] == fingerprint {
             if (currentAnalysisData[turn]?.rootInfo?.visits ?? 0) >= maxVisits { return }
             if requests[turn] != nil, (pendingVisits[turn] ?? 0) >= maxVisits { return }
@@ -269,13 +283,19 @@ class KataGoEngine: ObservableObject {
             // Undo/variation at a known turn invalidates that turn and all its descendants.
             currentAnalysisData = currentAnalysisData.filter { $0.key < turn }
             fingerprints = fingerprints.filter { $0.key < turn }
+            for key in Array(requestTimeouts.keys) where key >= turn { requestTimeouts.removeValue(forKey: key)?.cancel() }
             requests = requests.filter { $0.key < turn }
             pendingVisits = pendingVisits.filter { $0.key < turn }
         }
+        requestTimeouts.removeValue(forKey: turn)?.cancel()
         let requestID = UUID().uuidString
         requests[turn] = requestID
         pendingVisits[turn] = maxVisits
         fingerprints[turn] = fingerprint
+        requestTimeouts[turn] = scheduler.schedule(after: 120) { [weak self] in
+            guard let self, self.requests[turn] == requestID else { return }
+            self.failRequest(turn: turn, message: "Analysis timed out. Retry when the engine is ready.")
+        }
         query["id"] = requestID
         query["maxVisits"] = maxVisits
         guard var data = try? JSONSerialization.data(withJSONObject: query), let input else { return }
@@ -296,24 +316,49 @@ class KataGoEngine: ObservableObject {
     // Internal for offline protocol fixtures; production calls arrive from the fenced stdout reader.
     func receiveAnalysisLine(_ data: Data) {
         dispatchPrecondition(condition: .onQueue(.main))
+        if let warning = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let message = warning["warning"] as? String, let id = warning["id"] as? String,
+           requests.values.contains(id) {
+            analysisWarning = "KataGo: " + message
+            return
+        }
         if let error = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let message = error["error"] as? String, let id = error["id"] as? String,
            let turn = requests.first(where: { $0.value == id })?.key {
-            requests.removeValue(forKey: turn); pendingVisits.removeValue(forKey: turn)
-            engineStartupError = "Analysis failed: \(message)"
+            failRequest(turn: turn, message: "Analysis failed: \(message)")
             return
         }
         guard let analysis = try? JSONDecoder().decode(AIAnalysis.self, from: data),
               requests[analysis.turnNumber] == analysis.id else { return }
+        guard let root = analysis.rootInfo, root.visits > 0, root.winrate.isFinite,
+              (0...1).contains(root.winrate), root.scoreLead.isFinite else {
+            failRequest(turn: analysis.turnNumber, message: "KataGo returned an invalid analysis result.")
+            return
+        }
         currentAnalysisData[analysis.turnNumber] = analysis
         if analysis.isDuringSearch != true {
+            requestTimeouts.removeValue(forKey: analysis.turnNumber)?.cancel()
             requests.removeValue(forKey: analysis.turnNumber)
             pendingVisits.removeValue(forKey: analysis.turnNumber)
         }
         scheduleCacheSave()
     }
 
+    private func failRequest(turn: Int, message: String) {
+        requestTimeouts.removeValue(forKey: turn)?.cancel()
+        requests.removeValue(forKey: turn); pendingVisits.removeValue(forKey: turn)
+        if let fingerprint = fingerprints[turn] { failedPositions.insert(fingerprint) }
+        currentAnalysisData.removeValue(forKey: turn)
+        analysisError = message
+    }
+
+    func retryFailedAnalysis() {
+        failedPositions.removeAll()
+        analysisError = nil
+    }
+
     deinit {
+        requestTimeouts.values.forEach { $0.cancel() }
         restartTask?.cancel(); cacheSaveTask?.cancel()
         if process?.isRunning == true { process?.terminate() }
         let oldInput = input

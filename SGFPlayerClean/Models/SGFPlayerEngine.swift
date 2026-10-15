@@ -72,6 +72,14 @@ final class SGFPlayer: ObservableObject {
     private var freeHandicapMoves = 0
     private(set) var analysisSettings = GameAnalysisSettings()
     private var onlineStateVersion: Int?
+    private struct PositionState { let key: String; let next: Stone }
+    private var positionHistory: [PositionState] = []
+    private var lastCapturedPoint: BoardPosition?
+    var koPoint: BoardPosition? {
+        guard let point = lastCapturedPoint,
+              moveRejection(color: turn, x: point.col, y: point.row) == .ko else { return nil }
+        return point
+    }
     var capturesByBlack: Int { whiteStonesCaptured }
     var capturesByWhite: Int { blackStonesCaptured }
     
@@ -106,6 +114,7 @@ final class SGFPlayer: ObservableObject {
     
     init() {
         self.board = BoardSnapshot(size: 19, grid: Array(repeating: Array(repeating: nil, count: 19), count: 19), stones: [:])
+        positionHistory = [PositionState(key: positionKey(board.grid), next: initialPlayer)]
     }
     
     var turn: Stone { playerToMove(at: currentIndex) }
@@ -219,49 +228,57 @@ final class SGFPlayer: ObservableObject {
         moveProcessed.send()
     }
     
+    private struct Placement {
+        var grid: [[Stone?]]
+        var captured: [Point]
+        var selfCaptured: Int
+    }
+
+    /// Shared by replay and legality checks so capture/suicide simulation cannot diverge.
+    private func placement(color: Stone, x: Int, y: Int, on original: [[Stone?]]) -> Placement {
+        var grid = original
+        grid[y][x] = color
+        var captured: [Point] = []
+        for (nx, ny) in [(x-1,y), (x+1,y), (x,y-1), (x,y+1)]
+            where nx >= 0 && ny >= 0 && nx < baseSize && ny < baseSize && grid[ny][nx] == color.opponent {
+            var visited = Set<Point>()
+            let group = collectGroup(from: Point(x: nx, y: ny), color: color.opponent, grid: grid, visited: &visited)
+            if liberties(of: group, in: grid).isEmpty {
+                captured += group
+                for point in group { grid[point.y][point.x] = nil }
+            }
+        }
+        var visited = Set<Point>()
+        let own = collectGroup(from: Point(x: x, y: y), color: color, grid: grid, visited: &visited)
+        let selfCaptured = liberties(of: own, in: grid).isEmpty ? own.count : 0
+        if selfCaptured > 0 { for point in own { grid[point.y][point.x] = nil } }
+        return Placement(grid: grid, captured: captured, selfCaptured: selfCaptured)
+    }
+
+    private func positionKey(_ grid: [[Stone?]]) -> String {
+        String(grid.flatMap { row in row.map { stone -> Character in stone == .black ? "B" : stone == .white ? "W" : "." } })
+    }
+
     private func apply(moveAt i: Int, to grid: inout [[Stone?]], updateSnapshot: Bool = true) {
         let (color, coord) = _moves[i]
-        guard let (x, y) = coord else { 
-            self.lastMove = MoveRef(color: color, x: -1, y: -1)
-            if updateSnapshot { syncSnapshot(grid: grid) }
-            return 
-        }
-        
-        if x >= 0, y >= 0, x < baseSize, y < baseSize {
-            grid[y][x] = color
-            let opponent = color.opponent
-            var captured = 0
-            var processed = Set<Point>()
-            
-            for (nx, ny) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)] where nx >= 0 && nx < baseSize && ny >= 0 && ny < baseSize {
-                let p = Point(x: nx, y: ny)
-                if grid[ny][nx] == opponent && !processed.contains(p) {
-                    var visited = Set<Point>()
-                    let group = collectGroup(from: p, color: opponent, grid: grid, visited: &visited)
-                    processed.formUnion(visited)
-                    if liberties(of: group, in: grid).isEmpty {
-                        captured += group.count
-                        for s in group { grid[s.y][s.x] = nil }
-                    }
-                }
+        lastCapturedPoint = nil
+        if let (x, y) = coord, x >= 0, y >= 0, x < baseSize, y < baseSize {
+            let result = placement(color: color, x: x, y: y, on: grid)
+            grid = result.grid
+            if color == .black {
+                whiteStonesCaptured += result.captured.count; blackStonesCaptured += result.selfCaptured
+            } else {
+                blackStonesCaptured += result.captured.count; whiteStonesCaptured += result.selfCaptured
             }
-            if color == .black { whiteStonesCaptured += captured } else { blackStonesCaptured += captured }
-            
-            var sV = Set<Point>()
-            let sG = collectGroup(from: Point(x: x, y: y), color: color, grid: grid, visited: &sV)
-            if liberties(of: sG, in: grid).isEmpty {
-                if color == .black { blackStonesCaptured += sG.count } else { whiteStonesCaptured += sG.count }
-                for s in sG { grid[s.y][s.x] = nil }
+            if result.captured.count == 1, let point = result.captured.first {
+                lastCapturedPoint = BoardPosition(point.y, point.x)
             }
-            
-            self.lastMove = MoveRef(color: color, x: x, y: y)
-            if updateSnapshot { syncSnapshot(grid: grid) }
-        } else {
-            self.lastMove = MoveRef(color: color, x: -1, y: -1)
-            if updateSnapshot { syncSnapshot(grid: grid) }
-        }
+            lastMove = MoveRef(color: color, x: x, y: y)
+        } else { lastMove = MoveRef(color: color, x: -1, y: -1) }
+        positionHistory.append(PositionState(key: positionKey(grid), next: playerToMove(at: i + 1)))
+        if updateSnapshot { syncSnapshot(grid: grid) }
     }
-    
+
     func stepForward() { guard currentIndex >= 0, currentIndex < _moves.count else { pause(); return }; var g = board.grid; apply(moveAt: currentIndex, to: &g); currentIndex += 1; moveProcessed.send() }
     func stepBackward() { guard currentIndex > 0 else { return }; seek(to: currentIndex - 1) }
     func seek(to idx: Int) {
@@ -286,10 +303,11 @@ final class SGFPlayer: ObservableObject {
     func clear() {
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
-        lastMove = nil; initialPlayer = .black
+        lastMove = nil; lastCapturedPoint = nil; initialPlayer = .black
         freeHandicapMoves = 0; onlineStateVersion = nil; analysisSettings = GameAnalysisSettings()
         whiteStonesCaptured = 0; blackStonesCaptured = 0; highestKnownStateVersion = 0
         syncSnapshot(grid: Array(repeating: Array(repeating: nil, count: baseSize), count: baseSize))
+        positionHistory = [PositionState(key: positionKey(board.grid), next: initialPlayer)]
         moveProcessed.send()
     }
     
@@ -303,6 +321,8 @@ final class SGFPlayer: ObservableObject {
         }
         
         self.lastMove = nil
+        lastCapturedPoint = nil
+        positionHistory = [PositionState(key: positionKey(grid), next: initialPlayer)]
         if sync {
             syncSnapshot(grid: grid)
             moveProcessed.send()
@@ -358,36 +378,53 @@ final class SGFPlayer: ObservableObject {
     }
     
     // MARK: - Rules Enforcement
-    func isSuicide(color: Stone, x: Int, y: Int) -> Bool {
-        // 1. Simulate Move
-        var g = board.grid
-        guard x >= 0, y >= 0, x < baseSize, y < baseSize, g[y][x] == nil else { return false }
-        g[y][x] = color
-        
-        // 2. Remove Captured Opponents
-        let opponent = color.opponent
-        var capturedAny = false
-        for (nx, ny) in [(x-1, y), (x+1, y), (x, y-1), (x, y+1)] where nx >= 0 && nx < baseSize && ny >= 0 && ny < baseSize {
-             if g[ny][nx] == opponent {
-                 var visited = Set<Point>()
-                 let group = collectGroup(from: Point(x: nx, y: ny), color: opponent, grid: g, visited: &visited)
-                 // Check liberties of opponent group
-                 if liberties(of: group, in: g).isEmpty {
-                     capturedAny = true; break // Valid capture, so NOT suicide
-                 }
-             }
-        }
-        if capturedAny { return false }
-        
-        // 3. Check Self Liberties
-        var myVisited = Set<Point>()
-        let myGroup = collectGroup(from: Point(x: x, y: y), color: color, grid: g, visited: &myVisited)
-        let myLibs = liberties(of: myGroup, in: g)
-        
-        // If 0 liberties and we didn't capture anything, it's suicide.
-        return myLibs.isEmpty
+    enum MoveRejection: String, Equatable {
+        case outside = "That point is outside the board."
+        case occupied = "That point is occupied."
+        case suicide = "Self-capture is not allowed under these rules."
+        case ko = "Ko: play elsewhere before recapturing."
+        case superko = "Superko: this move repeats an earlier position."
+        case handicapPass = "Place the remaining handicap stones before passing."
+        case history = "Return to the latest position before adding a move."
+        case wrongTurn = "It is the other player's turn."
     }
-    
+
+    /// Applies only to new input. Recorded and server-confirmed history remains replayable.
+    func moveRejection(color: Stone, x: Int, y: Int) -> MoveRejection? {
+        if x == -1 && y == -1 { return currentIndex < freeHandicapMoves ? .handicapPass : nil }
+        guard x >= 0, y >= 0, x < baseSize, y < baseSize else { return .outside }
+        guard board.grid[y][x] == nil else { return .occupied }
+        guard let rules = analysisSettings.playRules else { return nil }
+        let result = placement(color: color, x: x, y: y, on: board.grid)
+        if result.selfCaptured > 0 && !rules.allowsSelfCapture { return .suicide }
+        let key = positionKey(result.grid)
+        if rules.repetition != .none, positionHistory.count >= 2,
+           positionHistory[positionHistory.count - 2].key == key { return .ko }
+        switch rules.repetition {
+        case .positional:
+            if positionHistory.contains(where: { $0.key == key }) { return .superko }
+        case .situational:
+            let next = currentIndex + 1 < freeHandicapMoves ? Stone.black : color.opponent
+            if positionHistory.contains(where: { $0.key == key && $0.next == next }) { return .superko }
+        case .simple, .none: break
+        }
+        return nil
+    }
+
+    @discardableResult
+    func tryPlayMove(color: Stone, x: Int, y: Int) -> MoveRejection? {
+        guard currentIndex == maxIndex else { return .history }
+        guard color == turn else { return .wrongTurn }
+        if let rejection = moveRejection(color: color, x: x, y: y) { return rejection }
+        playMoveOptimistically(color: color, x: x, y: y)
+        return nil
+    }
+
+    func isSuicide(color: Stone, x: Int, y: Int) -> Bool {
+        guard x >= 0, y >= 0, x < baseSize, y < baseSize, board.grid[y][x] == nil else { return false }
+        return placement(color: color, x: x, y: y, on: board.grid).selfCaptured > 0
+    }
+
     func load(game: SGFGame) {
         self.baseSize = game.boardSize
         self._baseSetup = game.setup

@@ -121,6 +121,17 @@ struct PlaybackControlsView: View {
     @ObservedObject var boardVM: BoardViewModel
     @State private var localIdx: Double = 0
     var body: some View {
+        VStack(spacing: 5) {
+            if boardVM.territoryIsEstimate {
+                Text("Territory overlay is an estimate; OGS supplies the final score.")
+                    .font(.caption).foregroundStyle(.orange)
+                    .padding(5).background(.black.opacity(0.65), in: Capsule())
+            }
+            Text(boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : boardVM.ruleSummary))
+                .font(.caption).foregroundStyle(boardVM.moveError == nil ? Color.white : Color.orange)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .background(.black.opacity(0.65), in: Capsule())
+                .accessibilityIdentifier("go-rule-status")
         HStack(spacing: 12) {
             HStack(spacing: 6) {
                 if app.isAIAvailable {
@@ -149,5 +160,6 @@ struct PlaybackControlsView: View {
             .tint(.white).frame(width: 140)
             Text("\(boardVM.currentMoveIndex)/\(boardVM.totalMoves)").font(.system(size: 9, design: .monospaced)).foregroundColor(.white.opacity(0.8)).frame(width: 50)
         }.padding(.horizontal, 12).padding(.vertical, 6).background((Color.black.opacity(0.65) as Color)).cornerRadius(18).foregroundColor(.white).fixedSize()
+        }
     }
 }

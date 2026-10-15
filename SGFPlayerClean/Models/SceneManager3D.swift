@@ -6,6 +6,7 @@ import Foundation
 import SceneKit
 import AppKit
 import QuartzCore
+import simd
 
 import AVFoundation
 
@@ -118,6 +119,8 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     // MARK: - Dynamic Sizing
     func updateBoardSize(_ size: Int) {
         if self.boardSize != size {
+            SCNTransaction.begin(); SCNTransaction.disableActions = true
+            defer { SCNTransaction.commit() }
             print("🎨 [3D] Resizing Board to \(size)x\(size). CellWidth: \(String(format: "%.3f", effectiveCellWidth))")
             self.boardSize = size
             
@@ -165,9 +168,10 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         createLids()
         setupGhostNode()
         
-        // Configure physics delegate & speed up the world time so stones settle very fast
+        // Stable physics timing for capture piles.
         scene.physicsWorld.contactDelegate = self
-        scene.physicsWorld.speed = 3.0
+        scene.physicsWorld.speed = 1.0
+        scene.physicsWorld.timeStep = 1.0 / 120.0
     }
     
     // MARK: - SCNPhysicsContactDelegate
@@ -295,7 +299,7 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
             return true
         }
     }
-    func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings) {
+    func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings, animate: Bool = true) {
         let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let offX = -w / 2.0; let offZ = -h / 2.0; let surfaceY = boardThickness / 2.0
         let currentPos = Set(cache.map { $0.id })
         
@@ -328,7 +332,7 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                 s.categoryBitMask = MaskStones
                 anchor.addChildNode(s); stonesContainer.addChildNode(anchor); stoneNodeMap[rs.id] = anchor
                 
-                if settings.showDropInAnimation {
+                if settings.showDropInAnimation && animate {
                     // Set initial state outside of any SCNTransaction so it applies instantly before animation
                     anchor.position = SCNVector3(x, surfaceY + 1.0, z)
                     anchor.opacity = 0
@@ -595,23 +599,28 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         }
     }
     func updateCameraPosition(distance: CGFloat, rotationX: Float, rotationY: Float, panX: CGFloat, panY: CGFloat) {
-        worldAnchor.position = SCNVector3(x: panX, y: 0, z: panY)
-        worldAnchor.eulerAngles.y = CGFloat(rotationY)
-        worldAnchor.eulerAngles.x = CGFloat(rotationX)
+        SCNTransaction.begin(); SCNTransaction.disableActions = true
+        // Previously the board and all physics bodies moved to change the view. A kinematic
+        // lid could then strike settled stones at enormous velocity. Apply the inverse of
+        // that transform to the camera instead: inverse(C) * W == inverse(inverse(W) * C).
+        let viewTransform = SCNNode()
+        viewTransform.position = SCNVector3(panX, 0, panY)
+        viewTransform.eulerAngles = SCNVector3(CGFloat(rotationX), CGFloat(rotationY), 0)
         let r = distance / 25.0
-        cameraNode.position = SCNVector3(x: 0, y: 15.0 * r, z: 20.0 * r)
-        cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
-        
-        // Fix Gravity: The user orbits by rotating the board (worldAnchor), not the camera.
-        // We must update the global physics gravity vector to point "down" relative to the board's tilt.
-        let localDown = SCNVector3(0, -19.62, 0) // Double gravity for snappier dropping
-        scene.physicsWorld.gravity = worldAnchor.convertVector(localDown, to: nil)
+        let baseCamera = SCNNode()
+        baseCamera.position = SCNVector3(0, 15.0 * r, 20.0 * r)
+        baseCamera.look(at: SCNVector3Zero)
+        cameraNode.simdTransform = simd_inverse(viewTransform.simdTransform) * baseCamera.simdTransform
+        scene.physicsWorld.gravity = SCNVector3(0, -19.62, 0)
+        SCNTransaction.commit()
     }
     /// Counts are by capturing player. White's upper lid holds black stones, and vice versa.
     func updateCapturedStones(black: Int, white: Int) {
         guard let upper = upperLidNode, let lower = lowerLidNode else { return }
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
+        updateLidWalls(lid: upper)
+        updateLidWalls(lid: lower)
         updateLidDiff(lid: upper, current: &upperLidStones, target: max(0, white), isWhite: false)
         updateLidDiff(lid: lower, current: &lowerLidStones, target: max(0, black), isWhite: true)
         updateCaptureLabel(lid: upper, count: max(0, white))
@@ -644,10 +653,16 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                 current.last?.removeFromParentNode()
                 current.removeLast() 
             } 
-        } else { 
-            for i in current.count..<target { 
+        } else {
+            let start = current.count
+            // Add above the settled pile, which need not retain its original layered layout.
+            let dropHeight = max(0.8, (current.map { $0.presentation.position.y }.max() ?? 0) + 0.65)
+            for i in start..<target {
                 let g = isWhite ? clamGeometries[i % 5] : blackStoneGeometry
-                let n = SCNNode(geometry: g)
+                let n = SCNNode()
+                let visual = SCNNode(geometry: g)
+                visual.name = "capture-visual"
+                n.addChildNode(visual)
                 n.name = isWhite ? "captured-white" : "captured-black"
                 
                 // Lids have a fixed size even when the board changes to 9x9 or 13x13.
@@ -659,16 +674,14 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                     }
                 }
                 let position = positions[i % positions.count]
-                let layer = i / positions.count
-                n.position = SCNVector3(position.0, 0.8 + CGFloat(layer) * 0.52, position.1)
+                let layer = (i - start) / positions.count
+                n.position = SCNVector3(position.0, dropHeight + CGFloat(layer) * 0.52, position.1)
                 n.eulerAngles = SCNVector3(0, CGFloat(i) * 2.39996, 0)
                 let scale = capturedStoneRadius / stoneRadius
-                n.scale = SCNVector3(scale, scale * stoneScaleY, scale)
+                visual.scale = SCNVector3(scale, scale * stoneScaleY, scale)
 
-                // Physics setup
-                // sceneKit ignores SCNNode.scale when calculating primitive options:nil bounding boxes!
-                // This means visual stones were flattened, but their physics bodies were still giant spheres.
-                // We create a separate explicit physics primitive (a short, flat cylinder) matching the visual scale.
+                // The physics parent stays at unit scale; only its visual child is flattened.
+                // This prevents board-size-dependent scaling of the collision shape.
                 let physGeom = SCNCylinder(radius: capturedStoneRadius, height: capturedStoneRadius * stoneScaleY * 2.0)
                 let shape = SCNPhysicsShape(geometry: physGeom, options: nil)
                 let body = SCNPhysicsBody(type: .dynamic, shape: shape)
@@ -676,7 +689,7 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                 body.restitution = 0.0 // Zero bounce
                 body.friction = 2.0     // Extreme grip
                 body.rollingFriction = 2.0 // Extreme spin lock
-                body.damping = 0.0 // Heavy air drag
+                body.damping = 0.35
                 body.angularDamping = 0.9 // Extreme spin drag to force them flat
                 
                 body.categoryBitMask = PhysicsCategoryStone
@@ -787,6 +800,8 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         } 
     }
     func createLids() {
+        SCNTransaction.begin(); SCNTransaction.disableActions = true
+        defer { SCNTransaction.commit() }
         let black = lowerLidStones.count, white = upperLidStones.count
         upperLidStones.removeAll()
         lowerLidStones.removeAll()
@@ -812,78 +827,7 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         let n = SCNNode(geometry: cyl)
         n.position = pos
         
-        // 2. Physics Wall (Hollow Tube) using a Torus or multiple boxes to prevent stones falling out.
-        // A smaller Torus matches the visual inner lip, leaving a rim at the edge of the cylinder image.
-        let wall = SCNTorus(ringRadius: 3.1, pipeRadius: 0.15)
-        let wallNode = SCNNode(geometry: wall)
-        wallNode.position = SCNVector3(0, 0.15, 0)
-        wallNode.opacity = 0.0 // Invisible wall
-        let wallShape = SCNPhysicsShape(geometry: wall, options: [SCNPhysicsShape.Option.type: SCNPhysicsShape.ShapeType.concavePolyhedron])
-        wallNode.physicsBody = SCNPhysicsBody(type: .kinematic, shape: wallShape)
-        wallNode.physicsBody?.categoryBitMask = PhysicsCategoryBowl
-        wallNode.physicsBody?.collisionBitMask = PhysicsCategoryStone | PhysicsCategoryBowl
-        wallNode.physicsBody?.contactTestBitMask = PhysicsCategoryStone
-        n.addChildNode(wallNode)
-        // 3. Physics Floor (Concave Funnel via 4 Tilted Planes)
-        // SceneKit primitives (like SCNCone or SCNSphere) are solid bodies. If stones spawn above them, they hit the "roof" rather than falling inside.
-        // To build a guaranteed hollow funnel, we use 4 invisible angled boxes forming an inverted pyramid inside the cylinder.
-        let funnelNode = SCNNode()
-        funnelNode.position = SCNVector3(0, 0, 0)
-        
-        let planeW: CGFloat = 8.0
-        let planeH: CGFloat = 8.0
-        let thickness: CGFloat = 2.0 // Very thick box to prevent any clipping/ghosting through the floor
-        let angle: CGFloat = .pi * 0.45 // Very steep inward tilt (almost flat, but gently sloped down to center)
-        let dropDelta: CGFloat = -1.0 // Push them down so the slopes intersect deep inside the cylinder
-        
-        for i in 0..<4 {
-            let box = SCNBox(width: planeW, height: thickness, length: planeH, chamferRadius: 0)
-            let nBox = SCNNode(geometry: box)
-            nBox.opacity = 0.0 // Invisible
-            
-            // Rotate and position based on quadrant
-            // 0: +X, 1: -X, 2: +Z, 3: -Z
-            switch i {
-            case 0:
-                nBox.position = SCNVector3(x: 3.0, y: dropDelta, z: 0)
-                nBox.eulerAngles = SCNVector3(0, 0, angle)
-            case 1:
-                nBox.position = SCNVector3(x: -3.0, y: dropDelta, z: 0)
-                nBox.eulerAngles = SCNVector3(0, 0, -angle)
-            case 2:
-                nBox.position = SCNVector3(x: 0, y: dropDelta, z: 3.0)
-                nBox.eulerAngles = SCNVector3(-angle, 0, 0)
-            case 3:
-                nBox.position = SCNVector3(x: 0, y: dropDelta, z: -3.0)
-                nBox.eulerAngles = SCNVector3(angle, 0, 0)
-            default: break
-            }
-            
-            // Use default primitive shape rather than forcing convexHull (which can fail on rotated thin objects)
-            let shape = SCNPhysicsShape(geometry: box, options: nil)
-            nBox.physicsBody = SCNPhysicsBody(type: .kinematic, shape: shape)
-            nBox.physicsBody?.restitution = 0.2
-            nBox.physicsBody?.friction = 0.7
-            nBox.physicsBody?.categoryBitMask = PhysicsCategoryBowl
-            nBox.physicsBody?.collisionBitMask = PhysicsCategoryStone | PhysicsCategoryBowl
-            nBox.physicsBody?.contactTestBitMask = PhysicsCategoryStone
-            funnelNode.addChildNode(nBox)
-        }
-        
-        n.addChildNode(funnelNode)
-        
-        // Add a safety floor disk just in case they slip through the apex gap
-        let safetyFloor = SCNCylinder(radius: 3.5, height: 0.5)
-        let safetyNode = SCNNode(geometry: safetyFloor)
-        safetyNode.position = SCNVector3(0, -0.2, 0)
-        safetyNode.opacity = 0.0
-        let safetyShape = SCNPhysicsShape(geometry: safetyFloor, options: nil)
-        safetyNode.physicsBody = SCNPhysicsBody(type: .kinematic, shape: safetyShape)
-        safetyNode.physicsBody?.categoryBitMask = PhysicsCategoryBowl
-        safetyNode.physicsBody?.collisionBitMask = PhysicsCategoryStone | PhysicsCategoryBowl
-        safetyNode.physicsBody?.contactTestBitMask = PhysicsCategoryStone
-        n.addChildNode(safetyNode)
-        
+        // One flat floor, rather than intersecting sloped boxes that can launch stones.
         // Cap the cylinder bottom as well
         let capBody = SCNPhysicsBody(type: .kinematic, shape: SCNPhysicsShape(geometry: cyl, options: nil))
         capBody.categoryBitMask = PhysicsCategoryBowl
@@ -893,6 +837,45 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         
         return n
     }
+    func updateKoMarker(at point: BoardPosition?) {
+        worldAnchor.childNode(withName: "ko-marker", recursively: false)?.removeFromParentNode()
+        guard let point else { return }
+        let text = SCNText(string: "Ko", extrusionDepth: 0)
+        text.font = NSFont.boldSystemFont(ofSize: effectiveCellWidth * 0.4)
+        text.firstMaterial?.diffuse.contents = NSColor.systemRed
+        text.firstMaterial?.lightingModel = .constant
+        let node = SCNNode(geometry: text)
+        node.name = "ko-marker"
+        node.eulerAngles.x = -.pi / 2
+        let (minimum, maximum) = text.boundingBox
+        node.pivot = SCNMatrix4MakeTranslation((minimum.x + maximum.x) / 2, (minimum.y + maximum.y) / 2, 0)
+        node.position = SCNVector3((CGFloat(point.col) - CGFloat(boardSize - 1) / 2) * effectiveCellWidth,
+            boardThickness / 2 + 0.02, (CGFloat(point.row) - CGFloat(boardSize - 1) / 2) * effectiveCellHeight)
+        worldAnchor.addChildNode(node)
+    }
+
+    private func updateLidWalls(lid: SCNNode) {
+        guard lid.childNode(withName: "capture-walls", recursively: false) == nil else { return }
+        // Fixed walls never change shape or position underneath a live pile. Invisible height
+        // leaves ample headroom for captures; changing kinematic walls can impart large impulses.
+        let height: CGFloat = 64
+        let walls = SCNNode()
+        walls.name = "capture-walls"
+        // Overlapping boxes form a reliable convex collision ring, taller than the pile.
+        for i in 0..<24 {
+            let angle = CGFloat(i) * .pi / 12
+            let geometry = SCNBox(width: 0.9, height: height, length: 0.35, chamferRadius: 0)
+            let node = SCNNode()
+            node.position = SCNVector3(sin(angle) * 3.15, height / 2, cos(angle) * 3.15)
+            node.eulerAngles.y = angle
+            node.physicsBody = SCNPhysicsBody(type: .kinematic, shape: SCNPhysicsShape(geometry: geometry, options: nil))
+            node.physicsBody?.categoryBitMask = PhysicsCategoryBowl
+            node.physicsBody?.collisionBitMask = PhysicsCategoryStone
+            walls.addChildNode(node)
+        }
+        lid.addChildNode(walls)
+    }
+
     private func setupGhostNode() { let s = SCNSphere(radius: stoneRadius); let m = SCNMaterial(); m.diffuse.contents = NSColor(white: 1.0, alpha: 0.5); s.materials = [m]; ghostNode = SCNNode(geometry: s); ghostNode?.opacity = 0.0; stonesContainer.addChildNode(ghostNode!) }
     func updateGhostStone(at pos: BoardPosition?, color: Stone?) { guard let p = pos, let c = color else { ghostNode?.opacity = 0.0; return }; let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let offX = -w / 2.0; let offZ = -h / 2.0; let surfaceY = boardThickness / 2.0; let x = CGFloat(p.col) * effectiveCellWidth + offX; let z = CGFloat(p.row) * effectiveCellHeight + offZ; ghostNode?.position = SCNVector3(x, surfaceY, z); if let mat = ghostNode?.geometry?.firstMaterial { mat.diffuse.contents = (c == .black) ? NSColor(white: 0.1, alpha: 0.6) : NSColor(white: 0.9, alpha: 0.6) }; ghostNode?.opacity = 1.0 }
     func clearGhostStone() { ghostNode?.opacity = 0.0 }

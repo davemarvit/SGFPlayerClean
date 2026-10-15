@@ -8,6 +8,12 @@ import Combine
 
 class BoardViewModel: ObservableObject {
     @Published var isOnlineContext: Bool = false
+    @Published var moveError: String?
+    @Published var koPoint: BoardPosition?
+    var ruleSummary: String {
+        let name = engine.analysisSettings.rules ?? "Chinese (assumed)"
+        return name + " · " + (engine.analysisSettings.playRules?.summary ?? "Local rule checks unavailable")
+    }
     @Published var lastMovePosition: BoardPosition?
     @Published var currentMoveIndex: Int = 0
     @Published var stonesToRender: [RenderStone] = []
@@ -17,6 +23,7 @@ class BoardViewModel: ObservableObject {
     @Published var whiteCapturedCount: Int = 0
     @Published var isAutoPlaying: Bool = false
     @Published var totalMoves: Int = 0
+    @Published var territoryIsEstimate = false
     @Published var territoryPoints: [BoardPosition: Stone] = [:]
     @Published var aiAnalysisProgress: Double = 0.0
     
@@ -211,23 +218,15 @@ class BoardViewModel: ObservableObject {
                 return
             }
             
-            if pos.row < self.engine.board.grid.count, 
-               pos.col < self.engine.board.grid[0].count,
-               self.engine.board.grid[pos.row][pos.col] != nil {
-                NSLog("[Input] Ignored: Spot Occupied.")
-                return
-            }
-            
-            if self.engine.isSuicide(color: myColor, x: pos.col, y: pos.row) {
-                NSLog("[Input] Ignored: Suicide Move.")
-                return
-            }
-            
             let oldB = self.engine.blackStonesCaptured
             let oldW = self.engine.whiteStonesCaptured
             
             self.ghostPosition = nil
-            self.engine.playMoveOptimistically(color: myColor, x: pos.col, y: pos.row)
+            if let rejection = engine.tryPlayMove(color: myColor, x: pos.col, y: pos.row) {
+                moveError = rejection.rawValue
+                return
+            }
+            moveError = nil
             
             let newB = self.engine.blackStonesCaptured
             let newW = self.engine.whiteStonesCaptured
@@ -239,13 +238,11 @@ class BoardViewModel: ObservableObject {
             
             self.ogsClient.sendMove(gameID: self.ogsClient.activeGameID ?? 0, x: pos.col, y: pos.row)
         } else {
-             if pos.row < self.engine.board.grid.count, 
-                pos.col < self.engine.board.grid[0].count,
-                self.engine.board.grid[pos.row][pos.col] != nil {
+             if let rejection = engine.tryPlayMove(color: engine.turn, x: pos.col, y: pos.row) {
+                 moveError = rejection.rawValue
                  return
              }
-             if self.engine.isSuicide(color: self.engine.turn, x: pos.col, y: pos.row) { return }
-             self.engine.playMoveOptimistically(color: self.engine.turn, x: pos.col, y: pos.row)
+             moveError = nil
         }
         
         // Trigger background analysis sweep immediately after a move is registered (only if engine is running)
@@ -255,6 +252,8 @@ class BoardViewModel: ObservableObject {
     }
     
     func syncState() {
+        moveError = nil
+        koPoint = engine.koPoint
         let idx = self.engine.currentIndex
         NSLog("[OGS-UI-DEBUG] 🎨 syncState Entry. Index: \(idx). Online: \(isOnlineContext)")
         let last = self.engine.lastMove.flatMap { m -> BoardPosition? in
@@ -284,11 +283,13 @@ class BoardViewModel: ObservableObject {
         
         self.stonesToRender = safeList
         
+        territoryIsEstimate = false
         if isOnlineContext {
            let p = ogsClient.phase
            if (OGSScoring.isScoring(p) || p == "finished") && self.engine.currentIndex == self.engine.maxIndex {
-                let t = ogsClient.scoreSummary?.positions(width: snap.size, height: snap.size)
-                    ?? self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
+                let serverPositions = ogsClient.scoreSummary?.positions(width: snap.size, height: snap.size)
+                territoryIsEstimate = serverPositions == nil
+                let t = serverPositions ?? self.engine.calculateTerritory(deadStones: ogsClient.removedStones)
 
                 // Debug Territory
                 if !t.isEmpty {
@@ -383,6 +384,13 @@ class BoardViewModel: ObservableObject {
                 for i in 0...total {
                     try Task.checkCancellation()
                     
+                    // Do not build a large subprocess queue while the engine is still working.
+                    while KataGoEngine.shared.hasPendingAnalysis {
+                        try await Task.sleep(nanoseconds: 100_000_000)
+                        try Task.checkCancellation()
+                        guard KataGoEngine.shared.currentGameId == gameId else { return }
+                    }
+                    guard KataGoEngine.shared.isEngineRunning else { return }
                     let existingVisits = KataGoEngine.shared.currentAnalysisData[i]?.rootInfo?.visits ?? 0
                     if existingVisits >= depth {
                         completedOperations += 1
@@ -434,6 +442,10 @@ class BoardViewModel: ObservableObject {
         let p = ogsClient.phase ?? "unknown"
         if OGSScoring.isScoring(p) || p == "finished" || ogsClient.isGameFinished {
             self.ghostPosition = nil
+            return
+        }
+        guard let pos, engine.moveRejection(color: engine.turn, x: pos.col, y: pos.row) == nil else {
+            ghostPosition = nil
             return
         }
         self.ghostPosition = pos

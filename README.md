@@ -153,8 +153,20 @@ Chinese/6.5 defaults but labels that assumption in the analysis panel.
 
 These checks follow KataGo's official [analysis protocol](https://github.com/lightvector/KataGo/blob/master/docs/Analysis_Engine.md)
 and [configuration example](https://github.com/lightvector/KataGo/blob/master/cpp/configs/analysis_example.cfg).
-Tests use a temporary Python subprocess and fixture model file; they do not run the installed
-KataGo executable, use the GPU, or touch the working app's analysis caches.
+The unit tests use a temporary Python subprocess and fixture model file; they do not run the
+installed KataGo executable or touch the working app's analysis caches. A separate opt-in offline
+smoke test now exercises the installed Metal engine using the review model, production config,
+and a temporary directory for logs and engine data. On this machine, KataGo 1.16.4 completed 14
+queries across eight rule presets, ko, self-capture, and handicap positions. It excludes the ko
+recapture from candidate moves but tolerates illegal moves in supplied history; it must not be
+used as the app's move-legality validator.
+
+Query errors, warnings, and two-minute timeouts are visible while KataGo remains running. Failed
+positions are not automatically resubmitted until retry or a changed context; stale replies are
+ignored. Invalid numeric results are discarded. Background sweeps wait for pending work instead
+of filling the subprocess queue. Cached analyses retain rules warnings, and missing caches still
+update the metadata notice. Explicit custom legality/scoring settings that differ from a preset
+pause analysis instead of silently using that preset.
 
 The final-score header includes the winning name, color, and difference between OGS totals
 (for example, “Alice White wins by 6.5 points”). Equal totals show “Draw”; missing numeric scores
@@ -171,8 +183,9 @@ do not produce a fabricated margin.
   truncated histories, and edited online moves remain unsupported.
 - KataGo cache loading and validation remain synchronous. Rules presets are the engine's
   approximations of their respective rule sets, not a replacement for OGS's final score.
-- The fake subprocess validates process/pipe behavior, not model compatibility, GPU startup,
-  or performance of the installed KataGo engine. Live OGS and real-engine acceptance remain deferred.
+- The installed engine passed a small offline Metal/model smoke test, not prolonged analysis or
+  performance testing. Cache loading remains synchronous, and caches do not yet distinguish model
+  or executable replacements. Full app interaction and live OGS acceptance remain deferred.
 
 ## Local playback repairs
 
@@ -180,7 +193,55 @@ Local snapshots retain the viewed move index, initial player, state version, and
 Returning from online mode reconstructs that saved position and keeps the remaining moves
 available for playback. Clearing the board clears the last-move/turn state. Negative setup
 coordinates, group/territory positions, and playback indices are checked before array access.
-These changes use the existing move/capture implementation; they do not change Go rules.
+Replay and new-input validation now share one capture simulation. Saved records and
+server-confirmed history remain replayable; the new legality checks apply to user input.
+
+## Rules and ko
+
+New moves check bounds, occupied points, turn, self-capture, simple ko, and superko. Repetition
+history includes the initial position and is rebuilt on seek, restore, and undo. Passes do not
+increment capture lids or fail superko checks; passing during unfinished handicap placement is
+blocked. Historical-board clicks cannot append a move to a different live position. A forbidden
+ko recapture has a visible marker in both 2D and 3D; other rejected moves have explanatory text.
+Illegal hover moves no longer show a playable ghost stone.
+
+| Rule selection | Local repetition check | Self-capture | Analysis/scoring handling |
+| --- | --- | --- | --- |
+| Japanese / Korean | Simple ko | Forbidden | Territory/seki preset; OGS final score |
+| OGS Chinese / Chinese-OGS / Chinese-KGS | Positional superko | Forbidden | Area preset; OGS handicap adjustment |
+| AGA / BGA | Situational superko | Forbidden | Area preset; OGS final score |
+| NZ / New Zealand | Situational superko | Allowed | New Zealand preset approximation |
+| Tromp-Taylor | Positional superko | Allowed | Tromp-Taylor preset |
+| Stone-scoring | Simple ko | Forbidden | KataGo group-tax preset approximation |
+| Ing / unknown names | Unavailable, visibly indicated | Not locally adjudicated | Analysis disabled |
+
+Local SGF `Chinese` follows KataGo's `chinese` preset (simple ko); OGS Chinese uses positional
+superko. Missing metadata keeps the previously documented Chinese/6.5 assumptions. Explicit OGS
+self-capture and repetition flags override the named policy. These checks follow the official
+[Goban rule defaults](https://github.com/online-go/goban/blob/d7eb38eb4e9e1c48ace12befb98d9f3c821ec2f3/src/engine/GobanEngine.ts)
+and [KataGo preset definitions](https://github.com/lightvector/KataGo/blob/master/docs/GTP_Extensions.md).
+
+This is not a complete local referee or scoring engine. In particular:
+
+- Dead-group agreement, seki, bent-four/corner adjudication, territory taxes, and resumption rules
+  depend on OGS's scoring state. The fallback flood-fill overlay now explicitly says it is an
+  estimate; it cannot prove life/death or seki.
+- AGA pass stones, White passing last, handicap compensation, and end-of-game transitions are
+  server responsibilities. Lids deliberately count actual removed stones, not pass-stone or
+  end-of-game scoring adjustments. Two passes do not fabricate a local final score.
+- Japanese/Korean long-cycle no-result adjudication, Ing rules, and unusual custom repetition
+  schemes are not implemented locally. KataGo presets approximate national rules; in particular,
+  OGS self-capture handling and KataGo's multi-stone-suicide rule are not identical in every case.
+- The SGF loader is a playback loader, not a full editor: it does not faithfully represent all
+  variations, midgame setup/removal edits, or turn-changing properties. This pass does not rewrite
+  imported records or certify arbitrary recorded histories as legal.
+
+The rules tests include ko threats, pass/repetition differences, snapback, multi-group captures,
+self-capture, fixed/free handicap, and undo/seek restoration. Render a sample ko position offline:
+
+```sh
+python3 Tests/Preview/render_captures.py /private/tmp/sgfplayer-ko-preview.png ko
+```
 
 ## Capture lids
 
@@ -191,7 +252,10 @@ them. Black's lid contains captured white stones; White's contains captured blac
 
 The 2D lid no longer stops drawing at 35 captures. The 3D lid retains its stones when rebuilt or
 resized, uses a fixed stone size independent of board size, and spaces simultaneous captures to
-avoid starting with intersecting physics bodies. Both views show an exact numeric count, since
+avoid starting with intersecting physics bodies. The collision floor and walls are simplified,
+visual scaling is separated from the physics body, and new stones drop above the existing pile.
+Camera orbit/pan now moves the camera using an equivalent inverse transform instead of moving
+physics bodies; the original viewpoint is checked numerically. Both views show an exact numeric count, since
 stones in a pile can obscure each other. Offline tests inspect actual SceneKit nodes for color,
 count, size, spacing, resize, undo, and reset; the offscreen preview checks a 40-stone pile on 9x9:
 
@@ -199,8 +263,9 @@ count, size, spacing, resize, undo, and reset; the offscreen preview checks a 40
 python3 Tests/Preview/render_captures.py /private/tmp/sgfplayer-captures-preview.png
 ```
 
-The preview freezes the initial layout and omits invisible collision meshes. Interactive physics
-settling and camera movement remain part of the later app acceptance session.
+The preview freezes the initial layout and omits invisible collision meshes. The unit suite also advances the real SceneKit simulation: 80 stones through three board sizes,
+then camera orbit/pan and an increase to 100 captures, checking that stones remain inside the lids.
+Interactive app acceptance remains deferred.
 
 ## Build and automated validation
 
@@ -218,18 +283,23 @@ The root Swift package compiles the networking sources, OGSClient, shared models
 playback engine, SceneKit board scene, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 139 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 160 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
 server score parsing, local playback restoration/bounds, credential races, ordered move reconciliation,
-undo/handicap snapshots, capture lids, rules/komi propagation, and KataGo subprocess/cache isolation. They use fake sockets,
+undo/handicap snapshots, ko/superko/self-capture, capture-lid physics, rules/komi propagation, and KataGo subprocess/cache isolation. They use fake sockets,
 a controllable scheduler, and URLProtocol HTTP fixtures. Client tests exercise the production
 OGSClient with an ephemeral session and no shared cookies; every HTTP request is intercepted,
 and socket creation is injected. No production OGS connection is made by these tests. The loopback test compiles the production WebSocket transport
 and runs against a localhost-only Python standard-library fixture, exercising real text/binary
 delivery, sending, abrupt connection loss, reconnect, ping/pong, and disconnect. Neither suite
-uses OGS credentials or creates games.
+uses OGS credentials or creates games. To explicitly run the installed KataGo smoke test (uses
+Metal/GPU but no network, and keeps engine data in a temporary directory):
+
+```sh
+python3 Tests/Integration/run_katago.py --report /private/tmp/katago-offline-report.json
+```
 
 Keep the draft isolated while collecting these repairs. One combined acceptance session before
 merging or replacing the working app should verify local playback, login, challenge creation,

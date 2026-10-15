@@ -27,6 +27,18 @@ struct WinRateGraphView: View {
                 Text(notice).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if isAIAvailable, let warning = aiEngine.analysisWarning {
+                Text(warning).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if isAIAvailable, aiEngine.isEngineRunning, let error = aiEngine.analysisError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Retry analysis") {
+                    aiEngine.retryFailedAnalysis()
+                    vm.syncState()
+                }.font(.caption).buttonStyle(.bordered)
+            }
             if !isAIAvailable {
                 Text("AI Analysis Hidden (Live Game)")
                     .font(.caption)

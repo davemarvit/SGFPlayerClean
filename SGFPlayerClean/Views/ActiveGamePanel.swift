@@ -295,13 +295,12 @@ struct ActiveGamePanel: View {
                     
                     Button("Pass") {
                         if let id = app.ogsClient.activeGameID {
-                            SoundManager.shared.play("pass")
-                            
-                            // OPTIMISTIC UPDATE: Immediate feedback
-                            if let myColor = app.ogsClient.playerColor {
-                                app.boardVM?.handleRemotePass(color: myColor)
+                            guard let vm = app.boardVM, let myColor = app.ogsClient.playerColor else { return }
+                            if let rejection = vm.engine.tryPlayMove(color: myColor, x: -1, y: -1) {
+                                vm.moveError = rejection.rawValue
+                                return
                             }
-                            
+                            SoundManager.shared.play("pass")
                             app.ogsClient.sendPass(gameID: id)
                         }
                     }

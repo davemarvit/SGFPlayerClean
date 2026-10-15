@@ -203,6 +203,7 @@ struct ContentView3D: View {
         sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
         sceneManager.updateTerritory(points: bVM.territoryPoints)
+        sceneManager.updateKoMarker(at: bVM.koPoint)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
         sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
         
