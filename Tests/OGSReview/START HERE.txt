@@ -1,0 +1,90 @@
+SGF PLAYER — OGS REVIEW
+
+In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
+Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
+The working app and Offline Review app remain separate.
+The last selected tab is remembered on restart. With no saved tab, this OGS review
+opens in Play Online. Resignation and timeout leave a clean final board without
+territory dots or dead-stone shading; scored games keep their scoring markers.
+Score tables show only applicable components: Japanese rules omit Stones;
+area scoring omits Prisoners. Nonzero handicap adjustments are labeled
+Handicap compensation. Scores themselves are unchanged.
+The review app now has a wooden Go-board icon with one black and one white stone.
+Quit and reopen the review app to see its new Dock icon.
+
+FOUR MODES
+Play Online: your challenge lobby, with the existing board size, speed, rated,
+  and eligibility filters. Create or accept a challenge here. Lobby returns
+  to a fresh challenge list without resigning; Return to Game reopens your game.
+  Accepted/cancelled challenges disappear as their updates arrive.
+Local Play: place moves for both sides. New Game starts a fresh board.
+  Pass and playback controls are at the bottom. Review this game makes a
+  separate review copy.
+Observe: choose a live game, or enter its OGS link/ID. Browse games opens the
+  popup; Cancel or Escape closes it. Games returns to the list.
+  Games are ordered by the stronger player, with ranks, move count and time
+  control. Full clock settings load as rows appear. Scroll to load more.
+  The Select a Game picker refreshes every ten seconds while open, retaining
+  loaded batches and retrying unavailable clock settings automatically.
+Review: load saved SGFs and use playback. To add moves, choose Continue this
+  position in Local Play. Local Play and Review preserve separate positions
+  while switching modes within this session.
+
+AI analysis stays to the right and may overlap the lids so the board can stay
+larger. The overlay now extends further over the lids; 3D uses more of the left
+margin while AI is enabled. Playback controls remain clear of the AI panel.
+
+Spoken countdowns now start each number at its whole-second boundary: “3” near
+3.0 seconds remaining and “1” near 1.0, matching OGS. Clock values are unchanged.
+
+AI analysis is a separate toggle. It works in Local Play, Review, and Observe
+for other players' games. It is unavailable in Play Online and while your
+signed-in account has a known ongoing online game, even if you change modes.
+The AI graph stays to the right of the board. In a narrower window the game
+panel can cover it; close that panel with its X to reveal the graph. On wider
+windows both fit beside the board. Space below the graph holds analysis details.
+Observe is read-only. Play Online now permits actual game/challenge actions.
+
+The speaker beside your account controls applies to all app sounds. Click to
+mute/unmute; hold briefly or right-click to reveal the master volume slider.
+Mute preserves your previous volume. The slider preserves the separate stone
+and voice balance in Settings; raising it also unmutes. Mute stops current and
+pending sounds, including delayed 3D captures. Volume/mute persist in this app's
+own settings. In 3D the entire workspace now shares the scene's dark backdrop;
+2D retains its tatami.
+
+Your username and Log Out are at the top. Sign in from Play Online or Observe
+if needed. Login persists across restarts unless you log out or OGS expires
+it. Changing modes does not sign you out or close the OGS connection.
+
+UPDATED GAME CONTROLS
+Pass and Resign are next to each other. Resign asks before sending anything.
+If you rewind an online game, Return to latest move restores the live position.
+A dropped connection keeps the game panel open. Reconnect replaces Connected
+beneath your username in the top toolbar; Log Out is only in that toolbar.
+Undo requests can be declined or cancelled. Failed SGF downloads show an error.
+
+NEXT TEST
+1. Reopen this updated review app. Check your username at the top.
+2. Switch among the four modes; check the lobby filters and AI toggle.
+3. For a controlled online test, use your other account in the browser and
+   arrange an unranked game between your two accounts. Use Play Online in
+   this app to create or accept the matching challenge.
+4. Verify alternating moves, captures, passing, and scoring in 2D and 3D.
+   AI should remain unavailable until your online game ends.
+
+Only session cookies are saved, in this app's private data folder; no password
+is saved. No working-app credentials, settings, or library are imported.
+Unsaved local games are not automatically exported on quit.
+Network access is enabled here; the installed Offline Review app remains blocked.
+
+TECHNICAL NOTES
+Build: python3 Tests/OfflineReview/build_review.py --ogs-review
+Preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.ogs-review.plist
+Session: ~/Library/Application Support/com.davemarvit.SGFPlayerClean.ogs-review/SessionCookies.plist
+AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.ogs-review/AICache
+Reports: ../OGS Review/
+An embedded native guard blocks writes to the working checkout, original app,
+known original settings/caches, and offline-review app/settings/cache paths.
+Automated tests use fake credentials/games and network-denied UI probes.
+The developer has not initiated a live game during this update.

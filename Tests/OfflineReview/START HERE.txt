@@ -1,0 +1,113 @@
+SGF PLAYER — OFFLINE REVIEW
+
+TO LAUNCH
+In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
+Double-click "SGF Player Offline Review.app" there.
+You do not need Xcode or Terminal. Look for the orange OFFLINE REVIEW banner.
+Your working SGFPlayerClean app remains separate.
+
+The app now lives outside Documents so loading its bundled examples and engine
+resources does not require Documents access. Use this Applications copy rather
+than any older copy in the review folder. Opening your own protected folders
+may still require permission. Reports and exported Sample Games remain here.
+
+This app has fresh, separate settings and AI caches. OGS connections are
+blocked by macOS, and there is no Online tab. Wi-Fi can stay on.
+The existing KataGo installation is used locally; give it a moment to load.
+
+A QUICK FIRST TEST
+1. The bundled ko example opens paused. Advance one move using the playback
+   controls. Black captures one white stone: the capture count and lid should
+   both show one, and the empty B8 point should have a soft red marker.
+2. Try to put White back at B8. The app should refuse immediate recapture.
+3. Step backward: that capture should disappear from the count and lid.
+4. Switch between 2D and 3D. Rotate the 3D board and watch the lid stone.
+5. Open the right sidebar using the panel icon at the upper right, then choose
+   AI. Analysis is enabled only on the AI tab; opening another SGF selects Local.
+   Candidate moves and the analysis graph should appear for the displayed position.
+
+MOVE SLIDER
+While dragging, the board and capture lids preview the position together at a
+limit of five updates per second. Release applies the exact selected move. Preview moves are
+silent and new AI requests wait until release. Your source SGF is never rewritten.
+
+The on-screen back/forward arrows move one move per click. Hold Shift while
+clicking to move ten moves, just like Shift + Left/Right Arrow on the keyboard.
+This works in both 2D and 3D.
+
+LOCAL FINAL SCORING
+Local play now has a Pass button beside the playback controls in 2D and 3D.
+Pause playback and go to the last recorded move to enable it. Passing changes
+the turn without adding or removing stones. You can rewind and replay passes.
+After two passes, the scoring sidebar opens automatically.
+
+1. Select "05 Japanese scoring" in the Local list (or open it from Sample Games).
+2. Click Pass twice. The sidebar changes to Review score.
+3. Click either of the two white stones at the upper-left corner (A9 or A8).
+   Both should fade. Soft black and white dots show each player's territory;
+   empty points without dots are neutral.
+4. Check Black 24, White 33.5, then click Confirm score.
+   Final Score should say "Alice [White] wins by 9.5 points".
+5. Edit scoring lets you change the marks; Resume play restores the board for
+   normal moves. Rewinding hides scoring marks; returning to the end restores
+   the review, including a confirmed result.
+
+Clicking any stone toggles its connected group. Neutral areas mode lets you
+exclude an empty region from territory (click again to restore it), including
+eyes in Japanese/Korean seki. Life and death are reviewed by you, not decided
+automatically. Verify rules and komi before confirming; missing/unsupported
+rules or missing/invalid komi require an explicit choice.
+
+"06 New Zealand scoring" uses the same position with area scoring and 7 komi.
+After marking the same white group, Black has 36 and White 43: Alice wins by 7.
+Captured stones and marked-dead stones are not added again under area scoring.
+The lids keep actual captures; scoring-only dead stones appear in the score
+breakdown. Marks/results stay in memory for this review session; SGFs are not
+rewritten. Changing games or quitting clears the local review.
+
+SCORING DISPLAY EXAMPLES
+Click "Score examples…" at the right of the orange banner.
+The first example should say "Final Score" beside "Alice [White] wins by
+6.5 points", with totals Black 29 and White 35.5.
+Use the Example menu to check a Black win, draw, fractional score, and a
+game with no numeric score. Edit the player names to try long or empty names.
+The earlier-position toggle shows the notice used when reviewing past moves
+after a game has finished. Click Done (or Escape) to return to your board.
+These are illustrative display examples; they do not score or change your game.
+
+PLAYBACK SPEED AND SOUND
+Settings > Move Delay controls the time between moves (smaller is faster).
+Changes apply while playing; changing it while paused does not start playback.
+Settings > Stone Volume controls both placement and capture audio.
+
+MORE EXAMPLES
+Select examples in the Local list. They stay paused until you press Play.
+The two self-capture examples deliberately start with the same stones and have
+no recorded moves to play back. To see the difference, manually click B9 as
+Black: the empty second intersection from the left in the top row. This fills
+the black group's last liberty (its last adjacent empty point).
+- Two stone handicap: starts with two black stones and White to move.
+- Japanese self capture: try Black at B9 (second point in the top row).
+  The move should be rejected.
+- New Zealand self capture: the same move is permitted; two black stones
+  disappear and White's captured count increases by two.
+
+YOUR OWN SGF FILE
+Use File > Open SGF File... (Command-O). Opening a file reads it; it does not
+rewrite it. You can use a copy if you prefer. The menu loads it paused.
+
+The review app does not yet simulate the OGS end-game scoring exchange.
+Local territory remains an estimate; live scoring acceptance and final-score
+synchronization are still reserved for a later OGS test.
+
+IF SOMETHING LOOKS WRONG
+Note which example or file, the move number, 2D or 3D, and what you saw.
+A screenshot helps, but no repeated test sequence is required.
+Quit this app with Command-Q when finished; launch your usual app normally.
+
+TECHNICAL NOTES
+Review preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.offline-review.plist
+Review AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.offline-review/AICache
+No working-app preferences, cookies, saved library, or caches are copied in.
+The network block is embedded in the app; it does not depend on a launcher.
+This package is prepared for this Mac; rebuild it before using on another Mac.

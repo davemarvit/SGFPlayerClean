@@ -1,0 +1,6 @@
+Final artwork: sgf-player-icon-v3.png
+Built-in image-generation edit of sgf-player-icon-v2.png, October 15, 2026.
+
+Use case: precise-object-edit.
+Edit this macOS Go app icon with exactly two targeted corrections. 1. Change the wood grain on the board face to run vertically from bottom to top, parallel to the vertical grid lines, instead of horizontally. Preserve the warm honey-gold wood color and fine natural grain. 2. Make the grid cells visibly but subtly rectangular: vertical spacing between horizontal lines should be approximately 1.08 times the horizontal spacing between vertical lines (cells about 8 percent taller than wide). Keep lines regularly spaced in each direction; slightly reduce horizontal spacing and adjust stones very slightly as necessary so both stones remain centered on grid intersections.
+Preserve the overall rounded-square app-icon silhouette, canvas size, two large stones (black upper left, white lower right), stone shape, polished material, lighting, colors, line weight, camera angle, bevel and quiet minimal composition. Do not rotate the whole icon or swap the stones. The requested change is grain direction and grid proportions only. True alpha transparency outside the board with clean edges; no text, no extra objects.

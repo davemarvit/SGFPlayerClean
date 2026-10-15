@@ -9,16 +9,89 @@
 import SwiftUI
 import SceneKit // Added for StoneLab
 
+#if SGF_OFFLINE_REVIEW
+// Linked only by the offline packaging script. A review build cannot link without its guard.
+@_silgen_name("sgf_install_offline_guard")
+private func installOfflineGuard()
+
+@MainActor private func makeOfflineReviewModel() -> AppModel {
+    installOfflineGuard() // Fail closed, before any settings, clients, or engines are created.
+    let model = AppModel()
+    // A fresh review opens with small bundled examples, without borrowing the working library.
+    if AppSettings.shared.folderURL == nil,
+       let folder = Bundle.main.resourceURL?.appendingPathComponent("Review Games"),
+       let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
+        model.games = files.filter { $0.pathExtension == "sgf" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.compactMap {
+            guard let text = try? String(contentsOf: $0), let tree = try? SGFParser.parse(text: text) else { return nil }
+            return SGFGameWrapper(url: $0, game: SGFGame.from(tree: tree))
+        }
+        if let first = model.games.first { model.selectGame(first) }
+    }
+    return model
+}
+#endif
+
+#if SGF_OGS_REVIEW
+@_silgen_name("sgf_install_ogs_review_guard")
+private func installOGSReviewGuard()
+
+@MainActor private func makeOGSReviewModel() -> AppModel {
+    installOGSReviewGuard()
+    let model = AppModel(defaultMode: .playOnline)
+    model.showRightPanel = true
+    return model
+}
+#endif
+
 @main
 struct SGFPlayerCleanApp: App {
     // Single source of truth for the entire application lifecycle
-    @StateObject private var appModel = AppModel()
+    #if SGF_OFFLINE_REVIEW
+    @StateObject private var appModel = makeOfflineReviewModel()
+    @State private var showScoringReview = false
+    #elseif SGF_OGS_REVIEW
+    @StateObject private var appModel = makeOGSReviewModel()
+    #else
+    @StateObject private var appModel = AppModel(defaultMode: .playOnline)
+    #endif
 
     var body: some Scene {
         WindowGroup {
+            #if SGF_OFFLINE_REVIEW
+            VStack(spacing: 0) {
+                HStack {
+                    Text("OFFLINE REVIEW • OGS connections blocked • Separate settings")
+                    Spacer()
+                    Button("Score examples…") { showScoringReview = true }
+                }
+                .font(.caption).padding(6).frame(maxWidth: .infinity)
+                .background(Color.orange.opacity(0.2))
+                ContentView()
+            }
+                .environmentObject(appModel)
+                .frame(minWidth: 1000, minHeight: 700)
+                .sheet(isPresented: $showScoringReview) { OfflineScoringReview() }
+            #elseif SGF_OGS_REVIEW
+            VStack(spacing: 0) {
+                HStack {
+                    Text("OGS REVIEW • Separate app and settings")
+                    Spacer()
+
+                }
+                .font(.caption).padding(6).background(Color.blue.opacity(0.2))
+                if let error = appModel.ogsClient.lastError {
+                    Text(error).font(.caption).foregroundColor(.orange).padding(4)
+                }
+                ContentView()
+            }
+            .environmentObject(appModel)
+            .frame(minWidth: 1000, minHeight: 700)
+
+            #else
             ContentView()
                 .environmentObject(appModel)
                 .frame(minWidth: 1000, minHeight: 700)
+            #endif
 //            StoneLaboratoryView()
 //                .frame(minWidth: 800, minHeight: 600)
         }
@@ -45,10 +118,20 @@ struct SGFPlayerCleanApp: App {
         panel.begin { response in
             if response == .OK, let url = panel.url {
                 print("📂 Selected file: \(url.path)")
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("LoadSGFFile"),
-                    object: url
-                )
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    let text = try String(contentsOf: url)
+                    let wrapper = SGFGameWrapper(url: url, game: SGFGame.from(tree: try SGFParser.parse(text: text)))
+                    appModel.boardVM?.stopAutoPlay()
+                    appModel.mode = .review
+                    appModel.selectGame(wrapper)
+                } catch {
+                    let alert = NSAlert()
+                    alert.messageText = "Could not open SGF"
+                    alert.informativeText = error.localizedDescription
+                    alert.runModal()
+                }
             }
         }
     }

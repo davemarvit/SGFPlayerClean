@@ -1,0 +1,8 @@
+Generated with the built-in image-generation tool, October 15, 2026.
+
+Use case: stylized-concept
+Asset type: macOS application icon for SGF Player, a refined Go board game and review app. Square 1024 by 1024 canvas.
+Primary request: A beautifully simple, tactile macOS app icon: a warm honey-gold wooden Go board tile with softly rounded square corners, a sparse precise dark Go grid, and exactly two large convex Go stones, one polished charcoal black and one creamy shell white. The stones sit at separate grid intersections diagonally near the center, black upper left and white lower right, not overlapping. Grid lines pass beneath the stones. The stones should be the main recognizable shapes at small Dock sizes.
+Composition: nearly top-down view, square board face aligned with canvas, subtle dimensional bevel, generous clean silhouette. Board tile occupies about 86 percent of canvas width, centered. Fine restrained natural wood grain, soft upper-left light, realistic restrained stone highlights, tiny contact shadows. Elegant, quiet, abstract simplicity consistent with the game of Go.
+Background: truly transparent outside the rounded board tile, including canvas corners; a very subtle soft shadow only close to the tile.
+Constraints: no letters, no numbers, no text, no logos, no badges, no extra stones, no bowls, no tatami, no surrounding scene, no thick border. Do not draw a full dense 19x19 board: a legible cropped grid of about five lines in each direction is enough.

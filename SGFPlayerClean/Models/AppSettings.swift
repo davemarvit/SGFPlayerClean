@@ -19,16 +19,40 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(startGameOnLaunch, forKey: "startGameOnLaunch") }
     }
     @Published var isMuted: Bool {
-        didSet { UserDefaults.standard.set(isMuted, forKey: "isMuted") }
+        didSet {
+            UserDefaults.standard.set(isMuted, forKey: "isMuted")
+            SoundManager.shared.applyAudioSettings()
+        }
     }
     @Published var voiceVolume: Double {
         didSet { 
             UserDefaults.standard.set(voiceVolume, forKey: "voiceVolume");
-            SoundManager.shared.setVolume(Float(voiceVolume))
+            SoundManager.shared.applyAudioSettings()
         }
     }
     @Published var stoneVolume: Double {
         didSet { UserDefaults.standard.set(stoneVolume, forKey: "stoneVolume") }
+    }
+
+    @Published var masterVolume: Double {
+        didSet {
+            UserDefaults.standard.set(masterVolume, forKey: "masterVolume")
+            if masterVolume > 0 { UserDefaults.standard.set(masterVolume, forKey: "lastAudibleMasterVolume") }
+            SoundManager.shared.applyAudioSettings()
+        }
+    }
+    var effectiveStoneVolume: Double { isMuted ? 0 : stoneVolume * masterVolume }
+    var effectiveVoiceVolume: Double { isMuted ? 0 : voiceVolume * masterVolume }
+    var soundIsSilent: Bool { isMuted || masterVolume == 0 }
+
+    func toggleSound() {
+        if soundIsSilent {
+            if masterVolume == 0 {
+                let previous = UserDefaults.standard.double(forKey: "lastAudibleMasterVolume")
+                masterVolume = previous > 0 ? min(1, previous) : 1
+            }
+            isMuted = false
+        } else { isMuted = true }
     }
 
     // MARK: - Visuals
@@ -76,6 +100,14 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(panelDiffusiveness, forKey: "panelDiffusiveness") }
     }
     
+    // MARK: - AI Settings
+    @Published var customKataGoPath: String {
+        didSet { UserDefaults.standard.set(customKataGoPath, forKey: "customKataGoPath") }
+    }
+    @Published var customAIModelPath: String {
+        didSet { UserDefaults.standard.set(customAIModelPath, forKey: "customAIModelPath") }
+    }
+    
     @Published var folderURL: URL? {
         didSet {
             if let url = folderURL {
@@ -110,6 +142,7 @@ class AppSettings: ObservableObject {
         self.shuffleGameOrder = UserDefaults.standard.bool(forKey: "shuffleGameOrder")
         self.startGameOnLaunch = UserDefaults.standard.bool(forKey: "startGameOnLaunch")
         self.isMuted = UserDefaults.standard.bool(forKey: "isMuted")
+        self.masterVolume = UserDefaults.standard.object(forKey: "masterVolume") as? Double ?? 1
         // Volume Init
         let vVol = UserDefaults.standard.object(forKey: "voiceVolume") as? Double
         self.voiceVolume = (vVol == nil) ? 1.0 : vVol!
@@ -126,11 +159,15 @@ class AppSettings: ObservableObject {
         self.panelDiffusiveness = UserDefaults.standard.object(forKey: "panelDiffusiveness") as? Double ?? 0.8
 
         // Load 3D Defaults (or Natural Perspective if empty)
-        self.camera3DRotationX = UserDefaults.standard.object(forKey: "cam3D.rotX") as? Double ?? 0.75
+        self.camera3DRotationX = UserDefaults.standard.object(forKey: "cam3D.rotX") as? Double ?? 0.45
         self.camera3DRotationY = UserDefaults.standard.object(forKey: "cam3D.rotY") as? Double ?? 0.0
         self.camera3DDistance = UserDefaults.standard.object(forKey: "cam3D.dist") as? Double ?? 25.0
         self.camera3DPanX = UserDefaults.standard.object(forKey: "cam3D.panX") as? Double ?? 0.0
         self.camera3DPanY = UserDefaults.standard.object(forKey: "cam3D.panY") as? Double ?? 0.0
+
+        // AI System Defaults
+        self.customKataGoPath = UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago"
+        self.customAIModelPath = UserDefaults.standard.string(forKey: "customAIModelPath") ?? ""
 
         if let data = UserDefaults.standard.data(forKey: "folderURLBookmark") {
             var isStale = false
@@ -206,16 +243,20 @@ class SoundManager: ObservableObject {
         print("[SoundManager] 🏁 Preload Complete. Loaded \(loadedCount)/\(sounds.count) sounds.")
     }
     
-    func setVolume(_ vol: Float) {
-        for p in players.values { p.volume = vol }
+    func applyAudioSettings() {
+        let settings = AppSettings.shared
+        for player in players.values {
+            player.volume = Float(settings.effectiveVoiceVolume)
+            if settings.soundIsSilent { player.stop(); player.currentTime = 0 }
+        }
     }
     
     func play(_ name: String) {
-        if AppSettings.shared.isMuted { return }
+        if AppSettings.shared.soundIsSilent { return }
         
         guard let player = players[name] else { return }
-        if player.volume != Float(AppSettings.shared.voiceVolume) {
-            player.volume = Float(AppSettings.shared.voiceVolume)
+        if player.volume != Float(AppSettings.shared.effectiveVoiceVolume) {
+            player.volume = Float(AppSettings.shared.effectiveVoiceVolume)
         }
         
         if player.isPlaying {
@@ -225,6 +266,17 @@ class SoundManager: ObservableObject {
         player.play()
     }
     
+    /// Speak at the whole-second boundary, matching OGS's ceil-based countdown.
+    /// E.g. 3.9 seconds belongs to "4", and "3" starts at 3.0, not 3.9.
+    static func countdownSecond(remaining: TimeInterval) -> Int? {
+        guard remaining.isFinite, remaining > 0, remaining <= 10 else { return nil }
+        return Int(ceil(remaining))
+    }
+
+    func playCountdown(remaining: TimeInterval) {
+        playCountdown(Self.countdownSecond(remaining: remaining) ?? 0)
+    }
+
     func playCountdown(_ number: Int) {
         // Debounce: Don't repeat the same number
         guard lastPlayedCountdown != number else { return }

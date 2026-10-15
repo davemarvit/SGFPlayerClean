@@ -8,6 +8,7 @@ import Combine
 
 struct ContentView3D: View {
     @EnvironmentObject var app: AppModel
+    @Environment(\.boardControlsWidth) private var controlsWidth
     @StateObject private var sceneManager = SceneManager3D()
     @FocusState private var isBoardFocused: Bool
     
@@ -17,6 +18,14 @@ struct ContentView3D: View {
     @State private var distance: CGFloat
     @State private var panX: CGFloat
     @State private var panY: CGFloat
+    
+    private let boardAspectRatio: CGFloat = 1.0773
+    private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
+        let totalWFactor: CGFloat = 1.30 
+        let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
+        let bW = bH / boardAspectRatio
+        return (bW, bH, bH / 3.0, bW / 19.0)
+    }
     
     init() {
         let settings = AppSettings.shared
@@ -30,8 +39,12 @@ struct ContentView3D: View {
     var body: some View {
         ZStack {
             if let bVM = app.boardVM {
-                UnifiedInteractiveSceneView(
-                    scene: sceneManager.scene,
+                GeometryReader { geo in
+                    // Keep board and both lids within the reserved viewport even
+                    // when AI narrows it. Camera gestures/preferences stay intact.
+                    let sceneHeight = min(geo.size.height, geo.size.width / 1.3)
+                    UnifiedInteractiveSceneView(
+                        scene: sceneManager.scene,
                     cameraNode: sceneManager.cameraNode,
                     rotationX: $rotX,
                     rotationY: $rotY,
@@ -61,20 +74,73 @@ struct ContentView3D: View {
                         saveViewport()
                     }
                 )
+                .frame(width: geo.size.width * 1.4, height: sceneHeight)
+                // With analysis over the lids, use more of the left margin to keep
+                // the enlarged board clear of the overlay, including portrait windows.
+                .offset(x: -(geo.size.width * (app.isAIAvailable ? 0.32 : 0.29)), y: (geo.size.height - sceneHeight) / 2)
+                }
                 .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 0) {
-                    HStack(spacing: 0) {
-                        Color.clear.allowsHitTesting(false)
-                        RightPanelView().frame(width: 320)
-                    }
                     Spacer()
                     PlaybackControlsView(boardVM: bVM).padding(.bottom, 25)
+                        .frame(width: controlsWidth)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: bVM.ghostPosition) { _, _ in updateScene() }
                 .onChange(of: bVM.ghostColor) { _, _ in updateScene() }
+                
+                // Floating Metadata + AI Table (Aligned identically to 2D)
+                if !app.isAIAvailable, let game = app.selection {
+                    GeometryReader { geo in
+                        let L = getLayout(area: geo.size)
+                        let margin = L.bW * 0.065
+                        
+                        VStack(spacing: 0) {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                HStack(alignment: .top, spacing: L.gap) {
+                                    Color.clear.frame(width: L.bW, height: L.bH) // Fake Board
+                                VStack(spacing: 0) {
+                                    Color.clear.frame(width: L.lidD, height: L.lidD).padding(.top, margin - (L.lidD / 2))
+                                    
+                                    HStack(alignment: .center, spacing: 12) {
+                                        LocalGameMetadataView(game: game, boardVM: bVM, isOverlay: true)
+                                            .scaleEffect(0.9)
+                                            .fixedSize()
+                                        
+
+                                    }
+                                    .frame(width: L.lidD, alignment: .leading)
+                                    .offset(y: -45)
+                                    .frame(height: 80)
+                                    
+                                    Spacer()
+                                    Color.clear.frame(width: L.lidD, height: L.lidD).padding(.bottom, margin - (L.lidD / 2))
+                                }
+                                .frame(height: L.bH)
+                                }
+                                .frame(width: L.bW + L.gap + L.lidD)
+                                .padding(.trailing, 100) // Nudge
+                                
+                                Spacer()
+                            }
+                            Spacer()
+                            
+                            // Emulate 2D bottom constraint exactly so Spacers share identical math
+                            PlaybackControlsView(boardVM: bVM)
+                                .padding(EdgeInsets(top: 0, leading: 0, bottom: 25, trailing: 0))
+                                .opacity(0)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+
             }
         }
+        .background(Color(nsColor: SceneManager3D.backgroundColor))
         .focused($isBoardFocused)
         .keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         .onAppear {
@@ -84,6 +150,7 @@ struct ContentView3D: View {
         .onReceive(app.boardVM?.onRequestUpdate3D ?? PassthroughSubject<Void, Never>()) { _ in updateScene() }
         .onReceive(AppSettings.shared.$showBoardGlow) { _ in DispatchQueue.main.async { updateScene() } }
         .onReceive(AppSettings.shared.$showEnhancedGlow) { _ in DispatchQueue.main.async { updateScene() } }
+        .onReceive(KataGoEngine.shared.objectWillChange) { _ in DispatchQueue.main.async { updateScene() } }
         // Fallback for other settings
         .onReceive(AppSettings.shared.objectWillChange) { _ in DispatchQueue.main.async { updateScene() } }
         
@@ -104,11 +171,21 @@ struct ContentView3D: View {
         // Dynamic Resize Check
         sceneManager.updateBoardSize(bVM.boardSize) // Ensure 3D matches 2D physics
         
-        sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared)
+        sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
         sceneManager.updateTerritory(points: bVM.territoryPoints)
+        sceneManager.updateKoMarker(at: bVM.koPoint)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
         sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
+        
+        // AI Hints
+        let isAIAvailable = app.isAIAvailable && !bVM.localScoringVisible
+        let turn = bVM.currentMoveIndex
+        let analysis = KataGoEngine.shared.currentAnalysisData[turn]
+        let moves = analysis?.moveInfos ?? []
+        let root = analysis?.rootInfo
+        let nextMove = bVM.engine.nextHistoricalMovePosition
+        sceneManager.updateAIHints(moves: moves, isAvailable: isAIAvailable, root: root, nextMove: nextMove)
     }
     
     private func saveViewport() {
@@ -128,7 +205,7 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> UnifiedSCNView {
         let v = UnifiedSCNView()
-        v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = .black; v.antialiasingMode = .multisampling4X; v.allowsCameraControl = false
+        v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = SceneManager3D.backgroundColor; v.antialiasingMode = .multisampling4X; v.allowsCameraControl = false
         // v5.100: Explicitly request best resolution for Retina hit-testing accuracy
         v.wantsBestResolutionOpenGLSurface = true
         v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }
@@ -140,6 +217,13 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
         v.scene = scene; v.pointOfView = cameraNode
         v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }
         UnifiedInteractiveSceneView.lastActiveView = v
+    }
+
+    static func dismantleNSView(_ v: UnifiedSCNView, coordinator: ()) {
+        v.isPlaying = false
+        v.onInteraction = nil
+        v.scene = nil
+        if lastActiveView === v { lastActiveView = nil }
     }
     
     private func handleInteraction(event: UnifiedSCNView.EventType, point: CGPoint, context: Context) {

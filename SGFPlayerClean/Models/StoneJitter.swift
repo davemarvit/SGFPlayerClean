@@ -10,7 +10,7 @@ class StoneJitter {
         var pushStrength: CGFloat = 0.5
     }
     
-    private let boardSize: Int
+    private var boardSize: Int
     private var eccentricity: CGFloat
     private var sigma: CGFloat
     private var clamp: CGFloat
@@ -18,14 +18,11 @@ class StoneJitter {
     private var pushStrength: CGFloat
     private let cellAspectRatio: CGFloat = 23.7 / 22.0
     
-    private var initialJitter: [[CGPoint?]]
     private var finalOffsets: [[CGPoint?]]
-    private var lastPreparedMove: Int = .min
     
     init(boardSize: Int = 19, eccentricity: CGFloat = 1.0) {
         self.boardSize = boardSize
         self.eccentricity = eccentricity
-        self.initialJitter = Array(repeating: Array(repeating: nil, count: boardSize), count: boardSize)
         self.finalOffsets = Array(repeating: Array(repeating: nil, count: boardSize), count: boardSize)
         
         let preset = Preset()
@@ -38,15 +35,66 @@ class StoneJitter {
     // History for physics persistence
     private var history: [Int: [[CGPoint?]]] = [:]
     
-    func prepare(forMove moveIndex: Int, stones: [BoardPosition: Stone]) {
+    private struct Placement: Equatable {
+        let color: Stone
+        let x: Int
+        let y: Int
+    }
+    private var sourceSetup: [Placement] = []
+    private var sourceMoves: [Placement]?
+    private var replay: SGFPlayer?
+
+    /// Layout belongs to the recorded history, not the sequence of frames the user saw.
+    /// Build missing frames in order without publishing them to the app or requesting AI.
+    func prepare(player: SGFPlayer) {
+        let snapshot = player.createSnapshot()
+        if snapshot.size != boardSize {
+            boardSize = snapshot.size
+            clearAll()
+        }
+        let setup = snapshot.setup.map { Placement(color: $0.0, x: $0.1, y: $0.2) }
+            .sorted { ($0.y, $0.x, $0.color.rawValue) < ($1.y, $1.x, $1.color.rawValue) }
+        let moves = snapshot.moves.map { Placement(color: $0.0, x: $0.1?.0 ?? -1, y: $0.1?.1 ?? -1) }
+        if replay == nil || setup != sourceSetup || moves != sourceMoves {
+            if setup == sourceSetup, let oldMoves = sourceMoves {
+                let sharedCount = zip(oldMoves, moves).prefix { $0 == $1 }.count
+                // Preserve the unchanged prefix; discard changed/undone future positions.
+                history = history.filter { $0.key <= sharedCount }
+            } else {
+                history.removeAll()
+            }
+            sourceSetup = setup
+            sourceMoves = moves
+            var game = SGFGame()
+            game.boardSize = snapshot.size
+            game.setup = snapshot.setup
+            game.moves = snapshot.moves
+            game.initialPlayer = snapshot.initialPlayer
+            let player = SGFPlayer()
+            player.load(game: game)
+            replay = player
+            if let last = history.keys.max() { player.seek(to: last) }
+        }
+        guard let replay else { return }
+        let target = max(0, min(snapshot.currentIndex, moves.count))
+        if let cached = history[target] {
+            finalOffsets = cached
+            return
+        }
+        if history[0] == nil { prepareFrame(forMove: 0, stones: replay.board.stones) }
+        while replay.currentIndex < target {
+            replay.stepForward()
+            prepareFrame(forMove: replay.currentIndex, stones: replay.board.stones)
+        }
+    }
+
+    private func prepareFrame(forMove moveIndex: Int, stones: [BoardPosition: Stone]) {
         // If we already have a calculated state for this exact move index (e.g. undo/redo), reuse it.
         if let cachedFrame = history[moveIndex] {
             finalOffsets = cachedFrame
-            lastPreparedMove = moveIndex
             return
         }
         
-        lastPreparedMove = moveIndex
         
         // 1. Initialize Current Offsets
         var currentOffsets: [[CGPoint?]] = Array(repeating: Array(repeating: nil, count: boardSize), count: boardSize)
@@ -77,7 +125,9 @@ class StoneJitter {
             var nextActiveStones: Set<BoardPosition> = []
             
             // Process currently active stones
-            for pos in activeStones {
+            // Set iteration order changes between instances/processes. A stable order
+            // keeps collision corrections reproducible after seeking or rebuilding.
+            for pos in activeStones.sorted(by: { ($0.row, $0.col) < ($1.row, $1.col) }) {
                 guard let current = workingOffsets[pos.row][pos.col] else { continue }
                 
                 // Resolve against neighbors
@@ -180,7 +230,9 @@ class StoneJitter {
     
     func clearAll() {
         // Clear cache and history
-        lastPreparedMove = .min
+        replay = nil
+        sourceMoves = nil
+        sourceSetup = []
         history.removeAll()
         finalOffsets = Array(repeating: Array(repeating: nil, count: boardSize), count: boardSize)
     }

@@ -11,6 +11,9 @@ struct KeyboardShortcutsModifier: ViewModifier {
         content.focusable().onKeyPress { press in
             // CRITICAL: If user is typing in chat, IGNORE all shortcuts.
             guard !appModel.isTypingInChat else { return .ignored }
+            // Native text fields use an NSTextView field editor. This also covers
+            // numeric challenge/settings fields without individual focus flags.
+            if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isEditable { return .ignored }
             
             let isShift = press.modifiers.contains(.shift)
             switch press.key {

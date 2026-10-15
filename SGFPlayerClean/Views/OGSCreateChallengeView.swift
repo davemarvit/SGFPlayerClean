@@ -7,6 +7,7 @@ struct OGSCreateChallengeView: View {
     @State private var setup = ChallengeSetup.load()
     @State private var isSending = false
     @State private var errorMessage: String?
+    @State private var requestID: UUID?
     
     // Fix: Track focus to disable global shortcuts when typing name.
     @FocusState private var isNameFocused: Bool
@@ -15,6 +16,9 @@ struct OGSCreateChallengeView: View {
         VStack(spacing: 0) {
             headerSection
             Divider().background(Color.white.opacity(0.2))
+            if let error = setup.validationError {
+                Text(error).font(.caption).foregroundColor(.orange).padding(10)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     gameInfoSection
@@ -30,17 +34,21 @@ struct OGSCreateChallengeView: View {
         }
         // Bind Focus State to AppModel to disable global shortcuts
         .onChange(of: isNameFocused) { focused in app.isTypingInChat = focused }
-        .onDisappear { app.isTypingInChat = false }
+        .onDisappear { app.isTypingInChat = false; requestID = nil }
     }
     
     private var headerSection: some View {
         HStack {
-            Button(action: { isPresented = false }) { Text("Cancel").foregroundColor(.white.opacity(0.8)) }.buttonStyle(.plain)
+            Button(isSending ? "Close" : "Cancel", role: .cancel) { isPresented = false }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.cancelAction)
+                .help(isSending ? "Close this form. The challenge request has already been sent." : "Close without issuing a challenge")
             Spacer(); Text("Challenge").font(.headline).foregroundColor(.white); Spacer()
             Button(action: submitChallenge) {
                 if isSending { ProgressView().controlSize(.small) }
                 else { Text("Issue").fontWeight(.bold).foregroundColor(.white) }
-            }.buttonStyle(.borderedProminent).tint(.green).disabled(isSending)
+            }.buttonStyle(.borderedProminent).tint(.green)
+                .disabled(isSending || setup.validationError != nil || !app.ogsClient.isSocketAuthenticated)
         }.padding().background(Color.black.opacity(0.1))
     }
     
@@ -141,23 +149,34 @@ struct OGSCreateChallengeView: View {
                 HStack {
                     Text("Min: \(formatRank(setup.minRank))")
                     Spacer()
-                    Stepper("", value: $setup.minRank, in: 0...setup.maxRank).labelsHidden()
+                    Stepper("", value: $setup.minRank, in: 0...min(38, max(0, setup.maxRank))).labelsHidden()
                 }
                 HStack {
                     Text("Max: \(formatRank(setup.maxRank))")
                     Spacer()
-                    Stepper("", value: $setup.maxRank, in: setup.minRank...38).labelsHidden()
+                    Stepper("", value: $setup.maxRank, in: min(38, max(0, setup.minRank))...38).labelsHidden()
                 }
             }.padding()
         }
     }
 
     private func submitChallenge() {
+        guard !isSending, setup.validationError == nil, app.ogsClient.isSocketAuthenticated else { return }
         // Reset typing flag when submitting
         app.isTypingInChat = false
         setup.save(); isSending = true; errorMessage = nil
-        app.ogsClient.createChallenge(setup: setup) { success, _ in
-            DispatchQueue.main.async { self.isSending = false; if success { isPresented = false } else { errorMessage = "Creation failed" } }
+        let id = UUID(); requestID = id
+        app.ogsClient.createChallenge(setup: setup) { success, errorDetail in
+            DispatchQueue.main.async {
+                guard requestID == id else { return }
+                requestID = nil
+                self.isSending = false
+                if success { 
+                    self.isPresented = false 
+                } else { 
+                    self.errorMessage = "Failed: \(errorDetail ?? "Unknown error")" 
+                } 
+            }
         }
     }
     private func formatRank(_ val: Int) -> String { val < 30 ? "\(30 - val)k" : "\(val - 29)d" }
@@ -183,7 +202,7 @@ struct OGSCreateChallengeView: View {
                         get: { value / 60 },
                         set: {
                             let oldSecs = value % 60
-                            value = ($0 * 60) + oldSecs
+                            value = (min(Int.max / 60 - 1, max(0, $0)) * 60) + max(0, oldSecs)
                         }
                     )
                     HStack(spacing: 2) {
@@ -199,7 +218,7 @@ struct OGSCreateChallengeView: View {
                         get: { value % 60 },
                         set: {
                             let oldMins = value / 60
-                            value = (oldMins * 60) + $0
+                            value = (min(Int.max / 60 - 1, max(0, oldMins)) * 60) + min(59, max(0, $0))
                         }
                     )
                     HStack(spacing: 2) {

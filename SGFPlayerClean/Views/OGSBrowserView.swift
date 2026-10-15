@@ -19,6 +19,9 @@ struct OGSBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerSection
+            if let error = app.ogsClient.lastError {
+                Text(error).font(.caption).foregroundColor(.orange).padding(8)
+            }
             Divider().background(Color.white.opacity(0.1))
             if filteredChallenges.isEmpty {
                 emptyState
@@ -27,8 +30,9 @@ struct OGSBrowserView: View {
             }
         }
         .sheet(isPresented: $isPresentingLogin) { OGSLoginView(isPresented: $isPresentingLogin) }
-        .onAppear {
-            if !app.ogsClient.isSubscribedToSeekgraph { app.ogsClient.subscribeToSeekgraph() }
+        .onAppear { app.ogsClient.refreshChallengeLobby() }
+        .onChange(of: app.ogsClient.isSocketAuthenticated) { ready in
+            if ready { app.ogsClient.refreshChallengeLobby() }
         }
     }
 
@@ -38,7 +42,8 @@ struct OGSBrowserView: View {
                 Text("Lobby").font(.headline).foregroundColor(.white)
                 Button(action: { isPresentingCreate = true }) {
                     Text("Create").font(.caption).bold().padding(.horizontal, 4)
-                }.buttonStyle(.bordered).tint(.blue).disabled(!app.ogsClient.isConnected)
+                }.buttonStyle(.bordered).tint(.blue)
+                    .disabled(!app.ogsClient.isConnected || !app.ogsClient.isSocketAuthenticated)
                 Spacer()
                 if app.ogsClient.isConnected {
                     VStack(alignment: .trailing, spacing: 2) {
@@ -59,7 +64,7 @@ struct OGSBrowserView: View {
                 }
             }
             // Resume Button
-            if let rid = app.resumableGameID {
+            if let rid = app.returnToOnlineGameID {
                 Button(action: { app.resumeOnlineGame(id: rid) }) {
                     HStack {
                         Image(systemName: "arrow.uturn.backward")
@@ -251,6 +256,7 @@ struct OGSLoginView: View {
         }
         .onDisappear {
             app.isTypingInChat = false
+            if isLoggingIn { app.ogsClient.logout() }
         }
     }
     
@@ -258,9 +264,9 @@ struct OGSLoginView: View {
         HStack {
             Text("Login to OGS").font(.headline).foregroundColor(.white)
             Spacer()
-            Button(action: { isPresented = false }) {
+            Button(action: cancelLogin) {
                 Image(systemName: "xmark").foregroundColor(.white.opacity(0.7))
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).keyboardShortcut(.cancelAction).accessibilityLabel("Cancel login")
         }.padding()
     }
     
@@ -316,9 +322,12 @@ struct OGSLoginView: View {
     }
     
     private func performLogin() {
+        let loginName = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !isLoggingIn, !loginName.isEmpty, !password.isEmpty else { return }
         isLoggingIn = true; errorMessage = nil
-        app.ogsClient.login(username: username, password: password) { success, error in
+        app.ogsClient.login(username: loginName, password: password) { success, error in
             DispatchQueue.main.async {
+                guard isPresented else { return }
                 self.isLoggingIn = false
                 if success {
                     self.isPresented = false
@@ -329,5 +338,158 @@ struct OGSLoginView: View {
                 }
             }
         }
+    }
+
+    private func cancelLogin() {
+        // Logout already fences both the login request and its validation response.
+        if isLoggingIn { app.ogsClient.logout() }
+        isLoggingIn = false
+        password = ""
+        isPresented = false
+    }
+}
+
+/// Read-only discovery of games in progress, with direct link/ID entry as well.
+struct OGSObservationBrowserView: View {
+    @EnvironmentObject var app: AppModel
+    @State private var showLogin = false
+    @State private var gameLink = ""
+    @FocusState private var editingLink: Bool
+    // Only the presenting sheet supplies a close action. The sidebar must stay open.
+    var didObserve: () -> Void = {}
+    var onCancel: (() -> Void)?
+    var showsTitle: Bool
+    var refreshInterval: UInt64
+
+    init(gameLink: String = "", didObserve: @escaping () -> Void = {}, onCancel: (() -> Void)? = nil,
+         showsTitle: Bool = true, refreshInterval: UInt64 = 10_000_000_000) {
+        _gameLink = State(initialValue: gameLink)
+        self.didObserve = didObserve
+        self.onCancel = onCancel
+        self.showsTitle = showsTitle
+        self.refreshInterval = refreshInterval
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if showsTitle || onCancel != nil {
+                HStack {
+                    if showsTitle { Text("Select a Game").font(.headline) }
+                    Spacer()
+                    if let onCancel {
+                        Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
+                    }
+                }
+            }
+            if !app.ogsClient.isAuthenticated {
+                Text("Sign in with your OGS account. This app has its own login session.")
+                    .font(.caption)
+                Button("Log In") { showLogin = true }.buttonStyle(.borderedProminent)
+            }
+            currentGames
+            Divider()
+            Text("Open a game by link or ID").font(.subheadline)
+            TextField("OGS game link or game ID", text: $gameLink)
+                .textFieldStyle(.roundedBorder).focused($editingLink)
+                .onChange(of: editingLink) { app.isTypingInChat = $0 }
+                .onSubmit { observe() }
+            Button("Observe Game") { observe() }
+                .buttonStyle(.borderedProminent)
+                .disabled(!app.ogsClient.isSocketAuthenticated || OGSClient.observationGameID(gameLink) == nil)
+            Text("Observing does not let you play moves or send chat.")
+                .font(.caption).foregroundColor(.secondary)
+        }
+        .padding()
+        .sheet(isPresented: $showLogin) { OGSLoginView(isPresented: $showLogin).environmentObject(app) }
+        .task(id: app.ogsClient.isSocketAuthenticated) {
+            guard app.ogsClient.isSocketAuthenticated else { return }
+            app.ogsClient.refreshObservedGames()
+            while !Task.isCancelled {
+                do { try await Task.sleep(nanoseconds: refreshInterval) }
+                catch { return }
+                guard !Task.isCancelled else { return }
+                app.ogsClient.refreshObservedGames()
+            }
+        }
+        .onDisappear {
+            app.isTypingInChat = false
+            app.ogsClient.cancelObservedGamesRefresh()
+        }
+    }
+
+    private var currentGames: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Strongest player first").font(.caption).foregroundColor(.secondary)
+                Spacer()
+                if app.ogsClient.isLoadingObservedGames { ProgressView().controlSize(.small) }
+            }
+            if let error = app.ogsClient.observedGamesError {
+                Text(error).font(.caption).foregroundColor(.orange)
+            }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    if app.ogsClient.observedGames.isEmpty {
+                        Text(!app.ogsClient.isSocketAuthenticated ? "Sign in and connect to see current games." :
+                            (app.ogsClient.isLoadingObservedGames ? "Loading games…" :
+                                (app.ogsClient.observedGamesError == nil ? "No live games right now." : "Game list unavailable.")))
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                    ForEach(app.ogsClient.observedGames) { game in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(game.blackName) [\(game.blackRank)] · Black").lineLimit(1)
+                                Text("\(game.whiteName) [\(game.whiteRank)] · White").lineLimit(1)
+                                Text([game.boardSize, game.moveCount.map { "\($0) moves" } ?? "Moves unavailable"]
+                                    .filter { !$0.isEmpty }.joined(separator: " · "))
+                                    .font(.caption).foregroundColor(.secondary)
+                                Text(app.ogsClient.observedTimeControlLabel(for: game))
+                                    .font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button("Observe") { observe(id: game.id) }
+                                .disabled(!app.ogsClient.isSocketAuthenticated)
+                                .accessibilityLabel("Observe \(game.blackName) versus \(game.whiteName)")
+                        }
+                        .task(id: app.ogsClient.observedMetadataGeneration) {
+                            app.ogsClient.loadObservedTimeControl(for: game)
+                        }
+                        Divider()
+                    }
+                    if app.ogsClient.hasMoreObservedGames {
+                        // A new batch recreates this sentinel. It fetches only while
+                        // visible, and a failure requires an explicit retry.
+                        HStack {
+                            Spacer()
+                            if app.ogsClient.observedGamesError != nil {
+                                Button("Retry loading more") { app.ogsClient.loadMoreObservedGames() }
+                            } else {
+                                Text("Loading more games…").font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                        .id(app.ogsClient.observedGamesPage)
+                        .onAppear {
+                            if app.ogsClient.observedGamesError == nil { app.ogsClient.loadMoreObservedGames() }
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(minHeight: 100, maxHeight: .infinity)
+        }
+    }
+
+    private func observe() {
+        guard let id = OGSClient.observationGameID(gameLink) else { return }
+        observe(id: id)
+    }
+
+    private func observe(id: Int) {
+        guard app.ogsClient.isSocketAuthenticated else { return }
+        app.ogsClient.lastError = nil
+        app.mode = .observe
+        app.showRightPanel = true
+        app.resumeOnlineGame(id: id)
+        didObserve()
     }
 }

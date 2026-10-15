@@ -42,14 +42,15 @@ class OGSGameViewModel: ObservableObject {
         
         NotificationCenter.default.publisher(for: NSNotification.Name("OGSGameDataReceived"))
             .sink { [weak self] notification in
+                guard let self, self.ogsClient.acceptsGameNotification(notification) else { return }
                 if let data = notification.userInfo?["gameData"] as? [String: Any] {
                     if let phase = data["phase"] as? String {
-                        DispatchQueue.main.async { self?.gamePhase = phase }
+                        self.gamePhase = phase
                     }
                     
                     // Optional: Parse existing chat history from gamedata["chat"]
                     if let chatArray = data["chat"] as? [[String: Any]] {
-                        self?.parseInitialChat(chatArray)
+                        self.parseInitialChat(chatArray, notification: notification)
                     }
                 }
             }.store(in: &cancellables)
@@ -58,7 +59,8 @@ class OGSGameViewModel: ObservableObject {
     private func setupChatObservers() {
         NotificationCenter.default.publisher(for: NSNotification.Name("OGSChatReceived"))
             .sink { [weak self] notification in
-                guard let self = self, let data = notification.userInfo as? [String: Any] else { return }
+                guard let self, self.ogsClient.acceptsGameNotification(notification),
+                      let data = notification.userInfo as? [String: Any] else { return }
                 // Verify it belongs to active game (payload usually has game_id, or we infer)
                 // OGSClient filters events by gameID usually, but check content just in case or trust client.
                 // Note: OGSClient `processEventMessage` checks gameID for specific prefixes, but general chat might bleed?
@@ -66,11 +68,11 @@ class OGSGameViewModel: ObservableObject {
                 // The payload from OGS for chat usually lacks game_id in the *body* sometimes, 
                 // but the event name `game/123/chat` ensures it's the right game.
                 
-                self.handleIncomingChat(data)
+                self.handleIncomingChat(data, notification: notification)
             }.store(in: &cancellables)
     }
     
-    private func handleIncomingChat(_ data: [String: Any]) {
+    private func handleIncomingChat(_ data: [String: Any], notification: Notification) {
         // OGS Protocol Update (Jan 2026):
         // Payload comes in two flavors:
         // 1. Nested: { "line": { "username": "Dave", "body": "Hello", ... }, "channel": "main" }
@@ -111,6 +113,7 @@ class OGSGameViewModel: ObservableObject {
         )
         
         DispatchQueue.main.async {
+            guard self.ogsClient.acceptsGameNotification(notification) else { return }
             // Deduplication Check
             let newKey = "\(date.timeIntervalSince1970)-\(safeUser)-\(safeBody)"
             // Check last 20 messages for duplicate (performance opt) makes sense, or check all.
@@ -132,7 +135,7 @@ class OGSGameViewModel: ObservableObject {
         }
     }
     
-    private func parseInitialChat(_ chatArray: [[String: Any]]) {
+    private func parseInitialChat(_ chatArray: [[String: Any]], notification: Notification) {
         // "chat": [ { "username":..., "body":..., "date":... } ]
         var loaded: [OGSChatMessage] = []
         for c in chatArray {
@@ -169,6 +172,7 @@ class OGSGameViewModel: ObservableObject {
         }
         
         DispatchQueue.main.async {
+            guard self.ogsClient.acceptsGameNotification(notification) else { return }
             // If the content is identical to what we have, don't flicker.
             // But IDs will differ.
             // Let's just force replace.
@@ -177,19 +181,14 @@ class OGSGameViewModel: ObservableObject {
         }
     }
     
-    func sendChat(_ text: String) {
-        guard let id = ogsClient.activeGameID, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
-        // Optimistic Update? OGS echoes back the chat, so wait for echo to avoid dupes.
-        // But for UI responsiveness, users like instant feedback.
-        // OGS echo is fast. Let's wait for echo to be safe against lag/failure.
-        
-        // DEBUG TRACE for Spaces Issue
-        NSLog("[OGS-CHAT-TRACE] ViewModel received: '\(text)' (Hex: \(text.data(using: .utf8)?.map { String(format: "%02x", $0) }.joined() ?? ""))")
-        
-        ogsClient.sendChat(gameID: id, text: text)
+    @discardableResult
+    func sendChat(_ text: String) -> Bool {
+        guard let id = ogsClient.activeGameID else { return false }
+        // OGS echoes the message. Return whether dispatch was possible so the
+        // editor can retain a draft while disconnected.
+        return ogsClient.sendChat(gameID: id, text: text)
     }
-    
+
     func pass() {
         guard let id = ogsClient.activeGameID else { return }
         // PILLAR: Refactored call site

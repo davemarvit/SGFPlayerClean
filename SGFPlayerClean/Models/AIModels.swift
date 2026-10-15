@@ -26,3 +26,34 @@ struct AIRootInfo: Codable {
     let scoreLead: Double
     let visits: Int
 }
+
+import SwiftUI
+
+enum MoveQuality: String, CaseIterable, Identifiable {
+    case excellent = "Excellent"
+    case good = "Good"
+    case mediocre = "Mediocre"
+    case poor = "Poor"
+    case disastrous = "Disastrous"
+    
+    var id: String { rawValue }
+    
+    var color: Color {
+        switch self {
+        case .excellent: return .blue
+        case .good: return .green
+        case .mediocre: return .yellow
+        case .poor: return .orange
+        case .disastrous: return .red
+        }
+    }
+}
+
+struct MoveEvaluation {
+    let turn: Int
+    let quality: MoveQuality
+    let winDelta: Double
+    let scoreDelta: Double
+    let player: Stone
+}
+

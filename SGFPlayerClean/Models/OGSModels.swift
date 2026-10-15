@@ -1,6 +1,12 @@
 // MARK: - File: OGSModels.swift (v4.246)
 import Foundation
+import CoreFoundation
 import SwiftUI
+
+enum AppMode: String, CaseIterable {
+    case playOnline = "Play Online", localPlay = "Local Play", observe = "Observe", review = "Review"
+    var usesOGS: Bool { self == .playOnline || self == .observe }
+}
 
 // MARK: - Core Go Models
 enum Stone: String, Codable, CaseIterable {
@@ -25,6 +31,135 @@ struct RenderStone: Identifiable, Equatable {
 }
 
 // MARK: - OGS Network & Lobby Models
+/// A public game already in progress, not an open challenge.
+struct OGSObservedGame: Identifiable {
+    let id: Int
+    let blackName: String
+    let whiteName: String
+    let blackRank: String
+    let whiteRank: String
+    let strongestRank: Double?
+    let boardSize: String
+    let moveCount: Int?
+    let timeControl: String?
+
+    init?(json: [String: Any]) {
+        let snapshot = json["json"] as? [String: Any] ?? [:]
+        guard let id = json["id"] as? Int, id > 0,
+              (json["phase"] ?? snapshot["phase"]) as? String != "finished",
+              json["ended"] == nil || json["ended"] is NSNull else { return nil }
+        self.id = id
+        func player(_ color: String) -> [String: Any] {
+            // Summary players can contain only a name/ID; retain snapshot ratings.
+            var result = (snapshot["players"] as? [String: Any])?[color] as? [String: Any] ?? [:]
+            for source in [(json["players"] as? [String: Any])?[color], json[color]] {
+                if let details = source as? [String: Any] { result.merge(details) { _, new in new } }
+            }
+            return result
+        }
+        let black = player("black"), white = player("white")
+        blackName = black["username"] as? String ?? "Black"
+        whiteName = white["username"] as? String ?? "White"
+        let b = Self.rank(black), w = Self.rank(white)
+        blackRank = b.label; whiteRank = w.label
+        strongestRank = [b.strength, w.strength].compactMap { $0 }.max()
+        if let width = (json["width"] ?? snapshot["width"]) as? Int,
+           let height = (json["height"] ?? snapshot["height"]) as? Int, width > 0, height > 0 {
+            boardSize = "\(width)×\(height)"
+        } else { boardSize = "" }
+        if let moves = (snapshot["moves"] ?? json["moves"]) as? [Any] {
+            moveCount = moves.count // Includes passes, like the OGS game list.
+        } else if let count = json["move_number"] as? Int, count >= 0 {
+            moveCount = count
+        } else { moveCount = nil }
+        timeControl = Self.timeControlDescription(json)
+    }
+
+    /// Both live-list snapshots and the REST game detail use this formatter.
+    static func timeControlDescription(_ json: [String: Any]) -> String? {
+        let snapshot = (json["gamedata"] ?? json["json"]) as? [String: Any] ?? [:]
+        func object(_ value: Any?) -> [String: Any]? {
+            if let value = value as? [String: Any] { return value }
+            // REST also exposes time_control_parameters as a JSON-encoded string.
+            if let value = value as? String, let data = value.data(using: .utf8) {
+                return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            }
+            return nil
+        }
+        var parameters = object(snapshot["time_control"])
+            ?? object(snapshot["time_control_parameters"])
+            ?? object(json["time_control_parameters"])
+            ?? object(json["time_control"])
+        if parameters?["system"] == nil, parameters?["time_control"] == nil {
+            parameters?["system"] = (snapshot["time_control"] as? String) ?? (json["time_control"] as? String)
+        }
+        return timeControl(parameters)
+    }
+
+    /// Compare the stronger player, retaining server order when strengths tie or are unknown.
+    static func strongestFirst(_ games: [Self]) -> [Self] {
+        games.enumerated().sorted {
+            let a = $0.element.strongestRank ?? -.infinity
+            let b = $1.element.strongestRank ?? -.infinity
+            return a == b ? $0.offset < $1.offset : a > b
+        }.map(\.element)
+    }
+
+    private static func rank(_ player: [String: Any]?) -> (label: String, strength: Double?) {
+        guard let player else { return ("?", nil) }
+        let legacy = (player["ranking"] ?? player["rank"]) as? Double
+        if let value = legacy, value.isFinite,
+           value > 900 || (player["professional"] as? Bool == true || player["pro"] as? Bool == true) {
+            let pro = value > 900 ? value - 1036 : value - 36
+            guard pro >= 1, pro <= 9 else { return ("?", nil) }
+            return ("\(Int(pro))p", 1000 + pro)
+        }
+        let ratings = player["ratings"] as? [String: Any]
+        let overall = ratings?["overall"] as? [String: Any]
+        var strength = legacy
+        if let rating = overall?["rating"] as? Double, rating.isFinite {
+            // OGS overall Glicko rating to rank (rank_utils.ts).
+            strength = log(min(6000, max(100, rating)) / 525) * 23.15
+        }
+        guard let value = strength, value.isFinite, value > -900, value < 900 else { return ("?", nil) }
+        let provisional = (overall?["deviation"] as? Double).map { $0 >= 160 } ?? false
+        return (provisional ? "?" : ChallengeHelpers.formatRank(value), value)
+    }
+
+    private static func timeControl(_ params: [String: Any]?) -> String? {
+        guard let p = params, let system = (p["system"] ?? p["time_control"]) as? String else { return nil }
+        func seconds(_ keys: String...) -> Int? {
+            for key in keys { if let n = p[key] as? Int, n >= 0 { return n } }
+            return nil
+        }
+        func duration(_ s: Int) -> String {
+            if s >= 3600 && s % 3600 == 0 { return "\(s / 3600)h" }
+            if s >= 60 && s % 60 == 0 { return "\(s / 60)m" }
+            return "\(s)s"
+        }
+        switch system {
+        case "byoyomi":
+            guard let main = seconds("main_time"), let periods = seconds("periods"),
+                  let period = seconds("period_time") else { return "Byo-yomi" }
+            return "\(duration(main)) + \(periods)×\(duration(period))"
+        case "fischer":
+            guard let main = seconds("initial_time", "main_time"),
+                  let increment = seconds("time_increment", "increment") else { return "Fischer" }
+            return "\(duration(main)) + \(duration(increment))/move"
+        case "canadian":
+            guard let main = seconds("main_time"), let period = seconds("period_time"),
+                  let stones = seconds("stones_per_period") else { return "Canadian" }
+            return "\(duration(main)) + \(duration(period))/\(stones) stones"
+        case "simple":
+            return seconds("per_move").map { "\(duration($0))/move" } ?? "Per move"
+        case "absolute":
+            return seconds("total_time", "main_time").map { "\(duration($0)) total" } ?? "Absolute"
+        case "none": return "No time limit"
+        default: return nil
+        }
+    }
+}
+
 struct NetworkLogEntry: Identifiable { let id = UUID(); let timestamp = Date(); let direction, content: String; let isHeartbeat: Bool }
 
 struct OGSChatMessage: Identifiable, Equatable, Hashable {
@@ -193,53 +328,133 @@ struct ChallengeHelpers {
 
 // MARK: - SGF Parser & Game Models
 struct SGFNode { var props: [String:[String]] }
-struct SGFTree { let nodes: [SGFNode] }
+/// Complete tree for the first game in a collection. Branch indices avoid recursive
+/// traversal/storage limits in files that wrap every move in its own continuation.
+struct SGFTree {
+    struct Branch {
+        var sequence: [SGFNode] = []
+        var children: [Int] = []
+    }
+    let branches: [Branch] // Root is index 0; children retain their file order.
+
+    /// Default playback policy only. Alternatives and all their properties remain stored.
+    var mainLineNodes: [SGFNode] {
+        var result: [SGFNode] = []
+        var index: Int? = branches.isEmpty ? nil : 0
+        while let current = index {
+            result.append(contentsOf: branches[current].sequence)
+            index = branches[current].children.first
+        }
+        return result
+    }
+}
 enum SGFError: Error { case parseError(String) }
 
 enum SGFParser {
+    /// Retain every branch and property; choosing a playback path is a separate step.
     static func parse(text: String) throws -> SGFTree {
-        let s = text.replacingOccurrences(of: "\r", with: ""); var i = s.startIndex
+        let s = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        var i = s.startIndex
         func peek() -> Character? { i < s.endIndex ? s[i] : nil }
         func advance() { if i < s.endIndex { i = s.index(after: i) } }
-        func skipWS() { while let cc = peek(), cc.isWhitespace { advance() } }
-        var nodes: [SGFNode] = []; skipWS()
-        guard peek() == "(" else { throw SGFError.parseError("Missing '('") }
-        func consume() throws {
-            advance(); skipWS()
-            while let c = peek() {
-                if c == ";" { advance(); nodes.append(try parseNode()); skipWS() }
-                else if c == "(" { try skipSubtree(); skipWS() }
-                else if c == ")" { advance(); break } else { advance() }
-            }
-        }
+        func skipWS() { while let c = peek(), c.isWhitespace { advance() } }
         func parseNode() throws -> SGFNode {
-            var props: [String:[String]] = [:]; skipWS()
+            var props: [String: [String]] = [:]
+            skipWS()
             while let c = peek(), c.isLetter {
-                let sk = i; while let cc = peek(), cc.isLetter { advance() }
-                let key = String(s[sk..<i]).uppercased(); var values: [String] = []; skipWS()
+                let start = i
+                while let c = peek(), c.isLetter { advance() }
+                let key = String(s[start..<i]).uppercased()
+                var values: [String] = []
+                skipWS()
+                guard peek() == "[" else { throw SGFError.parseError("Missing value for \(key)") }
                 while peek() == "[" {
-                    advance(); var val = ""
-                    while let cc = peek() {
-                        if cc == "\\" { advance(); if let nxt = peek() { val.append(nxt); advance() } }
-                        else if cc == "]" { advance(); break } else { val.append(cc); advance() }
+                    advance()
+                    var value = ""
+                    var closed = false
+                    while let c = peek() {
+                        advance()
+                        if c == "\\" {
+                            guard let escaped = peek() else { break }
+                            advance()
+                            // An escaped line break continues the value without a newline.
+                            if escaped != "\n" { value.append(escaped) }
+                        } else if c == "]" {
+                            closed = true
+                            break
+                        } else {
+                            value.append(c)
+                        }
                     }
-                    values.append(val); skipWS()
+                    guard closed else { throw SGFError.parseError("Unterminated value for \(key)") }
+                    values.append(value)
+                    skipWS()
                 }
-                props[key] = values; skipWS()
+                props[key] = values
             }
             return SGFNode(props: props)
         }
-        func skipSubtree() throws { advance(); var d = 0; while let cc = peek() { advance(); if cc == "(" { d += 1 } else if cc == ")" { if d == 0 { break } else { d -= 1 } } } }
-        try consume(); return SGFTree(nodes: nodes)
+
+        // Read every branch, including siblings. Parentheses inside values are text.
+        var branches: [SGFTree.Branch] = []
+        var stack: [Int] = []
+        if peek() == "\u{FEFF}" { advance() }
+        skipWS()
+        guard peek() == "(" else { throw SGFError.parseError("Missing '('") }
+        while let c = peek() {
+            switch c {
+            case "(":
+                let child = branches.count
+                if let parent = stack.last {
+                    guard !branches[parent].sequence.isEmpty else { throw SGFError.parseError("Empty game tree") }
+                    branches[parent].children.append(child)
+                }
+                branches.append(SGFTree.Branch())
+                stack.append(child)
+                advance()
+            case ";":
+                guard let current = stack.last, branches[current].children.isEmpty else {
+                    throw SGFError.parseError("Move sequence after variations")
+                }
+                advance()
+                branches[current].sequence.append(try parseNode())
+            case ")":
+                guard let current = stack.popLast(), !branches[current].sequence.isEmpty else {
+                    throw SGFError.parseError("Empty game tree")
+                }
+                advance()
+                // Preserve the existing one-game-per-file playback policy for collections.
+                if stack.isEmpty { return SGFTree(branches: branches) }
+            default:
+                throw SGFError.parseError("Unexpected character outside a property value")
+            }
+            skipWS()
+        }
+        throw SGFError.parseError("Unterminated game tree")
     }
 }
 
 struct SGFGame {
-    struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi: String? }
+    // Retain the imported tree for future variation navigation/editing. Local played moves
+    // change the playback history, not this source record; no SGF writer is implied.
+    var sourceTree: SGFTree?
+    struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String? }
     var boardSize: Int = 19; var info: Info = .init(); var setup: [(Stone, Int, Int)] = []; var moves: [(Stone, (Int,Int)?)] = []
+    var initialPlayer: Stone?
+    var handicap = 0
+    var freeHandicapPlacement = false
+    var analysisOnline = false
+    var whiteHandicapBonus: String?
+    var ruleOverrides: GoRuleOverrides?
+    var analysisSettings: GameAnalysisSettings {
+        GameAnalysisSettings(rules: info.rules, komi: info.komi.map { Double($0) ?? .nan },
+            initialPlayer: initialPlayer ?? moves.first?.0 ?? (handicap > 1 ? .white : .black),
+            online: analysisOnline, whiteHandicapBonus: whiteHandicapBonus, ruleOverrides: ruleOverrides)
+    }
     static func from(tree: SGFTree) -> SGFGame {
         var g = SGFGame()
-        for node in tree.nodes {
+        g.sourceTree = tree
+        for node in tree.mainLineNodes {
             for (k, vals) in node.props {
                 switch k {
                 case "SZ": if let v = vals.first { g.boardSize = Int(v.components(separatedBy: ":").first ?? "19") ?? 19 }
@@ -250,6 +465,9 @@ struct SGFGame {
                 case "RE": g.info.result = vals.first
                 case "DT": g.info.date = vals.first
                 case "KM": g.info.komi = vals.first
+                case "RU": g.info.rules = vals.first
+                case "HA": g.handicap = Int(vals.first ?? "") ?? 0
+                case "PL": g.initialPlayer = vals.first == "W" ? .white : .black
                 case "EV": g.info.event = vals.first
                 case "AB": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.black, x, y)) } }
                 case "AW": for v in vals { if let (x,y) = SGFCoordinates.parse(v) { g.setup.append((.white, x, y)) } }
@@ -281,6 +499,29 @@ struct ChallengeSetup: Codable {
     var handicap = 0; var color = "automatic"; var minRank = 0; var maxRank = 38
     var timeControl = "byoyomi"; var mainTime = 600; var periods = 5; var periodTime = 30
     var initialTime = 600; var increment = 30; var maxTime = 1200; var perMove = 30
+
+    var validationError: String? {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Enter a challenge name." }
+        if ![9, 13, 19].contains(size) { return "Choose a supported board size." }
+        if !["japanese", "chinese", "aga"].contains(rules) { return "Choose a supported rule set." }
+        if !(-1...9).contains(handicap) || handicap == 1 { return "Choose a valid handicap." }
+        if !["automatic", "black", "white"].contains(color) { return "Choose a player color." }
+        if !(0...38).contains(minRank) || !(minRank...38).contains(maxRank) { return "Choose a valid rank range." }
+        switch timeControl {
+        case "byoyomi":
+            if mainTime < 0 || periodTime <= 0 || !(1...10).contains(periods) {
+                return "Byo-yomi needs a positive period time and 1–10 periods; main time may be zero."
+            }
+        case "fischer":
+            if initialTime <= 0 || increment < 0 || maxTime < initialTime {
+                return "Fischer needs positive initial time, a nonnegative increment, and maximum time at least as large as initial time."
+            }
+        case "simple":
+            if perMove <= 0 { return "Time per move must be greater than zero." }
+        default: return "Choose a supported time control."
+        }
+        return nil
+    }
     
     func toDictionary() -> [String: Any] {
         // Based on Verified Web Payload (Step 376)
@@ -347,8 +588,8 @@ struct ChallengeSetup: Codable {
         return [
             "game": gameObj,
             "initialized": false,            // From Payload
-            "min_ranking": minRank,          // -1000 in payload, user likely wants loose bounds or specific
-            "max_ranking": maxRank,
+            "min_ranking": minRank,          
+            "max_ranking": maxRank,          
             "challenger_color": finalColor,
             "aga_ranked": false,             // From Payload
             "invite_only": false,
@@ -440,3 +681,185 @@ struct KeychainHelper {
 }
 
 
+
+
+/// Metadata sent to analysis; missing values retain the old defaults with a visible notice.
+struct GameAnalysisSettings: Codable, Equatable {
+    var rules: String?
+    var komi: Double?
+    var initialPlayer: Stone = .black
+    var online = false
+    var whiteHandicapBonus: String?
+    var ruleOverrides: GoRuleOverrides?
+
+    var kataRules: String? {
+        let value = (rules ?? "chinese").trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().replacingOccurrences(of: "_", with: "-")
+        switch value {
+        case "japanese", "japan": return "japanese"
+        case "korean", "korea": return "korean"
+        case "chinese", "china": return online ? "chinese-ogs" : "chinese"
+        case "aga", "bga", "tromp-taylor", "chinese-ogs", "chinese-kgs", "stone-scoring", "aga-button": return value
+        case "new zealand", "new-zealand", "nz": return "new-zealand"
+        default: return nil
+        }
+    }
+    var playRules: GoRulePolicy? { GoRulePolicy(settings: self) }
+    var effectiveKomi: Double { komi ?? 6.5 }
+    var analysisRulesSupported: Bool {
+        guard kataRules != nil, let actual = playRules else { return false }
+        var preset = self
+        preset.ruleOverrides = nil
+        guard actual == preset.playRules else { return false }
+        let territory = ["japanese", "korean"].contains(kataRules ?? "")
+        if let value = ruleOverrides?.scoreTerritory, !value { return false }
+        if let value = ruleOverrides?.scoreStones, value == territory { return false }
+        if let value = ruleOverrides?.scorePrisoners, value != territory { return false }
+        if let value = ruleOverrides?.scoreTerritoryInSeki, value == territory { return false }
+        return true
+    }
+    var notice: String? {
+        if kataRules == nil { return "Analysis unavailable: unsupported rules ‘\(rules ?? "")’." }
+        if !analysisRulesSupported { return "Analysis unavailable: custom rule settings are not supported by this KataGo preset." }
+        guard effectiveKomi.isFinite, (-400...400).contains(effectiveKomi), (effectiveKomi * 2).rounded() == effectiveKomi * 2 else {
+            return "Analysis unavailable: invalid komi."
+        }
+        if rules == nil && komi == nil { return "Rules and komi are missing; analysis assumes Chinese rules and 6.5 komi." }
+        if rules == nil { return "Rules are missing; analysis assumes Chinese rules." }
+        if komi == nil { return "Komi is missing; analysis assumes 6.5 komi." }
+        return nil
+    }
+}
+
+/// Validate a complete OGS history before changing the board, clocks, scoring, or analysis.
+struct OGSGameSnapshot {
+    let game: SGFGame
+    let stateVersion: Int?
+    let freeHandicapMoves: Int
+
+    init?(_ data: [String: Any]) {
+        func integer(_ value: Any?) -> Int? {
+            if let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+               number.doubleValue.isFinite, number.doubleValue.rounded() == number.doubleValue {
+                return Int(exactly: number.doubleValue)
+            }
+            if let text = value as? String { return Int(text) }
+            return nil
+        }
+        let width = integer(data["width"]) ?? 19
+        let height = integer(data["height"]) ?? width
+        guard (2...52).contains(width), width == height, let moves = data["moves"] as? [[Any]] else { return nil }
+        var game = SGFGame()
+        game.boardSize = width
+        game.info.rules = data["rules"] as? String
+        if let komi = data["komi"] as? String { game.info.komi = komi }
+        else if let komi = data["komi"] as? NSNumber, CFGetTypeID(komi) != CFBooleanGetTypeID() { game.info.komi = komi.stringValue }
+        else if let komi = data["komi"], !(komi is NSNull) { game.info.komi = "invalid" }
+        let handicap = max(0, integer(data["handicap"]) ?? 0)
+        if let setup = data["initial_state"] as? [String: Any] {
+            // Truncated histories require initial prisoner and move-number handling; don't silently miscount.
+            guard (integer(setup["move_number"]) ?? 0) == 0 else { return nil }
+            for color in Stone.allCases {
+                guard let points = OGSScoring.decodePositions(setup[color.rawValue] as? String ?? "", width: width, height: height) else { return nil }
+                game.setup += points.map { (color, $0.col, $0.row) }
+            }
+            guard Set(game.setup.map { BoardPosition($0.2, $0.1) }).count == game.setup.count else { return nil }
+        }
+        let free = data["free_handicap_placement"] as? Bool ?? false
+        freeHandicapMoves = free ? handicap : 0
+        // Fixed handicap is setup, never additional moves in the numbered history.
+        if let player = data["initial_player"] as? String {
+            guard let color = Stone(rawValue: player) else { return nil }
+            game.initialPlayer = color
+        } else { game.initialPlayer = !free && handicap > 1 ? .white : .black }
+        game.handicap = handicap
+        game.freeHandicapPlacement = free
+        var color = game.initialPlayer ?? .black
+        for (index, move) in moves.enumerated() {
+            guard move.count >= 2, let x = integer(move[0]), let y = integer(move[1]),
+                  (x == -1 && y == -1) || ((0..<width).contains(x) && (0..<height).contains(y)) else { return nil }
+            // Packed moves carry optional color at index 3 and extra properties at index 4.
+            if move.count > 4, let extra = move[4] as? [String: Any], extra["edited"] as? Bool == true { return nil }
+            if move.count > 3, let explicit = integer(move[3]), explicit != 0 {
+                guard explicit == 1 || explicit == 2 else { return nil }
+                color = explicit == 1 ? .black : .white
+            }
+            if index < freeHandicapMoves { color = .black; guard x >= 0 else { return nil } }
+            game.moves.append((color, x == -1 ? nil : (x, y)))
+            if index + 1 >= freeHandicapMoves { color = color.opponent }
+        }
+        game.analysisOnline = true
+        game.ruleOverrides = GoRuleOverrides(allowSelfCapture: data["allow_self_capture"] as? Bool,
+            allowKo: data["allow_ko"] as? Bool, allowSuperko: data["allow_superko"] as? Bool,
+            superkoAlgorithm: data["superko_algorithm"] as? String,
+            scoreTerritory: data["score_territory"] as? Bool, scoreStones: data["score_stones"] as? Bool,
+            scorePrisoners: data["score_prisoners"] as? Bool, scoreTerritoryInSeki: data["score_territory_in_seki"] as? Bool)
+        if let scoreHandicap = data["score_handicap"] as? Bool {
+            game.whiteHandicapBonus = scoreHandicap ? ((data["aga_handicap_scoring"] as? Bool == true) ? "N-1" : "N") : "0"
+        }
+        self.game = game
+        stateVersion = integer(data["state_version"])
+    }
+}
+
+/// Explicit OGS settings take precedence over the rule-set name.
+struct GoRuleOverrides: Codable, Equatable {
+    var allowSelfCapture: Bool?
+    var allowKo: Bool?
+    var allowSuperko: Bool?
+    var superkoAlgorithm: String?
+    var scoreTerritory: Bool?
+    var scoreStones: Bool?
+    var scorePrisoners: Bool?
+    var scoreTerritoryInSeki: Bool?
+}
+
+struct GoRulePolicy: Equatable {
+    enum Repetition: String { case none, simple, positional, situational }
+    var repetition: Repetition
+    var allowsSelfCapture: Bool
+
+    init?(settings: GameAnalysisSettings) {
+        switch settings.kataRules {
+        case "japanese", "korean", "chinese", "stone-scoring":
+            repetition = .simple; allowsSelfCapture = false
+        case "chinese-ogs", "chinese-kgs":
+            repetition = .positional; allowsSelfCapture = false
+        case "aga", "bga", "aga-button":
+            repetition = .situational; allowsSelfCapture = false
+        case "new-zealand": repetition = .situational; allowsSelfCapture = true
+        case "tromp-taylor": repetition = .positional; allowsSelfCapture = true
+        default: return nil
+        }
+        if let overrides = settings.ruleOverrides {
+            // Allowing immediate ko while separately restricting longer cycles needs a custom
+            // repetition policy; do not silently treat that combination as a standard preset.
+            if overrides.allowKo == true && overrides.allowSuperko != true { return nil }
+            if overrides.allowSuperko == false && repetition == .simple && overrides.superkoAlgorithm == nil { return nil }
+            if let suicide = overrides.allowSelfCapture { allowsSelfCapture = suicide }
+            if overrides.allowSuperko == true {
+                repetition = overrides.allowKo == true ? .none : .simple
+            } else if let algorithm = overrides.superkoAlgorithm {
+                switch algorithm.lowercased() {
+                case "psk", "csk": repetition = .positional
+                case "ssk": repetition = .situational
+                case "noresult":
+                    guard overrides.allowSuperko != false else { return nil }
+                    repetition = overrides.allowKo == true ? .none : .simple
+                default: return nil
+                }
+            } else if overrides.allowKo == true && repetition == .simple { repetition = .none }
+        }
+    }
+
+    var summary: String {
+        let ko: String
+        switch repetition {
+        case .none: ko = "Repetition allowed"
+        case .simple: ko = "Simple ko"
+        case .positional: ko = "Positional superko"
+        case .situational: ko = "Situational superko"
+        }
+        return ko + (allowsSelfCapture ? " · Self-capture allowed" : " · No self-capture")
+    }
+}
