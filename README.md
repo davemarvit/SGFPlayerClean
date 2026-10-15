@@ -79,7 +79,7 @@ writes to known working-app and offline-review paths, while allowing networking.
 packaging probe checks a disposable protected sentinel and a loopback listener before
 AppModel creation. It does not contact OGS. `Tests/OGSReview/check_review.py` checks
 the compiled review policy and login/observation UI with all networking denied.
-The 192-test suite includes mutation blocking, private cookie stores, persisted-session
+The 195-test suite includes mutation blocking, private cookie stores, persisted-session
 restart/logout/expiry/permission checks using fake credentials, and game-link
 validation. The real WebSocket loopback test can also compile the OGS-review transport
 with `python3 Tests/Integration/run_loopback.py --ogs-review`.
@@ -90,6 +90,29 @@ Dave has since confirmed live login and observation work. Clock fine-tuning is d
 because the review and web displays now look close enough. He has a second OGS account
 for future controlled gameplay tests; this package remains observation-only. Persistent
 login is tested offline with fixture responses; a real quit/relaunch check remains for Dave.
+
+The observation browser now has a Cancel button and Escape shortcut in its sheet;
+neither action changes the observed game or dismisses the main window. The sidebar
+does not receive a sheet-dismiss action. Live games load when the browser becomes
+connected, with both player names/colors, board size, an Observe button per row,
+Refresh, and Previous/Next controls (20 games per page). Direct game-link/ID entry
+remains available. There is no periodic background list polling.
+
+Discovery uses the read-only `gamelist/query` request and `size`/`results` response
+documented by the [OGS observation browser](https://github.com/online-go/online-go.com/blob/5c88f56577cd21b6dd8ca9ec65fff4eeebb04d48/src/components/ObserveGamesComponent/ObserveGamesComponent.tsx#L224).
+On our existing Socket.IO connection, the acknowledgement ID is encoded before the
+JSON payload, following the [Socket.IO protocol](https://github.com/socketio/socket.io-protocol#acknowledgement).
+Only this read-only action was added to the review allowlist. New requests supersede
+older pages; disconnect/logout discard pending queries and rows. Queries time out
+after 12 seconds with a retry message, and errors preserve the previously loaded page.
+Offline fixture tests cover request framing, pagination, rows, timeout/error recovery,
+and stale replies. The real-window test also clicks Cancel and a fixture game row,
+and sends Escape while editing. Actual live list compatibility awaits Dave's test.
+
+Dave's four byo-yomi screenshots show consistent values: review 4.6/2.6/8.4/1.3
+seconds correspond to browser 5/3/9/2, with matching inactive clocks, period labels,
+and capture counts. They do not establish behavior at expiration. No urgent clock
+repair was indicated by these images; improving the last-period warning is deferred.
 
 First live observation follow-up: Dave signed in, but clicking Observe hid the app window.
 The process remained alive and its local log showed accepted game data. The review browser

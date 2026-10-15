@@ -846,6 +846,94 @@ final class OGSClientTests: XCTestCase {
         XCTAssertTrue(try store.load().isEmpty)
     }
 
+    private func lastGameListRequest() throws -> (Int, [String: Any]) {
+        let packet = try XCTUnwrap(socket.sentMessages.last { $0.contains("gamelist/query") })
+        let body = packet.dropFirst(2)
+        let digits = body.prefix { $0.isNumber }
+        let id = try XCTUnwrap(Int(digits))
+        let args = try JSONSerialization.jsonObject(with: Data(body.dropFirst(digits.count).utf8)) as! [Any]
+        XCTAssertEqual(packet.prefix(2), "42")
+        XCTAssertEqual(args.count, 2, "Ack ID belongs in the frame, not in the event arguments")
+        XCTAssertEqual(args[0] as? String, "gamelist/query")
+        return (id, args[1] as! [String: Any])
+    }
+
+    func testObservationListQueriesReadOnlyPageAndParsesPlayers() throws {
+        client.disconnect()
+        client = OGSClient(session: session, socketFactory: { [socket = socket!] in socket },
+            scoringScheduler: scoringScheduler, observationOnly: true)
+        connect(); client.isSocketAuthenticated = true
+        client.fetchObservedGames()
+        let (id, query) = try lastGameListRequest()
+        XCTAssertEqual(query["list"] as? String, "live")
+        XCTAssertEqual(query["sort_by"] as? String, "rank")
+        XCTAssertEqual(query["from"] as? Int, 0)
+        XCTAssertEqual(query["limit"] as? Int, 20)
+        client.fetchObservedGames()
+        XCTAssertEqual(socket.sentMessages.filter { $0.contains("gamelist/query") }.count, 1)
+        socket.deliver(.success("43\(id)" + #"[{"size":43,"results":[{"id":7,"black":{"username":"Alice"},"white":{"username":"Bob"},"width":19,"height":19},{"id":7},{"id":0},{"id":8,"phase":"finished"},{"id":9,"ended":"yesterday"},{"id":10,"players":{"black":{"username":"Carol"},"white":{"username":"Dave"}},"ended":null}]}]"#))
+        XCTAssertFalse(client.isLoadingObservedGames)
+        XCTAssertEqual(client.observedGames.map(\.id), [7, 10])
+        XCTAssertEqual(client.observedGames.first?.blackName, "Alice")
+        XCTAssertEqual(client.observedGames.first?.whiteName, "Bob")
+        XCTAssertEqual(client.observedGames.first?.boardSize, "19×19")
+        XCTAssertEqual(client.observedGames.last?.whiteName, "Dave")
+        XCTAssertNil(client.activeGameID, "Browsing must not join a game")
+        XCTAssertEqual(client.observedGamesTotal, 43)
+        client.fetchObservedGames(page: 1)
+        let (next, nextQuery) = try lastGameListRequest()
+        XCTAssertEqual(nextQuery["from"] as? Int, 20)
+        socket.deliver(.success("43\(next)" + #"[{"size":43,"results":[]}]"#))
+        XCTAssertEqual(client.observedGamesPage, 1)
+        XCTAssertTrue(client.observedGames.isEmpty)
+    }
+
+    func testObservationListTimeoutAndErrorAllowRetryAndIgnoreLateReply() throws {
+        connect(); client.isSocketAuthenticated = true
+        client.fetchObservedGames()
+        let (oldID, _) = try lastGameListRequest()
+        scoringScheduler.advance(by: 12)
+        XCTAssertFalse(client.isLoadingObservedGames)
+        XCTAssertNotNil(client.observedGamesError)
+        socket.deliver(.success("43\(oldID)" + #"[{"size":1,"results":[{"id":7}]}]"#))
+        XCTAssertTrue(client.observedGames.isEmpty)
+        client.fetchObservedGames()
+        let (id, _) = try lastGameListRequest()
+        XCTAssertNotEqual(id, oldID)
+        socket.deliver(.success("43\(id)[null,{\"message\":\"fixture failure\"}]"))
+        XCTAssertFalse(client.isLoadingObservedGames)
+        XCTAssertNotNil(client.observedGamesError)
+        client.fetchObservedGames()
+        let (retry, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(retry)" + #"[{"size":0,"results":[]}]"#))
+        XCTAssertNil(client.observedGamesError)
+        XCTAssertTrue(client.observedGames.isEmpty)
+    }
+
+    func testObservationListSupersededPageAndLogoutCannotRepopulate() throws {
+        connect(); client.isSocketAuthenticated = true
+        client.fetchObservedGames()
+        let (old, _) = try lastGameListRequest()
+        client.fetchObservedGames(page: 2)
+        let (current, _) = try lastGameListRequest()
+        socket.deliver(.success("43\(old)" + #"[{"size":50,"results":[{"id":7}]}]"#))
+        XCTAssertTrue(client.isLoadingObservedGames)
+        XCTAssertTrue(client.observedGames.isEmpty)
+        socket.deliver(.success("43\(current)" + #"[{"size":50,"results":[{"id":9}]}]"#))
+        XCTAssertEqual(client.observedGamesPage, 2)
+        XCTAssertEqual(client.observedGames.map(\.id), [9])
+        client.fetchObservedGames(page: 1)
+        let (pending, _) = try lastGameListRequest()
+        client.logout()
+        socket.deliver(.success("43\(pending)" + #"[{"size":50,"results":[{"id":8}]}]"#))
+        XCTAssertTrue(client.observedGames.isEmpty)
+        XCTAssertFalse(client.isLoadingObservedGames)
+        let sent = socket.sentMessages.count
+        client.fetchObservedGames()
+        XCTAssertEqual(socket.sentMessages.count, sent)
+        XCTAssertNotNil(client.observedGamesError)
+    }
+
     func testObserveGameInputAcceptsOnlyPositiveIDsAndOGSGameLinks() {
         for input in ["12345", " 12345\n", "https://online-go.com/game/12345",
                       "https://online-go.com/game/12345/?move=20", "https://www.online-go.com/game/12345"] {

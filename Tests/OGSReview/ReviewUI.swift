@@ -17,7 +17,7 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String = "
         AppSettings.shared.stoneVolume = 0
         let model = AppModel()
         require(model.ogsClient.observationOnly, "Actual compiled review must default to observation only")
-        let window = NSWindow(contentRect: NSRect(x: 100, y: 100, width: 480, height: 400),
+        let window = NSWindow(contentRect: NSRect(x: 100, y: 100, width: 560, height: 620),
                               styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .darkAqua)
         defer { window.orderOut(nil); model.ogsClient.disconnect() }
@@ -34,8 +34,9 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String = "
             return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
                 .joined(separator: " ").lowercased()
         }
-        let loggedOut = try render(OGSObservationBrowserView())
+        let loggedOut = try render(OGSObservationBrowserView(onCancel: {}))
         require(loggedOut.contains("log in") && loggedOut.contains("observe game"), loggedOut)
+        require(loggedOut.contains("cancel") && loggedOut.contains("live games") && loggedOut.contains("refresh"), loggedOut)
         require(!loggedOut.contains("create challenge"), loggedOut)
         let login = try render(OGSLoginView(isPresented: .constant(true)))
         require(login.contains("login to ogs") && login.contains("password"), login)

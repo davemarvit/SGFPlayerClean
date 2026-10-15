@@ -106,6 +106,14 @@ class OGSClient: NSObject, ObservableObject {
     @Published var currentHandicap: Int = 0
     
     @Published var availableGames: [OGSChallenge] = []
+    @Published private(set) var observedGames: [OGSObservedGame] = []
+    @Published private(set) var observedGamesPage = 0
+    @Published private(set) var observedGamesTotal = 0
+    @Published private(set) var isLoadingObservedGames = false
+    @Published private(set) var observedGamesError: String?
+    static let observedGamesPageSize = 20
+    private var observedGamesRequest: (id: Int, page: Int)?
+    private var observedGamesTimeout: OGSCancellable?
     @Published var blackBoxContent: String = ""
     @Published var isSubscribedToSeekgraph = false
     @Published var trafficLogs: [NetworkLogEntry] = []
@@ -392,6 +400,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func disconnect() {
+        clearObservedGames()
         invalidateChallengeRequest()
         connection.disconnect()
         stopChallengeKeepAlive()
@@ -408,6 +417,7 @@ class OGSClient: NSObject, ObservableObject {
         }
 
         // Invalidate work already queued by the previous socket, as well as future callbacks.
+        clearObservedGames()
         connectionEventGeneration += 1
         resetScoringSubmission()
         // Subscriptions and room membership belong to one socket, not the whole app lifetime.
@@ -1087,15 +1097,9 @@ class OGSClient: NSObject, ObservableObject {
         }
         if text == "2" { sendRaw("3"); return }
         
-        // ACK Handling (43)
+        // Socket.IO acknowledgement ID precedes the JSON array.
         if text.hasPrefix("43") {
-            let clean = String(text.dropFirst(2))
-            if let data = clean.data(using: .utf8),
-               let array = try? JSONSerialization.jsonObject(with: data) as? [Any] {
-                let seq = array.first as? Int ?? -1
-                let response = array.count > 1 ? array[1] : nil
-                NSLog("[OGS-ACK] 📥 Msg \(seq): \(response ?? "OK")")
-            }
+            handleObservedGamesReply(text)
             return
         }
         
@@ -1839,18 +1843,83 @@ class OGSClient: NSObject, ObservableObject {
         }
     }
 
-    private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
+    /// Same read-only query as the OGS observation browser, one bounded page at a time.
+    func fetchObservedGames(page: Int = 0) {
+        #if SGF_OFFLINE_REVIEW
+        observedGamesError = "OGS is disabled in the offline review app."
+        return
+        #else
+        guard isSocketAuthenticated, isConnected else {
+            observedGamesError = "Connect to OGS to load current games."
+            return
+        }
+        guard page >= 0, page <= Int.max / Self.observedGamesPageSize else { return }
+        if observedGamesRequest?.page == page { return }
+        observedGamesTimeout?.cancel()
+        requestSequence += 1
+        let id = requestSequence
+        observedGamesRequest = (id, page)
+        isLoadingObservedGames = true
+        observedGamesError = nil
+        observedGamesTimeout = scoringScheduler.schedule(after: 12) { [weak self] in
+            guard let self, self.observedGamesRequest?.id == id else { return }
+            self.observedGamesRequest = nil
+            self.observedGamesTimeout = nil
+            self.isLoadingObservedGames = false
+            self.observedGamesError = "The game list did not arrive. Try Refresh."
+        }
+        sendAction("gamelist/query", payload: ["list": "live", "sort_by": "rank", "where": [:],
+            "from": page * Self.observedGamesPageSize, "limit": Self.observedGamesPageSize], acknowledgementID: id)
+        #endif
+    }
+
+    private func clearObservedGames() {
+        observedGamesRequest = nil
+        observedGamesTimeout?.cancel(); observedGamesTimeout = nil
+        isLoadingObservedGames = false
+        observedGames = []
+        observedGamesPage = 0
+        observedGamesTotal = 0
+        observedGamesError = nil
+    }
+
+    private func handleObservedGamesReply(_ text: String) {
+        let body = text.dropFirst(2)
+        let digits = body.prefix { $0 >= "0" && $0 <= "9" }
+        guard let id = Int(digits), let pending = observedGamesRequest, pending.id == id else { return }
+        observedGamesRequest = nil
+        observedGamesTimeout?.cancel(); observedGamesTimeout = nil
+        isLoadingObservedGames = false
+        guard let data = String(body.dropFirst(digits.count)).data(using: .utf8),
+              let args = try? JSONSerialization.jsonObject(with: data) as? [Any],
+              let response = args.first as? [String: Any],
+              let size = response["size"] as? Int, size >= 0,
+              let rows = response["results"] as? [[String: Any]],
+              args.count < 2 || args[1] is NSNull else {
+            observedGamesError = "Could not load current games. Try Refresh."
+            return
+        }
+        var seen: Set<Int> = []
+        observedGames = rows.prefix(Self.observedGamesPageSize).compactMap(OGSObservedGame.init)
+            .filter { seen.insert($0.id).inserted }
+        observedGamesPage = pending.page
+        observedGamesTotal = size
+        observedGamesError = nil
+    }
+
+    private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil, acknowledgementID: Int? = nil) {
         if observationOnly {
             let allowed: Set<String> = ["authenticate", "game/connect", "game/disconnect",
                 "net/ping", "net/pong", "game/latency", "seek_graph/connect",
-                "ui-pushes/subscribe", "automatch/available/subscribe", "automatch/list", "user/monitor"]
+                "ui-pushes/subscribe", "automatch/available/subscribe", "automatch/list", "user/monitor", "gamelist/query"]
             guard allowed.contains(event) else {
                 lastError = observationError.localizedDescription
                 return
             }
         }
         let json = tightJson(payload)
-        let packet = (sequence != nil) ? "42[\"\(event)\",\(json),\(sequence!)]" : "42[\"\(event)\",\(json)]"
+        let prefix = "42" + (acknowledgementID.map(String.init) ?? "")
+        let packet = (sequence != nil) ? "\(prefix)[\"\(event)\",\(json),\(sequence!)]" : "\(prefix)[\"\(event)\",\(json)]"
         // if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") } // SILENCED FOR TIME CAPSULE
         sendRaw(packet)
     }

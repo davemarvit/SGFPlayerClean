@@ -93,8 +93,9 @@ struct SGFPlayerCleanApp: App {
             .environmentObject(appModel)
             .frame(minWidth: 1000, minHeight: 700)
             .sheet(isPresented: $showObserveGame) {
-                OGSObservationBrowserView(didObserve: { showObserveGame = false })
-                    .environmentObject(appModel).frame(width: 440, height: 300)
+                OGSObservationBrowserView(didObserve: { showObserveGame = false },
+                                          onCancel: { showObserveGame = false })
+                    .environmentObject(appModel).frame(width: 560, height: 620)
             }
             #else
             ContentView()

@@ -4,14 +4,17 @@ In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
 Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
 The working app and Offline Review app remain separate.
 
-FIRST TEST: LOGIN AND OBSERVE
+LOGIN, BROWSE, AND OBSERVE
 1. Click Log In in the Online sidebar. Enter your OGS credentials in the app.
 2. Wait for "Ready to observe" and your username.
-3. In your browser, choose a public game on OGS and copy its game link.
-4. Paste the link (or its numeric game ID) into this app and click Observe Game.
+3. Live games load below your login. Click Observe beside a pair of players.
+   Use Refresh to update the list, or Previous/Next to browse more games.
+4. Alternatively, paste an OGS game link (or numeric ID) into the field and
+   click Observe Game. Direct entry also works for games not in the live list.
 5. Check that the players, board, and latest move match the browser. For a live
    game, wait for a new move and check that it arrives without reopening it.
 6. Try 2D and 3D. To choose another game, click Observe game… in the blue banner.
+   Cancel or Escape closes that popup without changing your current game.
 7. Quit and reopen the app: your login should return once OGS validates it.
    Click Log Out in the blue banner to remove the saved login from this app.
 
@@ -39,4 +42,5 @@ An embedded native guard blocks writes to the working checkout, original app,
 known original settings/caches, and offline-review app/settings/cache paths.
 Packaging checks use loopback only and exit before the app model starts.
 Live login and observation have been confirmed; persistent login still needs
-a real quit/relaunch check. The automated session tests use fake credentials.
+a real quit/relaunch check. The live-game list also needs a real OGS check.
+Automated session and browser tests use fake credentials and game-list replies.

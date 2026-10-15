@@ -26,6 +26,30 @@ struct RenderStone: Identifiable, Equatable {
 }
 
 // MARK: - OGS Network & Lobby Models
+/// A public game already in progress, not an open challenge.
+struct OGSObservedGame: Identifiable {
+    let id: Int
+    let blackName: String
+    let whiteName: String
+    let boardSize: String
+
+    init?(json: [String: Any]) {
+        guard let id = json["id"] as? Int, id > 0,
+              json["phase"] as? String != "finished",
+              json["ended"] == nil || json["ended"] is NSNull else { return nil }
+        self.id = id
+        let players = json["players"] as? [String: Any]
+        let black = (json["black"] ?? players?["black"]) as? [String: Any]
+        let white = (json["white"] ?? players?["white"]) as? [String: Any]
+        blackName = black?["username"] as? String ?? "Black"
+        whiteName = white?["username"] as? String ?? "White"
+        if let width = json["width"] as? Int, let height = json["height"] as? Int,
+           width > 0, height > 0 {
+            boardSize = "\(width)×\(height)"
+        } else { boardSize = "" }
+    }
+}
+
 struct NetworkLogEntry: Identifiable { let id = UUID(); let timestamp = Date(); let direction, content: String; let isHeartbeat: Bool }
 
 struct OGSChatMessage: Identifiable, Equatable, Hashable {
