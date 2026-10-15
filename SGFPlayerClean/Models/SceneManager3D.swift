@@ -313,8 +313,14 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
             let x = CGFloat(rs.id.col) * effectiveCellWidth + offX + (rs.offset.x * effectiveCellWidth)
             let z = CGFloat(rs.id.row) * effectiveCellHeight + offZ + (rs.offset.y * effectiveCellHeight)
             let targetOpacity: CGFloat = rs.isDead ? 0.5 : 1.0
+            let geom = rs.color == .black ? blackStoneGeometry : clamGeometries[(rs.id.row * 19 + rs.id.col) % 5]
             
             if let n = stoneNodeMap[rs.id] { 
+                // A game switch or history jump can replace the color at an occupied point.
+                // Swap the whole mesh to preserve color-specific size without mutating shared materials.
+                if let visual = n.childNode(withName: "board-stone", recursively: false), visual.geometry !== geom {
+                    visual.geometry = geom
+                }
                 if n.hasActions {
                     n.opacity = targetOpacity
                 } else {
@@ -326,8 +332,8 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
                 }
             } else {
                 let anchor = SCNNode()
-                let geom = rs.color == .black ? blackStoneGeometry : clamGeometries[(rs.id.row * 19 + rs.id.col) % 5]
                 let s = SCNNode(geometry: geom); s.scale = SCNVector3(1, stoneScaleY, 1); s.eulerAngles.y = CGFloat(rs.id.col * rs.id.row); s.position = SCNVector3(0, stoneRadius * stoneScaleY, 0)
+                s.name = "board-stone"
                 
                 s.categoryBitMask = MaskStones
                 anchor.addChildNode(s); stonesContainer.addChildNode(anchor); stoneNodeMap[rs.id] = anchor

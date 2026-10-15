@@ -20,6 +20,10 @@ A QUICK FIRST TEST
 
 MORE EXAMPLES
 Select examples in the Local list. They stay paused until you press Play.
+The two self-capture examples deliberately start with the same stones and have
+no recorded moves to play back. To see the difference, manually click B9 as
+Black: the empty second intersection from the left in the top row. This fills
+the black group's last liberty (its last adjacent empty point).
 - Two stone handicap: starts with two black stones and White to move.
 - Japanese self capture: try Black at B9 (second point in the top row).
   The move should be rejected.
