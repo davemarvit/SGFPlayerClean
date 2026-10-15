@@ -36,13 +36,18 @@ SGF_REVIEW_CHECK=1. That mode probes only loopback and requires a kernel denial,
 then exits before creating the application model. It never contacts OGS.
 Run python3 Tests/OfflineReview/check_samples.py to validate the bundled
 examples against the production parser and rule engine.
-The banner's Scoring review button opens a display-only sheet with sample
+The banner's Score examples button opens a display-only sheet with sample
 final scores. It uses the production scoring panel, has no OGS client or game
 model, and is compiled only into offline builds. It does not simulate the
 scoring agreement or calculate a score for the current board.
 Run python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift after a build
 to render that sheet and check the panel's visible winner text, score precision,
 draw/missing-score states, long names, and earlier-position notice using OCR.
+Actual local scoring opens after two passes. It supports manual dead groups,
+neutral areas (including seki eyes), score review/confirmation, and resuming play.
+Examples 05 and 06 demonstrate territory versus area scoring on the same board.
+Run python3 Tests/UI/check_capture_rewind.py LocalScoring.swift for the full
+2D/3D local scoring flow; source SGFs and real capture counts stay unchanged.
 The existing KataGo integration script can run under the generated sandbox:
     sandbox-exec -f '../Offline Review/network-and-file-protection.sb' \
       python3 Tests/Integration/run_katago.py

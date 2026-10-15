@@ -9,7 +9,9 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             mainInterface // .disabled(appModel.isCreatingChallenge) removed
-            SharedOverlays(showSettings: $showSettings, buttonsVisible: $buttonsVisible, app: appModel)
+            if let vm = appModel.boardVM {
+                SharedOverlays(showSettings: $showSettings, buttonsVisible: $buttonsVisible, app: appModel, boardVM: vm)
+            }
             VStack {
                 HStack {
                     Spacer()

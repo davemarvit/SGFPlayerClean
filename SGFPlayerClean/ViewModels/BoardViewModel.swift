@@ -25,6 +25,12 @@ class BoardViewModel: ObservableObject {
     @Published var totalMoves: Int = 0
     @Published var territoryIsEstimate = false
     @Published var territoryPoints: [BoardPosition: Stone] = [:]
+    @Published private(set) var localScoring: LocalScoringSession?
+    private var localHandicap = 0
+    private var scoringDismissedAtIndex: Int?
+    var localScoringVisible: Bool {
+        !isOnlineContext && localScoring?.index == engine.currentIndex && engine.currentIndex == engine.maxIndex
+    }
     @Published var aiAnalysisProgress: Double = 0.0
     
     let onRequestUpdate3D = PassthroughSubject<Void, Never>()
@@ -79,6 +85,7 @@ class BoardViewModel: ObservableObject {
     var boardSize: Int { self.engine.board.size }
     
     func resetToEmpty() {
+        localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = 0
         fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
             KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
@@ -95,6 +102,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func loadGame(_ wrapper: SGFGameWrapper) {
+        localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = wrapper.game.handicap
         fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
             KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
@@ -146,15 +154,17 @@ class BoardViewModel: ObservableObject {
 
     var localPassUnavailableReason: String? {
         if isOnlineContext { return "Use the online game's Pass control." }
+        if localScoringVisible { return "Resume play before passing again." }
         if engine.isPlaying { return "Pause playback before passing." }
         if engine.currentIndex != engine.maxIndex { return "Return to the latest position before passing." }
         return engine.moveRejection(color: engine.turn, x: -1, y: -1)?.rawValue
     }
 
     var localPassStatus: String? {
+        if localScoringVisible { return nil }
         guard !isOnlineContext, let last = engine.lastMove, last.x == -1, last.y == -1 else { return nil }
-        if engine.lastTwoMovesWerePasses {
-            return "Both players passed · Local final scoring is not available yet."
+        if engine.currentIndex == scoringDismissedAtIndex, engine.currentIndex == engine.maxIndex {
+            return "Play resumed · \(engine.turn == .black ? "Black" : "White") to move"
         }
         return "\(last.color == .black ? "Black" : "White") passed · \(engine.turn == .black ? "Black" : "White") to move"
     }
@@ -170,6 +180,46 @@ class BoardViewModel: ObservableObject {
         if KataGoEngine.shared.isEngineRunning { triggerFullGameAnalysis() }
     }
     
+    private func synchronizeLocalScoring() {
+        guard !isOnlineContext else { return }
+        if let session = localScoring, session.index != engine.maxIndex { localScoring = nil }
+        // Passing once after resumption must not pair with a pass from the previous round.
+        if let resumed = scoringDismissedAtIndex, engine.currentIndex < resumed + 2 { return }
+        guard engine.currentIndex == engine.maxIndex, engine.lastTwoMovesWerePasses,
+              scoringDismissedAtIndex != engine.currentIndex, localScoring == nil else { return }
+        localScoring = LocalScoringSession(player: engine, handicap: localHandicap)
+        engine.pause()
+        fullGameAnalysisTask?.cancel()
+        ghostPosition = nil
+    }
+
+    func editLocalScoring(_ edit: (inout LocalScoringSession) -> Void) {
+        guard localScoringVisible, var session = localScoring, !session.isFinal else { return }
+        edit(&session)
+        localScoring = session
+        syncState()
+    }
+
+    func confirmLocalScore() {
+        guard localScoringVisible, var session = localScoring, session.result != nil else { return }
+        session.isFinal = true
+        localScoring = session
+        syncState()
+    }
+
+    func reviewLocalScore() {
+        guard localScoringVisible else { return }
+        localScoring?.isFinal = false
+        syncState()
+    }
+
+    func resumeLocalPlay() {
+        guard localScoringVisible else { return }
+        scoringDismissedAtIndex = engine.currentIndex
+        localScoring = nil
+        syncState()
+    }
+
     func handleRemoteMove(x: Int, y: Int, color: Stone) {
         self.engine.playMoveOptimistically(color: color, x: x, y: y)
     }
@@ -180,6 +230,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func finishOnlineGameLoad(gameID: Int) {
+        localScoring = nil; scoringDismissedAtIndex = nil
         fullGameAnalysisTask?.cancel()
         _ = KataGoEngine.shared.loadAnalysisCache(for: String(gameID), game: engine)
         isOnlineContext = true
@@ -189,6 +240,13 @@ class BoardViewModel: ObservableObject {
     }
 
     func placeStone(at pos: BoardPosition) {
+        if localScoringVisible {
+            editLocalScoring { session in
+                if session.tool == .deadGroups { session.toggleDeadGroup(at: pos) }
+                else { session.toggleNeutralArea(at: pos) }
+            }
+            return
+        }
         let p = ogsClient.phase ?? "unknown"
         let isOnline = isOnlineContext
         let myColor = ogsClient.playerColor ?? .white
@@ -278,6 +336,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func syncState() {
+        synchronizeLocalScoring()
         moveError = nil
         koPoint = engine.koPoint
         let idx = self.engine.currentIndex
@@ -300,6 +359,7 @@ class BoardViewModel: ObservableObject {
                    if ogsClient.removedStones.contains(pos) { rs.isDead = true }
                }
             }
+            if localScoringVisible, localScoring?.deadStones.contains(pos) == true { rs.isDead = true }
             list.append(rs)
         }
         let safeList = list.sorted {
@@ -327,6 +387,8 @@ class BoardViewModel: ObservableObject {
            } else {
                self.territoryPoints = [:]
            }
+        } else if localScoringVisible, let scoring = localScoring {
+            self.territoryPoints = scoring.territory
         } else {
             self.territoryPoints = [:]
         }
@@ -369,6 +431,7 @@ class BoardViewModel: ObservableObject {
     }
     
     private func requestAnalysisIfNeeded() {
+        guard !localScoringVisible else { return }
         guard KataGoEngine.shared.isEngineRunning else { return }
         if let allowed = isAIAllowed, !allowed() { return }
         
@@ -460,6 +523,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func updateGhostStone(at pos: BoardPosition?) {
+        if localScoringVisible { ghostPosition = nil; return }
         guard isOnlineContext && engine.turn == ogsClient.playerColor else {
             self.ghostPosition = nil
             return

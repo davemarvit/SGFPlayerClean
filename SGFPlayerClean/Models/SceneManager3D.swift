@@ -339,6 +339,27 @@ class SceneManager3D: NSObject, ObservableObject {
     
     // NEW: Territory Rendering
     private var territoryNodes: [SCNNode] = []
+    private lazy var territoryMaterials: [Stone: SCNMaterial] = {
+        Dictionary(uniqueKeysWithValues: Stone.allCases.map { owner in
+            let color: NSColor = owner == .black ? .black : .white
+            let texture = NSImage(size: NSSize(width: 128, height: 128), flipped: false) { _ in
+                guard let context = NSGraphicsContext.current?.cgContext,
+                      let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                        colors: [0.96, 0.9, 0.38, 0].map { color.withAlphaComponent($0).cgColor } as CFArray,
+                        locations: [0, 0.22, 0.58, 1]) else { return false }
+                context.drawRadialGradient(gradient, startCenter: CGPoint(x: 64, y: 64), startRadius: 0,
+                                           endCenter: CGPoint(x: 64, y: 64), endRadius: 64, options: [])
+                return true
+            }
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = texture
+            material.blendMode = .alpha
+            material.readsFromDepthBuffer = false
+            material.writesToDepthBuffer = false
+            return (owner, material)
+        })
+    }()
     
     func updateAIHints(moves: [AIMoveInfo], isAvailable: Bool, root: AIRootInfo?, nextMove: BoardPosition?) {
         SCNTransaction.begin()
@@ -532,15 +553,17 @@ class SceneManager3D: NSObject, ObservableObject {
         let offX = -w / 2.0; let offZ = -h / 2.0
         let tY = boardThickness / 2.0 + 0.01 // Slightly above board
         
-        let box = SCNBox(width: effectiveCellWidth * 0.3, height: 0.005, length: effectiveCellHeight * 0.3, chamferRadius: 0)
-        
         for (pos, owner) in points {
             let x = CGFloat(pos.col) * effectiveCellWidth + offX
             let z = CGFloat(pos.row) * effectiveCellHeight + offZ
             
-            let n = SCNNode(geometry: box)
-            // Black Territory -> Black Square, White -> White Square
-            n.geometry?.firstMaterial?.diffuse.contents = (owner == .black) ? NSColor.black : NSColor.white
+            let plane = SCNPlane(width: effectiveCellWidth * 0.7, height: effectiveCellWidth * 0.7)
+            plane.materials = [territoryMaterials[owner]!]
+            let n = SCNNode(geometry: plane)
+            n.name = "territory-\(owner.rawValue)"
+            n.eulerAngles.x = -.pi / 2
+            n.renderingOrder = 10
+            n.castsShadow = false
             n.position = SCNVector3(x, tY, z)
             worldAnchor.addChildNode(n)
             territoryNodes.append(n)

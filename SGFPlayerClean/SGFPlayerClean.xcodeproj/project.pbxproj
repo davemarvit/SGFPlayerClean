@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C0DE00000000000000000043 /* LocalScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000042 /* LocalScoringPanel.swift */; };
+		C0DE00000000000000000041 /* LocalScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000040 /* LocalScoring.swift */; };
 		C0DE00000000000000000023 /* OGSScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000022 /* OGSScoringPanel.swift */; };
 		C0DE00000000000000000021 /* OGSScoringState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000020 /* OGSScoringState.swift */; };
 		C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000D /* OGSSocketEvent.swift */; };
@@ -111,6 +113,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C0DE00000000000000000042 /* LocalScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoringPanel.swift; sourceTree = "<group>"; };
+		C0DE00000000000000000040 /* LocalScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoring.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000022 /* OGSScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSScoringPanel.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000020 /* OGSScoringState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OGSScoringState.swift; sourceTree = "<group>"; };
 		C0DE0000000000000000000D /* OGSSocketEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Networking/OGSSocketEvent.swift; sourceTree = "<group>"; };
@@ -325,6 +329,7 @@
 				55EEB54F2EFFEAC600030E2A /* GameSettings.swift */,
 				55EEB5502EFFEAC600030E2A /* OGSModels.swift */,
 				C0DE00000000000000000020 /* OGSScoringState.swift */,
+				C0DE00000000000000000040 /* LocalScoring.swift */,
 				55EEB5512EFFEAC600030E2A /* SceneManager3D.swift */,
 				55EEB5552EFFEAC600030E2A /* SGFPlayerCleanApp.swift */,
 				55EEB5562EFFEAC600030E2A /* SGFPlayerEngine.swift */,
@@ -369,6 +374,7 @@
 			children = (
 				55EEB5642EFFEAC600030E2A /* ActiveGamePanel.swift */,
 				C0DE00000000000000000022 /* OGSScoringPanel.swift */,
+				C0DE00000000000000000042 /* LocalScoringPanel.swift */,
 				55EEB5652EFFEAC600030E2A /* BoardView2D.swift */,
 				55EEB5662EFFEAC600030E2A /* ContentView.swift */,
 				55EEB5672EFFEAC600030E2A /* ContentView2D.swift */,
@@ -537,6 +543,8 @@
 				55EEB5792EFFEAC600030E2A /* AppSettings.swift in Sources */,
 				55EEB57A2EFFEAC600030E2A /* OGSModels.swift in Sources */,
 				C0DE00000000000000000021 /* OGSScoringState.swift in Sources */,
+				C0DE00000000000000000043 /* LocalScoringPanel.swift in Sources */,
+				C0DE00000000000000000041 /* LocalScoring.swift in Sources */,
 				55EEB57C2EFFEAC600030E2A /* SGFPlayerCleanApp.swift in Sources */,
 				55EEB57D2EFFEAC600030E2A /* FileLoadingService.swift in Sources */,
 				55EEB57E2EFFEAC600030E2A /* AppModel.swift in Sources */,

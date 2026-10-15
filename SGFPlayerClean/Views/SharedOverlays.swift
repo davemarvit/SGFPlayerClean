@@ -12,6 +12,7 @@ struct SharedOverlays: View {
     @Binding var showSettings: Bool
     @Binding var buttonsVisible: Bool
     @ObservedObject var app: AppModel
+    @ObservedObject var boardVM: BoardViewModel
 
     var body: some View {
         ZStack {
@@ -97,7 +98,7 @@ struct SharedOverlays: View {
             VStack {
                 HStack {
                     Spacer()
-                    if buttonsVisible && !app.showRightPanel {
+                    if buttonsVisible && !app.showRightPanel && !boardVM.localScoringVisible {
                         // C2. Sidebar Toggle (moved to right)
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.35)) {

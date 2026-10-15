@@ -40,6 +40,7 @@ let package = Package(
                     "Services/OGSClient.swift",
                     "Models/OGSModels.swift",
                     "Models/OGSScoringState.swift",
+                    "Models/LocalScoring.swift",
                     "Models/AppSettings.swift",
                     "Models/SGFPlayerEngine.swift",
                     "ViewModels/OGSGameViewModel.swift",

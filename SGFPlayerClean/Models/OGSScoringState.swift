@@ -83,13 +83,7 @@ struct OGSScoreSummary: Decodable, Equatable {
     }
 
     func winnerDescription(blackName: String?, whiteName: String?) -> String {
-        let difference = black.total - white.total
-        guard difference != 0 else { return "Draw" }
-        let color = difference > 0 ? "Black" : "White"
-        let name = (difference > 0 ? blackName : whiteName)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let winner = name.flatMap { $0.isEmpty ? nil : $0 }.map { "\($0) \(color)" } ?? color
-        let margin = abs(difference).formatted(.number.precision(.fractionLength(0...2)))
-        return "\(winner) wins by \(margin) \(abs(difference) == 1 ? "point" : "points")"
+        winningScoreDescription(black: black.total, white: white.total, blackName: blackName, whiteName: whiteName)
     }
 
     /// nil means unavailable/invalid; an empty dictionary is an authoritative empty overlay.
@@ -102,4 +96,14 @@ struct OGSScoreSummary: Decodable, Equatable {
         for point in whitePoints { result[point] = .white }
         return result
     }
+}
+
+func winningScoreDescription(black: Double, white: Double, blackName: String?, whiteName: String?) -> String {
+    let difference = black - white
+    guard difference != 0 else { return "Draw" }
+    let color = difference > 0 ? "Black" : "White"
+    let name = (difference > 0 ? blackName : whiteName)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let winner = name.flatMap { $0.isEmpty ? nil : $0 }.map { "\($0) \(color)" } ?? color
+    let margin = abs(difference).formatted(.number.precision(.fractionLength(0...2)))
+    return "\(winner) wins by \(margin) \(abs(difference) == 1 ? "point" : "points")"
 }

@@ -223,12 +223,16 @@ and [KataGo preset definitions](https://github.com/lightvector/KataGo/blob/maste
 
 This is not a complete local referee or scoring engine. In particular:
 
-- Dead-group agreement, seki, bent-four/corner adjudication, territory taxes, and resumption rules
-  depend on OGS's scoring state. The fallback flood-fill overlay now explicitly says it is an
-  estimate; it cannot prove life/death or seki.
-- AGA pass stones, White passing last, handicap compensation, and end-of-game transitions are
-  server responsibilities. Lids deliberately count actual removed stones, not pass-stone or
-  end-of-game scoring adjustments. Two passes do not fabricate a local final score.
+- Online scoring remains server-controlled. Local scoring now opens after two passes and
+  requires manual dead-group agreement and confirmation. Its neutral-area tool excludes
+  Japanese/Korean seki eyes; it cannot prove life/death or resolve bent-four/corner disputes.
+- Local Japanese/Korean totals count territory, captures, marked-dead prisoners and komi.
+  Chinese variants, AGA/BGA, New Zealand and Tromp-Taylor use area counting, so prisoners/pass
+  stones are not added again. Handicap compensation is N for Chinese variants, N−1 for AGA/BGA,
+  and zero for Japanese/Korean/NZ/TT, with explicit supported compensation overrides honored.
+  White-last/pass-stone procedures are not simulated. Lids count actual removed stones;
+  scoring adjustments are shown separately. Stone-scoring taxes, button rules and unknown
+  custom scoring require an explicit supported scoring-rule choice instead of a silent fallback.
 - Japanese/Korean long-cycle no-result adjudication, Ing rules, and unusual custom repetition
   schemes are not implemented locally. KataGo presets approximate national rules; in particular,
   OGS self-capture handling and KataGo's multi-stone-suicide rule are not identical in every case.
@@ -314,6 +318,7 @@ python3 Tests/UI/check_capture_rewind.py
 python3 Tests/UI/check_capture_rewind.py PlaybackAudio.swift
 python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift
 python3 Tests/UI/check_capture_rewind.py LocalPass.swift
+python3 Tests/UI/check_capture_rewind.py LocalScoring.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -326,8 +331,15 @@ The scoring check renders the production panel and uses OCR to verify visible wi
 fractional totals, draws, absent scores, long names, and the earlier-position notice. The
 offline app's banner opens these scoring examples without changing the current game.
 The local Pass check hosts both board views and verifies visible controls/status, turn changes,
-unchanged stones/captures, ko and rewind/replay behavior, and input guards. Two local passes
-show a notice; local final scoring is not yet implemented.
+unchanged stones/captures, ko and rewind/replay behavior, and input guards. The local scoring
+check exercises both full board views, open/closed sidebars, group/neutral marking, live totals,
+both territory colors, confirmation, frozen results, rewind/replay, resumption and game changes.
+
+Scoring marks/results are in-memory review data, never edits to the source SGF. Unknown rules
+and missing/invalid komi block confirmation until explicitly selected/entered. Manual agreement
+is essential: the territory flood fill is not a life/death solver. The counting distinctions follow
+the [BGA rules comparison](https://www.britgo.org/rules/compare.html), and handicap defaults match
+[KataGo's documented presets](https://github.com/lightvector/KataGo/blob/master/docs/rules.html).
 
 ## Recovery without disturbing another checkout
 

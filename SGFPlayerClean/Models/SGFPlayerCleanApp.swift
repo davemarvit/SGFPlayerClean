@@ -48,7 +48,7 @@ struct SGFPlayerCleanApp: App {
                 HStack {
                     Text("OFFLINE REVIEW • OGS connections blocked • Separate settings")
                     Spacer()
-                    Button("Scoring review…") { showScoringReview = true }
+                    Button("Score examples…") { showScoringReview = true }
                 }
                 .font(.caption).padding(6).frame(maxWidth: .infinity)
                 .background(Color.orange.opacity(0.2))

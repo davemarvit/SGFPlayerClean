@@ -66,6 +66,8 @@ def main():
         '02 Two stone handicap.sgf': '(;GM[1]FF[4]SZ[9]RU[Chinese-OGS]KM[0.5]HA[2]PL[W]PB[Handicap example]PW[White]AB[cg][gc];W[cc];B[gg];W[ee])',
         '03 Japanese self capture.sgf': '(;GM[1]FF[4]SZ[9]RU[Japanese]KM[6.5]PB[Japanese suicide check]PW[White]AB[aa]AW[ab][bb][ca])',
         '04 New Zealand self capture.sgf': '(;GM[1]FF[4]SZ[9]RU[New Zealand]KM[7]PB[NZ suicide check]PW[White]AB[aa]AW[ab][bb][ca])',
+        '05 Japanese scoring.sgf': '(;GM[1]FF[4]SZ[9]RU[Japanese]KM[6.5]PB[Dave]PW[Alice]AB[da][db][dc][dd][de][df][dg][dh][di][ba][bb][bc][cc][ad]AW[fa][fb][fc][fd][fe][ff][fg][fh][fi][aa][ab])',
+        '06 New Zealand scoring.sgf': '(;GM[1]FF[4]SZ[9]RU[New Zealand]KM[7]PB[Dave]PW[Alice]AB[da][db][dc][dd][de][df][dg][dh][di][ba][bb][bc][cc][ad]AW[fa][fb][fc][fd][fe][ff][fg][fh][fi][aa][ab])',
     }
     for name, sgf in examples.items():
         (games / name).write_text(sgf + '\n')

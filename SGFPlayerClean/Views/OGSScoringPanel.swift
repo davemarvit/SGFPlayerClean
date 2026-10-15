@@ -168,7 +168,7 @@ struct OfflineScoringReview: View {
                     .frame(width: 330)
                     .frame(maxWidth: .infinity)
             }
-            Text("This previews the final-score display. Dead-stone marking and the players’ scoring agreement still need a separate test.")
+            Text("These examples are independent of your game. To score your board, pass twice, then review dead groups and territory in the sidebar.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .padding(24)

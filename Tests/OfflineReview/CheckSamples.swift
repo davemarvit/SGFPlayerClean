@@ -29,6 +29,15 @@ struct CheckSamples {
         let nz = try load("04 New Zealand self capture.sgf")
         precondition(nz.tryPlayMove(color: .black, x: 1, y: 0) == nil)
         precondition(nz.capturesByWhite == 2)
-        print("All four bundled sample games passed their rule and capture checks.")
+        for (name, black, white) in [("05 Japanese scoring.sgf", 24.0, 33.5), ("06 New Zealand scoring.sgf", 36.0, 43.0)] {
+            let player = try load(name)
+            precondition(player.tryPlayMove(color: .black, x: -1, y: -1) == nil)
+            precondition(player.tryPlayMove(color: .white, x: -1, y: -1) == nil)
+            var score = LocalScoringSession(player: player, handicap: 0)
+            score.toggleDeadGroup(at: BoardPosition(0,0))
+            precondition(score.deadStones.count == 2)
+            precondition(score.result?.black.total == black && score.result?.white.total == white)
+        }
+        print("All six bundled samples passed rule, capture, and scoring checks.")
     }
 }

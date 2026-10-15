@@ -163,13 +163,7 @@ struct ContentView3D: View {
                 }
                 
                 // Right Panel Overlay (Covers the analytics when open)
-                if app.showRightPanel {
-                    HStack {
-                        Spacer()
-                        RightPanelView().frame(width: 320)
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                    }
-                }
+                RightSidebarOverlay(vm: bVM)
             }
         }
         .focused($isBoardFocused)
@@ -210,7 +204,7 @@ struct ContentView3D: View {
         sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
         
         // AI Hints
-        let isAIAvailable = app.isAIAvailable
+        let isAIAvailable = app.isAIAvailable && !bVM.localScoringVisible
         let turn = bVM.currentMoveIndex
         let analysis = KataGoEngine.shared.currentAnalysisData[turn]
         let moves = analysis?.moveInfos ?? []

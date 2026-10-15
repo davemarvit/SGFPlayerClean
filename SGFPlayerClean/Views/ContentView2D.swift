@@ -106,15 +106,7 @@ struct ContentView2D: View {
                 }
                 
                 // 3. Right Panel Overlay (Aligned Trailing)
-                if app.showRightPanel {
-                    HStack {
-                        Spacer()
-                        RightPanelView()
-                            .frame(width: sidebarW)
-                            .background(Color.black.opacity(0.15))
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
-                    }
-                }
+                if let vm = app.boardVM { RightSidebarOverlay(vm: vm) }
             }.keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         }
     }

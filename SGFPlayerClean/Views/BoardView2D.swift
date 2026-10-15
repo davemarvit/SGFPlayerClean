@@ -72,10 +72,16 @@ struct BoardView2D: View {
                 // Territory Layer
                 ForEach(Array(boardVM.territoryPoints.keys), id: \.self) { pos in
                     if let color = boardVM.territoryPoints[pos] {
-                        Rectangle()
-                            .fill(color == .black ? Color.black : Color.white)
-                            .frame(width: cellP * 0.3, height: cellP * 0.3)
+                        Circle()
+                            .fill(RadialGradient(stops: [
+                                .init(color: (color == .black ? Color.black : Color.white).opacity(0.96), location: 0),
+                                .init(color: (color == .black ? Color.black : Color.white).opacity(0.9), location: 0.22),
+                                .init(color: (color == .black ? Color.black : Color.white).opacity(0.38), location: 0.58),
+                                .init(color: .clear, location: 1)
+                            ], center: .center, startRadius: 0, endRadius: cellP * 0.35))
+                            .frame(width: cellP * 0.7, height: cellP * 0.7)
                             .position(x: CGFloat(pos.col) * cellP, y: CGFloat(pos.row) * rowP)
+                            .accessibilityLabel(color == .black ? "Black territory" : "White territory")
                     }
                 }
                 
