@@ -45,6 +45,8 @@ final class OGSObservedGameTests: XCTestCase {
     }
 
     func testTimeControlSystemsAndIncompleteData() throws {
+        let legacy = try game(#"{"id":1,"json":{"time_control":"simple"},"time_control_parameters":{"per_move":45}}"#)
+        XCTAssertEqual(legacy.timeControl, "45s/move")
         let cases: [(String, String?)] = [
             (#"{"system":"fischer","initial_time":300,"time_increment":10}"#, "5m + 10s/move"),
             (#"{"system":"canadian","main_time":600,"period_time":300,"stones_per_period":25}"#, "10m + 5m/25 stones"),

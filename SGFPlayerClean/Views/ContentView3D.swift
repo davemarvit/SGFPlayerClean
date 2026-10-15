@@ -243,6 +243,13 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
         v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }
         UnifiedInteractiveSceneView.lastActiveView = v
     }
+
+    static func dismantleNSView(_ v: UnifiedSCNView, coordinator: ()) {
+        v.isPlaying = false
+        v.onInteraction = nil
+        v.scene = nil
+        if lastActiveView === v { lastActiveView = nil }
+    }
     
     private func handleInteraction(event: UnifiedSCNView.EventType, point: CGPoint, context: Context) {
         switch event {

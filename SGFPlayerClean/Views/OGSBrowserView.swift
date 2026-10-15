@@ -19,6 +19,9 @@ struct OGSBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerSection
+            if let error = app.ogsClient.lastError {
+                Text(error).font(.caption).foregroundColor(.orange).padding(8)
+            }
             Divider().background(Color.white.opacity(0.1))
             if filteredChallenges.isEmpty {
                 emptyState
@@ -38,7 +41,8 @@ struct OGSBrowserView: View {
                 Text("Lobby").font(.headline).foregroundColor(.white)
                 Button(action: { isPresentingCreate = true }) {
                     Text("Create").font(.caption).bold().padding(.horizontal, 4)
-                }.buttonStyle(.bordered).tint(.blue).disabled(!app.ogsClient.isConnected)
+                }.buttonStyle(.bordered).tint(.blue)
+                    .disabled(!app.ogsClient.isConnected || !app.ogsClient.isSocketAuthenticated)
                 Spacer()
                 if app.ogsClient.isConnected {
                     VStack(alignment: .trailing, spacing: 2) {
@@ -251,6 +255,7 @@ struct OGSLoginView: View {
         }
         .onDisappear {
             app.isTypingInChat = false
+            if isLoggingIn { app.ogsClient.logout() }
         }
     }
     
@@ -258,9 +263,9 @@ struct OGSLoginView: View {
         HStack {
             Text("Login to OGS").font(.headline).foregroundColor(.white)
             Spacer()
-            Button(action: { isPresented = false }) {
+            Button(action: cancelLogin) {
                 Image(systemName: "xmark").foregroundColor(.white.opacity(0.7))
-            }.buttonStyle(.plain)
+            }.buttonStyle(.plain).keyboardShortcut(.cancelAction).accessibilityLabel("Cancel login")
         }.padding()
     }
     
@@ -316,9 +321,12 @@ struct OGSLoginView: View {
     }
     
     private func performLogin() {
+        let loginName = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !isLoggingIn, !loginName.isEmpty, !password.isEmpty else { return }
         isLoggingIn = true; errorMessage = nil
-        app.ogsClient.login(username: username, password: password) { success, error in
+        app.ogsClient.login(username: loginName, password: password) { success, error in
             DispatchQueue.main.async {
+                guard isPresented else { return }
                 self.isLoggingIn = false
                 if success {
                     self.isPresented = false
@@ -329,6 +337,14 @@ struct OGSLoginView: View {
                 }
             }
         }
+    }
+
+    private func cancelLogin() {
+        // Logout already fences both the login request and its validation response.
+        if isLoggingIn { app.ogsClient.logout() }
+        isLoggingIn = false
+        password = ""
+        isPresented = false
     }
 }
 

@@ -151,8 +151,18 @@ private final class ModeSocket: OGSWebSocket {
             UserDefaults.standard.removeObject(forKey: key)
         }
         model.viewMode = .view2D
+        model.showRightPanel = true
         let fullUI = try render(ContentView())
         require(fullUI.contains("play online") && fullUI.contains("testingaccount") && fullUI.contains("lobby"), "Full app controls missing: \(fullUI)")
-        print("PASS: Four modes, independent AI, real account participation, no mode-driven logout, separate board positions, late-event isolation, username, and restored lobby filters. Network denied; fake transports only.")
+        model.viewMode = .view3D
+        _ = try render(ContentView())
+        guard let oldSceneView = UnifiedInteractiveSceneView.lastActiveView as? UnifiedSCNView else {
+            require(false, "3D view missing before teardown check"); return
+        }
+        require(oldSceneView.scene != nil, "3D scene did not attach")
+        model.viewMode = .view2D; settle()
+        require(oldSceneView.scene == nil && oldSceneView.onInteraction == nil && !oldSceneView.isPlaying,
+                "Switching to 2D must release the old renderer and interaction closure")
+        print("PASS: Four modes, independent AI, real account participation, no mode-driven logout, separate board positions, late-event isolation, username, restored lobby filters, and 3D renderer teardown. Network denied; fake transports only.")
     }
 }

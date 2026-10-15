@@ -66,6 +66,21 @@ class OGSClient: NSObject, ObservableObject {
                  blackPlayerID = nil
                  whitePlayerID = nil
                  playerColor = nil
+                 currentPlayerID = nil
+                 blackPlayerName = nil; whitePlayerName = nil
+                 blackPlayerRank = nil; whitePlayerRank = nil
+                 blackPlayerCountry = nil; whitePlayerCountry = nil
+                 blackTimeRemaining = nil; whiteTimeRemaining = nil
+                 blackClockPeriods = nil; whiteClockPeriods = nil
+                 blackClockPeriodTime = nil; whiteClockPeriodTime = nil
+                 blackPeriodLength = nil; whitePeriodLength = nil
+                 lastClockSnapshot = nil
+                 activeGameTimeControl = nil; isRanked = false
+                 currentHandicap = 0
+                 isRequestingUndo = false
+                 undoRequestedUsername = nil; undoRequestedMoveNumber = nil
+                 lastUndoneMoveNumber = nil
+                 lastError = nil
                  lastKnownRemoteMoveNumber = nil
                  currentStateVersion = 0
                  blackCaptures = 0; whiteCaptures = 0
@@ -386,6 +401,8 @@ class OGSClient: NSObject, ObservableObject {
         myActiveGames.removeAll()
         isAuthenticated = false
         isSocketAuthenticated = false
+        isRequestingUndo = false
+        undoRequestedUsername = nil; undoRequestedMoveNumber = nil
     }
 
     func connect() {
@@ -419,6 +436,8 @@ class OGSClient: NSObject, ObservableObject {
         resetScoringSubmission()
         // Subscriptions and room membership belong to one socket, not the whole app lifetime.
         isSocketAuthenticated = false
+        isRequestingUndo = false
+        undoRequestedUsername = nil; undoRequestedMoveNumber = nil
         socketNamespaceReady = false
         socketAuthAttempted = false
         socketAuthTimeout?.cancel(); socketAuthTimeout = nil
@@ -676,6 +695,7 @@ class OGSClient: NSObject, ObservableObject {
     }
     
     func sendMove(gameID: Int, x: Int, y: Int) {
+        guard activeGameID == gameID, canPlayMoves else { return }
         self.lastUndoneMoveNumber = nil // Disarm Ghost Guard (User is acting)
         let coord = SGFCoordinates.toSGF(x: x, y: y)
         var payload: [String: Any] = ["game_id": gameID, "move": coord, "blur": Int.random(in: 800...1200)]
@@ -684,6 +704,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func sendPass(gameID: Int) {
+        guard activeGameID == gameID, canPlayMoves else { return }
         self.lastUndoneMoveNumber = nil // Disarm Ghost Guard
         var payload: [String: Any] = ["game_id": gameID, "move": "..", "blur": 0]
         if let clock = lastClockSnapshot { payload["clock"] = clock }
@@ -691,7 +712,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func resignGame(gameID: Int) {
-        // NSLog("[OGS-GAME] Resigning \(gameID)")
+        guard activeGameID == gameID, canResign else { return }
         sendAction("game/resign", payload: ["game_id": gameID])
     }
 
@@ -716,6 +737,7 @@ class OGSClient: NSObject, ObservableObject {
 
     func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
         guard !observationOnly else { completion(false, observationError.localizedDescription); return }
+        if let error = setup.validationError { completion(false, error); return }
         // Note: Added trailing slash to avoid potential 301 redirects dropping POST body
         guard let jwt = userJWT, let url = URL(string: "https://online-go.com/api/v1/challenges/") else {
              completion(false, "Not authenticated"); return
@@ -836,28 +858,29 @@ class OGSClient: NSObject, ObservableObject {
         
         NSLog("[OGS-AUTH-DEBUG] 🚀 Attempting Cancel Challenge \(challengeID). User: \(self.username ?? "nil") ID: \(self.playerID ?? -1). JWT Length: \(jwt.count)")
 
-        urlSession.dataTask(with: request) { [weak self] data, response, error in
-            guard let self, self.identityGeneration == identity, self.challengeGeneration == generation else { return }
-            if let http = response as? HTTPURLResponse {
-                NSLog("[OGS-CANCEL-DEBUG] 📡 Cancel Response: \(http.statusCode)")
-                if (200...299).contains(http.statusCode) || http.statusCode == 404 || http.statusCode == 403 {
-                     if self.lobbyChallenges[challengeID] != nil {
-                             NSLog("[OGS-CANCEL-DEBUG] 🧹 Force Removing Challenge \(challengeID) from Local State (Status: \(http.statusCode)).")
-                             self.lobbyChallenges.removeValue(forKey: challengeID)
-                             self.refreshLobbyUI()
-                     }
+        urlSession.dataTask(with: request) { [weak self] _, response, error in
+            DispatchQueue.main.async {
+                guard let self, self.identityGeneration == identity, self.challengeGeneration == generation else { return }
+                if let error {
+                    self.lastError = "Could not cancel the challenge: \(error.localizedDescription). It may still be open."
+                    return
                 }
-                
-                if http.statusCode == 403 {
-                    NSLog("[OGS-AUTH-DEBUG] ⛔️ 403 Forbidden. Auth Mismatch? Triggering Config Refresh.")
-                    self.fetchUserConfig()
+                guard let http = response as? HTTPURLResponse else {
+                    self.lastError = "OGS did not confirm cancellation. The challenge may still be open."
+                    return
+                }
+                if (200...299).contains(http.statusCode) || http.statusCode == 404 {
+                    self.lobbyChallenges.removeValue(forKey: challengeID)
+                    self.addToGraveyard(challengeID)
+                    self.lastError = nil
+                    self.refreshLobbyUI()
+                } else {
+                    // A forbidden request is not evidence the challenge disappeared.
+                    self.lastError = "Could not cancel the challenge (OGS returned \(http.statusCode)). It may still be open."
                 }
             }
-            
-            if let e = error { NSLog("[OGS] ❌ Cancel Challenge Failed: \(e)") }
-            else { NSLog("[OGS] ✅ Challenge Cancel Request Sent: \(challengeID)") }
         }.resume()
-        
+
         // Phase 1: Try Automatch Cancel (Priority)
         if let uuid = self.currentAutomatchUUID {
             NSLog("[OGS-DEBUG] 📤 Cancelling Automatch UUID: \(uuid)")
@@ -881,12 +904,17 @@ class OGSClient: NSObject, ObservableObject {
         sendAction("automatch/start", payload: params)
     }
 
-    func sendChat(gameID: Int, text: String) {
+    @discardableResult
+    func sendChat(gameID: Int, text: String) -> Bool {
+        guard activeGameID == gameID, canSendChat,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         sendAction("game/chat", payload: ["game_id": gameID, "body": text, "type": "main"])
+        return true
     }
 
     func sendUndoRequest(gameID: Int, moveNumber: Int) {
-        guard gameID == activeGameID, isConnected, isSocketAuthenticated, isGameParticipant, !isReconcilingMoves else { return }
+        guard gameID == activeGameID, canPlayMoves, !isRequestingUndo,
+              (lastKnownRemoteMoveNumber ?? moveNumber) > 0 else { return }
         self.isRequestingUndo = true
         // self.lastUndoneMoveNumber = moveNumber // REMOVED: Do not limit future moves!
         // NSLog("[OGS-CLIENT] ↩️ sendUndoRequest: Flag SET to TRUE. Guard Armed for \(moveNumber)")
@@ -899,17 +927,32 @@ class OGSClient: NSObject, ObservableObject {
 
 
     func sendUndoAccept(gameID: Int, moveNumber: Int) {
-         guard gameID == activeGameID, isConnected, isSocketAuthenticated, isGameParticipant, !isReconcilingMoves else { return }
+         guard gameID == activeGameID, canPlayMoves, !isRequestingUndo,
+               undoRequestedMoveNumber == moveNumber, undoRequestedUsername != nil else { return }
          self.isRequestingUndo = true
          NSLog("[OGS-CLIENT] ↩️ sendUndoAccept: Flag SET to TRUE")
         sendAction("game/undo/accept", payload: ["game_id": gameID, "move_number": moveNumber], sequence: currentStateVersion + 1)
     }
 
     func sendUndoReject(gameID: Int) {
+        guard gameID == activeGameID, canPlayMoves,
+              isRequestingUndo || undoRequestedMoveNumber != nil else { return }
         sendAction("game/undo/cancel", payload: ["game_id": gameID])
     }
     
     // MARK: - Scoring
+    /// Shared by the UI and final dispatch; stale buttons cannot act on another game.
+    var canPlayMoves: Bool {
+        isConnected && isSocketAuthenticated && isGameParticipant && activeGameID != nil &&
+        !isReconcilingMoves && !isGameFinished && phase == "play"
+    }
+    var canResign: Bool {
+        isConnected && isSocketAuthenticated && isGameParticipant && activeGameID != nil &&
+        !isReconcilingMoves && !isGameFinished && (phase == "play" || isScoringPhase)
+    }
+    var canSendChat: Bool {
+        !observationOnly && isConnected && isSocketAuthenticated && activeGameID != nil
+    }
     var isScoringPhase: Bool { OGSScoring.isScoring(phase) }
     var isScoreAccepted: Bool { scoreAcceptance == .confirmed }
     var isGameParticipant: Bool {

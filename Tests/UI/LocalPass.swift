@@ -37,6 +37,9 @@ import Vision
         for mode in [ViewMode.view2D, .view3D] {
             model.viewMode = mode
             model.selectGame(wrapper)
+        #if SGF_OGS_REVIEW
+        model.copyCurrentBoard(to: .localPlay)
+        #endif
             let vm = model.boardVM!
             let host = NSHostingView(rootView: Group {
                 if mode == .view2D { ContentView2D() } else { ContentView3D() }

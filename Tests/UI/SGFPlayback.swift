@@ -40,11 +40,13 @@ import Vision
             try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/sgf-playback-\(model.viewMode)-\(model.player.currentIndex).png"))
             // OCR only the controls, so tiny numeric text is not overwhelmed by the board.
             let image = bitmap.cgImage!
-            let footer = image.cropping(to: CGRect(x: 0, y: image.height - image.height / 8,
-                                                   width: image.width, height: image.height / 8))!
+            let footer = image.cropping(to: CGRect(x: image.width / 4, y: image.height - image.height / 8,
+                                                   width: image.width / 2, height: image.height / 8))!
             let enlarged = CGContext(data: nil, width: footer.width * 3, height: footer.height * 3,
                                      bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            enlarged.setFillColor(CGColor(gray: 0, alpha: 1))
+            enlarged.fill(CGRect(x: 0, y: 0, width: footer.width * 3, height: footer.height * 3))
             enlarged.interpolationQuality = .high
             enlarged.draw(footer, in: CGRect(x: 0, y: 0, width: footer.width * 3, height: footer.height * 3))
             let request = VNRecognizeTextRequest(); request.recognitionLevel = .accurate
@@ -57,7 +59,7 @@ import Vision
             model.viewMode = mode
             model.selectGame(wrapper)
             let vm = model.boardVM!
-            let host = NSHostingView(rootView: ContentView().environmentObject(model))
+            let host = NSHostingView(rootView: ContentView().environmentObject(model).background(Color(nsColor: .windowBackgroundColor)))
             window.contentView = host; window.orderFront(nil); wait()
             check(vm.totalMoves == expected, "\(mode): incorrect playback length")
             check(model.selection?.game.sourceTree != nil, "Imported variation tree lost in app selection")

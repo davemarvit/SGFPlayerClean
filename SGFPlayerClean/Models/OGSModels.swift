@@ -72,7 +72,14 @@ struct OGSObservedGame: Identifiable {
         } else if let count = json["move_number"] as? Int, count >= 0 {
             moveCount = count
         } else { moveCount = nil }
-        timeControl = Self.timeControl((snapshot["time_control"] ?? json["time_control_parameters"] ?? json["time_control"]) as? [String: Any])
+        var timeParameters = snapshot["time_control"] as? [String: Any]
+            ?? snapshot["time_control_parameters"] as? [String: Any]
+            ?? json["time_control_parameters"] as? [String: Any]
+            ?? json["time_control"] as? [String: Any]
+        if timeParameters?["system"] == nil, timeParameters?["time_control"] == nil {
+            timeParameters?["system"] = (snapshot["time_control"] as? String) ?? (json["time_control"] as? String)
+        }
+        timeControl = Self.timeControl(timeParameters)
     }
 
     /// Compare the stronger player, retaining server order when strengths tie or are unknown.
@@ -478,6 +485,29 @@ struct ChallengeSetup: Codable {
     var handicap = 0; var color = "automatic"; var minRank = 0; var maxRank = 38
     var timeControl = "byoyomi"; var mainTime = 600; var periods = 5; var periodTime = 30
     var initialTime = 600; var increment = 30; var maxTime = 1200; var perMove = 30
+
+    var validationError: String? {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Enter a challenge name." }
+        if ![9, 13, 19].contains(size) { return "Choose a supported board size." }
+        if !["japanese", "chinese", "aga"].contains(rules) { return "Choose a supported rule set." }
+        if !(-1...9).contains(handicap) || handicap == 1 { return "Choose a valid handicap." }
+        if !["automatic", "black", "white"].contains(color) { return "Choose a player color." }
+        if !(0...38).contains(minRank) || !(minRank...38).contains(maxRank) { return "Choose a valid rank range." }
+        switch timeControl {
+        case "byoyomi":
+            if mainTime < 0 || periodTime <= 0 || !(1...10).contains(periods) {
+                return "Byo-yomi needs a positive period time and 1–10 periods; main time may be zero."
+            }
+        case "fischer":
+            if initialTime <= 0 || increment < 0 || maxTime < initialTime {
+                return "Fischer needs positive initial time, a nonnegative increment, and maximum time at least as large as initial time."
+            }
+        case "simple":
+            if perMove <= 0 { return "Time per move must be greater than zero." }
+        default: return "Choose a supported time control."
+        }
+        return nil
+    }
     
     func toDictionary() -> [String: Any] {
         // Based on Verified Web Payload (Step 376)

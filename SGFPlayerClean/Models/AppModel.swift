@@ -289,6 +289,11 @@ final class AppModel: ObservableObject {
         } else if mode == .localPlay { startInstantGame() }
     }
 
+    var hasLocalGameToReplace: Bool {
+        let snapshot = mode == .localPlay ? player.createSnapshot() : savedBoards[.localPlay]?.snapshot
+        return snapshot.map { !$0.moves.isEmpty || !$0.setup.isEmpty } ?? false
+    }
+
     func newLocalGame() {
         mode = .localPlay
         startInstantGame()

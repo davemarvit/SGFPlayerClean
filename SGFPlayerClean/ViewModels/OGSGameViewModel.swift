@@ -181,19 +181,14 @@ class OGSGameViewModel: ObservableObject {
         }
     }
     
-    func sendChat(_ text: String) {
-        guard let id = ogsClient.activeGameID, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
-        // Optimistic Update? OGS echoes back the chat, so wait for echo to avoid dupes.
-        // But for UI responsiveness, users like instant feedback.
-        // OGS echo is fast. Let's wait for echo to be safe against lag/failure.
-        
-        // DEBUG TRACE for Spaces Issue
-        NSLog("[OGS-CHAT-TRACE] ViewModel received: '\(text)' (Hex: \(text.data(using: .utf8)?.map { String(format: "%02x", $0) }.joined() ?? ""))")
-        
-        ogsClient.sendChat(gameID: id, text: text)
+    @discardableResult
+    func sendChat(_ text: String) -> Bool {
+        guard let id = ogsClient.activeGameID else { return false }
+        // OGS echoes the message. Return whether dispatch was possible so the
+        // editor can retain a draft while disconnected.
+        return ogsClient.sendChat(gameID: id, text: text)
     }
-    
+
     func pass() {
         guard let id = ogsClient.activeGameID else { return }
         // PILLAR: Refactored call site

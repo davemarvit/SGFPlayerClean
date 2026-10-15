@@ -17,6 +17,9 @@ import SceneKit
         model.viewMode = .view3D
         model.showRightPanel = false
         model.selectGame(SGFGameWrapper(url: fixture, game: SGFGame.from(tree: try SGFParser.parse(text: sgf))))
+        #if SGF_OGS_REVIEW
+        model.copyCurrentBoard(to: .localPlay)
+        #endif
         let host = NSHostingView(rootView: ContentView3D().environmentObject(model))
         let window = NSWindow(contentRect: NSRect(x: 100, y: 100, width: 800, height: 650),
                               styleMask: [.titled], backing: .buffered, defer: false)
@@ -52,7 +55,14 @@ import SceneKit
             print("3D \(label): engine, view model, visible stones, and label all = \(captures)")
         }
         check3D("captured", captures: 2)
-        wait(1)
+        // The UI probe can run while the display is asleep, when SCNView's
+        // display link does not advance. Step the actual hosted scene explicitly
+        // to verify physics without depending on window visibility or wall time.
+        let renderer = SCNRenderer(device: view.device, options: nil)
+        renderer.scene = view.scene; renderer.pointOfView = view.pointOfView
+        for frame in 0..<120 {
+            _ = renderer.snapshot(atTime: Double(frame) / 60, with: CGSize(width: 96, height: 96), antialiasingMode: .none)
+        }
         let lid = view.scene!.rootNode.childNode(withName: "white-player-lid", recursively: true)!
         let centered = lid.childNodes.filter { $0.name == "captured-black" }.allSatisfy {
             let position = $0.presentation.position
@@ -81,11 +91,11 @@ import SceneKit
         let freshHost = NSHostingView(rootView: ContentView2D().environmentObject(model))
         window.contentView = freshHost; wait(0.5)
         let fresh = try snapshot(freshHost, "fresh-start")
-        // Interior of the upper capture lid in this fixed 800x650 fixture; excludes
+        // Interior of the lowered upper lid in this fixed 800x650 fixture; excludes
         // the board, player metadata, controls, and other independently changing UI.
         func lidPixels(_ image: CGImage) -> Data {
             let scale = CGFloat(image.width) / 800
-            let crop = image.cropping(to: CGRect(x: 560 * scale, y: 5 * scale, width: 120 * scale, height: 80 * scale))!
+            let crop = image.cropping(to: CGRect(x: 560 * scale, y: 75 * scale, width: 120 * scale, height: 75 * scale))!
             return NSBitmapImageRep(cgImage: crop).representation(using: .png, properties: [:])!
         }
         precondition(lidPixels(captured) != lidPixels(fresh), "Fixture did not show the two captured stones")

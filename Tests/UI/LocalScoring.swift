@@ -40,6 +40,9 @@ import Vision
         }
         for mode in [ViewMode.view2D, .view3D] {
             model.viewMode = mode; model.selectGame(wrapper)
+        #if SGF_OGS_REVIEW
+        model.copyCurrentBoard(to: .localPlay)
+        #endif
             model.showRightPanel = mode == .view2D
             let vm = model.boardVM!
             let host = NSHostingView(rootView: ContentView().environmentObject(model))
@@ -96,6 +99,9 @@ import Vision
             vm.passLocally(); wait(); vm.passLocally(); wait()
             check(vm.localScoringVisible && vm.localScoring?.deadStones.isEmpty == true, "New scoring round inherited stale marks")
             model.selectGame(wrapper); wait()
+        #if SGF_OGS_REVIEW
+        model.copyCurrentBoard(to: .localPlay)
+        #endif
             check(vm.localScoring == nil && vm.territoryPoints.isEmpty, "Loading another game retained scoring")
         }
         if !failures.isEmpty { failures.forEach { fputs("FAIL: \($0)\n", stderr) }; exit(1) }

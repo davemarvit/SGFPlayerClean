@@ -248,6 +248,34 @@ class BoardViewModel: ObservableObject {
         return "\(last.color == .black ? "Black" : "White") passed · \(engine.turn == .black ? "Black" : "White") to move"
     }
 
+    var onlineMoveUnavailableReason: String? {
+        guard isOnlineContext else { return "No online game is open." }
+        guard ogsClient.isConnected, ogsClient.isSocketAuthenticated else { return "Reconnect before playing." }
+        guard ogsClient.isGameParticipant else { return "Observing — game actions are disabled." }
+        guard !ogsClient.isReconcilingMoves else { return "Waiting for the refreshed game position." }
+        guard ogsClient.canPlayMoves else { return "This game is not accepting moves." }
+        guard engine.currentIndex == engine.maxIndex else { return "Return to the latest move before playing." }
+        guard let color = ogsClient.playerColor, engine.turn == color else { return "Waiting for your opponent." }
+        return nil
+    }
+
+    var onlinePassUnavailableReason: String? {
+        if let reason = onlineMoveUnavailableReason { return reason }
+        return engine.moveRejection(color: engine.turn, x: -1, y: -1)?.rawValue
+    }
+
+    func passOnline() {
+        if let reason = onlinePassUnavailableReason { moveError = reason; return }
+        guard let gameID = ogsClient.activeGameID, let color = ogsClient.playerColor else { return }
+        if let rejection = engine.tryPlayMove(color: color, x: -1, y: -1) {
+            moveError = rejection.rawValue
+            return
+        }
+        moveError = nil
+        SoundManager.shared.play("pass")
+        ogsClient.sendPass(gameID: gameID)
+    }
+
     func passLocally() {
         if let reason = localPassUnavailableReason { moveError = reason; return }
         if let rejection = engine.tryPlayMove(color: engine.turn, x: -1, y: -1) {
@@ -357,35 +385,10 @@ class BoardViewModel: ObservableObject {
 
         // 2. Play Phase
         if isOnlineContext {
-            guard ogsClient.isConnected, ogsClient.isSocketAuthenticated, ogsClient.isGameParticipant,
-                  !ogsClient.isReconcilingMoves,
-                  engine.currentIndex == engine.maxIndex else { return }
-            // SECURITY CHECK 1: Engine Consistency
-            // If the local engine already knows it's the opponent's turn, we must block consecutive plays locally.
-            // This prevents rapidly placing multiple stones if the server's turn packet is delayed.
-            let myColor = ogsClient.playerColor ?? .white
-            if self.engine.turn != myColor {
-                NSLog("[Input] Ignored: Engine Turn Sync. Engine Turn is \(self.engine.turn), but my color is \(myColor). Waiting for opponent.")
-                return
-            }
-            
-            // SECURITY CHECK 2: Server Authority
-            // Normally, we trust the strict ID Check
-            var serverSaysMyTurn = (ogsClient.playerID != nil && ogsClient.playerID == ogsClient.currentPlayerID)
-            
-            // FALLBACK: If the clock payload or gameData missed the explicit ID toggle but the engine is perfectly aligned
-            if !serverSaysMyTurn {
-                if self.engine.turn == myColor {
-                    serverSaysMyTurn = true
-                    NSLog("[OGS-SYNC] ⚠️ Warning: currentPlayerID out of sync (\(ogsClient.currentPlayerID ?? -1)), but Engine Turn (\(myColor)) aligned. Allowing move.")
-                }
-            }
-            
-            guard serverSaysMyTurn else {
-                NSLog("[Input] Ignored: Not My Turn (Server Authority). MyID: \(ogsClient.playerID ?? -1). Current: \(ogsClient.currentPlayerID ?? -1).")
-                return
-            }
-            
+            if let reason = onlineMoveUnavailableReason { moveError = reason; return }
+            guard let gameID = ogsClient.activeGameID, let myColor = ogsClient.playerColor else { return }
+            // The reconciled engine turn prevents consecutive local moves while OGS
+            // clock/current-player packets catch up with the board.
             let oldB = self.engine.blackStonesCaptured
             let oldW = self.engine.whiteStonesCaptured
             
@@ -404,7 +407,7 @@ class BoardViewModel: ObservableObject {
             else if captured == 1 { onPlaySound?(.captureSingle) }
             else { onPlaySound?(.place) }
             
-            self.ogsClient.sendMove(gameID: self.ogsClient.activeGameID ?? 0, x: pos.col, y: pos.row)
+            self.ogsClient.sendMove(gameID: gameID, x: pos.col, y: pos.row)
         } else {
              if let rejection = engine.tryPlayMove(color: engine.turn, x: pos.col, y: pos.row) {
                  moveError = rejection.rawValue

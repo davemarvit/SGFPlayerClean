@@ -4,6 +4,9 @@ import SwiftUI
 struct ActiveGamePanel: View {
     @EnvironmentObject var app: AppModel
     @State private var showResignConfirmation = false
+    @State private var resignTarget: Int?
+    @State private var isSavingSGF = false
+    @State private var exportError: String?
     @State private var resultDismissed = false
     
     var body: some View {
@@ -13,7 +16,7 @@ struct ActiveGamePanel: View {
                 
                 Divider().background(Color.white.opacity(0.1))
                 
-                if !app.ogsClient.observationOnly, let username = app.ogsClient.undoRequestedUsername {
+                if app.ogsClient.isGameParticipant, let username = app.ogsClient.undoRequestedUsername {
                     undoApprovalSection(username: username)
                 }
                 
@@ -46,18 +49,24 @@ struct ActiveGamePanel: View {
                 controlsSection
             }
             .padding()
-            .animation(.easeInOut(duration: 0.5), value: app.ogsClient.undoRequestedUsername)
             
             if !resultDismissed && app.ogsClient.isGameFinished && (app.ogsClient.activeGameResult != nil || app.ogsClient.activeGameOutcome != nil) {
                 resultOverlay.transition(.opacity.combined(with: .scale))
             }
         }
-        .onChange(of: app.ogsClient.activeGameID) { _ in resultDismissed = false }
-        .confirmationDialog("Are you sure you want to resign?", isPresented: $showResignConfirmation, titleVisibility: .visible) {
+        .onChange(of: app.ogsClient.activeGameID) { _ in
+            resultDismissed = false; cancelResignation(); exportError = nil
+        }
+        .onChange(of: app.ogsClient.canResign) { allowed in if !allowed { cancelResignation() } }
+        .onDisappear { cancelResignation() }
+        .alert("Are you sure you want to resign?", isPresented: $showResignConfirmation) {
             Button("Resign Game", role: .destructive) {
-                if let id = app.ogsClient.activeGameID { app.ogsClient.resignGame(gameID: id) }
+                if let id = resignTarget { app.ogsClient.resignGame(gameID: id) }
+                resignTarget = nil
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) { resignTarget = nil }
+        } message: {
+            Text("Resigning ends this game as a loss. This cannot be undone.")
         }
     }
     
@@ -153,24 +162,23 @@ struct ActiveGamePanel: View {
     private func undoApprovalSection(username: String) -> some View {
         VStack(spacing: 8) {
             Text("Undo request from \(username)").font(.caption).bold()
-            Button("Accept Undo") {
-                if let id = app.ogsClient.activeGameID {
-                    let m = app.ogsClient.undoRequestedMoveNumber ?? app.player.maxIndex
-                    app.ogsClient.sendUndoAccept(gameID: id, moveNumber: m)
-                    NotificationCenter.default.post(name: NSNotification.Name("OGSUndoAcceptedLocal"), object: nil)
-                    app.ogsClient.undoRequestedUsername = nil
-                }
+            HStack {
+                Button("Decline") {
+                    if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
+                }.buttonStyle(.bordered)
+                Button("Accept Undo") {
+                    if let id = app.ogsClient.activeGameID, let move = app.ogsClient.undoRequestedMoveNumber {
+                        app.ogsClient.sendUndoAccept(gameID: id, moveNumber: move)
+                    }
+                }.tint(.green).buttonStyle(.borderedProminent)
             }
-            .tint(.green)
-            .buttonStyle(.borderedProminent)
+            .disabled(!app.ogsClient.canPlayMoves || app.ogsClient.isRequestingUndo)
             .controlSize(.small)
         }
         .padding()
         .background(Color.orange.opacity(0.2))
         .cornerRadius(8)
-        .transition(.opacity.animation(.easeInOut(duration: 0.5)))
         .padding()
-        .animation(.easeInOut(duration: 0.5), value: app.ogsClient.undoRequestedUsername)
     }
     
     private var playerInfoSection: some View {
@@ -252,6 +260,17 @@ struct ActiveGamePanel: View {
             if app.ogsClient.isGameFinished, let outcome = app.ogsClient.activeGameOutcome {
                 Text(outcome).font(.headline).multilineTextAlignment(.center)
             }
+            if !app.ogsClient.isConnected || !app.ogsClient.isSocketAuthenticated {
+                Text(app.ogsClient.connectionStatus).font(.caption).foregroundColor(.orange)
+                Button("Reconnect") { app.ogsClient.disconnect(); app.ogsClient.connect() }
+            }
+            if app.player.currentIndex != app.player.maxIndex {
+                Text("Showing move \(app.player.currentIndex) of \(app.player.maxIndex)")
+                    .font(.caption).foregroundColor(.secondary)
+                Button("Return to latest move") { app.boardVM?.goToEnd() }
+            }
+            if let error = app.ogsClient.lastError { Text(error).font(.caption).foregroundColor(.orange) }
+            if let error = exportError { Text(error).font(.caption).foregroundColor(.orange) }
             controlButtons
             saveSGFButton
             Button("Review this game") { app.copyCurrentBoard(to: .review) }
@@ -284,53 +303,29 @@ struct ActiveGamePanel: View {
                 if !app.ogsClient.isGameParticipant {
                     Text("Observing • Game actions disabled").font(.caption).foregroundColor(.secondary)
                 } else {
-                HStack {
-                    Button("Undo") {
-                        if let id = app.ogsClient.activeGameID {
-                             app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
-                        }
-                    }.disabled(app.ogsClient.isGameFinished || app.ogsClient.isRequestingUndo)
-                    
+                HStack(spacing: 8) {
                     if app.ogsClient.isRequestingUndo {
-                         Text("Requested...").font(.caption).foregroundColor(.orange)
-                    }
-                    
-                    Spacer()
-                    
-                    Button("Pass") {
-                        if let id = app.ogsClient.activeGameID {
-                            guard let vm = app.boardVM, let myColor = app.ogsClient.playerColor else { return }
-                            if let rejection = vm.engine.tryPlayMove(color: myColor, x: -1, y: -1) {
-                                vm.moveError = rejection.rawValue
-                                return
+                        Button("Cancel undo") {
+                            if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
+                        }.disabled(!app.ogsClient.canPlayMoves)
+                    } else {
+                        Button("Undo") {
+                            if let id = app.ogsClient.activeGameID {
+                                app.ogsClient.sendUndoRequest(gameID: id, moveNumber: app.player.maxIndex)
                             }
-                            SoundManager.shared.play("pass")
-                            app.ogsClient.sendPass(gameID: id)
-                        }
+                        }.disabled(!app.ogsClient.canPlayMoves || app.player.maxIndex == 0 ||
+                                   app.player.currentIndex != app.player.maxIndex || app.ogsClient.undoRequestedMoveNumber != nil)
                     }
-                    .disabled({ () -> Bool in
-                        if app.ogsClient.isGameFinished || app.ogsClient.isReconcilingMoves || !app.ogsClient.isConnected ||
-                            !app.ogsClient.isSocketAuthenticated || !app.ogsClient.isGameParticipant ||
-                            app.player.currentIndex != app.player.maxIndex { return true }
-                        
-                        // Default Server Authority
-                        var itIsMyTurn = (app.ogsClient.currentPlayerID != nil && app.ogsClient.currentPlayerID == app.ogsClient.playerID)
-                        
-                        // Fallback: Engine Sync (Matches BoardViewModel's placeStone logic)
-                        if !itIsMyTurn, let myColor = app.ogsClient.playerColor, app.boardVM?.engine.turn == myColor {
-                            itIsMyTurn = true
-                        }
-                        
-                        return !itIsMyTurn
-                    }())
-                    
-                    Spacer()
-                    
-                    Button("Resign") {
+                    Spacer(minLength: 0)
+                    Button("Pass") { app.boardVM?.passOnline() }
+                        .disabled(app.boardVM?.onlinePassUnavailableReason != nil)
+                        .help(app.boardVM?.onlinePassUnavailableReason ?? "Pass your turn")
+                    Button("Resign…") {
+                        resignTarget = app.ogsClient.activeGameID
                         showResignConfirmation = true
                     }
                     .foregroundColor(.red)
-                    .disabled(app.ogsClient.isGameFinished)
+                    .disabled(!app.ogsClient.canResign)
                 }
                 .padding()
                 .background(Color.black.opacity(0.2))
@@ -347,41 +342,50 @@ struct ActiveGamePanel: View {
             Button(action: { saveSGF() }) {
                 HStack {
                     Image(systemName: "arrow.down.doc")
-                    Text("Save SGF")
+                    Text(isSavingSGF ? "Downloading SGF…" : "Save SGF")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
             .buttonStyle(.bordered)
             .tint(.green)
+            .disabled(isSavingSGF)
             .padding(.top, 4)
         }
     }
 
-    
 
+    private func cancelResignation() {
+        showResignConfirmation = false
+        resignTarget = nil
+    }
 
-    
-
-
-    
     private func saveSGF() {
-        guard let gid = app.ogsClient.activeGameID else { return }
+        guard !isSavingSGF, let gid = app.ogsClient.activeGameID else { return }
+        func filename(_ name: String) -> String {
+            name.replacingOccurrences(of: " ", with: "_")
+                .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: ":", with: "_")
+        }
+        let black = filename(app.ogsClient.blackPlayerName ?? "Black")
+        let white = filename(app.ogsClient.whitePlayerName ?? "White")
+        isSavingSGF = true; exportError = nil
         app.ogsClient.fetchSGF(gameID: gid) { data in
-            guard let data = data, let str = String(data: data, encoding: .utf8) else { return }
             DispatchQueue.main.async {
+                guard app.mode.usesOGS, app.ogsClient.activeGameID == gid else { isSavingSGF = false; return }
+                guard let data, !data.isEmpty else {
+                    isSavingSGF = false
+                    exportError = "Could not download this SGF. Check the connection and try again."
+                    return
+                }
                 let panel = NSSavePanel()
                 panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
-                
-                // Format: Black_vs_White_YYYY-MM-DD.sgf
-                let b = app.ogsClient.blackPlayerName?.replacingOccurrences(of: " ", with: "_") ?? "Black"
-                let w = app.ogsClient.whitePlayerName?.replacingOccurrences(of: " ", with: "_") ?? "White"
                 let date = Date().formatted(.iso8601.year().month().day())
-                panel.nameFieldStringValue = "\(b)_vs_\(w)_\(date).sgf"
-                
+                panel.nameFieldStringValue = "\(black)_vs_\(white)_\(date).sgf"
                 panel.begin { response in
+                    isSavingSGF = false
                     if response == .OK, let url = panel.url {
-                        try? str.write(to: url, atomically: true, encoding: .utf8)
+                        do { try data.write(to: url, options: .atomic) }
+                        catch { exportError = "Could not save the SGF: \(error.localizedDescription)" }
                     }
                 }
             }
@@ -422,7 +426,7 @@ struct GameClockView: View {
             // LOGIC: If main time is exhausted (<= 0) AND we have Byoyomi periods,
             // promote Byoyomi to the Large Text slot.
             
-            let isByoyomiActive = (mainTime ?? 0) <= 0 && (periods ?? 0) > 0
+            let isByoyomiActive = mainTime.map { $0 <= 0 } == true && (periods ?? 0) > 0 && periodTime != nil
             
             if isByoyomiActive {
                 // BYOYOMI (Large)
@@ -440,7 +444,7 @@ struct GameClockView: View {
                 
             } else {
                 // NORMAL MAIN TIME (Large)
-                Text(Self.formattedTime(mainTime ?? 0))
+                Text(mainTime.map(Self.formattedTime) ?? "--:--")
                     .font(.title2).monospacedDigit().bold()
                     .foregroundColor(isDark ? .white : .black)
                 
@@ -519,18 +523,20 @@ struct OGSChatView: View {
                         .foregroundColor(inputText.isEmpty ? .gray : .blue)
                         .padding(8)
                 }
-                .disabled(inputText.isEmpty)
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !app.ogsClient.canSendChat)
+                .accessibilityLabel("Send chat message")
             }
             .padding(10)
             .background(Color.black.opacity(0.3))
             }
         }
         .background(Color(NSColor.windowBackgroundColor).opacity(0.5)) // Matches panels
+        .onChange(of: app.ogsClient.activeGameID) { _ in inputText = ""; isFocused = false; app.isTypingInChat = false }
+        .onDisappear { app.isTypingInChat = false }
     }
     
     func sendMessage() {
-        guard !inputText.isEmpty else { return }
-        gameVM.sendChat(inputText)
+        guard gameVM.sendChat(inputText) else { return }
         inputText = ""
         // Keep focus? Usually yes for chat.
         isFocused = true

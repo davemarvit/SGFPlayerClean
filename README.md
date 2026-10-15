@@ -6,6 +6,18 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The overnight review adds guarded online game actions, adjacent Pass/Resign controls,
+game-specific resignation confirmation, a live-position return button, visible connection
+and export errors, and preservation of the active panel during disconnection. New-game
+transitions clear stale clocks/players/undo requests. Chat keeps unsent disconnected drafts;
+login submission and challenge forms fence repeated or stale callbacks. Challenge settings
+are validated before submission; forbidden cancellation no longer hides an open challenge.
+Replacing an existing local game requires confirmation. Leaving 3D detaches its renderer
+and interaction closure. Rendering frequency and the 5 fps slider preview are unchanged.
+Verification includes 211 passing unit tests, 16 UI/integration runs, 14 real KataGo
+queries, and the localhost WebSocket test. See [the overnight review record](Documentation/Review-2026-10-15.md) for test coverage,
+remaining live acceptance checks, and the separate review-app launch location.
+
 Observe now loads a continuous scrolling list in bounded batches, requests server rank
 ordering and sorts loaded games by the stronger player's rank. Rows show player ranks,
 move count (including passes), board size and time control; internal game IDs and page

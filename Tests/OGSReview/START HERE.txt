@@ -28,6 +28,12 @@ Your username and Log Out are at the top. Sign in from Play Online or Observe
 if needed. Login persists across restarts unless you log out or OGS expires
 it. Changing modes does not sign you out or close the OGS connection.
 
+UPDATED GAME CONTROLS
+Pass and Resign are next to each other. Resign asks before sending anything.
+If you rewind an online game, Return to latest move restores the live position.
+A dropped connection keeps the game panel open and offers Reconnect.
+Undo requests can be declined or cancelled. Failed SGF downloads show an error.
+
 NEXT TEST
 1. Reopen this updated review app. Check your username at the top.
 2. Switch among the four modes; check the lobby filters and AI toggle.

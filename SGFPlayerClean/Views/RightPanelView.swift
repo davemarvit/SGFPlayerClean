@@ -48,6 +48,8 @@ struct AppModeControls: View {
 
 struct RightPanelView: View {
     @EnvironmentObject var app: AppModel
+    @State private var confirmReplaceLocalGame = false
+    @State private var replacementSourceID: UUID?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -78,12 +80,30 @@ struct RightPanelView: View {
                 }
             }
         }.frostedGlassStyle()
+        .onChange(of: app.mode) { _ in confirmReplaceLocalGame = false; confirmNewGame = false }
+        .onChange(of: app.selection?.id) { _ in confirmReplaceLocalGame = false; confirmNewGame = false }
+        .confirmationDialog("Replace the current local game?", isPresented: $confirmReplaceLocalGame, titleVisibility: .visible) {
+            Button("Replace local game", role: .destructive) {
+                guard app.mode == .review, app.selection?.id == replacementSourceID else { return }
+                app.copyCurrentBoard(to: .localPlay)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The moves in your current local game will be replaced with this position.")
+        }
     }
     
     @ViewBuilder
     private var localTabContent: some View {
         VStack(spacing: 0) {
-            Button("Continue this position in Local Play") { app.copyCurrentBoard(to: .localPlay) }
+            Button("Continue this position in Local Play") {
+                app.boardVM?.stopAutoPlay()
+                if app.hasLocalGameToReplace {
+                    replacementSourceID = app.selection?.id
+                    confirmReplaceLocalGame = true
+                }
+                else { app.copyCurrentBoard(to: .localPlay) }
+            }
                 .padding(8)
             // Folder Selection & Sorting Header
             HStack {
@@ -157,7 +177,7 @@ struct RightPanelView: View {
                 LocalGameMetadataView(game: game, boardVM: vm)
             }
             Button("New Game") {
-                if app.player.maxIndex > 0 { confirmNewGame = true }
+                if app.hasLocalGameToReplace { confirmNewGame = true }
                 else { app.newLocalGame() }
             }
             Button("Review this game") { app.copyCurrentBoard(to: .review) }
@@ -166,7 +186,7 @@ struct RightPanelView: View {
             Spacer()
         }.padding()
         .confirmationDialog("Start a new local game?", isPresented: $confirmNewGame) {
-            Button("New Game", role: .destructive) { app.newLocalGame() }
+            Button("New Game", role: .destructive) { if app.mode == .localPlay { app.newLocalGame() } }
             Button("Cancel", role: .cancel) {}
         }
     }
@@ -174,7 +194,7 @@ struct RightPanelView: View {
     @ViewBuilder
     private var onlineTabContent: some View {
         VStack {
-            if (app.ogsClient.activeGameID != nil && app.ogsClient.isConnected) || app.ogsClient.activeGameID == 999999 {
+            if app.ogsClient.activeGameID != nil {
                 ActiveGamePanel().transition(.opacity)
             } else if app.isCreatingChallenge {
                 OGSCreateChallengeView(isPresented: $app.isCreatingChallenge).transition(.opacity)

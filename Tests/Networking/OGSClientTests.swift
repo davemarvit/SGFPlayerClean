@@ -771,7 +771,7 @@ final class OGSClientTests: XCTestCase {
 
     func testPlayModeEnablesMovesAndObserveModeBlocksThemAgain() {
         connect(); client.isSocketAuthenticated = true
-        client.activeGameID = 7
+        client.activeGameID = 7; client.phase = "play"
         client.blackPlayerID = client.playerID
         client.observationOnly = true
         let before = socket.sentMessages.count
@@ -784,6 +784,125 @@ final class OGSClientTests: XCTestCase {
         client.observationOnly = true
         client.sendPass(gameID: 7)
         XCTAssertEqual(socket.sentMessages.count, before + 1)
+    }
+
+    func testGameCommandsRequireCurrentReadyParticipantAndCorrectPhase() {
+        connect(); client.isSocketAuthenticated = true
+        client.activeGameID = 7; client.phase = "play"
+        client.blackPlayerID = client.playerID
+        func assertBlocked(_ id: Int = 7, file: StaticString = #filePath, line: UInt = #line) {
+            let count = socket.sentMessages.count
+            client.sendMove(gameID: id, x: 0, y: 0)
+            client.sendPass(gameID: id)
+            client.resignGame(gameID: id)
+            client.sendUndoRequest(gameID: id, moveNumber: 3)
+            XCTAssertEqual(socket.sentMessages.count, count, file: file, line: line)
+        }
+        assertBlocked(8)
+        client.isSocketAuthenticated = false; assertBlocked(); client.isSocketAuthenticated = true
+        client.isConnected = false; assertBlocked(); client.isConnected = true
+        client.isReconcilingMoves = true; assertBlocked(); client.isReconcilingMoves = false
+        client.observationOnly = true; assertBlocked(); client.observationOnly = false
+        client.blackPlayerID = 200; assertBlocked(); client.blackPlayerID = client.playerID
+        client.phase = nil; assertBlocked()
+        client.phase = "finished"; assertBlocked()
+        client.phase = "play"; client.isGameFinished = true; assertBlocked(); client.isGameFinished = false
+        let before = socket.sentMessages.count
+        client.resignGame(gameID: 7)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
+        XCTAssertTrue(socket.sentMessages.last!.contains("game/resign"))
+        client.phase = "stone removal"
+        client.sendMove(gameID: 7, x: 0, y: 0); client.sendPass(gameID: 7)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
+        XCTAssertTrue(client.canResign)
+    }
+
+    func testNewGameClearsOldClockTurnAndUndoState() {
+        client.activeGameID = 7
+        client.blackPlayerName = "Old opponent"; client.blackPlayerRank = 35
+        client.blackTimeRemaining = 3; client.whiteTimeRemaining = 4
+        client.blackClockPeriods = 2; client.whiteClockPeriodTime = 30
+        client.blackPeriodLength = 30; client.currentPlayerID = 1
+        client.activeGameTimeControl = "Old time control"; client.currentHandicap = 4
+        client.undoRequestedUsername = "Old opponent"; client.undoRequestedMoveNumber = 6
+        client.isRequestingUndo = true; client.lastUndoneMoveNumber = 5
+        client.activeGameID = 8
+        XCTAssertNil(client.blackPlayerName); XCTAssertNil(client.blackPlayerRank)
+        XCTAssertNil(client.blackTimeRemaining); XCTAssertNil(client.whiteTimeRemaining)
+        XCTAssertNil(client.blackClockPeriods); XCTAssertNil(client.whiteClockPeriodTime)
+        XCTAssertNil(client.blackPeriodLength); XCTAssertNil(client.currentPlayerID)
+        XCTAssertNil(client.activeGameTimeControl); XCTAssertEqual(client.currentHandicap, 0)
+        XCTAssertNil(client.undoRequestedUsername); XCTAssertNil(client.undoRequestedMoveNumber)
+        XCTAssertNil(client.lastUndoneMoveNumber); XCTAssertFalse(client.isRequestingUndo)
+        XCTAssertFalse(client.canResign); XCTAssertFalse(client.canPlayMoves)
+    }
+
+    func testChatRefusesDisconnectedWrongGameAndBlankMessages() {
+        connect(); client.isSocketAuthenticated = true; client.activeGameID = 7
+        let count = socket.sentMessages.count
+        XCTAssertFalse(client.sendChat(gameID: 7, text: "  \n"))
+        XCTAssertFalse(client.sendChat(gameID: 8, text: "Wrong game"))
+        client.isSocketAuthenticated = false
+        XCTAssertFalse(client.sendChat(gameID: 7, text: "Keep this draft"))
+        client.isSocketAuthenticated = true; client.observationOnly = true
+        XCTAssertFalse(client.sendChat(gameID: 7, text: "Observe is read only"))
+        XCTAssertEqual(socket.sentMessages.count, count)
+        client.observationOnly = false
+        XCTAssertTrue(client.sendChat(gameID: 7, text: "Hello"))
+        XCTAssertEqual(socket.sentMessages.count, count + 1)
+    }
+
+    func testUndoRequiresNonzeroMoveAndMatchingIncomingRequest() {
+        connect(); client.isSocketAuthenticated = true
+        client.activeGameID = 7; client.phase = "play"; client.blackPlayerID = client.playerID
+        let before = socket.sentMessages.count
+        client.sendUndoRequest(gameID: 7, moveNumber: 0)
+        client.sendUndoAccept(gameID: 7, moveNumber: 3)
+        client.sendUndoReject(gameID: 7)
+        XCTAssertEqual(socket.sentMessages.count, before)
+        client.undoRequestedMoveNumber = 3; client.undoRequestedUsername = "Opponent"
+        client.sendUndoAccept(gameID: 7, moveNumber: 4)
+        XCTAssertEqual(socket.sentMessages.count, before)
+        client.sendUndoAccept(gameID: 7, moveNumber: 3)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
+        client.sendUndoAccept(gameID: 7, moveNumber: 3)
+        XCTAssertEqual(socket.sentMessages.count, before + 1)
+        socket.deliver(.failure(URLError(.networkConnectionLost)))
+        XCTAssertFalse(client.isRequestingUndo)
+        XCTAssertNil(client.undoRequestedMoveNumber)
+    }
+
+    func testInvalidChallengeDoesNotStartRequest() {
+        var setup = ChallengeSetup(); setup.periodTime = 0
+        var completed = false
+        client.createChallenge(setup: setup) { ok, error in
+            completed = true; XCTAssertFalse(ok); XCTAssertNotNil(error)
+        }
+        XCTAssertTrue(completed)
+        XCTAssertFalse(client.isSearchingForGame)
+    }
+
+    func testForbiddenChallengeCancellationDoesNotHideChallengeAndRetryCanRemoveIt() {
+        connect(); client.isSocketAuthenticated = true
+        socket.deliver(.success(#"42["seek_graph/global",[{"id":7,"user_id":1,"username":"fixture","width":19,"height":19,"time_per_move":60}]]"#))
+        drainMainQueue(); drainMainQueue()
+        XCTAssertTrue(client.availableGames.contains { $0.id == 7 })
+        ClientHTTPFixture.handler = { $0.respond(status: 403, body: "{}") }
+        let failed = expectation(description: "Cancellation failure surfaced")
+        let subscription = client.$lastError.compactMap { $0 }.sink { error in
+            XCTAssertTrue(error.contains("403")); failed.fulfill()
+        }
+        client.cancelChallenge(challengeID: 7)
+        wait(for: [failed], timeout: 3); subscription.cancel()
+        drainMainQueue()
+        XCTAssertTrue(client.availableGames.contains { $0.id == 7 }, "403 does not mean the challenge is gone")
+        ClientHTTPFixture.handler = { $0.respond(status: 204, body: "") }
+        let removed = expectation(description: "Confirmed cancellation removes challenge")
+        let listSubscription = client.$availableGames.dropFirst().filter { $0.allSatisfy { $0.id != 7 } }
+            .sink { _ in removed.fulfill() }
+        client.cancelChallenge(challengeID: 7)
+        wait(for: [removed], timeout: 3); listSubscription.cancel()
+        XCTAssertNil(client.lastError)
     }
 
     func testReviewCookiesAreInMemoryAndSeparateFromOtherSessions() throws {
