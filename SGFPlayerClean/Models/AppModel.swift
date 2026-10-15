@@ -351,8 +351,9 @@ final class AppModel: ObservableObject {
             }
             
         case .captureSingle, .captureMultiple:
-            // The played stone still lands on the board. Lid impacts have their own physics audio.
-            if viewMode == .view3D { playSound(.place); return }
+            // The played stone still lands on the board. Capture audio follows the move,
+            // rather than depending on SceneKit reporting a sufficiently strong lid collision.
+            if viewMode == .view3D { playSound(.place) }
             
             // Delay capture sounds slightly so they sound like they are hitting the bowl
             let delayTime: TimeInterval = type == .captureSingle ? 0.25 : 0.4

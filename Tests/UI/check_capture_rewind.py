@@ -6,6 +6,7 @@ import json
 import plistlib
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[2]
@@ -22,6 +23,7 @@ binary.parent.mkdir(parents=True)
 (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
     'CFBundleIdentifier': 'com.davemarvit.SGFPlayerClean.offline-ui-probe',
     'CFBundleExecutable': 'Probe', 'CFBundlePackageType': 'APPL'}))
+source = root / 'Tests/UI' / (sys.argv[1] if len(sys.argv) > 1 else 'CaptureRewind.swift')
 subprocess.run(['swiftc', '-target', 'arm64-apple-macosx15.5', '-parse-as-library', '-I', str(build / 'Products/Debug'),
-                str(root / 'Tests/UI/CaptureRewind.swift'), *map(str, objects), '-o', str(binary)], check=True)
+                str(source), *map(str, objects), '-o', str(binary)], check=True)
 subprocess.run(['/usr/bin/sandbox-exec', '-f', str(out / 'network-and-file-protection.sb'), str(binary)], check=True, timeout=40)

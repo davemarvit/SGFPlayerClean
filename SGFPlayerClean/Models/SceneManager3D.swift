@@ -8,9 +8,7 @@ import AppKit
 import QuartzCore
 import simd
 
-import AVFoundation
-
-class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
+class SceneManager3D: NSObject, ObservableObject {
     // ... (Init/Setup code identical to v4.401, omitted for brevity except changed HitTest) ...
     // COPY ALL properties and init from v4.401
     let scene = SCNScene(); let cameraNode = SCNNode(); let pivotNode = SCNNode()
@@ -53,9 +51,6 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     private let MaskStones = 4
     
     // MARK: - Physics Integration
-    private var captureSinglePlayer: AVAudioPlayer?
-    private var captureMultiplePlayer: AVAudioPlayer?
-    private var lastCaptureSoundTime: TimeInterval = 0
     private let PhysicsCategoryStone = 1 << 0
     private let PhysicsCategoryBowl  = 1 << 1
 
@@ -159,16 +154,6 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     override init() {
         super.init()
         
-        // Setup internal audio players for physics collisions
-        if let url = Bundle.main.url(forResource: "Capture_single.mp3", withExtension: nil) {
-            captureSinglePlayer = try? AVAudioPlayer(contentsOf: url)
-            captureSinglePlayer?.prepareToPlay()
-        }
-        if let url = Bundle.main.url(forResource: "Capture_multiple.mp3", withExtension: nil) {
-            captureMultiplePlayer = try? AVAudioPlayer(contentsOf: url)
-            captureMultiplePlayer?.prepareToPlay()
-        }
-        
         scene.rootNode.addChildNode(worldAnchor)
         scene.rootNode.addChildNode(pivotNode)
         pivotNode.addChildNode(cameraNode)
@@ -183,36 +168,10 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
         setupGhostNode()
         
         // Stable physics timing for capture piles.
-        scene.physicsWorld.contactDelegate = self
         scene.physicsWorld.speed = 1.0
         scene.physicsWorld.timeStep = 1.0 / 120.0
     }
     
-    // MARK: - SCNPhysicsContactDelegate
-    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        let maskA = contact.nodeA.physicsBody?.categoryBitMask ?? 0
-        let maskB = contact.nodeB.physicsBody?.categoryBitMask ?? 0
-        
-        let isStoneAndBowl = (maskA == PhysicsCategoryStone && maskB == PhysicsCategoryBowl) ||
-                             (maskB == PhysicsCategoryStone && maskA == PhysicsCategoryBowl)
-        
-        if isStoneAndBowl {
-            // Read relative velocity/impulse (using penetration distance as a proxy if impulse is unreliable, or just impulse)
-            // contact.collisionImpulse is high for sharp impacts, near 0 for resting jitters.
-            if contact.collisionImpulse > 0.05 {
-                let now = Date().timeIntervalSince1970
-                // Debounce to prevent a machine-gun of sounds when multiple stones slide into the bowl
-                if now - lastCaptureSoundTime > 0.15 {
-                    lastCaptureSoundTime = now
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self else { return }
-                        self.captureSinglePlayer?.volume = Float(AppSettings.shared.stoneVolume)
-                        self.captureSinglePlayer?.play()
-                    }
-                }
-            }
-        }
-    }
     // ... (Insert setupMaterials, createBoard, etc from v4.401 here) ...
     
     // PASTE THESE HELPERS from v4.401: setupMaterials, generateRedGlowTexture, updateStones, applyMarkers, updateCameraPosition, updateCapturedStones, updateLidDiff, setupCamera, setupLighting, setupBackground, createBoard, createGridLines, createLids, createLidNode, setupGhostNode, updateGhostStone, clearGhostStone

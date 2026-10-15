@@ -111,10 +111,18 @@ final class SGFPlayer: ObservableObject {
     /// In online mode, this tracks the OGS 'state_version'
     var highestKnownStateVersion: Int = 0
     private var timer: AnyCancellable?
+    private var playbackSettings: AnyCancellable?
+    private var playbackInterval: TimeInterval = 0.5
     
     init() {
         self.board = BoardSnapshot(size: 19, grid: Array(repeating: Array(repeating: nil, count: 19), count: 19), stones: [:])
         positionHistory = [PositionState(key: positionKey(board.grid), next: initialPlayer)]
+        playbackSettings = AppSettings.shared.$moveInterval.removeDuplicates().sink { [weak self] interval in
+            guard let self = self else { return }
+            // Match the settings slider's range, including protection against corrupt preferences.
+            self.playbackInterval = interval.isFinite ? min(10, max(0.1, interval)) : 0.5
+            if self.isPlaying { self.startPlaybackTimer() }
+        }
     }
     
     var turn: Stone { playerToMove(at: currentIndex) }
@@ -297,7 +305,18 @@ final class SGFPlayer: ObservableObject {
         moveProcessed.send()
     }
     
-    func play() { if isPlaying { return }; isPlaying = true; timer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect().sink { [weak self] _ in self?.stepForward() } }
+    func play() {
+        guard !isPlaying else { return }
+        isPlaying = true
+        startPlaybackTimer()
+    }
+
+    private func startPlaybackTimer() {
+        // Changing speed must not publish a pause (which also triggers game auto-advance).
+        timer?.cancel()
+        timer = Timer.publish(every: playbackInterval, on: .main, in: .common)
+            .autoconnect().sink { [weak self] _ in self?.stepForward() }
+    }
     func pause() { isPlaying = false; timer?.cancel(); timer = nil }
     
     func clear() {

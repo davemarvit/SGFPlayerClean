@@ -306,6 +306,21 @@ merging or replacing the working app should verify local playback, login, challe
 reconnection during an active game, and return to local mode in the built app. KataGo requires
 an installed executable (default `/opt/homebrew/bin/katago`); its model is included in the preserved resources.
 
+The isolated app also supports offline checks against the compiled app model and views:
+
+```sh
+python3 Tests/OfflineReview/build_review.py
+python3 Tests/UI/check_capture_rewind.py
+python3 Tests/UI/check_capture_rewind.py PlaybackAudio.swift
+```
+
+The first UI check briefly displays a test window to verify captured-stone lids through
+capture, rewind, and replay. The audio check plays single/multiple capture clips at zero
+volume, checking actual AVAudioPlayer progress through automatic 2D/3D playback and silence
+on rewind. Both use a separate probe preferences domain and the review's network-deny
+sandbox. Speaker audibility remains a manual check. Playback timing tests in `swift test`
+cover the saved Move Delay, speed changes while playing, pause/resume, and end-of-game stop.
+
 ## Recovery without disturbing another checkout
 
 Create a fresh checkout of the preservation branch:
