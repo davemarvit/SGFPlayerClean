@@ -4,6 +4,68 @@ Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
+## Continuation handoff — October 14, 2026
+
+**The offline review and normal online-capable app use the same application sources and
+Xcode target.** Continue development on
+[`codex/ogs-connection-reliability`](https://github.com/davemarvit/SGFPlayerClean/tree/codex/ogs-connection-reliability)
+in `/Users/Dave/Documents/SGF PLayer/SGFPlayerClean-review`.
+The integration review is [draft PR #1](https://github.com/davemarvit/SGFPlayerClean/pull/1).
+This branch contains the preserved local work as well as the subsequent repairs; do not
+reconstruct changes from chat history or copy individual files back into the original checkout.
+
+The latest application source checkpoint is `0b54b7feb5749dd0cabff366418705a62edbc070`
+(`Add local scoring review with dead groups and soft territory markers`). It was verified
+on GitHub as well as locally. The packaged offline review identifies that same source commit
+in `../Offline Review/build-info.json`; subsequent documentation-only commits do not require
+rebuilding that package.
+
+Changes included in both builds:
+
+- OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
+  reconciliation, and server-scoring display/action guards.
+- KataGo process/cache reliability and rules, komi, handicap, and initial-player handling.
+- Go rules and ko handling, soft red ko markers, and correct colors on reused 3D stones.
+- Capture counts/lids, rewind/replay updates, 3D lid placement/physics, playback delay,
+  and placement/capture audio.
+- Local Pass controls and end-of-game local scoring: dead-group marking, neutral-region
+  adjustment, soft black/white territory markers in 2D and 3D, rule-aware totals,
+  confirmation/resumption, and named winner text.
+
+`SGF_OFFLINE_REVIEW` supplies the separate bundle/settings/cache identity, mandatory network
+and original-file protection, disabled OGS entry points, bundled examples, review banner and
+score-example sheet, and review-specific startup/file-opening behavior. These are intentionally
+review-only. Ordinary fixes above are shared; there is no second implementation to port later.
+Local scoring applies to local games in either build. Live OGS scoring still follows the server's
+scoring state and protocol; the local manual scoring session does not override a live result.
+
+Validation at this checkpoint: 172 Swift tests, all six packaged sample games, the offline app
+build/signature/network-block probe, and compiled-app UI checks for capture rewind, playback
+audio, Pass, winner display, and local scoring passed. These checks use no live OGS connection.
+The review's `../Offline Review/verification.json` records the results; the 325 protected
+original source/settings/cache files matched their baseline. The test scripts and substantive
+implementation notes are versioned here; generated app bundles and local reports are not
+the source of truth.
+
+The ordinary Debug app also compiled successfully from this checkpoint, without
+`SGF_OFFLINE_REVIEW`, into `/private/tmp/sgf-normal-check-pyk3p6i_/DerivedData`.
+It was not launched or installed as the working app, and its temporary Launch Services
+registration was removed after compilation. The protected original files still matched.
+
+**The original working app, original checkout, and GitHub `main` have not been upgraded.**
+Keep them and their settings untouched. Do not launch an ordinary build, connect to live OGS,
+merge this review, or replace the working app until Dave requests that next stage. Building
+the ordinary target into a separate temporary DerivedData directory is safe; compilation alone
+does not establish live OGS reliability.
+
+Remaining acceptance work: finish offline scoring/UI review, then arrange a requested live
+session covering login, challenges, reconnect, move/undo/handicap reconciliation, server scoring,
+and return to local playback. Scoring requires manual life/death and neutral/seki agreement;
+marks/results currently remain in memory and do not rewrite SGFs. Broader rules limitations
+are documented below. Before eventual integration, compare any new original-checkout edits
+against the preservation snapshot and integrate the complete review branch without losing them.
+Update this handoff whenever the checkpoint, validation, constraints, or remaining work changes.
+
 ## Preserved baseline — October 14, 2026
 
 GitHub `main` was at `c30c12e` when this review began. The local app had substantial uncommitted
@@ -287,7 +349,7 @@ The root Swift package compiles the networking sources, OGSClient, shared models
 playback engine, SceneKit board scene, KataGo service, and chat view model used by Xcode. It is an offline test harness, not a replacement app target. The original local, untracked nested Swift package
 was a Hello World executable and is not used here.
 
-The 160 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
+The 172 automated tests cover disconnect, failed receives/sends, retry cancellation and bounds,
 stale callbacks, connection/heartbeat timeouts, observer reentrancy, complete pagination,
 HTTP errors, rate-limit cooldowns, cancellation, event payload shapes, challenge failure/busy-state
 handling, queued notification invalidation, scoring transitions/confirmation/timeout,
