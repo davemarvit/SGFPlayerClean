@@ -52,7 +52,7 @@ struct SGFPlayerCleanApp: App {
     #elseif SGF_OGS_REVIEW
     @StateObject private var appModel = makeOGSReviewModel()
     #else
-    @StateObject private var appModel = AppModel()
+    @StateObject private var appModel = AppModel(defaultMode: .playOnline)
     #endif
 
     var body: some Scene {
@@ -118,7 +118,6 @@ struct SGFPlayerCleanApp: App {
         panel.begin { response in
             if response == .OK, let url = panel.url {
                 print("📂 Selected file: \(url.path)")
-                #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 do {
@@ -133,12 +132,6 @@ struct SGFPlayerCleanApp: App {
                     alert.informativeText = error.localizedDescription
                     alert.runModal()
                 }
-                #else
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("LoadSGFFile"),
-                    object: url
-                )
-                #endif
             }
         }
     }

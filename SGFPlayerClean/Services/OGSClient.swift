@@ -16,8 +16,8 @@ class OGSClient: NSObject, ObservableObject {
     private let observationError = NSError(domain: "OGSReview", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "This review app supports observation only."])
 
-    /// Each running review owns its cookie jar; OGSReviewSessionStore restores/saves
-    /// its verified login separately from the working app's cookie store.
+    /// Each app owns its cookie jar; the bundle-scoped store restores/saves its
+    /// verified login without sharing accounts between main and review apps.
     static func reviewSessionConfiguration() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieAcceptPolicy = .always
@@ -299,17 +299,10 @@ class OGSClient: NSObject, ObservableObject {
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
-        #elseif SGF_OGS_REVIEW
-        let config = Self.reviewSessionConfiguration()
-        #else
-        let config = URLSessionConfiguration.default
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        config.httpCookieAcceptPolicy = .always
-        #endif
-        #if SGF_OGS_REVIEW
-        let sessionStore = OGSReviewSessionStore.defaultStore()
-        #else
         let sessionStore: OGSReviewSessionStore? = nil
+        #else
+        let config = Self.reviewSessionConfiguration()
+        let sessionStore = OGSReviewSessionStore.defaultStore()
         #endif
         self.init(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main),
                   reviewSessionStore: sessionStore)
@@ -2323,7 +2316,7 @@ class OGSClient: NSObject, ObservableObject {
 }
 
 
-/// Persists only OGS cookies for this separately identified review app. Passwords
+/// Persists only OGS cookies in the current app's bundle-scoped store. Passwords
 /// and JWTs are not stored. The server must validate the session on every launch.
 final class OGSReviewSessionStore {
     let fileURL: URL

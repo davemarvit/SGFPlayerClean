@@ -4,7 +4,28 @@ Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
-## Current review — October 15, 2026
+## Main app update — October 15, 2026
+
+The reviewed changes are promoted to the regular `SGFPlayerClean.app`, installed in
+`~/Applications`, with the original `com.davemarvit.SGFPlayerClean` identity and existing
+preferences. Login persistence and direct SGF opening now use the same paths as the
+tested review app. Main and review logins remain separate; sign in once in the main app
+if needed. The OGS and offline review apps remain available as separate installations.
+
+The normal optimized Release build passed 227 unit tests and seven network-denied
+runtime/UI suites covering private persistent login, restart/tab restoration,
+mode switching and lobby filters, play controls, scoring, 2D/3D local scoring, and sound.
+The user confirmed live play, scoring, restart recovery, and undo from both accounts
+including captures. A local pre-update backup preserves the original source (including
+uncommitted work) and app data. Release/rollback records are beside the review checkout
+in `Main App Update`; they are local and contain no data intended for GitHub.
+
+Build without installing: `python3 Tests/MainRelease/build_release.py --output /path/to/output`.
+Check that build with `Tests/OGSReview/check_review.py --main-build-info /path/to/output/build-info.json`;
+pass a specific fixture such as `StartupAndResult.swift`. Probes use a disposable identity
+and block networking; the main app executable is not launched by these checks.
+
+## Review changes — October 15, 2026
 
 The selected mode now survives restart; the OGS review app defaults to Play Online
 instead of forcing Observe. Resignation, timeout and other non-point endings no
