@@ -16,7 +16,14 @@ A QUICK FIRST TEST
 2. Try to put White back at B8. The app should refuse immediate recapture.
 3. Step backward: that capture should disappear from the count and lid.
 4. Switch between 2D and 3D. Rotate the 3D board and watch the lid stone.
-5. Choose AI and check that analysis appears for the displayed position.
+5. Open the right sidebar using the panel icon at the upper right, then choose
+   AI. Analysis is enabled only on the AI tab; opening another SGF selects Local.
+   Candidate moves and the analysis graph should appear for the displayed position.
+
+MOVE SLIDER
+While dragging, the board and capture lids preview the position together at a
+limited update rate. Release applies the exact selected move. Preview moves are
+silent and new AI requests wait until release. Your source SGF is never rewritten.
 
 LOCAL FINAL SCORING
 Local play now has a Pass button beside the playback controls in 2D and 3D.

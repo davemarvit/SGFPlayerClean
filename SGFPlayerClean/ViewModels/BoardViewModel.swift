@@ -23,6 +23,7 @@ class BoardViewModel: ObservableObject {
     @Published var whiteCapturedCount: Int = 0
     @Published var isAutoPlaying: Bool = false
     @Published var totalMoves: Int = 0
+    @Published private(set) var isScrubbing = false
     @Published var territoryIsEstimate = false
     @Published var territoryPoints: [BoardPosition: Stone] = [:]
     @Published private(set) var localScoring: LocalScoringSession?
@@ -44,6 +45,9 @@ class BoardViewModel: ObservableObject {
     private var lastObservedMoveIndex: Int = 0
     private var fullGameAnalysisTask: Task<Void, Swift.Error>?
     private var cancellables = Set<AnyCancellable>()
+    private var stateSyncTimer: Timer?
+    private var scrubTimer: Timer?
+    private var pendingScrubIndex: Int?
     
     init(player: SGFPlayer, ogsClient: OGSClient, isAIAllowed: (() -> Bool)? = nil) {
         self.engine = player
@@ -51,7 +55,7 @@ class BoardViewModel: ObservableObject {
         self.isAIAllowed = isAIAllowed
         self.jitterEngine = StoneJitter(boardSize: player.board.size, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         
-        player.moveProcessed.receive(on: RunLoop.main).sink { [weak self] in self?.syncState() }.store(in: &cancellables)
+        player.moveProcessed.sink { [weak self] in self?.scheduleStateSync() }.store(in: &cancellables)
         
         // Ensure UI stays in sync with Play/Pause toggles that don't trigger a move update
         player.$isPlaying.receive(on: RunLoop.main).sink { [weak self] val in
@@ -83,8 +87,66 @@ class BoardViewModel: ObservableObject {
     }
     
     var boardSize: Int { self.engine.board.size }
+
+    /// Default-mode delivery waits for AppKit's slider tracking loop to finish. Use
+    /// one common-mode callback and read the latest completed engine state instead.
+    private func scheduleStateSync() {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in self?.scheduleStateSync() }
+            return
+        }
+        guard stateSyncTimer == nil else { return }
+        let timer = Timer(timeInterval: 0, repeats: false) { [weak self] _ in self?.syncState() }
+        stateSyncTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func beginScrubbing() {
+        guard !isScrubbing else { return }
+        isScrubbing = true
+        engine.pause()
+        // At most 20 previews per second, with only the latest requested move retained.
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in self?.applyPendingScrub() }
+        scrubTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func scrub(to index: Int) {
+        guard isScrubbing else { seekToMove(index); return }
+        pendingScrubIndex = max(0, min(index, engine.maxIndex))
+    }
+
+    private func applyPendingScrub() {
+        guard let index = pendingScrubIndex else { return }
+        pendingScrubIndex = nil
+        guard index != engine.currentIndex else { return }
+        engine.seek(to: index)
+        // Publish board, counts, and 3D scene from the same completed preview.
+        syncState()
+    }
+
+    func endScrubbing(at index: Int) {
+        guard isScrubbing else { return }
+        scrubTimer?.invalidate(); scrubTimer = nil
+        pendingScrubIndex = max(0, min(index, engine.maxIndex))
+        applyPendingScrub() // Release always commits the exact final thumb position.
+        isScrubbing = false
+        requestAnalysisIfNeeded()
+    }
+
+    func cancelScrubbing() {
+        scrubTimer?.invalidate(); scrubTimer = nil
+        pendingScrubIndex = nil
+        isScrubbing = false
+    }
+
+    deinit {
+        stateSyncTimer?.invalidate()
+        scrubTimer?.invalidate()
+    }
     
     func resetToEmpty() {
+        cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = 0
         fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
@@ -102,6 +164,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func loadGame(_ wrapper: SGFGameWrapper) {
+        cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = wrapper.game.handicap
         fullGameAnalysisTask?.cancel()
         if KataGoEngine.shared.currentGameId != "local" {
@@ -230,6 +293,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func finishOnlineGameLoad(gameID: Int) {
+        cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil
         fullGameAnalysisTask?.cancel()
         _ = KataGoEngine.shared.loadAnalysisCache(for: String(gameID), game: engine)
@@ -336,6 +400,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func syncState() {
+        stateSyncTimer?.invalidate(); stateSyncTimer = nil
         synchronizeLocalScoring()
         moveError = nil
         koPoint = engine.koPoint
@@ -393,7 +458,7 @@ class BoardViewModel: ObservableObject {
             self.territoryPoints = [:]
         }
         
-        if !isOnlineContext {
+        if !isOnlineContext && !isScrubbing {
              if idx == (self.lastObservedMoveIndex + 1) {
                  let oldBlack = self.blackCapturedCount
                  let oldWhite = self.whiteCapturedCount
@@ -431,7 +496,7 @@ class BoardViewModel: ObservableObject {
     }
     
     private func requestAnalysisIfNeeded() {
-        guard !localScoringVisible else { return }
+        guard !localScoringVisible, !isScrubbing else { return }
         guard KataGoEngine.shared.isEngineRunning else { return }
         if let allowed = isAIAllowed, !allowed() { return }
         
@@ -474,7 +539,7 @@ class BoardViewModel: ObservableObject {
                     try Task.checkCancellation()
                     
                     // Do not build a large subprocess queue while the engine is still working.
-                    while KataGoEngine.shared.hasPendingAnalysis {
+                    while KataGoEngine.shared.hasPendingAnalysis || self.isScrubbing {
                         try await Task.sleep(nanoseconds: 100_000_000)
                         try Task.checkCancellation()
                         guard KataGoEngine.shared.currentGameId == gameId else { return }

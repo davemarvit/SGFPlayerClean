@@ -27,6 +27,13 @@ previously stopped at their first subtree (one move in the reported 132-move gam
 comments, markup, and unknown properties now remain available for future navigation/editing;
 there is no variation-selection UI or SGF writer yet. The expanded automated suite has 180 tests.
 
+Slider scrubbing now publishes completed board states in common run-loop modes, including
+AppKit event tracking. Default-mode delivery previously left board rendering queued until
+mouse-up while the directly observed 2D capture lids changed. Drag requests retain only the
+latest target and preview at most 20 times per second; release commits the exact target.
+Preview seeks are silent, avoid new 3D drop animations, and defer new analysis requests until
+release. KataGo analysis is enabled only on the AI tab; opening an SGF selects Local.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
@@ -395,6 +402,7 @@ python3 Tests/UI/check_capture_rewind.py ScoringDisplay.swift
 python3 Tests/UI/check_capture_rewind.py LocalPass.swift
 python3 Tests/UI/check_capture_rewind.py LocalScoring.swift
 python3 Tests/UI/check_capture_rewind.py SGFPlayback.swift
+python3 Tests/UI/check_capture_rewind.py SliderScrubbing.swift
 ```
 
 The first UI check briefly displays a test window to verify captured-stone lids through
@@ -414,6 +422,10 @@ The SGF playback check loads a nested 132-move game, verifies visible counters i
 views, and checks forward steps, seeking, end, rewind/replay, and retention of the imported tree.
 Set `SGF_PLAYBACK_TEST_FILE` and `SGF_PLAYBACK_EXPECTED_MOVES` to check an external SGF read-only;
 no personal game contents are included in the committed regression fixtures.
+The scrubbing check reproduces the default-mode stall, then exercises preview updates under
+AppKit's event-tracking run-loop mode with both hosted board views. It checks board/lid agreement,
+burst coalescing, rate limiting, duplicate suppression, silence, exact release, and cancellation
+when loading another game. Physical mouse-drag feel remains a manual acceptance check.
 
 Scoring marks/results are in-memory review data, never edits to the source SGF. Unknown rules
 and missing/invalid komi block confirmation until explicitly selected/entered. Manual agreement

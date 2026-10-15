@@ -196,7 +196,7 @@ struct ContentView3D: View {
         // Dynamic Resize Check
         sceneManager.updateBoardSize(bVM.boardSize) // Ensure 3D matches 2D physics
         
-        sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared)
+        sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
         sceneManager.updateTerritory(points: bVM.territoryPoints)
         sceneManager.updateKoMarker(at: bVM.koPoint)

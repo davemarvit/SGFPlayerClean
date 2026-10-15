@@ -382,7 +382,7 @@ final class AppModel: ObservableObject {
     }
     
     private func handlePlaybackStopped() {
-        guard boardVM?.localScoringVisible != true else { return }
+        guard boardVM?.localScoringVisible != true, boardVM?.isScrubbing != true else { return }
         guard player.currentIndex == player.maxIndex, player.maxIndex > 0 else { return }
         
         print("🏁 Game Finished. Auto-advancing in 3s...")
@@ -392,7 +392,7 @@ final class AppModel: ObservableObject {
     }
     
     private func tryAutoAdvance() {
-        guard boardVM?.localScoringVisible != true else { return }
+        guard boardVM?.localScoringVisible != true, boardVM?.isScrubbing != true else { return }
         // Re-check state to ensure user didn't start scrubbing or playing again
         // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating) or AI Analysis mode
         guard !isOnlineMode, rightPanelTab != .ai, !player.isPlaying, player.currentIndex == player.maxIndex else { return }

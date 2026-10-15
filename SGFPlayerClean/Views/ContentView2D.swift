@@ -163,11 +163,22 @@ struct PlaybackControlsView: View {
             }
             .font(.system(size: 13, weight: .bold))
             Divider().frame(height: 14).background(Color.white.opacity(0.3))
-            Slider(value: $localIdx, in: 0...Double(max(1, boardVM.totalMoves)), onEditingChanged: { dragging in
-                if !dragging { boardVM.seekToMove(Int(localIdx)) }
+            Slider(value: Binding(get: { localIdx }, set: { value in
+                localIdx = value
+                boardVM.scrub(to: Int(value))
+            }), in: 0...Double(max(1, boardVM.totalMoves)), onEditingChanged: { dragging in
+                if dragging { boardVM.beginScrubbing() }
+                else { boardVM.endScrubbing(at: Int(localIdx)) }
             })
-            .onChange(of: localIdx) { _, val in boardVM.seekToMove(Int(val)) }
-            .onChange(of: boardVM.currentMoveIndex) { _, val in localIdx = Double(val) }
+            .onAppear { localIdx = Double(boardVM.currentMoveIndex) }
+            .onChange(of: boardVM.currentMoveIndex) { _, val in
+                if !boardVM.isScrubbing { localIdx = Double(val) }
+            }
+            .onChange(of: boardVM.isScrubbing) { _, dragging in
+                if !dragging { localIdx = Double(boardVM.currentMoveIndex) }
+            }
+            .onDisappear { boardVM.cancelScrubbing() }
+            .accessibilityIdentifier("playback-move-slider")
             .tint(.white).frame(width: 140)
             Text("\(boardVM.currentMoveIndex)/\(boardVM.totalMoves)").font(.system(size: 9, design: .monospaced)).foregroundColor(.white.opacity(0.8)).frame(width: 50)
         }.padding(.horizontal, 12).padding(.vertical, 6).background((Color.black.opacity(0.65) as Color)).cornerRadius(18).foregroundColor(.white).fixedSize()
