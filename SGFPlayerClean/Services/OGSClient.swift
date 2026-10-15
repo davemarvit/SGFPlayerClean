@@ -222,9 +222,15 @@ class OGSClient: NSObject, ObservableObject {
     private let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     
     override convenience init() {
+        #if SGF_OFFLINE_REVIEW
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieStorage = nil
+        config.httpShouldSetCookies = false
+        #else
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
         config.httpCookieAcceptPolicy = .always
+        #endif
         self.init(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main))
     }
 
@@ -235,7 +241,11 @@ class OGSClient: NSObject, ObservableObject {
         self.urlSession = session
         self.socketFactory = socketFactory
         super.init()
+        #if SGF_OFFLINE_REVIEW
+        connectionStatus = "Offline review — OGS blocked"
+        #else
         fetchUserConfig()
+        #endif
     }
 
     // MARK: - Robust Parsing
@@ -256,6 +266,10 @@ class OGSClient: NSObject, ObservableObject {
 
     // MARK: - Connection & Handshake
     func fetchUserConfig(completion: ((Bool, String?) -> Void)? = nil) {
+        #if SGF_OFFLINE_REVIEW
+        completion?(false, "OGS is disabled in the offline review app.")
+        return
+        #else
         let identity = identityGeneration
         let url = URL(string: "https://online-go.com/api/v1/ui/config")!
         var request = URLRequest(url: url)
@@ -295,6 +309,7 @@ class OGSClient: NSObject, ObservableObject {
                 completion?(false, error.localizedDescription)
             }
         }
+        #endif
     }
 
     private func clearIdentity() {
@@ -309,7 +324,11 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func connect() {
+        #if SGF_OFFLINE_REVIEW
+        connectionStatus = "Offline review — OGS blocked"
+        #else
         connection.connect()
+        #endif
     }
 
     func disconnect() {

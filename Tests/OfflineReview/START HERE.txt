@@ -1,0 +1,47 @@
+SGF PLAYER — OFFLINE REVIEW
+
+TO LAUNCH
+Double-click "SGF Player Offline Review.app" in this folder.
+You do not need Xcode or Terminal. Look for the orange OFFLINE REVIEW banner.
+Your working SGFPlayerClean app remains separate.
+
+This app has fresh, separate settings and AI caches. OGS connections are
+blocked by macOS, and there is no Online tab. Wi-Fi can stay on.
+The existing KataGo installation is used locally; give it a moment to load.
+
+A QUICK FIRST TEST
+1. The bundled ko example opens paused. Advance one move using the playback
+   controls. Black captures one white stone: the capture count and lid should
+   both show one, and the empty B8 point should show Ko.
+2. Try to put White back at B8. The app should refuse immediate recapture.
+3. Step backward: that capture should disappear from the count and lid.
+4. Switch between 2D and 3D. Rotate the 3D board and watch the lid stone.
+5. Choose AI and check that analysis appears for the displayed position.
+
+MORE EXAMPLES
+Select examples in the Local list. They stay paused until you press Play.
+- Two stone handicap: starts with two black stones and White to move.
+- Japanese self capture: try Black at B9 (second point in the top row).
+  The move should be rejected.
+- New Zealand self capture: the same move is permitted; two black stones
+  disappear and White's captured count increases by two.
+
+YOUR OWN SGF FILE
+Use File > Open SGF File... (Command-O). Opening a file reads it; it does not
+rewrite it. You can use a copy if you prefer. The menu loads it paused.
+
+The review app does not yet simulate the OGS end-game scoring exchange.
+Local territory remains an estimate; live scoring acceptance and final-score
+synchronization are still reserved for a later OGS test.
+
+IF SOMETHING LOOKS WRONG
+Note which example or file, the move number, 2D or 3D, and what you saw.
+A screenshot helps, but no repeated test sequence is required.
+Quit this app with Command-Q when finished; launch your usual app normally.
+
+TECHNICAL NOTES
+Review preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.offline-review.plist
+Review AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.offline-review/AICache
+No working-app preferences, cookies, saved library, or caches are copied in.
+The network block is embedded in the app; it does not depend on a launcher.
+This package is prepared for this Mac; rebuild it before using on another Mac.

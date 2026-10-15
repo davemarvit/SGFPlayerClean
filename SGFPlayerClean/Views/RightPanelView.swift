@@ -9,7 +9,9 @@ struct RightPanelView: View {
             HStack {
                 Picker("Mode", selection: $app.rightPanelTab) {
                     Text("Local").tag(AppModel.PanelTab.local)
+                    #if !SGF_OFFLINE_REVIEW
                     Text("Online").tag(AppModel.PanelTab.online)
+                    #endif
                     Text("AI").tag(AppModel.PanelTab.ai)
                 }.pickerStyle(.segmented)
                 
@@ -82,10 +84,12 @@ struct RightPanelView: View {
                         ForEach(app.sortedGames) { wrapper in
                             Button(action: {
                                 app.selectGame(wrapper)
+                                #if !SGF_OFFLINE_REVIEW
                                 // Delayed Auto-Play
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     app.boardVM?.startAutoPlay()
                                 }
+                                #endif
                             }) {
                                 GameListRow(wrapper: wrapper, isSelected: app.selection?.id == wrapper.id)
                             }

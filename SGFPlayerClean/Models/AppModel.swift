@@ -80,6 +80,10 @@ final class AppModel: ObservableObject {
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
     init() {
+        #if SGF_OFFLINE_REVIEW
+        UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
+        UserDefaults.standard.register(defaults: ["startGameOnLaunch": true])
+        #endif
         let bVM = BoardViewModel(player: player, ogsClient: ogsClient, isAIAllowed: { [weak self] in
             // Must capture weakly and dynamically evaluate
             return self?.isAIAvailable == true
@@ -246,7 +250,9 @@ final class AppModel: ObservableObject {
             self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
         }
         
+        #if !SGF_OFFLINE_REVIEW
         setupAutoAdvance()
+        #endif
         
         // Sync Stone Volume
         AppSettings.shared.$stoneVolume
