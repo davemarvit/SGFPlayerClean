@@ -41,7 +41,9 @@ class KataGoEngine: ObservableObject {
         executableOverride = executableURL
         modelOverride = modelURL
         self.scheduler = scheduler
-        #if SGF_OFFLINE_REVIEW
+        #if SGF_OGS_REVIEW
+        let cacheFolder = "com.davemarvit.SGFPlayerClean.ogs-review/AICache"
+        #elseif SGF_OFFLINE_REVIEW
         let cacheFolder = "com.davemarvit.SGFPlayerClean.offline-review/AICache"
         #else
         let cacheFolder = "SGFPlayerClean/AICache"
@@ -76,7 +78,7 @@ class KataGoEngine: ObservableObject {
         if let config = Bundle.main.path(forResource: "analysis", ofType: "cfg") {
             p.arguments! += ["-config", config]
         }
-        #if SGF_OFFLINE_REVIEW
+        #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
         // KataGo also writes tuning data outside our analysis cache by default.
         p.arguments! += ["-override-config", "homeDataDir=\(work.appendingPathComponent("EngineData").path)"]
         #endif

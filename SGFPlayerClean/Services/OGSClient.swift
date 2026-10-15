@@ -11,6 +11,37 @@ import Combine
 
 class OGSClient: NSObject, ObservableObject {
     let buildVersion = "16.185"
+    #if SGF_OGS_REVIEW
+    static let defaultObservationOnly = true
+    #else
+    static let defaultObservationOnly = false
+    #endif
+    let observationOnly: Bool
+    private let observationError = NSError(domain: "OGSReview", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "This review app supports observation only."])
+
+    /// Each review session owns an in-memory cookie store, never the working app's store.
+    static func reviewSessionConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieAcceptPolicy = .always
+        return config
+    }
+
+    static func observationGameID(_ input: String) -> Int? {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        func positiveID(_ value: String) -> Int? {
+            guard !value.isEmpty, value.allSatisfy({ $0 >= "0" && $0 <= "9" }),
+                  let id = Int(value), id > 0 else { return nil }
+            return id
+        }
+        if let id = positiveID(text) { return id }
+        guard let url = URLComponents(string: text), url.scheme == "https",
+              url.host == "online-go.com" || url.host == "www.online-go.com",
+              url.user == nil, url.password == nil, url.port == nil else { return nil }
+        let path = url.path.split(separator: "/")
+        guard path.count == 2, path[0] == "game" else { return nil }
+        return positiveID(String(path[1]))
+    }
     
     // MARK: - Published Properties
     @Published var isConnected = false
@@ -169,13 +200,13 @@ class OGSClient: NSObject, ObservableObject {
     
     private var currentAutomatchUUID: String? // Track active Automatch request
     private lazy var connection: OGSConnectionController = {
-        let controller = OGSConnectionController { [originHeader, userAgent, socketFactory] in
+        let controller = OGSConnectionController { [originHeader, userAgent, socketFactory, cookieStorage = urlSession.configuration.httpCookieStorage] in
             if let socketFactory { return socketFactory() }
             // Keep the existing Socket.IO endpoint and message format during lifecycle extraction.
             var request = URLRequest(url: URL(string: "wss://wsp.online-go.com/socket.io/?EIO=4&transport=websocket")!)
             request.setValue(originHeader, forHTTPHeaderField: "Origin")
             request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            return OGSURLSessionSocket(request: request)
+            return OGSURLSessionSocket(request: request, cookieStorage: cookieStorage)
         }
         controller.onStateChange = { [weak self] state in self?.handleConnectionState(state) }
         controller.onMessage = { [weak self] text in
@@ -226,6 +257,8 @@ class OGSClient: NSObject, ObservableObject {
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
+        #elseif SGF_OGS_REVIEW
+        let config = Self.reviewSessionConfiguration()
         #else
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
@@ -236,7 +269,9 @@ class OGSClient: NSObject, ObservableObject {
 
     /// The app and offline fixtures use the same client with different transport dependencies.
     init(session: URLSession, socketFactory: (() -> OGSWebSocket)? = nil,
-         scoringScheduler: OGSConnectionScheduler = OGSMainQueueScheduler()) {
+         scoringScheduler: OGSConnectionScheduler = OGSMainQueueScheduler(),
+         observationOnly: Bool = OGSClient.defaultObservationOnly) {
+        self.observationOnly = observationOnly
         self.scoringScheduler = scoringScheduler
         self.urlSession = session
         self.socketFactory = socketFactory
@@ -510,6 +545,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func acceptChallenge(challengeID: Int, completion: @escaping (Int?, Error?) -> Void) {
+        guard !observationOnly else { completion(nil, observationError); return }
         NSLog("[OGS-ACTION] Accepting Challenge \(challengeID)...")
         guard let url = URL(string: "https://online-go.com/api/v1/challenges/\(challengeID)/accept"), let jwt = userJWT else {
             completion(nil, OGSHTTPError.status(401)); return
@@ -635,6 +671,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func createChallenge(setup: ChallengeSetup, completion: @escaping (Bool, String?) -> Void) {
+        guard !observationOnly else { completion(false, observationError.localizedDescription); return }
         // Note: Added trailing slash to avoid potential 301 redirects dropping POST body
         guard let jwt = userJWT, let url = URL(string: "https://online-go.com/api/v1/challenges/") else {
              completion(false, "Not authenticated"); return
@@ -681,6 +718,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func startChallengeKeepAlive(challengeID: Int, gameID: Int?) {
+        guard !observationOnly else { return }
         stopChallengeKeepAlive()
         
         self.activeChallengeID = challengeID
@@ -718,6 +756,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func cancelChallenge(challengeID: Int) {
+        guard !observationOnly else { return }
         invalidateChallengeRequest()
         let generation = challengeGeneration
         let identity = identityGeneration
@@ -792,6 +831,7 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func startAutomatch() {
+        guard !observationOnly else { return }
         self.isSearchingForGame = true
         let params: [String: Any] = ["game_params": ["size": 19, "speed": "live"], "lower_rank": 30, "upper_rank": 9]
         sendAction("automatch/start", payload: params)
@@ -829,6 +869,7 @@ class OGSClient: NSObject, ObservableObject {
     var isScoringPhase: Bool { OGSScoring.isScoring(phase) }
     var isScoreAccepted: Bool { scoreAcceptance == .confirmed }
     var isGameParticipant: Bool {
+        guard !observationOnly else { return false }
         guard let playerID, playerID > 0 else { return false }
         return playerID == blackPlayerID || playerID == whitePlayerID
     }
@@ -1763,6 +1804,15 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     private func sendAction(_ event: String, payload: [String: Any], sequence: Int? = nil) {
+        if observationOnly {
+            let allowed: Set<String> = ["authenticate", "game/connect", "game/disconnect",
+                "net/ping", "net/pong", "game/latency", "seek_graph/connect",
+                "ui-pushes/subscribe", "automatch/available/subscribe", "automatch/list", "user/monitor"]
+            guard allowed.contains(event) else {
+                lastError = observationError.localizedDescription
+                return
+            }
+        }
         let json = tightJson(payload)
         let packet = (sequence != nil) ? "42[\"\(event)\",\(json),\(sequence!)]" : "42[\"\(event)\",\(json)]"
         // if event != "net/ping" { NSLog("[OGS-SOCKET] 📤 Sending: \(packet)") } // SILENCED FOR TIME CAPSULE

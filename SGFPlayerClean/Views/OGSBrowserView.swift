@@ -331,3 +331,57 @@ struct OGSLoginView: View {
         }
     }
 }
+
+#if SGF_OGS_REVIEW
+/// Deliberately uses a game link/ID instead of the challenge-accepting lobby.
+struct OGSObservationBrowserView: View {
+    @EnvironmentObject var app: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showLogin = false
+    @State private var gameLink = ""
+    @FocusState private var editingLink: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Observe an OGS game").font(.headline)
+            if let name = app.ogsClient.username, app.ogsClient.isAuthenticated {
+                Text("Logged in as \(name)")
+                Text(app.ogsClient.isSocketAuthenticated ? "Ready to observe" : app.ogsClient.connectionStatus)
+                    .font(.caption).foregroundColor(.secondary)
+                HStack {
+                    Button("Reconnect") { app.ogsClient.disconnect(); app.ogsClient.connect() }
+                    Button("Log Out") { app.ogsClient.logout() }
+                }
+            } else {
+                Text("Sign in with your OGS account. This app has its own login session.")
+                    .font(.caption)
+                Button("Log In") { showLogin = true }.buttonStyle(.borderedProminent)
+            }
+            TextField("OGS game link or game ID", text: $gameLink)
+                .textFieldStyle(.roundedBorder).focused($editingLink)
+                .onChange(of: editingLink) { app.isTypingInChat = $0 }
+                .onSubmit { observe() }
+            Text("Copy a game link from OGS, for example https://online-go.com/game/12345.")
+                .font(.caption).foregroundColor(.secondary)
+            Button("Observe Game") { observe() }
+                .buttonStyle(.borderedProminent)
+                .disabled(!app.ogsClient.isSocketAuthenticated || OGSClient.observationGameID(gameLink) == nil)
+            Text("Moves, challenges, and chat sending are disabled in this review.")
+                .font(.caption).foregroundColor(.secondary)
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .sheet(isPresented: $showLogin) { OGSLoginView(isPresented: $showLogin).environmentObject(app) }
+        .onDisappear { app.isTypingInChat = false }
+    }
+
+    private func observe() {
+        guard app.ogsClient.isSocketAuthenticated, let id = OGSClient.observationGameID(gameLink) else { return }
+        app.ogsClient.lastError = nil
+        app.rightPanelTab = .online
+        app.showRightPanel = true
+        app.resumeOnlineGame(id: id)
+        dismiss()
+    }
+}
+#endif

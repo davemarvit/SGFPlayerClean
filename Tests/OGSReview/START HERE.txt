@@ -1,0 +1,36 @@
+SGF PLAYER — OGS REVIEW
+
+In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
+Open "SGF Player OGS Review.app". Look for the blue OGS REVIEW banner.
+The working app and Offline Review app remain separate.
+
+FIRST TEST: LOGIN AND OBSERVE
+1. Click Log In in the Online sidebar. Enter your OGS credentials in the app.
+2. Wait for "Ready to observe" and your username.
+3. In your browser, choose a public game on OGS and copy its game link.
+4. Paste the link (or its numeric game ID) into this app and click Observe Game.
+5. Check that the players, board, and latest move match the browser. For a live
+   game, wait for a new move and check that it arrives without reopening it.
+6. Try 2D and 3D. To choose another game, click Observe game… in the blue banner.
+
+This build cannot submit moves, passes, resignations, undo, scoring agreement,
+challenges, automatch requests, or chat messages. It can read game chat.
+Even your own games are treated as observation only. KataGo stays disabled
+while observing a live game.
+
+Login cookies are kept in memory for this app session. Quitting requires a new
+login next time. No working-app credentials, settings, or library are imported.
+Network access is enabled in this app; the Offline Review app remains blocked.
+
+If login or observation fails, report the visible error and which step failed.
+Do not send your password, cookies, or authentication tokens.
+
+TECHNICAL NOTES
+Build: python3 Tests/OfflineReview/build_review.py --ogs-observer
+Preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.ogs-review.plist
+AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.ogs-review/AICache
+Reports: ../OGS Review/
+An embedded native guard blocks writes to the working checkout, original app,
+known original settings/caches, and offline-review app/settings/cache paths.
+Packaging checks use loopback only and exit before the app model starts.
+Live OGS protocol compatibility remains to be tested by this review session.

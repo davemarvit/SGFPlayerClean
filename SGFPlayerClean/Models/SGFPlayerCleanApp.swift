@@ -31,12 +31,28 @@ private func installOfflineGuard()
 }
 #endif
 
+#if SGF_OGS_REVIEW
+@_silgen_name("sgf_install_ogs_review_guard")
+private func installOGSReviewGuard()
+
+@MainActor private func makeOGSReviewModel() -> AppModel {
+    installOGSReviewGuard()
+    let model = AppModel()
+    model.showRightPanel = true
+    model.rightPanelTab = .online
+    return model
+}
+#endif
+
 @main
 struct SGFPlayerCleanApp: App {
     // Single source of truth for the entire application lifecycle
     #if SGF_OFFLINE_REVIEW
     @StateObject private var appModel = makeOfflineReviewModel()
     @State private var showScoringReview = false
+    #elseif SGF_OGS_REVIEW
+    @StateObject private var appModel = makeOGSReviewModel()
+    @State private var showObserveGame = false
     #else
     @StateObject private var appModel = AppModel()
     #endif
@@ -57,6 +73,25 @@ struct SGFPlayerCleanApp: App {
                 .environmentObject(appModel)
                 .frame(minWidth: 1000, minHeight: 700)
                 .sheet(isPresented: $showScoringReview) { OfflineScoringReview() }
+            #elseif SGF_OGS_REVIEW
+            VStack(spacing: 0) {
+                HStack {
+                    Text("OGS REVIEW • Observation only • Separate settings")
+                    Spacer()
+                    Text(appModel.ogsClient.isSocketAuthenticated ? "Signed in" : appModel.ogsClient.connectionStatus)
+                    Button("Observe game…") { showObserveGame = true }
+                }
+                .font(.caption).padding(6).background(Color.blue.opacity(0.2))
+                if let error = appModel.ogsClient.lastError {
+                    Text(error).font(.caption).foregroundColor(.orange).padding(4)
+                }
+                ContentView()
+            }
+            .environmentObject(appModel)
+            .frame(minWidth: 1000, minHeight: 700)
+            .sheet(isPresented: $showObserveGame) {
+                OGSObservationBrowserView().environmentObject(appModel).frame(width: 440, height: 300)
+            }
             #else
             ContentView()
                 .environmentObject(appModel)
@@ -88,7 +123,7 @@ struct SGFPlayerCleanApp: App {
         panel.begin { response in
             if response == .OK, let url = panel.url {
                 print("📂 Selected file: \(url.path)")
-                #if SGF_OFFLINE_REVIEW
+                #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
                 let scoped = url.startAccessingSecurityScopedResource()
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 do {

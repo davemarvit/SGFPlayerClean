@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise production Swift transport against a localhost-only WebSocket fixture."""
 import base64
+import argparse
 import hashlib
 from pathlib import Path
 import socket
@@ -76,11 +77,15 @@ def serve(listener, failures):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--ogs-review', action='store_true', help='Use the review-specific ephemeral WebSocket session.')
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     networking = root / "SGFPlayerClean/Services/Networking"
     with tempfile.TemporaryDirectory(prefix="sgfplayer-loopback-") as temp:
         executable = Path(temp) / "probe"
-        subprocess.run(["swiftc", str(networking / "OGSConnectionController.swift"),
+        flags = ['-D', 'SGF_OGS_REVIEW'] if args.ogs_review else []
+        subprocess.run(["swiftc", *flags, str(networking / "OGSConnectionController.swift"),
                         str(networking / "OGSURLSessionSocket.swift"),
                         str(Path(__file__).with_name("main.swift")), "-o", str(executable)], check=True)
         with socket.socket() as listener:

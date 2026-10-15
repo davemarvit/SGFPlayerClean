@@ -141,9 +141,13 @@ struct RightPanelView: View {
             } else if app.isCreatingChallenge {
                 OGSCreateChallengeView(isPresented: $app.isCreatingChallenge).transition(.opacity)
             } else {
+                #if SGF_OGS_REVIEW
+                OGSObservationBrowserView()
+                #else
                 OGSBrowserView(isPresentingCreate: $app.isCreatingChallenge) { id in
                     app.joinOnlineGame(id: id)
                 }.transition(.opacity)
+                #endif
             }
         }
     }

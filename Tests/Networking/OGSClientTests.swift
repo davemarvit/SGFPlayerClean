@@ -703,6 +703,77 @@ final class OGSClientTests: XCTestCase {
         drainMainQueue()
         XCTAssertEqual(client.removedStones, [BoardPosition(0, 0)])
     }
+    func testObservationReviewBlocksMutationsButCanAuthenticateAndObserve() {
+        client.disconnect()
+        socket = TestSocket()
+        client = OGSClient(session: session, socketFactory: { [socket = socket!] in socket },
+                           scoringScheduler: scoringScheduler, observationOnly: true)
+        let ready = expectation(description: "Observer fixture identity loaded")
+        let observation = client.$isAuthenticated.filter { $0 }.sink { _ in ready.fulfill() }
+        wait(for: [ready], timeout: 3)
+        observation.cancel()
+        connect()
+        socket.deliver(.success("0{}"))
+        socket.deliver(.success("40{}"))
+        XCTAssertTrue(socket.sentMessages.contains { $0.contains("authenticate") })
+        client.isSocketAuthenticated = true
+        client.activeGameID = 7
+        client.playerID = 1; client.blackPlayerID = 1
+        client.connectToGame(gameID: 7)
+        XCTAssertTrue(socket.sentMessages.contains { $0.contains("game/connect") })
+        XCTAssertFalse(client.isGameParticipant, "Even one's own game is observation only")
+        let before = socket.sentMessages
+        client.sendMove(gameID: 7, x: 0, y: 0)
+        client.sendPass(gameID: 7)
+        client.resignGame(gameID: 7)
+        client.sendChat(gameID: 7, text: "must not be sent")
+        client.sendUndoRequest(gameID: 7, moveNumber: 2)
+        client.sendUndoAccept(gameID: 7, moveNumber: 2)
+        client.sendUndoReject(gameID: 7)
+        client.phase = "stone removal"
+        client.acceptScore(gameID: 7)
+        client.rejectScore(gameID: 7)
+        client.sendRemovedStones(gameID: 7, stones: "aa", removed: true)
+        client.startAutomatch()
+        client.cancelChallenge(challengeID: 9)
+        client.startChallengeKeepAlive(challengeID: 9, gameID: 7)
+        var acceptBlocked = false, createBlocked = false
+        client.acceptChallenge(challengeID: 9) { id, error in acceptBlocked = id == nil && error != nil }
+        client.createChallenge(setup: ChallengeSetup()) { success, error in createBlocked = !success && error != nil }
+        XCTAssertTrue(acceptBlocked && createBlocked)
+        XCTAssertFalse(client.isSearchingForGame)
+        XCTAssertEqual(socket.sentMessages, before)
+        drainMainQueue() // Unexpected REST mutations fail through ClientHTTPFixture.handler.
+    }
+
+    func testReviewCookiesAreInMemoryAndSeparateFromOtherSessions() throws {
+        let first = OGSClient.reviewSessionConfiguration()
+        let second = OGSClient.reviewSessionConfiguration()
+        let firstStore = try XCTUnwrap(first.httpCookieStorage)
+        let secondStore = try XCTUnwrap(second.httpCookieStorage)
+        XCTAssertFalse(firstStore === HTTPCookieStorage.shared)
+        XCTAssertFalse(firstStore === secondStore)
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [.domain: "review-fixture.invalid",
+            .path: "/", .name: "session", .value: "fixture-only"]))
+        firstStore.setCookie(cookie)
+        XCTAssertEqual(firstStore.cookies?.count, 1)
+        XCTAssertTrue(secondStore.cookies?.isEmpty ?? true)
+        XCTAssertNil(first.urlCredentialStorage?.allCredentials.first)
+    }
+
+    func testObserveGameInputAcceptsOnlyPositiveIDsAndOGSGameLinks() {
+        for input in ["12345", " 12345\n", "https://online-go.com/game/12345",
+                      "https://online-go.com/game/12345/?move=20", "https://www.online-go.com/game/12345"] {
+            XCTAssertEqual(OGSClient.observationGameID(input), 12345, input)
+        }
+        for input in ["", "0", "-1", "1.5", "https://other.example/game/12345",
+                      "https://online-go.com.evil.example/game/12345", "https://online-go.com/player/12345",
+                      "https://user@online-go.com/game/12345", "https://online-go.com/game/12345/extra",
+                      "9999999999999999999999999"] {
+            XCTAssertNil(OGSClient.observationGameID(input), input)
+        }
+    }
+
 }
 
 /// All URLs, including production-looking OGS URLs, are intercepted. There is no network fallback.

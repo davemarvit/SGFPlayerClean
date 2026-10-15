@@ -13,7 +13,7 @@ struct ActiveGamePanel: View {
                 
                 Divider().background(Color.white.opacity(0.1))
                 
-                if let username = app.ogsClient.undoRequestedUsername {
+                if !app.ogsClient.observationOnly, let username = app.ogsClient.undoRequestedUsername {
                     undoApprovalSection(username: username)
                 }
                 
@@ -280,6 +280,9 @@ struct ActiveGamePanel: View {
                 )
             } else {
                 // NORMAL CONTROLS
+                if app.ogsClient.observationOnly {
+                    Text("Observing • Game actions disabled").font(.caption).foregroundColor(.secondary)
+                } else {
                 HStack {
                     Button("Undo") {
                         if let id = app.ogsClient.activeGameID {
@@ -332,6 +335,7 @@ struct ActiveGamePanel: View {
                 .background(Color.black.opacity(0.2))
                 .cornerRadius(8)
                 .buttonStyle(.bordered)
+                }
             }
         }
     }
@@ -482,6 +486,7 @@ struct OGSChatView: View {
             .background(Color.black.opacity(0.2))
             
             // Input Area
+            if !app.ogsClient.observationOnly {
             HStack(spacing: 8) {
                 TextField("Say something...", text: $inputText)
                     .textFieldStyle(PlainTextFieldStyle())
@@ -506,6 +511,7 @@ struct OGSChatView: View {
             }
             .padding(10)
             .background(Color.black.opacity(0.3))
+            }
         }
         .background(Color(NSColor.windowBackgroundColor).opacity(0.5)) // Matches panels
     }

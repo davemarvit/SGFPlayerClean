@@ -54,6 +54,31 @@ samples remain in `../Offline Review`; test harnesses use its `build-info.json` 
 Use the Applications copy instead of any older Documents copy. The existing signed app
 can be copied there without rebuilding or resetting its separate review settings.
 
+Dave confirmed the Applications launch no longer prompts for Documents access and the
+offline AI interaction works. The next authorized stage is a **separate OGS observation
+review**, prepared with `python3 Tests/OfflineReview/build_review.py --ogs-observer`.
+Launch `~/Applications/SGF Player OGS Review.app` (blue banner); its bundle ID is
+`com.davemarvit.SGFPlayerClean.ogs-review`. Login and direct game-link/ID observation
+use the shared OGS client and reconciliation code. There is no challenge-accepting lobby
+in this build. Client guards block challenge REST mutations and all socket actions except
+authentication, subscriptions, game observation, and heartbeat/latency messages. Even a
+game involving the logged-in account is treated as observation only. Game/chat input is
+hidden or disabled, and AI stays unavailable during live games.
+
+OGS review preferences and KataGo data are separate from both existing apps. HTTP and
+WebSocket sessions share a private in-memory review cookie store; signing in again is
+required after quitting. Its native startup guard verifies the new bundle ID and denies
+writes to known working-app and offline-review paths, while allowing networking. The
+packaging probe checks a disposable protected sentinel and a loopback listener before
+AppModel creation. It does not contact OGS. `Tests/OGSReview/check_review.py` checks
+the compiled review policy and login/observation UI with all networking denied.
+The 188-test suite includes mutation blocking, private cookie stores, and game-link
+validation. The real WebSocket loopback test can also compile the OGS-review transport
+with `python3 Tests/Integration/run_loopback.py --ogs-review`.
+Reports and launch instructions are in `../OGS Review`; the offline package remains
+unchanged. Live login, authentication compatibility, and incoming moves still require
+the user's first observation session; preparation is not evidence that OGS has worked.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
@@ -92,9 +117,10 @@ merge this review, or replace the working app until Dave requests that next stag
 the ordinary target into a separate temporary DerivedData directory is safe; compilation alone
 does not establish live OGS reliability.
 
-Remaining acceptance work: finish offline scoring/UI review, then arrange a requested live
-session covering login, challenges, reconnect, move/undo/handicap reconciliation, server scoring,
-and return to local playback. Scoring requires manual life/death and neutral/seki agreement;
+Remaining acceptance work: first test login and observing an existing game in the separate
+OGS review app. Later, arrange a separately requested playing session covering challenges,
+reconnect, move/undo/handicap reconciliation, server scoring, and return to local playback.
+Scoring requires manual life/death and neutral/seki agreement;
 marks/results currently remain in memory and do not rewrite SGFs. Broader rules limitations
 are documented below. Before eventual integration, compare any new original-checkout edits
 against the preservation snapshot and integrate the complete review branch without losing them.

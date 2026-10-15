@@ -80,7 +80,7 @@ final class AppModel: ObservableObject {
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
     init() {
-        #if SGF_OFFLINE_REVIEW
+        #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
         UserDefaults.standard.set(false, forKey: "isOnlineModePersistent")
         UserDefaults.standard.register(defaults: ["startGameOnLaunch": true])
         #endif
@@ -453,11 +453,14 @@ final class AppModel: ObservableObject {
     }
     
     func resumeOnlineGame(id: Int) {
+        // The observation review must treat every entered ID as an actual game.
+        #if !SGF_OGS_REVIEW
         // SIMULATION INTERCEPT
         if id == 999999 {
             simulateOGSLoad()
             return
         }
+        #endif
 
         // NSLog("[OGS-CS] 🚀 resumeOnlineGame CALLED for \(id)")
         

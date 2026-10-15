@@ -7,10 +7,15 @@ final class OGSURLSessionSocket: NSObject, OGSWebSocket, URLSessionWebSocketDele
     private var session: URLSession?
     private var task: URLSessionWebSocketTask?
 
-    init(request: URLRequest) {
+    init(request: URLRequest, cookieStorage: HTTPCookieStorage? = nil) {
         super.init()
+        #if SGF_OGS_REVIEW
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieStorage = cookieStorage
+        #else
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
+        #endif
         config.httpCookieAcceptPolicy = .always
         let session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
         self.session = session
