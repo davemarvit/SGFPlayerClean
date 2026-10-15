@@ -19,16 +19,40 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(startGameOnLaunch, forKey: "startGameOnLaunch") }
     }
     @Published var isMuted: Bool {
-        didSet { UserDefaults.standard.set(isMuted, forKey: "isMuted") }
+        didSet {
+            UserDefaults.standard.set(isMuted, forKey: "isMuted")
+            SoundManager.shared.applyAudioSettings()
+        }
     }
     @Published var voiceVolume: Double {
         didSet { 
             UserDefaults.standard.set(voiceVolume, forKey: "voiceVolume");
-            SoundManager.shared.setVolume(Float(voiceVolume))
+            SoundManager.shared.applyAudioSettings()
         }
     }
     @Published var stoneVolume: Double {
         didSet { UserDefaults.standard.set(stoneVolume, forKey: "stoneVolume") }
+    }
+
+    @Published var masterVolume: Double {
+        didSet {
+            UserDefaults.standard.set(masterVolume, forKey: "masterVolume")
+            if masterVolume > 0 { UserDefaults.standard.set(masterVolume, forKey: "lastAudibleMasterVolume") }
+            SoundManager.shared.applyAudioSettings()
+        }
+    }
+    var effectiveStoneVolume: Double { isMuted ? 0 : stoneVolume * masterVolume }
+    var effectiveVoiceVolume: Double { isMuted ? 0 : voiceVolume * masterVolume }
+    var soundIsSilent: Bool { isMuted || masterVolume == 0 }
+
+    func toggleSound() {
+        if soundIsSilent {
+            if masterVolume == 0 {
+                let previous = UserDefaults.standard.double(forKey: "lastAudibleMasterVolume")
+                masterVolume = previous > 0 ? min(1, previous) : 1
+            }
+            isMuted = false
+        } else { isMuted = true }
     }
 
     // MARK: - Visuals
@@ -118,6 +142,7 @@ class AppSettings: ObservableObject {
         self.shuffleGameOrder = UserDefaults.standard.bool(forKey: "shuffleGameOrder")
         self.startGameOnLaunch = UserDefaults.standard.bool(forKey: "startGameOnLaunch")
         self.isMuted = UserDefaults.standard.bool(forKey: "isMuted")
+        self.masterVolume = UserDefaults.standard.object(forKey: "masterVolume") as? Double ?? 1
         // Volume Init
         let vVol = UserDefaults.standard.object(forKey: "voiceVolume") as? Double
         self.voiceVolume = (vVol == nil) ? 1.0 : vVol!
@@ -218,16 +243,20 @@ class SoundManager: ObservableObject {
         print("[SoundManager] 🏁 Preload Complete. Loaded \(loadedCount)/\(sounds.count) sounds.")
     }
     
-    func setVolume(_ vol: Float) {
-        for p in players.values { p.volume = vol }
+    func applyAudioSettings() {
+        let settings = AppSettings.shared
+        for player in players.values {
+            player.volume = Float(settings.effectiveVoiceVolume)
+            if settings.soundIsSilent { player.stop(); player.currentTime = 0 }
+        }
     }
     
     func play(_ name: String) {
-        if AppSettings.shared.isMuted { return }
+        if AppSettings.shared.soundIsSilent { return }
         
         guard let player = players[name] else { return }
-        if player.volume != Float(AppSettings.shared.voiceVolume) {
-            player.volume = Float(AppSettings.shared.voiceVolume)
+        if player.volume != Float(AppSettings.shared.effectiveVoiceVolume) {
+            player.volume = Float(AppSettings.shared.effectiveVoiceVolume)
         }
         
         if player.isPlaying {

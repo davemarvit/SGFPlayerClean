@@ -28,6 +28,14 @@ panel can cover it; close that panel with its X to reveal the graph. On wider
 windows both fit beside the board. Space below the graph holds analysis details.
 Observe is read-only. Play Online now permits actual game/challenge actions.
 
+The speaker beside your account controls applies to all app sounds. Click to
+mute/unmute; hold briefly or right-click to reveal the master volume slider.
+Mute preserves your previous volume. The slider preserves the separate stone
+and voice balance in Settings; raising it also unmutes. Mute stops current and
+pending sounds, including delayed 3D captures. Volume/mute persist in this app's
+own settings. In 3D the entire workspace now shares the scene's dark backdrop;
+2D retains its tatami.
+
 Your username and Log Out are at the top. Sign in from Play Online or Observe
 if needed. Login persists across restarts unless you log out or OGS expires
 it. Changing modes does not sign you out or close the OGS connection.

@@ -106,6 +106,7 @@ final class AppModel: ObservableObject {
     
     // Audio
     enum SoundType { case place, captureSingle, captureMultiple }
+    private var audioGeneration = 0
     private var clickPlayer: AVAudioPlayer?
     private var captureSinglePlayer: AVAudioPlayer?
     private var captureMultiPlayer: AVAudioPlayer?
@@ -215,14 +216,17 @@ final class AppModel: ObservableObject {
         #endif
         
         ogsClient.observationOnly = mode != .playOnline
-        // Sync Stone Volume
-        AppSettings.shared.$stoneVolume
-            .receive(on: RunLoop.main)
-            .sink { [weak self] vol in
-                let f = Float(vol)
-                self?.clickPlayer?.volume = f
-                self?.captureSinglePlayer?.volume = f
-                self?.captureMultiPlayer?.volume = f
+        // Master mute/volume applies to every stone player, including active clips.
+        let settings = AppSettings.shared
+        Publishers.CombineLatest3(settings.$stoneVolume, settings.$masterVolume, settings.$isMuted)
+            .sink { [weak self] stone, master, muted in
+                guard let self else { return }
+                let silent = muted || master == 0
+                if silent { self.audioGeneration += 1 }
+                for player in [self.clickPlayer, self.captureSinglePlayer, self.captureMultiPlayer].compactMap({ $0 }) {
+                    player.volume = silent ? 0 : Float(stone * master)
+                    if silent { player.stop(); player.currentTime = 0 }
+                }
             }.store(in: &cancellables)
     }
     
@@ -331,7 +335,7 @@ final class AppModel: ObservableObject {
         self.captureMultiPlayer = loadSound("Capture_multiple.mp3")
         
         // Apply Initial Volume
-        let v = Float(AppSettings.shared.stoneVolume)
+        let v = Float(AppSettings.shared.effectiveStoneVolume)
         clickPlayer?.volume = v
         captureSinglePlayer?.volume = v
         captureMultiPlayer?.volume = v
@@ -355,16 +359,15 @@ final class AppModel: ObservableObject {
     }
     
     func playSound(_ type: SoundType) {
-        // Simple overlap logic: stop before play? Or mix?
-        // standard stones usually cut off previous click?
-        // Let's allow mix for rapid play, but maybe re-trigger.
-        
+        guard !AppSettings.shared.soundIsSilent else { return }
+        let generation = audioGeneration
         switch type {
         case .place:
             let delay = (viewMode == .view3D && AppSettings.shared.showDropInAnimation) ? 0.15 : 0.0
             if delay > 0 {
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                    guard let p = self?.clickPlayer else { return }
+                    guard let self, self.audioGeneration == generation,
+                          !AppSettings.shared.soundIsSilent, let p = self.clickPlayer else { return }
                     if p.isPlaying { p.stop(); p.currentTime = 0 }
                     p.play()
                 }
@@ -386,7 +389,8 @@ final class AppModel: ObservableObject {
             let delayTime: TimeInterval = type == .captureSingle ? 0.25 : 0.4
             
             DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) { [weak self] in
-                guard let self = self else { return }
+                guard let self, self.audioGeneration == generation,
+                      !AppSettings.shared.soundIsSilent else { return }
                 let player = type == .captureSingle ? self.captureSinglePlayer : self.captureMultiPlayer
                 guard let p = player else { return }
                 

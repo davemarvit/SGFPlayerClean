@@ -74,7 +74,13 @@ struct BoardWorkspaceView<Board: View>: View {
                 }
                 if layout.hasSidebar { RightSidebarOverlay(vm: vm) }
             }
-            .background(TatamiBackground(boardHeight: geo.size.height * 0.85))
+            .background {
+                if app.viewMode == .view3D {
+                    Color(nsColor: SceneManager3D.backgroundColor)
+                } else {
+                    TatamiBackground(boardHeight: geo.size.height * 0.85)
+                }
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import QuartzCore
 import simd
 
 class SceneManager3D: NSObject, ObservableObject {
+    static let backgroundColor = NSColor(srgbRed: 0.01, green: 0.01, blue: 0.05, alpha: 1)
     // ... (Init/Setup code identical to v4.401, omitted for brevity except changed HitTest) ...
     // COPY ALL properties and init from v4.401
     let scene = SCNScene(); let cameraNode = SCNNode(); let pivotNode = SCNNode()
@@ -751,7 +752,7 @@ class SceneManager3D: NSObject, ObservableObject {
         worldAnchor.addChildNode(dir)
     }
     
-    private func setupBackground() { scene.background.contents = NSColor(red: 0.01, green: 0.01, blue: 0.05, alpha: 1.0) }
+    private func setupBackground() { scene.background.contents = Self.backgroundColor }
     // ... createBoard ...
     
     // ... generatedEnvironmentTexture ...

@@ -24,6 +24,7 @@ struct AppModeControls: View {
                     Button("Browse games…") { showGames = true }
                 }
                 Spacer(minLength: 0)
+                ToolbarSoundControl()
                 #if !SGF_OFFLINE_REVIEW
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(app.ogsClient.username ?? "Not signed in").font(.caption).bold()
@@ -251,3 +252,96 @@ struct LocalGameMetadataView: View {
 
 // LocalPlaylistView and LocalGameRow Removed
 
+
+/// Global audio belongs beside the account controls, not among board gestures.
+struct ToolbarSoundControl: View {
+    @ObservedObject private var settings = AppSettings.shared
+    @State private var showVolume = false
+
+    var body: some View {
+        SoundButton(isSilent: settings.soundIsSilent, volume: settings.masterVolume,
+                    onClick: { settings.toggleSound() }, onHold: { showVolume = true })
+            .frame(width: 28, height: 28)
+            .popover(isPresented: $showVolume, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Sound").font(.headline)
+                        Spacer()
+                        Text(settings.isMuted ? "Muted" : "\(Int((settings.masterVolume * 100).rounded()))%")
+                            .monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Image(systemName: "speaker.fill")
+                        Slider(value: Binding(get: { settings.masterVolume }, set: {
+                            settings.masterVolume = $0
+                            if $0 > 0 { settings.isMuted = false }
+                        }), in: 0...1)
+                        .accessibilityLabel("Master volume")
+                        Image(systemName: "speaker.wave.3.fill")
+                    }
+                    Button(settings.soundIsSilent ? "Unmute" : "Mute") { settings.toggleSound() }
+                }.padding(16).frame(width: 240)
+            }
+    }
+}
+
+/// Keep native button accessibility/keyboard behavior. A hold opens the popover
+/// and suppresses the click on release, so adjusting volume never toggles mute.
+struct SoundButton: NSViewRepresentable {
+    let isSilent: Bool
+    let volume: Double
+    var onClick: () -> Void
+    var onHold: () -> Void
+
+    final class Coordinator: NSObject {
+        var onClick: () -> Void = {}
+        @objc func click() { onClick() }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeNSView(context: Context) -> SoundHoldButton {
+        let button = SoundHoldButton()
+        button.setButtonType(.momentaryPushIn)
+        button.isBordered = false
+        button.imagePosition = .imageOnly
+        button.target = context.coordinator
+        button.action = #selector(Coordinator.click)
+        button.setAccessibilityIdentifier("sound-control")
+        return button
+    }
+    func updateNSView(_ button: SoundHoldButton, context: Context) {
+        context.coordinator.onClick = onClick
+        button.onHold = onHold
+        let symbol = isSilent ? "speaker.slash.fill" : (volume < 0.4 ? "speaker.wave.1.fill" : "speaker.wave.2.fill")
+        let label = isSilent ? "Unmute sound" : "Mute sound"
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        button.setAccessibilityLabel(label)
+        button.toolTip = "\(label). Hold or right-click to adjust volume."
+    }
+    static func dismantleNSView(_ button: SoundHoldButton, coordinator: Coordinator) {
+        button.onHold = nil
+        button.target = nil
+    }
+}
+
+final class SoundHoldButton: NSButton {
+    var onHold: (() -> Void)?
+    private var held = false
+
+    override func mouseDown(with event: NSEvent) {
+        held = false
+        let timer = Timer(timeInterval: 0.45, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.held = true
+            self.highlight(false)
+            self.onHold?()
+        }
+        RunLoop.main.add(timer, forMode: .eventTracking)
+        defer { timer.invalidate(); held = false }
+        super.mouseDown(with: event)
+    }
+    override func sendAction(_ action: Selector?, to target: Any?) -> Bool {
+        guard !held else { return false }
+        return super.sendAction(action, to: target)
+    }
+    override func rightMouseDown(with event: NSEvent) { onHold?() }
+}

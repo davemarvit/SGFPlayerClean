@@ -71,6 +71,24 @@ private final class LayoutHTTP: URLProtocol {
                 let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds)!
                 host.cacheDisplay(in: host.bounds, to: bitmap)
                 let name = "\(mode == .view2D ? "2d" : "3d")-\(width)-\(sidebar ? "sidebar" : "open")"
+                let scaleX = CGFloat(bitmap.pixelsWide) / size.width
+                let scaleY = CGFloat(bitmap.pixelsHigh) / size.height
+                func pixel(_ x: CGFloat, _ y: CGFloat) -> NSColor {
+                    bitmap.colorAt(x: Int(x * scaleX), y: Int(y * scaleY))!.usingColorSpace(.sRGB)!
+                }
+                let margin = pixel(5, 5)
+                if mode == .view3D {
+                    require(margin.redComponent < 0.08 && margin.greenComponent < 0.08 && margin.blueComponent < 0.12,
+                            "3D viewport margins must not expose tatami in \(name)")
+                    if !sidebar || geometry.reservesSidebar {
+                        let analysisBackground = pixel(geometry.boardWidth + geometry.aiWidth / 2, size.height - 30)
+                        require(analysisBackground.redComponent < 0.08 && analysisBackground.greenComponent < 0.08,
+                                "3D analysis column must share the dark workspace in \(name)")
+                    }
+                } else {
+                    require(margin.greenComponent > 0.2 && margin.greenComponent > margin.blueComponent,
+                            "2D retains its tatami background in \(name)")
+                }
                 try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/sgf-analysis-\(name).png"))
                 let request = VNRecognizeTextRequest(); request.recognitionLevel = .accurate
                 try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request])
@@ -91,6 +109,22 @@ private final class LayoutHTTP: URLProtocol {
                     let image = NSBitmapImageRep(data: rendered.tiffRepresentation!)!
                     try image.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/sgf-scene-\(name).png"))
                     let extent = sceneView.convert(sceneView.bounds, to: host)
+                    let sceneBackground = image.colorAt(x: 5, y: 5)!.usingColorSpace(.sRGB)!
+                    require(abs(sceneBackground.redComponent - margin.redComponent) < 0.02 &&
+                            abs(sceneBackground.greenComponent - margin.greenComponent) < 0.02 &&
+                            abs(sceneBackground.blueComponent - margin.blueComponent) < 0.02,
+                            "Scene and surrounding 3D workspace must have matching backgrounds")
+                    // AppKit's background-window capture may omit the Metal layer.
+                    // Composite the actual renderer snapshot for visual inspection.
+                    NSGraphicsContext.saveGraphicsState()
+                    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+                    let context = NSGraphicsContext.current!.cgContext
+                    context.clip(to: CGRect(x: 0, y: 0, width: geometry.boardWidth, height: size.height))
+                    let y = host.isFlipped ? size.height - extent.maxY : extent.minY
+                    rendered.draw(in: NSRect(x: extent.minX, y: y,
+                        width: extent.width, height: extent.height))
+                    NSGraphicsContext.restoreGraphicsState()
+                    try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/sgf-analysis-composite-\(name).png"))
                     var objects: [SCNNode] = []
                     sceneView.scene!.rootNode.enumerateChildNodes { node, _ in
                         if let box = node.geometry as? SCNBox, box.height == 2 { objects.append(node) }
@@ -114,6 +148,6 @@ private final class LayoutHTTP: URLProtocol {
                 require(vm.currentMoveIndex == 6 && vm.stonesToRender.count == 6, "Layout changes preserve game position")
             }
         }
-        print("PASS: 2D/3D AI remains right of board at wide, narrow and portrait sizes; wide sidebar reserves space, narrow sidebar overlays; graph and metadata visible after collapse; position preserved. Network denied.")
+        print("PASS: 2D/3D AI remains right of board at wide, narrow and portrait sizes; wide sidebar reserves space, narrow sidebar overlays; graph and metadata visible after collapse; position preserved; 3D scene, margins and AI column share a dark background while 2D keeps tatami. Network denied.")
     }
 }

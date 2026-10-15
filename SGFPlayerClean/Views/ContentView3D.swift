@@ -135,6 +135,7 @@ struct ContentView3D: View {
 
             }
         }
+        .background(Color(nsColor: SceneManager3D.backgroundColor))
         .focused($isBoardFocused)
         .keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         .onAppear {
@@ -199,7 +200,7 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> UnifiedSCNView {
         let v = UnifiedSCNView()
-        v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = .black; v.antialiasingMode = .multisampling4X; v.allowsCameraControl = false
+        v.scene = scene; v.pointOfView = cameraNode; v.backgroundColor = SceneManager3D.backgroundColor; v.antialiasingMode = .multisampling4X; v.allowsCameraControl = false
         // v5.100: Explicitly request best resolution for Retina hit-testing accuracy
         v.wantsBestResolutionOpenGLSurface = true
         v.onInteraction = { event, point in handleInteraction(event: event, point: point, context: context) }

@@ -6,6 +6,13 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+The 3D workspace now uses the same dark backdrop as the SceneKit scene, including viewport
+margins and analysis/sidebar areas; tatami remains exclusive to 2D. A speaker beside the
+account controls mutes all app audio on click and opens a master-volume popover on hold or
+right-click. Master volume preserves the stone/voice balance and persists independently
+in each app's settings. Mute immediately stops active clips and cancels pending 3D sounds.
+This follow-up passed 215 unit tests plus four network-denied UI/audio suites.
+
 Observe follow-up: removed the duplicate signed-in label; visible list rows now read full
 time controls through separate, bounded REST requests because the actual live-list payload
 contains only an estimated `time_per_move`. Game-over messages include the winner's color.
