@@ -105,6 +105,7 @@ class OGSClient: NSObject, ObservableObject {
     @Published private(set) var observedGames: [OGSObservedGame] = []
     @Published private(set) var observedGamesPage = 0
     @Published private(set) var observedGamesTotal = 0
+    @Published private(set) var hasMoreObservedGames = false
     @Published private(set) var isLoadingObservedGames = false
     @Published private(set) var observedGamesError: String?
     static let observedGamesPageSize = 20
@@ -1871,7 +1872,12 @@ class OGSClient: NSObject, ObservableObject {
         }
     }
 
-    /// Same read-only query as the OGS observation browser, one bounded page at a time.
+    /// Fetch a fresh list, or append its next bounded batch as the user scrolls.
+    func loadMoreObservedGames() {
+        guard hasMoreObservedGames, !isLoadingObservedGames else { return }
+        fetchObservedGames(page: observedGamesPage + 1)
+    }
+
     func fetchObservedGames(page: Int = 0) {
         #if SGF_OFFLINE_REVIEW
         observedGamesError = "OGS is disabled in the offline review app."
@@ -1881,7 +1887,10 @@ class OGSClient: NSObject, ObservableObject {
             observedGamesError = "Connect to OGS to load current games."
             return
         }
-        guard page >= 0, page <= Int.max / Self.observedGamesPageSize else { return }
+        guard page >= 0, page < Int.max / Self.observedGamesPageSize else { return }
+        if page > 0 {
+            guard hasMoreObservedGames, page == observedGamesPage + 1, observedGamesRequest == nil else { return }
+        }
         if observedGamesRequest?.page == page { return }
         observedGamesTimeout?.cancel()
         requestSequence += 1
@@ -1908,6 +1917,7 @@ class OGSClient: NSObject, ObservableObject {
         observedGames = []
         observedGamesPage = 0
         observedGamesTotal = 0
+        hasMoreObservedGames = false
         observedGamesError = nil
     }
 
@@ -1927,11 +1937,20 @@ class OGSClient: NSObject, ObservableObject {
             observedGamesError = "Could not load current games. Try Refresh."
             return
         }
+        // Games may move between server pages while being played. Update duplicate IDs
+        // in place, rather than rendering duplicates or dropping earlier loaded games.
+        var combined = pending.page == 0 ? [] : observedGames
+        var indices = Dictionary(uniqueKeysWithValues: combined.enumerated().map { ($0.element.id, $0.offset) })
         var seen: Set<Int> = []
-        observedGames = rows.prefix(Self.observedGamesPageSize).compactMap(OGSObservedGame.init)
-            .filter { seen.insert($0.id).inserted }
+        for game in rows.prefix(Self.observedGamesPageSize).compactMap(OGSObservedGame.init)
+            where seen.insert(game.id).inserted {
+            if let index = indices[game.id] { combined[index] = game }
+            else { indices[game.id] = combined.count; combined.append(game) }
+        }
+        observedGames = OGSObservedGame.strongestFirst(combined)
         observedGamesPage = pending.page
         observedGamesTotal = size
+        hasMoreObservedGames = !rows.isEmpty && pending.page * Self.observedGamesPageSize + min(rows.count, Self.observedGamesPageSize) < size
         observedGamesError = nil
     }
 

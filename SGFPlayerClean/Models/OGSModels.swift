@@ -36,22 +36,106 @@ struct OGSObservedGame: Identifiable {
     let id: Int
     let blackName: String
     let whiteName: String
+    let blackRank: String
+    let whiteRank: String
+    let strongestRank: Double?
     let boardSize: String
+    let moveCount: Int?
+    let timeControl: String?
 
     init?(json: [String: Any]) {
+        let snapshot = json["json"] as? [String: Any] ?? [:]
         guard let id = json["id"] as? Int, id > 0,
-              json["phase"] as? String != "finished",
+              (json["phase"] ?? snapshot["phase"]) as? String != "finished",
               json["ended"] == nil || json["ended"] is NSNull else { return nil }
         self.id = id
-        let players = json["players"] as? [String: Any]
-        let black = (json["black"] ?? players?["black"]) as? [String: Any]
-        let white = (json["white"] ?? players?["white"]) as? [String: Any]
-        blackName = black?["username"] as? String ?? "Black"
-        whiteName = white?["username"] as? String ?? "White"
-        if let width = json["width"] as? Int, let height = json["height"] as? Int,
-           width > 0, height > 0 {
+        func player(_ color: String) -> [String: Any] {
+            // Summary players can contain only a name/ID; retain snapshot ratings.
+            var result = (snapshot["players"] as? [String: Any])?[color] as? [String: Any] ?? [:]
+            for source in [(json["players"] as? [String: Any])?[color], json[color]] {
+                if let details = source as? [String: Any] { result.merge(details) { _, new in new } }
+            }
+            return result
+        }
+        let black = player("black"), white = player("white")
+        blackName = black["username"] as? String ?? "Black"
+        whiteName = white["username"] as? String ?? "White"
+        let b = Self.rank(black), w = Self.rank(white)
+        blackRank = b.label; whiteRank = w.label
+        strongestRank = [b.strength, w.strength].compactMap { $0 }.max()
+        if let width = (json["width"] ?? snapshot["width"]) as? Int,
+           let height = (json["height"] ?? snapshot["height"]) as? Int, width > 0, height > 0 {
             boardSize = "\(width)×\(height)"
         } else { boardSize = "" }
+        if let moves = (snapshot["moves"] ?? json["moves"]) as? [Any] {
+            moveCount = moves.count // Includes passes, like the OGS game list.
+        } else if let count = json["move_number"] as? Int, count >= 0 {
+            moveCount = count
+        } else { moveCount = nil }
+        timeControl = Self.timeControl((snapshot["time_control"] ?? json["time_control_parameters"] ?? json["time_control"]) as? [String: Any])
+    }
+
+    /// Compare the stronger player, retaining server order when strengths tie or are unknown.
+    static func strongestFirst(_ games: [Self]) -> [Self] {
+        games.enumerated().sorted {
+            let a = $0.element.strongestRank ?? -.infinity
+            let b = $1.element.strongestRank ?? -.infinity
+            return a == b ? $0.offset < $1.offset : a > b
+        }.map(\.element)
+    }
+
+    private static func rank(_ player: [String: Any]?) -> (label: String, strength: Double?) {
+        guard let player else { return ("?", nil) }
+        let legacy = (player["ranking"] ?? player["rank"]) as? Double
+        if let value = legacy, value.isFinite,
+           value > 900 || (player["professional"] as? Bool == true || player["pro"] as? Bool == true) {
+            let pro = value > 900 ? value - 1036 : value - 36
+            guard pro >= 1, pro <= 9 else { return ("?", nil) }
+            return ("\(Int(pro))p", 1000 + pro)
+        }
+        let ratings = player["ratings"] as? [String: Any]
+        let overall = ratings?["overall"] as? [String: Any]
+        var strength = legacy
+        if let rating = overall?["rating"] as? Double, rating.isFinite {
+            // OGS overall Glicko rating to rank (rank_utils.ts).
+            strength = log(min(6000, max(100, rating)) / 525) * 23.15
+        }
+        guard let value = strength, value.isFinite, value > -900, value < 900 else { return ("?", nil) }
+        let provisional = (overall?["deviation"] as? Double).map { $0 >= 160 } ?? false
+        return (provisional ? "?" : ChallengeHelpers.formatRank(value), value)
+    }
+
+    private static func timeControl(_ params: [String: Any]?) -> String? {
+        guard let p = params, let system = (p["system"] ?? p["time_control"]) as? String else { return nil }
+        func seconds(_ keys: String...) -> Int? {
+            for key in keys { if let n = p[key] as? Int, n >= 0 { return n } }
+            return nil
+        }
+        func duration(_ s: Int) -> String {
+            if s >= 3600 && s % 3600 == 0 { return "\(s / 3600)h" }
+            if s >= 60 && s % 60 == 0 { return "\(s / 60)m" }
+            return "\(s)s"
+        }
+        switch system {
+        case "byoyomi":
+            guard let main = seconds("main_time"), let periods = seconds("periods"),
+                  let period = seconds("period_time") else { return "Byo-yomi" }
+            return "\(duration(main)) + \(periods)×\(duration(period))"
+        case "fischer":
+            guard let main = seconds("initial_time", "main_time"),
+                  let increment = seconds("time_increment", "increment") else { return "Fischer" }
+            return "\(duration(main)) + \(duration(increment))/move"
+        case "canadian":
+            guard let main = seconds("main_time"), let period = seconds("period_time"),
+                  let stones = seconds("stones_per_period") else { return "Canadian" }
+            return "\(duration(main)) + \(duration(period))/\(stones) stones"
+        case "simple":
+            return seconds("per_move").map { "\(duration($0))/move" } ?? "Per move"
+        case "absolute":
+            return seconds("total_time", "main_time").map { "\(duration($0)) total" } ?? "Absolute"
+        case "none": return "No time limit"
+        default: return nil
+        }
     }
 }
 

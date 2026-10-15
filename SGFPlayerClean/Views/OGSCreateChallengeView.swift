@@ -35,7 +35,9 @@ struct OGSCreateChallengeView: View {
     
     private var headerSection: some View {
         HStack {
-            Button(action: { isPresented = false }) { Text("Cancel").foregroundColor(.white.opacity(0.8)) }.buttonStyle(.plain)
+            Button("Cancel", role: .cancel) { isPresented = false }
+                .buttonStyle(.bordered)
+                .keyboardShortcut(.cancelAction)
             Spacer(); Text("Challenge").font(.headline).foregroundColor(.white); Spacer()
             Button(action: submitChallenge) {
                 if isSending { ProgressView().controlSize(.small) }

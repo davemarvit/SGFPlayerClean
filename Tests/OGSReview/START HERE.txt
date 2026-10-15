@@ -13,6 +13,8 @@ Local Play: place moves for both sides. New Game starts a fresh board.
   separate review copy.
 Observe: choose a live game, or enter its OGS link/ID. Browse games opens the
   popup; Cancel or Escape closes it. Games returns to the list.
+  Games are ordered by the stronger player, with ranks, move count and time
+  control. Scroll to load more; Refresh updates the list and move counts.
 Review: load saved SGFs and use playback. To add moves, choose Continue this
   position in Local Play. Local Play and Review preserve separate positions
   while switching modes within this session.

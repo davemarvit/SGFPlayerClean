@@ -41,7 +41,9 @@ struct ContentView2D: View {
                              // WHITE PLAYER SIDE (TOP): Captured Black stones
                              if let bvm = app.boardVM {
                                  PlayerCaptureLidView(player: bvm.engine, stoneColor: .black, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
-                                     .padding(.top, margin - (L.lidD / 2))
+                                     // Visible lid top sits halfway from board edge to grid.
+                                     // The lid asset has a 79px transparent top inset at 1024px.
+                                     .padding(.top, margin / 2 - L.lidD * (79.0 / 1024.0))
                              }
                              
                              if let game = app.selection, let bvm = app.boardVM {

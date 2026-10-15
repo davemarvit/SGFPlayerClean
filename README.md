@@ -6,6 +6,21 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+Observe now loads a continuous scrolling list in bounded batches, requests server rank
+ordering and sorts loaded games by the stronger player's rank. Rows show player ranks,
+move count (including passes), board size and time control; internal game IDs and page
+buttons are omitted. Missing metadata is identified, never guessed. Counts are snapshots
+at fetch time; Refresh starts a fresh list. Duplicate IDs merge, timeouts retain prior
+rows, retry is explicit, and refresh/logout fence late replies. Data shape follows the
+[OGS GameList](https://github.com/online-go/online-go.com/blob/main/src/components/GameList/GameList.tsx)
+and rating conversion follows its `rank_utils.ts`.
+Challenge Cancel now has a visible standard button and Escape shortcut; Cancel remains
+left, green Issue right, following macOS conventions. The upper 2D lid moves down only,
+with its visible top halfway between the board edge and grid (accounting for asset inset).
+Offline checks: 202 unit tests, plus `ObserveList.swift` scrolls a real SwiftUI list through
+20+20+13 simulated games and verifies metadata, end-of-list stopping and action order.
+The existing modes/lobby integration checks also pass. No live game was initiated.
+
 Dave authorized Play Online in the isolated OGS review app and has two accounts for
 controlled live tests. This app is no longer restricted to observation. The original
 working app, checkout, and settings must still remain untouched. Build with

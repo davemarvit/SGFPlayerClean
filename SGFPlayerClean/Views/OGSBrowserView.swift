@@ -399,9 +399,10 @@ struct OGSObservationBrowserView: View {
                 Text("Live games").font(.headline)
                 Spacer()
                 if app.ogsClient.isLoadingObservedGames { ProgressView().controlSize(.small) }
-                Button("Refresh") { app.ogsClient.fetchObservedGames(page: app.ogsClient.observedGamesPage) }
+                Button("Refresh") { app.ogsClient.fetchObservedGames() }
                     .disabled(!app.ogsClient.isSocketAuthenticated || app.ogsClient.isLoadingObservedGames)
             }
+            Text("Strongest player first").font(.caption).foregroundColor(.secondary)
             if let error = app.ogsClient.observedGamesError {
                 Text(error).font(.caption).foregroundColor(.orange)
             }
@@ -410,15 +411,18 @@ struct OGSObservationBrowserView: View {
                     if app.ogsClient.observedGames.isEmpty {
                         Text(!app.ogsClient.isSocketAuthenticated ? "Sign in and connect to see current games." :
                             (app.ogsClient.isLoadingObservedGames ? "Loading games…" :
-                                (app.ogsClient.observedGamesError == nil ? "No live games on this page. Try Refresh." : "Game list unavailable.")))
+                                (app.ogsClient.observedGamesError == nil ? "No live games. Try Refresh." : "Game list unavailable.")))
                             .font(.caption).foregroundColor(.secondary)
                     }
                     ForEach(app.ogsClient.observedGames) { game in
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("\(game.blackName) [Black]").lineLimit(1)
-                                Text("\(game.whiteName) [White]").lineLimit(1)
-                                Text("\(game.boardSize)  ·  Game \(game.id)")
+                                Text("\(game.blackName) [\(game.blackRank)] · Black").lineLimit(1)
+                                Text("\(game.whiteName) [\(game.whiteRank)] · White").lineLimit(1)
+                                Text([game.boardSize, game.moveCount.map { "\($0) moves" } ?? "Moves unavailable"]
+                                    .filter { !$0.isEmpty }.joined(separator: " · "))
+                                    .font(.caption).foregroundColor(.secondary)
+                                Text(game.timeControl ?? "Time control unavailable")
                                     .font(.caption).foregroundColor(.secondary)
                             }
                             Spacer()
@@ -428,18 +432,26 @@ struct OGSObservationBrowserView: View {
                         }
                         Divider()
                     }
+                    if app.ogsClient.hasMoreObservedGames {
+                        // A new batch recreates this sentinel. It fetches only while
+                        // visible, and a failure requires an explicit retry.
+                        HStack {
+                            Spacer()
+                            if app.ogsClient.observedGamesError != nil {
+                                Button("Retry loading more") { app.ogsClient.loadMoreObservedGames() }
+                            } else {
+                                Text("Loading more games…").font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                        .id(app.ogsClient.observedGamesPage)
+                        .onAppear {
+                            if app.ogsClient.observedGamesError == nil { app.ogsClient.loadMoreObservedGames() }
+                        }
+                    }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }.frame(minHeight: 100, maxHeight: .infinity)
-            HStack {
-                Button("Previous") { app.ogsClient.fetchObservedGames(page: app.ogsClient.observedGamesPage - 1) }
-                    .disabled(app.ogsClient.observedGamesPage == 0 || app.ogsClient.isLoadingObservedGames || !app.ogsClient.isSocketAuthenticated)
-                Spacer()
-                Text("Page \(app.ogsClient.observedGamesPage + 1)").font(.caption)
-                Spacer()
-                Button("Next") { app.ogsClient.fetchObservedGames(page: app.ogsClient.observedGamesPage + 1) }
-                    .disabled(app.ogsClient.observedGamesPage >= max(0, (app.ogsClient.observedGamesTotal - 1) / OGSClient.observedGamesPageSize) ||
-                              app.ogsClient.isLoadingObservedGames || !app.ogsClient.isSocketAuthenticated)
-            }
         }
     }
 
