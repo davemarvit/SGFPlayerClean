@@ -12,14 +12,18 @@ FIRST TEST: LOGIN AND OBSERVE
 5. Check that the players, board, and latest move match the browser. For a live
    game, wait for a new move and check that it arrives without reopening it.
 6. Try 2D and 3D. To choose another game, click Observe game… in the blue banner.
+7. Quit and reopen the app: your login should return once OGS validates it.
+   Click Log Out in the blue banner to remove the saved login from this app.
 
 This build cannot submit moves, passes, resignations, undo, scoring agreement,
 challenges, automatch requests, or chat messages. It can read game chat.
 Even your own games are treated as observation only. KataGo stays disabled
 while observing a live game.
 
-Login cookies are kept in memory for this app session. Quitting requires a new
-login next time. No working-app credentials, settings, or library are imported.
+Sign in once after this update. Login then persists across closing/reopening or
+quitting/restarting, unless you click Log Out or OGS expires/revokes the session.
+Only session cookies are saved, in this app's private data folder; no password
+is saved. No working-app credentials, settings, or library are imported.
 Network access is enabled in this app; the Offline Review app remains blocked.
 
 If login or observation fails, report the visible error and which step failed.
@@ -28,9 +32,11 @@ Do not send your password, cookies, or authentication tokens.
 TECHNICAL NOTES
 Build: python3 Tests/OfflineReview/build_review.py --ogs-observer
 Preferences: ~/Library/Preferences/com.davemarvit.SGFPlayerClean.ogs-review.plist
+Session: ~/Library/Application Support/com.davemarvit.SGFPlayerClean.ogs-review/SessionCookies.plist
 AI cache: ~/Library/Caches/com.davemarvit.SGFPlayerClean.ogs-review/AICache
 Reports: ../OGS Review/
 An embedded native guard blocks writes to the working checkout, original app,
 known original settings/caches, and offline-review app/settings/cache paths.
 Packaging checks use loopback only and exit before the app model starts.
-Live OGS protocol compatibility remains to be tested by this review session.
+Live login and observation have been confirmed; persistent login still needs
+a real quit/relaunch check. The automated session tests use fake credentials.

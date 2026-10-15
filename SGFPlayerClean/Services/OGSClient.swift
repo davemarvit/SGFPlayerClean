@@ -20,7 +20,8 @@ class OGSClient: NSObject, ObservableObject {
     private let observationError = NSError(domain: "OGSReview", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "This review app supports observation only."])
 
-    /// Each review session owns an in-memory cookie store, never the working app's store.
+    /// Each running review owns its cookie jar; OGSReviewSessionStore restores/saves
+    /// its verified login separately from the working app's cookie store.
     static func reviewSessionConfiguration() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieAcceptPolicy = .always
@@ -217,6 +218,7 @@ class OGSClient: NSObject, ObservableObject {
         controller.onError = { [weak self] error in self?.lastError = error.localizedDescription }
         return controller
     }()
+    private let reviewSessionStore: OGSReviewSessionStore?
     private let urlSession: URLSession
     private let socketFactory: (() -> OGSWebSocket)?
     private let scoringScheduler: OGSConnectionScheduler
@@ -264,18 +266,35 @@ class OGSClient: NSObject, ObservableObject {
         config.httpCookieStorage = HTTPCookieStorage.shared
         config.httpCookieAcceptPolicy = .always
         #endif
-        self.init(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main))
+        #if SGF_OGS_REVIEW
+        let sessionStore = OGSReviewSessionStore.defaultStore()
+        #else
+        let sessionStore: OGSReviewSessionStore? = nil
+        #endif
+        self.init(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main),
+                  reviewSessionStore: sessionStore)
     }
 
     /// The app and offline fixtures use the same client with different transport dependencies.
     init(session: URLSession, socketFactory: (() -> OGSWebSocket)? = nil,
          scoringScheduler: OGSConnectionScheduler = OGSMainQueueScheduler(),
-         observationOnly: Bool = OGSClient.defaultObservationOnly) {
+         observationOnly: Bool = OGSClient.defaultObservationOnly,
+         reviewSessionStore: OGSReviewSessionStore? = nil) {
+        self.reviewSessionStore = reviewSessionStore
         self.observationOnly = observationOnly
         self.scoringScheduler = scoringScheduler
         self.urlSession = session
         self.socketFactory = socketFactory
         super.init()
+        if let reviewSessionStore {
+            do {
+                for cookie in try reviewSessionStore.load() {
+                    urlSession.configuration.httpCookieStorage?.setCookie(cookie)
+                }
+            } catch {
+                lastError = "Saved review login could not be read. Please sign in again."
+            }
+        }
         #if SGF_OFFLINE_REVIEW
         connectionStatus = "Offline review — OGS blocked"
         #else
@@ -323,6 +342,7 @@ class OGSClient: NSObject, ObservableObject {
                       !jwt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                     self.disconnect()
                     self.clearIdentity()
+                    self.forgetReviewSession()
                     completion?(false, "OGS did not return a signed-in account.")
                     return
                 }
@@ -333,12 +353,17 @@ class OGSClient: NSObject, ObservableObject {
                 self.userRank = self.robustInt(user["ranking"])
                 self.userJWT = jwt
                 self.isAuthenticated = true
+                if let store = self.reviewSessionStore {
+                    do { try store.save(self.urlSession.configuration.httpCookieStorage?.cookies ?? []) }
+                    catch { self.lastError = "Signed in, but this review login could not be saved for next time." }
+                }
                 completion?(true, nil)
             case .failure(let error):
                 if let httpError = error as? OGSHTTPError, case .status(let status) = httpError,
                    status == 401 || status == 403 {
                     self.disconnect()
                     self.clearIdentity()
+                    self.forgetReviewSession()
                 }
                 if (error as? URLError)?.code != .cancelled { self.lastError = error.localizedDescription }
                 completion?(false, error.localizedDescription)
@@ -418,7 +443,9 @@ class OGSClient: NSObject, ObservableObject {
         disconnect()
         
         clearIdentity()
-        
+        forgetReviewSession()
+        if reviewSessionStore != nil { activeGameID = nil }
+
         // 3. Clear Cookies
         if let cookies = urlSession.configuration.httpCookieStorage?.cookies(for: URL(string: "https://online-go.com")!) {
             for cookie in cookies {
@@ -432,6 +459,15 @@ class OGSClient: NSObject, ObservableObject {
         objectWillChange.send()
     }
     
+    private func forgetReviewSession() {
+        guard let store = reviewSessionStore else { return }
+        for cookie in urlSession.configuration.httpCookieStorage?.cookies ?? [] {
+            urlSession.configuration.httpCookieStorage?.deleteCookie(cookie)
+        }
+        do { try store.clear() }
+        catch { lastError = "Could not remove the saved review login from this Mac." }
+    }
+
     func login(username: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         identityGeneration += 1
         let identity = identityGeneration
@@ -2063,5 +2099,61 @@ class OGSClient: NSObject, ObservableObject {
                 NSLog("[OGS-REST] Lobby refresh discarded: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+
+/// Persists only OGS cookies for this separately identified review app. Passwords
+/// and JWTs are not stored. The server must validate the session on every launch.
+final class OGSReviewSessionStore {
+    let fileURL: URL
+    init(fileURL: URL) { self.fileURL = fileURL }
+
+    static func defaultStore() -> OGSReviewSessionStore {
+        // UI probes have their own bundle ID and must never borrow a real login.
+        let identifier = Bundle.main.bundleIdentifier ?? "com.davemarvit.SGFPlayerClean.review-session-probe"
+        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return OGSReviewSessionStore(fileURL: root.appendingPathComponent(identifier, isDirectory: true)
+            .appendingPathComponent("SessionCookies.plist"))
+    }
+
+    private func isOGSCookie(_ cookie: HTTPCookie) -> Bool {
+        let domain = cookie.domain.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        return domain == "online-go.com" || domain.hasSuffix(".online-go.com")
+    }
+
+    func save(_ cookies: [HTTPCookie]) throws {
+        let records = cookies.filter { isOGSCookie($0) && ($0.expiresDate == nil || $0.expiresDate! > Date()) }
+            .compactMap { cookie -> [String: Any]? in
+                guard let properties = cookie.properties else { return nil }
+                return Dictionary(uniqueKeysWithValues: properties.map { key, value in
+                    (key.rawValue, (value as? URL)?.absoluteString as Any? ?? value)
+                })
+            }
+        let data = try PropertyListSerialization.data(fromPropertyList: records, format: .binary, options: 0)
+        let directory = fileURL.deletingLastPathComponent()
+        let fm = FileManager.default
+        try fm.createDirectory(at: directory, withIntermediateDirectories: true,
+                               attributes: [.posixPermissions: 0o700])
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        // The directory is private before the atomic write creates a replacement file.
+        try data.write(to: fileURL, options: .atomic)
+        try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    }
+
+    func load() throws -> [HTTPCookie] {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
+        let object = try PropertyListSerialization.propertyList(from: Data(contentsOf: fileURL), options: [], format: nil)
+        guard let records = object as? [[String: Any]] else { throw CocoaError(.fileReadCorruptFile) }
+        return records.compactMap { record in
+            let properties = Dictionary(uniqueKeysWithValues: record.map { (HTTPCookiePropertyKey($0.key), $0.value) })
+            guard let cookie = HTTPCookie(properties: properties), isOGSCookie(cookie),
+                  cookie.expiresDate == nil || cookie.expiresDate! > Date() else { return nil }
+            return cookie
+        }
+    }
+
+    func clear() throws {
+        if FileManager.default.fileExists(atPath: fileURL.path) { try FileManager.default.removeItem(at: fileURL) }
     }
 }

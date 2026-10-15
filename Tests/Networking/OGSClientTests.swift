@@ -761,6 +761,91 @@ final class OGSClientTests: XCTestCase {
         XCTAssertNil(first.urlCredentialStorage?.allCredentials.first)
     }
 
+    func testReviewLoginPersistsAcrossFreshClientsAndLogoutRemovesIt() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("SessionCookies.plist")
+        func freshClient() {
+            client.disconnect()
+            session.invalidateAndCancel()
+            let config = OGSClient.reviewSessionConfiguration()
+            config.protocolClasses = [ClientHTTPFixture.self]
+            session = URLSession(configuration: config, delegate: nil, delegateQueue: .main)
+            client = OGSClient(session: session, socketFactory: { [socket = socket!] in socket },
+                observationOnly: true, reviewSessionStore: OGSReviewSessionStore(fileURL: url))
+        }
+        ClientHTTPFixture.configHandler = { [unowned self] fixture in
+            let saved = self.session.configuration.httpCookieStorage?.cookies?.contains { $0.name == "sessionid" } == true
+            fixture.respond(status: 200, body: saved ? #"{"user":{"id":2,"username":"review"},"user_jwt":"fresh-fixture-token"}"# : "{}")
+        }
+        freshClient()
+        let anonymous = expectation(description: "Initial guest check")
+        client.fetchUserConfig { ok, _ in XCTAssertFalse(ok); anonymous.fulfill() }
+        wait(for: [anonymous], timeout: 3)
+        ClientHTTPFixture.handler = { [unowned self] fixture in
+            XCTAssertEqual(fixture.request.url?.path, "/api/v0/login")
+            let cookie = HTTPCookie(properties: [.name: "sessionid", .value: "fixture-session",
+                .domain: "online-go.com", .path: "/", .discard: "TRUE"])!
+            self.session.configuration.httpCookieStorage?.setCookie(cookie)
+            fixture.respond(status: 204, body: "")
+        }
+        let signedIn = expectation(description: "Login persisted")
+        client.login(username: "review", password: "never-save-this-password") { ok, _ in
+            XCTAssertTrue(ok); signedIn.fulfill()
+        }
+        wait(for: [signedIn], timeout: 3)
+        XCTAssertEqual(try OGSReviewSessionStore(fileURL: url).load().map(\.name), ["sessionid"])
+        let saved = try Data(contentsOf: url)
+        XCTAssertNil(saved.range(of: Data("never-save-this-password".utf8)))
+        XCTAssertNil(saved.range(of: Data("fresh-fixture-token".utf8)))
+        freshClient() // A new client/session/store, with no login call or password.
+        let restored = expectation(description: "Saved session validated")
+        let observation = client.$isAuthenticated.filter { $0 }.sink { _ in restored.fulfill() }
+        wait(for: [restored], timeout: 3); observation.cancel()
+        XCTAssertEqual(client.username, "review")
+        XCTAssertEqual(client.userJWT, "fresh-fixture-token")
+        client.logout()
+        XCTAssertFalse(client.isAuthenticated)
+        XCTAssertTrue(try OGSReviewSessionStore(fileURL: url).load().isEmpty)
+        XCTAssertTrue(session.configuration.httpCookieStorage?.cookies?.isEmpty ?? true)
+        freshClient()
+        let loggedOut = expectation(description: "Restart stays logged out")
+        client.fetchUserConfig { ok, _ in XCTAssertFalse(ok); loggedOut.fulfill() }
+        wait(for: [loggedOut], timeout: 3)
+    }
+
+    func testReviewLogoutRejectsLateValidationAndTransientFailureKeepsSavedSession() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let store = OGSReviewSessionStore(fileURL: folder.appendingPathComponent("cookies.plist"))
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [.name: "sessionid", .value: "fixture",
+            .domain: "online-go.com", .path: "/"]))
+        try store.save([cookie])
+        client.disconnect()
+        client = OGSClient(session: session, socketFactory: { [socket = socket!] in socket }, reviewSessionStore: store)
+        ClientHTTPFixture.configHandler = { $0.respond(status: 503, body: "{}") }
+        let failed = expectation(description: "Temporary failure")
+        client.fetchUserConfig { ok, _ in XCTAssertFalse(ok); failed.fulfill() }
+        wait(for: [failed], timeout: 3)
+        XCTAssertEqual(try store.load().count, 1)
+        var held: ClientHTTPFixture?
+        let requested = expectation(description: "Held validation")
+        ClientHTTPFixture.configHandler = { held = $0; requested.fulfill() }
+        client.fetchUserConfig()
+        wait(for: [requested], timeout: 3)
+        client.logout()
+        held?.respond(status: 200, body: #"{"user":{"id":2,"username":"review"},"user_jwt":"late-token"}"#)
+        drainMainQueue()
+        XCTAssertFalse(client.isAuthenticated)
+        XCTAssertTrue(try store.load().isEmpty)
+        try store.save([cookie])
+        ClientHTTPFixture.configHandler = { $0.respond(status: 401, body: "{}") }
+        let revoked = expectation(description: "Revoked session")
+        client.fetchUserConfig { ok, _ in XCTAssertFalse(ok); revoked.fulfill() }
+        wait(for: [revoked], timeout: 3)
+        XCTAssertTrue(try store.load().isEmpty)
+    }
+
     func testObserveGameInputAcceptsOnlyPositiveIDsAndOGSGameLinks() {
         for input in ["12345", " 12345\n", "https://online-go.com/game/12345",
                       "https://online-go.com/game/12345/?move=20", "https://www.online-go.com/game/12345"] {

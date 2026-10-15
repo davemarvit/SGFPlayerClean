@@ -80,6 +80,9 @@ struct SGFPlayerCleanApp: App {
                     Spacer()
                     Text(appModel.ogsClient.isSocketAuthenticated ? "Signed in" : appModel.ogsClient.connectionStatus)
                     Button("Observe game…") { showObserveGame = true }
+                    if appModel.ogsClient.isAuthenticated {
+                        Button("Log Out") { appModel.ogsClient.logout() }
+                    }
                 }
                 .font(.caption).padding(6).background(Color.blue.opacity(0.2))
                 if let error = appModel.ogsClient.lastError {

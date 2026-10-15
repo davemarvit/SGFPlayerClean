@@ -66,18 +66,30 @@ game involving the logged-in account is treated as observation only. Game/chat i
 hidden or disabled, and AI stays unavailable during live games.
 
 OGS review preferences and KataGo data are separate from both existing apps. HTTP and
-WebSocket sessions share a private in-memory review cookie store; signing in again is
-required after quitting. Its native startup guard verifies the new bundle ID and denies
+WebSocket sessions share a private review cookie jar. After a verified login, OGS cookies
+are saved to `~/Library/Application Support/com.davemarvit.SGFPlayerClean.ogs-review/SessionCookies.plist`
+with owner-only access (0700 directory, 0600 file). Passwords and the config JWT are not
+saved. Restart restores the cookies and asks OGS to validate the session; an expired or
+revoked session requires signing in again. Log Out in the blue banner or observation
+browser disconnects, clears identity and cookies, and deletes the saved session. A late
+response cannot restore it. Temporary network failures retain the saved session.
+This update needs one fresh login because earlier builds kept cookies only in memory.
+Its native startup guard verifies the new bundle ID and denies
 writes to known working-app and offline-review paths, while allowing networking. The
 packaging probe checks a disposable protected sentinel and a loopback listener before
 AppModel creation. It does not contact OGS. `Tests/OGSReview/check_review.py` checks
 the compiled review policy and login/observation UI with all networking denied.
-The 188-test suite includes mutation blocking, private cookie stores, and game-link
+The 192-test suite includes mutation blocking, private cookie stores, persisted-session
+restart/logout/expiry/permission checks using fake credentials, and game-link
 validation. The real WebSocket loopback test can also compile the OGS-review transport
 with `python3 Tests/Integration/run_loopback.py --ogs-review`.
 Reports and launch instructions are in `../OGS Review`; the offline package remains
-unchanged. Live login, authentication compatibility, and incoming moves still require
-the user's first observation session; preparation is not evidence that OGS has worked.
+unchanged. Automated checks do not establish live OGS compatibility.
+
+Dave has since confirmed live login and observation work. Clock fine-tuning is deferred
+because the review and web displays now look close enough. He has a second OGS account
+for future controlled gameplay tests; this package remains observation-only. Persistent
+login is tested offline with fixture responses; a real quit/relaunch check remains for Dave.
 
 First live observation follow-up: Dave signed in, but clicking Observe hid the app window.
 The process remained alive and its local log showed accepted game data. The review browser
@@ -98,8 +110,8 @@ including the inactive player. `GameClockView` truncated fractional seconds; it 
 not the underlying time values or timeout decisions. Run
 `python3 Tests/OGSReview/check_review.py ClockDisplay.swift` for fractional/boundary checks
 and actual rendered clock labels. Exact live synchronization is not established by this fix.
-Before enabling play, further clock work should cover server drift/latency estimation,
-snapshot anchoring, pauses, and overtime transitions. The current client still uses its
+Before enabling play, verify snapshot anchoring, pauses, and overtime transitions.
+Server drift/latency fine-tuning is deferred at Dave's request. The current client still uses its
 older expiration-based calculation, fixed reported latency, and decrementing timer;
 it does not yet implement the web client's full timestamp/relative-latency calculation.
 Keep this package observation-only while those behaviors remain unverified.
