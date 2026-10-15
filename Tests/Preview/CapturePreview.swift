@@ -18,7 +18,14 @@ struct CapturePreview {
         manager.updateCapturedStones(black: 40, white: 3)
         manager.updateBoardSize(9)
         manager.updateCapturedStones(black: 40, white: 3)
+        // Freeze the layout and omit invisible collision meshes in this static preview.
         manager.scene.physicsWorld.speed = 0
+        manager.scene.rootNode.enumerateChildNodes { node, _ in node.physicsBody = nil }
+        var invisibleNodes: [SCNNode] = []
+        manager.scene.rootNode.enumerateChildNodes { node, _ in
+            if node.opacity == 0 { invisibleNodes.append(node) }
+        }
+        invisibleNodes.forEach { $0.removeFromParentNode() }
         SCNTransaction.commit()
         let renderer = SCNRenderer(device: nil, options: nil)
         renderer.scene = manager.scene
@@ -26,7 +33,11 @@ struct CapturePreview {
         SCNTransaction.flush()
         _ = renderer.prepare(manager.scene, shouldAbortBlock: nil)
         // This checks the rebuilt scene and initial pile layout, not real-time physics settling.
-        let output = renderer.snapshot(atTime: CACurrentMediaTime(), with: CGSize(width: 1400, height: 1000), antialiasingMode: .multisampling4X)
+        let size = CGSize(width: 1400, height: 1000)
+        let time = CACurrentMediaTime()
+        // Warm up offscreen Metal resources before capturing the final frame.
+        _ = renderer.snapshot(atTime: time, with: size, antialiasingMode: .multisampling4X)
+        let output = renderer.snapshot(atTime: time, with: size, antialiasingMode: .multisampling4X)
         guard let tiff = output.tiffRepresentation,
               let data = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { fatalError("Capture preview failed") }
         try data.write(to: URL(fileURLWithPath: CommandLine.arguments[2]))

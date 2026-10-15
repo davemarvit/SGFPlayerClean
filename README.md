@@ -199,6 +199,9 @@ count, size, spacing, resize, undo, and reset; the offscreen preview checks a 40
 python3 Tests/Preview/render_captures.py /private/tmp/sgfplayer-captures-preview.png
 ```
 
+The preview freezes the initial layout and omits invisible collision meshes. Interactive physics
+settling and camera movement remain part of the later app acceptance session.
+
 ## Build and automated validation
 
 Run from the repository root:
