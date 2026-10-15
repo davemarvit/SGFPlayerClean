@@ -399,6 +399,12 @@ struct GameClockView: View {
     
     static func formattedTime(_ sec: Double) -> String {
         guard sec.isFinite else { return "--:--" }
+        if sec < 60 {
+            // Round up at tenth-second precision so a positive remainder never
+            // displays zero. Normalize the minute boundary (never "0:60.0").
+            let tenths = Int(ceil(max(0, sec) * 10))
+            return String(format: "%d:%02d.%d", tenths / 600, (tenths / 10) % 60, tenths % 10)
+        }
         // OGS Clock.tsx uses ceil((milliseconds - 1) / 1000). Match its display
         // rounding, including the 1 ms boundary tolerance, without altering clock state.
         let rounded = ceil(max(0, sec - 0.001))

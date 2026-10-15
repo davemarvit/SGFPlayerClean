@@ -104,6 +104,13 @@ older expiration-based calculation, fixed reported latency, and decrementing tim
 it does not yet implement the web client's full timestamp/relative-latency calculation.
 Keep this package observation-only while those behaviors remain unverified.
 
+At Dave's request, clocks now show tenths below one minute in main time and each
+byo-yomi period, including the secondary period label (for example `0:43.4` and
+`+ 0:30.0 (5)`). At one minute or more, the existing minutes/seconds display remains.
+Fractional positive values round up to the displayed tenth, keeping a positive remainder
+from appearing as zero; the minute boundary is normalized. This is display precision,
+not a change to timekeeping or a claim of tenth-second synchronization with OGS.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
