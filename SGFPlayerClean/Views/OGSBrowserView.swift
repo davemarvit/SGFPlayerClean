@@ -336,10 +336,16 @@ struct OGSLoginView: View {
 /// Deliberately uses a game link/ID instead of the challenge-accepting lobby.
 struct OGSObservationBrowserView: View {
     @EnvironmentObject var app: AppModel
-    @Environment(\.dismiss) private var dismiss
     @State private var showLogin = false
     @State private var gameLink = ""
     @FocusState private var editingLink: Bool
+    // Only the presenting sheet supplies a close action. The sidebar must stay open.
+    var didObserve: () -> Void = {}
+
+    init(gameLink: String = "", didObserve: @escaping () -> Void = {}) {
+        _gameLink = State(initialValue: gameLink)
+        self.didObserve = didObserve
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -381,7 +387,7 @@ struct OGSObservationBrowserView: View {
         app.rightPanelTab = .online
         app.showRightPanel = true
         app.resumeOnlineGame(id: id)
-        dismiss()
+        didObserve()
     }
 }
 #endif

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import plistlib
 import subprocess
+import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[2]
@@ -23,6 +24,6 @@ binary.parent.mkdir(parents=True)
 profile = folder / 'offline.sb'
 profile.write_text((out / 'network-and-file-protection.sb').read_text() + '\n(deny network*)\n')
 subprocess.run(['swiftc', '-target', 'arm64-apple-macosx15.5', '-parse-as-library',
-                '-I', str(build / 'Products/Debug'), str(root / 'Tests/OGSReview/ReviewUI.swift'),
+                '-I', str(build / 'Products/Debug'), str(root / 'Tests/OGSReview' / (sys.argv[1] if len(sys.argv) > 1 else 'ReviewUI.swift')),
                 *map(str, objects), '-o', str(binary)], check=True)
 subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile), str(binary)], check=True, timeout=30)

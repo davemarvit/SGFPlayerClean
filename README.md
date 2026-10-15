@@ -79,6 +79,17 @@ Reports and launch instructions are in `../OGS Review`; the offline package rema
 unchanged. Live login, authentication compatibility, and incoming moves still require
 the user's first observation session; preparation is not evidence that OGS has worked.
 
+First live observation follow-up: Dave signed in, but clicking Observe hid the app window.
+The process remained alive and its local log showed accepted game data. The review browser
+had called SwiftUI's environment dismiss action from both its sidebar and sheet contexts;
+from the sidebar that could close the main window. It now uses an explicit completion
+callback supplied only by the sheet presenter. The default sidebar callback does nothing.
+`python3 Tests/OGSReview/check_review.py ObservationWindow.swift` presses the actual buttons
+in a SwiftUI WindowGroup under a network-deny sandbox, checking the main window survives
+both paths and only the sheet closes. Test-check failures exit normally rather than trapping
+and producing macOS crash dialogs. Rebuilt-app live observation still needs another user try;
+no additional OGS connection was initiated during this repair.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap
