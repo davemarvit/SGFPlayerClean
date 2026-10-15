@@ -57,11 +57,13 @@ struct BoardView2D: View {
                 }
                 
                 if let point = boardVM.koPoint {
-                    Text("Ko").font(.system(size: cellP * 0.32, weight: .bold))
-                        .foregroundStyle(.red)
+                    Circle().fill(RadialGradient(stops: [
+                        .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0.96), location: 0),
+                        .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0.9), location: 0.22),
+                        .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0.38), location: 0.58),
+                        .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0), location: 1)
+                    ], center: .center, startRadius: 0, endRadius: cellP * 0.35))
                         .frame(width: cellP * 0.7, height: cellP * 0.7)
-                        .background(.regularMaterial, in: Circle())
-                        .overlay(Circle().stroke(.red, lineWidth: 1.5))
                         .position(x: CGFloat(point.col) * cellP, y: CGFloat(point.row) * rowP)
                         .help("Ko: immediate recapture is not allowed")
                         .accessibilityLabel("Ko: immediate recapture is not allowed")

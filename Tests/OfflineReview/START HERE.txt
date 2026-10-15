@@ -12,7 +12,7 @@ The existing KataGo installation is used locally; give it a moment to load.
 A QUICK FIRST TEST
 1. The bundled ko example opens paused. Advance one move using the playback
    controls. Black captures one white stone: the capture count and lid should
-   both show one, and the empty B8 point should show Ko.
+   both show one, and the empty B8 point should have a soft red marker.
 2. Try to put White back at B8. The app should refuse immediate recapture.
 3. Step backward: that capture should disappear from the count and lid.
 4. Switch between 2D and 3D. Rotate the 3D board and watch the lid stone.

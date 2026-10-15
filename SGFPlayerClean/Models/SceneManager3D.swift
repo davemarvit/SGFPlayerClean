@@ -31,6 +31,20 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     private let stoneScaleY: CGFloat = 0.486
     private let capturedStoneRadius: CGFloat = 0.48
     private var previousLastMove: BoardPosition?
+    private lazy var koMarkerTexture: NSImage = {
+        let size: CGFloat = 128
+        return NSImage(size: NSSize(width: size, height: size), flipped: false) { _ in
+            guard let context = NSGraphicsContext.current?.cgContext else { return false }
+            let colors = [0.96, 0.9, 0.38, 0].map {
+                NSColor(srgbRed: 0.9, green: 0.08, blue: 0.06, alpha: $0).cgColor
+            }
+            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                            colors: colors as CFArray, locations: [0, 0.22, 0.58, 1]) else { return false }
+            context.drawRadialGradient(gradient, startCenter: CGPoint(x: size / 2, y: size / 2), startRadius: 0,
+                                       endCenter: CGPoint(x: size / 2, y: size / 2), endRadius: size / 2, options: [])
+            return true
+        }
+    }()
     private var effectiveCellWidth: CGFloat { CGFloat(18) / CGFloat(max(1, boardSize - 1)) }
     private var effectiveCellHeight: CGFloat { (CGFloat(18) / CGFloat(max(1, boardSize - 1))) * 1.0773 }
 
@@ -846,15 +860,18 @@ class SceneManager3D: NSObject, ObservableObject, SCNPhysicsContactDelegate {
     func updateKoMarker(at point: BoardPosition?) {
         worldAnchor.childNode(withName: "ko-marker", recursively: false)?.removeFromParentNode()
         guard let point else { return }
-        let text = SCNText(string: "Ko", extrusionDepth: 0)
-        text.font = NSFont.boldSystemFont(ofSize: effectiveCellWidth * 0.4)
-        text.firstMaterial?.diffuse.contents = NSColor.systemRed
-        text.firstMaterial?.lightingModel = .constant
-        let node = SCNNode(geometry: text)
+        let plane = SCNPlane(width: effectiveCellWidth * 0.7, height: effectiveCellWidth * 0.7)
+        let material = SCNMaterial()
+        material.diffuse.contents = koMarkerTexture
+        material.lightingModel = .constant
+        material.blendMode = .alpha
+        material.writesToDepthBuffer = false
+        material.isDoubleSided = true
+        plane.materials = [material]
+        let node = SCNNode(geometry: plane)
         node.name = "ko-marker"
         node.eulerAngles.x = -.pi / 2
-        let (minimum, maximum) = text.boundingBox
-        node.pivot = SCNMatrix4MakeTranslation((minimum.x + maximum.x) / 2, (minimum.y + maximum.y) / 2, 0)
+        node.castsShadow = false
         node.position = SCNVector3((CGFloat(point.col) - CGFloat(boardSize - 1) / 2) * effectiveCellWidth,
             boardThickness / 2 + 0.02, (CGFloat(point.row) - CGFloat(boardSize - 1) / 2) * effectiveCellHeight)
         worldAnchor.addChildNode(node)

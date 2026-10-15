@@ -75,7 +75,8 @@ final class CaptureLidTests: XCTestCase {
         let manager = SceneManager3D()
         manager.updateKoMarker(at: BoardPosition(1, 2))
         let marker = manager.scene.rootNode.childNode(withName: "ko-marker", recursively: true)
-        XCTAssertEqual((marker?.geometry as? SCNText)?.string as? String, "Ko")
+        XCTAssertNotNil(marker?.geometry as? SCNPlane)
+        XCTAssertNotNil(marker?.geometry?.firstMaterial?.diffuse.contents as? NSImage)
         manager.updateKoMarker(at: nil)
         XCTAssertNil(manager.scene.rootNode.childNode(withName: "ko-marker", recursively: true))
     }
