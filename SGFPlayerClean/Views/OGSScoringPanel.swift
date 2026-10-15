@@ -10,6 +10,7 @@ struct OGSScoringPanel: View {
     let acceptance: OGSScoreAcceptance
     let strictSeki: Bool
     let summary: OGSScoreSummary?
+    var scoringSettings = GameAnalysisSettings()
     var winnerDescription: String? = nil
     var serverTerritory = false
     let error: String?
@@ -84,16 +85,17 @@ struct OGSScoringPanel: View {
     }
 
     private func scoreGrid(_ score: OGSScoreSummary) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
+        let rows = ScoringRows(settings: scoringSettings)
+        return Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
             GridRow { Text(""); Text("Black").bold(); Text("White").bold() }
             row("Total", score.black.total, score.white.total).bold()
             Divider().gridCellColumns(3)
-            row("Territory", score.black.territory, score.white.territory)
-            row("Stones", score.black.stones, score.white.stones)
-            row("Prisoners", score.black.prisoners, score.white.prisoners)
+            if rows.territory { row("Territory", score.black.territory, score.white.territory) }
+            if rows.stones { row("Stones", score.black.stones, score.white.stones) }
+            if rows.prisoners { row("Prisoners", score.black.prisoners, score.white.prisoners) }
             row("Komi", score.black.komi, score.white.komi)
-            if score.black.handicap != nil || score.white.handicap != nil {
-                row("Handicap", score.black.handicap, score.white.handicap)
+            if rows.handicap && ((score.black.handicap ?? 0) != 0 || (score.white.handicap ?? 0) != 0) {
+                row("Handicap compensation", score.black.handicap, score.white.handicap)
             }
         }
         .font(.callout).monospacedDigit()
@@ -104,6 +106,28 @@ struct OGSScoringPanel: View {
             Text(title).foregroundStyle(.secondary)
             Text(black.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? "—")
             Text(white.map { $0.formatted(.number.precision(.fractionLength(0...2))) } ?? "—")
+        }
+    }
+}
+
+/// Presentation only: server totals remain authoritative. Unknown rules retain rows
+/// rather than assuming the analysis engine's default Chinese rules.
+private struct ScoringRows {
+    let territory, stones, prisoners, handicap: Bool
+
+    init(settings: GameAnalysisSettings) {
+        let rules = settings.rules == nil ? nil : (settings.kataRules ?? settings.rules?.lowercased())
+        let territoryRules = ["japanese", "korean"].contains(rules ?? "")
+        let areaRules = ["chinese", "chinese-ogs", "chinese-kgs", "aga", "bga",
+                         "aga-button", "new-zealand", "tromp-taylor", "ing"].contains(rules ?? "")
+        let stoneRules = rules == "stone-scoring"
+        territory = settings.ruleOverrides?.scoreTerritory ?? !stoneRules
+        stones = settings.ruleOverrides?.scoreStones ?? !territoryRules
+        prisoners = settings.ruleOverrides?.scorePrisoners ?? !(areaRules || stoneRules)
+        if let bonus = settings.whiteHandicapBonus {
+            handicap = bonus != "0"
+        } else {
+            handicap = !(territoryRules || ["new-zealand", "tromp-taylor", "stone-scoring"].contains(rules ?? ""))
         }
     }
 }

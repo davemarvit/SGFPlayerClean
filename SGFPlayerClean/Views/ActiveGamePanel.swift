@@ -291,6 +291,7 @@ struct ActiveGamePanel: View {
                     acceptance: app.ogsClient.scoreAcceptance,
                     strictSeki: app.ogsClient.strictSekiMode,
                     summary: app.ogsClient.scoreSummary,
+                    scoringSettings: app.player.analysisSettings,
                     winnerDescription: app.ogsClient.scoreSummary?.winnerDescription(blackName: app.ogsClient.blackPlayerName, whiteName: app.ogsClient.whitePlayerName),
                     serverTerritory: app.ogsClient.scoreSummary?.positions(width: app.player.board.size, height: app.player.board.size) != nil,
                     error: app.ogsClient.scoringError,

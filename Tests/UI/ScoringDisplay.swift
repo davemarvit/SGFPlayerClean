@@ -59,6 +59,47 @@ import Vision
             }
         }
         let longName = "Alexandra Montgomery"
+        // Exercise rendered rows at the actual sidebar width, including explicit
+        // server overrides and unknown rules. Inapplicable fields are deliberately
+        // nonzero to ensure visibility follows rules rather than numeric guesses.
+        let ruleScore = OGSScoreSummary.parse([
+            "black": ["total": 20, "territory": 10, "stones": 8, "prisoners": 2, "komi": 0, "handicap": 0],
+            "white": ["total": 26.5, "territory": 10, "stones": 8, "prisoners": 2, "komi": 6.5, "handicap": 3]
+        ])!
+        let ruleCases: [(GameAnalysisSettings, Bool, Bool, Bool, Bool)] = [
+            (.init(rules: "japanese"), true, false, true, false),
+            (.init(rules: "korean"), true, false, true, false),
+            (.init(rules: "chinese", online: true), true, true, false, true),
+            (.init(rules: "aga"), true, true, false, true),
+            (.init(rules: "nz"), true, true, false, false),
+            (.init(rules: "tromp-taylor"), true, true, false, false),
+            (.init(rules: "custom"), true, true, true, true),
+            (.init(), true, true, true, true),
+            (.init(rules: "japanese", whiteHandicapBonus: "N", ruleOverrides:
+                GoRuleOverrides(scoreTerritory: false, scoreStones: true, scorePrisoners: false)), false, true, false, true),
+            (.init(rules: "chinese", whiteHandicapBonus: "0"), true, true, false, false)
+        ]
+        for (index, entry) in ruleCases.enumerated() {
+            let (settings, territory, stones, prisoners, handicap) = entry
+            let panel = OGSScoringPanel(finished: true, connected: false, participant: false,
+                atLivePosition: true, canEdit: false, acceptance: .none, strictSeki: false,
+                summary: ruleScore, scoringSettings: settings, error: nil, accept: {}, resume: {})
+                .frame(width: 320).padding(16).background(Color(nsColor: .windowBackgroundColor))
+            let text = try recognize(render(panel, "rules-\(index)"))
+            check(text.contains("territory") == territory, "Territory row mismatch: \(settings)")
+            check(text.contains("stones") == stones, "Stones row mismatch: \(settings)")
+            check(text.contains("prisoners") == prisoners, "Prisoners row mismatch: \(settings)")
+            check(text.contains("handicapcompensation") == handicap, "Handicap row missing, clipped or inapplicable: \(settings): \(text)")
+            check(text.contains("26.5"), "Server total changed for \(settings)")
+        }
+        let noHandicapScore = OGSScoreSummary.parse([
+            "black": ["total": 20, "handicap": 0], "white": ["total": 26.5, "handicap": 0]
+        ])!
+        let noHandicapPanel = OGSScoringPanel(finished: true, connected: false, participant: false,
+            atLivePosition: true, canEdit: false, acceptance: .none, strictSeki: false,
+            summary: noHandicapScore, scoringSettings: .init(rules: "chinese"), error: nil, accept: {}, resume: {})
+            .frame(width: 320).padding(16).background(Color(nsColor: .windowBackgroundColor))
+        check(try !recognize(render(noHandicapPanel, "no-handicap")).contains("handicap"), "Zero handicap row should be hidden")
         let score = OfflineScoringExample.whiteWin.summary!
         let longPanel = OGSScoringPanel(finished: true, connected: false, participant: false,
             atLivePosition: false, canEdit: false, acceptance: .none, strictSeki: false,
@@ -92,6 +133,6 @@ import Vision
             for failure in failures { fputs("FAIL: \(failure)\n", stderr) }
             exit(1)
         }
-        print("PASS: Scoring pixels show both winners, singular/plural points, draw, missing-score explanation, fractional totals, long names, and earlier-position notice. Images: \(output.path)")
+        print("PASS: Scoring pixels show rule-specific rows, server overrides, unknown-rule fallback, hidden zero handicap, full compensation label, unchanged totals, both winners, singular/plural points, draw, missing-score explanation, fractional totals, long names, and earlier-position notice. Images: \(output.path)")
     }
 }

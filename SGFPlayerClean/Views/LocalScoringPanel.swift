@@ -52,7 +52,9 @@ struct LocalScoringPanel: View {
                     }
                     if let issue = session.issue { Text(issue).font(.caption).foregroundStyle(.orange) }
                     if let score = session.result {
-                        Text(session.rule.territoryScoring ? "Territory + prisoners + komi" : "Living stones + territory + komi + handicap compensation")
+                        let hasHandicapCompensation = score.black.handicap != 0 || score.white.handicap != 0
+                        Text((session.rule.territoryScoring ? "Territory + prisoners + komi" : "Living stones + territory + komi")
+                             + (hasHandicapCompensation ? " + handicap compensation" : ""))
                             .font(.caption).foregroundStyle(.secondary)
                         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
                             GridRow { Text(""); Text("Black").bold(); Text("White").bold() }
@@ -65,8 +67,8 @@ struct LocalScoringPanel: View {
                                 row("Living stones", Double(score.black.livingStones), Double(score.white.livingStones))
                             }
                             row("Komi", score.black.komi, score.white.komi)
-                            if session.handicap > 1 || score.white.handicap != 0 {
-                                row("Handicap", score.black.handicap, score.white.handicap)
+                            if hasHandicapCompensation {
+                                row("Handicap compensation", score.black.handicap, score.white.handicap)
                             }
                         }.font(.callout).monospacedDigit()
                     }

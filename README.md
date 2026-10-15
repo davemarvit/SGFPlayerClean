@@ -6,6 +6,10 @@ The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
 ## Current review — October 15, 2026
 
+Scoring tables now hide components that do not apply to the game's rules,
+respecting explicit OGS scoring overrides. Handicap adjustments are labeled
+“Handicap compensation” and omitted when zero. Server totals are unchanged.
+
 The Play Online lobby now processes challenge deletions and starts consistently,
 removes confirmed accepted challenges immediately, and requests a fresh subscription
 when reopened. Challenge IDs are kept separate from game IDs; late deleted rows
