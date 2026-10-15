@@ -18,6 +18,7 @@ struct CapturePreview {
         manager.updateCapturedStones(black: 40, white: 3)
         manager.updateBoardSize(9)
         manager.updateCapturedStones(black: 40, white: 3)
+        manager.scene.physicsWorld.speed = 0
         SCNTransaction.commit()
         let renderer = SCNRenderer(device: nil, options: nil)
         renderer.scene = manager.scene
