@@ -1,9 +1,15 @@
 SGF PLAYER — OFFLINE REVIEW
 
 TO LAUNCH
-Double-click "SGF Player Offline Review.app" in this folder.
+In Finder, press Command-Shift-G, enter ~/Applications, and press Return.
+Double-click "SGF Player Offline Review.app" there.
 You do not need Xcode or Terminal. Look for the orange OFFLINE REVIEW banner.
 Your working SGFPlayerClean app remains separate.
+
+The app now lives outside Documents so loading its bundled examples and engine
+resources does not require Documents access. Use this Applications copy rather
+than any older copy in the review folder. Opening your own protected folders
+may still require permission. Reports and exported Sample Games remain here.
 
 This app has fresh, separate settings and AI caches. OGS connections are
 blocked by macOS, and there is no Online tab. Wi-Fi can stay on.

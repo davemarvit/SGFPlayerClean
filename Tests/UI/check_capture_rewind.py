@@ -19,7 +19,7 @@ folder = Path(tempfile.mkdtemp(prefix='sgf-ui-rewind-'))
 app = folder / 'Probe.app'
 binary = app / 'Contents/MacOS/Probe'
 binary.parent.mkdir(parents=True)
-(app / 'Contents/Resources').symlink_to(out / 'SGF Player Offline Review.app/Contents/Resources')
+(app / 'Contents/Resources').symlink_to(Path(info['app']) / 'Contents/Resources')
 (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
     'CFBundleIdentifier': 'com.davemarvit.SGFPlayerClean.offline-ui-probe',
     'CFBundleExecutable': 'Probe', 'CFBundlePackageType': 'APPL'}))

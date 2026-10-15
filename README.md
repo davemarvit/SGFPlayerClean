@@ -44,6 +44,16 @@ an external-game app-model check verified the reported 92–93 transition and di
 The shared 2D/3D playback back/forward buttons now honor Shift-click for ten moves,
 matching the existing keyboard shortcuts; an ordinary click still advances one move.
 
+The offline package now installs to `~/Applications/SGF Player Offline Review.app`,
+outside the privacy-protected Documents folder. Bundled examples and engine resources
+therefore no longer require Documents access at startup. Local ad-hoc signing changes
+the designated code requirement on rebuild, so earlier privacy consent may not carry
+over; the packaging fix avoids this unnecessary access without changing TCC permissions.
+User-selected protected libraries can still require permission. Reports and exported
+samples remain in `../Offline Review`; test harnesses use its `build-info.json` app path.
+Use the Applications copy instead of any older Documents copy. The existing signed app
+can be copied there without rebuilding or resetting its separate review settings.
+
 Changes included in both builds:
 
 - OGS connection lifecycle, authentication, stale-event protection, move/undo/handicap

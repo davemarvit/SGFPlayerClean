@@ -17,6 +17,9 @@ OUTPUT = ROOT.parent / 'Offline Review'
 NAME = 'SGF Player Offline Review'
 IDENTIFIER = 'com.davemarvit.SGFPlayerClean.offline-review'
 HOME_DIRECTORY = Path.home()
+# Bundled examples and engine resources must not live in a TCC-protected folder.
+# Reports and exported samples can remain beside the checkout.
+INSTALL_DIRECTORY = HOME_DIRECTORY / 'Applications'
 
 
 def run(args, **kwargs):
@@ -81,12 +84,11 @@ def main():
         plistlib.dump(info, file)
     run(['codesign', '--force', '--sign', '-', built])
     run(['codesign', '--verify', '--deep', '--strict', built])
-    target = OUTPUT / f'{NAME}.app'
+    INSTALL_DIRECTORY.mkdir(exist_ok=True)
+    target = INSTALL_DIRECTORY / f'{NAME}.app'
     if target.exists():
         # Preserve a previous review package rather than replacing anything running in place.
-        previous = OUTPUT / f'{NAME}.previous.app'
-        if previous.exists():
-            raise SystemExit(f'Previous review already exists: {previous}; move it before rebuilding.')
+        previous = work / 'previous-review.app'
         target.rename(previous)
     shutil.copytree(built, target, symlinks=True)
     samples = OUTPUT / 'Sample Games'

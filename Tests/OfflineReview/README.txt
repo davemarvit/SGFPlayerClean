@@ -3,8 +3,15 @@ OFFLINE REVIEW PACKAGING
 Build on this Mac with:
     python3 Tests/OfflineReview/build_review.py
 
-Output: ../Offline Review/SGF Player Offline Review.app
+App: ~/Applications/SGF Player Offline Review.app
+Reports and exported samples: ../Offline Review/
 Double-click the app in Finder. No Xcode or Terminal is needed to use it.
+The install location keeps bundled resources outside macOS's protected Documents
+folder. Local ad-hoc signatures change identity on rebuild, so an earlier file
+permission may not carry across builds. This avoids routine protected-folder
+access instead of changing macOS privacy permissions. Explicitly opening a
+protected library can still require consent. Rebuilds preserve the previous
+review bundle in the new temporary build directory as previous-review.app.
 
 This is a local review package, not a release build. SGF_OFFLINE_REVIEW is set
 only by the packaging command; the normal Xcode target keeps its behavior.
