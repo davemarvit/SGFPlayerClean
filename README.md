@@ -10,7 +10,8 @@ The reviewed changes are promoted to the regular `SGFPlayerClean.app`, installed
 `~/Applications`, with the original `com.davemarvit.SGFPlayerClean` identity and existing
 preferences. Login persistence and direct SGF opening now use the same paths as the
 tested review app. Main and review logins remain separate; sign in once in the main app
-if needed. The OGS and offline review apps remain available as separate installations.
+if needed. The retired OGS and offline review apps are archived in the local backup;
+the regular app is now the only active installation.
 
 The normal optimized Release build passed 227 unit tests and seven network-denied
 runtime/UI suites covering private persistent login, restart/tab restoration,
