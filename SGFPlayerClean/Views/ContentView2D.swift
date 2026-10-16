@@ -106,7 +106,7 @@ struct PlaybackControlsView: View {
                 .background(.black.opacity(0.65), in: Capsule())
                 .accessibilityIdentifier("go-rule-status")
         HStack(spacing: 12) {
-            if !boardVM.isOnlineContext {
+            if app.mode == .localPlay && !boardVM.isOnlineContext {
                 Button("Pass") { boardVM.passLocally() }
                     .buttonStyle(.plain)
                     .disabled(boardVM.localPassUnavailableReason != nil)

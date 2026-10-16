@@ -135,7 +135,7 @@ private final class TreeHTTP: URLProtocol {
                            y: 320 - ys.reduce(0,+) / CGFloat(ys.count) * 320 / CGFloat(bitmap.pixelsHigh))
         }
         guard let selectedCenter = selectionCenter() else { require(false, "Selected node ring visible"); return }
-        let originalCenter = CGPoint(x: selectedCenter.x - 38, y: selectedCenter.y)
+        let originalCenter = CGPoint(x: selectedCenter.x - 22, y: selectedCenter.y)
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
             let event = NSEvent.mouseEvent(with: type, location: originalCenter, modifierFlags: [], timestamp: 0,
                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!

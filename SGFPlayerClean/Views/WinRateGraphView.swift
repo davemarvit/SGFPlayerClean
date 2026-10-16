@@ -65,10 +65,10 @@ struct WinRateGraphView: View {
                 } else {
                     Chart {
                         ForEach(Array(aiEngine.currentAnalysisData.keys.sorted()), id: \.self) { turn in
-                            if let data = aiEngine.currentAnalysisData[turn], let root = data.rootInfo {
-                                let playerToMove = vm.engine.playerToMove(at: turn)
-                                let blackWinrate = playerToMove == .black ? root.winrate : (1.0 - root.winrate)
-                                let blackScoreLead = playerToMove == .black ? root.scoreLead : -root.scoreLead
+                            if let root = aiEngine.currentAnalysisData[turn]?.rootInfo,
+                               let summary = AIPositionSummary(root: root, playerToMove: vm.engine.playerToMove(at: turn)) {
+                                let blackWinrate = summary.blackWinrate
+                                let blackScoreLead = summary.blackScoreLead
                                 
                                 // Map Score Lead tightly to the 0...100 graph layout
                                 // Assume 1 point = 1% threshold, centering at 50%
@@ -101,39 +101,63 @@ struct WinRateGraphView: View {
                                     .symbolSize(40)
                                 }
                                 
-                                if turn == vm.currentMoveIndex {
-                                    RuleMark(x: .value("Current", turn))
-                                        .foregroundStyle(.red)
-                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
-                                }
                             }
                         }
                         
+                        RuleMark(x: .value("Current", vm.currentMoveIndex))
+                            .foregroundStyle(.red)
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
                         RuleMark(y: .value("Center", 50))
                             .foregroundStyle(.gray.opacity(0.3))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
                     }
-                    .chartYScale(domain: 0...102)
+                    .chartYScale(domain: 0...100)
                     .chartXScale(domain: 0...max(1, vm.totalMoves))
                     .chartXAxis {
                         AxisMarks(values: .automatic(desiredCount: 5))
                     }
-                    .padding(.top, 15)
-                    .frame(height: 120) // Give dual lines more vertical room
-                    .padding(.horizontal)
+                    .chartPlotStyle { plot in
+                        plot.background(LinearGradient(colors: [
+                            .black.opacity(0.65), .gray.opacity(0.35), .white.opacity(0.6)
+                        ], startPoint: .top, endPoint: .bottom))
+                    }
                     // Clicking on the graph to jump to a turn
                     .chartOverlay { proxy in
                         GeometryReader { geometry in
+                            let origin = geometry[proxy.plotAreaFrame]
+                            let summary = aiEngine.currentAnalysisData[vm.currentMoveIndex]?.rootInfo.flatMap {
+                                AIPositionSummary(root: $0, playerToMove: vm.engine.playerToMove(at: vm.currentMoveIndex))
+                            }
+                            let labelWidth = min(CGFloat(190), origin.width)
+                            let markerX = origin.minX + (proxy.position(forX: vm.currentMoveIndex) ?? 0)
+                            let labelX = max(origin.minX + labelWidth / 2, min(origin.maxX - labelWidth / 2, markerX))
+                            Text(summary?.label ?? "Move \(vm.currentMoveIndex) · Pending")
+                                .font(.caption2.monospacedDigit()).foregroundStyle(.white)
+                                .frame(width: labelWidth, height: 22)
+                                .background(.black.opacity(0.8), in: Capsule())
+                                .position(x: labelX, y: origin.minY - 15)
+                                .accessibilityLabel(summary?.accessibilityDescription ?? "Analysis pending for move \(vm.currentMoveIndex)")
+                                .accessibilityIdentifier("ai-position-readout")
+                                .allowsHitTesting(false)
                             Rectangle().fill(.clear).contentShape(Rectangle())
                                 .onTapGesture { location in
                                     let origin = geometry[proxy.plotAreaFrame]
                                     let x = location.x - origin.minX
-                                    if let turn: Int = proxy.value(atX: x) {
-                                        vm.seekToMove(turn)
+                                    if origin.contains(location), let turn: Int = proxy.value(atX: x) {
+                                        vm.seekToMove(max(0, min(vm.totalMoves, turn)))
                                     }
                                 }
                         }
                     }
+                    .padding(.top, 30)
+                    .frame(height: 155)
+                    .padding(.horizontal, 12)
+                    HStack(spacing: 10) {
+                        Text("Win %").foregroundStyle(.blue)
+                        Text("Points · dashed").foregroundStyle(.green)
+                        Spacer(minLength: 0)
+                    }
+                    .font(.caption2).padding(.horizontal, 12).padding(.bottom, 5)
                 }
                 
                 // Show Progress Bar if analyzing
