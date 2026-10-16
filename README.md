@@ -4,6 +4,20 @@ Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
+## Current working copy
+
+Keep `/Users/Dave/SGFPlayerClean` as the single active source checkout, on `main`.
+Run the installed application at `/Users/Dave/Applications/SGFPlayerClean.app`.
+The native Quiet Go screensaver is built and bundled with this app; it no longer
+needs a separate prototype checkout. See `Screensaver/README.md` for its settings.
+
+The obsolete SGFPlayer project, phase-1.3 backup, screensaver prototype and review
+checkout were retired during the October 16 cleanup. Verified source archives and
+a Git bundle preserving all local branches are under
+`~/Documents/SGF PLayer/Source Archives`. Previous application/rollback backups stay
+under `~/Documents/SGF PLayer/Main App Update`. None of those archives is required
+to build or run the current app. See `Documentation/Source-cleanup-2026-10-16.md`.
+
 ## Main app update — October 15, 2026
 
 The reviewed changes are promoted to the regular `SGFPlayerClean.app`, installed in

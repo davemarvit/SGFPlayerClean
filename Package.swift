@@ -9,7 +9,6 @@ let package = Package(
                 exclude: [
                     "Assets",
                     "Current documentation",
-                    "HIDDEN_OLD",
                     "Models/AppModel.swift",
                     "Models/DiagnosticTests.swift",
                     "Models/GameSettings.swift",
