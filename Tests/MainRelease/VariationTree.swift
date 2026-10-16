@@ -152,6 +152,20 @@ private final class TreeHTTP: URLProtocol {
         app.selectGame(SGFGameWrapper(url: temp.appendingPathComponent("long.sgf"), game: SGFGame.from(tree: try SGFParser.parse(text: longText))))
         settle(); vm.selectReviewNode(200); settle(0.4)
         require(selectionCenter() != nil, "Distant selected node automatically scrolls into view")
+        let branchedText = "(;SZ[9]" + String(repeating: "(;B[]", count: 200)
+            + String(repeating: ")(;W[])", count: 200) + ")"
+        app.selectGame(SGFGameWrapper(url: temp.appendingPathComponent("compact.sgf"),
+            game: SGFGame.from(tree: try SGFParser.parse(text: branchedText))))
+        settle()
+        let compact = vm.reviewTree!
+        require(compact.columnCount == 2, "Two hundred short branches fit in two columns")
+        let fork = compact.nodes.first { $0.depth == 30 && $0.children.count > 1 }!
+        vm.selectReviewNode(fork.children[1]); settle(0.4)
+        require(selectionCenter() != nil, "Early variation remains visible in narrow panel")
+        try FileManager.default.copyItem(atPath: "/private/tmp/sgf-tree-interaction.png",
+            toPath: temp.appendingPathComponent("compact.png").path)
+        try Data(contentsOf: temp.appendingPathComponent("compact.png"))
+            .write(to: URL(fileURLWithPath: "/private/tmp/sgf-tree-compact.png"))
         app.mode = .playOnline; settle()
         let index = vm.engine.currentIndex
         vm.selectReviewNode(1); vm.addReviewMove(at: BoardPosition(5,5))

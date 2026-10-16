@@ -146,6 +146,44 @@ final class ReviewTreeTests: XCTestCase {
         XCTAssertEqual(SGFGame.from(tree: reopened.source).moves.count, 2)
     }
 
+    func testShortVariationsReuseColumnsThroughoutLongGame() throws {
+        // Every main-line move has a short alternative: the old leaf-count
+        // layout grew to 201 columns, pushing the earliest branches farthest out.
+        let text = "(;SZ[19]" + String(repeating: "(;B[]", count: 200)
+            + String(repeating: ")(;W[])", count: 200) + ")"
+        let tree = try document(text)
+        XCTAssertEqual(tree.columnCount, 2)
+        XCTAssertTrue(tree.activePath.allSatisfy { tree.columns[$0] == 0 })
+        for node in tree.nodes where node.children.count > 1 {
+            XCTAssertEqual(tree.columns[node.children[1]], 1)
+        }
+        XCTAssertEqual(SGFWriter.serialize(tree.source), SGFWriter.serialize(try SGFParser.parse(text: text)))
+    }
+
+    func testOverlappingNestedVariationsStaySeparateAndStraight() throws {
+        let tree = try document("(;SZ[9];B[](;W[](;B[](;W[];B[])(;W[];B[]))"
+            + "(;B[];W[];B[])) (;W[](;B[];W[];B[])(;B[];W[])))")
+        XCTAssertEqual(tree.columnCount, 5, "Simultaneous continuations require distinct lanes")
+        for row in tree.rows {
+            XCTAssertEqual(Set(row.map { tree.columns[$0] }).count, row.count)
+        }
+        for node in tree.nodes {
+            if let first = node.children.first { XCTAssertEqual(tree.columns[first], tree.columns[node.id]) }
+            for child in node.children.dropFirst() {
+                XCTAssertGreaterThan(tree.columns[child], tree.columns[node.id])
+            }
+        }
+        // Within each row's top half, connecting edges must keep their left-to-
+        // right order (shared parents are the only allowed common endpoints).
+        for row in tree.rows.dropFirst() {
+            let children = row.sorted { tree.columns[$0] < tree.columns[$1] }
+            let parents = children.compactMap { tree.nodes[$0].parent.map { tree.columns[$0] } }
+            XCTAssertEqual(parents, parents.sorted(), "Connecting lines must not cross")
+        }
+        let reopened = try document(SGFWriter.serialize(tree.source))
+        XCTAssertEqual(reopened.columns, tree.columns)
+    }
+
     func testDeepTreeIsIterativeAndCompact() throws {
         let tree = try document(String(repeating: "(;C[node]", count: 10_000) + String(repeating: ")", count: 10_000))
         XCTAssertEqual(tree.nodes.count, 10_000)

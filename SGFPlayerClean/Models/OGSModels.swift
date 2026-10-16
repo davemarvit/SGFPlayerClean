@@ -947,18 +947,34 @@ struct ReviewTree {
             for child in tree.branches[branch].children.reversed() { stack.append((child, previous)) }
         }
         nodes = built
-        var widths = Array(repeating: 1, count: built.count)
-        for node in built.reversed() where !node.children.isEmpty {
-            widths[node.id] = node.children.reduce(0) { $0 + widths[$1] }
-        }
         var lanes = Array(repeating: 0, count: built.count)
         var grouped = Array(repeating: [Int](), count: (built.map(\.depth).max() ?? 0) + 1)
-        for node in built {
-            grouped[node.depth].append(node.id)
-            var column = lanes[node.id]
-            for child in node.children { lanes[child] = column; column += widths[child] }
+        for node in built { grouped[node.depth].append(node.id) }
+
+        // Pack each uninterrupted first-child continuation against the occupied
+        // rows, not the total number of leaves in its sibling's entire subtree.
+        // This keeps continuations straight and lets short variations at different
+        // depths reuse columns. Iterative traversal visits each node twice overall.
+        var rightmost = Array(repeating: -1, count: grouped.count)
+        var pending = built.isEmpty ? [] : [0]
+        while let start = pending.popLast() {
+            var path: [Int] = []
+            var next: Int? = start
+            var column = built[start].parent.map { lanes[$0] + 1 } ?? 0
+            while let id = next {
+                path.append(id)
+                column = max(column, rightmost[built[id].depth] + 1)
+                next = built[id].children.first
+            }
+            for id in path {
+                lanes[id] = column
+                rightmost[built[id].depth] = column
+                for child in built[id].children.dropFirst().reversed() {
+                    pending.append(child)
+                }
+            }
         }
-        columns = lanes; rows = grouped; columnCount = widths.first ?? 1
+        columns = lanes; rows = grouped; columnCount = (lanes.max() ?? 0) + 1
     }
 
     var activePath: [Int] {
