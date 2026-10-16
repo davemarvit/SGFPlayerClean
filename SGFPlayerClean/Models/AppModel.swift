@@ -133,6 +133,7 @@ final class AppModel: ObservableObject {
             // Must capture weakly and dynamically evaluate
             return self?.isAIAvailable == true
         })
+        bVM.canNavigateReview = { [weak self] in self?.mode == .review }
         bVM.canPreviewAnalysis = { [weak self] in self?.mode == .review && self?.isAIAvailable == true }
         bVM.canEditLocally = { [weak self] in self?.mode == .localPlay }
         self.boardVM = bVM
@@ -297,8 +298,10 @@ final class AppModel: ObservableObject {
             player.restoreSnapshot(saved.snapshot)
             _ = KataGoEngine.shared.loadAnalysisCache(for: saved.analysisID, game: player)
             if let state = saved.viewState { boardVM?.restoreLocalViewState(state) }
+            if mode == .review { boardVM?.prepareReviewTreeFromCurrentPosition(info: selection?.game.info) }
             boardVM?.syncState()
         } else if mode == .localPlay { startInstantGame() }
+        else if mode == .review { boardVM?.prepareReviewTreeFromCurrentPosition() }
     }
 
     var hasLocalGameToReplace: Bool {
@@ -312,10 +315,26 @@ final class AppModel: ObservableObject {
         boardVM?.syncState()
     }
 
+    var showsAnalysisWorkspace: Bool { isAIAvailable || (mode == .review && boardVM?.reviewTree != nil) }
+
+    func saveReviewSGF() {
+        guard mode == .review, let vm = boardVM, let data = vm.reviewSGFData() else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
+        panel.title = "Save game with variations"
+        let name = (vm.reviewTree?.filename as NSString?)?.deletingPathExtension ?? "Game"
+        panel.nameFieldStringValue = name + "-review.sgf"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do { try data.write(to: url, options: .atomic) }
+            catch { vm.reviewTreeError = "Could not save the SGF: " + error.localizedDescription }
+        }
+    }
+
     func copyCurrentBoard(to destination: AppMode) {
         guard !destination.usesOGS, destination != mode else { return }
         savedBoards[destination] = SavedBoard(snapshot: player.createSnapshot(), selection: selection,
-                                              analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState())
+                                              analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState(includeTree: false))
         mode = destination
     }
 

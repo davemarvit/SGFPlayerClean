@@ -44,7 +44,7 @@ struct ContentView2D: View {
                                      .padding(.top, margin / 2 - L.lidD * (79.0 / 1024.0))
                              }
                              
-                             if !app.isAIAvailable, let game = app.selection, let bvm = app.boardVM {
+                             if !app.showsAnalysisWorkspace, let game = app.selection, let bvm = app.boardVM {
                                  HStack(alignment: .center, spacing: 12) {
                                      LocalGameMetadataView(game: game, boardVM: bvm, isOverlay: true)
                                          .scaleEffect(0.9)
