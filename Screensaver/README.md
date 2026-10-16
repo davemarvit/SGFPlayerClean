@@ -33,8 +33,9 @@ copy failures leave the previous configuration/library intact. Import excludes
 its own playback cache to prevent recursive copying. The current screensaver
 notices enablement/folder-generation changes within approximately one second.
 
-The screensaver resolves the real user's home rather than the system host's
-container home. On the inspected macOS 15.7.3 host, legacyScreenSaver has a read-only
+The screensaver resolves the real user's home through the POSIX account database
+(`getpwuid_r`); even `NSHomeDirectoryForUser` redirects into the system host's
+container. On the tested macOS 15.7.3 host, legacyScreenSaver has a read-only
 filesystem exception for `/`; it can read this ordinary Application Support
 library. The saver never opens the original source folder or reuses another app's
 app-scoped bookmark. Only the main app retains the source bookmark for refresh.
@@ -77,6 +78,8 @@ Diagnostics: Console filter `subsystem:com.davemarvit.SGFPlayer.QuietSaver`.
 Native activation logs come from Apple's legacyScreenSaver process; preview-host
 logs come from SaverPreview. Native selection is done in System Settings: the old
 ScreenSaverEngine `-module` argument does not select a module on this Mac.
+The installed bundle was also tested in Apple's actual host: three display views
+each found all 692 prepared games, advanced through moves and stopped normally.
 
 References:
 - https://developer.apple.com/documentation/screensaver/screensaverview

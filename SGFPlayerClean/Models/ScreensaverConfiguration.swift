@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 struct ScreensaverConfiguration: Codable, Equatable {
     var version = 1
@@ -10,11 +11,20 @@ struct ScreensaverConfiguration: Codable, Equatable {
     var skippedCount: Int
     var refreshedAt: Date
 
-    // FileManager.homeDirectoryForCurrentUser points inside the container when
-    // Apple's legacy screensaver host loads us. Its read-only filesystem
-    // entitlement permits this separate, non-sensitive playback library.
+    // Foundation's home-directory APIs redirect to Apple's host container,
+    // including NSHomeDirectoryForUser. Resolve the account's actual home from
+    // the user database instead. The host permits reading this playback cache.
     static var root: URL {
-        let home = NSHomeDirectoryForUser(NSUserName()) ?? NSHomeDirectory()
+        var entry = passwd()
+        var result: UnsafeMutablePointer<passwd>?
+        var buffer = [CChar](repeating: 0, count: max(16_384, Int(sysconf(_SC_GETPW_R_SIZE_MAX))))
+        let home = buffer.withUnsafeMutableBufferPointer { storage -> String in
+            if getpwuid_r(getuid(), &entry, storage.baseAddress, storage.count, &result) == 0,
+               result != nil, let directory = entry.pw_dir {
+                return String(cString: directory)
+            }
+            return NSHomeDirectory()
+        }
         return URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/SGFPlayerScreensaver", isDirectory: true)
     }
     func libraryURL(root: URL = Self.root) -> URL? {

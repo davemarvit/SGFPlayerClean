@@ -9,6 +9,7 @@ final class QuietGoSaverView: ScreenSaverView {
     private var generation: String?
     private var playbackEnabled = false
     private var lastConfigCheck: TimeInterval = 0
+    private var configurationErrorReported = false
     private var configurationMessage = "Choose a games folder in SGF Player’s Screensaver settings."
     private var wood: NSImage?
     private var tatami: NSImage?
@@ -42,6 +43,7 @@ final class QuietGoSaverView: ScreenSaverView {
     override var isOpaque: Bool { true }
     override func startAnimation() {
         super.startAnimation()
+        SaverPlaylist.log.notice("Native animation started")
         refreshConfiguration(force: true)
         if playbackEnabled { playlist?.start(at: CACurrentMediaTime()) }
         needsDisplay = true
@@ -57,6 +59,7 @@ final class QuietGoSaverView: ScreenSaverView {
         lastConfigCheck = now
         do {
             let config = try ScreensaverConfiguration.load(root: configurationRoot)
+            configurationErrorReported = false
             let changed = generation != config.generation
             if changed {
                 playlist?.stop()
@@ -71,6 +74,11 @@ final class QuietGoSaverView: ScreenSaverView {
             }
             configurationMessage = "Quiet Go playback is off. Enable it in SGF Player’s Screensaver settings."
         } catch {
+            if !configurationErrorReported {
+                let failure = error as NSError
+                SaverPlaylist.log.error("Cannot read playback configuration: \(failure.domain, privacy: .public) \(failure.code, privacy: .public); root=\(self.configurationRoot.path, privacy: .private)")
+                configurationErrorReported = true
+            }
             playlist?.stop(); playbackEnabled = false
             configurationMessage = "Choose a games folder in SGF Player’s Screensaver settings."
             needsDisplay = true
