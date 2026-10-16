@@ -152,13 +152,6 @@ struct RightPanelView: View {
                         ForEach(app.sortedGames) { wrapper in
                             Button(action: {
                                 app.selectGame(wrapper)
-                                #if !SGF_OFFLINE_REVIEW
-                                // Delayed Auto-Play
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    guard app.mode == .review, app.selection?.id == wrapper.id else { return }
-                                    app.boardVM?.startAutoPlay()
-                                }
-                                #endif
                             }) {
                                 GameListRow(wrapper: wrapper, isSelected: app.selection?.id == wrapper.id)
                             }

@@ -220,10 +220,6 @@ final class AppModel: ObservableObject {
             self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
         }
         
-        #if !SGF_OFFLINE_REVIEW
-        setupAutoAdvance()
-        #endif
-        
         ogsClient.observationOnly = mode != .playOnline
         // Master mute/volume applies to every stone player, including active clips.
         let settings = AppSettings.shared
@@ -429,49 +425,6 @@ final class AppModel: ObservableObject {
             }
         }
     }
-    private func setupAutoAdvance() {
-        player.$isPlaying
-            .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] isPlaying in
-                if !isPlaying { self?.handlePlaybackStopped() }
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func handlePlaybackStopped() {
-        guard boardVM?.localScoringVisible != true, boardVM?.isScrubbing != true else { return }
-        guard player.currentIndex == player.maxIndex, player.maxIndex > 0 else { return }
-        
-        print("🏁 Game Finished. Auto-advancing in 3s...")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            self?.tryAutoAdvance()
-        }
-    }
-    
-    private func tryAutoAdvance() {
-        guard boardVM?.localScoringVisible != true, boardVM?.isScrubbing != true else { return }
-        // Re-check state to ensure user didn't start scrubbing or playing again
-        // FIX: Do not auto-advance if we are in Online Mode (Chat/Spectating) or AI Analysis mode
-        guard !isOnlineMode, !aiAnalysisEnabled && mode == .review, !player.isPlaying, player.currentIndex == player.maxIndex else { return }
-        playNextGame()
-    }
-    
-    func playNextGame() {
-        guard let current = selection, let idx = games.firstIndex(where: { $0.id == current.id }) else { return }
-        let nextIdx = (idx + 1) % games.count
-        let nextGame = games[nextIdx]
-        
-        print("⏭️ Auto-Advancing to: \(nextGame.url.lastPathComponent)")
-        selectGame(nextGame)
-        
-        // Short delay to ensure load completes before playing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self, self.mode == .review, self.selection?.id == nextGame.id else { return }
-            self.boardVM?.startAutoPlay()
-        }
-    }
-    
     private func robustInt(_ value: Any?) -> Int? {
         if let i = value as? Int { return i }
         if let s = value as? String { return Int(s) }
@@ -787,20 +740,11 @@ final class AppModel: ObservableObject {
                             
                             if autoSelect && !hasAutoSelected && !self.mode.usesOGS {
                                 hasAutoSelected = true
-                                var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                                 if let lastURL = AppSettings.shared.lastPlayedGameURL,
                                    let restored = batch.first(where: { $0.url == lastURL }) {
                                     self.selectGame(restored)
                                 } else if let first = batch.first {
                                     self.selectGame(first)
-                                } else {
-                                    checkAutoPlay = false
-                                }
-                                if checkAutoPlay && self.selection != nil { 
-                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            guard self.mode == .review else { return }
-                            self.boardVM?.startAutoPlay()
-                         }
                                 }
                             }
                         }
@@ -819,20 +763,11 @@ final class AppModel: ObservableObject {
                 self.games = loaded
                 
                 if autoSelect && !hasAutoSelected && !self.mode.usesOGS {
-                    var checkAutoPlay = AppSettings.shared.startGameOnLaunch
                     if let lastURL = AppSettings.shared.lastPlayedGameURL,
                        let restored = loaded.first(where: { $0.url == lastURL }) {
                         self.selectGame(restored)
                     } else if let first = loaded.first {
                         self.selectGame(first)
-                    } else {
-                        checkAutoPlay = false
-                    }
-                    if checkAutoPlay && self.selection != nil { 
-                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            guard self.mode == .review else { return }
-                            self.boardVM?.startAutoPlay()
-                         }
                     }
                 }
                 

@@ -8,7 +8,8 @@ struct KeyboardShortcutsModifier: ViewModifier {
     func body(content: Content) -> some View {
         // FIX: Use default phase (.up) so TextFields (Leaf nodes) consume keys first.
         // Using .down (tunneling) was hijacking inputs before the UI could see them.
-        content.focusable().onKeyPress { press in
+        // Keep keyboard focus without outlining the entire board and tatami.
+        content.focusable().focusEffectDisabled().onKeyPress { press in
             // CRITICAL: If user is typing in chat, IGNORE all shortcuts.
             guard !appModel.isTypingInChat else { return .ignored }
             // Native text fields use an NSTextView field editor. This also covers
