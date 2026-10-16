@@ -133,6 +133,7 @@ final class AppModel: ObservableObject {
             // Must capture weakly and dynamically evaluate
             return self?.isAIAvailable == true
         })
+        bVM.canPreviewAnalysis = { [weak self] in self?.mode == .review && self?.isAIAvailable == true }
         bVM.canEditLocally = { [weak self] in self?.mode == .localPlay }
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
@@ -185,6 +186,10 @@ final class AppModel: ObservableObject {
         
         setupAudio()
         setupOGSObservers()
+        // willTerminate is synchronous on the main thread. Do not defer the flush
+        // to a queue that may never run after the app exits.
+        NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)
+            .sink { _ in KataGoEngine.shared.stop() }.store(in: &cancellables)
         
         // CONDITION: Only connect if we restore Online Mode
         if wasOnline {

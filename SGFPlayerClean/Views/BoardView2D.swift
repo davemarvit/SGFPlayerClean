@@ -34,7 +34,7 @@ struct BoardView2D: View {
                 }
                 
                 // GLOW LAYER (Under Stones)
-                if let lastPos = boardVM.lastMovePosition,
+                if !boardVM.isPreviewingVariation, let lastPos = boardVM.lastMovePosition,
                    (AppSettings.shared.showBoardGlow || AppSettings.shared.showEnhancedGlow) {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
                     let tx = CGFloat(lastPos.col) * cellP + (j.x * cellP)
@@ -46,7 +46,7 @@ struct BoardView2D: View {
                         .position(x: tx, y: ty)
                 }
 
-                ForEach(boardVM.stonesToRender) { rs in
+                ForEach(boardVM.displayedStones) { rs in
                     let sS = (rs.color == .black ? 1.015 : 0.995) * cellP
                     StoneView2D(color: rs.color, position: rs.id)
                         .frame(width: sS, height: sS)
@@ -56,7 +56,7 @@ struct BoardView2D: View {
                                   y: CGFloat(rs.id.row) * rowP + (rs.offset.y * rowP))
                 }
                 
-                if let point = boardVM.koPoint {
+                if !boardVM.isPreviewingVariation, let point = boardVM.koPoint {
                     Circle().fill(RadialGradient(stops: [
                         .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0.96), location: 0),
                         .init(color: Color(red: 0.9, green: 0.08, blue: 0.06).opacity(0.9), location: 0.22),
@@ -70,7 +70,7 @@ struct BoardView2D: View {
                 }
 
                 // Territory Layer
-                ForEach(Array(boardVM.territoryPoints.keys), id: \.self) { pos in
+                ForEach(Array((boardVM.isPreviewingVariation ? [:] : boardVM.territoryPoints).keys), id: \.self) { pos in
                     if let color = boardVM.territoryPoints[pos] {
                         Circle()
                             .fill(RadialGradient(stops: [
@@ -85,10 +85,19 @@ struct BoardView2D: View {
                     }
                 }
                 
+                ForEach(boardVM.displayedStones) { stone in
+                    if let number = boardVM.variationFrame?.numbers[stone.id] {
+                        Text("\(number)")
+                            .font(.system(size: cellP * 0.48, weight: .bold))
+                            .foregroundColor(stone.color == .black ? .white : .black)
+                            .position(x: CGFloat(stone.id.col) * cellP, y: CGFloat(stone.id.row) * rowP)
+                    }
+                }
+
                 // AI Top Moves Layer
                 AITopMovesOverlay(vm: boardVM, availableSize: size, padding: margin)
                 
-                if let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
+                if !boardVM.isPreviewingVariation, let ghostPos = boardVM.ghostPosition, let color = boardVM.ghostColor {
                     StoneView2D(color: color, position: ghostPos)
                         .frame(width: cellP, height: cellP)
                         .opacity(0.4)
@@ -96,7 +105,7 @@ struct BoardView2D: View {
                 }
 
                 // MARKER LAYER (Over Stones)
-                if let lastPos = boardVM.lastMovePosition {
+                if !boardVM.isPreviewingVariation, let lastPos = boardVM.lastMovePosition {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
                     let tx = CGFloat(lastPos.col) * cellP + (j.x * cellP)
                     let ty = CGFloat(lastPos.row) * rowP + (j.y * rowP)
@@ -110,7 +119,7 @@ struct BoardView2D: View {
                         
                         // CIRCLE
                         if AppSettings.shared.showLastMoveCircle {
-                            let stoneColor = boardVM.stonesToRender.first(where: { $0.id == lastPos })?.color ?? .black
+                            let stoneColor = boardVM.displayedStones.first(where: { $0.id == lastPos })?.color ?? .black
                             let strokeColor = stoneColor == .black ? Color.white : Color.black
                             let width = max(0.8, size.width * 0.0025) // Half previous: max(1.5, ... * 0.005)
                             
@@ -120,7 +129,7 @@ struct BoardView2D: View {
                         
                         // NUMBER
                         if AppSettings.shared.showMoveNumbers {
-                            let stoneColor = boardVM.stonesToRender.first(where: { $0.id == lastPos })?.color ?? .black
+                            let stoneColor = boardVM.displayedStones.first(where: { $0.id == lastPos })?.color ?? .black
                             let textColor = stoneColor == .black ? Color.white : Color.black
                             
                             Text("\(boardVM.currentMoveIndex)")
@@ -143,8 +152,9 @@ struct BoardView2D: View {
                         let r = Int(round((loc.y - margin) / rowP))
                         if c >= 0 && c < bSize && r >= 0 && r < bSize {
                             boardVM.updateGhostStone(at: BoardPosition(r, c))
-                        } else { boardVM.clearGhostStone() }
-                    case .ended: boardVM.clearGhostStone()
+                            boardVM.hoverAnalysis(at: BoardPosition(r, c))
+                        } else { boardVM.clearGhostStone(); boardVM.hoverAnalysis(at: nil) }
+                    case .ended: boardVM.clearGhostStone(); boardVM.hoverAnalysis(at: nil)
                     }
                 }
                 .onTapGesture { loc in
@@ -155,6 +165,7 @@ struct BoardView2D: View {
                     }
                 }
         }
+        .onDisappear { boardVM.cancelVariationPreview() }
     }
     
     private func starPoints(size: Int) -> [BoardPosition] {

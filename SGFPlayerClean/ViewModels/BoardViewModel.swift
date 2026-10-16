@@ -54,6 +54,69 @@ class BoardViewModel: ObservableObject {
     var onPlaySound: ((AppModel.SoundType) -> Void)?
     var isAIAllowed: (() -> Bool)?
     var canEditLocally: (() -> Bool)?
+    var canPreviewAnalysis: (() -> Bool)?
+    @Published private(set) var variationFrame: AIVariationFrame?
+    var isPreviewingVariation: Bool { variationFrame != nil }
+    var displayedStones: [RenderStone] {
+        guard let frame = variationFrame else { return stonesToRender }
+        let originals = Dictionary(uniqueKeysWithValues: stonesToRender.map { ($0.id, $0) })
+        return frame.stones.map { position, color in
+            // Keep original stones still; hypothetical moves start at the intersection.
+            RenderStone(id: position, color: color,
+                offset: frame.numbers[position] == nil && originals[position]?.color == color ? originals[position]!.offset : .zero)
+        }.sorted { ($0.id.row, $0.id.col) < ($1.id.row, $1.id.col) }
+    }
+    private var variationTimer: Timer?
+    private var variationHover: BoardPosition?
+    private var variationGeneration = 0
+    // Suppress placement/jitter animation on both entry and restoration.
+    private(set) var restoringVariation = false
+
+    func hoverAnalysis(at point: BoardPosition?) {
+        guard canPreviewAnalysis?() == true, !isScrubbing, !engine.isPlaying, !localScoringVisible,
+              let point else { cancelVariationPreview(); return }
+        guard point != variationHover else { return }
+        cancelVariationPreview()
+        guard let candidate = KataGoEngine.shared.currentAnalysisData[engine.currentIndex]?.moveInfos?.first(where: {
+            AIVariation.position($0.move, size: boardSize) == point && !($0.pv?.isEmpty ?? true)
+        }) else { return }
+        variationHover = point
+        let generation = variationGeneration
+        let index = engine.currentIndex
+        let timer = Timer(timeInterval: 0.5, repeats: false) { [weak self] _ in
+            guard let self, self.variationGeneration == generation, self.engine.currentIndex == index,
+                  self.canPreviewAnalysis?() == true, !self.engine.isPlaying else { return }
+            let frames = AIVariation.frames(candidate: candidate, game: self.engine)
+            self.showVariation(frames, step: 0, generation: generation)
+        }
+        variationTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func showVariation(_ frames: [AIVariationFrame], step: Int, generation: Int) {
+        guard variationGeneration == generation, canPreviewAnalysis?() == true, frames.indices.contains(step) else { return }
+        variationFrame = frames[step]
+        ghostPosition = nil
+        onRequestUpdate3D.send()
+        guard step + 1 < frames.count else { variationTimer = nil; return }
+        let timer = Timer(timeInterval: 0.65, repeats: false) { [weak self] _ in
+            self?.showVariation(frames, step: step + 1, generation: generation)
+        }
+        variationTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func cancelVariationPreview() {
+        variationGeneration += 1
+        variationTimer?.invalidate(); variationTimer = nil
+        variationHover = nil
+        guard variationFrame != nil else { return }
+        restoringVariation = true
+        variationFrame = nil
+        onRequestUpdate3D.send()
+        restoringVariation = false
+    }
+
     
     private var jitterEngine: StoneJitter
     private var isSyncing = false
@@ -112,6 +175,7 @@ class BoardViewModel: ObservableObject {
             DispatchQueue.main.async { [weak self] in self?.scheduleStateSync() }
             return
         }
+        cancelVariationPreview()
         guard stateSyncTimer == nil else { return }
         let timer = Timer(timeInterval: 0, repeats: false) { [weak self] _ in self?.syncState() }
         stateSyncTimer = timer
@@ -119,6 +183,7 @@ class BoardViewModel: ObservableObject {
     }
 
     func beginScrubbing() {
+        cancelVariationPreview()
         guard !isScrubbing else { return }
         isScrubbing = true
         engine.pause()
@@ -158,6 +223,7 @@ class BoardViewModel: ObservableObject {
     }
 
     deinit {
+        variationTimer?.invalidate()
         stateSyncTimer?.invalidate()
         scrubTimer?.invalidate()
     }
@@ -425,6 +491,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func syncState() {
+        cancelVariationPreview()
         stateSyncTimer?.invalidate(); stateSyncTimer = nil
         synchronizeLocalScoring()
         moveError = nil
@@ -536,8 +603,9 @@ class BoardViewModel: ObservableObject {
         )
     }
     func updateAnalysisPermission() {
+        cancelVariationPreview()
         fullGameAnalysisTask?.cancel()
-        KataGoEngine.shared.invalidateAnalysis()
+        KataGoEngine.shared.pauseAnalysis()
         onRequestUpdate3D.send()
         objectWillChange.send()
         if isAIAllowed?() == true {

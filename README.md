@@ -26,6 +26,21 @@ Check that build with `Tests/OGSReview/check_review.py --main-build-info /path/t
 pass a specific fixture such as `StartupAndResult.swift`. Probes use a disposable identity
 and block networking; the main app executable is not launched by these checks.
 
+## AI cache and hover review update
+
+AI analysis now survives toggling AI and is saved periodically and on normal quit.
+Compatible retired-review caches are imported from verified copies; engine/model/
+configuration changes cannot silently reuse incompatible results. In Review, pause
+for half a second over an analyzed candidate to preview up to twelve numbered
+continuation moves in 2D or 3D. Moving away restores the actual position; previews
+do not change game history, prisoners, lids or sound.
+
+Verification: 236 unit tests, three migration tests, and eight network-denied
+Release probes passed, including reuse of actual saved analysis without starting
+KataGo. The original backup is retained, with a separate backup for this update.
+For main-checkout probes, pass `--protection-profile /path/to/network-and-file-protection.sb`
+in addition to `--main-build-info` so the working app and its data remain protected.
+
 ## Review changes — October 15, 2026
 
 The selected mode now survives restart; the OGS review app defaults to Play Online

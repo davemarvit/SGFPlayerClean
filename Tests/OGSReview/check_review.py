@@ -14,6 +14,7 @@ out = root.parent / 'OGS Review'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('source', nargs='?', default='ReviewUI.swift')
 parser.add_argument('--main-build-info', type=Path, help='Link probes to a normal Release build; never launch its main executable.')
+parser.add_argument('--protection-profile', type=Path, help='Existing sandbox profile protecting the working app and its data.')
 args = parser.parse_args()
 info = json.loads((args.main_build_info or (out / 'build-info.json')).read_text())
 configuration = info.get('configuration', 'Debug')
@@ -63,7 +64,7 @@ binary.parent.mkdir(parents=True)
     'CFBundleIdentifier': 'com.davemarvit.SGFPlayerClean.ogs-ui-probe',
     'CFBundleExecutable': 'Probe', 'CFBundlePackageType': 'APPL'}))
 profile = folder / 'offline.sb'
-profile.write_text((out / 'network-and-file-protection.sb').read_text() + '\n(deny network*)\n')
+profile.write_text((args.protection_profile or (out / 'network-and-file-protection.sb')).read_text() + '\n(deny network*)\n')
 source = (root / 'Tests/OGSReview' / args.source).resolve()
 extras = []
 if source.parent.name == 'UI':
