@@ -113,7 +113,8 @@ final class QuietGoSaverView: ScreenSaverView {
         let shadow = NSShadow(); shadow.shadowColor = NSColor.black.withAlphaComponent(0.5)
         shadow.shadowBlurRadius = width * 0.02; shadow.shadowOffset = .zero; shadow.set()
         NSColor.black.setFill()
-        board.offsetBy(dx: width * 0.012, dy: width * 0.012).fill()
+        board.insetBy(dx: width * 0.012, dy: width * 0.012)
+            .offsetBy(dx: width * 0.012, dy: width * 0.012).fill()
         NSGraphicsContext.restoreGraphicsState()
         wood?.draw(in: board, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         let grid = board.insetBy(dx: width * 0.065, dy: width * 0.065)
@@ -145,7 +146,8 @@ final class QuietGoSaverView: ScreenSaverView {
             (NSColor.black.withAlphaComponent(0.0), 1.0))!
         for position in playlist.player.board.stones.keys {
             let p = point(position), d = diameter * 1.12, offset = diameter * 0.085
-            stoneShadow.draw(in: NSBezierPath(ovalIn: NSRect(x: p.x+offset-d/2, y: p.y+offset-d/2, width: d, height: d)), relativeCenterPosition: .zero)
+            let center = NSPoint(x: p.x + offset, y: p.y + offset)
+            stoneShadow.draw(fromCenter: center, radius: 0, toCenter: center, radius: d / 2, options: [])
         }
         for (position, color) in playlist.player.board.stones {
             let p = point(position), rect = NSRect(x: p.x-diameter/2, y: p.y-diameter/2, width: diameter, height: diameter)
