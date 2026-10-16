@@ -54,8 +54,10 @@ class BoardViewModel: ObservableObject {
     var onPlaySound: ((AppModel.SoundType) -> Void)?
     var isAIAllowed: (() -> Bool)?
     var canEditLocally: (() -> Bool)?
+    private let analysisEngine: KataGoEngine
     var canPreviewAnalysis: (() -> Bool)?
     @Published private(set) var variationFrame: AIVariationFrame?
+    @Published private(set) var variationStatus: String?
     var isPreviewingVariation: Bool { variationFrame != nil }
     var displayedStones: [RenderStone] {
         guard let frame = variationFrame else { return stonesToRender }
@@ -77,20 +79,43 @@ class BoardViewModel: ObservableObject {
               let point else { cancelVariationPreview(); return }
         guard point != variationHover else { return }
         cancelVariationPreview()
-        guard let candidate = KataGoEngine.shared.currentAnalysisData[engine.currentIndex]?.moveInfos?.first(where: {
-            AIVariation.position($0.move, size: boardSize) == point && !($0.pv?.isEmpty ?? true)
-        }) else { return }
+        guard engine.moveRejection(color: engine.turn, x: point.col, y: point.row) == nil else { return }
         variationHover = point
         let generation = variationGeneration
         let index = engine.currentIndex
         let timer = Timer(timeInterval: 0.5, repeats: false) { [weak self] _ in
             guard let self, self.variationGeneration == generation, self.engine.currentIndex == index,
                   self.canPreviewAnalysis?() == true, !self.engine.isPlaying else { return }
-            let frames = AIVariation.frames(candidate: candidate, game: self.engine)
-            self.showVariation(frames, step: 0, generation: generation)
+            self.beginVariationPreview(at: point, generation: generation)
         }
         variationTimer = timer
         RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func beginVariationPreview(at point: BoardPosition, generation: Int) {
+        let ai = analysisEngine
+        let candidate = ai.cachedHoverAnalysis(game: engine, point: point)
+            ?? ai.currentAnalysisData[engine.currentIndex]?.moveInfos?.first(where: {
+                AIVariation.position($0.move, size: boardSize) == point && ($0.pv?.count ?? 0) > 1
+            })
+        if let candidate {
+            let frames = AIVariation.frames(candidate: candidate, game: engine)
+            if frames.count > 1 { showVariation(frames, step: 0, generation: generation); return }
+        }
+        variationStatus = "Computing AI preview…"
+        ai.analyzeHover(game: engine, point: point) { [weak self] result in
+            guard let self, self.variationGeneration == generation, self.canPreviewAnalysis?() == true else { return }
+            switch result {
+            case .success(let candidate):
+                let frames = AIVariation.frames(candidate: candidate, game: self.engine)
+                guard frames.count > 1 else {
+                    self.variationStatus = "No legal continuation available for this move."; return
+                }
+                self.variationStatus = nil
+                self.showVariation(frames, step: 0, generation: generation)
+            case .failure(let error): self.variationStatus = error.message
+            }
+        }
     }
 
     private func showVariation(_ frames: [AIVariationFrame], step: Int, generation: Int) {
@@ -108,6 +133,8 @@ class BoardViewModel: ObservableObject {
 
     func cancelVariationPreview() {
         variationGeneration += 1
+        analysisEngine.cancelHoverAnalysis()
+        variationStatus = nil
         variationTimer?.invalidate(); variationTimer = nil
         variationHover = nil
         guard variationFrame != nil else { return }
@@ -127,7 +154,8 @@ class BoardViewModel: ObservableObject {
     private var scrubTimer: Timer?
     private var pendingScrubIndex: Int?
     
-    init(player: SGFPlayer, ogsClient: OGSClient, isAIAllowed: (() -> Bool)? = nil) {
+    init(player: SGFPlayer, ogsClient: OGSClient, isAIAllowed: (() -> Bool)? = nil, analysisEngine: KataGoEngine = .shared) {
+        self.analysisEngine = analysisEngine
         self.engine = player
         self.ogsClient = ogsClient
         self.isAIAllowed = isAIAllowed
@@ -159,7 +187,7 @@ class BoardViewModel: ObservableObject {
         ogsClient.$isGameFinished.receive(on: RunLoop.main).sink { [weak self] _ in self?.syncState() }.store(in: &cancellables)
         
         // Trigger initial analysis once engine boots up
-        KataGoEngine.shared.$isEngineRunning.receive(on: RunLoop.main).sink { [weak self] isRunning in
+        analysisEngine.$isEngineRunning.receive(on: RunLoop.main).sink { [weak self] isRunning in
             if isRunning {
                 self?.requestAnalysisIfNeeded()
             }
@@ -232,11 +260,11 @@ class BoardViewModel: ObservableObject {
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = 0
         fullGameAnalysisTask?.cancel()
-        if KataGoEngine.shared.currentGameId != "local" {
-            KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
+        if analysisEngine.currentGameId != "local" {
+            analysisEngine.saveAnalysisCache(for: analysisEngine.currentGameId)
         }
-        KataGoEngine.shared.currentGameId = "local"
-        KataGoEngine.shared.invalidateAnalysis()
+        analysisEngine.currentGameId = "local"
+        analysisEngine.invalidateAnalysis()
         
         self.engine.clear()
         self.stonesToRender = []
@@ -250,16 +278,16 @@ class BoardViewModel: ObservableObject {
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = wrapper.game.handicap
         fullGameAnalysisTask?.cancel()
-        if KataGoEngine.shared.currentGameId != "local" {
-            KataGoEngine.shared.saveAnalysisCache(for: KataGoEngine.shared.currentGameId)
+        if analysisEngine.currentGameId != "local" {
+            analysisEngine.saveAnalysisCache(for: analysisEngine.currentGameId)
         }
-        KataGoEngine.shared.invalidateAnalysis()
+        analysisEngine.invalidateAnalysis()
         
         self.isOnlineContext = false
         
         let newGameId = wrapper.url.path.replacingOccurrences(of: "/", with: "_")
         self.engine.load(game: wrapper.game)
-        _ = KataGoEngine.shared.loadAnalysisCache(for: newGameId, game: engine)
+        _ = analysisEngine.loadAnalysisCache(for: newGameId, game: engine)
         self.jitterEngine = StoneJitter(boardSize: self.boardSize, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         self.lastObservedMoveIndex = self.engine.currentIndex
         self.syncState()
@@ -276,7 +304,7 @@ class BoardViewModel: ObservableObject {
     
     // MARK: - AI Mistake Seeking
     func seekNextMistake() {
-        let ai = KataGoEngine.shared.evaluateGameQuality(upTo: totalMoves, engine: engine)
+        let ai = analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine)
         let jumps = ai.filter { $0.key > currentMoveIndex && ($0.value.quality == .poor || $0.value.quality == .disastrous) }
         if let nextMistake = jumps.keys.min() {
             seekToMove(nextMistake)
@@ -286,7 +314,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func seekPrevMistake() {
-        let ai = KataGoEngine.shared.evaluateGameQuality(upTo: totalMoves, engine: engine)
+        let ai = analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine)
         let jumps = ai.filter { $0.key < currentMoveIndex && ($0.value.quality == .poor || $0.value.quality == .disastrous) }
         if let prevMistake = jumps.keys.max() {
             seekToMove(prevMistake)
@@ -352,7 +380,7 @@ class BoardViewModel: ObservableObject {
         }
         ghostPosition = nil
         moveError = nil
-        if KataGoEngine.shared.isEngineRunning { triggerFullGameAnalysis() }
+        if analysisEngine.isEngineRunning { triggerFullGameAnalysis() }
     }
     
     private func synchronizeLocalScoring() {
@@ -408,7 +436,7 @@ class BoardViewModel: ObservableObject {
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil
         fullGameAnalysisTask?.cancel()
-        _ = KataGoEngine.shared.loadAnalysisCache(for: String(gameID), game: engine)
+        _ = analysisEngine.loadAnalysisCache(for: String(gameID), game: engine)
         isOnlineContext = true
         jitterEngine = StoneJitter(boardSize: engine.board.size, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         isSyncing = false
@@ -485,7 +513,7 @@ class BoardViewModel: ObservableObject {
         }
         
         // Trigger background analysis sweep immediately after a move is registered (only if engine is running)
-        if KataGoEngine.shared.isEngineRunning {
+        if analysisEngine.isEngineRunning {
             self.triggerFullGameAnalysis()
         }
     }
@@ -587,13 +615,13 @@ class BoardViewModel: ObservableObject {
     
     private func requestAnalysisIfNeeded() {
         guard !localScoringVisible, !isScrubbing else { return }
-        guard KataGoEngine.shared.isEngineRunning else { return }
+        guard analysisEngine.isEngineRunning else { return }
         if let allowed = isAIAllowed, !allowed() { return }
         
         let payload = self.engine.getCurrentAIPayload()
-        let gameId = isOnlineContext ? (ogsClient.activeGameID.map { String($0) } ?? "local") : KataGoEngine.shared.currentGameId
+        let gameId = isOnlineContext ? (ogsClient.activeGameID.map { String($0) } ?? "local") : analysisEngine.currentGameId
         
-        KataGoEngine.shared.analyzeGame(
+        analysisEngine.analyzeGame(
             id: gameId,
             initialStones: payload.initial,
             moves: payload.moves,
@@ -605,7 +633,7 @@ class BoardViewModel: ObservableObject {
     func updateAnalysisPermission() {
         cancelVariationPreview()
         fullGameAnalysisTask?.cancel()
-        KataGoEngine.shared.pauseAnalysis()
+        analysisEngine.pauseAnalysis()
         onRequestUpdate3D.send()
         objectWillChange.send()
         if isAIAllowed?() == true {
@@ -625,7 +653,7 @@ class BoardViewModel: ObservableObject {
             let total = self.totalMoves
             guard total > 0 else { return }
             
-            let gameId = self.isOnlineContext ? (self.ogsClient.activeGameID.map { String($0) } ?? "local") : KataGoEngine.shared.currentGameId
+            let gameId = self.isOnlineContext ? (self.ogsClient.activeGameID.map { String($0) } ?? "local") : self.analysisEngine.currentGameId
             
             let targetDepths = [25, 50, 100, 250, 500]
             let totalOperations = Double(targetDepths.count * (total + 1))
@@ -642,14 +670,14 @@ class BoardViewModel: ObservableObject {
                     guard self.isAIAllowed?() != false else { return }
                     
                     // Do not build a large subprocess queue while the engine is still working.
-                    while KataGoEngine.shared.hasPendingAnalysis || self.isScrubbing {
+                    while self.analysisEngine.hasPendingAnalysis || self.isScrubbing {
                         try await Task.sleep(nanoseconds: 100_000_000)
                         try Task.checkCancellation()
                         guard self.isAIAllowed?() != false else { return }
-                        guard KataGoEngine.shared.currentGameId == gameId else { return }
+                        guard self.analysisEngine.currentGameId == gameId else { return }
                     }
-                    guard KataGoEngine.shared.isEngineRunning else { return }
-                    let existingVisits = KataGoEngine.shared.currentAnalysisData[i]?.rootInfo?.visits ?? 0
+                    guard self.analysisEngine.isEngineRunning else { return }
+                    let existingVisits = self.analysisEngine.currentAnalysisData[i]?.rootInfo?.visits ?? 0
                     if existingVisits >= depth {
                         completedOperations += 1
                         let prog = completedOperations / totalOperations
@@ -663,9 +691,9 @@ class BoardViewModel: ObservableObject {
                     await Task.yield()
                     try Task.checkCancellation()
                     guard self.isAIAllowed?() != false else { return }
-                    guard KataGoEngine.shared.currentGameId == gameId else { return }
+                    guard self.analysisEngine.currentGameId == gameId else { return }
                     let payload = self.engine.getAIPayload(at: i)
-                    KataGoEngine.shared.analyzeGame(
+                    self.analysisEngine.analyzeGame(
                         id: gameId,
                         initialStones: payload.initial,
                         moves: payload.moves,

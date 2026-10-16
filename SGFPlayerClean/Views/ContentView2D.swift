@@ -100,7 +100,7 @@ struct PlaybackControlsView: View {
                     .font(.caption).foregroundStyle(.orange)
                     .padding(5).background(.black.opacity(0.65), in: Capsule())
             }
-            Text(boardVM.variationFrame?.caption ?? boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : boardVM.ruleSummary))
+            Text(boardVM.variationFrame?.caption ?? boardVM.variationStatus ?? boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : boardVM.ruleSummary))
                 .font(.caption).foregroundStyle(boardVM.moveError == nil ? Color.white : Color.orange)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(.black.opacity(0.65), in: Capsule())

@@ -11,10 +11,22 @@ class KataGoEngine: ObservableObject {
     @Published private(set) var analysisNotice: String?
     @Published private(set) var analysisError: String?
     @Published private(set) var analysisWarning: String?
-    var hasPendingAnalysis: Bool { !requests.isEmpty }
+    var hasPendingAnalysis: Bool { !requests.isEmpty || hoverRequest != nil }
     private var failedPositions = Set<String>()
     private var requestTimeouts: [Int: OGSCancellable] = [:]
     private var contextFingerprint: String?
+    struct HoverFailure: Error { let message: String }
+    private struct HoverRequest {
+        let id: String
+        let key: String
+        let turn: Int
+        let move: String
+        let completion: (Result<AIMoveInfo, HoverFailure>) -> Void
+    }
+    private var hoverRequest: HoverRequest?
+    private var hoverTimeout: OGSCancellable?
+    private var hoverContinuations: [String: AIMoveInfo] = [:]
+
 
     var currentGameId = "local" {
         didSet { if currentGameId != oldValue { invalidateAnalysis() } }
@@ -169,6 +181,7 @@ class KataGoEngine: ObservableObject {
     }
 
     private func releaseProcess() {
+        cancelHoverAnalysis(message: "AI engine stopped. Move away and try again.")
         processGeneration += 1
         requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
         requests.removeAll()
@@ -202,6 +215,8 @@ class KataGoEngine: ObservableObject {
     }
 
     func invalidateAnalysis() {
+        cancelHoverAnalysis()
+        hoverContinuations.removeAll()
         analysisWarning = nil
         analysisError = nil
         failedPositions.removeAll()
@@ -217,6 +232,7 @@ class KataGoEngine: ObservableObject {
 
     /// Fence late replies when AI is hidden without discarding completed work.
     func pauseAnalysis() {
+        cancelHoverAnalysis()
         saveAnalysisCache(for: currentGameId)
         requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
         requests.removeAll(); pendingVisits.removeAll()
@@ -263,6 +279,7 @@ class KataGoEngine: ObservableObject {
 
     func saveAnalysisCache(for gameID: String) {
         dispatchPrecondition(condition: .onQueue(.main))
+        saveHoverCache(for: gameID)
         guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty,
               let identity = analysisEngineIdentity else { return }
         let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint,
@@ -285,6 +302,11 @@ class KataGoEngine: ObservableObject {
         invalidateAnalysis()
         analysisNotice = game?.analysisSettings.notice
         guard gameID != "local", let identity = runningEngineIdentity ?? configuredEngineIdentity() else { return false }
+        analysisEngineIdentity = identity
+        let hoverURL = hoverCacheURL(for: gameID, identity: identity)
+        hoverContinuations = cacheQueue.sync {
+            (try? Data(contentsOf: hoverURL)).flatMap { try? JSONDecoder().decode([String: AIMoveInfo].self, from: $0) } ?? [:]
+        }
         let url = cacheURL(for: gameID, identity: identity)
         let legacyName = "v3-\(digest(Data(gameID.utf8))).json"
         struct LegacyManifest: Decodable { let engineIdentity: String; let files: [String: String] }
@@ -321,7 +343,7 @@ class KataGoEngine: ObservableObject {
                 }.filter { !$0.analyses.isEmpty }
             }
             return candidates.reduce(nil) { result, cache in result.map { cache.merging($0) } ?? cache }
-        }) else { return false }
+        }) else { return !hoverContinuations.isEmpty }
         let valid = loaded.analyses
         currentAnalysisData = valid
         fingerprints = loaded.fingerprints.filter { valid[$0.key] != nil }
@@ -382,7 +404,10 @@ class KataGoEngine: ObservableObject {
         context.removeValue(forKey: "moves"); context.removeValue(forKey: "analyzeTurns")
         guard let contextData = try? JSONSerialization.data(withJSONObject: context, options: .sortedKeys) else { return }
         let contextKey = digest(contextData)
-        if contextFingerprint != contextKey { saveAnalysisCache(for: currentGameId); invalidateAnalysis(); contextFingerprint = contextKey }
+        if contextFingerprint != contextKey {
+            if contextFingerprint != nil { saveAnalysisCache(for: currentGameId); invalidateAnalysis() }
+            contextFingerprint = contextKey
+        }
         analysisEngineIdentity = runningEngineIdentity
         guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
         let fingerprint = digest(position)
@@ -410,6 +435,10 @@ class KataGoEngine: ObservableObject {
         }
         query["id"] = requestID
         query["maxVisits"] = maxVisits
+        sendQuery(query)
+    }
+
+    private func sendQuery(_ query: [String: Any]) {
         guard var data = try? JSONSerialization.data(withJSONObject: query), let input else { return }
         data.append(10)
         let generation = processGeneration
@@ -425,9 +454,120 @@ class KataGoEngine: ObservableObject {
         }
     }
 
+    // Forced-move results are intentionally separate from whole-position scores:
+    // restricting the root search would otherwise distort the graph and quality labels.
+    private func hoverCacheURL(for gameID: String, identity: String) -> URL {
+        cacheDirectory.appendingPathComponent("hover-v1-\(digest(Data(gameID.utf8)))-\(identity).json")
+    }
+
+    private func saveHoverCache(for gameID: String) {
+        guard gameID == currentGameId, gameID != "local", !hoverContinuations.isEmpty,
+              let identity = analysisEngineIdentity else { return }
+        let snapshot = hoverContinuations
+        let url = hoverCacheURL(for: gameID, identity: identity)
+        cacheQueue.async {
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+                var merged = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode([String: AIMoveInfo].self, from: $0) } ?? [:]
+                for (key, candidate) in snapshot where candidate.visits >= (merged[key]?.visits ?? 0) {
+                    merged[key] = candidate
+                }
+                try JSONEncoder().encode(merged).write(to: url, options: .atomic)
+            } catch { NSLog("[AI] Hover cache write failed: \(error.localizedDescription)") }
+        }
+    }
+
+    private func hoverQuery(game: SGFPlayer, point: BoardPosition) -> (query: [String: Any], key: String, move: String)? {
+        guard (0..<game.board.size).contains(point.col), (0..<game.board.size).contains(point.row),
+              game.moveRejection(color: game.turn, x: point.col, y: point.row) == nil else { return nil }
+        let payload = game.getCurrentAIPayload()
+        guard let query = positionQuery(initialStones: payload.initial, moves: payload.moves,
+            size: game.board.size, settings: game.analysisSettings),
+            let bytes = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return nil }
+        let move = "\(Array("ABCDEFGHJKLMNOPQRST")[point.col])\(game.board.size - point.row)"
+        // The key covers the entire history, rules/komi and requested intersection.
+        return (query, digest(bytes) + ":" + move, move)
+    }
+
+    func cachedHoverAnalysis(game: SGFPlayer, point: BoardPosition) -> AIMoveInfo? {
+        guard let query = hoverQuery(game: game, point: point) else { return nil }
+        return hoverContinuations[query.key]
+    }
+
+    func analyzeHover(game: SGFPlayer, point: BoardPosition,
+                      completion: @escaping (Result<AIMoveInfo, HoverFailure>) -> Void) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        cancelHoverAnalysis()
+        guard let request = hoverQuery(game: game, point: point) else {
+            completion(.failure(HoverFailure(message: "AI preview is unavailable for this move or ruleset."))); return
+        }
+        if let cached = hoverContinuations[request.key] { completion(.success(cached)); return }
+        guard isEngineRunning else {
+            completion(.failure(HoverFailure(message: "AI engine is unavailable. Move away and try again when it is ready."))); return
+        }
+        var query = request.query
+        var context = query
+        context.removeValue(forKey: "moves"); context.removeValue(forKey: "analyzeTurns")
+        guard let bytes = try? JSONSerialization.data(withJSONObject: context, options: .sortedKeys) else { return }
+        let contextKey = digest(bytes)
+        if contextFingerprint != contextKey {
+            if contextFingerprint != nil { saveAnalysisCache(for: currentGameId); invalidateAnalysis() }
+            contextFingerprint = contextKey
+        }
+        analysisEngineIdentity = runningEngineIdentity
+        let id = UUID().uuidString
+        hoverRequest = HoverRequest(id: id, key: request.key, turn: game.currentIndex, move: request.move, completion: completion)
+        query["id"] = id
+        query["maxVisits"] = 100
+        query["priority"] = 100
+        query["analysisPVLen"] = 12
+        query["includeOwnership"] = false
+        query["allowMoves"] = [["player": game.turn == .black ? "B" : "W", "moves": [request.move], "untilDepth": 1]]
+        hoverTimeout = scheduler.schedule(after: 30) { [weak self] in
+            guard self?.hoverRequest?.id == id else { return }
+            self?.cancelHoverAnalysis(message: "AI preview timed out. Move away and try again.")
+        }
+        sendQuery(query)
+    }
+
+    /// Stop obsolete GPU work as well as fencing its asynchronous response.
+    func cancelHoverAnalysis(message: String = "AI preview cancelled.") {
+        hoverTimeout?.cancel(); hoverTimeout = nil
+        guard let request = hoverRequest else { return }
+        hoverRequest = nil
+        if isEngineRunning { sendQuery(["id": UUID().uuidString, "action": "terminate", "terminateId": request.id]) }
+        request.completion(.failure(HoverFailure(message: message)))
+    }
+
+    private func receiveHoverLine(_ data: Data) -> Bool {
+        guard let request = hoverRequest,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["id"] as? String == request.id else { return false }
+        if let warning = json["warning"] as? String { analysisWarning = "KataGo: " + warning; return true }
+        if let message = json["error"] as? String {
+            cancelHoverAnalysis(message: "AI preview failed: " + message); return true
+        }
+        // Wrong-turn and partial replies cannot finish the pending request.
+        guard let analysis = try? JSONDecoder().decode(AIAnalysis.self, from: data),
+              analysis.turnNumber == request.turn, analysis.isDuringSearch != true else { return true }
+        guard let candidate = analysis.moveInfos?.first(where: { $0.move == request.move }),
+              candidate.visits > 0, candidate.winrate.isFinite, (0...1).contains(candidate.winrate), candidate.scoreLead.isFinite,
+              let pv = candidate.pv, pv.count > 1, pv.first == request.move else {
+            cancelHoverAnalysis(message: "No continuation was returned for this move. Move away to retry."); return true
+        }
+        hoverTimeout?.cancel(); hoverTimeout = nil
+        hoverRequest = nil
+        hoverContinuations[request.key] = candidate
+        // Save completed hover work immediately; the quit barrier also drains it.
+        saveHoverCache(for: currentGameId)
+        request.completion(.success(candidate))
+        return true
+    }
+
     // Internal for offline protocol fixtures; production calls arrive from the fenced stdout reader.
     func receiveAnalysisLine(_ data: Data) {
         dispatchPrecondition(condition: .onQueue(.main))
+        if receiveHoverLine(data) { return }
         if let warning = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let message = warning["warning"] as? String, let id = warning["id"] as? String,
            requests.values.contains(id) {
@@ -471,6 +611,7 @@ class KataGoEngine: ObservableObject {
 
     deinit {
         requestTimeouts.values.forEach { $0.cancel() }
+        hoverTimeout?.cancel()
         restartTask?.cancel(); cacheSaveTask?.cancel()
         if process?.isRunning == true { process?.terminate() }
         let oldInput = input

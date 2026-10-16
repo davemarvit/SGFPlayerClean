@@ -36,6 +36,8 @@ query('nz-self-capture', rules='new-zealand', initialStones=suicide, moves=[['B'
 query('japanese-self-capture', initialStones=suicide, moves=[['B','B5']], analyzeTurns=[1])
 query('handicap', rules='chinese-ogs', initialStones=[['B','B4'],['B','D2']], initialPlayer='W',
       komi=0.5, whiteHandicapBonus='N')
+query('hover-root', boardXSize=9, boardYSize=9, moves=[['B','A9']], analyzeTurns=[1],
+      allowMoves=[dict(player='W', moves=['C7'], untilDepth=1)], priority=100, analysisPVLen=12, maxVisits=100)
 with tempfile.TemporaryDirectory(prefix='sgf-katago-smoke-') as directory:
     work = Path(directory)
     override = f'homeDataDir={work / "engine-data"},logDir={work / "logs"},nnCacheSizePowerOfTwo=12,numSearchThreads=1'
@@ -52,6 +54,10 @@ with tempfile.TemporaryDirectory(prefix='sgf-katago-smoke-') as directory:
     if run.returncode:
         raise SystemExit(f'KataGo failed ({run.returncode}):\n{run.stderr[-6000:]}\n{run.stdout[-3000:]}')
     results = {r['id']:r for r in replies if 'id' in r and ('rootInfo' in r or 'error' in r)}
+    hover = results.get('hover-root', {})
+    candidate = next((m for m in hover.get('moveInfos', []) if m['move'] == 'C7'), None)
+    assert candidate and candidate.get('pv', [])[0] == 'C7' and len(candidate['pv']) > 1, hover
+    assert all(m['move'] == 'C7' for m in hover['moveInfos']), hover
     # KataGo deliberately tolerates some illegal historical moves; it is not a legality validator.
     tolerated_history = {'illegal-ko', 'japanese-self-capture'}
     expected_errors = {name for name in tolerated_history if 'error' in results.get(name, {})}

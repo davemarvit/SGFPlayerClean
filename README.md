@@ -35,7 +35,14 @@ for half a second over an analyzed candidate to preview up to twelve numbered
 continuation moves in 2D or 3D. Moving away restores the actual position; previews
 do not change game history, prisoners, lids or sound.
 
-Verification: 236 unit tests, three migration tests, and eight network-denied
+Hover now also computes missing continuations for any legal intersection after the
+same dwell. A waiting status appears while KataGo works. Completed continuations
+are saved beside the game's AI cache and reused after restart; moving away cancels
+unfinished work. Focused results do not alter the whole-game evaluation graph.
+This addition passed 241 unit tests, three offline Release UI probes and 15 real
+KataGo smoke queries. Original backups and SGFs remain intact.
+
+Previous cache/preview increment: 236 unit tests, three migration tests, and eight network-denied
 Release probes passed, including reuse of actual saved analysis without starting
 KataGo. The original backup is retained, with a separate backup for this update.
 For main-checkout probes, pass `--protection-profile /path/to/network-and-file-protection.sb`

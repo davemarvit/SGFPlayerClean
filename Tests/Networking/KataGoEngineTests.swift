@@ -24,6 +24,8 @@ final class KataGoEngineTests: XCTestCase {
             if (root / "crash").exists():
                 sys.stderr.write("fixture engine failure\n"); sys.stderr.flush()
                 sys.exit(23)
+            if "action" in q:
+                print(json.dumps(q), flush=True); continue
             if (root / "hold").exists():
                 continue
             result = dict(id=q["id"], turnNumber=len(q["moves"]), isDuringSearch=False,
@@ -478,6 +480,143 @@ final class KataGoEngineTests: XCTestCase {
         let incompatible = newEngine(imports: [folder])
         XCTAssertFalse(incompatible.loadAnalysisCache(for: "game-a"))
         incompatible.stop()
+    }
+
+    private func hoverGame(_ sgf: String = "(;SZ[9]RU[Japanese]KM[6.5];B[aa];W[bb])", turn: Int = 0) throws -> SGFPlayer {
+        let game = SGFPlayer()
+        game.load(game: SGFGame.from(tree: try SGFParser.parse(text: sgf)))
+        game.seek(to: turn)
+        return game
+    }
+    private func hoverResponse(_ query: [String: Any], pv: [String] = ["C7", "D6", "E5"], turn: Int? = nil) throws -> Data {
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: response(query, visits: 100, turn: turn)) as? [String: Any])
+        json["moveInfos"] = [["move":pv[0], "visits":100, "winrate":0.4, "scoreLead":-2.5, "pv":pv]]
+        return try JSONSerialization.data(withJSONObject: json)
+    }
+
+    func testHoverForcesOnlyRootMoveAndPreservesWholePositionAnalysis() throws {
+        try hold(); engine.start()
+        let game = try hoverGame(turn: 1)
+        let payload = game.getCurrentAIPayload()
+        engine.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves,
+            size: 9, settings: game.analysisSettings)
+        let ordinary = queries(1)[0]
+        engine.receiveAnalysisLine(try response(ordinary))
+        let original = game.board
+        var received: AIMoveInfo?
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { received = try? $0.get() }
+        let query = queries(2)[1]
+        let allowed = try XCTUnwrap((query["allowMoves"] as? [[String: Any]])?.first)
+        XCTAssertEqual(allowed["moves"] as? [String], ["C7"])
+        XCTAssertEqual(allowed["player"] as? String, "W")
+        XCTAssertEqual(allowed["untilDepth"] as? Int, 1)
+        XCTAssertEqual(query["priority"] as? Int, 100)
+        XCTAssertEqual(query["moves"] as? [[String]], [["B","A9"]])
+        XCTAssertEqual(query["rules"] as? String, "japanese")
+        XCTAssertEqual(query["komi"] as? Double, 6.5)
+        XCTAssertTrue(engine.hasPendingAnalysis)
+        engine.receiveAnalysisLine(try hoverResponse(query, turn: 0))
+        XCTAssertNil(received, "A different turn cannot finish the hover")
+        engine.receiveAnalysisLine(try hoverResponse(query))
+        XCTAssertEqual(received?.pv, ["C7","D6","E5"])
+        XCTAssertEqual(engine.currentAnalysisData[1]?.id, ordinary["id"] as? String)
+        XCTAssertEqual(engine.currentAnalysisData[1]?.rootInfo?.scoreLead, 2.5)
+        XCTAssertEqual(game.board, original); XCTAssertEqual(game.currentIndex, 1); XCTAssertEqual(game.maxIndex, 2)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+    }
+
+    func testHoverOnlyCacheSurvivesQuitAndReloadAndDoesNotSendAnotherQuery() throws {
+        try hold(); engine.start()
+        let game = try hoverGame()
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { _ in }
+        engine.receiveAnalysisLine(try hoverResponse(queries(1)[0]))
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty, "Forced search must not become whole-game analysis")
+        engine.stop()
+        let fresh = newEngine()
+        XCTAssertTrue(fresh.loadAnalysisCache(for: "game-a", game: game))
+        XCTAssertEqual(fresh.cachedHoverAnalysis(game: game, point: BoardPosition(2,2))?.pv?.count, 3)
+        var reused = false
+        fresh.analyzeHover(game: game, point: BoardPosition(2,2)) { reused = (try? $0.get()) != nil }
+        XCTAssertTrue(reused, "Cached continuation is usable even before engine startup")
+        fresh.start()
+        let payload = game.getCurrentAIPayload()
+        fresh.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves, size: 9, settings: game.analysisSettings)
+        _ = queries(2)
+        XCTAssertNotNil(fresh.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)), "Starting background analysis must retain hover-only cache")
+        fresh.stop()
+        let changedKomi = try hoverGame("(;SZ[9]RU[Japanese]KM[0.5])")
+        XCTAssertNil(fresh.cachedHoverAnalysis(game: changedKomi, point: BoardPosition(2,2)))
+        let reload = newEngine()
+        XCTAssertTrue(reload.loadAnalysisCache(for: "game-a", game: game))
+        XCTAssertNil(reload.cachedHoverAnalysis(game: changedKomi, point: BoardPosition(2,2)))
+        game.seek(to: 1)
+        XCTAssertNil(reload.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)))
+        reload.stop()
+        try Data("different-model".utf8).write(to: directory.appendingPathComponent("fixture-model"))
+        let changedModel = newEngine()
+        XCTAssertFalse(changedModel.loadAnalysisCache(for: "game-a", game: game))
+        XCTAssertNil(changedModel.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)))
+        changedModel.stop()
+    }
+
+    func testHoverCancellationSendsTerminateAndIgnoresLateReplies() throws {
+        try hold(); engine.start()
+        let game = try hoverGame()
+        var firstFinished = false
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { result in
+            if case .success = result { XCTFail("Cancelled hover delivered a result") }
+            firstFinished = true
+        }
+        let first = queries(1)[0]
+        engine.cancelHoverAnalysis()
+        XCTAssertTrue(firstFinished)
+        let cancellation = queries(2)[1]
+        XCTAssertEqual(cancellation["action"] as? String, "terminate")
+        XCTAssertEqual(cancellation["terminateId"] as? String, first["id"] as? String)
+        engine.receiveAnalysisLine(try hoverResponse(first))
+        XCTAssertNil(engine.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)))
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { _ in }
+        let second = queries(3)[2]
+        engine.currentGameId = "different-game"
+        engine.receiveAnalysisLine(try hoverResponse(second))
+        XCTAssertNil(engine.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)))
+    }
+
+    func testHoverErrorsTimeoutAndMalformedResultsCanBeRetried() throws {
+        try hold(); engine.start()
+        let game = try hoverGame()
+        var message: String?
+        func request() {
+            engine.analyzeHover(game: game, point: BoardPosition(2,2)) {
+                if case .failure(let error) = $0 { message = error.message }
+            }
+        }
+        request()
+        let first = queries(1)[0]
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id":first["id"]!,"error":"fixture error"]))
+        XCTAssertTrue(message?.contains("fixture error") == true)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        request()
+        let second = queries(3)[2] // error cancellation then new query
+        engine.receiveAnalysisLine(try hoverResponse(second, pv: ["C7"]))
+        XCTAssertTrue(message?.contains("No continuation") == true)
+        request()
+        _ = queries(5)
+        scheduler.advance(by: 31)
+        XCTAssertTrue(message?.contains("timed out") == true)
+        XCTAssertNil(engine.cachedHoverAnalysis(game: game, point: BoardPosition(2,2)))
+        XCTAssertFalse(engine.hasPendingAnalysis)
+    }
+
+    func testHoverRejectsOccupiedKoAndOffBoardMovesBeforeRequesting() throws {
+        engine.start()
+        let game = try hoverGame("(;SZ[5]RU[Japanese]AB[ba][ab][bc]AW[bb][ca][db][cc];B[cb])", turn: 1)
+        for point in [BoardPosition(1,1), BoardPosition(1,2), BoardPosition(-1,-1), BoardPosition(5,5)] {
+            var rejected = false
+            engine.analyzeHover(game: game, point: point) { if case .failure = $0 { rejected = true } }
+            XCTAssertTrue(rejected)
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("requests.jsonl").path))
     }
 
 }
