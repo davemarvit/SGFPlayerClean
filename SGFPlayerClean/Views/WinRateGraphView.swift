@@ -219,7 +219,7 @@ struct MoveQualitySummaryView: View {
         }
         .font(.caption2)
         .padding(6)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .background(Color(white: 0.12))
         .cornerRadius(6)
     }
     private func statistic(_ player: Stone, accuracy: Bool) -> some View {
@@ -256,7 +256,11 @@ struct MistakeFilterView: View {
                 .accessibilityIdentifier("matching-mistake-count")
             Text("\(analyzedCount) of \(vm.totalMoves) moves analysed on this line")
                 .foregroundStyle(.secondary)
-        }.font(.caption)
+        }
+        .font(.caption)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(white: 0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
@@ -281,7 +285,7 @@ struct SelectedMoveFeedbackView: View {
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(10)
-            .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color(white: 0.12), in: RoundedRectangle(cornerRadius: 8))
             .help("The red dot marks the move that produced this position. Point loss and win chance are estimates from that player's perspective, comparing before and after the move.")
             .accessibilityIdentifier("selected-move-feedback")
         }
