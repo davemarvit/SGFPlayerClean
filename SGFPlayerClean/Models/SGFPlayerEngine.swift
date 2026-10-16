@@ -133,6 +133,13 @@ final class SGFPlayer: ObservableObject {
         return _moves[index].0
     }
     
+    /// Historical move coordinate; passes have no board intersection.
+    func movePosition(at index: Int) -> BoardPosition? {
+        guard _moves.indices.contains(index), let (x, y) = _moves[index].1,
+              x >= 0, y >= 0 else { return nil }
+        return BoardPosition(y, x)
+    }
+
     /// Identifies the player to move at the given state index (0 = before first move)
     func playerToMove(at stateIndex: Int) -> Stone {
         let index = max(0, stateIndex)

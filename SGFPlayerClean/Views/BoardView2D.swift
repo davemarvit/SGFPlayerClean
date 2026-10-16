@@ -104,6 +104,8 @@ struct BoardView2D: View {
                         .position(x: CGFloat(ghostPos.col) * cellP, y: CGFloat(ghostPos.row) * rowP)
                 }
 
+                RecentMoveQualityOverlay(vm: boardVM, cellWidth: cellP, rowHeight: rowP)
+
                 // MARKER LAYER (Over Stones)
                 if !boardVM.isPreviewingVariation, let lastPos = boardVM.lastMovePosition {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
@@ -171,5 +173,37 @@ struct BoardView2D: View {
     private func starPoints(size: Int) -> [BoardPosition] {
         if size == 19 { return [BoardPosition(3,3), BoardPosition(3,9), BoardPosition(3,15), BoardPosition(9,3), BoardPosition(9,9), BoardPosition(9,15), BoardPosition(15,3), BoardPosition(15,9), BoardPosition(15,15)] }
         return []
+    }
+}
+
+struct RecentMoveQualityOverlay: View {
+    @ObservedObject var vm: BoardViewModel
+    @ObservedObject private var ai = KataGoEngine.shared
+    let cellWidth: CGFloat
+    let rowHeight: CGFloat
+
+    var body: some View {
+        ForEach(vm.recentMoveQualityMarkers) { marker in
+            let jitter = vm.getJitterOffset(forPosition: marker.position)
+            ZStack {
+                Circle().trim(from: 0.125, to: 0.875)
+                    .stroke(marker.stone == .black ? Color.white.opacity(0.6) : Color.black.opacity(0.65),
+                            style: StrokeStyle(lineWidth: max(2.5, cellWidth * 0.075), lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                Circle().trim(from: 0.125, to: 0.875)
+                    .stroke(marker.quality.color, style: StrokeStyle(lineWidth: max(1.5, cellWidth * 0.045), lineCap: .round))
+                    .rotationEffect(.degrees(90))
+                Text(marker.label)
+                    .font(.system(size: max(7, cellWidth * 0.22), weight: .bold, design: .rounded))
+                    .foregroundStyle(marker.stone == .black ? Color.white : Color.black)
+                    .fixedSize()
+                    .offset(y: cellWidth * 0.25)
+            }
+            .frame(width: cellWidth * 0.60, height: cellWidth * 0.60)
+            .position(x: (CGFloat(marker.position.col) + jitter.x) * cellWidth,
+                      y: (CGFloat(marker.position.row) + jitter.y) * rowHeight)
+            .accessibilityLabel("Move \(marker.id): \(marker.quality.rawValue), \(marker.pointsLost) estimated points lost")
+        }
+        .allowsHitTesting(false)
     }
 }

@@ -69,6 +69,12 @@ class BoardViewModel: ObservableObject {
     @Published private(set) var variationFrame: AIVariationFrame?
     @Published private(set) var variationStatus: String?
     var isPreviewingVariation: Bool { variationFrame != nil }
+    var recentMoveQualityMarkers: [RecentMoveQualityMarker] {
+        guard canNavigateReview?() == true, isAIAllowed?() == true,
+              !isPreviewingVariation, !localScoringVisible else { return [] }
+        return RecentMoveQualityMarker.markers(engine: engine,
+            evaluations: analysisEngine.evaluateGameQuality(upTo: currentMoveIndex, engine: engine))
+    }
     var displayedStones: [RenderStone] {
         guard let frame = variationFrame else { return stonesToRender }
         let originals = Dictionary(uniqueKeysWithValues: stonesToRender.map { ($0.id, $0) })

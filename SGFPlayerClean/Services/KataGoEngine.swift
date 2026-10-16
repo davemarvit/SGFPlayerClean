@@ -662,7 +662,11 @@ extension KataGoEngine {
         for t in 0..<max(0, min(maxIndex, engine.maxIndex)) {
             guard let cur = currentAnalysisData[t]?.rootInfo,
                   let next = currentAnalysisData[t+1]?.rootInfo,
-                  let player = engine.moveColor(at: t) else { continue }
+                  let player = engine.moveColor(at: t),
+                  cur.visits > 0, next.visits > 0,
+                  cur.winrate.isFinite, next.winrate.isFinite,
+                  (0...1).contains(cur.winrate), (0...1).contains(next.winrate),
+                  cur.scoreLead.isFinite, next.scoreLead.isFinite else { continue }
             
             let wPrev = cur.winrate
             let wNext = next.winrate

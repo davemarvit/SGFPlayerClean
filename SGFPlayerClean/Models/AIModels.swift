@@ -73,7 +73,7 @@ enum MoveQuality: String, CaseIterable, Identifiable {
         case .good: return .green
         case .mediocre: return .yellow
         case .poor: return .orange
-        case .disastrous: return .red
+        case .disastrous: return .pink
         }
     }
 }
@@ -127,5 +127,32 @@ enum AIVariation {
             frames.append(AIVariationFrame(stones: copy.board.stones, numbers: numbers, caption: caption))
         }
         return frames
+    }
+}
+
+/// The current move keeps its red marker. Only the preceding three moves in
+/// the selected history can receive quality rings (four recent moves total).
+struct RecentMoveQualityMarker: Identifiable, Equatable {
+    let id: Int
+    let position: BoardPosition
+    let stone: Stone
+    let quality: MoveQuality
+    let pointsLost: Double
+    var label: String { pointsLost < 0.05 ? "0" : String(format: "−%.1f", pointsLost) }
+
+    static func markers(engine: SGFPlayer, evaluations: [Int: MoveEvaluation]) -> [Self] {
+        let end = min(engine.currentIndex, engine.maxIndex)
+        guard end > 1 else { return [] }
+        var seen = Set<BoardPosition>()
+        if let current = engine.movePosition(at: end - 1) { seen.insert(current) }
+        var result: [Self] = []
+        for index in stride(from: end - 2, through: max(0, end - 4), by: -1) {
+            guard let position = engine.movePosition(at: index), seen.insert(position).inserted,
+                  let color = engine.moveColor(at: index), engine.board.stones[position] == color,
+                  let evaluation = evaluations[index], evaluation.scoreDelta.isFinite else { continue }
+            result.append(Self(id: index + 1, position: position, stone: color,
+                               quality: evaluation.quality, pointsLost: max(0, -evaluation.scoreDelta)))
+        }
+        return result
     }
 }

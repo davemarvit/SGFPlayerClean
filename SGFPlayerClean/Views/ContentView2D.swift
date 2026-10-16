@@ -87,6 +87,21 @@ struct PlaybackControlsView: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var boardVM: BoardViewModel
     @State private var localIdx: Double = 0
+    private var playerSummary: String {
+        func player(_ name: String?, _ rank: String?, fallback: String) -> String {
+            let name = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let rank = rank?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (name?.isEmpty == false ? name! : fallback)
+                + (rank?.isEmpty == false ? " " + rank! : "")
+        }
+        if app.mode.usesOGS && boardVM.isOnlineContext {
+            return "● " + player(app.ogsClient.blackPlayerName, app.ogsClient.blackPlayerRank.map(ChallengeHelpers.formatRank), fallback: "Black")
+                + " · ○ " + player(app.ogsClient.whitePlayerName, app.ogsClient.whitePlayerRank.map(ChallengeHelpers.formatRank), fallback: "White")
+        }
+        let info = boardVM.reviewTree?.baseGame.info ?? app.selection?.game.info
+        return "● " + player(info?.playerBlack, info?.blackRank, fallback: "Black")
+            + " · ○ " + player(info?.playerWhite, info?.whiteRank, fallback: "White")
+    }
     var body: some View {
         VStack(spacing: 5) {
             if let status = boardVM.localPassStatus {
@@ -100,11 +115,13 @@ struct PlaybackControlsView: View {
                     .font(.caption).foregroundStyle(.orange)
                     .padding(5).background(.black.opacity(0.65), in: Capsule())
             }
-            Text(boardVM.variationFrame?.caption ?? boardVM.variationStatus ?? boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : boardVM.ruleSummary))
+            Text(boardVM.variationFrame?.caption ?? boardVM.variationStatus ?? boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : playerSummary))
                 .font(.caption).foregroundStyle(boardVM.moveError == nil ? Color.white : Color.orange)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(.black.opacity(0.65), in: Capsule())
-                .accessibilityIdentifier("go-rule-status")
+                .help(boardVM.ruleSummary)
+                .lineLimit(1).truncationMode(.middle)
+                .accessibilityIdentifier("game-player-status")
         HStack(spacing: 12) {
             if app.mode == .localPlay && !boardVM.isOnlineContext {
                 Button("Pass") { boardVM.passLocally() }

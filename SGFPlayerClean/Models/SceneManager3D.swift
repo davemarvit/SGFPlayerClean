@@ -365,6 +365,52 @@ class SceneManager3D: NSObject, ObservableObject {
         }
     }
 
+    private var recentQualityMarkers: [RecentMoveQualityMarker] = []
+    func updateRecentMoveQuality(_ markers: [RecentMoveQualityMarker]) {
+        guard markers != recentQualityMarkers || markers.contains(where: {
+            stoneNodeMap[$0.position]?.childNode(withName: "ai-recent-quality", recursively: false) == nil
+        }) else { return }
+        recentQualityMarkers = markers
+        for anchor in stoneNodeMap.values {
+            anchor.childNode(withName: "ai-recent-quality", recursively: false)?.removeFromParentNode()
+        }
+        for marker in markers {
+            guard let anchor = stoneNodeMap[marker.position] else { continue }
+            let image = NSImage(size: NSSize(width: 256, height: 256), flipped: false) { _ in
+                let ring = NSBezierPath()
+                ring.appendArc(withCenter: NSPoint(x: 128, y: 128), radius: 88,
+                               startAngle: -45, endAngle: 225, clockwise: false)
+                ring.lineCapStyle = .round
+                (marker.stone == .black ? NSColor.white.withAlphaComponent(0.6) : NSColor.black.withAlphaComponent(0.65)).setStroke()
+                ring.lineWidth = 19; ring.stroke()
+                NSColor(marker.quality.color).setStroke()
+                ring.lineWidth = 11; ring.stroke()
+                var font = NSFont.boldSystemFont(ofSize: 58)
+                while (marker.label as NSString).size(withAttributes: [.font: font]).width > 180 && font.pointSize > 24 {
+                    font = NSFont.boldSystemFont(ofSize: font.pointSize - 2)
+                }
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: font, .foregroundColor: marker.stone == .black ? NSColor.white : NSColor.black]
+                let size = (marker.label as NSString).size(withAttributes: attributes)
+                (marker.label as NSString).draw(at: CGPoint(x: (256 - size.width) / 2, y: 40 - size.height / 2), withAttributes: attributes)
+                return true
+            }
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = image
+            material.writesToDepthBuffer = false
+            let plane = SCNPlane(width: effectiveCellWidth * 0.85, height: effectiveCellWidth * 0.85)
+            plane.materials = [material]
+            let node = SCNNode(geometry: plane)
+            node.name = "ai-recent-quality"
+            node.eulerAngles.x = -.pi / 2
+            node.position = SCNVector3(0, stoneRadius * stoneScaleY * 2 + 0.035, 0)
+            node.castsShadow = false
+            node.renderingOrder = 100
+            anchor.addChildNode(node)
+        }
+    }
+
     // NEW: Territory Rendering
     private var territoryNodes: [SCNNode] = []
     private lazy var territoryMaterials: [Stone: SCNMaterial] = {

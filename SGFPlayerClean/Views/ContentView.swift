@@ -168,7 +168,7 @@ struct VariationTreeView: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var vm: BoardViewModel
     @Binding var isCollapsed: Bool
-    @FocusState private var hasFocus: Bool
+    @StateObject private var treeScroll = VariationTreeScrollSupport.Coordinator()
     private let pitch: CGFloat = 22
     private let nodeOrigin: CGFloat = 38
 
@@ -214,29 +214,45 @@ struct VariationTreeView: View {
                         Text(error).font(.caption).foregroundStyle(.orange).padding(.horizontal, 16)
                     }
                     GeometryReader { geo in
-                        ScrollViewReader { proxy in
-                            ScrollView([.horizontal, .vertical]) {
-                                LazyVStack(spacing: 0) {
-                                    ForEach(tree.rows.indices, id: \.self) { row in
-                                        treeRow(tree, row: row)
-                                            .frame(width: max(geo.size.width, nodeOrigin + CGFloat(tree.columnCount) * pitch), height: pitch)
-                                            .id("tree-row-\(row)")
-                                    }
+                        ScrollView([.horizontal, .vertical]) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(tree.rows.indices, id: \.self) { row in
+                                    treeRow(tree, row: row)
+                                        .frame(width: max(geo.size.width - 16, nodeOrigin + CGFloat(tree.columnCount) * pitch), height: pitch)
+                                        .id("tree-row-\(row)")
                                 }
-                                .padding(.vertical, 12)
-                                .frame(minHeight: geo.size.height, alignment: .topLeading)
                             }
-                            .onAppear { reveal(tree, in: proxy) }
-                            .onChange(of: tree.selectedID) { _, _ in reveal(tree, in: proxy) }
+                            .padding(.vertical, 12)
+                            .frame(minHeight: max(0, geo.size.height - 16), alignment: .topLeading)
+                            .background(VariationTreeScrollSupport(
+                                controller: treeScroll, selection: tree.selectedID,
+                                target: CGRect(x: nodeOrigin + CGFloat(tree.columns[tree.selectedID]) * pitch - pitch / 2,
+                                               y: 12 + CGFloat(tree.nodes[tree.selectedID].depth) * pitch,
+                                               width: pitch, height: pitch)))
                         }
+                        .scrollIndicators(.visible)
+                        .overlay(alignment: .topLeading) {
+                            VariationTreeMouseSurface(controller: treeScroll,
+                                navigate: { vertical, horizontal in vm.navigateReviewTree(vertical: vertical, horizontal: horizontal) },
+                                select: { point in
+                                    if let id = node(at: point, tree: tree) { vm.selectReviewNode(id) }
+                                },
+                                describe: { point in
+                                    guard let id = node(at: point, tree: tree) else { return nil }
+                                    return nodeDescription(tree.nodes[id]) + (tree.nodes[id].comment.map { "\n" + $0 } ?? "")
+                                },
+                                addPass: { point in
+                                    if let id = node(at: point, tree: tree) {
+                                        vm.selectReviewNode(id)
+                                        if vm.reviewTree?.selectedID == id { vm.addReviewMove(at: nil) }
+                                    }
+                                })
+                                .frame(width: max(0, geo.size.width - 16), height: max(0, geo.size.height - 16))
+                        }
+                        .onDisappear { treeScroll.endDrag() }
                     }
                     .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
                     .padding(.horizontal, 12).padding(.bottom, 12)
-                    .focusable().focused($hasFocus)
-                    .onKeyPress(.upArrow) { vm.navigateReviewTree(vertical: -1); return .handled }
-                    .onKeyPress(.downArrow) { vm.navigateReviewTree(vertical: 1); return .handled }
-                    .onKeyPress(.leftArrow) { vm.navigateReviewTree(horizontal: -1); return .handled }
-                    .onKeyPress(.rightArrow) { vm.navigateReviewTree(horizontal: 1); return .handled }
                     if let comment = tree.nodes[tree.selectedID].comment, !comment.isEmpty {
                         ScrollView { Text(comment).font(.callout).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                             .frame(maxHeight: 80).padding(.horizontal, 16).padding(.bottom, 12)
@@ -248,10 +264,10 @@ struct VariationTreeView: View {
         }
     }
 
-    private func reveal(_ tree: ReviewTree, in proxy: ScrollViewProxy) {
-        // Materialize a distant lazy row before scrolling to its horizontal branch.
-        proxy.scrollTo("tree-row-\(tree.nodes[tree.selectedID].depth)", anchor: .center)
-        DispatchQueue.main.async { proxy.scrollTo("tree-node-\(tree.selectedID)", anchor: .center) }
+    private func node(at point: CGPoint, tree: ReviewTree) -> Int? {
+        let row = Int(floor((point.y - 12) / pitch))
+        guard tree.rows.indices.contains(row) else { return nil }
+        return tree.rows[row].first { abs(point.x - (nodeOrigin + CGFloat(tree.columns[$0]) * pitch)) <= pitch / 2 }
     }
 
     private func navigationButton(_ icon: String, _ label: String, disabled: Bool, action: @escaping () -> Void) -> some View {
@@ -288,7 +304,6 @@ struct VariationTreeView: View {
             ForEach(tree.rows[row], id: \.self) { id in
                 let node = tree.nodes[id]
                 Button {
-                    hasFocus = true
                     vm.selectReviewNode(id)
                 } label: {
                     ZStack(alignment: .bottomTrailing) {
@@ -296,7 +311,15 @@ struct VariationTreeView: View {
                         if node.comment != nil { Circle().fill(.orange).frame(width: 3, height: 3) }
                     }
                     .frame(width: 14, height: 14)
-                    .overlay(Circle().stroke(id == tree.selectedID ? Color.cyan : Color.white.opacity(0.35), lineWidth: id == tree.selectedID ? 2 : 1))
+                     .overlay {
+                        if id == tree.selectedID {
+                            Circle().strokeBorder(Color.cyan, lineWidth: 5)
+                                .overlay(Circle().stroke(Color.white.opacity(0.9), lineWidth: 0.75))
+                                .frame(width: 18, height: 18)
+                        } else {
+                            Circle().stroke(Color.white.opacity(0.35), lineWidth: 1)
+                        }
+                    }
                     .frame(width: pitch, height: pitch).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -317,5 +340,151 @@ struct VariationTreeView: View {
     private func nodeDescription(_ node: ReviewTree.Node) -> String {
         guard let color = node.color else { return node.parent == nil ? "Starting position" : "Comment or setup node" }
         return "Move \(node.moveNumber), \(color == .black ? "Black" : "White")" + (node.isPass ? " passes" : "")
+    }
+}
+
+/// Keeps SwiftUI's lazy tree and native wheel/scrollbar behavior, while adding
+/// mouse panning and minimal reveal instead of recentering every selection.
+struct VariationTreeScrollSupport: NSViewRepresentable {
+    let controller: Coordinator
+    let selection: Int
+    let target: CGRect
+
+    final class Anchor: NSView {
+        override var isFlipped: Bool { true }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+    func makeNSView(context: Context) -> Anchor { Anchor() }
+    func makeCoordinator() -> Coordinator { controller }
+    func updateNSView(_ view: Anchor, context: Context) {
+        context.coordinator.update(view: view, selection: selection, target: target)
+    }
+    static func dismantleNSView(_ view: Anchor, coordinator: Coordinator) { coordinator.detach() }
+
+    final class Coordinator: ObservableObject {
+        weak var scroll: NSScrollView?
+        weak var anchor: Anchor?
+        private var origin: CGPoint?
+        private var lastSelection: Int?
+        private var generation = 0
+
+        func detach() {
+            generation += 1
+            scroll = nil; anchor = nil; endDrag()
+        }
+        func update(view: Anchor, selection: Int, target: CGRect) {
+            generation += 1
+            let ticket = generation
+            DispatchQueue.main.async { [weak self, weak view] in
+                guard let self, let view, ticket == self.generation,
+                      let scroll = view.enclosingScrollView else { return }
+                let attaching = self.scroll !== scroll
+                self.scroll = scroll
+                self.anchor = view
+                scroll.scrollerStyle = .legacy
+                scroll.hasVerticalScroller = true
+                scroll.hasHorizontalScroller = true
+                scroll.autohidesScrollers = false
+                guard attaching || self.lastSelection != selection else { return }
+                self.lastSelection = selection
+                guard let document = scroll.documentView else { return }
+                // Coordinates belong to the full content background, including
+                // unmaterialized lazy rows. AppKit reveals only the clipped edges.
+                let rect = view.convert(target, to: document)
+                document.scrollToVisible(rect)
+            }
+        }
+        // The input surface recognizes either a drag or a mouse-up click.
+        // Its coordinates stay fixed while the native content scrolls.
+        func drag(_ translation: CGSize) {
+            guard let scroll else { return }
+            let clip = scroll.contentView
+            if origin == nil { origin = clip.bounds.origin }
+            guard let origin else { return }
+            let proposed = CGRect(origin: CGPoint(x: origin.x - translation.width,
+                y: origin.y - translation.height * (clip.isFlipped ? 1 : -1)), size: clip.bounds.size)
+            clip.scroll(to: clip.constrainBoundsRect(proposed).origin)
+            scroll.reflectScrolledClipView(clip)
+        }
+        func endDrag() { origin = nil }
+    }
+}
+
+/// A mouse surface over the viewport only (never the scrollbars). Mouse-down
+/// records intent; mouse-up selects, unless movement has committed to panning.
+/// Keeping this explicit avoids SwiftUI's different hit behavior over empty rows.
+struct VariationTreeMouseSurface: NSViewRepresentable {
+    let controller: VariationTreeScrollSupport.Coordinator
+    let navigate: (Int, Int) -> Void
+    let select: (CGPoint) -> Void
+    let describe: (CGPoint) -> String?
+    let addPass: (CGPoint) -> Void
+
+    func makeNSView(context: Context) -> Surface { Surface() }
+    func updateNSView(_ view: Surface, context: Context) { view.actions = self }
+    static func dismantleNSView(_ view: Surface, coordinator: ()) { view.actions?.controller.endDrag() }
+
+    final class Surface: NSView {
+        var actions: VariationTreeMouseSurface?
+        private var start: CGPoint?
+        private var dragging = false
+        private var tracking: NSTrackingArea?
+        private var menuPoint: CGPoint?
+        override var isFlipped: Bool { true }
+        override var acceptsFirstResponder: Bool { true }
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func keyDown(with event: NSEvent) {
+            switch event.keyCode {
+            case 123: actions?.navigate(0, -1)
+            case 124: actions?.navigate(0, 1)
+            case 125: actions?.navigate(1, 0)
+            case 126: actions?.navigate(-1, 0)
+            default: super.keyDown(with: event)
+            }
+        }
+        override func isAccessibilityElement() -> Bool { false }
+        override func mouseDown(with event: NSEvent) {
+            start = convert(event.locationInWindow, from: nil)
+            dragging = false
+            actions?.controller.endDrag()
+            window?.makeFirstResponder(self)
+        }
+        override func mouseDragged(with event: NSEvent) {
+            guard let start else { return }
+            let point = convert(event.locationInWindow, from: nil)
+            let delta = CGSize(width: point.x - start.x, height: point.y - start.y)
+            if hypot(delta.width, delta.height) >= 5 { dragging = true }
+            if dragging { toolTip = nil; actions?.controller.drag(delta) }
+        }
+        override func mouseUp(with event: NSEvent) {
+            defer { start = nil; dragging = false; actions?.controller.endDrag() }
+            guard start != nil, !dragging, bounds.contains(convert(event.locationInWindow, from: nil)),
+                  let point = contentPoint(event) else { return }
+            actions?.select(point)
+        }
+        override func scrollWheel(with event: NSEvent) { actions?.controller.scroll?.scrollWheel(with: event) }
+        private func contentPoint(_ event: NSEvent) -> CGPoint? {
+            actions?.controller.anchor?.convert(event.locationInWindow, from: nil)
+        }
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            if let tracking { removeTrackingArea(tracking) }
+            let area = NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect], owner: self)
+            addTrackingArea(area); tracking = area
+        }
+        override func mouseMoved(with event: NSEvent) {
+            toolTip = contentPoint(event).flatMap { actions?.describe($0) }
+                ?? "Click a move to select it; drag to scroll the tree."
+        }
+        override func mouseExited(with event: NSEvent) { toolTip = nil }
+        override func menu(for event: NSEvent) -> NSMenu? {
+            guard let point = contentPoint(event), actions?.describe(point) != nil else { return nil }
+            menuPoint = point
+            let menu = NSMenu()
+            let item = NSMenuItem(title: "Add pass here", action: #selector(addPassHere), keyEquivalent: "")
+            item.target = self; menu.addItem(item)
+            return menu
+        }
+        @objc private func addPassHere() { if let menuPoint { actions?.addPass(menuPoint) } }
     }
 }

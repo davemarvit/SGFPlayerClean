@@ -177,6 +177,7 @@ struct ContentView3D: View {
         
         sceneManager.updateStones(from: bVM.displayedStones, lastMove: bVM.isPreviewingVariation ? nil : bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing && !bVM.isPreviewingVariation && !bVM.restoringVariation)
         sceneManager.updateVariationNumbers(frame: bVM.variationFrame)
+        sceneManager.updateRecentMoveQuality(bVM.recentMoveQualityMarkers)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
         sceneManager.updateTerritory(points: bVM.isPreviewingVariation ? [:] : bVM.territoryPoints)
         sceneManager.updateKoMarker(at: bVM.isPreviewingVariation ? nil : bVM.koPoint)
