@@ -1,85 +1,86 @@
-# Quiet Go screensaver prototype
+# Quiet Go — integrated SGF Player screensaver
 
-Branch: `codex/native-sgf-screensaver`. This is separate from the main application;
-it does not change the app's preferences, login, saved games, or analysis cache.
+Quiet Go is built and bundled with the main application. Open the app's gear
+button, then **Screensaver**, to choose a folder, turn playback on/off, refresh
+the library, preview it, or open macOS Screen Saver settings. Select **Quiet Go**
+in macOS once to use it while idle. The in-app toggle controls Quiet Go playback;
+it does not change the Mac's idle timeout, lock policy, wallpaper or other savers.
 
-## Try the installed build
+A game advances approximately every 1.5 seconds. Its final position remains for
+seven seconds, then another game plays. A shuffled queue includes every game
+before reshuffling and avoids immediate repeats across cycles (a one-game library
+necessarily repeats). Playback continues indefinitely. It is silent, uses the
+normal SGF parser/replay engine, and handles setup, captures, passes and main-line
+variations. The 2D renderer includes separate soft stone shadows.
 
-- Preview app: `/Users/Dave/Applications/SGF Screensaver Preview.app`
-- Native screensaver: `/Users/Dave/Library/Screen Savers/Quiet Go.saver`
-- In **System Settings → Screen Saver**, select **Quiet Go** (under Other) and use
-  Preview. This last step exercises Apple's actual sandboxed screensaver host.
+## Folder and settings storage
 
-The preview app loads the very same `.saver` bundle, rather than a second renderer.
-Close its window or press Command-Q to exit. The prototype is silent, advances a
-move every approximately 1.5 seconds, holds the final position for seven seconds,
-and cycles through the playlist. It uses the normal SGF parser and replay engine,
-including setup, captures, passes and the first variation/main line.
+The selected folder is independent of the app's Review library. Subfolders are
+included; hidden files, packages and symlinked files are excluded. Empty,
+unsupported, and >2 MB SGFs are skipped and counted in the UI. There is no 80-game
+limit. Originals are never modified. Folder selection creates validated playback
+copies in `~/Library/Application Support/SGFPlayerScreensaver/Libraries/<UUID>`.
+Configuration is in that directory's parent, `configuration.json`.
 
-For this first experiment, the build copied 80 recent SGFs from
-`/Users/Dave/Go/Games` into its own `Contents/Resources/Games` folder. It scans that
-folder on creation. These are copies, not live links; edits/additions to the source
-folder require rebuilding the prototype. Originals are untouched. Bundling the
-folder avoids the separate security-scoped folder-selection problem in Apple's
-sandboxed host. Folder selection, 3D, lids, shuffling and other options are deferred.
-Don't edit the installed bundle's contents: that invalidates its signature.
+Copies let the screensaver work with the app closed, even when the source folder
+is on an unavailable volume or in a location protected by macOS privacy rules.
+They refresh when the main app opens and when Refresh is pressed. Newly added
+source games become available after that refresh; this is not a live folder watch.
 
-## Build and test
+A complete generation is published atomically; the previous generation is kept
+until the following successful refresh. Empty/unreadable replacement folders and
+copy failures leave the previous configuration/library intact. Import excludes
+its own playback cache to prevent recursive copying. The current screensaver
+notices enablement/folder-generation changes within approximately one second.
 
-Requires Xcode command-line tools on Apple Silicon. This prototype currently
-builds arm64 only, with a minimum deployment target of macOS 14.
+The screensaver resolves the real user's home rather than the system host's
+container home. On the inspected macOS 15.7.3 host, legacyScreenSaver has a read-only
+filesystem exception for `/`; it can read this ordinary Application Support
+library. The saver never opens the original source folder or reuses another app's
+app-scoped bookmark. Only the main app retains the source bookmark for refresh.
+
+## Packaging and implementation
+
+The Xcode Build Screensaver phase calls `Screensaver/build.py`, embedding:
+
+- `Contents/Resources/Screensaver/Quiet Go.saver`
+- `Contents/Resources/Screensaver/SGF Screensaver Preview.app`
+
+The Preview button opens that companion app, which loads the same native bundle.
+The installer copies the pre-signed bundle to `~/Library/Screen Savers/Quiet Go.saver`;
+changing a folder never modifies/re-signs an executable. Enabling playback and
+main-app launch update the installed module from the bundled version. The current
+builder targets arm64/macOS 14+, chooses an available Developer ID identity, and
+falls back to ad-hoc signing on development machines without one. A content
+fingerprint avoids unnecessary recompilation. No games are embedded in the signed
+bundles, and nothing is uploaded or notarized by these scripts.
+
+The shared replay engine gets a module-local settings adapter. Main app preferences,
+OGS, KataGo and sound services are not linked into the saver. ScreenSaverView owns
+animation timing; late callbacks after stop are ignored. The distributed system
+stop notification also pauses playback without killing Apple's shared host.
 
 ```sh
-python3 Screensaver/build.py --games-folder /path/to/SGFs --output /tmp/quiet-go \
-  --identity 'Developer ID Application: Your Name (TEAMID)'
-python3 Screensaver/test.py --library '/tmp/quiet-go/Quiet Go.saver/Contents/Resources/Games'
-'/tmp/quiet-go/SGF Screensaver Preview.app/Contents/MacOS/SaverPreview' --test
+python3 Screensaver/build.py --output /tmp/quiet-go
+python3 Screensaver/test.py
 ```
 
-`--limit` controls the maximum number of source SGFs copied (default 80); newest
-files are selected first. Empty or >2 MB files are omitted. The manifest includes
-original paths and content hashes. The builder verifies signatures but does not
-install anything or change the selected system screensaver. Without `--identity`,
-it uses ad-hoc signing for development. The local installed build is signed with
-the owner's Developer ID certificate, without notarization or any upload.
-
-The playlist tests run with networking denied. The host tests load the real signed
-bundle, advance real timers, render at full and preview sizes, stop/resume and
-check independent instances. Test images are written to `/private/tmp/sgf-saver-*`.
-The shared engine uses a tiny module-local playback-settings adapter, not the main
-app's preference/audio services. Neither OGSClient nor KataGo is linked. The saver
-owns no repeating timers: animation follows ScreenSaverView's lifecycle. Late
-frame callbacks after stop are ignored. A distributed system stop notification
-also pauses playback, without terminating Apple's shared host process.
-
-## Verification status and previous attempt
-
-The installed old SGF saver had literal `$(EXECUTABLE_NAME)` in its Info.plist.
-Both earlier test saver bundles failed code-sign verification. This prototype
-uses an explicit executable/principal-class name and a verified signature.
-Old saver bundles and main-app backups were retained.
-
-Native integration remains to be verified by selecting Quiet Go in Settings.
-Launching ScreenSaverEngine directly from the terminal was rejected by macOS's
-launch constraints for Apple's engine (not by rejection of our bundle). Opening
-the engine through Launch Services worked, but the historical `-module` argument
-did not select/load Quiet Go on macOS 15.7.3. There are no Quiet Go playback logs
-from the system host yet. This environment has no Accessibility permission to
-select it in Settings. No wallpaper, lock, idle-timeout or selected-saver settings
-were edited, and no security protections were disabled.
-
-The documented native integration is Apple's ScreenSaverView:
-https://developer.apple.com/documentation/screensaver/screensaverview
-
-Relevant current host lifecycle/sandbox limitations are documented by the author
-of ScreenSaverMinimal (reference only; no source copied into this prototype):
-https://github.com/AerialScreensaver/ScreenSaverMinimal
+`Tests/MainRelease/ScreensaverSettings.swift` tests importing, installation,
+enablement, failed replacement and settings rendering against the Release build.
+It writes an isolated configuration-root path to `/private/tmp/sgf-integrated-fixture-path`.
+The preview executable accepts `--test --configuration-root <that path>` for
+signed-bundle rendering, timing, stop/restart, enablement and folder-change tests.
+Source-folder access and all networking can be denied during this test.
+`Screensaver/test.py --library <prepared-library>` additionally replays every SGF.
 
 Diagnostics: Console filter `subsystem:com.davemarvit.SGFPlayer.QuietSaver`.
-Successful native activation should show View initialized, Loaded game, Started,
-and increasing Move entries from Apple's legacyScreenSaver host, not SaverPreview.
+Native activation logs come from Apple's legacyScreenSaver process; preview-host
+logs come from SaverPreview. Native selection is done in System Settings: the old
+ScreenSaverEngine `-module` argument does not select a module on this Mac.
 
-Final offline validation on 2026-10-16: all 80 copied games replayed to completion
-(18,234 moves; zero unsupported/empty records). Playlist regression fixtures and
-the signed-bundle preview-host tests pass. The small-preview caption fits without
-clipping. All test processes were closed after verification.
+References:
+- https://developer.apple.com/documentation/screensaver/screensaverview
+- https://github.com/AerialScreensaver/ScreenSaverMinimal
+
+Earlier failed bundles and the previous main app are retained in the dated
+Integrated-screensaver backup. Prior backups remain intact.

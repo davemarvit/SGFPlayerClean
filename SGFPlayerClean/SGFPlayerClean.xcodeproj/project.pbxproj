@@ -111,6 +111,9 @@
 		59C642C493786897ADB99BA0 /* AIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE854988B61CB60E83D1A103 /* AIModels.swift */; };
 		A9F040FFBF3A3C4AD2071882 /* analysis.cfg in Resources */ = {isa = PBXBuildFile; fileRef = FF114AFAB279900C135568FB /* analysis.cfg */; };
 		BB0A41E1BB261FCBDF8DA7F5 /* AITopMovesOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612B4CE189AB85FFECF7C8AD /* AITopMovesOverlay.swift */; };
+		C0DE10000000000000000010 /* ScreensaverConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000000 /* ScreensaverConfiguration.swift */; };
+		C0DE10000000000000000011 /* ScreensaverManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000001 /* ScreensaverManager.swift */; };
+		C0DE10000000000000000012 /* ScreensaverSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000002 /* ScreensaverSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -220,6 +223,9 @@
 		BE854988B61CB60E83D1A103 /* AIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIModels.swift; path = Models/AIModels.swift; sourceTree = SOURCE_ROOT; };
 		EE8448639E01F803E00A0F2B /* KataGoEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KataGoEngine.swift; path = Services/KataGoEngine.swift; sourceTree = SOURCE_ROOT; };
 		FF114AFAB279900C135568FB /* analysis.cfg */ = {isa = PBXFileReference; lastKnownFileType = None; name = analysis.cfg; path = Resources/analysis.cfg; sourceTree = SOURCE_ROOT; };
+		C0DE10000000000000000000 /* ScreensaverConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverConfiguration.swift; sourceTree = "<group>"; };
+		C0DE10000000000000000001 /* ScreensaverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverManager.swift; sourceTree = "<group>"; };
+		C0DE10000000000000000002 /* ScreensaverSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -325,6 +331,7 @@
 		55EEB5592EFFEAC600030E2A /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE10000000000000000000 /* ScreensaverConfiguration.swift */,
 				55EEB5A42F0118D400030E2A /* SGFPlayerClean.entitlements */,
 				55EEB54B2EFFEAC600030E2A /* AppModel.swift */,
 				55EEB54C2EFFEAC600030E2A /* AppSettings.swift */,
@@ -346,6 +353,7 @@
 		55EEB55C2EFFEAC600030E2A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE10000000000000000001 /* ScreensaverManager.swift */,
 				55EEB55A2EFFEAC600030E2A /* FileLoadingService.swift */,
 				55EEB55B2EFFEAC600030E2A /* OGSClient.swift */,
 				C0DE0000000000000000000D /* OGSSocketEvent.swift */,
@@ -375,6 +383,7 @@
 		55EEB5762EFFEAC600030E2A /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				C0DE10000000000000000002 /* ScreensaverSettingsView.swift */,
 				55EEB5642EFFEAC600030E2A /* ActiveGamePanel.swift */,
 				C0DE00000000000000000022 /* OGSScoringPanel.swift */,
 				C0DE00000000000000000042 /* LocalScoringPanel.swift */,
@@ -419,6 +428,7 @@
 				55B9DD6B2ECEE05200066FA3 /* Sources */,
 				55B9DD6C2ECEE05200066FA3 /* Frameworks */,
 				55B9DD6D2ECEE05200066FA3 /* Resources */,
+				C0DE10000000000000000030 /* Build Screensaver */,
 			);
 			buildRules = (
 			);
@@ -531,11 +541,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+        C0DE10000000000000000030 /* Build Screensaver */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Build Screensaver";
+            outputPaths = ("$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/Screensaver/build-info.json");
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/sh;
+            shellScript = "/usr/bin/python3 \"$SRCROOT/../Screensaver/build.py\" --output \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/Screensaver\"";
+        };
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		55B9DD6B2ECEE05200066FA3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE10000000000000000012 /* ScreensaverSettingsView.swift in Sources */,
+				C0DE10000000000000000011 /* ScreensaverManager.swift in Sources */,
+				C0DE10000000000000000010 /* ScreensaverConfiguration.swift in Sources */,
 				C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */,
 				C0DE00000000000000000016 /* OGSJSONReader.swift in Sources */,
 				C0DE00000000000000000015 /* OGSPaginatedReader.swift in Sources */,
@@ -627,7 +655,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -690,7 +718,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;

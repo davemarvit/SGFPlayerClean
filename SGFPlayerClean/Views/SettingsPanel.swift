@@ -48,6 +48,8 @@ struct SettingsPanel: View {
                         Divider().background(Color.white.opacity(0.3))
                         aiSection
                         Divider().background(Color.white.opacity(0.3))
+                        ScreensaverSettingsView(manager: .shared)
+                        Divider().background(Color.white.opacity(0.3))
                         librarySection
                     }
                     .padding()

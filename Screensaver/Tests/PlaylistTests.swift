@@ -13,7 +13,7 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) {
         try write("01.sgf", "(;SZ[9]PB[Alice]PW[Bob];B[ba];W[aa];B[ab])")
         try write("02.sgf", "(;SZ[9]AB[cc]AW[gg];B[dd](;W[ee];B[])(;W[ff]))")
         try write("03.sgf", "not sgf")
-        let list = SaverPlaylist(folder: folder, moveInterval: 1, endPause: 5)
+        let list = SaverPlaylist(folder: folder, moveInterval: 1, endPause: 5, shuffle: false)
         list.start(at: 0)
         check(list.files.count == 3 && list.player.maxIndex == 3 && list.player.currentIndex == 0, "Load first game paused on empty board")
         check(!list.advance(at: 0.9), "Move interval respected")
@@ -33,6 +33,24 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) {
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
         let missing = SaverPlaylist(folder: empty); missing.start(at: 0)
         check(missing.game == nil && missing.errorMessage != nil && !missing.advance(at: 1), "Empty library has useful error and no busy loop")
+        let randomFolder = folder.appendingPathComponent("random")
+        try FileManager.default.createDirectory(at: randomFolder, withIntermediateDirectories: true)
+        for i in 0..<5 { try "(;SZ[9];B[dd])".write(to: randomFolder.appendingPathComponent("\(i).sgf"), atomically: true, encoding: .utf8) }
+        let random = SaverPlaylist(folder: randomFolder, moveInterval: 0.1, endPause: 0.1)
+        var time: Double = 0, previous: URL?
+        random.start(at: time)
+        for _ in 0..<8 {
+            var seen: Set<URL> = []
+            for _ in 0..<5 {
+                let current = random.file!
+                check(current != previous, "No immediate repetition across shuffle cycles")
+                seen.insert(current); previous = current
+                time += 1; _ = random.advance(at: time)
+                time += 1; _ = random.advance(at: time)
+            }
+            check(seen.count == 5, "Each random cycle includes the whole library exactly once")
+        }
+        print("PASS: eight continuous shuffle cycles, full library coverage, no immediate repeats")
         if let argument = CommandLine.arguments.firstIndex(of: "--library"), argument + 1 < CommandLine.arguments.count {
             let library = URL(fileURLWithPath: CommandLine.arguments[argument + 1])
             var games = 0, moves = 0, skipped = 0

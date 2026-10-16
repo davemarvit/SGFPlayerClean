@@ -91,6 +91,7 @@ struct SGFPlayerCleanApp: App {
             ContentView()
                 .environmentObject(appModel)
                 .frame(minWidth: 1000, minHeight: 700)
+                .task { await ScreensaverManager.shared.refreshOnLaunch() }
             #endif
 //            StoneLaboratoryView()
 //                .frame(minWidth: 800, minHeight: 600)

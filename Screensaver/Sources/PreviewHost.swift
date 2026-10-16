@@ -16,6 +16,7 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
             require(false, "Load actual screensaver bundle and principal class"); return
         }
         saver = view
+        configure(view)
         window = NSWindow(contentRect: view.bounds, styleMask: [.titled,.closable,.resizable,.miniaturizable], backing: .buffered, defer: false)
         window.title = "SGF Screensaver Preview"; window.contentView = view
         window.center(); window.makeKeyAndOrderFront(nil)
@@ -24,11 +25,16 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
         if testing { DispatchQueue.main.async { self.test() } }
         else { NSApp.activate(ignoringOtherApps: true) }
     }
+    func configure(_ view: ScreenSaverView) {
+        if let i = CommandLine.arguments.firstIndex(of: "--configuration-root"), i + 1 < CommandLine.arguments.count {
+            view.perform(NSSelectorFromString("setConfigurationRoot:"), with: CommandLine.arguments[i + 1])
+        }
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     func applicationWillTerminate(_ notification: Notification) { timer?.invalidate(); saver?.stopAnimation() }
     func test() {
         func settle(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
-        require((saver.value(forKey: "loadedGameCount") as? Int ?? 0) > 0, "Bundled folder loads")
+        require((saver.value(forKey: "loadedGameCount") as? Int ?? 0) > 0, "Configured folder loads")
         settle(3.4)
         let index = saver.value(forKey: "displayedMove") as? Int ?? 0
         require(index >= 2, "Actual bundle advances moves")
@@ -47,9 +53,31 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
         require((saver.value(forKey: "displayedMove") as? Int ?? 0) > index, "Restart resumes playback")
         // Apple may instantiate more than one view. Preview must work independently.
         let second = (type(of: saver)).init(frame: NSRect(x:0,y:0,width:320,height:220), isPreview: true)!
+        configure(second)
         second.startAnimation(); require(second.value(forKey: "displayedMove") as? Int == 0, "Independent preview state")
         second.stopAnimation()
-        print("PASS: signed bundle load, folder read, rendering at full/preview sizes, real timed playback, stop/late-frame/restart, independent instances")
+        if let i = CommandLine.arguments.firstIndex(of: "--configuration-root"), i + 1 < CommandLine.arguments.count {
+            let root = URL(fileURLWithPath: CommandLine.arguments[i + 1]), file = root.appendingPathComponent("configuration.json")
+            let original = try! Data(contentsOf: file)
+            defer { try! original.write(to: file, options: .atomic) }
+            var config = try! JSONSerialization.jsonObject(with: original) as! [String: Any]
+            func save() { try! JSONSerialization.data(withJSONObject: config).write(to: file, options: .atomic) }
+            config["enabled"] = false; save(); settle(1.3)
+            require(saver.value(forKey: "playbackRunning") as? Bool == false, "Disable setting stops active playback")
+            let stopped = saver.value(forKey: "displayedMove") as? Int
+            settle(1.7)
+            require(saver.value(forKey: "displayedMove") as? Int == stopped, "Disabled playback stays stopped")
+            config["enabled"] = true; save(); settle(1.3)
+            require(saver.value(forKey: "playbackRunning") as? Bool == true, "Re-enable resumes active saver")
+            let generation = UUID().uuidString
+            let replacement = root.appendingPathComponent("Libraries").appendingPathComponent(generation)
+            try! FileManager.default.createDirectory(at: replacement, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: replacement) }
+            try! "(;SZ[13];B[dd];W[jj])".write(to: replacement.appendingPathComponent("replacement.sgf"), atomically: true, encoding: .utf8)
+            config["generation"] = generation; config["gameCount"] = 1; save(); settle(1.3)
+            require(saver.value(forKey: "displayedBoardSize") as? Int == 13 && saver.value(forKey: "displayedGame") as? String == "replacement.sgf", "A published folder replacement loads in the active saver")
+        }
+        print("PASS: signed bundle load, folder read, rendering at full/preview sizes, real timed playback, stop/late-frame/restart, independent instances, enable/disable and folder changes")
         NSApp.terminate(nil)
     }
 }

@@ -9,14 +9,16 @@ final class SaverPlaylist {
     private(set) var files: [URL] = []
     private(set) var errorMessage: String?
     private(set) var running = false
-    private var cursor = 0
+    private var playedGames = 0
+    private var queue: [URL] = []
+    private let shuffle: Bool
     private var nextMoveAt: TimeInterval = 0
     let moveInterval: TimeInterval
     let endPause: TimeInterval
     let folder: URL
 
-    init(folder: URL, moveInterval: TimeInterval = 1.5, endPause: TimeInterval = 7) {
-        self.folder = folder
+    init(folder: URL, moveInterval: TimeInterval = 1.5, endPause: TimeInterval = 7, shuffle: Bool = true) {
+        self.folder = folder; self.shuffle = shuffle
         self.moveInterval = max(0.1, moveInterval); self.endPause = max(0.1, endPause)
         reloadFiles()
     }
@@ -28,7 +30,8 @@ final class SaverPlaylist {
                       values.isRegularFile == true, let bytes = values.fileSize else { return false }
                 return bytes > 0 && bytes <= 2_000_000
             }.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
-        cursor = 0
+        queue = shuffle ? files.shuffled() : files.reversed()
+        if queue.count > 1, queue.last == file { queue.swapAt(0, queue.count - 1) }
         if files.isEmpty { errorMessage = "No SGF games in the screensaver's Games folder." }
     }
     func start(at time: TimeInterval) {
@@ -57,8 +60,10 @@ final class SaverPlaylist {
         return true
     }
     private func loadNext(at time: TimeInterval) {
+        if queue.isEmpty { reloadFiles() }
         for _ in files.indices {
-            let url = files[cursor % files.count]; cursor += 1
+            if queue.isEmpty { reloadFiles() }
+            guard let url = queue.popLast() else { break }
             do {
                 let data = try Data(contentsOf: url)
                 guard data.count <= 2_000_000, let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) else { continue }
@@ -67,10 +72,10 @@ final class SaverPlaylist {
                 // particular, mid-game setup edits must not become root stones.
                 let replay = try ReviewTree(game: original, analysisID: "screensaver", filename: url.lastPathComponent).playbackGame()
                 guard (2...25).contains(replay.boardSize), !replay.moves.isEmpty else { continue }
-                game = replay; file = url; errorMessage = nil
+                game = replay; file = url; errorMessage = nil; playedGames += 1
                 player.load(game: replay)
                 nextMoveAt = time + moveInterval
-                Self.log.notice("Loaded game \(self.cursor, privacy: .public); moves=\(self.player.maxIndex, privacy: .public)")
+                Self.log.notice("Loaded game \(self.playedGames, privacy: .public); moves=\(self.player.maxIndex, privacy: .public)")
                 return
             } catch { Self.log.error("Skipped unreadable or unsupported SGF") }
         }

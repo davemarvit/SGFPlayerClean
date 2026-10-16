@@ -4,7 +4,12 @@ import QuartzCore
 
 @objc(QuietGoSaverView)
 final class QuietGoSaverView: ScreenSaverView {
-    private var playlist: SaverPlaylist!
+    private var playlist: SaverPlaylist?
+    private var configurationRoot = ScreensaverConfiguration.root
+    private var generation: String?
+    private var playbackEnabled = false
+    private var lastConfigCheck: TimeInterval = 0
+    private var configurationMessage = "Choose a games folder in SGF Player’s Screensaver settings."
     private var wood: NSImage?
     private var tatami: NSImage?
     private var blackStone: NSImage?
@@ -22,8 +27,6 @@ final class QuietGoSaverView: ScreenSaverView {
     private func prepare() {
         animationTimeInterval = 0.2 // Board is redrawn only when a move changes.
         let bundle = Bundle(for: QuietGoSaverView.self)
-        let folder = bundle.resourceURL!.appendingPathComponent("Games", isDirectory: true)
-        playlist = SaverPlaylist(folder: folder)
         func image(_ name: String) -> NSImage? {
             bundle.url(forResource: name, withExtension: nil).flatMap { NSImage(contentsOf: $0) }
         }
@@ -38,25 +41,61 @@ final class QuietGoSaverView: ScreenSaverView {
     override var isFlipped: Bool { true }
     override var isOpaque: Bool { true }
     override func startAnimation() {
-        super.startAnimation(); playlist.start(at: CACurrentMediaTime()); needsDisplay = true
+        super.startAnimation()
+        refreshConfiguration(force: true)
+        if playbackEnabled { playlist?.start(at: CACurrentMediaTime()) }
+        needsDisplay = true
+    }
+    @objc func setConfigurationRoot(_ path: String) {
+        playlist?.stop(); playlist = nil; generation = nil
+        configurationRoot = URL(fileURLWithPath: path, isDirectory: true)
+        refreshConfiguration(force: true)
+    }
+    private func refreshConfiguration(force: Bool = false) {
+        let now = CACurrentMediaTime()
+        guard force || now - lastConfigCheck >= 1 else { return }
+        lastConfigCheck = now
+        do {
+            let config = try ScreensaverConfiguration.load(root: configurationRoot)
+            let changed = generation != config.generation
+            if changed {
+                playlist?.stop()
+                playlist = SaverPlaylist(folder: config.libraryURL(root: configurationRoot)!)
+                generation = config.generation
+            }
+            if config.enabled != playbackEnabled || changed {
+                playbackEnabled = config.enabled
+                if config.enabled && isAnimating { playlist?.start(at: now) }
+                else { playlist?.stop() }
+                needsDisplay = true
+            }
+            configurationMessage = "Quiet Go playback is off. Enable it in SGF Player’s Screensaver settings."
+        } catch {
+            playlist?.stop(); playbackEnabled = false
+            configurationMessage = "Choose a games folder in SGF Player’s Screensaver settings."
+            needsDisplay = true
+        }
     }
     override func stopAnimation() {
-        playlist.stop(); super.stopAnimation()
+        playlist?.stop(); super.stopAnimation()
     }
     override func animateOneFrame() {
-        if playlist.advance(at: CACurrentMediaTime()) { needsDisplay = true }
+        guard isAnimating else { return }
+        refreshConfiguration()
+        if playbackEnabled, playlist?.advance(at: CACurrentMediaTime()) == true { needsDisplay = true }
     }
     // Read-only hooks let the standalone host test the actual installed bundle.
-    @objc var displayedMove: Int { playlist.player.currentIndex }
-    @objc var displayedGame: String { playlist.file?.lastPathComponent ?? "" }
-    @objc var loadedGameCount: Int { playlist.files.count }
-    @objc var playbackRunning: Bool { playlist.running }
+    @objc var displayedBoardSize: Int { playlist?.player.board.size ?? 0 }
+    @objc var displayedMove: Int { playlist?.player.currentIndex ?? 0 }
+    @objc var displayedGame: String { playlist?.file?.lastPathComponent ?? "" }
+    @objc var loadedGameCount: Int { playlist?.files.count ?? 0 }
+    @objc var playbackRunning: Bool { playlist?.running ?? false }
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor(calibratedRed: 0.15, green: 0.19, blue: 0.10, alpha: 1).setFill(); bounds.fill()
         tatami?.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
-        guard let game = playlist.game else {
-            drawText(playlist.errorMessage ?? "Loading games…", in: bounds.insetBy(dx: 20, dy: bounds.height * 0.45), size: max(12, bounds.width / 60))
+        guard playbackEnabled, let playlist, let game = playlist.game else {
+            drawText(playbackEnabled ? (playlist?.errorMessage ?? "Loading games…") : configurationMessage, in: bounds.insetBy(dx: 20, dy: bounds.height * 0.45), size: max(12, bounds.width / 60))
             return
         }
         let width = max(1, min(bounds.width * 0.88, max(1, bounds.height - 34) * 0.96 / 1.0773))
@@ -81,10 +120,23 @@ final class QuietGoSaverView: ScreenSaverView {
         let stars: [Int] = game.boardSize == 19 ? [3,9,15] : game.boardSize == 13 ? [3,6,9] : game.boardSize == 9 ? [2,4,6] : []
         NSColor.black.setFill()
         for r in stars { for c in stars {
+            if game.boardSize != 19 && (r == stars[1]) != (c == stars[1]) { continue }
             let p = point(BoardPosition(r,c)), radius = width * 0.004
             NSBezierPath(ovalIn: NSRect(x: p.x-radius, y: p.y-radius, width: radius*2, height: radius*2)).fill()
         } }
         let diameter = pitchX * 0.97
+        NSGraphicsContext.saveGraphicsState()
+        let stoneShadow = NSShadow()
+        stoneShadow.shadowColor = NSColor.black.withAlphaComponent(0.48)
+        stoneShadow.shadowBlurRadius = max(0.8, diameter * 0.09)
+        stoneShadow.shadowOffset = NSSize(width: diameter * 0.085, height: diameter * 0.085)
+        stoneShadow.set()
+        NSColor.black.setFill()
+        for position in playlist.player.board.stones.keys {
+            let p = point(position), d = diameter * 0.94
+            NSBezierPath(ovalIn: NSRect(x: p.x-d/2, y: p.y-d/2, width: d, height: d)).fill()
+        }
+        NSGraphicsContext.restoreGraphicsState()
         for (position, color) in playlist.player.board.stones {
             let p = point(position), rect = NSRect(x: p.x-diameter/2, y: p.y-diameter/2, width: diameter, height: diameter)
             if let image = color == .black ? blackStone : whiteStone {
