@@ -80,7 +80,7 @@ struct ContentView3D: View {
                 .frame(width: geo.size.width * 1.4, height: sceneHeight)
                 // With analysis over the lids, use more of the left margin to keep
                 // the enlarged board clear of the overlay, including portrait windows.
-                .offset(x: -(geo.size.width * (app.isAIAvailable ? 0.32 : 0.29)), y: (geo.size.height - sceneHeight) / 2)
+                .offset(x: -(geo.size.width * (app.showsAnalysisWorkspace ? 0.32 : 0.29)), y: (geo.size.height - sceneHeight) / 2)
                 }
                 .edgesIgnoringSafeArea(.all)
                 
@@ -94,7 +94,7 @@ struct ContentView3D: View {
                 .onChange(of: bVM.ghostColor) { _, _ in updateScene() }
                 
                 // Floating Metadata + AI Table (Aligned identically to 2D)
-                if !app.isAIAvailable, let game = app.selection {
+                if !app.showsAnalysisWorkspace, let game = app.selection {
                     GeometryReader { geo in
                         let L = getLayout(area: geo.size)
                         let margin = L.bW * 0.065

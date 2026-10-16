@@ -5,10 +5,16 @@
 import Foundation
 import SwiftUI
 import Combine
+import CryptoKit
 
 class BoardViewModel: ObservableObject {
     @Published var isOnlineContext: Bool = false
     @Published var moveError: String?
+    @Published private(set) var reviewTree: ReviewTree?
+    @Published var reviewTreeError: String?
+    @Published private(set) var reviewDraftSaved = false
+    private let reviewDraftDirectory: URL
+    var canNavigateReview: (() -> Bool)?
     @Published var koPoint: BoardPosition?
     var ruleSummary: String {
         let name = engine.analysisSettings.rules ?? "Chinese (assumed)"
@@ -33,11 +39,15 @@ class BoardViewModel: ObservableObject {
         let scoring: LocalScoringSession?
         let handicap: Int
         let dismissedAtIndex: Int?
+        let reviewTree: ReviewTree?
+        let draftSaved: Bool
     }
-    func localViewState() -> LocalViewState {
-        LocalViewState(scoring: localScoring, handicap: localHandicap, dismissedAtIndex: scoringDismissedAtIndex)
+    func localViewState(includeTree: Bool = true) -> LocalViewState {
+        LocalViewState(scoring: localScoring, handicap: localHandicap, dismissedAtIndex: scoringDismissedAtIndex, reviewTree: includeTree ? reviewTree : nil, draftSaved: includeTree && reviewDraftSaved)
     }
     func restoreLocalViewState(_ state: LocalViewState) {
+        reviewTree = state.reviewTree
+        reviewDraftSaved = state.draftSaved
         localScoring = state.scoring
         localHandicap = state.handicap
         scoringDismissedAtIndex = state.dismissedAtIndex
@@ -154,7 +164,10 @@ class BoardViewModel: ObservableObject {
     private var scrubTimer: Timer?
     private var pendingScrubIndex: Int?
     
-    init(player: SGFPlayer, ogsClient: OGSClient, isAIAllowed: (() -> Bool)? = nil, analysisEngine: KataGoEngine = .shared) {
+    init(player: SGFPlayer, ogsClient: OGSClient, isAIAllowed: (() -> Bool)? = nil, analysisEngine: KataGoEngine = .shared, reviewDraftDirectory: URL? = nil) {
+        self.reviewDraftDirectory = reviewDraftDirectory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.davemarvit.SGFPlayerClean")
+            .appendingPathComponent("ReviewDrafts", isDirectory: true)
         self.analysisEngine = analysisEngine
         self.engine = player
         self.ogsClient = ogsClient
@@ -257,6 +270,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func resetToEmpty() {
+        reviewTree = nil; reviewTreeError = nil; reviewDraftSaved = false
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = 0
         fullGameAnalysisTask?.cancel()
@@ -286,13 +300,141 @@ class BoardViewModel: ObservableObject {
         self.isOnlineContext = false
         
         let newGameId = wrapper.url.path.replacingOccurrences(of: "/", with: "_")
-        self.engine.load(game: wrapper.game)
-        _ = analysisEngine.loadAnalysisCache(for: newGameId, game: engine)
+        reviewTree = ReviewTree(game: wrapper.game, analysisID: newGameId, filename: wrapper.url.lastPathComponent)
+        reviewTreeError = nil
+        reviewDraftSaved = false
+        if let original = reviewTree, let data = try? Data(contentsOf: reviewDraftURL(original)) {
+            do {
+                if let restored = try JSONDecoder().decode(ReviewDraft.self, from: data).restore(over: original) {
+                    reviewTree = restored; reviewDraftSaved = true
+                }
+            } catch { reviewTreeError = "Could not restore the review draft: " + error.localizedDescription }
+        }
+        let playback: SGFGame
+        do { playback = try reviewTree!.playbackGame() }
+        catch { reviewTreeError = error.localizedDescription; playback = SGFGame() }
+        self.engine.load(game: playback)
+        if let document = reviewTree { engine.seek(to: document.nodes[document.selectedID].moveNumber) }
+        _ = analysisEngine.loadAnalysisCache(for: reviewTree.map(reviewAnalysisID) ?? newGameId, game: engine)
         self.jitterEngine = StoneJitter(boardSize: self.boardSize, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         self.lastObservedMoveIndex = self.engine.currentIndex
         self.syncState()
     }
     
+    func selectReviewNode(_ id: Int) {
+        guard canNavigateReview?() == true, !isOnlineContext, var document = reviewTree,
+              document.nodes.indices.contains(id) else { return }
+        let previousPath = document.activePath
+        document.select(id)
+        activateReviewDocument(document, reload: previousPath != document.activePath)
+    }
+
+    private func activateReviewDocument(_ document: ReviewTree, reload: Bool, newMove: Bool = false) {
+        let game: SGFGame
+        do { game = try document.playbackGame() }
+        catch { reviewTreeError = error.localizedDescription; return }
+        cancelScrubbing(); cancelVariationPreview(); engine.pause()
+        reviewTreeError = nil
+        let index = document.nodes[document.selectedID].moveNumber
+        if reload {
+            fullGameAnalysisTask?.cancel()
+            analysisEngine.pauseAnalysis()
+            analysisEngine.saveAnalysisCache(for: analysisEngine.currentGameId)
+            engine.load(game: game)
+            engine.seek(to: index)
+            let key = reviewAnalysisID(document)
+            _ = analysisEngine.loadAnalysisCache(for: key, game: engine)
+            // StoneJitter keeps the unchanged prefix stable across branch edits.
+            localScoring = nil; scoringDismissedAtIndex = nil
+        } else { engine.seek(to: index) }
+        reviewTree = document
+        if !newMove { lastObservedMoveIndex = index } // Navigation is silent; explicit moves retain normal audio.
+        syncState()
+        if reload { triggerFullGameAnalysis() }
+    }
+
+    var canCreateReviewVariation: Bool { canNavigateReview?() == true && !isOnlineContext && reviewTree != nil }
+
+    func addReviewMove(at point: BoardPosition?) {
+        guard canCreateReviewVariation, var document = reviewTree else { return }
+        cancelScrubbing(); cancelVariationPreview(); engine.pause()
+        document.followPlayback(index: engine.currentIndex)
+        if let rejection = engine.moveRejection(color: engine.turn, x: point?.col ?? -1, y: point?.row ?? -1) {
+            moveError = rejection.rawValue; return
+        }
+        let updated = document.addingMove(color: engine.turn, point: point)
+        moveError = nil
+        activateReviewDocument(updated, reload: true, newMove: updated.nodes.count > document.nodes.count)
+        if reviewTreeError == nil { saveReviewDraft() }
+    }
+
+    private func reviewDraftURL(_ document: ReviewTree) -> URL {
+        let digest = SHA256.hash(data: Data(document.baseAnalysisID.utf8)).map { String(format: "%02x", $0) }.joined()
+        return reviewDraftDirectory.appendingPathComponent(digest + ".json")
+    }
+
+    private func saveReviewDraft() {
+        guard let document = reviewTree else { return }
+        do {
+            try FileManager.default.createDirectory(at: reviewDraftDirectory, withIntermediateDirectories: true)
+            try JSONEncoder().encode(ReviewDraft(document)).write(to: reviewDraftURL(document), options: .atomic)
+            reviewDraftSaved = true
+        } catch {
+            reviewDraftSaved = false
+            reviewTreeError = "Could not save the review draft. Please use Save SGF: " + error.localizedDescription
+        }
+    }
+
+    private func reviewAnalysisID(_ document: ReviewTree) -> String {
+        if document.isMainLine { return document.baseAnalysisID }
+        let positionKeys: Set<String> = ["B", "W", "AB", "AW", "AE", "PL", "SZ", "RU", "KM", "HA"]
+        let properties = document.activePath.map { document.nodes[$0].properties.filter { positionKeys.contains($0.key) } }
+        let data = (try? JSONSerialization.data(withJSONObject: properties, options: .sortedKeys)) ?? Data()
+        let hash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        return document.baseAnalysisID + "#variation-" + hash
+    }
+
+    func navigateReviewTree(vertical: Int = 0, horizontal: Int = 0) {
+        guard let document = reviewTree else { return }
+        let next = vertical != 0 ? document.neighbor(direction: vertical) : document.sibling(direction: horizontal)
+        if let next { selectReviewNode(next) }
+    }
+
+    /// Snapshot export is independent of the selected path and any hover preview.
+    func reviewSGFData() -> Data? {
+        reviewTree.map { Data(SGFWriter.serialize($0.source).utf8) }
+    }
+    func writeReviewSGF(to url: URL) throws {
+        guard let data = reviewSGFData() else { return }
+        try data.write(to: url, options: .atomic)
+    }
+
+    func prepareReviewTreeFromCurrentPosition(info: SGFGame.Info? = nil) {
+        guard reviewTree == nil else { return }
+        let snapshot = engine.createSnapshot()
+        var game = SGFGame()
+        if let info { game.info = info }
+        game.moves = snapshot.moves; game.setup = snapshot.setup; game.boardSize = snapshot.size
+        game.initialPlayer = snapshot.initialPlayer; game.info.rules = snapshot.analysisSettings.rules
+        game.info.komi = String(snapshot.analysisSettings.effectiveKomi)
+        game.analysisOnline = snapshot.analysisSettings.online
+        game.whiteHandicapBonus = snapshot.analysisSettings.whiteHandicapBonus
+        game.ruleOverrides = snapshot.analysisSettings.ruleOverrides
+        game.handicap = localHandicap
+        game.freeHandicapPlacement = snapshot.freeHandicapMoves > 0
+        var document = ReviewTree(game: game, analysisID: analysisEngine.currentGameId, filename: "Game.sgf")
+        document.followPlayback(index: snapshot.currentIndex)
+        reviewTree = document
+        if let data = try? Data(contentsOf: reviewDraftURL(document)) {
+            do {
+                if let restored = try JSONDecoder().decode(ReviewDraft.self, from: data).restore(over: document) {
+                    activateReviewDocument(restored, reload: true)
+                    reviewDraftSaved = reviewTreeError == nil
+                }
+            } catch { reviewTreeError = "Could not restore the review draft: " + error.localizedDescription }
+        }
+    }
+
     func goToStart() { engine.seek(to: 0) }
     func goToEnd() { engine.seek(to: engine.maxIndex) }
     func stepForward() { engine.stepForward() }
@@ -327,6 +469,9 @@ class BoardViewModel: ObservableObject {
     func startAutoPlay() { engine.play() }
 
     var localPassUnavailableReason: String? {
+        if canCreateReviewVariation {
+            return localScoringVisible ? "Resume play before passing again." : engine.moveRejection(color: engine.turn, x: -1, y: -1)?.rawValue
+        }
         if canEditLocally?() == false { return "Switch to Local Play to add moves." }
         if isOnlineContext { return "Use the online game's Pass control." }
         if localScoringVisible { return "Resume play before passing again." }
@@ -374,6 +519,7 @@ class BoardViewModel: ObservableObject {
 
     func passLocally() {
         if let reason = localPassUnavailableReason { moveError = reason; return }
+        if canCreateReviewVariation { addReviewMove(at: nil); return }
         if let rejection = engine.tryPlayMove(color: engine.turn, x: -1, y: -1) {
             moveError = rejection.rawValue
             return
@@ -451,6 +597,7 @@ class BoardViewModel: ObservableObject {
             }
             return
         }
+        if canCreateReviewVariation { addReviewMove(at: pos); return }
         if !isOnlineContext && canEditLocally?() == false {
             moveError = "Switch to Local Play to add moves."
             return
@@ -525,6 +672,7 @@ class BoardViewModel: ObservableObject {
         moveError = nil
         koPoint = engine.koPoint
         let idx = self.engine.currentIndex
+        if let document = reviewTree, document.nodes[document.selectedID].moveNumber != idx { reviewTree?.followPlayback(index: idx) }
         NSLog("[OGS-UI-DEBUG] 🎨 syncState Entry. Index: \(idx). Online: \(isOnlineContext)")
         let last = self.engine.lastMove.flatMap { m -> BoardPosition? in
             if m.x < 0 || m.y < 0 { return nil }

@@ -435,8 +435,8 @@ enum SGFParser {
 }
 
 struct SGFGame {
-    // Retain the imported tree for future variation navigation/editing. Local played moves
-    // change the playback history, not this source record; no SGF writer is implied.
+    // Retain the imported tree independently of the active playback path. ReviewTree
+    // owns branch edits and export; local/online playback does not mutate this record.
     var sourceTree: SGFTree?
     struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String? }
     var boardSize: Int = 19; var info: Info = .init(); var setup: [(Stone, Int, Int)] = []; var moves: [(Stone, (Int,Int)?)] = []
@@ -861,5 +861,274 @@ struct GoRulePolicy: Equatable {
         case .situational: ko = "Situational superko"
         }
         return ko + (allowsSelfCapture ? " · Self-capture allowed" : " · No self-capture")
+    }
+}
+
+/// Lossless property/branch writer for the first game parsed from an SGF collection.
+/// Iterative traversal also supports records with thousands of nested continuations.
+enum SGFWriter {
+    static func serialize(_ tree: SGFTree) -> String {
+        guard !tree.branches.isEmpty else { return "(;GM[1]FF[4])" }
+        var output = ""
+        var pending: [Int?] = [0]
+        while let action = pending.popLast() {
+            guard let branch = action else { output += ")"; continue }
+            output += "("
+            for (index, node) in tree.branches[branch].sequence.enumerated() {
+                var props = node.props
+                if branch == 0 && index == 0 { props["CA"] = ["UTF-8"] }
+                output += ";"
+                for key in props.keys.sorted() {
+                    output += key
+                    for value in props[key] ?? [] {
+                        output += "[" + value.replacingOccurrences(of: "\\", with: "\\\\")
+                            .replacingOccurrences(of: "]", with: "\\]") + "]"
+                    }
+                }
+            }
+            pending.append(nil)
+            for child in tree.branches[branch].children.reversed() { pending.append(child) }
+        }
+        return output
+    }
+}
+
+/// Stable document nodes, distinct from a chosen playback path and temporary AI PVs.
+struct ReviewTree {
+    struct Node: Identifiable {
+        let id: Int
+        let parent: Int?
+        var children: [Int]
+        let properties: [String: [String]]
+        let moveNumber: Int
+        let depth: Int
+        let isVirtual: Bool
+        let sourceBranch: Int
+        let sourceIndex: Int
+        var color: Stone? { properties["B"] != nil ? .black : properties["W"] != nil ? .white : nil }
+        var comment: String? { properties["C"]?.first }
+        var isPass: Bool { color != nil && (properties[color == .black ? "B" : "W"]?.first ?? "").isEmpty }
+        var label: String { color == nil ? (parent == nil ? "Start" : "·") : String(moveNumber) }
+    }
+    let source: SGFTree
+    let originalSGF: String
+    let baseGame: SGFGame
+    let baseAnalysisID: String
+    let filename: String
+    let nodes: [Node]
+    let columns: [Int]
+    let rows: [[Int]]
+    let columnCount: Int
+    private(set) var selectedID: Int = 0
+    private var chosenChildren: [Int: Int] = [:]
+
+    init(game: SGFGame, analysisID: String, filename: String, originalSGF: String? = nil) {
+        baseGame = game; baseAnalysisID = analysisID; self.filename = filename
+        let tree = game.sourceTree.flatMap { $0.branches.first?.sequence.isEmpty == false ? $0 : nil } ?? Self.linearTree(game)
+        source = tree
+        self.originalSGF = originalSGF ?? SGFWriter.serialize(tree)
+        var built: [Node] = []
+        if let first = tree.branches.first?.sequence.first,
+           first.props["B"] != nil || first.props["W"] != nil {
+            built.append(Node(id: 0, parent: nil, children: [], properties: [:], moveNumber: 0, depth: 0, isVirtual: true, sourceBranch: -1, sourceIndex: -1))
+        }
+        var stack: [(Int, Int?)] = [(0, built.isEmpty ? nil : 0)]
+        while let (branch, parent) = stack.popLast() {
+            var previous = parent
+            for (sourceIndex, value) in tree.branches[branch].sequence.enumerated() {
+                let id = built.count
+                let number = previous.map { built[$0].moveNumber } ?? 0
+                let depth = previous.map { built[$0].depth + 1 } ?? 0
+                built.append(Node(id: id, parent: previous, children: [], properties: value.props,
+                    moveNumber: number + (value.props["B"] != nil || value.props["W"] != nil ? 1 : 0), depth: depth, isVirtual: false, sourceBranch: branch, sourceIndex: sourceIndex))
+                if let previous { built[previous].children.append(id) }
+                previous = id
+            }
+            for child in tree.branches[branch].children.reversed() { stack.append((child, previous)) }
+        }
+        nodes = built
+        var widths = Array(repeating: 1, count: built.count)
+        for node in built.reversed() where !node.children.isEmpty {
+            widths[node.id] = node.children.reduce(0) { $0 + widths[$1] }
+        }
+        var lanes = Array(repeating: 0, count: built.count)
+        var grouped = Array(repeating: [Int](), count: (built.map(\.depth).max() ?? 0) + 1)
+        for node in built {
+            grouped[node.depth].append(node.id)
+            var column = lanes[node.id]
+            for child in node.children { lanes[child] = column; column += widths[child] }
+        }
+        columns = lanes; rows = grouped; columnCount = widths.first ?? 1
+    }
+
+    var activePath: [Int] {
+        guard !nodes.isEmpty else { return [] }
+        var path: [Int] = []; var next: Int? = 0
+        while let id = next {
+            path.append(id)
+            next = chosenChildren[id] ?? nodes[id].children.first
+        }
+        return path
+    }
+    var isMainLine: Bool {
+        let path = activePath
+        return zip(path, path.dropFirst()).allSatisfy { nodes[$0.0].children.first == $0.1 }
+    }
+    mutating func select(_ id: Int) {
+        guard nodes.indices.contains(id) else { return }
+        selectedID = id
+        var child = id
+        while let parent = nodes[child].parent { chosenChildren[parent] = child; child = parent }
+    }
+    mutating func followPlayback(index: Int) {
+        guard nodes[selectedID].moveNumber != index else { return }
+        if let id = activePath.first(where: { nodes[$0].moveNumber == index }) { selectedID = id }
+    }
+    func neighbor(direction: Int) -> Int? {
+        if direction < 0 { return nodes[selectedID].parent }
+        return chosenChildren[selectedID] ?? nodes[selectedID].children.first
+    }
+    func sibling(direction: Int) -> Int? {
+        // From inside a branch, navigate at the closest branching ancestor.
+        var child = selectedID
+        while let parent = nodes[child].parent {
+            let siblings = nodes[parent].children
+            if siblings.count > 1, let index = siblings.firstIndex(of: child) {
+                let next = index + direction
+                return siblings.indices.contains(next) ? siblings[next] : nil
+            }
+            child = parent
+        }
+        return nil
+    }
+    /// Append a continuation or a sibling variation; never truncate an existing line.
+    /// Replaying an existing child navigates to it instead of duplicating it.
+    func addingMove(color: Stone, point: BoardPosition?) -> ReviewTree {
+        let key = color == .black ? "B" : "W"
+        let coordinate = point.map { SGFCoordinates.toSGF(x: $0.col, y: $0.row) } ?? ""
+        if let child = nodes[selectedID].children.first(where: { nodes[$0].properties[key] == [coordinate] }) {
+            var copy = self; copy.select(child); return copy
+        }
+        var branches = source.branches
+        let selected = nodes[selectedID]
+        var branch = selected.sourceBranch
+        var index = selected.sourceIndex
+        if selected.isVirtual {
+            // Rare SGF with a move on its root: create an explicit setup root.
+            let first = branches[0].sequence[0].props
+            let moveKeys: Set<String> = ["B", "W", "C", "N", "TE", "BM", "DO", "IT"]
+            let root = SGFNode(props: first.filter { !moveKeys.contains($0.key) })
+            branches[0].sequence[0].props = first.filter { moveKeys.contains($0.key) }
+            let oldRoot = branches.count
+            branches.append(branches[0])
+            branches[0] = .init(sequence: [root], children: [oldRoot])
+            branch = 0; index = 0
+        }
+        let node = SGFNode(props: [key: [coordinate]])
+        let newBranch: Int
+        let newIndex: Int
+        if index + 1 == branches[branch].sequence.count && branches[branch].children.isEmpty {
+            newBranch = branch; newIndex = index + 1
+            branches[branch].sequence.append(node)
+        } else {
+            if index + 1 < branches[branch].sequence.count {
+                let continuation = SGFTree.Branch(sequence: Array(branches[branch].sequence.dropFirst(index + 1)), children: branches[branch].children)
+                let continuationID = branches.count
+                branches.append(continuation)
+                branches[branch].sequence = Array(branches[branch].sequence.prefix(index + 1))
+                branches[branch].children = [continuationID]
+            }
+            newBranch = branches.count; newIndex = 0
+            branches.append(.init(sequence: [node]))
+            branches[branch].children.append(newBranch)
+        }
+        var game = baseGame
+        game.sourceTree = SGFTree(branches: branches)
+        var updated = ReviewTree(game: game, analysisID: baseAnalysisID, filename: filename, originalSGF: originalSGF)
+        if let target = updated.nodes.first(where: { $0.sourceBranch == newBranch && $0.sourceIndex == newIndex }) {
+            updated.select(target.id)
+        }
+        return updated
+    }
+
+    enum PlaybackError: LocalizedError {
+        case setupAfterMoves
+        var errorDescription: String? {
+            "This branch changes setup stones or rules after play begins. Those nodes are preserved when saving, but playback of this branch is not supported yet."
+        }
+    }
+    func playbackGame() throws -> SGFGame {
+        var sequence: [SGFNode] = []
+        var movesStarted = false
+        var setup: [BoardPosition: Stone] = [:]
+        for id in activePath where !nodes[id].isVirtual {
+            let node = SGFNode(props: nodes[id].properties)
+            let edits = ["AB", "AW", "AE", "PL", "SZ", "RU", "KM", "HA"]
+            if movesStarted && edits.contains(where: { node.props[$0] != nil }) {
+                // Keep the playable prefix available without silently moving setup
+                // stones into the initial position. The full document still exports.
+                if nodes[selectedID].depth >= nodes[id].depth { throw PlaybackError.setupAfterMoves }
+                break
+            }
+            sequence.append(node)
+            for (key, color) in [("AB", Stone.black), ("AW", Stone.white)] {
+                for value in node.props[key] ?? [] {
+                    for point in Self.setupPoints(value) { setup[point] = color }
+                }
+            }
+            for value in node.props["AE"] ?? [] { for point in Self.setupPoints(value) { setup.removeValue(forKey: point) } }
+            if node.props["B"] != nil || node.props["W"] != nil { movesStarted = true }
+        }
+        var game = SGFGame.from(tree: SGFTree(branches: [.init(sequence: sequence)]))
+        game.setup = setup.sorted { ($0.key.row, $0.key.col) < ($1.key.row, $1.key.col) }.map { ($0.value, $0.key.col, $0.key.row) }
+        game.analysisOnline = baseGame.analysisOnline
+        game.whiteHandicapBonus = baseGame.whiteHandicapBonus
+        game.ruleOverrides = baseGame.ruleOverrides
+        game.freeHandicapPlacement = baseGame.freeHandicapPlacement
+        game.sourceTree = source
+        return game
+    }
+    private static func setupPoints(_ value: String) -> [BoardPosition] {
+        let parts = value.split(separator: ":", omittingEmptySubsequences: false)
+        guard let first = parts.first, let (x, y) = SGFCoordinates.parse(String(first)) else { return [] }
+        guard parts.count == 2, let (endX, endY) = SGFCoordinates.parse(String(parts[1])), endX >= x, endY >= y else { return [BoardPosition(y, x)] }
+        return (y...endY).flatMap { row in (x...endX).map { BoardPosition(row, $0) } }
+    }
+    static func linearTree(_ game: SGFGame) -> SGFTree {
+        var root: [String: [String]] = ["GM":["1"], "FF":["4"], "CA":["UTF-8"], "SZ":[String(game.boardSize)]]
+        for (key, value) in [("PB",game.info.playerBlack),("PW",game.info.playerWhite),("BR",game.info.blackRank),
+                             ("WR",game.info.whiteRank),("RE",game.info.result),("DT",game.info.date),("EV",game.info.event),
+                             ("RU",game.info.rules),("KM",game.info.komi)] { if let value { root[key] = [value] } }
+        if game.handicap > 0 { root["HA"] = [String(game.handicap)] }
+        if let player = game.initialPlayer { root["PL"] = [player == .black ? "B" : "W"] }
+        func coordinate(_ x: Int, _ y: Int) -> String {
+            String(UnicodeScalar(97 + x)!) + String(UnicodeScalar(97 + y)!)
+        }
+        for (color, x, y) in game.setup { root[color == .black ? "AB" : "AW", default: []].append(coordinate(x, y)) }
+        let sequence = [SGFNode(props: root)] + game.moves.map { color, point in
+            SGFNode(props: [color == .black ? "B" : "W": [point.map { coordinate($0.0, $0.1) } ?? ""]])
+        }
+        return SGFTree(branches: [.init(sequence: sequence)])
+    }
+}
+
+/// Recoverable edits live separately from the user's source file and AI cache.
+struct ReviewDraft: Codable {
+    let originalSGF: String
+    let editedSGF: String
+    let selectedID: Int
+
+    init(_ tree: ReviewTree) {
+        originalSGF = tree.originalSGF
+        editedSGF = SGFWriter.serialize(tree.source)
+        selectedID = tree.selectedID
+    }
+    func restore(over tree: ReviewTree) throws -> ReviewTree? {
+        guard originalSGF == tree.originalSGF else { return nil }
+        var game = tree.baseGame
+        game.sourceTree = try SGFParser.parse(text: editedSGF)
+        var restored = ReviewTree(game: game, analysisID: tree.baseAnalysisID, filename: tree.filename, originalSGF: originalSGF)
+        restored.select(selectedID)
+        return restored
     }
 }

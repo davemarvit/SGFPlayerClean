@@ -721,3 +721,26 @@ git worktree add ../SGFPlayerClean-preserved origin/codex/preserve-local-work-20
 
 Open its Xcode project to build the pre-refactor app. Keep the preservation branch and full local
 archive until the refactored version has passed live acceptance testing.
+
+## Variation trees in Review
+
+The vertical tree works with **AI analysis switched off** in both 2D and 3D. Click a
+node to visit its position, then play on the board (or Pass) to add a continuation.
+Playing from an earlier position creates an alternative and preserves the original
+line. Playing an existing next move follows that branch without duplicating it.
+
+Use the tree's up/down arrows for parent/child and left/right arrows for alternatives;
+the keyboard does the same when the tree has focus. The ordinary playback controls
+follow the selected branch. A cyan ring marks the current node; orange dots mark
+comments, which appear below the tree when selected.
+
+**Save SGF…** writes all branches and retained SGF properties. Explicit edits are also
+saved as recoverable drafts, separate from your original SGF and AI cache. Reopening
+the unchanged original restores its draft. Export an SGF for a portable copy. Hovered
+AI continuations remain temporary and never become saved branches automatically.
+
+Imported setup/rule changes after play has begun are retained on export but currently
+stop playback at that point; selecting those nodes explains the limitation. Branch
+promotion/deletion/collapse, comment editing, and adding a complete AI PV are later
+increments. See `Tests/MainRelease/VariationTree.swift` and
+`Tests/Networking/ReviewTreeTests.swift` for offline coverage.

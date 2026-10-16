@@ -76,8 +76,9 @@ private final class ModeSocket: OGSWebSocket {
         model.selectGame(wrapper); settle()
         model.player.seek(to: 1); settle()
         vm.placeStone(at: BoardPosition(3, 3))
-        require(model.mode == .review && model.player.maxIndex == 2 && model.player.currentIndex == 1,
-                "Review must preserve history and reject edits")
+        require(model.mode == .review && model.player.maxIndex == 2 && model.player.currentIndex == 2 && vm.reviewTree?.nodes.count == 4,
+                "Review creates a branch while retaining the original line")
+        vm.selectReviewNode(1); settle()
         model.mode = .localPlay; settle()
         require(model.player.maxIndex == 1 && model.player.board.stones[BoardPosition(2, 2)] == .black,
                 "Local board survives Review")

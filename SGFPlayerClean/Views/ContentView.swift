@@ -59,14 +59,14 @@ struct BoardWorkspaceView<Board: View>: View {
 
     var body: some View {
         GeometryReader { geo in
-            let layout = BoardWorkspaceGeometry(size: geo.size, aiEnabled: app.isAIAvailable,
+            let layout = BoardWorkspaceGeometry(size: geo.size, aiEnabled: app.showsAnalysisWorkspace,
                 sidebarVisible: app.showRightPanel || vm.localScoringVisible)
             ZStack(alignment: .leading) {
                 board()
                     .environment(\.boardControlsWidth, layout.aiOrigin)
                     .frame(width: layout.boardWidth, height: geo.size.height)
                     .clipped()
-                if app.isAIAvailable {
+                if app.showsAnalysisWorkspace {
                     AIWorkspacePanel(vm: vm, ai: analysisEngine)
                         .frame(width: layout.aiWidth, height: geo.size.height)
                         .offset(x: layout.aiOrigin)
@@ -121,28 +121,168 @@ extension EnvironmentValues {
     }
 }
 
-/// The scrollable column leaves room beneath the graph for analysis tools.
+/// AI tools and the persistent game tree have independent scroll areas.
 struct AIWorkspacePanel: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var vm: BoardViewModel
     @ObservedObject var ai = KataGoEngine.shared
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("AI analysis").font(.headline)
-                WinRateGraphView(aiEngine: ai, vm: vm).frame(maxWidth: .infinity)
-                if let game = app.selection {
-                    LocalGameMetadataView(game: game, boardVM: vm, isOverlay: true)
+        GeometryReader { geo in
+            let treeVisible = app.mode == .review && vm.reviewTree != nil
+            VStack(spacing: 0) {
+                if app.isAIAvailable {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("AI analysis").font(.headline)
+                            WinRateGraphView(aiEngine: ai, vm: vm).frame(maxWidth: .infinity)
+                            if let game = app.selection {
+                                LocalGameMetadataView(game: game, boardVM: vm, isOverlay: true)
+                            }
+                            if ai.currentAnalysisData.count >= vm.totalMoves && vm.totalMoves > 5 {
+                                MoveQualitySummaryView(evals: Array(ai.evaluateGameQuality(upTo: vm.totalMoves, engine: vm.engine).values))
+                            }
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: treeVisible ? geo.size.height * 0.45 : .infinity)
                 }
-                if ai.currentAnalysisData.count >= vm.totalMoves && vm.totalMoves > 5 {
-                    MoveQualitySummaryView(evals: Array(ai.evaluateGameQuality(upTo: vm.totalMoves, engine: vm.engine).values))
+                if treeVisible {
+                    if app.isAIAvailable { Divider() }
+                    VariationTreeView(vm: vm)
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(.black.opacity(0.22))
         .accessibilityIdentifier("ai-workspace-panel")
+    }
+}
+
+/// Persistent SGF nodes only. Hovered AI continuations never enter this view.
+struct VariationTreeView: View {
+    @EnvironmentObject var app: AppModel
+    @ObservedObject var vm: BoardViewModel
+    @FocusState private var hasFocus: Bool
+    private let pitch: CGFloat = 38
+
+    var body: some View {
+        if let tree = vm.reviewTree {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Variations").font(.headline)
+                    Spacer()
+                    Button { app.saveReviewSGF() } label: {
+                        Label("Save SGF…", systemImage: "square.and.arrow.down")
+                    }
+                    .help("Save SGF with all variations")
+                    .accessibilityLabel("Save SGF with all variations")
+                }
+                .padding(.horizontal, 16).padding(.top, 12)
+                HStack(spacing: 12) {
+                    navigationButton("arrow.up", "Previous node", disabled: tree.neighbor(direction: -1) == nil) { vm.navigateReviewTree(vertical: -1) }
+                    navigationButton("arrow.down", "Next node", disabled: tree.neighbor(direction: 1) == nil) { vm.navigateReviewTree(vertical: 1) }
+                    Divider().frame(height: 14)
+                    navigationButton("arrow.left", "Previous branch", disabled: tree.sibling(direction: -1) == nil) { vm.navigateReviewTree(horizontal: -1) }
+                    navigationButton("arrow.right", "Next branch", disabled: tree.sibling(direction: 1) == nil) { vm.navigateReviewTree(horizontal: 1) }
+                    Spacer()
+                    Text("Move \(tree.nodes[tree.selectedID].moveNumber)").font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                Text(vm.reviewDraftSaved ? "Draft saved · Export with Save SGF" : "Play on the board to add a variation")
+                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16)
+                if let error = vm.reviewTreeError {
+                    Text(error).font(.caption).foregroundStyle(.orange).padding(.horizontal, 16)
+                }
+                GeometryReader { geo in
+                    ScrollViewReader { proxy in
+                        ScrollView([.horizontal, .vertical]) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(tree.rows.indices, id: \.self) { row in
+                                    treeRow(tree, row: row)
+                                        .frame(width: max(geo.size.width, CGFloat(tree.columnCount + 1) * pitch), height: pitch)
+                                        .id("tree-row-\(row)")
+                                }
+                            }
+                            .padding(.vertical, 12)
+                            .frame(minHeight: geo.size.height, alignment: .topLeading)
+                        }
+                        .onAppear { reveal(tree, in: proxy) }
+                        .onChange(of: tree.selectedID) { _, _ in reveal(tree, in: proxy) }
+                    }
+                }
+                .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 12).padding(.bottom, 12)
+                .focusable().focused($hasFocus)
+                .onKeyPress(.upArrow) { vm.navigateReviewTree(vertical: -1); return .handled }
+                .onKeyPress(.downArrow) { vm.navigateReviewTree(vertical: 1); return .handled }
+                .onKeyPress(.leftArrow) { vm.navigateReviewTree(horizontal: -1); return .handled }
+                .onKeyPress(.rightArrow) { vm.navigateReviewTree(horizontal: 1); return .handled }
+                if let comment = tree.nodes[tree.selectedID].comment, !comment.isEmpty {
+                    ScrollView { Text(comment).font(.callout).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                        .frame(maxHeight: 80).padding(.horizontal, 16).padding(.bottom, 12)
+                }
+            }
+            .accessibilityIdentifier("variation-tree")
+        }
+    }
+
+    private func reveal(_ tree: ReviewTree, in proxy: ScrollViewProxy) {
+        // Materialize a distant lazy row before scrolling to its horizontal branch.
+        proxy.scrollTo("tree-row-\(tree.nodes[tree.selectedID].depth)", anchor: .center)
+        DispatchQueue.main.async { proxy.scrollTo("tree-node-\(tree.selectedID)", anchor: .center) }
+    }
+
+    private func navigationButton(_ icon: String, _ label: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Image(systemName: icon) }
+            .buttonStyle(.plain).disabled(disabled).help(label).accessibilityLabel(label)
+    }
+
+    private func treeRow(_ tree: ReviewTree, row: Int) -> some View {
+        ZStack(alignment: .topLeading) {
+            Canvas { context, _ in
+                for id in tree.rows[row] {
+                    let node = tree.nodes[id]
+                    let x = CGFloat(tree.columns[id] + 1) * pitch
+                    var path = Path()
+                    if let parent = node.parent {
+                        path.move(to: CGPoint(x: CGFloat(tree.columns[parent] + 1) * pitch, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: pitch / 2))
+                    }
+                    if !node.children.isEmpty {
+                        path.move(to: CGPoint(x: x, y: pitch / 2))
+                        path.addLine(to: CGPoint(x: x, y: pitch))
+                    }
+                    context.stroke(path, with: .color(.white.opacity(0.35)), lineWidth: 1.5)
+                }
+            }
+            ForEach(tree.rows[row], id: \.self) { id in
+                let node = tree.nodes[id]
+                Button {
+                    hasFocus = true
+                    vm.selectReviewNode(id)
+                } label: {
+                    ZStack(alignment: .bottomTrailing) {
+                        Circle().fill(node.color == .white ? Color(white: 0.91) : node.color == .black ? Color(white: 0.08) : Color(white: 0.3))
+                        Text(node.label).font(.system(size: node.parent == nil ? 9 : 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(node.color == .white ? .black : .white)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        if node.comment != nil { Circle().fill(.orange).frame(width: 5, height: 5) }
+                    }
+                    .frame(width: 28, height: 28)
+                    .overlay(Circle().stroke(id == tree.selectedID ? Color.cyan : Color.white.opacity(0.35), lineWidth: id == tree.selectedID ? 3 : 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(nodeDescription(node))
+                .help(nodeDescription(node) + (node.comment.map { "\n" + $0 } ?? ""))
+                .id("tree-node-\(id)")
+                .position(x: CGFloat(tree.columns[id] + 1) * pitch, y: pitch / 2)
+            }
+        }
+    }
+
+    private func nodeDescription(_ node: ReviewTree.Node) -> String {
+        guard let color = node.color else { return node.parent == nil ? "Starting position" : "Comment or setup node" }
+        return "Move \(node.moveNumber), \(color == .black ? "Black" : "White")" + (node.isPass ? " passes" : "")
     }
 }
