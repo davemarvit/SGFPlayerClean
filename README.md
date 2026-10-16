@@ -724,8 +724,13 @@ archive until the refactored version has passed live acceptance testing.
 
 ## Variation trees in Review
 
-The vertical tree works with **AI analysis switched off** in both 2D and 3D. Click a
-node to visit its position, then play on the board (or Pass) to add a continuation.
+The compact vertical tree works with **AI analysis switched off** in both 2D and 3D.
+AI information sits below it; toggling AI preserves the tree viewport. The chevron
+beside Variations collapses the tree. Small unnumbered nodes use a left-hand move
+ruler every five moves; hover a node for its exact move/color. Click a
+node to visit its position, then play on the board to add a continuation. Right-click
+a node and choose Add pass here for a pass variation. The bottom Pass button is
+reserved for Local Play; Play Online retains Pass beside Resign.
 Playing from an earlier position creates an alternative and preserves the original
 line. Playing an existing next move follows that branch without duplicating it.
 

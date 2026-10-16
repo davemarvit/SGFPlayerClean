@@ -27,6 +27,35 @@ struct AIRootInfo: Codable {
     let visits: Int
 }
 
+/// A graph position always uses Black's perspective, regardless of whose turn it is.
+/// The label reports the score leader's win probability, not an unrelated maximum.
+struct AIPositionSummary {
+    let blackWinrate: Double
+    let blackScoreLead: Double
+    var leadingColor: Stone {
+        if blackScoreLead == 0 { return blackWinrate >= 0.5 ? .black : .white }
+        return blackScoreLead > 0 ? .black : .white
+    }
+    var leadingWinrate: Double { leadingColor == .black ? blackWinrate : 1 - blackWinrate }
+    var label: String {
+        let color = leadingColor == .black ? "B" : "W"
+        return "\(color)+\(Self.number(abs(blackScoreLead))) · \(color) \(Self.number(leadingWinrate * 100))%"
+    }
+    var accessibilityDescription: String {
+        let color = leadingColor == .black ? "Black" : "White"
+        return "\(color) estimated lead: \(Self.number(abs(blackScoreLead))) points; \(color) win probability: \(Self.number(leadingWinrate * 100)) percent"
+    }
+    init?(root: AIRootInfo, playerToMove: Stone) {
+        guard root.visits > 0, root.winrate.isFinite, (0...1).contains(root.winrate), root.scoreLead.isFinite else { return nil }
+        blackWinrate = playerToMove == .black ? root.winrate : 1 - root.winrate
+        blackScoreLead = playerToMove == .black ? root.scoreLead : -root.scoreLead
+    }
+    private static func number(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        return String(format: rounded == rounded.rounded() ? "%.0f" : "%.1f", rounded)
+    }
+}
+
 import SwiftUI
 
 enum MoveQuality: String, CaseIterable, Identifiable {

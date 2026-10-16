@@ -126,11 +126,19 @@ struct AIWorkspacePanel: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var vm: BoardViewModel
     @ObservedObject var ai = KataGoEngine.shared
+    @State private var treeCollapsed = false
 
     var body: some View {
         GeometryReader { geo in
             let treeVisible = app.mode == .review && vm.reviewTree != nil
             VStack(spacing: 0) {
+                if treeVisible {
+                    VariationTreeView(vm: vm, isCollapsed: $treeCollapsed)
+                        // Reserve the same viewport with AI on or off. Enabling AI
+                        // must not move the selected node or reset the user's scroll.
+                        .frame(height: treeCollapsed ? 44 : max(180, geo.size.height * 0.55))
+                    if app.isAIAvailable { Divider() }
+                }
                 if app.isAIAvailable {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
@@ -146,12 +154,8 @@ struct AIWorkspacePanel: View {
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxHeight: treeVisible ? geo.size.height * 0.45 : .infinity)
-                }
-                if treeVisible {
-                    if app.isAIAvailable { Divider() }
-                    VariationTreeView(vm: vm)
-                }
+                    .frame(maxHeight: .infinity)
+                } else { Spacer(minLength: 0) }
             }
         }
         .background(.black.opacity(0.22))
@@ -163,14 +167,28 @@ struct AIWorkspacePanel: View {
 struct VariationTreeView: View {
     @EnvironmentObject var app: AppModel
     @ObservedObject var vm: BoardViewModel
+    @Binding var isCollapsed: Bool
     @FocusState private var hasFocus: Bool
-    private let pitch: CGFloat = 38
+    private let pitch: CGFloat = 22
+    private let nodeOrigin: CGFloat = 38
+
+    init(vm: BoardViewModel, isCollapsed: Binding<Bool> = .constant(false)) {
+        self.vm = vm
+        self._isCollapsed = isCollapsed
+    }
 
     var body: some View {
         if let tree = vm.reviewTree {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Variations").font(.headline)
+                    Button { isCollapsed.toggle() } label: {
+                        Label("Variations", systemImage: isCollapsed ? "chevron.right" : "chevron.down")
+                            .font(.headline)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isCollapsed ? "Expand variation tree" : "Collapse variation tree")
+                    .accessibilityLabel(isCollapsed ? "Expand variation tree" : "Collapse variation tree")
+                    .accessibilityIdentifier("variation-tree-disclosure")
                     Spacer()
                     Button { app.saveReviewSGF() } label: {
                         Label("Save SGF…", systemImage: "square.and.arrow.down")
@@ -179,50 +197,53 @@ struct VariationTreeView: View {
                     .accessibilityLabel("Save SGF with all variations")
                 }
                 .padding(.horizontal, 16).padding(.top, 12)
-                HStack(spacing: 12) {
-                    navigationButton("arrow.up", "Previous node", disabled: tree.neighbor(direction: -1) == nil) { vm.navigateReviewTree(vertical: -1) }
-                    navigationButton("arrow.down", "Next node", disabled: tree.neighbor(direction: 1) == nil) { vm.navigateReviewTree(vertical: 1) }
-                    Divider().frame(height: 14)
-                    navigationButton("arrow.left", "Previous branch", disabled: tree.sibling(direction: -1) == nil) { vm.navigateReviewTree(horizontal: -1) }
-                    navigationButton("arrow.right", "Next branch", disabled: tree.sibling(direction: 1) == nil) { vm.navigateReviewTree(horizontal: 1) }
-                    Spacer()
-                    Text("Move \(tree.nodes[tree.selectedID].moveNumber)").font(.caption).foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                Text(vm.reviewDraftSaved ? "Draft saved · Export with Save SGF" : "Play on the board to add a variation")
-                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16)
-                if let error = vm.reviewTreeError {
-                    Text(error).font(.caption).foregroundStyle(.orange).padding(.horizontal, 16)
-                }
-                GeometryReader { geo in
-                    ScrollViewReader { proxy in
-                        ScrollView([.horizontal, .vertical]) {
-                            LazyVStack(spacing: 0) {
-                                ForEach(tree.rows.indices, id: \.self) { row in
-                                    treeRow(tree, row: row)
-                                        .frame(width: max(geo.size.width, CGFloat(tree.columnCount + 1) * pitch), height: pitch)
-                                        .id("tree-row-\(row)")
+                if !isCollapsed {
+                    HStack(spacing: 12) {
+                        navigationButton("arrow.up", "Previous node", disabled: tree.neighbor(direction: -1) == nil) { vm.navigateReviewTree(vertical: -1) }
+                        navigationButton("arrow.down", "Next node", disabled: tree.neighbor(direction: 1) == nil) { vm.navigateReviewTree(vertical: 1) }
+                        Divider().frame(height: 14)
+                        navigationButton("arrow.left", "Previous branch", disabled: tree.sibling(direction: -1) == nil) { vm.navigateReviewTree(horizontal: -1) }
+                        navigationButton("arrow.right", "Next branch", disabled: tree.sibling(direction: 1) == nil) { vm.navigateReviewTree(horizontal: 1) }
+                        Spacer()
+                        Text("Move \(tree.nodes[tree.selectedID].moveNumber)").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16)
+                    Text(vm.reviewDraftSaved ? "Draft saved · Export with Save SGF" : "Play on the board to add a variation")
+                        .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16)
+                    if let error = vm.reviewTreeError {
+                        Text(error).font(.caption).foregroundStyle(.orange).padding(.horizontal, 16)
+                    }
+                    GeometryReader { geo in
+                        ScrollViewReader { proxy in
+                            ScrollView([.horizontal, .vertical]) {
+                                LazyVStack(spacing: 0) {
+                                    ForEach(tree.rows.indices, id: \.self) { row in
+                                        treeRow(tree, row: row)
+                                            .frame(width: max(geo.size.width, nodeOrigin + CGFloat(tree.columnCount) * pitch), height: pitch)
+                                            .id("tree-row-\(row)")
+                                    }
                                 }
+                                .padding(.vertical, 12)
+                                .frame(minHeight: geo.size.height, alignment: .topLeading)
                             }
-                            .padding(.vertical, 12)
-                            .frame(minHeight: geo.size.height, alignment: .topLeading)
+                            .onAppear { reveal(tree, in: proxy) }
+                            .onChange(of: tree.selectedID) { _, _ in reveal(tree, in: proxy) }
                         }
-                        .onAppear { reveal(tree, in: proxy) }
-                        .onChange(of: tree.selectedID) { _, _ in reveal(tree, in: proxy) }
+                    }
+                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 12).padding(.bottom, 12)
+                    .focusable().focused($hasFocus)
+                    .onKeyPress(.upArrow) { vm.navigateReviewTree(vertical: -1); return .handled }
+                    .onKeyPress(.downArrow) { vm.navigateReviewTree(vertical: 1); return .handled }
+                    .onKeyPress(.leftArrow) { vm.navigateReviewTree(horizontal: -1); return .handled }
+                    .onKeyPress(.rightArrow) { vm.navigateReviewTree(horizontal: 1); return .handled }
+                    if let comment = tree.nodes[tree.selectedID].comment, !comment.isEmpty {
+                        ScrollView { Text(comment).font(.callout).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                            .frame(maxHeight: 80).padding(.horizontal, 16).padding(.bottom, 12)
                     }
                 }
-                .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal, 12).padding(.bottom, 12)
-                .focusable().focused($hasFocus)
-                .onKeyPress(.upArrow) { vm.navigateReviewTree(vertical: -1); return .handled }
-                .onKeyPress(.downArrow) { vm.navigateReviewTree(vertical: 1); return .handled }
-                .onKeyPress(.leftArrow) { vm.navigateReviewTree(horizontal: -1); return .handled }
-                .onKeyPress(.rightArrow) { vm.navigateReviewTree(horizontal: 1); return .handled }
-                if let comment = tree.nodes[tree.selectedID].comment, !comment.isEmpty {
-                    ScrollView { Text(comment).font(.callout).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
-                        .frame(maxHeight: 80).padding(.horizontal, 16).padding(.bottom, 12)
-                }
             }
+            .frame(maxHeight: .infinity, alignment: .top)
             .accessibilityIdentifier("variation-tree")
         }
     }
@@ -243,10 +264,10 @@ struct VariationTreeView: View {
             Canvas { context, _ in
                 for id in tree.rows[row] {
                     let node = tree.nodes[id]
-                    let x = CGFloat(tree.columns[id] + 1) * pitch
+                    let x = nodeOrigin + CGFloat(tree.columns[id]) * pitch
                     var path = Path()
                     if let parent = node.parent {
-                        path.move(to: CGPoint(x: CGFloat(tree.columns[parent] + 1) * pitch, y: 0))
+                        path.move(to: CGPoint(x: nodeOrigin + CGFloat(tree.columns[parent]) * pitch, y: 0))
                         path.addLine(to: CGPoint(x: x, y: pitch / 2))
                     }
                     if !node.children.isEmpty {
@@ -256,6 +277,14 @@ struct VariationTreeView: View {
                     context.stroke(path, with: .color(.white.opacity(0.35)), lineWidth: 1.5)
                 }
             }
+            if let rulerNode = tree.rows[row].first.map({ tree.nodes[$0] }),
+               rulerNode.color != nil, rulerNode.moveNumber > 0, rulerNode.moveNumber.isMultiple(of: 5) {
+                Text(String(rulerNode.moveNumber))
+                    .font(.system(size: 9).monospacedDigit()).foregroundStyle(.secondary)
+                    .frame(width: 25, alignment: .trailing)
+                    .position(x: 13, y: pitch / 2)
+                    .accessibilityLabel("Move \(rulerNode.moveNumber)")
+            }
             ForEach(tree.rows[row], id: \.self) { id in
                 let node = tree.nodes[id]
                 Button {
@@ -264,19 +293,23 @@ struct VariationTreeView: View {
                 } label: {
                     ZStack(alignment: .bottomTrailing) {
                         Circle().fill(node.color == .white ? Color(white: 0.91) : node.color == .black ? Color(white: 0.08) : Color(white: 0.3))
-                        Text(node.label).font(.system(size: node.parent == nil ? 9 : 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(node.color == .white ? .black : .white)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        if node.comment != nil { Circle().fill(.orange).frame(width: 5, height: 5) }
+                        if node.comment != nil { Circle().fill(.orange).frame(width: 3, height: 3) }
                     }
-                    .frame(width: 28, height: 28)
-                    .overlay(Circle().stroke(id == tree.selectedID ? Color.cyan : Color.white.opacity(0.35), lineWidth: id == tree.selectedID ? 3 : 1))
+                    .frame(width: 14, height: 14)
+                    .overlay(Circle().stroke(id == tree.selectedID ? Color.cyan : Color.white.opacity(0.35), lineWidth: id == tree.selectedID ? 2 : 1))
+                    .frame(width: pitch, height: pitch).contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(nodeDescription(node))
                 .help(nodeDescription(node) + (node.comment.map { "\n" + $0 } ?? ""))
+                .contextMenu {
+                    Button("Add pass here") {
+                        vm.selectReviewNode(id)
+                        if vm.reviewTree?.selectedID == id { vm.addReviewMove(at: nil) }
+                    }
+                }
                 .id("tree-node-\(id)")
-                .position(x: CGFloat(tree.columns[id] + 1) * pitch, y: pitch / 2)
+                .position(x: nodeOrigin + CGFloat(tree.columns[id]) * pitch, y: pitch / 2)
             }
         }
     }
