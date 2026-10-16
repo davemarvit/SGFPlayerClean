@@ -69,6 +69,14 @@ class BoardViewModel: ObservableObject {
     @Published private(set) var variationFrame: AIVariationFrame?
     @Published private(set) var variationStatus: String?
     var isPreviewingVariation: Bool { variationFrame != nil }
+    var emphasizesReviewedMove: Bool {
+        canNavigateReview?() == true && isAIAllowed?() == true &&
+        !isPreviewingVariation && !localScoringVisible && engine.currentIndex > 0
+    }
+    var selectedMoveFeedback: SelectedMoveFeedback? {
+        guard emphasizesReviewedMove else { return nil }
+        return SelectedMoveFeedback(engine: engine, analyses: analysisEngine.currentAnalysisData)
+    }
     var recentMoveQualityMarkers: [RecentMoveQualityMarker] {
         guard canNavigateReview?() == true, isAIAllowed?() == true,
               !isPreviewingVariation, !localScoringVisible else { return [] }
@@ -458,8 +466,8 @@ class BoardViewModel: ObservableObject {
         MistakeFilter(players: mistakePlayers, minimumLoss: mistakeMinimumLoss).moveNumbers(
             in: Array(analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine).values))
     }
-    var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > currentMoveIndex } }
-    var previousMistakeMove: Int? { matchingMistakeMoves.last { $0 < currentMoveIndex } }
+    var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > engine.currentIndex } }
+    var previousMistakeMove: Int? { matchingMistakeMoves.last { $0 < engine.currentIndex } }
     func seekNextMistake() {
         if let move = nextMistakeMove { seekToMove(move) }
     }

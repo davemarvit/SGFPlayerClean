@@ -216,3 +216,43 @@ struct AIPlayerPerformance {
         accuracy = complete && totalWeight > 0 ? 100 * pow(0.75, weightedLoss / totalWeight) : nil
     }
 }
+
+/// Describes the move that produced the displayed position, never the next move.
+struct SelectedMoveFeedback {
+    let moveNumber: Int
+    let player: Stone
+    let location: String
+    let hasStone: Bool
+    let pointsLost: Double?
+    let winBefore: Double?
+    let winAfter: Double?
+    var title: String { "Move \(moveNumber) · \(player == .black ? "Black" : "White") · \(location)" }
+    var lossText: String {
+        pointsLost.map { String(format: "%.1f points lost", $0) } ?? "Analysis pending for this move"
+    }
+    var chanceText: String? {
+        guard let before = winBefore, let after = winAfter else { return nil }
+        let change = (after - before) * 100
+        let direction = abs(change) < 0.05 ? "No change" : String(format: "%@%.1f percentage points", change < 0 ? "−" : "+", abs(change))
+        return String(format: "Win chance: %.1f%% → %.1f%%", before * 100, after * 100) + " (" + direction + ")"
+    }
+    init?(engine: SGFPlayer, analyses: [Int: AIAnalysis]) {
+        let move = engine.currentIndex - 1
+        guard move >= 0, let color = engine.moveColor(at: move) else { return nil }
+        moveNumber = move + 1; player = color
+        if let position = engine.movePosition(at: move) {
+            let letters = Array("ABCDEFGHJKLMNOPQRSTUVWXYZ")
+            location = position.col < letters.count ? "\(letters[position.col])\(engine.board.size - position.row)" : "Intersection"
+            hasStone = engine.board.stones[position] == color
+        } else { location = "Pass"; hasStone = false }
+        if let before = analyses[move]?.rootInfo, let after = analyses[move + 1]?.rootInfo,
+           before.visits > 0, after.visits > 0, before.scoreLead.isFinite, after.scoreLead.isFinite,
+           before.winrate.isFinite, after.winrate.isFinite,
+           (0...1).contains(before.winrate), (0...1).contains(after.winrate) {
+            let samePlayer = engine.playerToMove(at: move + 1) == color
+            pointsLost = max(0, before.scoreLead - (samePlayer ? after.scoreLead : -after.scoreLead))
+            winBefore = before.winrate
+            winAfter = samePlayer ? after.winrate : 1 - after.winrate
+        } else { pointsLost = nil; winBefore = nil; winAfter = nil }
+    }
+}

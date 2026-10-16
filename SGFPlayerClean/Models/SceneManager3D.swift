@@ -273,7 +273,7 @@ class SceneManager3D: NSObject, ObservableObject {
             return true
         }
     }
-    func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings, animate: Bool = true) {
+    func updateStones(from cache: [RenderStone], lastMove: BoardPosition?, moveIndex: Int, settings: AppSettings, animate: Bool = true, emphasizeLastMove: Bool = false) {
         let w = CGFloat(boardSize - 1) * effectiveCellWidth; let h = CGFloat(boardSize - 1) * effectiveCellHeight; let offX = -w / 2.0; let offZ = -h / 2.0; let surfaceY = boardThickness / 2.0
         let currentPos = Set(cache.map { $0.id })
         
@@ -334,7 +334,7 @@ class SceneManager3D: NSObject, ObservableObject {
         SCNTransaction.begin()
         SCNTransaction.animationDuration = animate ? 0.2 : 0
         if let p = previousLastMove, let n = stoneNodeMap[p] { n.childNodes.filter({ $0.name?.contains("MARKER") ?? false }).forEach { $0.removeFromParentNode() } }
-        if let c = lastMove, let n = stoneNodeMap[c] { let col = cache.first(where: { $0.id == c })?.color ?? .black; applyMarkers(to: n, color: col, index: moveIndex, settings: settings) }
+        if let c = lastMove, let n = stoneNodeMap[c] { let col = cache.first(where: { $0.id == c })?.color ?? .black; applyMarkers(to: n, color: col, index: moveIndex, settings: settings, forceDot: emphasizeLastMove) }
         previousLastMove = lastMove
         SCNTransaction.commit()
     }
@@ -648,11 +648,11 @@ class SceneManager3D: NSObject, ObservableObject {
         SCNTransaction.commit()
     }
 
-    private func applyMarkers(to group: SCNNode, color: Stone, index: Int, settings: AppSettings) {
+    private func applyMarkers(to group: SCNNode, color: Stone, index: Int, settings: AppSettings, forceDot: Bool) {
         let apex = (stoneRadius * stoneScaleY * 2.0) + 0.01; let tc = color == .black ? NSColor.white : NSColor.black
-        if settings.showLastMoveDot { let d = SCNNode(geometry: SCNSphere(radius: stoneRadius * 0.12)); d.geometry?.firstMaterial = markerMaterial; d.name = "MARKER_DOT"; d.position = SCNVector3(0, apex + 0.02, 0); group.addChildNode(d) }
+        if settings.showLastMoveDot || forceDot { let d = SCNNode(geometry: SCNSphere(radius: stoneRadius * 0.12)); d.geometry?.firstMaterial = markerMaterial; d.name = "MARKER_DOT"; d.position = SCNVector3(0, apex + 0.02, 0); group.addChildNode(d) }
         if settings.showLastMoveCircle { let r = SCNNode(geometry: SCNTorus(ringRadius: stoneRadius * 0.6, pipeRadius: 0.025)); r.geometry?.firstMaterial = markerMaterial; r.name = "MARKER_CIRCLE"; r.position = SCNVector3(0, apex, 0); group.addChildNode(r) }
-        if settings.showMoveNumbers {
+        if settings.showMoveNumbers && !forceDot {
             let t = SCNText(string: "\(index)", extrusionDepth: 0.1); t.font = NSFont.boldSystemFont(ofSize: 0.45); t.flatness = 0.01; t.materials = [SCNMaterial()]; t.materials[0].diffuse.contents = tc
             let tn = SCNNode(geometry: t); tn.name = "MARKER_NUMBER"; tn.eulerAngles.x = -.pi/2
             let (min, max) = t.boundingBox; tn.pivot = SCNMatrix4MakeTranslation(CGFloat((max.x - min.x)/2.0 + min.x), CGFloat((max.y - min.y)/2.0 + min.y), 0)

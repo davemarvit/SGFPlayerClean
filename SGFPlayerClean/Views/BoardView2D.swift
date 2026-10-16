@@ -107,14 +107,15 @@ struct BoardView2D: View {
                 RecentMoveQualityOverlay(vm: boardVM, cellWidth: cellP, rowHeight: rowP)
 
                 // MARKER LAYER (Over Stones)
-                if !boardVM.isPreviewingVariation, let lastPos = boardVM.lastMovePosition {
+                if !boardVM.isPreviewingVariation, let lastPos = boardVM.lastMovePosition,
+                   boardVM.displayedStones.contains(where: { $0.id == lastPos }) {
                     let j = boardVM.getJitterOffset(forPosition: lastPos)
                     let tx = CGFloat(lastPos.col) * cellP + (j.x * cellP)
                     let ty = CGFloat(lastPos.row) * rowP + (j.y * rowP)
                     
                     Group {
                         // DOT
-                        if AppSettings.shared.showLastMoveDot {
+                        if AppSettings.shared.showLastMoveDot || boardVM.emphasizesReviewedMove {
                             Circle().fill(Color.red)
                                 .frame(width: cellP * 0.25, height: cellP * 0.25)
                         }
@@ -130,7 +131,7 @@ struct BoardView2D: View {
                         }
                         
                         // NUMBER
-                        if AppSettings.shared.showMoveNumbers {
+                        if AppSettings.shared.showMoveNumbers && !boardVM.emphasizesReviewedMove {
                             let stoneColor = boardVM.displayedStones.first(where: { $0.id == lastPos })?.color ?? .black
                             let textColor = stoneColor == .black ? Color.white : Color.black
                             

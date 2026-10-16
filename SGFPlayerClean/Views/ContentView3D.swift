@@ -175,7 +175,7 @@ struct ContentView3D: View {
         // Dynamic Resize Check
         sceneManager.updateBoardSize(bVM.boardSize) // Ensure 3D matches 2D physics
         
-        sceneManager.updateStones(from: bVM.displayedStones, lastMove: bVM.isPreviewingVariation ? nil : bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing && !bVM.isPreviewingVariation && !bVM.restoringVariation)
+        sceneManager.updateStones(from: bVM.displayedStones, lastMove: bVM.isPreviewingVariation ? nil : bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing && !bVM.isPreviewingVariation && !bVM.restoringVariation, emphasizeLastMove: bVM.emphasizesReviewedMove)
         sceneManager.updateVariationNumbers(frame: bVM.variationFrame)
         sceneManager.updateRecentMoveQuality(bVM.recentMoveQualityMarkers)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount, seed: bVM.engine.captureSeed)
