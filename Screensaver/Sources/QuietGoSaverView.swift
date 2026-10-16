@@ -111,8 +111,9 @@ final class QuietGoSaverView: ScreenSaverView {
         let board = NSRect(x: (bounds.width - width) / 2, y: max(2, (bounds.height - height - 24) / 2), width: width, height: height)
         NSGraphicsContext.saveGraphicsState()
         let shadow = NSShadow(); shadow.shadowColor = NSColor.black.withAlphaComponent(0.5)
-        shadow.shadowBlurRadius = width * 0.02; shadow.shadowOffset = NSSize(width: width * 0.012, height: -width * 0.012); shadow.set()
-        NSColor(calibratedRed: 0.8, green: 0.6, blue: 0.3, alpha: 1).setFill(); board.fill()
+        shadow.shadowBlurRadius = width * 0.02; shadow.shadowOffset = .zero; shadow.set()
+        NSColor.black.setFill()
+        board.offsetBy(dx: width * 0.012, dy: width * 0.012).fill()
         NSGraphicsContext.restoreGraphicsState()
         wood?.draw(in: board, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         let grid = board.insetBy(dx: width * 0.065, dy: width * 0.065)
@@ -133,18 +134,19 @@ final class QuietGoSaverView: ScreenSaverView {
             NSBezierPath(ovalIn: NSRect(x: p.x-radius, y: p.y-radius, width: radius*2, height: radius*2)).fill()
         } }
         let diameter = pitchX * 0.97
-        NSGraphicsContext.saveGraphicsState()
-        let stoneShadow = NSShadow()
-        stoneShadow.shadowColor = NSColor.black.withAlphaComponent(0.48)
-        stoneShadow.shadowBlurRadius = max(0.8, diameter * 0.09)
-        stoneShadow.shadowOffset = NSSize(width: diameter * 0.085, height: diameter * 0.085)
-        stoneShadow.set()
-        NSColor.black.setFill()
+        // Place the shadow itself in flipped view coordinates (down and right).
+        // NSShadow's vertical offset can differ between Apple's layer-backed
+        // screensaver host and bitmap preview rendering. A radial falloff has
+        // the same direction in both contexts, opposite the upper-left highlight.
+        let stoneShadow = NSGradient(colorsAndLocations:
+            (NSColor.black.withAlphaComponent(0.48), 0.0),
+            (NSColor.black.withAlphaComponent(0.42), 0.60),
+            (NSColor.black.withAlphaComponent(0.13), 0.86),
+            (NSColor.black.withAlphaComponent(0.0), 1.0))!
         for position in playlist.player.board.stones.keys {
-            let p = point(position), d = diameter * 0.94
-            NSBezierPath(ovalIn: NSRect(x: p.x-d/2, y: p.y-d/2, width: d, height: d)).fill()
+            let p = point(position), d = diameter * 1.12, offset = diameter * 0.085
+            stoneShadow.draw(in: NSBezierPath(ovalIn: NSRect(x: p.x+offset-d/2, y: p.y+offset-d/2, width: d, height: d)), relativeCenterPosition: .zero)
         }
-        NSGraphicsContext.restoreGraphicsState()
         for (position, color) in playlist.player.board.stones {
             let p = point(position), rect = NSRect(x: p.x-diameter/2, y: p.y-diameter/2, width: diameter, height: diameter)
             if let image = color == .black ? blackStone : whiteStone {
