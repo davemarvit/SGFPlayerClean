@@ -76,8 +76,28 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
             try! "(;SZ[13];B[dd];W[jj])".write(to: replacement.appendingPathComponent("replacement.sgf"), atomically: true, encoding: .utf8)
             config["generation"] = generation; config["gameCount"] = 1; save(); settle(1.3)
             require(saver.value(forKey: "displayedBoardSize") as? Int == 13 && saver.value(forKey: "displayedGame") as? String == "replacement.sgf", "A published folder replacement loads in the active saver")
+            require(saver.value(forKey: "displayedBlackCaptures") as? Int == 0 && saver.value(forKey: "displayedWhiteCaptures") as? Int == 0, "New game starts with empty lids")
+
+            // White captures one black stone, then Black captures two white stones.
+            let capturesID = UUID().uuidString
+            let captures = root.appendingPathComponent("Libraries").appendingPathComponent(capturesID)
+            try! FileManager.default.createDirectory(at: captures, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: captures) }
+            try! "(;SZ[9]PL[W]PB[Alice]PW[Bob]AB[aa][ha][hb][gc][fb]AW[ba][ga][gb];W[ab];B[fa])".write(to: captures.appendingPathComponent("captures.sgf"), atomically: true, encoding: .utf8)
+            config["generation"] = capturesID; save(); settle(1.2)
+            require(saver.value(forKey: "displayedBlackCaptures") as? Int == 0 && saver.value(forKey: "displayedWhiteCaptures") as? Int == 0, "Replacing the library clears old captures")
+            settle(3.4)
+            require(saver.value(forKey: "displayedBlackCaptures") as? Int == 1, "Upper lid contains the captured black stone")
+            require(saver.value(forKey: "displayedWhiteCaptures") as? Int == 2, "Lower lid contains two captured white stones")
+            saver.stopAnimation()
+            for (name, size) in [("capture-lids", NSSize(width: 1200, height: 850)), ("capture-lids-small", NSSize(width: 320, height: 220)), ("capture-lids-portrait", NSSize(width: 600, height: 1000))] {
+                window.setContentSize(size); saver.needsDisplay = true; settle(0.1); capture(name)
+            }
+            saver.startAnimation()
+            config["generation"] = generation; save(); settle(1.2)
+            require(saver.value(forKey: "displayedBlackCaptures") as? Int == 0 && saver.value(forKey: "displayedWhiteCaptures") as? Int == 0, "Both captured-stone lids reset after leaving the capture game")
         }
-        print("PASS: signed bundle load, folder read, rendering at full/preview sizes, real timed playback, stop/late-frame/restart, independent instances, enable/disable and folder changes")
+        print("PASS: signed bundle load, rendering at full/preview/portrait sizes, real timed playback, stop/restart, independent instances, enable/disable, folder changes, both capture colors/counts and lid resets")
         NSApp.terminate(nil)
     }
 }

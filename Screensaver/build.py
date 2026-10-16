@@ -14,10 +14,10 @@ if identity == 'auto':
     identities=re.findall(r'"(Developer ID Application: [^"]+)"',found.stdout)
     identity=identities[0] if identities else '-'
 saver=out/'Quiet Go.saver'; host=out/'SGF Screensaver Preview.app'
-core=[root/'SGFPlayerClean/Models'/name for name in ['OGSModels.swift','OGSScoringState.swift','SGFPlayerEngine.swift','ScreensaverConfiguration.swift']]
-sources=[root/'Screensaver/Sources'/name for name in ['SaverPlaybackSettings.swift','SaverPlaylist.swift','QuietGoSaverView.swift']]
+core=[root/'SGFPlayerClean/Models'/name for name in ['OGSModels.swift','OGSScoringState.swift','SGFPlayerEngine.swift','ScreensaverConfiguration.swift','StoneJitter.swift']]
+sources=[root/'Screensaver/Sources'/name for name in ['SaverPlaybackSettings.swift','SaverPlaylist.swift','SaverLayout.swift','QuietGoSaverView.swift']]
 preview=root/'Screensaver/Sources/PreviewHost.swift'
-assets=[root/'SGFPlayerClean/Assets'/name for name in ['board_kaya.jpg','tatami.jpg','stone_black.png','stone_white.png']]
+assets=[root/'SGFPlayerClean/Assets'/name for name in ['board_kaya.jpg','tatami.jpg','stone_black.png','stone_white.png','go_lid_1.png','go_lid_2.png'] + [f'clam_{i:02d}.png' for i in range(1,6)]]
 sdk=subprocess.check_output(['xcrun','--sdk','macosx','--show-sdk-path'],text=True).strip()
 fingerprint=hashlib.sha256((identity+sdk).encode())
 for f in core+sources+[preview,Path(__file__)]+assets: fingerprint.update(f.read_bytes())
@@ -31,7 +31,7 @@ for bundle in [saver,host]:
     (bundle/'Contents/Resources').mkdir()
 common=['xcrun','swiftc','-swift-version','5','-O','-sdk',sdk,'-target','arm64-apple-macos14.0']
 subprocess.run(common+['-emit-library','-module-name','QuietGoSaver']+list(map(str,core+sources))+['-framework','ScreenSaver','-framework','AppKit','-o',str(saver/'Contents/MacOS/QuietGoSaver')],check=True)
-plist=dict(CFBundleExecutable='QuietGoSaver',CFBundleIdentifier='com.davemarvit.SGFPlayer.QuietSaver',CFBundleName='Quiet Go',CFBundleDisplayName='Quiet Go',CFBundlePackageType='BNDL',CFBundleShortVersionString='0.2',CFBundleVersion='2',LSMinimumSystemVersion='14.0',NSPrincipalClass='QuietGoSaverView')
+plist=dict(CFBundleExecutable='QuietGoSaver',CFBundleIdentifier='com.davemarvit.SGFPlayer.QuietSaver',CFBundleName='Quiet Go',CFBundleDisplayName='Quiet Go',CFBundlePackageType='BNDL',CFBundleShortVersionString='0.3',CFBundleVersion='3',LSMinimumSystemVersion='14.0',NSPrincipalClass='QuietGoSaverView')
 (saver/'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 for f in assets: shutil.copy2(f,saver/'Contents/Resources'/f.name)
 def sign(bundle):
@@ -40,7 +40,7 @@ def sign(bundle):
 sign(saver)
 plugins=host/'Contents/PlugIns';plugins.mkdir();shutil.copytree(saver,plugins/saver.name)
 subprocess.run(common+['-parse-as-library',str(preview),'-framework','ScreenSaver','-o',str(host/'Contents/MacOS/SaverPreview')],check=True)
-(host/'Contents/Info.plist').write_bytes(plistlib.dumps(dict(CFBundleExecutable='SaverPreview',CFBundleIdentifier='com.davemarvit.SGFPlayer.SaverPreview',CFBundleName='SGF Screensaver Preview',CFBundlePackageType='APPL',CFBundleShortVersionString='0.2',CFBundleVersion='2',LSMinimumSystemVersion='14.0',NSHighResolutionCapable=True)))
+(host/'Contents/Info.plist').write_bytes(plistlib.dumps(dict(CFBundleExecutable='SaverPreview',CFBundleIdentifier='com.davemarvit.SGFPlayer.SaverPreview',CFBundleName='SGF Screensaver Preview',CFBundlePackageType='APPL',CFBundleShortVersionString='0.3',CFBundleVersion='3',LSMinimumSystemVersion='14.0',NSHighResolutionCapable=True)))
 sign(host)
 info_path.write_text(json.dumps(dict(saver=str(saver),preview=str(host),sourceCommit=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True).strip(),fingerprint=digest,architecture='arm64',identity=identity),indent=2)+'\n')
 print(saver);print(host)

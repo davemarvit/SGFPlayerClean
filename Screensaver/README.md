@@ -13,6 +13,14 @@ necessarily repeats). Playback continues indefinitely. It is silent, uses the
 normal SGF parser/replay engine, and handles setup, captures, passes and main-line
 variations. The 2D renderer includes separate soft stone shadows.
 
+Two wooden capture lids sit to the right of the board: captured black stones above,
+captured white stones below. Their piles and badges read the replay engine's current
+capture totals and clear with each new game. They reuse the main app's seeded pile
+layout and stone/lid assets: positions remain stable as captures accumulate, while
+different lids and games get different arrangements. This uses cached settled
+positions rather than a continuously running physics simulation. The complete
+board/lid layout fits small previews and tall or wide displays.
+
 ## Folder and settings storage
 
 The selected folder is independent of the app's Review library. Subfolders are

@@ -74,6 +74,9 @@ final class SaverPlaylist {
                 guard (2...25).contains(replay.boardSize), !replay.moves.isEmpty else { continue }
                 game = replay; file = url; errorMessage = nil; playedGames += 1
                 player.load(game: replay)
+                // Keep each pile stable during a game, but vary it between games
+                // and between repeated passes through the same library.
+                player.setCaptureIdentity(UUID().uuidString)
                 nextMoveAt = time + moveInterval
                 Self.log.notice("Loaded game \(self.playedGames, privacy: .public); moves=\(self.player.maxIndex, privacy: .public)")
                 return

@@ -23,6 +23,7 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) {
         check(!list.advance(at: 7.9), "Keep final position visible")
         check(list.advance(at: 8) && list.file?.lastPathComponent == "02.sgf", "Cycle to next game")
         check(list.player.board.stones.count == 2 && list.player.maxIndex == 3, "Setup and first variation are retained")
+        check(list.player.blackStonesCaptured == 0 && list.player.whiteStonesCaptured == 0, "Both lids clear when the next game loads")
         _ = list.advance(at: 9); list.stop()
         check(!list.advance(at: 100) && list.player.currentIndex == 1, "Stop blocks late frames")
         list.start(at: 100)
@@ -51,6 +52,22 @@ private func check(_ condition: @autoclosure () -> Bool, _ message: String) {
             check(seen.count == 5, "Each random cycle includes the whole library exactly once")
         }
         print("PASS: eight continuous shuffle cycles, full library coverage, no immediate repeats")
+        for size in [CGSize(width: 1920, height: 1080), CGSize(width: 1000, height: 850), CGSize(width: 600, height: 1000), CGSize(width: 320, height: 220)] {
+            let bounds = CGRect(origin: .zero, size: size), layout = SaverLayout(bounds: CGRect(origin: .zero, size: size))
+            for rect in [layout.board, layout.blackLid, layout.whiteLid, layout.caption] {
+                check(bounds.contains(rect), "Board, lids and caption fit landscape, portrait and small preview")
+            }
+            check(!layout.board.intersects(layout.blackLid) && !layout.board.intersects(layout.whiteLid)
+                  && !layout.blackLid.intersects(layout.whiteLid), "Lids do not cover board or each other")
+        }
+        let blackSeed = CapturePileLayout.lidSeed(game: 123, whiteStones: false)
+        let whiteSeed = CapturePileLayout.lidSeed(game: 123, whiteStones: true)
+        let smallPile = CapturePileLayout.stones(count: 2, seed: blackSeed)
+        let largePile = CapturePileLayout.stones(count: 80, seed: blackSeed)
+        check(smallPile == Array(largePile.prefix(2)), "Capturing more stones keeps the existing pile stable")
+        check(largePile.allSatisfy { hypot($0.x, $0.y) + 0.15/2 < 0.4 }, "Captured stones stay inside the lid")
+        check(largePile != CapturePileLayout.stones(count: 80, seed: whiteSeed), "Black and white lids have different arrangements")
+        print("PASS: lid layout across screen sizes, stable varied piles, game rollover clears captures")
         if let argument = CommandLine.arguments.firstIndex(of: "--library"), argument + 1 < CommandLine.arguments.count {
             let library = URL(fileURLWithPath: CommandLine.arguments[argument + 1])
             var games = 0, moves = 0, skipped = 0
