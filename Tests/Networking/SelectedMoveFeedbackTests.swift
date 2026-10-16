@@ -19,6 +19,7 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         let black = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data))
         XCTAssertEqual(black.moveNumber, 1); XCTAssertEqual(black.player, .black)
         XCTAssertEqual(black.location, "D16"); XCTAssertTrue(black.hasStone)
+        XCTAssertEqual(black.stoneLossText, "−2.0pt"); XCTAssertEqual(black.stoneChanceText, "−5.0pp")
         XCTAssertEqual(black.pointsLost, 2)
         XCTAssertEqual(black.winBefore, 0.7); XCTAssertEqual(black.winAfter, 0.65)
         player.seek(to: 2)
@@ -34,6 +35,7 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         let player = try game("(;SZ[9];B[];W[aa])"); player.seek(to: 1)
         let pending = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: [:]))
         XCTAssertEqual(pending.location, "Pass"); XCTAssertFalse(pending.hasStone)
+        XCTAssertNil(pending.stoneLossText); XCTAssertNil(pending.stoneChanceText)
         XCTAssertNil(pending.pointsLost); XCTAssertNil(pending.chanceText)
         for invalid in [root(1, score: .nan, win: 0.3), root(1, score: 0, win: 1.1), root(1, score: 0, win: 0.3, visits: 0)] {
             let data = [0: root(0, score: 0, win: 0.5), 1: invalid]
@@ -55,6 +57,7 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         let data = [0: root(0, score: 0, win: 0.5), 1: root(1, score: -1, win: 0.4)]
         let move = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data))
         XCTAssertEqual(move.location, "A5"); XCTAssertFalse(move.hasStone)
+        XCTAssertEqual(move.stoneLossText, "0.0pt"); XCTAssertEqual(move.stoneChanceText, "+10.0pp")
         XCTAssertEqual(move.pointsLost, 0)
         XCTAssertEqual(move.chanceText, "Win chance: 50.0% → 60.0% (+10.0 percentage points)")
     }

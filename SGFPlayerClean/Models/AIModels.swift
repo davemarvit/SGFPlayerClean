@@ -218,7 +218,7 @@ struct AIPlayerPerformance {
 }
 
 /// Describes the move that produced the displayed position, never the next move.
-struct SelectedMoveFeedback {
+struct SelectedMoveFeedback: Equatable {
     let moveNumber: Int
     let player: Stone
     let location: String
@@ -227,6 +227,15 @@ struct SelectedMoveFeedback {
     let winBefore: Double?
     let winAfter: Double?
     var title: String { "Move \(moveNumber) · \(player == .black ? "Black" : "White") · \(location)" }
+    var stoneLossText: String? {
+        guard let loss = pointsLost else { return nil }
+        return String(format: "%@%.1fpt", loss >= 0.05 ? "−" : "", loss < 0.05 ? 0 : loss)
+    }
+    var stoneChanceText: String? {
+        guard let before = winBefore, let after = winAfter else { return nil }
+        let change = (after - before) * 100
+        return String(format: "%@%.1fpp", abs(change) < 0.05 ? "" : (change < 0 ? "−" : "+"), abs(change) < 0.05 ? 0 : abs(change))
+    }
     var lossText: String {
         pointsLost.map { String(format: "%.1f points lost", $0) } ?? "Analysis pending for this move"
     }

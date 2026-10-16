@@ -411,6 +411,45 @@ class SceneManager3D: NSObject, ObservableObject {
         }
     }
 
+    private var selectedFeedback: SelectedMoveFeedback?
+    private var selectedFeedbackPosition: BoardPosition?
+    func updateSelectedMoveFeedback(_ feedback: SelectedMoveFeedback?, at position: BoardPosition?) {
+        if feedback == selectedFeedback, position == selectedFeedbackPosition,
+           let position, stoneNodeMap[position]?.childNode(withName: "ai-selected-feedback", recursively: false) != nil { return }
+        selectedFeedback = feedback; selectedFeedbackPosition = position
+        for anchor in stoneNodeMap.values {
+            anchor.childNode(withName: "ai-selected-feedback", recursively: false)?.removeFromParentNode()
+        }
+        guard let feedback, feedback.hasStone, let position, let anchor = stoneNodeMap[position],
+              let loss = feedback.stoneLossText, let chance = feedback.stoneChanceText else { return }
+        let image = NSImage(size: NSSize(width: 256, height: 256), flipped: false) { _ in
+            for (text, centerY) in [(loss, CGFloat(196)), (chance, CGFloat(60))] {
+                var font = NSFont.boldSystemFont(ofSize: 54)
+                while (text as NSString).size(withAttributes: [.font: font]).width > 246 && font.pointSize > 22 {
+                    font = NSFont.boldSystemFont(ofSize: font.pointSize - 1)
+                }
+                let attributes: [NSAttributedString.Key: Any] = [
+                    .font: font, .foregroundColor: feedback.player == .black ? NSColor.white : NSColor.black,
+                    .strokeColor: feedback.player == .black ? NSColor.black : NSColor.white, .strokeWidth: -3.5]
+                let size = (text as NSString).size(withAttributes: attributes)
+                (text as NSString).draw(at: CGPoint(x: (256 - size.width) / 2, y: centerY - size.height / 2), withAttributes: attributes)
+            }
+            return true
+        }
+        let material = SCNMaterial(); material.lightingModel = .constant
+        material.diffuse.contents = image; material.writesToDepthBuffer = false
+        // This is an annotation, not part of the stone surface. Its text must not
+        // disappear into the curved mesh when the camera is tilted.
+        material.readsFromDepthBuffer = false
+        let plane = SCNPlane(width: effectiveCellWidth * 1.1, height: effectiveCellWidth * 1.1)
+        plane.materials = [material]
+        let node = SCNNode(geometry: plane); node.name = "ai-selected-feedback"
+        node.eulerAngles.x = -.pi / 2
+        node.position = SCNVector3(0, stoneRadius * stoneScaleY * 2 + 0.035, 0)
+        node.castsShadow = false; node.renderingOrder = 101
+        anchor.addChildNode(node)
+    }
+
     // NEW: Territory Rendering
     private var territoryNodes: [SCNNode] = []
     private lazy var territoryMaterials: [Stone: SCNMaterial] = {

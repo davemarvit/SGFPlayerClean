@@ -141,6 +141,8 @@ struct BoardView2D: View {
                         }
                     }
                     .position(x: tx, y: ty)
+                    SelectedMoveStoneLabels(vm: boardVM, cellWidth: cellP)
+                        .position(x: tx, y: ty)
                 }
             }
             .frame(width: gridW, height: gridH)
@@ -174,6 +176,40 @@ struct BoardView2D: View {
     private func starPoints(size: Int) -> [BoardPosition] {
         if size == 19 { return [BoardPosition(3,3), BoardPosition(3,9), BoardPosition(3,15), BoardPosition(9,3), BoardPosition(9,9), BoardPosition(9,15), BoardPosition(15,3), BoardPosition(15,9), BoardPosition(15,15)] }
         return []
+    }
+}
+
+/// Kept separate so arriving analysis updates the labels even when the board has
+/// not moved. The center remains clear for the red last-move dot.
+struct SelectedMoveStoneLabels: View {
+    @ObservedObject var vm: BoardViewModel
+    @ObservedObject private var ai = KataGoEngine.shared
+    let cellWidth: CGFloat
+
+    var body: some View {
+        ZStack {
+            if vm.emphasizesReviewedMove,
+               let move = SelectedMoveFeedback(engine: vm.engine, analyses: ai.currentAnalysisData), move.hasStone,
+               let loss = move.stoneLossText, let chance = move.stoneChanceText {
+                label(loss, color: move.player).offset(y: -cellWidth * 0.29)
+                label(chance, color: move.player).offset(y: cellWidth * 0.29)
+            }
+        }
+        .frame(width: cellWidth, height: cellWidth)
+        .allowsHitTesting(false)
+        .accessibilityLabel(vm.selectedMoveFeedback.map { $0.title + ": " + $0.lossText + ". " + ($0.chanceText ?? "") } ?? "")
+    }
+
+    private func label(_ text: String, color: Stone) -> some View {
+        let ink: Color = color == .black ? .white : .black
+        let outline: Color = color == .black ? .black : .white
+        return Text(text)
+            .font(.system(size: max(8, cellWidth * 0.23), weight: .bold, design: .rounded))
+            .monospacedDigit().foregroundStyle(ink).fixedSize()
+            .shadow(color: outline, radius: 0.6, x: 1, y: 0)
+            .shadow(color: outline, radius: 0.6, x: -1, y: 0)
+            .shadow(color: outline, radius: 0.6, x: 0, y: 1)
+            .shadow(color: outline, radius: 0.6, x: 0, y: -1)
     }
 }
 

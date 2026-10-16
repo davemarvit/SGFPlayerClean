@@ -62,15 +62,16 @@ private final class ResultsHTTP: URLProtocol {
             try VNImageRequestHandler(cgImage: bitmap.cgImage!).perform([request])
             return (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
         }
-        let words = try capture(SelectedMoveFeedbackView(vm: vm, ai: ai).padding().background(.black),
-            size: CGSize(width: 280, height: 180), name: "readout")
-        require(words.contains("White") && words.contains("K9") && words.contains("35.0%") && words.contains("20.0%"), "Readout renders all information at narrow width: \(words)")
+        let words = try capture(SelectedMoveStoneLabels(vm: vm, cellWidth: 130).background(.white),
+            size: CGSize(width: 180, height: 180), name: "readout")
+        require(words.contains("3.2") && words.contains("15.0"), "On-stone labels show points and probability change: \(words)")
         _ = try capture(BoardView2D(boardVM: vm, layoutVM: app.layoutVM, size: CGSize(width: 700, height: 754)).environmentObject(app),
                         size: CGSize(width: 760, height: 810), name: "2d")
         let scene = SceneManager3D()
         func updateScene() {
             scene.updateStones(from: vm.displayedStones, lastMove: vm.lastMovePosition, moveIndex: vm.currentMoveIndex,
                 settings: AppSettings.shared, animate: false, emphasizeLastMove: vm.emphasizesReviewedMove)
+            scene.updateSelectedMoveFeedback(vm.selectedMoveFeedback, at: vm.lastMovePosition)
         }
         updateScene()
         func nodes(_ name: String) -> [SCNNode] {
@@ -79,6 +80,7 @@ private final class ResultsHTTP: URLProtocol {
             return result
         }
         require(nodes("MARKER_DOT").count == 1 && nodes("MARKER_NUMBER").isEmpty, "3D review forces a clear dot without a number over it")
+        require(nodes("ai-selected-feedback").count == 1, "Exactly one on-stone label pair")
         let stone = vm.displayedStones.first { $0.id == BoardPosition(10,9) }!
         let anchor = nodes("MARKER_DOT")[0].parent!
         require(abs(Double(anchor.position.x) - Double(stone.offset.x)) < 0.001 &&
@@ -90,10 +92,13 @@ private final class ResultsHTTP: URLProtocol {
         try bitmap.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: "/private/tmp/sgf-selected-3d.png"))
         app.aiAnalysisEnabled = false; settle(); updateScene()
         require(vm.selectedMoveFeedback == nil && !vm.emphasizesReviewedMove, "AI off hides move feedback")
+        require(nodes("ai-selected-feedback").isEmpty, "AI off removes on-stone labels")
         require(nodes("MARKER_DOT").isEmpty && nodes("MARKER_NUMBER").count == 1, "AI off restores the existing marker preference")
         require(!AppSettings.shared.showLastMoveDot && AppSettings.shared.showMoveNumbers, "Saved marker preferences unchanged")
         app.aiAnalysisEnabled = true; settle()
         ai.currentAnalysisData[2] = nil
+        updateScene()
+        require(nodes("ai-selected-feedback").isEmpty, "Missing analysis removes old on-stone labels")
         require(vm.selectedMoveFeedback?.pointsLost == nil, "Missing analysis shows pending, never a stale loss")
         ai.currentAnalysisData[2] = AIAnalysis(id: "fixture", isDuringSearch: false, turnNumber: 2, moveInfos: nil,
             rootInfo: AIRootInfo(winrate: 0.8, scoreLead: 5.2, visits: 100))

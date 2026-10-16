@@ -263,31 +263,3 @@ struct MistakeFilterView: View {
         .background(Color(white: 0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 }
-
-struct SelectedMoveFeedbackView: View {
-    @ObservedObject var vm: BoardViewModel
-    @ObservedObject var ai = KataGoEngine.shared
-    var body: some View {
-        if vm.emphasizesReviewedMove,
-           let move = SelectedMoveFeedback(engine: vm.engine, analyses: ai.currentAnalysisData) {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    if move.hasStone { Circle().fill(.red).frame(width: 9, height: 9).accessibilityHidden(true) }
-                    Text(move.title).bold()
-                }
-                Text(move.lossText)
-                if let chance = move.chanceText { Text(chance).foregroundStyle(.secondary) }
-                if !move.hasStone && move.location != "Pass" {
-                    Text("Self-capture: the played stone is no longer on the board.").foregroundStyle(.secondary)
-                }
-            }
-            .font(.caption).monospacedDigit()
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
-            .background(Color(white: 0.12), in: RoundedRectangle(cornerRadius: 8))
-            .help("The red dot marks the move that produced this position. Point loss and win chance are estimates from that player's perspective, comparing before and after the move.")
-            .accessibilityIdentifier("selected-move-feedback")
-        }
-    }
-}

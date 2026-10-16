@@ -143,7 +143,6 @@ struct AIWorkspacePanel: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("AI analysis").font(.headline)
-                            SelectedMoveFeedbackView(vm: vm, ai: ai)
                             WinRateGraphView(aiEngine: ai, vm: vm).frame(maxWidth: .infinity)
                             if let game = app.selection {
                                 LocalGameMetadataView(game: game, boardVM: vm, isOverlay: true)
