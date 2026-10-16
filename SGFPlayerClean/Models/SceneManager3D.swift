@@ -279,7 +279,7 @@ class SceneManager3D: NSObject, ObservableObject {
         
         // Remove old stones
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.2
+        SCNTransaction.animationDuration = animate ? 0.2 : 0
         for (pos, node) in stoneNodeMap { if !currentPos.contains(pos) { node.removeFromParentNode(); stoneNodeMap.removeValue(forKey: pos) } }
         SCNTransaction.commit()
         
@@ -289,7 +289,8 @@ class SceneManager3D: NSObject, ObservableObject {
             let targetOpacity: CGFloat = rs.isDead ? 0.5 : 1.0
             let geom = rs.color == .black ? blackStoneGeometry : clamGeometries[(rs.id.row * 19 + rs.id.col) % 5]
             
-            if let n = stoneNodeMap[rs.id] { 
+            if let n = stoneNodeMap[rs.id] {
+                if !animate { n.removeAllActions() }
                 // A game switch or history jump can replace the color at an occupied point.
                 // Swap the whole mesh to preserve color-specific size without mutating shared materials.
                 if let visual = n.childNode(withName: "board-stone", recursively: false), visual.geometry !== geom {
@@ -299,7 +300,7 @@ class SceneManager3D: NSObject, ObservableObject {
                     n.opacity = targetOpacity
                 } else {
                     SCNTransaction.begin()
-                    SCNTransaction.animationDuration = 0.2
+                    SCNTransaction.animationDuration = animate ? 0.2 : 0
                     n.position = SCNVector3(x, surfaceY, z)
                     n.opacity = targetOpacity
                     SCNTransaction.commit()
@@ -331,13 +332,39 @@ class SceneManager3D: NSObject, ObservableObject {
         
         // Always rebuild markers to respond to settings changes immediately
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.2
+        SCNTransaction.animationDuration = animate ? 0.2 : 0
         if let p = previousLastMove, let n = stoneNodeMap[p] { n.childNodes.filter({ $0.name?.contains("MARKER") ?? false }).forEach { $0.removeFromParentNode() } }
         if let c = lastMove, let n = stoneNodeMap[c] { let col = cache.first(where: { $0.id == c })?.color ?? .black; applyMarkers(to: n, color: col, index: moveIndex, settings: settings) }
         previousLastMove = lastMove
         SCNTransaction.commit()
     }
     
+    /// Number the hypothetical continuation on the stone anchors, so labels track
+    /// board rotation and scale without changing the real game's move markers.
+    func updateVariationNumbers(frame: AIVariationFrame?) {
+        for node in stoneNodeMap.values {
+            node.childNode(withName: "ai-variation-number", recursively: false)?.removeFromParentNode()
+        }
+        guard let frame else { return }
+        for (point, number) in frame.numbers {
+            guard let anchor = stoneNodeMap[point], let color = frame.stones[point] else { continue }
+            let text = SCNText(string: String(number), extrusionDepth: 0)
+            text.font = NSFont.boldSystemFont(ofSize: effectiveCellWidth * 0.48)
+            text.flatness = 0.01
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = color == .black ? NSColor.white : NSColor.black
+            text.materials = [material]
+            let label = SCNNode(geometry: text)
+            label.name = "ai-variation-number"
+            label.eulerAngles.x = -.pi / 2
+            let (low, high) = text.boundingBox
+            label.pivot = SCNMatrix4MakeTranslation(CGFloat((low.x + high.x) / 2), CGFloat((low.y + high.y) / 2), 0)
+            label.position = SCNVector3(0, stoneRadius * stoneScaleY * 2 + 0.02, 0)
+            anchor.addChildNode(label)
+        }
+    }
+
     // NEW: Territory Rendering
     private var territoryNodes: [SCNNode] = []
     private lazy var territoryMaterials: [Stone: SCNMaterial] = {

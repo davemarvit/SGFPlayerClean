@@ -35,9 +35,14 @@ class KataGoEngine: ObservableObject {
     private let executableOverride: URL?
     private let modelOverride: URL?
     private let cacheDirectory: URL
+    private let legacyImportDirectories: [URL]
+    private var analysisEngineIdentity: String?
+    private var runningEngineIdentity: String?
+    private var assetSignature: String?
+    private var assetIdentity: String?
 
     init(executableURL: URL? = nil, modelURL: URL? = nil, cacheDirectory: URL? = nil,
-         scheduler: OGSConnectionScheduler = OGSMainQueueScheduler()) {
+         scheduler: OGSConnectionScheduler = OGSMainQueueScheduler(), legacyImportDirectories: [URL]? = nil) {
         executableOverride = executableURL
         modelOverride = modelURL
         self.scheduler = scheduler
@@ -48,8 +53,46 @@ class KataGoEngine: ObservableObject {
         #else
         let cacheFolder = "SGFPlayerClean/AICache"
         #endif
-        self.cacheDirectory = cacheDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let resolvedCacheDirectory = cacheDirectory ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(cacheFolder)
+        self.cacheDirectory = resolvedCacheDirectory
+        self.legacyImportDirectories = legacyImportDirectories ?? (cacheDirectory == nil ?
+            ["main", "ogs-review", "offline-review"].map {
+                resolvedCacheDirectory.appendingPathComponent("ReviewImports/\($0)")
+            } : [])
+    }
+
+    private var executableURL: URL {
+        executableOverride ?? URL(fileURLWithPath: UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago")
+    }
+    private var modelURL: URL {
+        if let modelOverride { return modelOverride }
+        if let path = UserDefaults.standard.string(forKey: "customAIModelPath"), FileManager.default.fileExists(atPath: path) {
+            return URL(fileURLWithPath: path)
+        }
+        return Bundle.main.url(forResource: "kata1-b18", withExtension: "bin.gz") ?? URL(fileURLWithPath: "/tmp/default_model.bin.gz")
+    }
+    /// Hash contents once per asset change, including replacements at the same path.
+    /// Captured at process launch so an on-disk replacement cannot relabel old results.
+    private func configuredEngineIdentity() -> String? {
+        let urls = [executableURL, modelURL, Bundle.main.url(forResource: "analysis", withExtension: "cfg")]
+        var signature = ""
+        for url in urls {
+            guard let url else { signature += "none;"; continue }
+            guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.resolvingSymlinksInPath().path) else { return nil }
+            signature += "\(url.resolvingSymlinksInPath().path):\(attributes[.size] ?? 0):\((attributes[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0): \(attributes[.systemFileNumber] ?? 0);"
+        }
+        if signature == assetSignature { return assetIdentity }
+        var hashes: [String] = []
+        for url in urls {
+            if let url {
+                guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return nil }
+                hashes.append(digest(data))
+            } else { hashes.append(digest(Data())) }
+        }
+        let identity = digest(Data(("katago-cache-v4\n" + hashes.joined(separator: "\n")).utf8))
+        assetSignature = signature; assetIdentity = identity
+        return identity
     }
 
     func start() {
@@ -58,15 +101,16 @@ class KataGoEngine: ObservableObject {
         guard process == nil else { return }
         engineStartupError = nil
         let fm = FileManager.default
-        let executable = executableOverride ?? URL(fileURLWithPath:
-            UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago")
+        let executable = executableURL
         guard fm.isExecutableFile(atPath: executable.path) else {
             engineStartupError = "KataGo executable not found or not executable."; return
         }
-        let customModel = UserDefaults.standard.string(forKey: "customAIModelPath")
-        let model = modelOverride?.path ?? customModel.flatMap { fm.fileExists(atPath: $0) ? $0 : nil }
-            ?? Bundle.main.path(forResource: "kata1-b18", ofType: "bin.gz") ?? "/tmp/default_model.bin.gz"
+        let model = modelURL.path
         guard fm.fileExists(atPath: model) else { engineStartupError = "Neural network model not found."; return }
+        guard let identity = configuredEngineIdentity() else { engineStartupError = "Could not identify the analysis engine and model."; return }
+        if analysisEngineIdentity != nil && analysisEngineIdentity != identity { flushAnalysisCache(); invalidateAnalysis() }
+        runningEngineIdentity = identity
+        analysisEngineIdentity = identity
         let p = Process()
         p.executableURL = executable
         // Tests supply a temporary cache root; no application cache or working model is touched.
@@ -134,14 +178,14 @@ class KataGoEngine: ObservableObject {
         input = nil
         writeQueue.async { try? oldInput?.close() }
         process = nil
+        runningEngineIdentity = nil
         isEngineRunning = false
     }
 
     func stop() {
         dispatchPrecondition(condition: .onQueue(.main))
         restartTask?.cancel(); restartTask = nil
-        cacheSaveTask?.cancel(); cacheSaveTask = nil
-        saveAnalysisCache(for: currentGameId)
+        flushAnalysisCache()
         let oldProcess = process
         releaseProcess() // Fence callbacks before terminating, even if start() follows immediately.
         if oldProcess?.isRunning == true { oldProcess?.terminate() }
@@ -168,6 +212,23 @@ class KataGoEngine: ObservableObject {
         fingerprints.removeAll()
         contextFingerprint = nil
         currentAnalysisData.removeAll()
+        analysisEngineIdentity = nil
+    }
+
+    /// Fence late replies when AI is hidden without discarding completed work.
+    func pauseAnalysis() {
+        saveAnalysisCache(for: currentGameId)
+        requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
+        requests.removeAll(); pendingVisits.removeAll()
+    }
+
+    /// Synchronous barrier used on normal quit and engine replacement: atomic writes
+    /// must finish before macOS terminates the process.
+    func flushAnalysisCache() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        cacheSaveTask?.cancel(); cacheSaveTask = nil
+        saveAnalysisCache(for: currentGameId)
+        cacheQueue.sync {}
     }
 
     private struct Cache: Codable {
@@ -175,11 +236,25 @@ class KataGoEngine: ObservableObject {
         let fingerprints: [Int: String]
         let contextFingerprint: String?
         let warning: String?
+        var engineIdentity: String?
+
+        func merging(_ older: Cache) -> Cache {
+            guard engineIdentity == older.engineIdentity, contextFingerprint == older.contextFingerprint else { return self }
+            var analyses = older.analyses
+            var fingerprints = older.fingerprints
+            for (turn, analysis) in self.analyses {
+                if fingerprints[turn] == self.fingerprints[turn],
+                   (analyses[turn]?.rootInfo?.visits ?? 0) > (analysis.rootInfo?.visits ?? 0) { continue }
+                analyses[turn] = analysis; fingerprints[turn] = self.fingerprints[turn]
+            }
+            return Cache(analyses: analyses, fingerprints: fingerprints, contextFingerprint: contextFingerprint,
+                           warning: warning, engineIdentity: engineIdentity)
+        }
     }
 
-    private func cacheURL(for gameID: String) -> URL {
+    private func cacheURL(for gameID: String, identity: String) -> URL {
         // Fixed-length names avoid slashes, path traversal, and very long local SGF paths.
-        cacheDirectory.appendingPathComponent("v3-\(digest(Data(gameID.utf8))).json")
+        cacheDirectory.appendingPathComponent("v4-\(digest(Data(gameID.utf8)))-\(identity).json")
     }
 
     private func digest(_ data: Data) -> String {
@@ -188,13 +263,16 @@ class KataGoEngine: ObservableObject {
 
     func saveAnalysisCache(for gameID: String) {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty else { return }
-        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint, warning: analysisWarning)
-        let url = cacheURL(for: gameID)
+        guard gameID == currentGameId, gameID != "local", !currentAnalysisData.isEmpty,
+              let identity = analysisEngineIdentity else { return }
+        let snapshot = Cache(analyses: currentAnalysisData, fingerprints: fingerprints, contextFingerprint: contextFingerprint,
+                             warning: analysisWarning, engineIdentity: identity)
+        let url = cacheURL(for: gameID, identity: identity)
         cacheQueue.async {
             do {
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-                try JSONEncoder().encode(snapshot).write(to: url, options: .atomic)
+                let older = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(Cache.self, from: $0) }
+                try JSONEncoder().encode(older.map { snapshot.merging($0) } ?? snapshot).write(to: url, options: .atomic)
             } catch { NSLog("[AI] Cache write failed: \(error.localizedDescription)") }
         }
     }
@@ -206,37 +284,59 @@ class KataGoEngine: ObservableObject {
         currentGameId = gameID
         invalidateAnalysis()
         analysisNotice = game?.analysisSettings.notice
-        guard gameID != "local" else { return false }
-        let url = cacheURL(for: gameID)
+        guard gameID != "local", let identity = runningEngineIdentity ?? configuredEngineIdentity() else { return false }
+        let url = cacheURL(for: gameID, identity: identity)
+        let legacyName = "v3-\(digest(Data(gameID.utf8))).json"
+        struct LegacyManifest: Decodable { let engineIdentity: String; let files: [String: String] }
         // Ordered after pending writes; apply synchronously so a deferred old load cannot replace a new game.
         guard let loaded = cacheQueue.sync(execute: { () -> Cache? in
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            return try? JSONDecoder().decode(Cache.self, from: data)
-        }) else { return false }
-        var valid = loaded.analyses
-        if let game {
-            analysisNotice = game.analysisSettings.notice
-            // Validate every cached position before publishing, including prefixes and turns beyond undo.
-            valid = valid.filter { turn, _ in
-                guard (0...game.maxIndex).contains(turn) else { return false }
-                let payload = game.getAIPayload(at: turn)
-                guard let query = positionQuery(initialStones: payload.initial, moves: payload.moves,
-                    size: game.board.size, settings: game.analysisSettings),
-                    let data = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return false }
-                return loaded.fingerprints[turn] == digest(data)
+            var candidates: [Cache] = []
+            if let data = try? Data(contentsOf: url), let cache = try? JSONDecoder().decode(Cache.self, from: data),
+               cache.engineIdentity == identity { candidates.append(cache) }
+            // Legacy v3 files lack engine identity. Only import copies whose exact
+            // bytes and engine/model/config were checked during the migration.
+            for folder in legacyImportDirectories {
+                guard let data = try? Data(contentsOf: folder.appendingPathComponent("manifest.json")),
+                      let manifest = try? JSONDecoder().decode(LegacyManifest.self, from: data), manifest.engineIdentity == identity,
+                      let bytes = try? Data(contentsOf: folder.appendingPathComponent(legacyName)),
+                      manifest.files[legacyName] == self.digest(bytes),
+                      var cache = try? JSONDecoder().decode(Cache.self, from: bytes) else { continue }
+                cache.engineIdentity = identity
+                candidates.append(cache)
             }
-        }
+            // Validate before merging so an unrelated position/rules cannot displace
+            // a matching result merely because it has more visits.
+            if let game {
+                candidates = candidates.map { candidate in
+                    let valid = candidate.analyses.filter { turn, _ in
+                        guard (0...game.maxIndex).contains(turn) else { return false }
+                        let payload = game.getAIPayload(at: turn)
+                        guard let query = self.positionQuery(initialStones: payload.initial, moves: payload.moves,
+                            size: game.board.size, settings: game.analysisSettings),
+                            let bytes = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return false }
+                        return candidate.fingerprints[turn] == self.digest(bytes)
+                    }
+                    return Cache(analyses: valid, fingerprints: candidate.fingerprints.filter { valid[$0.key] != nil },
+                                 contextFingerprint: candidate.contextFingerprint, warning: candidate.warning, engineIdentity: identity)
+                }.filter { !$0.analyses.isEmpty }
+            }
+            return candidates.reduce(nil) { result, cache in result.map { cache.merging($0) } ?? cache }
+        }) else { return false }
+        let valid = loaded.analyses
         currentAnalysisData = valid
         fingerprints = loaded.fingerprints.filter { valid[$0.key] != nil }
         contextFingerprint = valid.isEmpty ? nil : loaded.contextFingerprint
         analysisWarning = valid.isEmpty ? nil : loaded.warning
+        analysisEngineIdentity = identity
+        if !valid.isEmpty { saveAnalysisCache(for: gameID) }
         return !valid.isEmpty
     }
 
     private func scheduleCacheSave() {
-        cacheSaveTask?.cancel()
+        guard cacheSaveTask == nil else { return }
         cacheSaveTask = scheduler.schedule(after: 5) { [weak self] in
             guard let self else { return }
+            self.cacheSaveTask = nil
             self.saveAnalysisCache(for: self.currentGameId)
         }
     }
@@ -282,7 +382,8 @@ class KataGoEngine: ObservableObject {
         context.removeValue(forKey: "moves"); context.removeValue(forKey: "analyzeTurns")
         guard let contextData = try? JSONSerialization.data(withJSONObject: context, options: .sortedKeys) else { return }
         let contextKey = digest(contextData)
-        if contextFingerprint != contextKey { invalidateAnalysis(); contextFingerprint = contextKey }
+        if contextFingerprint != contextKey { saveAnalysisCache(for: currentGameId); invalidateAnalysis(); contextFingerprint = contextKey }
+        analysisEngineIdentity = runningEngineIdentity
         guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
         let fingerprint = digest(position)
         guard !failedPositions.contains(fingerprint) else { return }

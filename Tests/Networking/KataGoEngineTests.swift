@@ -1,5 +1,6 @@
 import XCTest
 import Combine
+import CryptoKit
 @testable import SGFPlayerNetworking
 
 /// A local script exercises the actual Process and pipe code. No KataGo model, GPU, or network is used.
@@ -377,4 +378,106 @@ final class KataGoEngineTests: XCTestCase {
         engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id": query["id"]!, "error": "bad rules"]))
         XCTAssertEqual(engine.analysisError, "Analysis failed: bad rules")
     }
+    private func newEngine(imports: [URL] = []) -> KataGoEngine {
+        KataGoEngine(executableURL: directory.appendingPathComponent("fake-katago"),
+            modelURL: directory.appendingPathComponent("fixture-model"),
+            cacheDirectory: directory.appendingPathComponent("cache"), legacyImportDirectories: imports)
+    }
+    private func savedCache() throws -> URL {
+        try XCTUnwrap(FileManager.default.contentsOfDirectory(at: directory.appendingPathComponent("cache"),
+            includingPropertiesForKeys: nil).first { $0.lastPathComponent.hasPrefix("v4-") })
+    }
+    private func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+
+    func testPauseKeepsResultsAndFencesPendingReplies() throws {
+        try hold(); engine.start(); analyze(visits: 100)
+        engine.receiveAnalysisLine(try response(queries(1)[0], visits: 100))
+        analyze(x: 1)
+        let late = queries(2)[1]
+        engine.pauseAnalysis()
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 100)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        engine.receiveAnalysisLine(try response(late))
+        XCTAssertNil(engine.currentAnalysisData[1])
+        analyze(visits: 50); analyze(x: 2)
+        XCTAssertEqual(queries(3).count, 3, "Completed analysis is not requested again")
+    }
+
+    func testStopFlushesLatestResultAndFreshProcessLoadsWithoutStartingEngine() throws {
+        try hold(); engine.start(); analyze(visits: 250)
+        engine.receiveAnalysisLine(try response(queries(1)[0], visits: 250))
+        // Quit before the five-second periodic save has fired.
+        engine.stop()
+        let fresh = newEngine()
+        XCTAssertTrue(fresh.loadAnalysisCache(for: "game-a"))
+        XCTAssertEqual(fresh.currentAnalysisData[0]?.rootInfo?.visits, 250)
+        XCTAssertFalse(fresh.isEngineRunning)
+        fresh.stop()
+    }
+
+    func testContinuousResultsDoNotPostponePeriodicSave() throws {
+        try hold(); engine.start()
+        for index in 0..<4 {
+            analyze(visits: (index + 1) * 50)
+            engine.receiveAnalysisLine(try response(queries(index + 1)[index], visits: (index + 1) * 50))
+            scheduler.advance(by: 1)
+        }
+        scheduler.advance(by: 1)
+        eventually("Periodic cache saved during continuous analysis") {
+            ((try? FileManager.default.contentsOfDirectory(atPath: self.directory.appendingPathComponent("cache").path)) ?? [])
+                .contains { $0.hasPrefix("v4-") }
+        }
+        let data = try Data(contentsOf: savedCache())
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let analyses = try XCTUnwrap(json["analyses"] as? [String: Any])
+        XCTAssertNotNil(analyses["0"])
+    }
+
+    func testModelReplacementAtSamePathCannotReuseOldAnalysis() throws {
+        try hold(); engine.start(); analyze()
+        engine.receiveAnalysisLine(try response(queries(1)[0])); engine.stop()
+        try Data("different model".utf8).write(to: directory.appendingPathComponent("fixture-model"))
+        let fresh = newEngine()
+        XCTAssertFalse(fresh.loadAnalysisCache(for: "game-a"))
+        XCTAssertTrue(fresh.currentAnalysisData.isEmpty)
+        fresh.stop()
+    }
+
+    func testApprovedLegacyImportMergesDeeperResultsAndRejectsTampering() throws {
+        try hold(); engine.start(); analyze(visits: 250)
+        engine.receiveAnalysisLine(try response(queries(1)[0], visits: 250)); engine.flushAnalysisCache()
+        let cache = try savedCache()
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: cache)) as? [String: Any])
+        let identity = try XCTUnwrap(legacy.removeValue(forKey: "engineIdentity") as? String)
+        let bytes = try JSONSerialization.data(withJSONObject: legacy)
+        let folder = directory.appendingPathComponent("review")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let name = "v3-" + hash(Data("game-a".utf8)) + ".json"
+        try bytes.write(to: folder.appendingPathComponent(name))
+        let manifest: [String: Any] = ["engineIdentity":identity, "files":[name:hash(bytes)]]
+        try JSONSerialization.data(withJSONObject: manifest).write(to: folder.appendingPathComponent("manifest.json"))
+        engine.stop(); try FileManager.default.removeItem(at: cache)
+        let imported = newEngine(imports: [folder])
+        XCTAssertTrue(imported.loadAnalysisCache(for: "game-a"))
+        XCTAssertEqual(imported.currentAnalysisData[0]?.rootInfo?.visits, 250)
+        imported.flushAnalysisCache()
+        // A shallow partial save cannot replace the deeper compatible on-disk result.
+        imported.currentAnalysisData[0] = AIAnalysis(id: "shallow", isDuringSearch: false, turnNumber: 0,
+            moveInfos: nil, rootInfo: AIRootInfo(winrate: 0.6, scoreLead: 1, visits: 25))
+        imported.stop()
+        let fresh = newEngine()
+        XCTAssertTrue(fresh.loadAnalysisCache(for: "game-a"))
+        XCTAssertEqual(fresh.currentAnalysisData[0]?.rootInfo?.visits, 250)
+        fresh.stop(); try FileManager.default.removeItem(at: cache)
+        try (bytes + Data(" ".utf8)).write(to: folder.appendingPathComponent(name))
+        let tampered = newEngine(imports: [folder])
+        XCTAssertFalse(tampered.loadAnalysisCache(for: "game-a"))
+        tampered.stop()
+        try bytes.write(to: folder.appendingPathComponent(name))
+        try Data("another model".utf8).write(to: directory.appendingPathComponent("fixture-model"))
+        let incompatible = newEngine(imports: [folder])
+        XCTAssertFalse(incompatible.loadAnalysisCache(for: "game-a"))
+        incompatible.stop()
+    }
+
 }

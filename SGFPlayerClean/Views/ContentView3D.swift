@@ -55,8 +55,9 @@ struct ContentView3D: View {
                         if let v = UnifiedInteractiveSceneView.lastActiveView,
                            let (c, r) = sceneManager.hitTest(point: point, in: v) {
                             bVM.updateGhostStone(at: BoardPosition(r, c))
+                            bVM.hoverAnalysis(at: BoardPosition(r, c))
                         } else {
-                            bVM.clearGhostStone()
+                            bVM.clearGhostStone(); bVM.hoverAnalysis(at: nil)
                         }
                     },
                     onClick: { point in
@@ -70,9 +71,11 @@ struct ContentView3D: View {
                         }
                     },
                     onCameraChange: {
+                        bVM.cancelVariationPreview()
                         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
                         saveViewport()
-                    }
+                    },
+                    onExit: { bVM.clearGhostStone(); bVM.hoverAnalysis(at: nil) }
                 )
                 .frame(width: geo.size.width * 1.4, height: sceneHeight)
                 // With analysis over the lids, use more of the left margin to keep
@@ -141,6 +144,7 @@ struct ContentView3D: View {
             }
         }
         .background(Color(nsColor: SceneManager3D.backgroundColor))
+        .onDisappear { app.boardVM?.cancelVariationPreview() }
         .focused($isBoardFocused)
         .keyboardShortcuts(boardVM: app.boardVM!, appModel: app)
         .onAppear {
@@ -171,15 +175,16 @@ struct ContentView3D: View {
         // Dynamic Resize Check
         sceneManager.updateBoardSize(bVM.boardSize) // Ensure 3D matches 2D physics
         
-        sceneManager.updateStones(from: bVM.stonesToRender, lastMove: bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing)
+        sceneManager.updateStones(from: bVM.displayedStones, lastMove: bVM.isPreviewingVariation ? nil : bVM.lastMovePosition, moveIndex: bVM.currentMoveIndex, settings: AppSettings.shared, animate: !bVM.isScrubbing && !bVM.isPreviewingVariation && !bVM.restoringVariation)
+        sceneManager.updateVariationNumbers(frame: bVM.variationFrame)
         sceneManager.updateCapturedStones(black: bVM.blackCapturedCount, white: bVM.whiteCapturedCount)
-        sceneManager.updateTerritory(points: bVM.territoryPoints)
-        sceneManager.updateKoMarker(at: bVM.koPoint)
+        sceneManager.updateTerritory(points: bVM.isPreviewingVariation ? [:] : bVM.territoryPoints)
+        sceneManager.updateKoMarker(at: bVM.isPreviewingVariation ? nil : bVM.koPoint)
         sceneManager.updateCameraPosition(distance: distance, rotationX: rotX, rotationY: rotY, panX: panX, panY: panY)
-        sceneManager.updateGhostStone(at: bVM.ghostPosition, color: bVM.ghostColor)
+        sceneManager.updateGhostStone(at: bVM.isPreviewingVariation ? nil : bVM.ghostPosition, color: bVM.ghostColor)
         
         // AI Hints
-        let isAIAvailable = app.isAIAvailable && !bVM.localScoringVisible
+        let isAIAvailable = app.isAIAvailable && !bVM.localScoringVisible && !bVM.isPreviewingVariation
         let turn = bVM.currentMoveIndex
         let analysis = KataGoEngine.shared.currentAnalysisData[turn]
         let moves = analysis?.moveInfos ?? []
@@ -201,6 +206,7 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
     let scene: SCNScene; let cameraNode: SCNNode
     @Binding var rotationX: Float; @Binding var rotationY: Float; @Binding var distance: CGFloat; @Binding var panX: CGFloat; @Binding var panY: CGFloat
     var onHover: (CGPoint) -> Void; var onClick: (CGPoint) -> Void; var onCameraChange: () -> Void
+    var onExit: () -> Void = {}
     static weak var lastActiveView: SCNView?
     
     func makeNSView(context: Context) -> UnifiedSCNView {
@@ -230,6 +236,7 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
         switch event {
         case .click: onClick(point)
         case .hover: onHover(point)
+        case .exit: onExit()
         case .drag(let delta, let modifiers):
             if modifiers.contains(.shift) && modifiers.contains(.control) {
                 distance = max(10.0, min(100.0, distance - delta.y * 0.1))
@@ -249,13 +256,14 @@ struct UnifiedInteractiveSceneView: NSViewRepresentable {
 }
 
 class UnifiedSCNView: SCNView {
-    enum EventType { case click, hover, drag(delta: CGPoint, modifiers: NSEvent.ModifierFlags), zoom(amount: CGFloat) }
+    enum EventType { case click, hover, exit, drag(delta: CGPoint, modifiers: NSEvent.ModifierFlags), zoom(amount: CGFloat) }
     var onInteraction: ((EventType, CGPoint) -> Void)?
     private var lastDragPos: CGPoint = .zero; private var isDragging = false; private var downPos: CGPoint = .zero
     
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        let options: NSTrackingArea.Options = [.mouseMoved, .activeInKeyWindow, .activeAlways, .inVisibleRect]
+        trackingAreas.forEach { removeTrackingArea($0) }
+        let options: NSTrackingArea.Options = [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect]
         addTrackingArea(NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil))
     }
     override func mouseDown(with event: NSEvent) {
@@ -283,6 +291,7 @@ class UnifiedSCNView: SCNView {
         onInteraction?(.hover, loc)
         super.mouseMoved(with: event)
     }
+    override func mouseExited(with event: NSEvent) { onInteraction?(.exit, .zero); super.mouseExited(with: event) }
     override func scrollWheel(with event: NSEvent) { onInteraction?(.zoom(amount: event.deltaY), .zero); super.scrollWheel(with: event) }
 }
 
