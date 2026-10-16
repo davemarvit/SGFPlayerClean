@@ -16,6 +16,12 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
             require(false, "Load actual screensaver bundle and principal class"); return
         }
         saver = view
+        if testing {
+            require(view.value(forKey: "displayedStatusMessage") as? String == "", "First frame has no premature choose-folder or loading message")
+            for name in ["thumbnail.png", "thumbnail@2x.png", "QuietGo.icns"] {
+                require(bundle.url(forResource: name, withExtension: nil) != nil, "Native bundle includes \(name)")
+            }
+        }
         configure(view)
         window = NSWindow(contentRect: view.bounds, styleMask: [.titled,.closable,.resizable,.miniaturizable], backing: .buffered, defer: false)
         window.title = "SGF Screensaver Preview"; window.contentView = view
@@ -35,6 +41,7 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
     func test() {
         func settle(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
         require((saver.value(forKey: "loadedGameCount") as? Int ?? 0) > 0, "Configured folder loads")
+        require(saver.value(forKey: "displayedStatusMessage") as? String == "", "Configured playback has no setup message")
         settle(3.4)
         let index = saver.value(forKey: "displayedMove") as? Int ?? 0
         require(index >= 2, "Actual bundle advances moves")
@@ -56,6 +63,11 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
         configure(second)
         second.startAnimation(); require(second.value(forKey: "displayedMove") as? Int == 0, "Independent preview state")
         second.stopAnimation()
+        if testing {
+            let missing = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).path
+            second.perform(NSSelectorFromString("setConfigurationRoot:"), with: missing)
+            require(!(second.value(forKey: "displayedStatusMessage") as? String ?? "").isEmpty, "An actually missing configuration still has a useful message")
+        }
         if let i = CommandLine.arguments.firstIndex(of: "--configuration-root"), i + 1 < CommandLine.arguments.count {
             let root = URL(fileURLWithPath: CommandLine.arguments[i + 1]), file = root.appendingPathComponent("configuration.json")
             let original = try! Data(contentsOf: file)

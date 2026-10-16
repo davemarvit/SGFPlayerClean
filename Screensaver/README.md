@@ -21,6 +21,17 @@ different lids and games get different arrangements. This uses cached settled
 positions rather than a continuously running physics simulation. The complete
 board/lid layout fits small previews and tall or wide displays.
 
+The first frame stays quiet while macOS starts animation and the saver checks its
+configuration. A choose-folder message is shown only after an actual missing or
+invalid configuration is detected. Disabled playback and unreadable libraries
+still report their real state.
+
+The builder packages the existing Go-board app icon as `QuietGo.icns` and creates
+`thumbnail.png` (90×58) and `thumbnail@2x.png` (180×116), matching the native resources
+in Apple's installed Random.saver. These supply System Settings' thumbnail and
+the saver/preview application's icon. Close and reopen System Settings after an
+update if its gallery is still cached.
+
 ## Folder and settings storage
 
 The selected folder is independent of the app's Review library. Subfolders are
@@ -95,3 +106,6 @@ References:
 
 Earlier failed bundles and the previous main app are retained in the dated
 Integrated-screensaver backup. Prior backups remain intact.
+The later Screensaver-cleanup backup also archives MinimalTest.saver,
+TestScreensaver.saver and SGFPlayerScreensaver.saver outside the installed
+screensaver directories, removing the failed attempts from the chooser.

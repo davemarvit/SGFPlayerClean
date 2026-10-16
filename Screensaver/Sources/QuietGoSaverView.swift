@@ -10,7 +10,9 @@ final class QuietGoSaverView: ScreenSaverView {
     private var playbackEnabled = false
     private var lastConfigCheck: TimeInterval = 0
     private var configurationErrorReported = false
-    private var configurationMessage = "Choose a games folder in SGF Player’s Screensaver settings."
+    // Apple can draw the view before startAnimation checks the saved folder.
+    // That first frame is just tatami, not a premature setup/error message.
+    private var configurationMessage = ""
     private var wood: NSImage?
     private var tatami: NSImage?
     private var blackStone: NSImage?
@@ -109,12 +111,17 @@ final class QuietGoSaverView: ScreenSaverView {
     @objc var playbackRunning: Bool { playlist?.running ?? false }
     @objc var displayedBlackCaptures: Int { playlist?.player.blackStonesCaptured ?? 0 }
     @objc var displayedWhiteCaptures: Int { playlist?.player.whiteStonesCaptured ?? 0 }
+    @objc var displayedStatusMessage: String {
+        playbackEnabled ? (playlist?.errorMessage ?? "") : configurationMessage
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor(calibratedRed: 0.15, green: 0.19, blue: 0.10, alpha: 1).setFill(); bounds.fill()
         tatami?.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
         guard playbackEnabled, let playlist, let game = playlist.game else {
-            drawText(playbackEnabled ? (playlist?.errorMessage ?? "Loading games…") : configurationMessage, in: bounds.insetBy(dx: 20, dy: bounds.height * 0.45), size: max(12, bounds.width / 60))
+            if !displayedStatusMessage.isEmpty {
+                drawText(displayedStatusMessage, in: bounds.insetBy(dx: 20, dy: bounds.height * 0.45), size: max(12, bounds.width / 60))
+            }
             return
         }
         let layout = SaverLayout(bounds: bounds)
