@@ -11,17 +11,9 @@ struct WinRateGraphView: View {
         let isAIAvailable = app.isAIAvailable
         let evals = isAIAvailable ? aiEngine.evaluateGameQuality(upTo: vm.totalMoves, engine: vm.engine) : [:]
         
-        // Find the top 10 worst moves to highlight, ignoring mediocre ones to reduce clutter
-        let worstMoves = evals.filter { (key: Int, value: MoveEvaluation) in 
-            value.quality == .disastrous || value.quality == .poor 
-        }
-        .sorted { (lhs: (key: Int, value: MoveEvaluation), rhs: (key: Int, value: MoveEvaluation)) in 
-            lhs.value.winDelta < rhs.value.winDelta // Sort ascending (worst negative drops first)
-        }
-        .prefix(10)
-        
-        let worstTurns = Set(worstMoves.map { $0.key })
-        
+        let mistakeMoves = Set(MistakeFilter(players: vm.mistakePlayers, minimumLoss: vm.mistakeMinimumLoss)
+            .moveNumbers(in: Array(evals.values)))
+
         VStack(spacing: 4) {
             if isAIAvailable, let notice = aiEngine.analysisNotice {
                 Text(notice).font(.caption).foregroundStyle(.secondary)
@@ -92,7 +84,7 @@ struct WinRateGraphView: View {
                                 .interpolationMethod(.monotone)
                                 
                                 
-                                if worstTurns.contains(turn), let ev = evals[turn] {
+                                if mistakeMoves.contains(turn), let ev = evals[turn - 1] {
                                     PointMark(
                                         x: .value("Turn", turn),
                                         y: .value("Value", blackWinrate * 100)
@@ -199,6 +191,7 @@ struct WinRateGraphView: View {
 // MARK: - Summary Table
 struct MoveQualitySummaryView: View {
     let evals: [MoveEvaluation]
+    var analyses: [Int: AIAnalysis] = [:]
     
     var body: some View {
         let bCount = MoveQuality.allCases.map { q in evals.filter { $0.player == .black && $0.quality == q }.count }
@@ -221,10 +214,48 @@ struct MoveQualitySummaryView: View {
                     Text("\(wCount[i])")
                 }
             }
+            GridRow { Text("Average loss"); statistic(.black, accuracy: false); statistic(.white, accuracy: false) }
+            GridRow { Text("Accuracy"); statistic(.black, accuracy: true); statistic(.white, accuracy: true) }
         }
         .font(.caption2)
         .padding(6)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
         .cornerRadius(6)
+    }
+    private func statistic(_ player: Stone, accuracy: Bool) -> some View {
+        let stats = AIPlayerPerformance(player: player, evaluations: evals, analyses: analyses)
+        let value = accuracy ? stats.accuracy : stats.meanPointLoss
+        return Text(value.map { String(format: accuracy ? "%.1f / 100" : "%.2f pt", $0) } ?? "—")
+            .help(accuracy ? "KaTrain-style difficulty-weighted accuracy. Requires candidate priors; older cached analysis may not include them. Based on analysed moves, independent of the mistake filter." : "Average points lost per analysed move, independent of the mistake filter.")
+    }
+
+}
+
+struct MistakeFilterView: View {
+    @ObservedObject var vm: BoardViewModel
+    let analyzedCount: Int
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Mistakes by", selection: $vm.mistakePlayers) {
+                ForEach(MistakeFilter.Players.allCases) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented)
+            HStack {
+                Text("Minimum loss")
+                TextField("Points", value: $vm.mistakeMinimumLoss,
+                          format: .number.precision(.fractionLength(1)))
+                    .frame(width: 50).textFieldStyle(.roundedBorder)
+                    .onChange(of: vm.mistakeMinimumLoss) { value in
+                        let clamped = value.isFinite ? min(100, max(0, value)) : 2
+                        if value != clamped { vm.mistakeMinimumLoss = clamped }
+                    }
+                Text("points")
+            }
+            Slider(value: $vm.mistakeMinimumLoss, in: 0...max(10, vm.mistakeMinimumLoss), step: 0.5)
+                .accessibilityLabel("Minimum points lost")
+            Text("\(vm.matchingMistakeMoves.count) matching mistakes")
+                .accessibilityIdentifier("matching-mistake-count")
+            Text("\(analyzedCount) of \(vm.totalMoves) moves analysed on this line")
+                .foregroundStyle(.secondary)
+        }.font(.caption)
     }
 }

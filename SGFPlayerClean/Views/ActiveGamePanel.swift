@@ -7,12 +7,13 @@ struct ActiveGamePanel: View {
     @State private var resignTarget: Int?
     @State private var isSavingSGF = false
     @State private var exportError: String?
-    @State private var resultDismissed = false
     
     var body: some View {
-        ZStack {
+        VStack(spacing: 12) {
+            ScrollView {
             VStack(spacing: 12) {
                 headerSection
+                if app.ogsClient.isGameFinished { resultBanner }
                 
                 Divider().background(Color.white.opacity(0.1))
                 
@@ -39,23 +40,19 @@ struct ActiveGamePanel: View {
                 }
                 if let vm = app.ogsGame {
                     OGSChatView(gameVM: vm)
-                        // .frame(height: 200) // Flexible height preferred
+                        .frame(minHeight: 140, idealHeight: 200)
                         .cornerRadius(8)
                 }
                 
-                Spacer() // Pushes controls to bottom
-                
-                // Controls (Moved to Bottom)
-                controlsSection
+                if app.ogsClient.isGameFinished { controlButtons }
             }
             .padding()
             
-            if !resultDismissed && app.ogsClient.isGameFinished && (app.ogsClient.activeGameResult != nil || app.ogsClient.activeGameOutcome != nil) {
-                resultOverlay.transition(.opacity.combined(with: .scale))
             }
+            controlsSection.padding([.horizontal, .bottom])
         }
         .onChange(of: app.ogsClient.activeGameID) { _ in
-            resultDismissed = false; cancelResignation(); exportError = nil
+            cancelResignation(); exportError = nil
         }
         .onChange(of: app.ogsClient.canResign) { allowed in if !allowed { cancelResignation() } }
         .onDisappear { cancelResignation() }
@@ -70,57 +67,23 @@ struct ActiveGamePanel: View {
         }
     }
     
-    private var resultOverlay: some View {
-        VStack(spacing: 20) {
-            if let res = app.ogsClient.activeGameResult {
-                Text(res.title)
-                    .font(.system(size: 40, weight: .heavy))
-                    .foregroundColor(.white)
-                
-                VStack(spacing: 4) {
-                    Text(res.subtitle)
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.9))
-                    Text(res.method)
-                        .font(.title3)
-                        .bold()
-                        .foregroundColor(.yellow)
-                }
+    private var resultBanner: some View {
+        VStack(spacing: 4) {
+            if let result = app.ogsClient.activeGameResult {
+                Text(result.title).font(.title2.bold())
+                Text(result.subtitle).font(.headline)
+                Text(result.method).foregroundStyle(.yellow)
             } else if let outcome = app.ogsClient.activeGameOutcome {
-                Text(outcome).font(.title2).foregroundColor(.yellow)
+                Text(outcome).font(.headline)
             }
-            
-            // Save SGF moved to persistent controlsSection at bottom
-            
-            // Redundant "Return to Lobby" button removed to prevent blocking chat/board.
-            // User can use the "< Lobby" button in the header.
-            
-
-            // Redundant "Return to Lobby" button removed to prevent blocking chat/board.
-            // User can use the "< Lobby" button in the header.
         }
-        .padding(40)
-        .background(Material.ultraThinMaterial)
-        .cornerRadius(20)
-        .overlay(
-            Button(action: {
-                // Dimiss Overlay so user can chat/view board
-                resultDismissed = true
-            }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss game result")
-            .padding(16),
-            alignment: .topTrailing
-        )
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.2), lineWidth: 1))
-        .shadow(radius: 20)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityIdentifier("game-result-banner")
     }
-    
+
     private var headerSection: some View {
         HStack {
             Button(action: {
@@ -270,9 +233,14 @@ struct ActiveGamePanel: View {
             }
             if let error = app.ogsClient.lastError { Text(error).font(.caption).foregroundColor(.orange) }
             if let error = exportError { Text(error).font(.caption).foregroundColor(.orange) }
-            controlButtons
+            if !app.ogsClient.isGameFinished { controlButtons }
             saveSGFButton
-            Button("Review this game") { app.copyCurrentBoard(to: .review) }
+            HStack {
+                Button("Review game") { app.copyCurrentBoard(to: .review) }
+                if app.ogsClient.isGameFinished {
+                    Button(app.mode == .observe ? "Back to games" : "Back to lobby") { app.showOnlineBrowser() }
+                }
+            }
         }
     }
     
@@ -350,6 +318,7 @@ struct ActiveGamePanel: View {
             .buttonStyle(.bordered)
             .tint(.green)
             .disabled(isSavingSGF)
+            .accessibilityIdentifier("save-game-sgf")
             .padding(.top, 4)
         }
     }

@@ -84,6 +84,7 @@ struct ContentView2D: View {
 }
 
 struct PlaybackControlsView: View {
+    @ObservedObject private var navigationAI = KataGoEngine.shared
     @EnvironmentObject var app: AppModel
     @ObservedObject var boardVM: BoardViewModel
     @State private var localIdx: Double = 0
@@ -137,6 +138,8 @@ struct PlaybackControlsView: View {
                     Button(action: { boardVM.seekPrevMistake() }) { 
                         Image(systemName: "arrowtriangle.backward.fill")
                     }.foregroundColor(.red).buttonStyle(.plain)
+                    .disabled(boardVM.previousMistakeMove == nil)
+                    .help("Previous matching mistake")
                     Divider().frame(height: 12).background(Color.white.opacity(0.3))
                 }
                 Button(action: { boardVM.goToStart() }) { Image(systemName: "backward.end.fill") }.buttonStyle(.plain)
@@ -153,6 +156,8 @@ struct PlaybackControlsView: View {
                 if app.isAIAvailable {
                     Divider().frame(height: 12).background(Color.white.opacity(0.3))
                     Button(action: { boardVM.seekNextMistake() }) { Image(systemName: "arrowtriangle.forward.fill") }.foregroundColor(.red).buttonStyle(.plain)
+                        .disabled(boardVM.nextMistakeMove == nil)
+                        .help("Next matching mistake")
                 }
             }
             .font(.system(size: 13, weight: .bold))

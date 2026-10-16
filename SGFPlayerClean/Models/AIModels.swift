@@ -8,6 +8,8 @@ struct AIMoveInfo: Codable, Identifiable {
     let winrate: Double     // 0.0 to 1.0 (from Black's perspective if mapped, but KataGo outputs for the player to move, wait, KataGo generally outputs winrate from the perspective of the player to move. We will need to map it)
     let scoreLead: Double   // Positive is good for the player to move
     let pv: [String]?       // Principal variation
+    var prior: Double? = nil // Optional for backward-compatible cached analysis.
+    var order: Int? = nil
     
     // KataGo outputs winrate from the perspective of the player to move.
 }
@@ -112,7 +114,8 @@ enum AIVariation {
         copy.restoreSnapshot(SGFPlayer.LocalGameSnapshot(moves: Array(s.moves.prefix(s.currentIndex)),
             setup: s.setup, size: s.size, currentIndex: s.currentIndex, initialPlayer: s.initialPlayer,
             stateVersion: s.stateVersion, analysisSettings: s.analysisSettings, freeHandicapMoves: s.freeHandicapMoves,
-            capturedWhite: s.capturedWhite, capturedBlack: s.capturedBlack))
+            capturedWhite: s.capturedWhite, capturedBlack: s.capturedBlack,
+            captureSeed: s.captureSeed, captureIdentity: s.captureIdentity))
         var frames: [AIVariationFrame] = []
         var numbers: [BoardPosition: Int] = [:]
         for (index, coordinate) in pv.prefix(max(0, limit)).enumerated() {
@@ -154,5 +157,62 @@ struct RecentMoveQualityMarker: Identifiable, Equatable {
                                quality: evaluation.quality, pointsLost: max(0, -evaluation.scoreDelta)))
         }
         return result
+    }
+}
+
+/// Point-loss filtering is independent of the legacy score/win-probability quality bands.
+struct MistakeFilter {
+    enum Players: String, CaseIterable, Identifiable {
+        case both = "Both", black = "Black", white = "White"
+        var id: String { rawValue }
+        func includes(_ player: Stone) -> Bool {
+            self == .both || (self == .black && player == .black) || (self == .white && player == .white)
+        }
+    }
+    var players: Players = .both
+    var minimumLoss: Double = 2
+    func moveNumbers(in evaluations: [MoveEvaluation]) -> [Int] {
+        guard minimumLoss.isFinite else { return [] }
+        return evaluations.filter {
+            players.includes($0.player) && $0.scoreDelta.isFinite &&
+            max(0, -$0.scoreDelta) >= max(0, minimumLoss)
+        }.map { $0.turn + 1 }.sorted()
+    }
+}
+
+struct AIPlayerPerformance {
+    let analyzedMoves: Int
+    let meanPointLoss: Double?
+    let accuracy: Double?
+
+    /// KaTrain game_report: https://github.com/sanderland/katrain/blob/master/katrain/core/ai.py
+    /// Reimplemented from its documented difficulty-weighted point-loss formula.
+    /// Missing candidate priors in older caches must not masquerade as easy positions.
+    init(player: Stone, evaluations: [MoveEvaluation], analyses: [Int: AIAnalysis]) {
+        let moves = evaluations.filter { $0.player == player && $0.scoreDelta.isFinite }
+        analyzedMoves = moves.count
+        meanPointLoss = moves.isEmpty ? nil : moves.reduce(0) { $0 + max(0, -$1.scoreDelta) } / Double(moves.count)
+        var weightedLoss = 0.0, totalWeight = 0.0
+        var complete = !moves.isEmpty
+        for move in moves {
+            guard let analysis = analyses[move.turn], let root = analysis.rootInfo,
+                  root.visits > 0, root.scoreLead.isFinite, let candidates = analysis.moveInfos,
+                  !candidates.isEmpty else { complete = false; continue }
+            // Additional restricted hover queries are stored separately; normal candidates
+            // use KataGo's order. Require complete prior metadata for this position.
+            let usable = candidates.filter { ($0.order ?? 0) < 999 }
+            guard !usable.isEmpty, usable.allSatisfy({
+                guard let prior = $0.prior else { return false }
+                return prior.isFinite && (0...1).contains(prior) && $0.scoreLead.isFinite
+            }) else { complete = false; continue }
+            let priors = usable.reduce(0) { $0 + ($1.prior ?? 0) }
+            guard priors > 0 else { complete = false; continue }
+            let difficulty = min(1, usable.reduce(0) { $0 + max(0, root.scoreLead - $1.scoreLead) * ($1.prior ?? 0) } / priors)
+            let loss = max(0, -move.scoreDelta)
+            let weight = max(0.05, min(1, max(difficulty, loss / 4)))
+            weightedLoss += weight * loss
+            totalWeight += weight
+        }
+        accuracy = complete && totalWeight > 0 ? 100 * pow(0.75, weightedLoss / totalWeight) : nil
     }
 }

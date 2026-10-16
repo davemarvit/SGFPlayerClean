@@ -15,6 +15,15 @@ final class SGFPlayer: ObservableObject {
     @Published var blackStonesCaptured: Int = 0
     let moveProcessed = PassthroughSubject<Void, Never>()
     
+    private let captureSessionSalt = UInt64.random(in: 0...UInt64.max)
+    private(set) var captureSeed = UInt64.random(in: 0...UInt64.max)
+    private var captureIdentity = ""
+    func setCaptureIdentity(_ identity: String) {
+        guard captureIdentity != identity else { return }
+        captureIdentity = identity
+        captureSeed = identity.utf8.reduce(captureSessionSalt) { ($0 ^ UInt64($1)) &* 1099511628211 }
+    }
+
     // MARK: - Snapshot
     struct LocalGameSnapshot {
         let moves: [(Stone, (Int,Int)?)]
@@ -27,6 +36,8 @@ final class SGFPlayer: ObservableObject {
         let freeHandicapMoves: Int
         let capturedWhite: Int
         let capturedBlack: Int
+        let captureSeed: UInt64
+        let captureIdentity: String
     }
     
     func createSnapshot() -> LocalGameSnapshot {
@@ -40,11 +51,13 @@ final class SGFPlayer: ObservableObject {
             analysisSettings: analysisSettings,
             freeHandicapMoves: freeHandicapMoves,
             capturedWhite: whiteStonesCaptured,
-            capturedBlack: blackStonesCaptured
+            capturedBlack: blackStonesCaptured,
+            captureSeed: captureSeed, captureIdentity: captureIdentity
         )
     }
     
     func restoreSnapshot(_ snapshot: LocalGameSnapshot) {
+        captureSeed = snapshot.captureSeed; captureIdentity = snapshot.captureIdentity
         baseSize = snapshot.size
         _moves = snapshot.moves
         _baseSetup = snapshot.setup
@@ -335,6 +348,7 @@ final class SGFPlayer: ObservableObject {
     func pause() { isPlaying = false; timer?.cancel(); timer = nil }
     
     func clear() {
+        setCaptureIdentity(UUID().uuidString)
         pause()
         _moves = []; _baseSetup = []; currentIndex = 0
         lastMove = nil; lastCapturedPoint = nil; initialPlayer = .black

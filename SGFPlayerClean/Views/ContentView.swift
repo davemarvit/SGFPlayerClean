@@ -147,9 +147,9 @@ struct AIWorkspacePanel: View {
                             if let game = app.selection {
                                 LocalGameMetadataView(game: game, boardVM: vm, isOverlay: true)
                             }
-                            if ai.currentAnalysisData.count >= vm.totalMoves && vm.totalMoves > 5 {
-                                MoveQualitySummaryView(evals: Array(ai.evaluateGameQuality(upTo: vm.totalMoves, engine: vm.engine).values))
-                            }
+                            let evals = Array(ai.evaluateGameQuality(upTo: vm.totalMoves, engine: vm.engine).values)
+                            MistakeFilterView(vm: vm, analyzedCount: evals.count)
+                            MoveQualitySummaryView(evals: evals, analyses: ai.currentAnalysisData)
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)

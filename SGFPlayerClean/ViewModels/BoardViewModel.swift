@@ -319,6 +319,7 @@ class BoardViewModel: ObservableObject {
         let playback: SGFGame
         do { playback = try reviewTree!.playbackGame() }
         catch { reviewTreeError = error.localizedDescription; playback = SGFGame() }
+        self.engine.setCaptureIdentity(wrapper.url.path)
         self.engine.load(game: playback)
         if let document = reviewTree { engine.seek(to: document.nodes[document.selectedID].moveNumber) }
         _ = analysisEngine.loadAnalysisCache(for: reviewTree.map(reviewAnalysisID) ?? newGameId, game: engine)
@@ -451,26 +452,21 @@ class BoardViewModel: ObservableObject {
     func seekToMove(_ index: Int) { engine.seek(to: index) }
     
     // MARK: - AI Mistake Seeking
+    @Published var mistakePlayers: MistakeFilter.Players = .both
+    @Published var mistakeMinimumLoss: Double = 2
+    var matchingMistakeMoves: [Int] {
+        MistakeFilter(players: mistakePlayers, minimumLoss: mistakeMinimumLoss).moveNumbers(
+            in: Array(analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine).values))
+    }
+    var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > currentMoveIndex } }
+    var previousMistakeMove: Int? { matchingMistakeMoves.last { $0 < currentMoveIndex } }
     func seekNextMistake() {
-        let ai = analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine)
-        let jumps = ai.filter { $0.key > currentMoveIndex && ($0.value.quality == .poor || $0.value.quality == .disastrous) }
-        if let nextMistake = jumps.keys.min() {
-            seekToMove(nextMistake)
-        } else {
-            goToEnd()
-        }
+        if let move = nextMistakeMove { seekToMove(move) }
     }
-    
     func seekPrevMistake() {
-        let ai = analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine)
-        let jumps = ai.filter { $0.key < currentMoveIndex && ($0.value.quality == .poor || $0.value.quality == .disastrous) }
-        if let prevMistake = jumps.keys.max() {
-            seekToMove(prevMistake)
-        } else {
-            goToStart()
-        }
+        if let move = previousMistakeMove { seekToMove(move) }
     }
-    
+
     func stopAutoPlay() { engine.pause() }
     func startAutoPlay() { engine.play() }
 
@@ -585,6 +581,7 @@ class BoardViewModel: ObservableObject {
     }
     
     func finishOnlineGameLoad(gameID: Int) {
+        engine.setCaptureIdentity("ogs-\(gameID)")
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil
         fullGameAnalysisTask?.cancel()

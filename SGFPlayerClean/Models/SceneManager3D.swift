@@ -691,7 +691,13 @@ class SceneManager3D: NSObject, ObservableObject {
         SCNTransaction.commit()
     }
     /// Counts are by capturing player. White's upper lid holds black stones, and vice versa.
-    func updateCapturedStones(black: Int, white: Int) {
+    private var captureSeed: UInt64 = 0
+    func updateCapturedStones(black: Int, white: Int, seed: UInt64? = nil) {
+        if let seed, captureSeed != seed {
+            captureSeed = seed
+            (upperLidStones + lowerLidStones).forEach { $0.removeFromParentNode() }
+            upperLidStones.removeAll(); lowerLidStones.removeAll()
+        }
         guard let upper = upperLidNode, let lower = lowerLidNode else { return }
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0
@@ -720,6 +726,32 @@ class SceneManager3D: NSObject, ObservableObject {
         node.position = SCNVector3(-0.4, 0.2, 4.0)
         lid.addChildNode(node)
     }
+
+    // Bake the flattened shape into vertices. A scale on the physics-shape root
+    // is not reliable: a full sphere would overlap adjacent vertical drop layers.
+    private lazy var capturedStoneCollisionShape: SCNPhysicsShape = {
+        let rings = 10, segments = 20
+        var vertices: [SCNVector3] = []
+        var indices: [Int32] = []
+        for ring in 0...rings {
+            let latitude = Double(ring) * Double.pi / Double(rings)
+            for segment in 0..<segments {
+                let longitude = Double(segment) * 2 * Double.pi / Double(segments)
+                vertices.append(SCNVector3(Double(capturedStoneRadius) * sin(latitude) * cos(longitude),
+                    Double(capturedStoneRadius * stoneScaleY) * cos(latitude),
+                    Double(capturedStoneRadius) * sin(latitude) * sin(longitude)))
+                if ring < rings {
+                    let a = Int32(ring * segments + segment)
+                    let b = Int32(ring * segments + (segment + 1) % segments)
+                    let c = a + Int32(segments), d = b + Int32(segments)
+                    indices += [a, c, b, b, c, d]
+                }
+            }
+        }
+        let mesh = SCNGeometry(sources: [SCNGeometrySource(vertices: vertices)],
+            elements: [SCNGeometryElement(indices: indices, primitiveType: .triangles)])
+        return SCNPhysicsShape(geometry: mesh, options: [.type: SCNPhysicsShape.ShapeType.convexHull])
+    }()
 
     private func updateLidDiff(lid: SCNNode, current: inout [SCNNode], target: Int, isWhite: Bool) { 
         if current.count == target { return }
@@ -755,24 +787,30 @@ class SceneManager3D: NSObject, ObservableObject {
                     if a != b { return a < b }
                     return $0.1 == $1.1 ? $0.0 < $1.0 : $0.1 < $1.1
                 }
-                let position = positions[i % positions.count]
+                var random = CaptureRandom(state: CapturePileLayout.lidSeed(game: captureSeed, whiteStones: isWhite) &+ UInt64(i / positions.count))
+                let angle: CGFloat = CGFloat(random.unit()) * 2 * .pi
+                let slot = positions[i % positions.count]
+                let shiftX = CGFloat(random.unit() - 0.5) * 0.10
+                let shiftZ = CGFloat(random.unit() - 0.5) * 0.10
+                let position = (slot.0 * cos(angle) - slot.1 * sin(angle) + shiftX,
+                                slot.0 * sin(angle) + slot.1 * cos(angle) + shiftZ)
                 let layer = (i - start) / positions.count
                 n.position = SCNVector3(position.0, dropHeight + CGFloat(layer) * 0.52, position.1)
-                n.eulerAngles = SCNVector3(0, CGFloat(i) * 2.39996, 0)
+                random = CaptureRandom(state: captureSeed &+ UInt64(i) &* 0x9e3779b97f4a7c15 &+ (isWhite ? 1 : 2))
+                n.eulerAngles = SCNVector3((random.unit() - 0.5) * 0.22, random.unit() * 6.28, (random.unit() - 0.5) * 0.22)
                 let scale = capturedStoneRadius / stoneRadius
                 visual.scale = SCNVector3(scale, scale * stoneScaleY, scale)
 
                 // The physics parent stays at unit scale; only its visual child is flattened.
                 // This prevents board-size-dependent scaling of the collision shape.
-                let physGeom = SCNCylinder(radius: capturedStoneRadius, height: capturedStoneRadius * stoneScaleY * 2.0)
-                let shape = SCNPhysicsShape(geometry: physGeom, options: nil)
+                let shape = capturedStoneCollisionShape
                 let body = SCNPhysicsBody(type: .dynamic, shape: shape)
                 body.mass = 0.5 // Higher mass so they slam down
-                body.restitution = 0.0 // Zero bounce
-                body.friction = 2.0     // Extreme grip
-                body.rollingFriction = 2.0 // Extreme spin lock
+                body.restitution = 0.05 // Small impact response
+                body.friction = 0.65 // Allow stones to settle against their rounded surfaces
+                body.rollingFriction = 0.15
                 body.damping = 0.35
-                body.angularDamping = 0.9 // Extreme spin drag to force them flat
+                body.angularDamping = 0.45
                 
                 body.categoryBitMask = PhysicsCategoryStone
                 body.collisionBitMask = PhysicsCategoryStone | PhysicsCategoryBowl
@@ -911,7 +949,7 @@ class SceneManager3D: NSObject, ObservableObject {
         
         // One flat floor, rather than intersecting sloped boxes that can launch stones.
         // Cap the cylinder bottom as well
-        let capBody = SCNPhysicsBody(type: .kinematic, shape: SCNPhysicsShape(geometry: cyl, options: nil))
+        let capBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: cyl, options: nil))
         capBody.categoryBitMask = PhysicsCategoryBowl
         capBody.collisionBitMask = PhysicsCategoryStone | PhysicsCategoryBowl
         capBody.contactTestBitMask = PhysicsCategoryStone
@@ -941,8 +979,9 @@ class SceneManager3D: NSObject, ObservableObject {
 
     private func updateLidWalls(lid: SCNNode) {
         guard lid.childNode(withName: "capture-walls", recursively: false) == nil else { return }
-        // Fixed walls never change shape or position underneath a live pile. Invisible height
-        // leaves ample headroom for captures; changing kinematic walls can impart large impulses.
+        // These walls never move in world space. Static bodies avoid artificial
+        // kinematic velocities when rebuilding a lid during a board-size change.
+        // Invisible height leaves ample headroom for captures.
         let height: CGFloat = 64
         let walls = SCNNode()
         walls.name = "capture-walls"
@@ -953,7 +992,7 @@ class SceneManager3D: NSObject, ObservableObject {
             let node = SCNNode()
             node.position = SCNVector3(sin(angle) * 3.15, height / 2, cos(angle) * 3.15)
             node.eulerAngles.y = angle
-            node.physicsBody = SCNPhysicsBody(type: .kinematic, shape: SCNPhysicsShape(geometry: geometry, options: nil))
+            node.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(geometry: geometry, options: nil))
             node.physicsBody?.categoryBitMask = PhysicsCategoryBowl
             node.physicsBody?.collisionBitMask = PhysicsCategoryStone
             walls.addChildNode(node)

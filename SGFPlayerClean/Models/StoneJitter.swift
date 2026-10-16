@@ -246,3 +246,67 @@ private struct SeededRandomNumberGenerator: RandomNumberGenerator {
         return state
     }
 }
+
+/// A cached, seeded settling approximation. Positions are independent of the final
+/// count, so appending/removing captures never redistributes the rest of the pile.
+/// Coordinates and heights are fractions of the lid diameter.
+struct CapturePileStone: Equatable {
+    let x: Double, y: Double, height: Double, angle: Double, tilt: Double
+}
+struct CaptureRandom {
+    var state: UInt64
+    mutating func unit() -> Double {
+        state &+= 0x9e3779b97f4a7c15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xbf58476d1ce4e5b9
+        z = (z ^ (z >> 27)) &* 0x94d049bb133111eb
+        return Double(z ^ (z >> 31)) / Double(UInt64.max)
+    }
+}
+enum CapturePileLayout {
+    private final class Entry: NSObject {
+        let stones: [CapturePileStone]
+        let random: CaptureRandom
+        init(_ stones: [CapturePileStone], _ random: CaptureRandom) { self.stones = stones; self.random = random }
+    }
+    private static let lock = NSLock()
+    private static let cache: NSCache<NSString, Entry> = {
+        let cache = NSCache<NSString, Entry>(); cache.countLimit = 32; return cache
+    }()
+    static func lidSeed(game: UInt64, whiteStones: Bool) -> UInt64 {
+        game ^ (whiteStones ? 0x72b8914ac569032f : 0xc1349ef5628abd07)
+    }
+    static func stones(count: Int, seed: UInt64) -> [CapturePileStone] {
+        guard count > 0 else { return [] }
+        lock.lock(); defer { lock.unlock() }
+        let key = String(seed) as NSString
+        let previous = cache.object(forKey: key)
+        var stones = previous?.stones ?? []
+        if stones.count >= count { return Array(stones.prefix(count)) }
+        var random = previous?.random ?? CaptureRandom(state: seed)
+        while stones.count < count {
+            var best: (x: Double, y: Double, height: Double, energy: Double)?
+            // Try several landing places, preferring lower supported positions while
+            // allowing uneven heaps instead of filling exact rings or a lattice.
+            for _ in 0..<28 {
+                let a = random.unit() * 2 * Double.pi
+                let r = sqrt(random.unit()) * 0.28
+                let x = cos(a) * r, y = sin(a) * r
+                var height = 0.02 * pow(r / 0.28, 2)
+                for stone in stones {
+                    let distance2 = pow(x - stone.x, 2) + pow(y - stone.y, 2)
+                    if distance2 < 0.15 * 0.15 {
+                        height = max(height, stone.height + 0.065 * sqrt(1 - distance2 / (0.15 * 0.15)))
+                    }
+                }
+                let energy = height + random.unit() * 0.045
+                if best == nil || energy < best!.energy { best = (x, y, height, energy) }
+            }
+            let spot = best!
+            stones.append(CapturePileStone(x: spot.x, y: spot.y, height: spot.height,
+                                          angle: random.unit() * 360, tilt: 0.9 + random.unit() * 0.1))
+        }
+        cache.setObject(Entry(stones, random), forKey: key)
+        return stones
+    }
+}
