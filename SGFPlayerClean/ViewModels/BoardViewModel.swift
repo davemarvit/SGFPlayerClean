@@ -66,6 +66,7 @@ class BoardViewModel: ObservableObject {
     var canEditLocally: (() -> Bool)?
     private let analysisEngine: KataGoEngine
     var canPreviewAnalysis: (() -> Bool)?
+    var usesAdaptiveAnalysis: (() -> Bool)?
     @Published private(set) var variationFrame: AIVariationFrame?
     @Published private(set) var variationStatus: String?
     var isPreviewingVariation: Bool { variationFrame != nil }
@@ -217,6 +218,7 @@ class BoardViewModel: ObservableObject {
         analysisEngine.$isEngineRunning.receive(on: RunLoop.main).sink { [weak self] isRunning in
             if isRunning {
                 self?.requestAnalysisIfNeeded()
+                self?.triggerFullGameAnalysis()
             }
         }.store(in: &cancellables)
     }
@@ -463,7 +465,8 @@ class BoardViewModel: ObservableObject {
     @Published var mistakePlayers: MistakeFilter.Players = .both
     @Published var mistakeMinimumLoss: Double = 2
     var matchingMistakeMoves: [Int] {
-        MistakeFilter(players: mistakePlayers, minimumLoss: mistakeMinimumLoss).moveNumbers(
+        if let allowed = isAIAllowed, !allowed() { return [] }
+        return MistakeFilter(players: mistakePlayers, minimumLoss: mistakeMinimumLoss).moveNumbers(
             in: Array(analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine).values))
     }
     var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > engine.currentIndex } }
@@ -540,7 +543,7 @@ class BoardViewModel: ObservableObject {
     }
     
     private func synchronizeLocalScoring() {
-        guard !isOnlineContext else { return }
+        guard !isOnlineContext, canNavigateReview?() != true else { return }
         if let session = localScoring, session.index != engine.maxIndex { localScoring = nil }
         // Passing once after resumption must not pair with a pass from the previous round.
         if let resumed = scoringDismissedAtIndex, engine.currentIndex < resumed + 2 { return }
@@ -562,7 +565,14 @@ class BoardViewModel: ObservableObject {
     func confirmLocalScore() {
         guard localScoringVisible, var session = localScoring, session.result != nil else { return }
         session.isFinal = true
+        engine.confirmAnalysisSettings(rules: session.rule.rawValue, komi: session.komiText)
         localScoring = session
+        syncState()
+    }
+
+    func clearScoringForReview() {
+        localScoring = nil
+        scoringDismissedAtIndex = engine.maxIndex
         syncState()
     }
 
@@ -773,6 +783,7 @@ class BoardViewModel: ObservableObject {
     }
     
     private func requestAnalysisIfNeeded() {
+        guard usesAdaptiveAnalysis?() != true else { return }
         guard !localScoringVisible, !isScrubbing else { return }
         guard analysisEngine.isEngineRunning else { return }
         if let allowed = isAIAllowed, !allowed() { return }
@@ -802,6 +813,7 @@ class BoardViewModel: ObservableObject {
     }
 
     func triggerFullGameAnalysis() {
+        guard usesAdaptiveAnalysis?() != true else { fullGameAnalysisTask?.cancel(); return }
         if let allowed = isAIAllowed, !allowed() {
             fullGameAnalysisTask?.cancel()
             return

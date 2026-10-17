@@ -244,13 +244,28 @@ struct OGSChallenge: Identifiable, Decodable {
         self.game = ChallengeGameInfo(ranked: isRanked, width: (try? c.decode(Int.self, forKey: .width)) ?? 19, height: (try? c.decode(Int.self, forKey: .height)) ?? 19, rules: try? c.decode(String.self, forKey: .rules))
     }
     var boardSize: String { "\(game?.width ?? 19)x\(game?.height ?? 19)" }
+    func rankRestriction(for rank: Int?) -> String? {
+        guard let rank else { return nil }
+        if let min_rank, rank < min_rank {
+            return "Requires at least \(ChallengeHelpers.formatRank(Double(min_rank)))"
+        }
+        if let max_rank, rank > max_rank {
+            return "Requires at most \(ChallengeHelpers.formatRank(Double(max_rank)))"
+        }
+        return nil
+    }
     var speedCategory: String {
-        // 1. Authoritative: Use server tag if available
-        if let s = time_control_parameters?.speed { return s }
-        
-        // 2. Fallback: Heuristic
+        // OGS can supply the classification inside the time control or on the
+        // challenge itself. Ignore unrecognized tags so a filter cannot lose a row.
+        for tag in [time_control_parameters?.speed, speed] {
+            if let tag, ["live", "blitz", "correspondence"].contains(tag) { return tag }
+        }
+
+        // Match OGS classifyGameSpeed in components/TimeControl/util.ts:
+        // zero means untimed, 10 seconds and exactly one hour are both live.
         guard let tpm = time_per_move else { return "live" }
-        return tpm < 30 ? "blitz" : (tpm >= 3600 ? "correspondence" : "live")
+        if tpm == 0 || tpm > 3600 { return "correspondence" }
+        return tpm < 10 ? "blitz" : "live"
     }
     var formattedTimeControl: String {
         return ChallengeHelpers.formatTimeControl(tc: time_control, params: time_control_parameters, perMove: time_per_move)

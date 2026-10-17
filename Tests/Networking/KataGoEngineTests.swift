@@ -63,12 +63,15 @@ final class KataGoEngineTests: XCTestCase {
         timer.invalidate()
     }
 
-    private func queries(_ count: Int) -> [[String: Any]] {
+    private func queries(_ count: Int, includePositionCancellations: Bool = false) -> [[String: Any]] {
         let url = directory.appendingPathComponent("requests.jsonl")
         var result: [[String: Any]] = []
         eventually("\(count) queries written") {
             let text = (try? String(contentsOf: url)) ?? ""
             result = text.split(separator: "\n").compactMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [String: Any] }
+            if !includePositionCancellations {
+                result = result.filter { !(($0["id"] as? String)?.hasPrefix("cancel-position-") ?? false) }
+            }
             return result.count >= count
         }
         return result
@@ -617,6 +620,116 @@ final class KataGoEngineTests: XCTestCase {
             XCTAssertTrue(rejected)
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("requests.jsonl").path))
+    }
+
+    func testBackgroundSearchBoundsTimeAndPreservesDeeperResults() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9,
+            maxVisits: 3200, backgroundTimeLimit: 2)
+        let first = queries(1)[0]
+        XCTAssertEqual(first["priority"] as? Int, -100)
+        XCTAssertEqual((first["overrideSettings"] as? [String: Double])?["maxTime"], 2)
+        engine.receiveAnalysisLine(try response(first, visits: 1200))
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9,
+            maxVisits: 12800, backgroundTimeLimit: 4)
+        let second = queries(2)[1]
+        engine.receiveAnalysisLine(try response(second, visits: 800))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 1200)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, maxVisits: 12800)
+        let third = queries(3)[2]
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: ["id": third["id"]!, "error": "fixture failure"]))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 1200, "Failed upgrade retains completed analysis")
+    }
+
+    func testPauseTerminatesActualPositionSearchAndKeepsCompletedWork() throws {
+        try hold(); engine.start(); analyze()
+        let first = queries(1)[0]
+        engine.receiveAnalysisLine(try response(first))
+        analyze(x: 2)
+        let pending = queries(2)[1]
+        engine.pauseAnalysis()
+        let messages = queries(3, includePositionCancellations: true)
+        XCTAssertTrue(messages.contains { $0["action"] as? String == "terminate" && $0["terminateId"] as? String == pending["id"] as? String })
+        engine.receiveAnalysisLine(try response(pending))
+        XCTAssertNil(engine.currentAnalysisData[1])
+        XCTAssertNotNil(engine.currentAnalysisData[0])
+    }
+
+    func testAdaptiveAnalysisCoversAllMovesDeepensAndHandlesUndo() throws {
+        try hold(); engine.start()
+        let game = try hoverGame("(;SZ[9]RU[Japanese]KM[6.5];B[aa];W[bb];B[cc])")
+        let worker = BackgroundGameAnalysis(engine: engine)
+        worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: true, now: 0)
+        for n in 0..<12 {
+            let time = Double(n * 4 + 1)
+            worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: true, now: time)
+            let query = queries(n + 1)[n]
+            XCTAssertEqual((query["moves"] as? [[String]])?.count, n % 4)
+            let depth = try XCTUnwrap(query["maxVisits"] as? Int)
+            engine.receiveAnalysisLine(try response(query, visits: depth))
+            worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: true, now: time + 0.5)
+            XCTAssertFalse(engine.hasPendingAnalysis, "Rest after completing each bounded search")
+        }
+        XCTAssertEqual(engine.currentAnalysisData.count, 4)
+        XCTAssertTrue(engine.currentAnalysisData.values.allSatisfy { ($0.rootInfo?.visits ?? 0) >= 800 }, "Deepens beyond the old 500-visit ceiling")
+        XCTAssertEqual(game.currentIndex, 0, "Background analysis never navigates the user's board")
+        let shorter = try hoverGame("(;SZ[9]RU[Japanese]KM[6.5];B[aa];W[dd])")
+        worker.tick(player: shorter, resources: AnalysisResources(onBattery: true), pauseOnBattery: true, now: 50)
+        XCTAssertNotNil(engine.currentAnalysisData[1])
+        XCTAssertNil(engine.currentAnalysisData[2]); XCTAssertNil(engine.currentAnalysisData[3])
+        worker.stop()
+    }
+
+    func testBatteryThermalLoadAndInterfacePressurePauseAndResume() throws {
+        try hold(); engine.start()
+        let game = try hoverGame()
+        let worker = BackgroundGameAnalysis(engine: engine)
+        worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: true, now: 0)
+        worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: true, now: 1)
+        let pending = queries(1)[0]
+        worker.tick(player: game, resources: AnalysisResources(onBattery: true), pauseOnBattery: true, now: 1.5)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        XCTAssertEqual(worker.status, "Paused to save battery")
+        XCTAssertEqual(queries(2, includePositionCancellations: true).last?["terminateId"] as? String, pending["id"] as? String)
+        engine.receiveAnalysisLine(try response(pending)); XCTAssertTrue(engine.currentAnalysisData.isEmpty)
+        worker.tick(player: game, resources: AnalysisResources(onBattery: true), pauseOnBattery: false, now: 5)
+        XCTAssertTrue(engine.hasPendingAnalysis, "User can opt into analysis on battery")
+        for reading in [AnalysisResources(lowPower: true), AnalysisResources(thermal: .fair),
+                        AnalysisResources(thermal: .serious), AnalysisResources(cpuBusy: 0.9), AnalysisResources(memoryPressure: true)] {
+            worker.tick(player: game, resources: reading, pauseOnBattery: false, now: 6)
+            XCTAssertFalse(engine.hasPendingAnalysis)
+            XCTAssertTrue(worker.status.hasPrefix("Paused"))
+        }
+        worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: false, now: 10, interfaceDelayed: true)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        worker.tick(player: game, resources: AnalysisResources(), pauseOnBattery: false, now: 14)
+        XCTAssertTrue(engine.hasPendingAnalysis)
+        worker.stop(); XCTAssertFalse(engine.hasPendingAnalysis)
+    }
+
+    func testBatterySavingDoesNotEvenLaunchEngine() throws {
+        let game = try hoverGame()
+        let worker = BackgroundGameAnalysis(engine: engine)
+        worker.tick(player: game, resources: AnalysisResources(onBattery: true), pauseOnBattery: true, now: 0)
+        XCTAssertFalse(engine.isEngineRunning)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("requests.jsonl").path))
+        worker.stop()
+    }
+
+    func testConfirmedLocalScoringSettingsInvalidateIncompatibleReviewCache() throws {
+        try hold(); engine.start()
+        let game = try hoverGame("(;SZ[9]RU[Chinese]KM[6.5];B[aa])")
+        let payload = game.getCurrentAIPayload()
+        engine.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves,
+            size: 9, settings: game.analysisSettings)
+        engine.receiveAnalysisLine(try response(queries(1)[0]))
+        engine.flushAnalysisCache()
+        game.confirmAnalysisSettings(rules: "Chinese", komi: "6.5")
+        XCTAssertTrue(engine.loadAnalysisCache(for: "game-a", game: game), "Unchanged rules retain analysis")
+        game.confirmAnalysisSettings(rules: "Japanese", komi: "0.5")
+        XCTAssertFalse(engine.loadAnalysisCache(for: "game-a", game: game), "Confirmed rules/komi must not reveal incompatible analysis")
+        XCTAssertTrue(engine.currentAnalysisData.isEmpty)
     }
 
 }

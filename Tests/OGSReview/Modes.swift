@@ -12,16 +12,26 @@ private final class ModeHTTP: URLProtocol {
     override func startLoading() {
         let path = request.url!.path
         let body: String
+        var status = 200
         if path == "/api/v1/ui/config" {
             body = #"{"user":{"id":99,"username":"TestingAccount","ranking":25},"user_jwt":"fixture"}"#
         } else if path == "/api/v1/challenges/8/accept" {
             require(request.httpMethod == "POST", "Challenge acceptance must use POST")
             body = #"{"id":7}"#
+        } else if path == "/api/v1/challenges/403/accept" {
+            status = 403
+            body = #"{"detail":"Your rank does not meet this challenge's restrictions."}"#
+        } else if path == "/api/v1/challenges/404/accept" {
+            status = 404
+            body = #"{"detail":"This challenge is no longer available."}"#
+        } else if path == "/api/v1/challenges/400/accept" {
+            status = 403
+            body = "{}"
         } else if path.contains("/games/") {
             let id = Int(path.split(separator: "/").last!) ?? 9
             body = "{\"id\":\(id),\"width\":9,\"height\":9,\"phase\":\"play\",\"rules\":\"japanese\",\"komi\":6.5,\"initial_player\":\"black\",\"moves\":[[0,0],[1,1]],\"players\":{\"black\":{\"id\":\(id == 7 ? 99 : 10),\"username\":\"Black\"},\"white\":{\"id\":11,\"username\":\"White\"}}}"
         } else { body = "{\"results\":[],\"next\":null}" }
-        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200,
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: status,
             httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))
         client?.urlProtocolDidFinishLoading(self)
@@ -83,7 +93,7 @@ private final class ModeSocket: OGSWebSocket {
         require(model.player.maxIndex == 1 && model.player.board.stones[BoardPosition(2, 2)] == .black,
                 "Local board survives Review")
         model.aiAnalysisEnabled = true
-        require(model.isAIAvailable, "AI available in Local Play")
+        require(!model.isAIAvailable, "Local Play keeps AI results hidden until completion")
         let index = model.player.currentIndex
         model.aiAnalysisEnabled = false
         require(model.player.currentIndex == index && !model.isAIAvailable, "AI toggle must not navigate")
@@ -101,7 +111,16 @@ private final class ModeSocket: OGSWebSocket {
         require(vm.isOnlineContext && model.player.maxIndex == 2, "Observed game loads")
         require(model.isAIAvailable && !client.isAccountGameParticipant, "AI allowed for observing other players")
         model.mode = .playOnline; settle()
+        for rejectedID in [403, 400, 404] {
+            let position = model.player.currentIndex
+            model.joinOnlineGame(id: rejectedID); settle()
+            require(model.challengeAcceptanceError?.contains("TestingAccount") == true,
+                    "Acceptance rejection must identify the signed-in account")
+            require(model.player.currentIndex == position && !client.isSearchingForGame,
+                    "Rejection must preserve the board and release the busy flag")
+        }
         model.joinOnlineGame(id: 8); settle()
+        require(model.challengeAcceptanceError == nil, "Successful retry clears the previous error")
         require(client.activeGameID == 7 && !client.isSearchingForGame, "Accepted challenge must open its game")
         require(client.isAccountGameParticipant && client.isGameParticipant && !model.isAIAvailable, "Own online game disables AI")
         model.mode = .observe; settle()
@@ -180,6 +199,28 @@ private final class ModeSocket: OGSWebSocket {
                 "Opening lobby replaces stale challenge with fresh server snapshot")
         require(!lobby.contains("nineteen") && !lobby.contains("correspondence"), "Size/speed filters failed")
         require(lobby.components(separatedBy: "ineligible").count == 2, "Ineligible challenge should be filtered; only toggle should remain")
+        UserDefaults.standard.set(true, forKey: "ogs_filter_ineligible")
+        let expandedLobby = try render(RightPanelView().frame(width: 320, height: 620))
+        require(expandedLobby.contains("locked") && expandedLobby.contains("requires at least"),
+                "Revealed ineligible challenge must show LOCKED and explain the rank restriction")
+        UserDefaults.standard.set(false, forKey: "ogs_filter_ineligible")
+
+        // Reproduce the reported CHJ clock with a synthetic seekgraph listing.
+        // Exercise the actual view's speed filters, not a copy of their predicate.
+        socket.lobbyFixture = #"[{"id":101,"username":"CHJ-8888","user_id":101,"width":19,"height":19,"ranked":true,"time_per_move":13,"time_control":"byoyomi","time_control_parameters":{"main_time":360,"periods":2,"period_time":10}},{"id":102,"username":"FastClock","user_id":102,"width":19,"height":19,"ranked":true,"time_per_move":9},{"id":103,"username":"DailyClock","user_id":103,"width":19,"height":19,"ranked":true,"time_per_move":86400},{"id":104,"username":"ServerLive","user_id":104,"width":19,"height":19,"ranked":true,"speed":"live","time_per_move":5}]"#
+        UserDefaults.standard.set("19", forKey: "ogs_filter_sizes")
+        for (speed, visible, hidden) in [
+            ("Live", ["chj-8888", "serverlive"], ["fastclock", "dailyclock"]),
+            ("Blitz", ["fastclock"], ["chj-8888", "serverlive", "dailyclock"]),
+            ("Real Time (Live+Blitz)", ["chj-8888", "serverlive", "fastclock"], ["dailyclock"]),
+            ("Correspondence", ["dailyclock"], ["chj-8888", "serverlive", "fastclock"]),
+            ("All Speeds", ["chj-8888", "serverlive", "fastclock", "dailyclock"], [])
+        ] {
+            UserDefaults.standard.set(speed, forKey: "ogs_filter_speed")
+            let filteredLobby = try render(RightPanelView().frame(width: 320, height: 620))
+            for name in visible { require(filteredLobby.contains(name), "\(speed) missing \(name): \(filteredLobby)") }
+            for name in hidden { require(!filteredLobby.contains(name), "\(speed) incorrectly includes \(name): \(filteredLobby)") }
+        }
         for key in ["ogs_filter_sizes", "ogs_filter_speed", "ogs_filter_ranked", "ogs_filter_ineligible"] {
             UserDefaults.standard.removeObject(forKey: key)
         }

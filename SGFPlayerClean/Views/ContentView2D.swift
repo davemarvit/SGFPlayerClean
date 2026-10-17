@@ -4,9 +4,8 @@ import SwiftUI
 struct ContentView2D: View {
     @EnvironmentObject var app: AppModel
     @Environment(\.boardControlsWidth) private var controlsWidth
-    private let boardAspectRatio: CGFloat = 1.0773
-    
-    private func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
+    static func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
+        let boardAspectRatio: CGFloat = 1.0773
         // Fit board, gap and lids inside the space reserved by BoardWorkspaceView.
         let totalWFactor: CGFloat = 1 + 1 / 19 + boardAspectRatio / 3
         let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
@@ -17,13 +16,10 @@ struct ContentView2D: View {
     var body: some View {
         GeometryReader { window in
             let area = window.size
-            let L = getLayout(area: area)
+            let L = Self.getLayout(area: area)
             let margin = L.bW * 0.065
 
             ZStack(alignment: .topLeading) {
-                // 1. Background
-                TatamiBackground(boardHeight: L.bH)
-                
                 // 2. Board & Lids Container (Centered in Window)
                 VStack(spacing: 0) {
                     Spacer()

@@ -9,6 +9,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
         AppModeControls()
+        CompletedGameResultBanner()
         ZStack {
             mainInterface // .disabled(appModel.isCreatingChallenge) removed
             if let vm = appModel.boardVM {
@@ -49,6 +50,41 @@ struct ContentView: View {
     }
 }
 
+/// Keep the final result visible while the player explores the finished game.
+struct CompletedGameResultBanner: View {
+    @EnvironmentObject var app: AppModel
+
+    var body: some View {
+        if app.mode == .review, let result = app.completedGameResult {
+            HStack(spacing: 14) {
+                Image(systemName: "flag.checkered")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Game finished")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(result)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.13)))
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("completed-game-result")
+        }
+    }
+}
+
 /// AI always stays beside the board. On narrower windows the dismissible game
 /// panel may cover the AI column, rather than moving analysis below the board.
 struct BoardWorkspaceView<Board: View>: View {
@@ -78,7 +114,8 @@ struct BoardWorkspaceView<Board: View>: View {
                 if app.viewMode == .view3D {
                     Color(nsColor: SceneManager3D.backgroundColor)
                 } else {
-                    TatamiBackground(boardHeight: geo.size.height * 0.85)
+                    TatamiBackground(boardHeight: ContentView2D.getLayout(
+                        area: CGSize(width: layout.boardWidth, height: geo.size.height)).bH)
                 }
             }
         }
@@ -158,7 +195,8 @@ struct AIWorkspacePanel: View {
                 } else { Spacer(minLength: 0) }
             }
         }
-        .background(.black.opacity(0.22))
+        .background(.black.opacity(app.isAIAvailable ||
+            (app.mode == .review && vm.reviewTree != nil && !treeCollapsed) ? 0.22 : 0))
         .accessibilityIdentifier("ai-workspace-panel")
     }
 }

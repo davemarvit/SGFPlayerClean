@@ -1,6 +1,7 @@
 import AppKit
 import ScreenSaver
 import QuartzCore
+import CoreImage
 
 @objc(QuietGoSaverView)
 final class QuietGoSaverView: ScreenSaverView {
@@ -19,6 +20,17 @@ final class QuietGoSaverView: ScreenSaverView {
     private var whiteStone: NSImage?
     private var lids: [NSImage?] = []
     private var whiteVariants: [NSImage?] = []
+    // Cache a soft mask once. Drawing it in view coordinates avoids NSShadow's
+    // different offset conventions in the bitmap and layer-backed saver hosts.
+    private let boardShadow: NSImage? = {
+        let caster = CGRect(x: 100, y: 100, width: 1000, height: 1077)
+        let extent = caster.insetBy(dx: -100, dy: -100)
+        let mask = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 0.5))
+            .cropped(to: caster).applyingGaussianBlur(sigma: 20)
+        guard let image = CIContext(options: [.useSoftwareRenderer: true])
+            .createCGImage(mask, from: extent) else { return nil }
+        return NSImage(cgImage: image, size: extent.size)
+    }()
     private let stoneShadow = NSGradient(colorsAndLocations:
         (NSColor.black.withAlphaComponent(0.48), 0.0),
         (NSColor.black.withAlphaComponent(0.42), 0.60),
@@ -40,7 +52,7 @@ final class QuietGoSaverView: ScreenSaverView {
         func image(_ name: String) -> NSImage? {
             bundle.url(forResource: name, withExtension: nil).flatMap { NSImage(contentsOf: $0) }
         }
-        wood = image("board_kaya.jpg"); tatami = image("tatami.jpg")
+        wood = image("board_kaya.jpg"); tatami = image(TatamiTexture.assetName)
         blackStone = image("stone_black.png"); whiteStone = image("stone_white.png")
         lids = [image("go_lid_1.png"), image("go_lid_2.png")]
         whiteVariants = (1...5).map { image(String(format: "clam_%02d.png", $0)) }
@@ -116,23 +128,19 @@ final class QuietGoSaverView: ScreenSaverView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        NSColor(calibratedRed: 0.15, green: 0.19, blue: 0.10, alpha: 1).setFill(); bounds.fill()
-        tatami?.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        let layout = SaverLayout(bounds: bounds)
+        TatamiTexture.draw(image: tatami, in: bounds, boardHeight: layout.board.height)
         guard playbackEnabled, let playlist, let game = playlist.game else {
             if !displayedStatusMessage.isEmpty {
                 drawText(displayedStatusMessage, in: bounds.insetBy(dx: 20, dy: bounds.height * 0.45), size: max(12, bounds.width / 60))
             }
             return
         }
-        let layout = SaverLayout(bounds: bounds)
         let board = layout.board, width = board.width
-        NSGraphicsContext.saveGraphicsState()
-        let shadow = NSShadow(); shadow.shadowColor = NSColor.black.withAlphaComponent(0.5)
-        shadow.shadowBlurRadius = width * 0.02; shadow.shadowOffset = .zero; shadow.set()
-        NSColor.black.setFill()
-        board.insetBy(dx: width * 0.012, dy: width * 0.012)
-            .offsetBy(dx: width * 0.012, dy: width * 0.012).fill()
-        NSGraphicsContext.restoreGraphicsState()
+        boardShadow?.draw(in: board.insetBy(dx: -width * 0.1, dy: -width * 0.1)
+            .offsetBy(dx: width * 0.03, dy: width * 0.03),
+            from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+            hints: [.interpolation: NSImageInterpolation.high])
         wood?.draw(in: board, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         let grid = board.insetBy(dx: width * 0.065, dy: width * 0.065)
         let pitchX = grid.width / CGFloat(game.boardSize - 1), pitchY = grid.height / CGFloat(game.boardSize - 1)

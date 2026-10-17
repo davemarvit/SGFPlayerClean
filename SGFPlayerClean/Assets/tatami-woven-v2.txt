@@ -1,0 +1,52 @@
+Tatami background v2 — 17 October 2026
+
+Asset: SGFPlayerClean/Assets/tatami-woven-v2.png
+Created with the built-in image generation tool. Actual output: 1254 x 1254 pixels.
+The requested 4096-pixel output was not supplied by the tool; this is not a 4K source.
+
+Physical reference:
+Tokyo Tatami Maker describes the lengthwise weaving threads at about 1 cm intervals:
+https://japanese-tatamimat.com/goza
+British Go Association gives a typical Japanese board as 423 x 455 mm:
+https://www.britgo.org/learners/make.html
+
+Calibration (corrected after independent cross-check):
+The generated texture has approximately 64–65 vertical weave divisions (measured dominant pitch about 64.45 per tile).
+Standard tatami segments are approximately 1.5 cm wide, as explicitly described by:
+https://www.warashibekobo.com/p/3/
+Independent tea-instruction cross-check: 16 segments = 24 cm:
+https://ameblo.jp/na-go-mi-style/entry-12413669654.html
+The initial 1 cm reference above was too small for this traditional standard weave.
+Treat a square tile as 96 x 96 cm, scaled uniformly by:
+displayed tile side = displayed board height * 96 / 45.5.
+This increases the prior texture scale by exactly 50%; the measured pitch is approximately 14.9 mm.
+Approximately 28 segments now span the board width, compared with approximately 43 previously.
+The existing board aspect is retained (1.0773, very close to 455 / 423).
+This is approximate material scale, not a precision measurement of the synthetic fibers.
+9x9 and 13x13 retain the app's existing full-sized wooden board presentation.
+
+Rendering:
+TatamiTexture.swift is shared by the app and screensaver.
+Alternate tiles are reflected in both directions, matching edge pixels exactly.
+Use mirrored repetition for this asset; plain repetition can reveal an edge.
+The workspace draws one background using the actual 2D board layout, including sidebar and AI width restrictions.
+The original tatami.jpg remains available for rollback.
+At the corrected scale, each tile covers 96 cm; the full mirrored pattern repeats every 192 cm.
+This reduces repeat frequency compared with the initial scale and preserves the existing fine strand variation.
+No random lighting patches or changes of weave direction are introduced.
+3D continues to use its existing plain scene background.
+
+Validation:
+Rendered compact (800x600), portrait (600x1000), wide (1800x850), and ultrawide (3000x700) samples.
+A 2x2 repeat at 640 pixels per tile had exactly identical neighboring RGB pixels across both joins.
+Previews are in Main App Update/2026-10-17-Tatami/Previews.
+Release app and embedded screensaver build and signature verification passed.
+A native SwiftUI hosting probe passed asset loading, full background coverage, and actual board-height calibration for compact, portrait, AI/sidebar, and ultrawide layouts.
+The initial 1 cm version was installed with full rollback backups in Main App Update/2026-10-17-Tatami.
+The corrected 1.5 cm build, previews and subsequent installation records are in Main App Update/2026-10-17-Tatami-15mm.
+
+Initial prompt:
+Use case: photorealistic-natural. Asset type: seamless repeatable game background texture, square 2048x2048 or larger. Create an orthographic straight-down scan of authentic Japanese woven igusa tatami omote, no objects or mat borders. The image represents a square 64 cm x 64 cm patch: EXACTLY 64 evenly spaced narrow vertical weave divisions across the width (1 cm per division), fine horizontal rush fibers crossing them, naturally alternating interlaced fibers. Traditional softly aged muted sage/olive straw green, warm natural straw undertones, subtle organic strand variation, calm low contrast. Uniform diffuse illumination across the entire surface, no gradient, no vignette, no cast shadows, no perspective. The left/right and top/bottom edges must join seamlessly when repeated in a rectangular grid; continuous aligned weave across opposite edges, no visible rectangular patch boundaries. Avoid large distinctive discoloration or knots that reveal repeated copies; no fabric borders, no room scene, no Go board, no text. Fine realistic fiber detail but restrained relief, not corrugated cardboard or bamboo slats. This is a production texture tile to render beneath a Go board at physically calibrated scale.
+
+Final edit prompt:
+Edit this production tatami texture. Deliver a large high-resolution square texture, target 4096 by 4096 pixels. Preserve the subdued natural olive-straw colors, perfectly overhead orthographic view, fine horizontal igusa fibers and approximately 64 evenly spaced vertical weave ribs (1 cm each across 64 cm square). Correct the opposite edges for genuinely seamless repeat tiling: left/right must match in weave phase and color, top/bottom must match, no edge line or mismatched stripes on repetition. Make all lighting fully even, no darker upper band or bright bottom. Keep fine organic detail and restrained contrast. No mat borders, no objects, no text. This is a seamless material texture, not a presentation.

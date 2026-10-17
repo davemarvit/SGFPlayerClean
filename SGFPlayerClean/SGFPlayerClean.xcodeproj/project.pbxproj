@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BACC00000000000000000001 /* BackgroundGameAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = BACC00000000000000000002; };
 		C0DE00000000000000000081 /* AppIcons.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000080 /* AppIcons.xcassets */; };
 		C0DE00000000000000000043 /* LocalScoringPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000042 /* LocalScoringPanel.swift */; };
 		C0DE00000000000000000041 /* LocalScoring.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000040 /* LocalScoring.swift */; };
@@ -72,7 +73,7 @@
 		55EEB53D2EFFE34000030E2A /* clam_02.png in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB4D02EFFE34000030E2A /* clam_02.png */; };
 		55EEB53E2EFFE34000030E2A /* go_lid_1.png in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB4D42EFFE34000030E2A /* go_lid_1.png */; };
 		55EEB53F2EFFE34000030E2A /* board_kaya.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB4CE2EFFE34000030E2A /* board_kaya.jpg */; };
-		55EEB5402EFFE34000030E2A /* tatami.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB4D82EFFE34000030E2A /* tatami.jpg */; };
+		55EEB5402EFFE34000030E2A /* tatami-woven-v4-3008.png in Resources */ = {isa = PBXBuildFile; fileRef = 55EEB4D82EFFE34000030E2A /* tatami-woven-v4-3008.png */; };
 		55EEB5772EFFEAC600030E2A /* RightPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB5702EFFEAC600030E2A /* RightPanelView.swift */; };
 		55EEB5782EFFEAC600030E2A /* DiagnosticTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */; };
 		55EEB5792EFFEAC600030E2A /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55EEB54C2EFFEAC600030E2A /* AppSettings.swift */; };
@@ -114,9 +115,11 @@
 		C0DE10000000000000000010 /* ScreensaverConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000000 /* ScreensaverConfiguration.swift */; };
 		C0DE10000000000000000011 /* ScreensaverManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000001 /* ScreensaverManager.swift */; };
 		C0DE10000000000000000012 /* ScreensaverSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000002 /* ScreensaverSettingsView.swift */; };
+		CA7A00000000000000000001 /* TatamiTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000002 /* TatamiTexture.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		BACC00000000000000000002 /* BackgroundGameAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/BackgroundGameAnalysis.swift; sourceTree = SOURCE_ROOT; };
 		C0DE00000000000000000080 /* AppIcons.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = AppIcons.xcassets; sourceTree = "<group>"; };
 		C0DE00000000000000000042 /* LocalScoringPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoringPanel.swift; sourceTree = "<group>"; };
 		C0DE00000000000000000040 /* LocalScoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalScoring.swift; sourceTree = "<group>"; };
@@ -181,7 +184,7 @@
 		55EEB4D52EFFE34000030E2A /* go_lid_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = go_lid_2.png; sourceTree = "<group>"; };
 		55EEB4D62EFFE34000030E2A /* stone_black.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_black.png; sourceTree = "<group>"; };
 		55EEB4D72EFFE34000030E2A /* stone_white.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_white.png; sourceTree = "<group>"; };
-		55EEB4D82EFFE34000030E2A /* tatami.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = tatami.jpg; sourceTree = "<group>"; };
+		55EEB4D82EFFE34000030E2A /* tatami-woven-v4-3008.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tatami-woven-v4-3008.png; sourceTree = "<group>"; };
 		55EEB54B2EFFEAC600030E2A /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		55EEB54C2EFFEAC600030E2A /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticTests.swift; sourceTree = "<group>"; };
@@ -226,6 +229,7 @@
 		C0DE10000000000000000000 /* ScreensaverConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverConfiguration.swift; sourceTree = "<group>"; };
 		C0DE10000000000000000001 /* ScreensaverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverManager.swift; sourceTree = "<group>"; };
 		C0DE10000000000000000002 /* ScreensaverSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverSettingsView.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000002 /* TatamiTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TatamiTexture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -322,7 +326,7 @@
 				55EEB4D52EFFE34000030E2A /* go_lid_2.png */,
 				55EEB4D62EFFE34000030E2A /* stone_black.png */,
 				55EEB4D72EFFE34000030E2A /* stone_white.png */,
-				55EEB4D82EFFE34000030E2A /* tatami.jpg */,
+				55EEB4D82EFFE34000030E2A /* tatami-woven-v4-3008.png */,
 				5577B04A2F1F06C40031F12B /* Audio */,
 			);
 			path = Assets;
@@ -334,6 +338,7 @@
 				C0DE10000000000000000000 /* ScreensaverConfiguration.swift */,
 				55EEB5A42F0118D400030E2A /* SGFPlayerClean.entitlements */,
 				55EEB54B2EFFEAC600030E2A /* AppModel.swift */,
+				CA7A00000000000000000002 /* TatamiTexture.swift */,
 				55EEB54C2EFFEAC600030E2A /* AppSettings.swift */,
 				55EEB54E2EFFEAC600030E2A /* DiagnosticTests.swift */,
 				55EEB54F2EFFEAC600030E2A /* GameSettings.swift */,
@@ -363,6 +368,7 @@
 				C0DE00000000000000000003 /* OGSURLSessionSocket.swift */,
 				C0DE00000000000000000001 /* OGSConnectionController.swift */,
 				EE8448639E01F803E00A0F2B /* KataGoEngine.swift */,
+				BACC00000000000000000002 /* BackgroundGameAnalysis.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -533,7 +539,7 @@
 				5577B0782F1F19B00031F12B /* lost_resignation.aiff in Resources */,
 				5577B0792F1F19B00031F12B /* lost_timeout.aiff in Resources */,
 				5577B07A2F1F19B00031F12B /* won_timeout.aiff in Resources */,
-				55EEB5402EFFE34000030E2A /* tatami.jpg in Resources */,
+				55EEB5402EFFE34000030E2A /* tatami-woven-v4-3008.png in Resources */,
 				A9F040FFBF3A3C4AD2071882 /* analysis.cfg in Resources */,
 				1DE44E609B6DA6E58604EA7B /* kata1-b18.bin.gz in Resources */,
 			);
@@ -606,10 +612,12 @@
 				55EEB5992EFFEAC600030E2A /* StoneJitter.swift in Sources */,
 				55EEB59A2EFFEAC600030E2A /* BoardViewModel.swift in Sources */,
 				55EEB59B2EFFEAC600030E2A /* SupportingViews.swift in Sources */,
+				CA7A00000000000000000001 /* TatamiTexture.swift in Sources */,
 				55EEB59C2EFFEAC600030E2A /* ContentView.swift in Sources */,
 				55EEB59D2EFFEAC600030E2A /* ContentView2D.swift in Sources */,
 				59C642C493786897ADB99BA0 /* AIModels.swift in Sources */,
 				3DAC4D66B1CBF8B7A90F4FD3 /* KataGoEngine.swift in Sources */,
+				BACC00000000000000000001 /* BackgroundGameAnalysis.swift in Sources */,
 				BB0A41E1BB261FCBDF8DA7F5 /* AITopMovesOverlay.swift in Sources */,
 				1A854BADA457198CB0A17A14 /* WinRateGraphView.swift in Sources */,
 			);

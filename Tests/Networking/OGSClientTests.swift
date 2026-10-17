@@ -298,6 +298,21 @@ final class OGSClientTests: XCTestCase {
         XCTAssertFalse(client.isSearchingForGame, "The accepted game ID is ready; do not wait for another notification")
     }
 
+    func testAcceptPreservesServerRejectionReasonAndStatus() {
+        for status in [403, 404] {
+            ClientHTTPFixture.handler = { $0.respond(status: status, body: #"{"detail":"Challenge rank restriction"}"#) }
+            let done = expectation(description: "Rejection explained")
+            client.acceptChallenge(challengeID: 7) { id, error in
+                XCTAssertNil(id)
+                XCTAssertEqual((error as? OGSHTTPError)?.statusCode, status)
+                XCTAssertEqual(error?.localizedDescription, "Challenge rank restriction")
+                done.fulfill()
+            }
+            wait(for: [done], timeout: 3)
+            XCTAssertFalse(client.isSearchingForGame)
+        }
+    }
+
     func testFailedCreateReleasesBusyFlagWithoutStartingKeepalive() {
         connect()
         for (status, body) in [(500, #"{"id":99}"#), (200, "invalid"), (200, #"{"detail":"declined"}"#)] {

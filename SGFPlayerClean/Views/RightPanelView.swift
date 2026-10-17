@@ -43,6 +43,9 @@ struct AppModeControls: View {
                 }
                 #endif
             }
+            if app.mode == .review, let status = app.backgroundReviewStatus {
+                Text(status).font(.caption).foregroundColor(.secondary)
+            }
             if app.aiAnalysisEnabled, let reason = app.aiUnavailableReason {
                 Text(reason).font(.caption).foregroundColor(.secondary)
             }
@@ -242,7 +245,7 @@ struct LocalGameMetadataView: View {
                 }
             }
             
-            if boardVM.aiAnalysisProgress > 0.0 && boardVM.aiAnalysisProgress < 1.0 {
+            if boardVM.isAIAllowed?() == true && boardVM.usesAdaptiveAnalysis?() != true && boardVM.aiAnalysisProgress > 0.0 && boardVM.aiAnalysisProgress < 1.0 {
                 ProgressView(value: boardVM.aiAnalysisProgress, total: 1.0)
                     .progressViewStyle(.linear)
                     .tint(.blue)

@@ -34,6 +34,7 @@ let package = Package(
                 sources: [
                     "Services/Networking",
                     "Services/KataGoEngine.swift",
+                    "Services/BackgroundGameAnalysis.swift",
                     "Models/AIModels.swift",
                     "Models/ScreensaverConfiguration.swift",
                     "Models/SceneManager3D.swift",

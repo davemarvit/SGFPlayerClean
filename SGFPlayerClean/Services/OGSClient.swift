@@ -676,6 +676,13 @@ class OGSClient: NSObject, ObservableObject {
                     guard let response = response as? HTTPURLResponse, let data else {
                         throw OGSHTTPError.invalidResponse
                     }
+                    if !(200..<300).contains(response.statusCode),
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let reason = (json["detail"] as? String) ?? (json["error"] as? String) ?? (json["message"] as? String),
+                       !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        // Preserve a server explanation without displaying raw HTML/error bodies.
+                        throw OGSHTTPError.rejection(response.statusCode, String(reason.prefix(500)))
+                    }
                     let body = try OGSHTTPResponse(data: data, response: response).validatedData()
                     guard let json = try JSONSerialization.jsonObject(with: body) as? [String: Any] else {
                         throw OGSHTTPError.invalidJSON

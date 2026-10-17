@@ -4,6 +4,34 @@ Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.
 
+## Quiet review after playing — October 17, 2026
+
+Local and online games now prepare an AI review in the background. All evaluations,
+hints, hover continuations and mistake navigation remain hidden until the result is
+final. Confirming a local score or receiving an online final result opens the entire
+game in Review automatically, retaining its analysis, player names and result. Online
+phase-only completion fetches the final history before leaving the game room. Scoring,
+resuming play, disconnects and observed games do not trigger an early reveal.
+
+Settings includes **Analyze quietly during play** and **Pause background analysis on
+battery**, both enabled by default. macOS Low Power Mode, elevated thermal state,
+memory pressure, high CPU usage and delayed interface callbacks pause automatic
+analysis. Battery saving prevents even loading the AI model until work is allowed.
+Disabling realtime analysis still opens Review after the game; cached results remain
+readable while automatic computation is paused.
+
+The adaptive worker covers positions before progressively deepening them beyond the
+old 500-visit ceiling. It submits one search at a time, limits searches to 0.5–12 seconds,
+and rests for at least the search duration (three times as long under moderate load).
+KataGo runs at background priority with one search thread and a small inference batch.
+Actual search termination, stale-response fencing and deeper-result retention protect
+against resource pressure, mode changes, undo, failed searches and interrupted upgrades.
+These are conservative resource limits, not a guarantee of zero performance impact.
+
+Validation fixtures: `Tests/Networking/KataGoEngineTests.swift` and
+`Tests/MainRelease/BackgroundReview.swift`; the latter exercises the compiled Release
+app with fake transports and an isolated analysis engine/cache.
+
 ## Current working copy
 
 Keep `/Users/Dave/SGFPlayerClean` as the single active source checkout, on `main`.
@@ -17,6 +45,31 @@ a Git bundle preserving all local branches are under
 `~/Documents/SGF PLayer/Source Archives`. Previous application/rollback backups stay
 under `~/Documents/SGF PLayer/Main App Update`. None of those archives is required
 to build or run the current app. See `Documentation/Source-cleanup-2026-10-16.md`.
+
+## Lobby filtering and acceptance — October 16, 2026
+
+Lobby speed filtering recognizes both OGS speed-tag locations. Its fallback now
+matches [OGS's classification](https://github.com/online-go/online-go.com/blob/main/src/components/TimeControl/util.ts):
+under 10 seconds per move is Blitz, 10 through 3600 is Live, and zero (untimed)
+or above 3600 is Correspondence. Unknown tags fall back to the time estimate.
+
+Checking Ineligible reveals rank-restricted challenges with a disabled, red-outlined
+LOCKED button and the required rank. Eligible challenges retain green ACCEPT;
+your own challenges retain yellow CANCEL. Acceptance shows progress, prevents
+duplicate clicks, preserves the board on failure, and presents an alert naming
+the signed-in account and OGS's rejection reason when supplied. A forbidden
+response does not remove the challenge; a confirmed missing challenge does.
+
+The reported CHJ listing was revealed by Ineligible, and its acceptance attempts
+received HTTP 403. The browser and app were signed into different accounts, so
+this was not evidence that the speed bug caused that particular disappearance.
+Its old rejection body was not retained; the precise server reason is unknown.
+The CHJ clock used in regression tests is reconstructed, not a captured payload.
+
+Validation: 282 unit tests plus the network-denied Modes and LobbyControls probes
+passed against the signed Release build. The probes check all five speed filters,
+visible rank restrictions, actual LOCKED/ACCEPT clicks, duplicate-click suppression,
+and the rejection alert. No live challenge was accepted during verification.
 
 ## Main app update — October 15, 2026
 

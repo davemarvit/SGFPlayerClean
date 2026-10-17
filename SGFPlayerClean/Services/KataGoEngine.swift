@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CryptoKit
+import Darwin
 
 /// State and published values are owned by the main queue. Pipe and cache I/O are serialized separately.
 class KataGoEngine: ObservableObject {
@@ -124,6 +125,8 @@ class KataGoEngine: ObservableObject {
         runningEngineIdentity = identity
         analysisEngineIdentity = identity
         let p = Process()
+        // Analysis is always subordinate to interactive apps, including other apps.
+        p.qualityOfService = .background
         p.executableURL = executable
         // Tests supply a temporary cache root; no application cache or working model is touched.
         let work = cacheDirectory.appendingPathComponent("KataGoWork", isDirectory: true)
@@ -134,10 +137,11 @@ class KataGoEngine: ObservableObject {
         if let config = Bundle.main.path(forResource: "analysis", ofType: "cfg") {
             p.arguments! += ["-config", config]
         }
+        var overrides = "numSearchThreads=1,numAnalysisThreads=1,nnMaxBatchSize=4"
         #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
-        // KataGo also writes tuning data outside our analysis cache by default.
-        p.arguments! += ["-override-config", "homeDataDir=\(work.appendingPathComponent("EngineData").path)"]
+        overrides += ",homeDataDir=\(work.appendingPathComponent("EngineData").path)"
         #endif
+        p.arguments! += ["-override-config", overrides]
         let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
         p.standardInput = stdin; p.standardOutput = stdout; p.standardError = stderr
         processGeneration += 1
@@ -153,6 +157,7 @@ class KataGoEngine: ObservableObject {
         }
         do {
             try p.run()
+            setpriority(PRIO_PROCESS, UInt32(p.processIdentifier), 15)
             process = p
             input = stdin.fileHandleForWriting
             // The child has its own descriptors. Close the parent's unused pipe ends.
@@ -215,6 +220,7 @@ class KataGoEngine: ObservableObject {
     }
 
     func invalidateAnalysis() {
+        terminatePositionRequests()
         cancelHoverAnalysis()
         hoverContinuations.removeAll()
         analysisWarning = nil
@@ -234,8 +240,31 @@ class KataGoEngine: ObservableObject {
     func pauseAnalysis() {
         cancelHoverAnalysis()
         saveAnalysisCache(for: currentGameId)
+        terminatePositionRequests()
         requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
         requests.removeAll(); pendingVisits.removeAll()
+    }
+
+    private func terminatePositionRequests() {
+        for id in requests.values { sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id]) }
+    }
+
+    /// An undo or replacement invalidates every descendant, even before it is searched again.
+    func discardAnalysis(from turn: Int) {
+        for key in Array(requests.keys) where key >= turn {
+            if let id = requests.removeValue(forKey: key) {
+                sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id])
+            }
+            requestTimeouts.removeValue(forKey: key)?.cancel()
+            pendingVisits.removeValue(forKey: key)
+        }
+        currentAnalysisData = currentAnalysisData.filter { $0.key < turn }
+        fingerprints = fingerprints.filter { $0.key < turn }
+        failedPositions.removeAll()
+    }
+
+    func hasFailedAnalysis(at turn: Int) -> Bool {
+        fingerprints[turn].map { failedPositions.contains($0) } ?? false
     }
 
     /// Synchronous barrier used on normal quit and engine replacement: atomic writes
@@ -389,7 +418,8 @@ class KataGoEngine: ObservableObject {
     /// One unique ID per request: results can arrive out of order, even at the same turn.
     func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
                      moves: [(color: String, x: Int, y: Int)], size: Int = 19,
-                     komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil) {
+                     komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil,
+                     backgroundTimeLimit: Double? = nil) {
         dispatchPrecondition(condition: .onQueue(.main))
         let settings = settings ?? GameAnalysisSettings(rules: "chinese", komi: komi)
         guard id == currentGameId else { return }
@@ -435,6 +465,11 @@ class KataGoEngine: ObservableObject {
         }
         query["id"] = requestID
         query["maxVisits"] = maxVisits
+        if let seconds = backgroundTimeLimit {
+            query["overrideSettings"] = ["maxTime": max(0.1, min(12, seconds))]
+            query["priority"] = -100
+            query["reportDuringSearchEvery"] = 1.0
+        }
         sendQuery(query)
     }
 
@@ -587,7 +622,10 @@ class KataGoEngine: ObservableObject {
             failRequest(turn: analysis.turnNumber, message: "KataGo returned an invalid analysis result.")
             return
         }
-        currentAnalysisData[analysis.turnNumber] = analysis
+        // A time-limited upgrade or interrupted search must never replace deeper work.
+        if root.visits >= (currentAnalysisData[analysis.turnNumber]?.rootInfo?.visits ?? 0) {
+            currentAnalysisData[analysis.turnNumber] = analysis
+        }
         if analysis.isDuringSearch != true {
             requestTimeouts.removeValue(forKey: analysis.turnNumber)?.cancel()
             requests.removeValue(forKey: analysis.turnNumber)
@@ -598,9 +636,11 @@ class KataGoEngine: ObservableObject {
 
     private func failRequest(turn: Int, message: String) {
         requestTimeouts.removeValue(forKey: turn)?.cancel()
-        requests.removeValue(forKey: turn); pendingVisits.removeValue(forKey: turn)
+        if let id = requests.removeValue(forKey: turn) {
+            sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id])
+        }
+        pendingVisits.removeValue(forKey: turn)
         if let fingerprint = fingerprints[turn] { failedPositions.insert(fingerprint) }
-        currentAnalysisData.removeValue(forKey: turn)
         analysisError = message
     }
 

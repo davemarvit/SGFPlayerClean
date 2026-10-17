@@ -39,6 +39,8 @@ final class AppModel: ObservableObject {
     @Published var ogsGame: OGSGameViewModel?
     @Published var isOnlineMode: Bool = false
     @Published var isCreatingChallenge: Bool = false
+    @Published var challengeAcceptanceError: String?
+    @Published private(set) var isAcceptingChallenge = false
     @Published var showDebugDashboard: Bool = false
     @Published var boardVM: BoardViewModel?
     @Published var isTypingInChat: Bool = false // Global flag to disable shortcuts
@@ -48,7 +50,8 @@ final class AppModel: ObservableObject {
     @Published var aiAnalysisEnabled = false { didSet { refreshAIPolicy() } }
     var aiUnavailableReason: String? {
         if isChangingMode { return "Changing board…" }
-        if mode == .playOnline { return "AI is unavailable in Play Online." }
+        if mode == .playOnline || mode == .localPlay { return "AI results are hidden until the game finishes." }
+        if unfinishedLocalAnalysisIDs.contains(where: { analysisEngine.currentGameId == $0 || analysisEngine.currentGameId.hasPrefix($0 + "#") }) { return "Finish the local game to reveal its AI review." }
         if ogsClient.hasOngoingAccountGame { return "AI is unavailable while you have an ongoing online game." }
         if boardVM?.localScoringVisible == true { return "Resume play or close scoring to use AI." }
         if mode == .observe && (ogsClient.activeGameID == nil || boardVM?.isOnlineContext != true ||
@@ -58,10 +61,31 @@ final class AppModel: ObservableObject {
         return nil
     }
     var isAIAvailable: Bool { aiAnalysisEnabled && aiUnavailableReason == nil }
+    @Published private(set) var backgroundReviewStatus: String?
+    @Published private(set) var completedGameResult: String?
+    private let backgroundAnalysis: BackgroundGameAnalysis
+    private let analysisEngine: KataGoEngine
+    private let analysisResources = AnalysisResourceMonitor()
+    private var analysisTimer: Timer?
+    private var lastAnalysisTick: TimeInterval?
+    private var armedOnlineReview: Int?
+    private var terminalSnapshotID: Int?
+    private var requestedTerminalSnapshotID: Int?
+    private var reviewedOnlineGames = Set<Int>()
+    private var unfinishedLocalAnalysisIDs = Set<String>()
+    private var completedAnalysisIDs = Set<String>()
+    private var completionResults: [String: String] = [:]
+
+    var usesAdaptiveAnalysis: Bool {
+        mode == .playOnline || mode == .localPlay || completedAnalysisIDs.contains(analysisEngine.currentGameId)
+    }
     private var lastAIAvailability = false
     private var isChangingMode = false
     private func refreshAIPolicy(restartAnalysis: Bool = false) {
         let available = isAIAvailable
+        if available && !usesAdaptiveAnalysis && !analysisEngine.isEngineRunning && analysisEngine.engineStartupError == nil {
+            analysisEngine.start()
+        }
         guard available != lastAIAvailability else {
             if available && restartAnalysis {
                 boardVM?.syncState()
@@ -112,7 +136,10 @@ final class AppModel: ObservableObject {
     private var captureMultiPlayer: AVAudioPlayer?
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
-    init(ogsClient injectedClient: OGSClient? = nil, defaultMode: AppMode = .localPlay) {
+    init(ogsClient injectedClient: OGSClient? = nil, defaultMode: AppMode = .localPlay,
+         analysisEngine: KataGoEngine = .shared) {
+        self.analysisEngine = analysisEngine
+        self.backgroundAnalysis = BackgroundGameAnalysis(engine: analysisEngine)
         let savedMode = UserDefaults.standard.string(forKey: "lastAppMode").flatMap(AppMode.init(rawValue:))
         #if SGF_OFFLINE_REVIEW
         // The offline build must never restore an online workspace.
@@ -132,10 +159,11 @@ final class AppModel: ObservableObject {
         let bVM = BoardViewModel(player: player, ogsClient: ogsClient, isAIAllowed: { [weak self] in
             // Must capture weakly and dynamically evaluate
             return self?.isAIAvailable == true
-        })
+        }, analysisEngine: analysisEngine)
         bVM.canNavigateReview = { [weak self] in self?.mode == .review }
         bVM.canPreviewAnalysis = { [weak self] in self?.mode == .review && self?.isAIAvailable == true }
         bVM.canEditLocally = { [weak self] in self?.mode == .localPlay }
+        bVM.usesAdaptiveAnalysis = { [weak self] in self?.usesAdaptiveAnalysis == true }
         self.boardVM = bVM
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
         
@@ -147,11 +175,8 @@ final class AppModel: ObservableObject {
         // Initialize Audio
         setupAudio()
         
-        // Defer process launch until initialization finishes. Engine state belongs to the main queue;
-        // model loading and analysis run in the child process, and pipe I/O uses its own queues.
-        DispatchQueue.main.async {
-            KataGoEngine.shared.start()
-        }
+        // Launch analysis only when work is permitted. An unplugged laptop with
+        // battery saving enabled need not load the neural network just to play.
         
         // Auto-load previously opened local games directory
         if let bookmarkData = UserDefaults.standard.data(forKey: "folderURLBookmark") {
@@ -182,7 +207,10 @@ final class AppModel: ObservableObject {
 
         ogsClient.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
-            DispatchQueue.main.async { [weak self] in self?.refreshAIPolicy() }
+            DispatchQueue.main.async { [weak self] in
+                self?.refreshAIPolicy()
+                self?.updatePlayedGameAnalysis()
+            }
         }.store(in: &cancellables)
         
         setupAudio()
@@ -190,7 +218,7 @@ final class AppModel: ObservableObject {
         // willTerminate is synchronous on the main thread. Do not defer the flush
         // to a queue that may never run after the app exits.
         NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)
-            .sink { _ in KataGoEngine.shared.stop() }.store(in: &cancellables)
+            .sink { _ in analysisEngine.stop() }.store(in: &cancellables)
         
         // CONDITION: Only connect if we restore Online Mode
         if wasOnline {
@@ -233,7 +261,17 @@ final class AppModel: ObservableObject {
                     if silent { player.stop(); player.currentTime = 0 }
                 }
             }.store(in: &cancellables)
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.updatePlayedGameAnalysis()
+        }
+        timer.tolerance = 0.1
+        analysisTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
+
+    deinit { analysisTimer?.invalidate() }
+
+
     
     // Defer network operations until View is active
     func handleStartup() {
@@ -250,6 +288,7 @@ final class AppModel: ObservableObject {
     private func startInstantGame() {
         self.boardVM?.resetToEmpty()
         self.player.reset()
+        beginLocalAnalysisSession()
         // Create Dummy Wrapper for UI
         var newGame = SGFGame()
         newGame.boardSize = 19
@@ -267,13 +306,21 @@ final class AppModel: ObservableObject {
             if let id = ogsClient.activeGameID { onlineBoards[previous] = id }
         } else {
             savedBoards[previous] = SavedBoard(snapshot: player.createSnapshot(), selection: selection,
-                                             analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState())
+                                             analysisID: analysisEngine.currentGameId, viewState: boardVM?.localViewState())
         }
     }
 
     private func changeMode(from previous: AppMode) {
+        if previous == .localPlay { updateLocalReviewEligibility() }
         isChangingMode = true
-        defer { isChangingMode = false; refreshAIPolicy(restartAnalysis: true) }
+        backgroundAnalysis.stop()
+        backgroundReviewStatus = nil
+        completedGameResult = nil
+        defer {
+            if mode == .localPlay && !analysisEngine.currentGameId.hasPrefix("played-local-") { beginLocalAnalysisSession() }
+            isChangingMode = false
+            refreshAIPolicy(restartAnalysis: true)
+        }
         player.pause()
         saveCurrentBoard(for: previous)
         if previous.usesOGS { ogsClient.leaveViewedGame() }
@@ -292,7 +339,8 @@ final class AppModel: ObservableObject {
         } else if let saved = savedBoards[mode] {
             selection = saved.selection
             player.restoreSnapshot(saved.snapshot)
-            _ = KataGoEngine.shared.loadAnalysisCache(for: saved.analysisID, game: player)
+            _ = analysisEngine.loadAnalysisCache(for: saved.analysisID, game: player)
+            completedGameResult = completionResults[saved.analysisID]
             if let state = saved.viewState { boardVM?.restoreLocalViewState(state) }
             if mode == .review { boardVM?.prepareReviewTreeFromCurrentPosition(info: selection?.game.info) }
             boardVM?.syncState()
@@ -329,9 +377,123 @@ final class AppModel: ObservableObject {
 
     func copyCurrentBoard(to destination: AppMode) {
         guard !destination.usesOGS, destination != mode else { return }
+        if mode == .localPlay { updateLocalReviewEligibility() }
         savedBoards[destination] = SavedBoard(snapshot: player.createSnapshot(), selection: selection,
-                                              analysisID: KataGoEngine.shared.currentGameId, viewState: boardVM?.localViewState(includeTree: false))
+                                              analysisID: analysisEngine.currentGameId, viewState: boardVM?.localViewState(includeTree: false))
         mode = destination
+    }
+
+    private func beginLocalAnalysisSession() {
+        let id = "played-local-" + UUID().uuidString
+        analysisEngine.currentGameId = id
+        unfinishedLocalAnalysisIDs.insert(id)
+    }
+
+    private func updateLocalReviewEligibility() {
+        if analysisEngine.currentGameId == "local" { beginLocalAnalysisSession() }
+        guard boardVM?.localScoring?.isFinal != true || boardVM?.localScoring?.index != player.maxIndex else { return }
+        let id = analysisEngine.currentGameId
+        unfinishedLocalAnalysisIDs.insert(id)
+        completedAnalysisIDs.remove(id)
+        completionResults.removeValue(forKey: id)
+        completedGameResult = nil
+    }
+
+    /// Called after accepted server state and by the resource timer. Never infer a
+    /// finished online game from passes, a disconnect, or a local clock estimate.
+    func updatePlayedGameAnalysis(resources: AnalysisResources? = nil, now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+        guard !isChangingMode, let vm = boardVM else { return }
+        let delayed = lastAnalysisTick.map { now - $0 > 1.5 } ?? false
+        lastAnalysisTick = now
+        let ai = analysisEngine
+        if mode == .localPlay { updateLocalReviewEligibility() }
+        if mode == .playOnline, let id = ogsClient.activeGameID,
+           currentActiveInternalGameID == id, vm.isOnlineContext, ogsClient.isAccountGameParticipant {
+            if !ogsClient.isGameFinished {
+                armedOnlineReview = id
+                terminalSnapshotID = nil
+                requestedTerminalSnapshotID = nil
+            }
+            if ogsClient.isGameFinished, !ogsClient.isReconcilingMoves,
+               armedOnlineReview == id, !reviewedOnlineGames.contains(id) {
+                // A phase-only notification can precede the final history/result.
+                // Reconcile that snapshot before disconnecting from the game room.
+                if ogsClient.activeGameOutcome == nil && terminalSnapshotID != id {
+                    if requestedTerminalSnapshotID != id {
+                        requestedTerminalSnapshotID = id
+                        ogsClient.requestMoveResync()
+                    }
+                    return
+                }
+                reviewedOnlineGames.insert(id)
+                armedOnlineReview = nil
+                ogsClient.myActiveGames.remove(id)
+                // Preserve player names and final result before leaving the online session.
+                var game = SGFGame()
+                game.info.playerBlack = ogsClient.blackPlayerName
+                game.info.playerWhite = ogsClient.whitePlayerName
+                game.info.event = "Online game"
+                game.info.result = onlineSGFResult
+                game.info.date = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+                selection = SGFGameWrapper(url: URL(fileURLWithPath: "/played-games/ogs-\(id).sgf"), game: game)
+                finishPlayedGame(result: ogsClient.activeGameOutcome ?? "Game finished")
+            }
+        } else if mode == .localPlay, !completedAnalysisIDs.contains(ai.currentGameId),
+                  let score = vm.localScoring, score.isFinal,
+                  vm.localScoringVisible, let result = score.result {
+            var game = selection?.game ?? SGFGame()
+            let margin = result.black.total - result.white.total
+            game.info.result = margin == 0 ? "0" : (margin > 0 ? "B+" : "W+") + String(abs(margin))
+            selection = SGFGameWrapper(url: selection?.url ?? URL(fileURLWithPath: "/played-games/Local.sgf"), game: game)
+            finishPlayedGame(result: result.winnerDescription(blackName: selection?.game.info.playerBlack,
+                                                             whiteName: selection?.game.info.playerWhite))
+        }
+        let playingOnline = mode == .playOnline && vm.isOnlineContext &&
+            currentActiveInternalGameID == ogsClient.activeGameID && ogsClient.isAccountGameParticipant && !ogsClient.isGameFinished
+        let playing = playingOnline || mode == .localPlay
+        let reviewing = mode == .review && completedAnalysisIDs.contains(ai.currentGameId) && isAIAvailable
+        let shouldCompute = (playing && AppSettings.shared.analyzeDuringPlay) || reviewing
+        guard shouldCompute else {
+            backgroundAnalysis.stop()
+            if backgroundReviewStatus != nil { backgroundReviewStatus = nil }
+            return
+        }
+        backgroundAnalysis.tick(player: player, resources: resources ?? analysisResources.sample(),
+            pauseOnBattery: AppSettings.shared.pauseAnalysisOnBattery, now: now, interfaceDelayed: delayed)
+        let status = reviewing ? backgroundAnalysis.status : nil
+        if backgroundReviewStatus != status { backgroundReviewStatus = status }
+    }
+
+    private var onlineSGFResult: String? {
+        guard let outcome = ogsClient.scoringOutcome?.lowercased() else { return nil }
+        if ogsClient.activeGameResult?.title == "Draw" || ["draw", "jigo"].contains(outcome) { return "0" }
+        if outcome.hasPrefix("b+") || outcome.hasPrefix("w+") { return outcome.uppercased() }
+        guard let result = ogsClient.activeGameResult, let mine = ogsClient.playerColor else { return nil }
+        let winner = result.isMe ? mine : mine.opponent
+        let suffix: String
+        if outcome.contains("resign") { suffix = "R" }
+        else if outcome.contains("timeout") || outcome.contains("time out") { suffix = "T" }
+        else if let margin = Double(outcome.replacingOccurrences(of: " points", with: "").replacingOccurrences(of: " point", with: "")) { suffix = String(margin) }
+        else { return nil }
+        return (winner == .black ? "B+" : "W+") + suffix
+    }
+
+    private func finishPlayedGame(result: String) {
+        let id = analysisEngine.currentGameId
+        backgroundAnalysis.stop()
+        unfinishedLocalAnalysisIDs.remove(id)
+        completedAnalysisIDs.insert(id)
+        completionResults[id] = result
+        player.pause()
+        // At game end Review opens at the final position even if the player was
+        // looking back at an earlier move. Keep the whole game, including passes.
+        player.seek(to: player.maxIndex)
+        // This game is already selected; leave the library closed when Review opens.
+        showRightPanel = false
+        copyCurrentBoard(to: .review)
+        boardVM?.clearScoringForReview()
+        completedGameResult = result
+        aiAnalysisEnabled = true
     }
 
     func showOnlineBrowser() {
@@ -433,29 +595,33 @@ final class AppModel: ObservableObject {
     }
     
     func joinOnlineGame(id: Int) {
-        guard mode == .playOnline else { return }
-        // DEBUG TRACE: Who is calling joinOnlineGame?
-        let trace = Thread.callStackSymbols.joined(separator: "\n")
-        // NSLog("[OGS-CS] 🚀 joinOnlineGame CALLED for \(id). Stack:\n\(trace)")
-
-        self.player.clear()
-        self.boardVM?.resetToEmpty()
-        self.currentActiveInternalGameID = nil
-        self.isOnlineMode = false
+        guard mode == .playOnline, !isAcceptingChallenge else { return }
+        isAcceptingChallenge = true
+        challengeAcceptanceError = nil
+        ogsClient.lastError = nil
+        let account = ogsClient.username ?? "this account"
         
         // Verified: Helper methods restored in Client v16.305
         self.ogsClient.acceptChallenge(challengeID: id) { [weak self] (newGameID: Int?, error: Error?) in
             guard let self = self else { return }
+            self.isAcceptingChallenge = false
             
             if let gid = newGameID {
                 self.ogsClient.myActiveGames.insert(gid)
                 if self.mode == .playOnline { self.resumeOnlineGame(id: gid) }
             } else {
-                self.ogsClient.lastError = error?.localizedDescription ?? "Could not accept this challenge."
+                let message: String
+                if case OGSHTTPError.status(403)? = error {
+                    message = "OGS did not allow \(account) to accept this challenge. Check the challenge's rank restrictions and that you are using the intended account."
+                } else {
+                    message = "Could not accept as \(account): \(error?.localizedDescription ?? "No game was returned by OGS.")"
+                }
+                self.ogsClient.lastError = message
+                if self.mode == .playOnline { self.challengeAcceptanceError = message }
                 NSLog("[OGS-UI] ❌ Accept Failed for ID \(id): \(error?.localizedDescription ?? "Unknown")")
                 // Only a missing challenge justifies removing it. Timeouts, cancellation,
                 // and authentication failures do not establish that it disappeared.
-                if let error, case OGSHTTPError.status(404) = error {
+                if (error as? OGSHTTPError)?.statusCode == 404 {
                     self.ogsClient.forceRemoveChallenge(id: id)
                 }
             }
@@ -530,6 +696,7 @@ final class AppModel: ObservableObject {
         onlineBoards[mode] = id
         isOnlineMode = true
         ogsClient.applyAcceptedGameData(data)
+        if ogsClient.isGameFinished { terminalSnapshotID = id }
         if ogsClient.isAccountGameParticipant && !ogsClient.isGameFinished { ogsClient.myActiveGames.insert(id) }
         ogsClient.isRequestingUndo = false
         ogsClient.isReconcilingMoves = false
@@ -538,6 +705,7 @@ final class AppModel: ObservableObject {
         // The sidebar/lids follow the viewed board, not scoring prisoners or a later clock packet.
         boardVM.finishOnlineGameLoad(gameID: id)
         refreshAIPolicy(restartAnalysis: true)
+        updatePlayedGameAnalysis()
         objectWillChange.send()
     }
 
@@ -634,6 +802,9 @@ final class AppModel: ObservableObject {
 
     func selectGame(_ g: SGFGameWrapper) { 
         mode = .review
+        completedGameResult = nil
+        backgroundReviewStatus = nil
+        backgroundAnalysis.stop()
         selection = g
         boardVM?.loadGame(g) 
         // Persist as last played

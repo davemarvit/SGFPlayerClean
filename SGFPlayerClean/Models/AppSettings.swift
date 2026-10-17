@@ -100,6 +100,13 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(panelDiffusiveness, forKey: "panelDiffusiveness") }
     }
     
+    @Published var analyzeDuringPlay: Bool {
+        didSet { UserDefaults.standard.set(analyzeDuringPlay, forKey: "analyzeDuringPlay") }
+    }
+    @Published var pauseAnalysisOnBattery: Bool {
+        didSet { UserDefaults.standard.set(pauseAnalysisOnBattery, forKey: "pauseAnalysisOnBattery") }
+    }
+
     // MARK: - AI Settings
     @Published var customKataGoPath: String {
         didSet { UserDefaults.standard.set(customKataGoPath, forKey: "customKataGoPath") }
@@ -165,6 +172,8 @@ class AppSettings: ObservableObject {
         self.camera3DPanX = UserDefaults.standard.object(forKey: "cam3D.panX") as? Double ?? 0.0
         self.camera3DPanY = UserDefaults.standard.object(forKey: "cam3D.panY") as? Double ?? 0.0
 
+        self.analyzeDuringPlay = UserDefaults.standard.object(forKey: "analyzeDuringPlay") as? Bool ?? true
+        self.pauseAnalysisOnBattery = UserDefaults.standard.object(forKey: "pauseAnalysisOnBattery") as? Bool ?? true
         // AI System Defaults
         self.customKataGoPath = UserDefaults.standard.string(forKey: "customKataGoPath") ?? "/opt/homebrew/bin/katago"
         self.customAIModelPath = UserDefaults.standard.string(forKey: "customAIModelPath") ?? ""

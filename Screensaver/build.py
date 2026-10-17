@@ -14,10 +14,10 @@ if identity == 'auto':
     identities=re.findall(r'"(Developer ID Application: [^"]+)"',found.stdout)
     identity=identities[0] if identities else '-'
 saver=out/'Quiet Go.saver'; host=out/'SGF Screensaver Preview.app'
-core=[root/'SGFPlayerClean/Models'/name for name in ['OGSModels.swift','OGSScoringState.swift','SGFPlayerEngine.swift','ScreensaverConfiguration.swift','StoneJitter.swift']]
+core=[root/'SGFPlayerClean/Models'/name for name in ['OGSModels.swift','OGSScoringState.swift','SGFPlayerEngine.swift','ScreensaverConfiguration.swift','StoneJitter.swift','TatamiTexture.swift']]
 sources=[root/'Screensaver/Sources'/name for name in ['SaverPlaybackSettings.swift','SaverPlaylist.swift','SaverLayout.swift','QuietGoSaverView.swift']]
 preview=root/'Screensaver/Sources/PreviewHost.swift'
-assets=[root/'SGFPlayerClean/Assets'/name for name in ['board_kaya.jpg','tatami.jpg','stone_black.png','stone_white.png','go_lid_1.png','go_lid_2.png'] + [f'clam_{i:02d}.png' for i in range(1,6)]]
+assets=[root/'SGFPlayerClean/Assets'/name for name in ['board_kaya.jpg','tatami-woven-v4-3008.png','stone_black.png','stone_white.png','go_lid_1.png','go_lid_2.png'] + [f'clam_{i:02d}.png' for i in range(1,6)]]
 iconset=root/'SGFPlayerClean/Assets/AppIcons.xcassets/AppIcon.appiconset'
 icon_files=sorted(iconset.glob('*.png'))
 thumbnail_source=iconset/'icon_512x512@2x.png'

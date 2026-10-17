@@ -22,6 +22,9 @@ struct OGSBrowserView: View {
             if let error = app.ogsClient.lastError {
                 Text(error).font(.caption).foregroundColor(.orange).padding(8)
             }
+            if app.isAcceptingChallenge {
+                ProgressView("Waiting for OGS…").controlSize(.small).padding(8)
+            }
             Divider().background(Color.white.opacity(0.1))
             if filteredChallenges.isEmpty {
                 emptyState
@@ -30,6 +33,14 @@ struct OGSBrowserView: View {
             }
         }
         .sheet(isPresented: $isPresentingLogin) { OGSLoginView(isPresented: $isPresentingLogin) }
+        .alert("Could not accept challenge", isPresented: Binding(
+            get: { app.challengeAcceptanceError != nil },
+            set: { if !$0 { app.challengeAcceptanceError = nil } }
+        )) {
+            Button("OK", role: .cancel) { app.challengeAcceptanceError = nil }
+        } message: {
+            Text(app.challengeAcceptanceError ?? "")
+        }
         .onAppear { app.ogsClient.refreshChallengeLobby() }
         .onChange(of: app.ogsClient.isSocketAuthenticated) { ready in
             if ready { app.ogsClient.refreshChallengeLobby() }
@@ -102,10 +113,12 @@ struct OGSBrowserView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(filteredChallenges) { challenge in
-                    ChallengeRow(challenge: challenge, isMine: isChallengeMine(challenge)) {
+                    ChallengeRow(challenge: challenge, isMine: isChallengeMine(challenge),
+                                 ineligibilityReason: isChallengeMine(challenge) ? nil : challenge.rankRestriction(for: app.ogsClient.userRank)) {
                         if isChallengeMine(challenge) { app.ogsClient.cancelChallenge(challengeID: challenge.id) }
                         else { onJoin(challenge.id) }
                     }
+                    .disabled(app.isAcceptingChallenge)
                     Divider().background(Color.white.opacity(0.1))
                 }
             }
@@ -133,11 +146,7 @@ struct OGSBrowserView: View {
              if !sizeFilters.contains(cat) { return false }
             
             // Eligibility Check
-            if !showIneligible, let myRank = app.ogsClient.userRank {
-                let min = game.min_rank ?? -999
-                let max = game.max_rank ?? 999
-                if myRank < min || myRank > max { return false }
-            }
+            if !showIneligible, game.rankRestriction(for: app.ogsClient.userRank) != nil { return false }
             
             if selectedSpeed != .all {
                 let speed = game.speedCategory
@@ -179,19 +188,33 @@ struct OGSBrowserView: View {
 }
 
 struct ChallengeRow: View {
-    let challenge: OGSChallenge; let isMine: Bool; let onAction: () -> Void
+    let challenge: OGSChallenge; let isMine: Bool
+    var ineligibilityReason: String? = nil
+    let onAction: () -> Void
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Button(action: onAction) {
                 Text(isMine ? "CANCEL" : "ACCEPT")
+                    .opacity(ineligibilityReason == nil ? 1 : 0)
+                    .overlay {
+                        if ineligibilityReason != nil { Text("LOCKED").fixedSize() }
+                    }
                     .font(.system(size: 11, weight: .bold)) // Slightly increased
-                    .fixedSize() // Prevent truncation
+                    .fixedSize() // LOCKED uses the original ACCEPT button's width.
                     .padding(.horizontal, 4)
-                    .foregroundColor(isMine ? .black : .white)
+                    .foregroundColor(ineligibilityReason != nil ? .red : (isMine ? .black : .white))
             }
             .buttonStyle(.borderedProminent)
-            .tint(isMine ? .yellow : .green)
+            .tint(ineligibilityReason != nil ? Color.red.opacity(0.12) : (isMine ? .yellow : .green))
             .controlSize(.regular) // Use regular size for better layout
+            .disabled(ineligibilityReason != nil)
+            .overlay {
+                if ineligibilityReason != nil {
+                    RoundedRectangle(cornerRadius: 5).stroke(Color.red.opacity(0.65), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+            }
+            .help(ineligibilityReason ?? (isMine ? "Cancel your challenge" : "Accept this challenge"))
             
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -199,6 +222,9 @@ struct ChallengeRow: View {
                     Text(challenge.challenger?.username ?? "Unknown").font(.system(size: 13, weight: .medium)).foregroundColor(.white).lineLimit(1)
                 }
                 Text(challenge.timeControlDisplay).font(.system(size: 11)).foregroundColor(.white.opacity(0.6))
+                if let reason = ineligibilityReason {
+                    Text(reason).font(.caption2).foregroundColor(.orange)
+                }
             }
             
             Spacer()

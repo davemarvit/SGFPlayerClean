@@ -1,0 +1,37 @@
+Tatami v4 — sectional upres, 17 October 2026
+
+Final asset: tatami-woven-v4-3008.png
+Dimensions: 3008 x 3008 pixels, lossless PNG, 13,817,315 bytes.
+Source: preferred tatami-woven-v2.png (1254 x 1254); NOT the rejected v3 sharpened texture.
+Scale remains 96 cm square, approximately 14.9 mm per vertical segment; 28.35 segments span the board width.
+Output has 2.3987x the pixels per dimension and 5.7539x the total pixel count.
+
+The user explicitly requested upres in sections and stitching.
+Nine overlapping 514 x 514 source crops were independently reconstructed with the built-in image generator at 1254 x 1254 each.
+Source crop origins in each axis: 0, 370, 740. Adjacent crops overlap by 144 source pixels.
+All nine are spatially distinct sections of the original; no smaller tile is repeated to create apparent resolution.
+Each generated section was slightly downsampled into its final position. The final canvas is not a simple interpolation of the original.
+New fine details are AI-inferred material detail, not recovered photographic measurements.
+
+Stitching:
+Raised-cosine feathering over each overlap.
+The original image guides color and larger-scale shading; only the fine detail band from generated sections replaces the corresponding band.
+Detail separation uses a Gaussian radius of 2.2 output pixels. No unsharp-mask amplification or edge-contrast boost is applied.
+This avoids the generated sections' yellow color drift and preserves the original low-contrast olive/straw palette.
+No pixel channel clipping occurred. Mean RGB shifts are less than 0.001/255.
+All nine sections' best measured structural alignment is zero offset; smoothed source-scale correlation is 0.962–0.975.
+Measured dominant rib count: 64.446, essentially identical to the original 64.45.
+
+Repeat behavior:
+The app and screensaver retain mirrored repeats, with the same 96 cm tile and 192 cm mirrored pattern period.
+The new resolution does not change weave size or repeat frequency.
+Legacy v2, rejected v3, and all previous installed-version backups remain available.
+
+Artifacts and reproducibility:
+Main App Update/2026-10-17-Tatami-Sectional contains:
+sections.json; Sections/Input and Sections/Output; stitch_sections.py; stitch-report.json;
+the 3008px composite; native-rendering previews; build and rollback records.
+Retina comparison: Previews/retina-comparison.png, at the pixel scale of a 700-point board on a 2x display.
+
+Identical prompt used for each section:
+Use case: precise-object-edit. This 514x514 image is ONE OVERLAPPING CROP of a larger real-looking tatami material texture, not a whole mat. Upscale this exact crop to at least 1254x1254 pixels, preferably 1536x1536, by resolving fine NATURAL fiber detail. The final result must preserve the entire crop's exact boundaries, geometry, approximately 26.5 vertical weave divisions, strand positions, and all large-scale colors. No zoom, no reframe, no change of number or width of the vertical ribs. Adjacent independently processed crops will be stitched, so exact spatial alignment matters. The user rejected an artificially sharpened version: DO NOT increase overall contrast, darken crevices, outline ridges, add sharpening halos or edge enhancement. Keep the subdued diffuse softness of real straw under even light, but resolve delicate sub-fibers, faint longitudinal grooves on rush strands, and finely detailed organic surfaces WITHIN existing horizontal strands. Think higher-resolution photographic scan, NOT sharpen filter. Natural muted sage olive and straw, no dramatic highlights, no gritty speckles, no fake embossing. Every structure must remain in the same relative position as the supplied crop. Do not make this crop separately seamless; preserve crop edges because it will be stitched into a larger image. Output only the upscaled texture crop.

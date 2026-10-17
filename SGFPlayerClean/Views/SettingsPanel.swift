@@ -219,6 +219,10 @@ struct SettingsPanel: View {
     
     private var aiSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Toggle("Analyze quietly during play", isOn: $settings.analyzeDuringPlay)
+            Toggle("Pause background analysis on battery", isOn: $settings.pauseAnalysisOnBattery)
+            Text("Results stay hidden until the game ends. Background analysis pauses in Low Power Mode and when your Mac is busy or warm.")
+                .font(.caption).foregroundColor(.secondary)
             Label("AI Engine", systemImage: "cpu")
                 .font(.headline).foregroundColor(.white)
             

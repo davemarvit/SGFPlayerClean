@@ -96,6 +96,15 @@ final class SGFPlayer: ObservableObject {
     var capturesByBlack: Int { whiteStonesCaptured }
     var capturesByWhite: Int { blackStonesCaptured }
     
+    /// Final scoring may supply rules/komi that were unspecified when local play began.
+    /// Cache validation uses these confirmed settings before revealing the review.
+    func confirmAnalysisSettings(rules: String, komi text: String) {
+        guard let komi = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)),
+              komi.isFinite else { return }
+        analysisSettings.rules = rules
+        analysisSettings.komi = komi
+    }
+
     /// Generates the payload data required by the AI Engine for the current move index
     func getCurrentAIPayload() -> (initial: [(color: String, x: Int, y: Int)], moves: [(color: String, x: Int, y: Int)]) {
         return getAIPayload(at: currentIndex)

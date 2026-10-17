@@ -30,12 +30,20 @@ struct OGSHTTPResponse {
 
 enum OGSHTTPError: LocalizedError {
     case invalidResponse, invalidJSON, invalidPagination, status(Int)
+    case rejection(Int, String)
+    var statusCode: Int? {
+        switch self {
+        case .status(let code), .rejection(let code, _): return code
+        default: return nil
+        }
+    }
     var errorDescription: String? {
         switch self {
         case .invalidResponse: return "Invalid OGS HTTP response"
         case .invalidJSON: return "Invalid OGS response data"
         case .invalidPagination: return "Invalid or repeated OGS pagination link"
         case .status(let code): return "OGS request failed (HTTP \(code))"
+        case .rejection(_, let reason): return reason
         }
     }
 }

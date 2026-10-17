@@ -1,25 +1,16 @@
 // MARK: - File: SupportingViews.swift (v8.100)
 import SwiftUI
 
-struct TatamiBackground: View {
+struct TatamiBackground: NSViewRepresentable {
     let boardHeight: CGFloat
-    var body: some View {
-        let scale = max(0.1, boardHeight / 800.0)
-        #if os(macOS)
-        let img = NSImage(named: "tatami.jpg") ?? NSImage(named: "tatami")
-        #else
-        let img = UIImage(named: "tatami.jpg") ?? UIImage(named: "tatami")
-        #endif
-        return ZStack {
-            Color(red: 0.88, green: 0.84, blue: 0.68)
-            if let actual = img {
-                #if os(macOS)
-                Rectangle().fill(ImagePaint(image: Image(nsImage: actual), scale: scale))
-                #else
-                Rectangle().fill(ImagePaint(image: Image(uiImage: actual), scale: scale))
-                #endif
-            }
-        }.ignoresSafeArea()
+    func makeNSView(context: Context) -> TatamiSurfaceView {
+        let view = TatamiSurfaceView()
+        view.texture = NSImage(named: TatamiTexture.assetName)
+        view.boardHeight = boardHeight
+        return view
+    }
+    func updateNSView(_ view: TatamiSurfaceView, context: Context) {
+        view.boardHeight = boardHeight
     }
 }
 
