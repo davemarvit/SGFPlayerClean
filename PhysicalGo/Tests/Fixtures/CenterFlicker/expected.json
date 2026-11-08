@@ -1,0 +1,51 @@
+{
+  "size": 19,
+  "stones": [
+    {
+      "row": 0,
+      "col": 0,
+      "occupancy": "white"
+    },
+    {
+      "row": 1,
+      "col": 0,
+      "occupancy": "black"
+    },
+    {
+      "row": 9,
+      "col": 7,
+      "occupancy": "white"
+    },
+    {
+      "row": 9,
+      "col": 8,
+      "occupancy": "black"
+    },
+    {
+      "row": 15,
+      "col": 3,
+      "occupancy": "black"
+    },
+    {
+      "row": 15,
+      "col": 4,
+      "occupancy": "white"
+    },
+    {
+      "row": 16,
+      "col": 3,
+      "occupancy": "white"
+    },
+    {
+      "row": 16,
+      "col": 4,
+      "occupancy": "black"
+    },
+    {
+      "row": 18,
+      "col": 0,
+      "occupancy": "black"
+    }
+  ],
+  "allOtherIntersections": "empty"
+}

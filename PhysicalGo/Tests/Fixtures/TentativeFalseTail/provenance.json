@@ -1,0 +1,6 @@
+{
+  "source": "PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-02 16-24-51 D228C8EC",
+  "eventsSHA256": "6bf1acd1efc60a862199edd0e20decedec7fc0d184d491ba3ca05da019ef8906",
+  "observations": 1108,
+  "note": "Original recorder classifications and aggregate placement offsets, plus controls. Hand is classified white at point114 (G1), later clearly empty while actual white214 appears. After black232, white249 remains physically present although the shared rules require its capture. This fixture does not simulate its removal."
+}

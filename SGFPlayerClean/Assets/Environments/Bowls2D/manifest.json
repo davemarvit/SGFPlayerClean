@@ -1,0 +1,12 @@
+{
+  "method": "Offline SceneKit renders of existing GoEquipment3D models and BowlLayouts.json settled poses",
+  "generator": "Tests/Preview/BakeBowls2D.swift",
+  "dimensions": [
+    512,
+    512
+  ],
+  "blackStates": 182,
+  "whiteStates": 181,
+  "runtime": "One cached image per bowl, no live SceneKit or physics in 2D",
+  "lighting": "Upper-left key light, matching board-stone highlights and lower-right cast shadows; rebaked 2026-10-17"
+}

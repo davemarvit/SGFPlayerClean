@@ -22,6 +22,16 @@ private func require(_ value: @autoclosure () -> Bool, _ message: String) {
         require(refreshed && manager.configuration?.gameCount == 2 && !manager.busy, "Prepare selected folder asynchronously")
         manager.setEnabled(true)
         require(manager.enabled && manager.installed && FileManager.default.fileExists(atPath: installed.appendingPathComponent("Contents/MacOS/QuietGoSaver").path), "Enable installs the bundled screensaver")
+        let installedInode = try FileManager.default.attributesOfItem(atPath: installed.path)[.systemFileNumber] as! NSNumber
+        try manager.install()
+        require((try? FileManager.default.attributesOfItem(atPath: installed.path)[.systemFileNumber] as? NSNumber) == installedInode,
+                "Installing an identical bundle preserves its directory for the live saver host")
+        let texture = installed.appendingPathComponent("Contents/Resources/" + TatamiTexture.assetName)
+        try Data("damaged texture".utf8).write(to: texture)
+        try manager.install()
+        require(FileManager.default.contentsEqual(atPath: texture.path,
+            andPath: template.appendingPathComponent("Contents/Resources/" + TatamiTexture.assetName).path),
+            "A changed or damaged resource still triggers installation")
         let first = try ScreensaverConfiguration.load(root: root)
         let empty = temp.appendingPathComponent("Empty")
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)

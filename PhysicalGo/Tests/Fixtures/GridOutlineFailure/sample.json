@@ -1,0 +1,17 @@
+{
+  "boardSize" : 19,
+  "height" : 1080,
+  "manualLabels" : {
+
+  },
+  "name" : "Board 1 · even light",
+  "note" : "Experimental observations, not verified moves. Row 0 is top; column 0 is left. Manual label keys are row*boardSize+column. Confidence is a heuristic, not a probability.",
+  "readings" : [
+
+  ],
+  "savedAt" : "2026-11-01T19:28:19Z",
+  "schemaVersion" : 1,
+  "source" : "FULL HD WEB CAM",
+  "threshold" : 0.13,
+  "width" : 1920
+}

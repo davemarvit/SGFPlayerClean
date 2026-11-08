@@ -1,0 +1,22 @@
+{
+  "clothReference": "https://polyhaven.com/a/denim_fabric",
+  "woodReference": "https://polyhaven.com/a/fine_grained_wood",
+  "architecturalReference": "https://www.houtokuji.jp/hondou.html",
+  "downloads": {
+    "zabuton-cloth-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/denim_fabric/denim_fabric_diff_2k.jpg",
+      "sha256": "164fdc3adbae7eab65171b05fb43aac5e3945615cb905b37b48049b2630c56d2"
+    },
+    "zabuton-cloth-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric/denim_fabric_nor_gl_1k.jpg",
+      "sha256": "de0e9c5ed5cce7dacd50a67be16c6d8b8dc036907638e3702729c2f60296094e"
+    }
+  },
+  "panorama": {
+    "file": "monastery-wood-panorama.png",
+    "method": "Built-in image_gen edit",
+    "reference": "monastery-panorama.png",
+    "prompt": "Use case: precise-object-edit. Edit target is the supplied 2:1 full 360x180 equirectangular spherical Buddhist monastery panorama. Preserve the exact room architecture, Buddha statues, pillars, altar, shoji windows, rafters, composition, horizon, warm dim light and camera projection. Replace ALL woven tatami/carpet flooring and all dark mat borders with continuous old dark brown wooden plank flooring. Long planks run left-to-right across the central frontal view, with naturally varying plank widths, narrow irregular joints and a few staggered end joints. Wood is aged chestnut/cedar, dark umber, fine natural grain and minor scuffs, gently burnished by generations of feet: subtle broad satin reflections of windows, not wet and not mirror glossy. Floor extends throughout entire hall all the way to walls and altar. Keep floor empty: no board, bowls, cushions, people, rugs or additional objects; these are live 3D objects added by the app. Photographic natural material, quiet understated dark wood, readable shadows. Preserve the existing geometry and lighting of the upper half rigorously. Seamless left/right boundaries, correct spherical nadir, exact 2:1 panorama aspect, high resolution."
+  },
+  "textureLicense": "CC0"
+}

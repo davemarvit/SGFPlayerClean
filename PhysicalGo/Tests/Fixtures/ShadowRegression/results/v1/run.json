@@ -1,0 +1,6 @@
+{
+  "corpus_sha256": "739867002c6628e6c27e80c0f98dcac922162204f0b09371fad6d78fb3f9c9cf",
+  "implementation_sha256": "3c2f6bdd00639d2ee0480b263586e40a89e18558181cc0601fa0858ae41ad7fb",
+  "profiles_sha256": "36447b97334c8b377d832f54c5ac54c7e8030ccf97bcb0cb5566dc976c67d65e",
+  "baseline": "frozen 0.50"
+}

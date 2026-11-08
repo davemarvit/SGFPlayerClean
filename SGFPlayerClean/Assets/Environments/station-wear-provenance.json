@@ -1,0 +1,13 @@
+{
+  "tool": "Built-in image_gen",
+  "assets": [
+    {
+      "file": "station-worn-graphite.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: seamless tileable square PBR base-color texture for a physically rendered space station worktable. Orthographic straight-down material scan, fills entire image, perfectly flat neutral diffuse illumination, no perspective or cast shadows. Very used dark charcoal slate-blue painted industrial metal. Many thin realistic irregular scuffs, rubbed-through gray silver paint chips, fine tool scratches, subtle oily hand-polished patches, dusty brown grime, faint old tape residue, small rubbed areas. Medium dark graphite, enough tonal detail to read under dim indoor light; not pitch black. Lived-in spacecraft maintenance desk, tactile real practical film-set material. Wear is multiscale and asymmetric, scattered restrained edge-like chipped patches, no giant gouges or dramatic rust. No panels, bolts, seams, text, objects, border, symbols or lighting gradients. Uniform material at all four edges for repeating. Maximum fine photographic surface detail. NOT an illustration or a 3D object render."
+    },
+    {
+      "file": "station-worn-ivory.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: seamless tileable square PBR base-color texture for old space station instrument housings. Orthographic straight-down material scan, fills entire image, flat neutral diffuse illumination, no perspective, no cast shadows. Aged warm gray ivory painted aluminum, scratched and chipped from decades of handling. Several layers of thin worn paint, small exposed dark gray metal chips, fine hairline scratches, fingerprints, rubbed and discolored dirty areas, brown gray dust and faint adhesive marks. Realistically grimy well-used cockpit controls, practical film set photography, visually rich fine texture but still an ivory painted surface. Scattered asymmetric wear at multiple scales. No obvious rust, no objects, panel seams, screws, bolts, symbols, text, border, or illumination gradients. Continuous material across all four edges to tile. Maximum fine photographic detail."
+    }
+  ]
+}

@@ -10,9 +10,36 @@ import CryptoKit
 class BoardViewModel: ObservableObject {
     @Published var isOnlineContext: Bool = false
     @Published var moveError: String?
+    @Published var showLikelyDeadStones = UserDefaults.standard.object(forKey: "showLikelyDeadStones") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(showLikelyDeadStones, forKey: "showLikelyDeadStones")
+            if showLikelyDeadStones { requestStoneOwnershipIfNeeded() }
+            onRequestUpdate3D.send()
+        }
+    }
+    var likelyDeadStoneStrengths: [BoardPosition: Double] {
+        guard showLikelyDeadStones, canPreviewAnalysis?() == true,
+              !isPreviewingVariation, !localScoringVisible, !isScrubbing else { return [:] }
+        return AILikelyDeadStones.strengths(analysis: analysisEngine.currentAnalysisData[engine.currentIndex],
+            stones: engine.board.stones, size: boardSize, playerToMove: engine.turn)
+    }
+    var ownershipEstimates: [BoardPosition: AIOwnershipEstimate] {
+        guard showLikelyDeadStones, canPreviewAnalysis?() == true,
+              !isPreviewingVariation, !localScoringVisible, !isScrubbing else { return [:] }
+        return AILikelyDeadStones.ownershipEstimates(analysis: analysisEngine.currentAnalysisData[engine.currentIndex],
+            size: boardSize, playerToMove: engine.turn)
+    }
+    private var isActivatingReviewDocument = false
     @Published private(set) var reviewTree: ReviewTree?
+    @Published var reviewTreeCollapsed = true {
+        didSet {
+            updateGhostStone(at: ghostPosition)
+            onRequestUpdate3D.send()
+        }
+    }
     @Published var reviewTreeError: String?
     @Published private(set) var reviewDraftSaved = false
+    var onReviewEdited: ((ReviewTree) -> Void)?
     private let reviewDraftDirectory: URL
     var canNavigateReview: (() -> Bool)?
     @Published var koPoint: BoardPosition?
@@ -22,6 +49,23 @@ class BoardViewModel: ObservableObject {
     }
     @Published var lastMovePosition: BoardPosition?
     @Published var currentMoveIndex: Int = 0
+    @Published private(set) var passAnnouncement: PassAnnouncement?
+    // Kept separate from sound's index so silent tree navigation still marks a pass.
+    private var announcedPassPosition: String?
+    var onPassSound: () -> Void = { SoundManager.shared.play("pass") }
+
+    var reviewEndResult: String? {
+        guard !isOnlineContext, canNavigateReview?() == true, !isPreviewingVariation,
+              let document = reviewTree, document.isMainLine,
+              engine.maxIndex > 0, engine.currentIndex == engine.maxIndex,
+              engine.maxIndex == document.baseGame.moves.count else { return nil }
+        // An edited continuation must not inherit the original game's outcome.
+        for (index, move) in document.baseGame.moves.enumerated() {
+            let point = move.1.flatMap { x, y in x >= 0 && y >= 0 ? BoardPosition(y, x) : nil }
+            guard engine.moveColor(at: index) == move.0, engine.movePosition(at: index) == point else { return nil }
+        }
+        return document.baseGame.info.resultDescription
+    }
     @Published var stonesToRender: [RenderStone] = []
     @Published var ghostPosition: BoardPosition?
     @Published var ghostColor: Stone?
@@ -72,7 +116,7 @@ class BoardViewModel: ObservableObject {
     var isPreviewingVariation: Bool { variationFrame != nil }
     var emphasizesReviewedMove: Bool {
         canNavigateReview?() == true && isAIAllowed?() == true &&
-        !isPreviewingVariation && !localScoringVisible && engine.currentIndex > 0
+        !isPreviewingVariation && !localScoringVisible && engine.currentIndex > 0 && currentMistakeFocus == nil
     }
     var selectedMoveFeedback: SelectedMoveFeedback? {
         guard emphasizesReviewedMove else { return nil }
@@ -85,7 +129,14 @@ class BoardViewModel: ObservableObject {
             evaluations: analysisEngine.evaluateGameQuality(upTo: currentMoveIndex, engine: engine))
     }
     var displayedStones: [RenderStone] {
-        guard let frame = variationFrame else { return stonesToRender }
+        guard let frame = variationFrame else {
+            let strengths = likelyDeadStoneStrengths
+            return stonesToRender.map {
+                var stone = $0
+                stone.predictedDeathStrength = strengths[stone.id] ?? 0
+                return stone
+            }
+        }
         let originals = Dictionary(uniqueKeysWithValues: stonesToRender.map { ($0.id, $0) })
         return frame.stones.map { position, color in
             // Keep original stones still; hypothetical moves start at the intersection.
@@ -104,6 +155,9 @@ class BoardViewModel: ObservableObject {
               let point else { cancelVariationPreview(); return }
         guard point != variationHover else { return }
         cancelVariationPreview()
+        guard !reviewVariationChoices.contains(where: { $0.position == point }) else {
+            clearGhostStone(); return
+        }
         guard engine.moveRejection(color: engine.turn, x: point.col, y: point.row) == nil else { return }
         variationHover = point
         let generation = variationGeneration
@@ -188,12 +242,20 @@ class BoardViewModel: ObservableObject {
         self.ogsClient = ogsClient
         self.isAIAllowed = isAIAllowed
         self.jitterEngine = StoneJitter(boardSize: player.board.size, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
+
+        analysisEngine.$currentAnalysisData.dropFirst().receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+                self?.onRequestUpdate3D.send()
+            }.store(in: &cancellables)
         
         player.moveProcessed.sink { [weak self] in self?.scheduleStateSync() }.store(in: &cancellables)
         
         // Ensure UI stays in sync with Play/Pause toggles that don't trigger a move update
         player.$isPlaying.receive(on: RunLoop.main).sink { [weak self] val in
             self?.isAutoPlaying = val
+            if val { self?.clearGhostStone() }
+            self?.onRequestUpdate3D.send()
         }.store(in: &cancellables)
         
         AppSettings.shared.$jitterMultiplier
@@ -244,6 +306,7 @@ class BoardViewModel: ObservableObject {
         guard !isScrubbing else { return }
         isScrubbing = true
         engine.pause()
+        onRequestUpdate3D.send()
         // At most 5 previews per second, with only the latest requested move retained.
         let timer = Timer(timeInterval: 0.2, repeats: true) { [weak self] _ in self?.applyPendingScrub() }
         scrubTimer = timer
@@ -270,6 +333,7 @@ class BoardViewModel: ObservableObject {
         pendingScrubIndex = max(0, min(index, engine.maxIndex))
         applyPendingScrub() // Release always commits the exact final thumb position.
         isScrubbing = false
+        onRequestUpdate3D.send()
         requestAnalysisIfNeeded()
     }
 
@@ -286,6 +350,8 @@ class BoardViewModel: ObservableObject {
     }
     
     func resetToEmpty() {
+        passAnnouncement = nil; announcedPassPosition = nil
+        deletedReviewTrees = []; focusedMistakeMove = nil
         reviewTree = nil; reviewTreeError = nil; reviewDraftSaved = false
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = 0
@@ -304,7 +370,28 @@ class BoardViewModel: ObservableObject {
         self.syncState()
     }
     
-    func loadGame(_ wrapper: SGFGameWrapper) {
+    /// Restore the saved board directly, without letting an older edit draft
+    /// override its newer navigation position or variation selection.
+    func restoreLaunchPosition(_ wrapper: SGFGameWrapper, document: ReviewTree?, moveIndex: Int) {
+        resetToEmpty()
+        reviewTreeCollapsed = true
+        localHandicap = wrapper.game.handicap
+        engine.setCaptureIdentity(wrapper.url.path)
+        if let document {
+            activateReviewDocument(document, reload: true)
+        } else {
+            engine.load(game: wrapper.game)
+            engine.seek(to: moveIndex)
+            lastObservedMoveIndex = engine.currentIndex
+            syncState()
+        }
+        jitterEngine = StoneJitter(boardSize: boardSize, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
+    }
+
+    func loadGame(_ wrapper: SGFGameWrapper, savedReviewSGF: String? = nil) {
+        passAnnouncement = nil; announcedPassPosition = nil
+        deletedReviewTrees = []; focusedMistakeMove = nil
+        reviewTreeCollapsed = true
         cancelScrubbing()
         localScoring = nil; scoringDismissedAtIndex = nil; localHandicap = wrapper.game.handicap
         fullGameAnalysisTask?.cancel()
@@ -319,25 +406,71 @@ class BoardViewModel: ObservableObject {
         reviewTree = ReviewTree(game: wrapper.game, analysisID: newGameId, filename: wrapper.url.lastPathComponent)
         reviewTreeError = nil
         reviewDraftSaved = false
-        if let original = reviewTree, let data = try? Data(contentsOf: reviewDraftURL(original)) {
+        if let savedReviewSGF, let source = try? SGFParser.parse(text: savedReviewSGF), let original = reviewTree {
+            var edited = wrapper.game
+            edited.sourceTree = source
+            reviewTree = ReviewTree(game: edited, analysisID: newGameId, filename: wrapper.url.lastPathComponent,
+                                    originalSGF: original.originalSGF)
+            reviewDraftSaved = true
+        }
+        if savedReviewSGF == nil, let original = reviewTree, let data = try? Data(contentsOf: reviewDraftURL(original)) {
             do {
                 if let restored = try JSONDecoder().decode(ReviewDraft.self, from: data).restore(over: original) {
                     reviewTree = restored; reviewDraftSaved = true
                 }
             } catch { reviewTreeError = "Could not restore the review draft: " + error.localizedDescription }
         }
+        // Recover edits, but opening a file/library game always starts at the
+        // main line's final position. Relaunch restoration uses its own path.
+        reviewTree?.selectMainLineEnd()
         let playback: SGFGame
         do { playback = try reviewTree!.playbackGame() }
-        catch { reviewTreeError = error.localizedDescription; playback = SGFGame() }
+        catch {
+            reviewTreeError = error.localizedDescription
+            // SGFs with unsupported mid-game setup edits still show the end of
+            // their playable prefix instead of replacing the board with nothing.
+            reviewTree?.select(0)
+            playback = (try? reviewTree?.playbackGame()) ?? SGFGame()
+            reviewTree?.followPlayback(index: playback.moves.count)
+        }
         self.engine.setCaptureIdentity(wrapper.url.path)
         self.engine.load(game: playback)
         if let document = reviewTree { engine.seek(to: document.nodes[document.selectedID].moveNumber) }
-        _ = analysisEngine.loadAnalysisCache(for: reviewTree.map(reviewAnalysisID) ?? newGameId, game: engine)
+        _ = analysisEngine.loadAnalysisCache(for: reviewTree.map(reviewAnalysisID) ?? newGameId, game: engine,
+            reusing: [reviewTree?.baseAnalysisID ?? newGameId])
         self.jitterEngine = StoneJitter(boardSize: self.boardSize, eccentricity: CGFloat(AppSettings.shared.jitterMultiplier))
         self.lastObservedMoveIndex = self.engine.currentIndex
         self.syncState()
     }
     
+    @Published private var deletedReviewTrees: [ReviewTree] = []
+    var canUndoReviewDeletion: Bool { !deletedReviewTrees.isEmpty }
+    var canDeleteReviewNode: Bool {
+        guard let id = reviewTree?.selectedID else { return false }
+        return canDeleteReviewNode(id)
+    }
+    func canDeleteReviewNode(_ id: Int) -> Bool {
+        guard canCreateReviewVariation, let tree = reviewTree, tree.nodes.indices.contains(id),
+              let parent = tree.nodes[id].parent else { return false }
+        return !tree.nodes[parent].isVirtual
+    }
+    func deleteSelectedReviewNode() {
+        guard let id = reviewTree?.selectedID else { return }
+        deleteReviewNode(id)
+    }
+    func deleteReviewNode(_ id: Int) {
+        guard canDeleteReviewNode(id), var tree = reviewTree else { return }
+        tree.select(id)
+        guard let updated = tree.deletingSelectedNode() else { return }
+        activateReviewDocument(updated, reload: true)
+        if reviewTreeError == nil { deletedReviewTrees.append(tree); saveReviewDraft() }
+    }
+    func undoReviewDeletion() {
+        guard canCreateReviewVariation, let tree = deletedReviewTrees.last else { return }
+        activateReviewDocument(tree, reload: true)
+        if reviewTreeError == nil { deletedReviewTrees.removeLast(); saveReviewDraft() }
+    }
+
     func selectReviewNode(_ id: Int) {
         guard canNavigateReview?() == true, !isOnlineContext, var document = reviewTree,
               document.nodes.indices.contains(id) else { return }
@@ -352,6 +485,8 @@ class BoardViewModel: ObservableObject {
         catch { reviewTreeError = error.localizedDescription; return }
         cancelScrubbing(); cancelVariationPreview(); engine.pause()
         reviewTreeError = nil
+        reviewTree = document
+        isActivatingReviewDocument = true
         let index = document.nodes[document.selectedID].moveNumber
         if reload {
             fullGameAnalysisTask?.cancel()
@@ -360,17 +495,27 @@ class BoardViewModel: ObservableObject {
             engine.load(game: game)
             engine.seek(to: index)
             let key = reviewAnalysisID(document)
-            _ = analysisEngine.loadAnalysisCache(for: key, game: engine)
+            _ = analysisEngine.loadAnalysisCache(for: key, game: engine, reusing: [document.baseAnalysisID])
             // StoneJitter keeps the unchanged prefix stable across branch edits.
             localScoring = nil; scoringDismissedAtIndex = nil
         } else { engine.seek(to: index) }
+        focusedMistakeMove = nil
         reviewTree = document
         if !newMove { lastObservedMoveIndex = index } // Navigation is silent; explicit moves retain normal audio.
+        isActivatingReviewDocument = false
         syncState()
         if reload { triggerFullGameAnalysis() }
     }
 
     var canCreateReviewVariation: Bool { canNavigateReview?() == true && !isOnlineContext && reviewTree != nil }
+
+    var reviewVariationChoices: [ReviewTree.BoardVariation] {
+        guard canCreateReviewVariation, !reviewTreeCollapsed, !engine.isPlaying, !isScrubbing,
+              !localScoringVisible, !isPreviewingVariation, let document = reviewTree else { return [] }
+        return document.boardVariations.filter {
+            engine.board.stones[$0.position] == nil
+        }
+    }
 
     func addReviewMove(at point: BoardPosition?) {
         guard canCreateReviewVariation, var document = reviewTree else { return }
@@ -379,6 +524,7 @@ class BoardViewModel: ObservableObject {
         if let rejection = engine.moveRejection(color: engine.turn, x: point?.col ?? -1, y: point?.row ?? -1) {
             moveError = rejection.rawValue; return
         }
+        deletedReviewTrees = []
         let updated = document.addingMove(color: engine.turn, point: point)
         moveError = nil
         activateReviewDocument(updated, reload: true, newMove: updated.nodes.count > document.nodes.count)
@@ -396,6 +542,7 @@ class BoardViewModel: ObservableObject {
             try FileManager.default.createDirectory(at: reviewDraftDirectory, withIntermediateDirectories: true)
             try JSONEncoder().encode(ReviewDraft(document)).write(to: reviewDraftURL(document), options: .atomic)
             reviewDraftSaved = true
+            onReviewEdited?(document)
         } catch {
             reviewDraftSaved = false
             reviewTreeError = "Could not save the review draft. Please use Save SGF: " + error.localizedDescription
@@ -417,6 +564,11 @@ class BoardViewModel: ObservableObject {
         if let next { selectReviewNode(next) }
     }
 
+    func returnToMainLineBranchOrigin() {
+        guard let origin = reviewTree?.mainLineBranchOrigin else { return }
+        selectReviewNode(origin)
+    }
+
     /// Snapshot export is independent of the selected path and any hover preview.
     func reviewSGFData() -> Data? {
         reviewTree.map { Data(SGFWriter.serialize($0.source).utf8) }
@@ -426,7 +578,7 @@ class BoardViewModel: ObservableObject {
         try data.write(to: url, options: .atomic)
     }
 
-    func prepareReviewTreeFromCurrentPosition(info: SGFGame.Info? = nil) {
+    func prepareReviewTreeFromCurrentPosition(info: SGFGame.Info? = nil, restoreDraft: Bool = true) {
         guard reviewTree == nil else { return }
         let snapshot = engine.createSnapshot()
         var game = SGFGame()
@@ -442,7 +594,7 @@ class BoardViewModel: ObservableObject {
         var document = ReviewTree(game: game, analysisID: analysisEngine.currentGameId, filename: "Game.sgf")
         document.followPlayback(index: snapshot.currentIndex)
         reviewTree = document
-        if let data = try? Data(contentsOf: reviewDraftURL(document)) {
+        if restoreDraft, let data = try? Data(contentsOf: reviewDraftURL(document)) {
             do {
                 if let restored = try JSONDecoder().decode(ReviewDraft.self, from: data).restore(over: document) {
                     activateReviewDocument(restored, reload: true)
@@ -454,6 +606,17 @@ class BoardViewModel: ObservableObject {
 
     func goToStart() { engine.seek(to: 0) }
     func goToEnd() { engine.seek(to: engine.maxIndex) }
+    /// Keep move navigation identical on the board, playback buttons, and focused tree.
+    func navigatePlayback(direction: Int, tenMoves: Bool = false, variation: Bool = false) {
+        if variation {
+            navigateReviewTree(horizontal: direction)
+        } else if direction < 0 {
+            tenMoves ? stepBackwardTen() : stepBackward()
+        } else {
+            tenMoves ? stepForwardTen() : stepForward()
+        }
+    }
+
     func stepForward() { engine.stepForward() }
     func stepBackward() { engine.stepBackward() }
     func stepForwardTen() { for _ in 0..<10 { engine.stepForward() } }
@@ -469,13 +632,36 @@ class BoardViewModel: ObservableObject {
         return MistakeFilter(players: mistakePlayers, minimumLoss: mistakeMinimumLoss).moveNumbers(
             in: Array(analysisEngine.evaluateGameQuality(upTo: totalMoves, engine: engine).values))
     }
-    var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > engine.currentIndex } }
-    var previousMistakeMove: Int? { matchingMistakeMoves.last { $0 < engine.currentIndex } }
+    @Published private(set) var focusedMistakeMove: Int?
+    private var currentMistakeFocus: Int? {
+        focusedMistakeMove.flatMap { engine.currentIndex == $0 - 1 ? $0 : nil }
+    }
+    var nextMistakeMove: Int? { matchingMistakeMoves.first { $0 > (currentMistakeFocus ?? engine.currentIndex) } }
+    var previousMistakeMove: Int? { matchingMistakeMoves.last { $0 < (currentMistakeFocus ?? (engine.currentIndex + 1)) } }
+    private func seekMistake(_ move: Int) {
+        cancelVariationPreview(); engine.pause()
+        seekToMove(move - 1)
+        focusedMistakeMove = move
+        syncState()
+    }
     func seekNextMistake() {
-        if let move = nextMistakeMove { seekToMove(move) }
+        if let move = nextMistakeMove { seekMistake(move) }
     }
     func seekPrevMistake() {
-        if let move = previousMistakeMove { seekToMove(move) }
+        if let move = previousMistakeMove { seekMistake(move) }
+    }
+    var focusedMistakeFeedback: SelectedMoveFeedback? {
+        guard let move = currentMistakeFocus, isAIAllowed?() == true else { return nil }
+        return SelectedMoveFeedback(engine: engine, analyses: analysisEngine.currentAnalysisData, moveNumber: move)
+    }
+    var historicalMoveEvaluation: MoveEvaluation? {
+        guard isAIAllowed?() == true else { return nil }
+        return analysisEngine.evaluateGameQuality(upTo: engine.currentIndex + 1, engine: engine)[engine.currentIndex]
+    }
+    var reviewCandidateMoves: [AIMoveInfo] {
+        let analysis = analysisEngine.currentAnalysisData[engine.currentIndex]
+        return HistoricalMoveHints.candidates(analysis: analysis, evaluation: historicalMoveEvaluation,
+            position: engine.nextHistoricalMovePosition, size: boardSize)
     }
 
     func stopAutoPlay() { engine.pause() }
@@ -500,6 +686,22 @@ class BoardViewModel: ObservableObject {
             return "Play resumed · \(engine.turn == .black ? "Black" : "White") to move"
         }
         return "\(last.color == .black ? "Black" : "White") passed · \(engine.turn == .black ? "Black" : "White") to move"
+    }
+
+    /// Describe the displayed move in review, local play, and online playback.
+    /// Hypothetical continuations supply their own caption instead.
+    var playbackPassStatus: String? {
+        guard !isPreviewingVariation, let last = engine.lastMove,
+              last.x == -1, last.y == -1 else { return nil }
+        if !isOnlineContext, engine.currentIndex == scoringDismissedAtIndex,
+           engine.currentIndex == engine.maxIndex {
+            return localPassStatus
+        }
+        let player = last.color == .black ? "Black" : "White"
+        if engine.lastTwoMovesWerePasses {
+            return "\(player) passed · Both players have passed"
+        }
+        return "\(player) passed · \(engine.turn == .black ? "Black" : "White") to move"
     }
 
     var onlineMoveUnavailableReason: String? {
@@ -618,6 +820,11 @@ class BoardViewModel: ObservableObject {
             }
             return
         }
+        if let choice = reviewVariationChoices.first(where: { $0.position == pos }) {
+            clearGhostStone()
+            selectReviewNode(choice.id)
+            return
+        }
         if canCreateReviewVariation { addReviewMove(at: pos); return }
         if !isOnlineContext && canEditLocally?() == false {
             moveError = "Switch to Local Play to add moves."
@@ -687,13 +894,33 @@ class BoardViewModel: ObservableObject {
     }
     
     func syncState() {
+        guard !isActivatingReviewDocument else { return }
+        if let focusedMistakeMove, engine.currentIndex != focusedMistakeMove - 1 { self.focusedMistakeMove = nil }
         cancelVariationPreview()
         stateSyncTimer?.invalidate(); stateSyncTimer = nil
         synchronizeLocalScoring()
         moveError = nil
         koPoint = engine.koPoint
         let idx = self.engine.currentIndex
-        if let document = reviewTree, document.nodes[document.selectedID].moveNumber != idx { reviewTree?.followPlayback(index: idx) }
+        if var document = reviewTree, document.nodes[document.selectedID].moveNumber != idx {
+            let previousPath = document.activePath
+            document.followPlayback(index: idx)
+            if document.activePath != previousPath {
+                activateReviewDocument(document, reload: true)
+                return
+            }
+            reviewTree = document
+        }
+        let passPosition = engine.lastMove.flatMap { move -> String? in
+            guard move.x == -1, move.y == -1 else { return nil }
+            return "\(engine.captureSeed):\(reviewTree?.selectedID ?? -1):\(idx):\(move.color.rawValue)"
+        }
+        if passPosition != announcedPassPosition {
+            announcedPassPosition = passPosition
+            passAnnouncement = isScrubbing ? nil : passPosition.flatMap { _ in engine.lastMove.map {
+                PassAnnouncement(color: $0.color, startedAt: Date.timeIntervalSinceReferenceDate)
+            } }
+        }
         NSLog("[OGS-UI-DEBUG] 🎨 syncState Entry. Index: \(idx). Online: \(isOnlineContext)")
         let last = self.engine.lastMove.flatMap { m -> BoardPosition? in
             if m.x < 0 || m.y < 0 { return nil }
@@ -757,6 +984,8 @@ class BoardViewModel: ObservableObject {
                  if captured > 0 { 
                      if captured > 1 { onPlaySound?(.captureMultiple) }
                      else { onPlaySound?(.captureSingle) }
+                 } else if let move = engine.lastMove, move.x == -1, move.y == -1 {
+                     onPassSound()
                  } else if last != nil {
                      onPlaySound?(.place) 
                  }
@@ -776,6 +1005,7 @@ class BoardViewModel: ObservableObject {
 
         self.isAutoPlaying = self.engine.isPlaying
         self.totalMoves = self.engine.maxIndex
+        updateGhostStone(at: ghostPosition)
         self.onRequestUpdate3D.send()
         self.objectWillChange.send()
         
@@ -790,16 +1020,39 @@ class BoardViewModel: ObservableObject {
         
         let payload = self.engine.getCurrentAIPayload()
         let gameId = isOnlineContext ? (ogsClient.activeGameID.map { String($0) } ?? "local") : analysisEngine.currentGameId
+        let needsOwnership = showLikelyDeadStones && canPreviewAnalysis?() == true &&
+            analysisEngine.currentAnalysisData[engine.currentIndex]?.ownership == nil
         
         analysisEngine.analyzeGame(
             id: gameId,
             initialStones: payload.initial,
             moves: payload.moves,
             size: self.boardSize,
-            maxVisits: 50,
-            settings: engine.analysisSettings
+            maxVisits: needsOwnership ? max(50, analysisEngine.currentAnalysisData[engine.currentIndex]?.rootInfo?.visits ?? 0) : 50,
+            settings: engine.analysisSettings,
+            requireOwnership: needsOwnership
         )
     }
+
+    private func requestStoneOwnershipIfNeeded() {
+        guard showLikelyDeadStones, canPreviewAnalysis?() == true,
+              !isScrubbing, !engine.isPlaying, !localScoringVisible,
+              analysisEngine.isEngineRunning else { return }
+        let payload = engine.getCurrentAIPayload()
+        analysisEngine.analyzeGame(id: analysisEngine.currentGameId, initialStones: payload.initial,
+            moves: payload.moves, size: boardSize,
+            maxVisits: max(50, analysisEngine.currentAnalysisData[engine.currentIndex]?.rootInfo?.visits ?? 0),
+            settings: engine.analysisSettings, requireOwnership: true)
+    }
+    func suspendAutomaticAnalysis() {
+        fullGameAnalysisTask?.cancel()
+    }
+
+    func resumeAutomaticAnalysis() {
+        requestAnalysisIfNeeded()
+        triggerFullGameAnalysis()
+    }
+
     func updateAnalysisPermission() {
         cancelVariationPreview()
         fullGameAnalysisTask?.cancel()
@@ -892,16 +1145,20 @@ class BoardViewModel: ObservableObject {
     }
     
     func updateGhostStone(at pos: BoardPosition?) {
-        if localScoringVisible { ghostPosition = nil; return }
-        guard isOnlineContext && engine.turn == ogsClient.playerColor else {
-            self.ghostPosition = nil
-            return
+        guard !localScoringVisible, !isScrubbing, !engine.isPlaying else {
+            clearGhostStone(); return
         }
-        
-        let p = ogsClient.phase ?? "unknown"
-        if OGSScoring.isScoring(p) || p == "finished" || ogsClient.isGameFinished {
-            self.ghostPosition = nil
-            return
+        guard !reviewVariationChoices.contains(where: { $0.position == pos }) else {
+            clearGhostStone(); return
+        }
+        // Both renderers share this preview. Match the active mode's placement
+        // rules, including Review branches at earlier positions.
+        if isOnlineContext {
+            guard onlineMoveUnavailableReason == nil else { clearGhostStone(); return }
+        } else if !canCreateReviewVariation {
+            guard canEditLocally?() != false, engine.currentIndex == engine.maxIndex else {
+                clearGhostStone(); return
+            }
         }
         guard let pos, engine.moveRejection(color: engine.turn, x: pos.col, y: pos.row) == nil else {
             ghostPosition = nil

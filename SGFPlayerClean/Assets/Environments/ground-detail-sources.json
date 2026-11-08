@@ -1,0 +1,35 @@
+{
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "assets": {
+    "forest_ground_04": "https://polyhaven.com/a/forest_ground_04",
+    "dirty_carpet": "https://polyhaven.com/a/dirty_carpet",
+    "gravelly_sand": "https://polyhaven.com/a/gravelly_sand"
+  },
+  "downloads": {
+    "forest_ground_04-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_ground_04/forest_ground_04_diff_2k.jpg",
+      "sha256": "24b8aaf4c8547305d80b0e029ec365219ab1b90748d4ca5651bdc9e75bfde5e6"
+    },
+    "forest_ground_04-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/forest_ground_04/forest_ground_04_nor_gl_2k.jpg",
+      "sha256": "b37ac799ed410976541e0011c246fca254e74eaa3f096ae7a7d74178db5a6d9b"
+    },
+    "dirty_carpet-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_carpet/dirty_carpet_diff_2k.jpg",
+      "sha256": "6337d3ef1a11ca8bea2d31b86da15a65f10ae92c7f3345fae62924bae194f6c0"
+    },
+    "dirty_carpet-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/dirty_carpet/dirty_carpet_nor_gl_2k.jpg",
+      "sha256": "b59b74a4aa2ef9389704019d376cdca1f5f799490632a6aca8583bb3280b9117"
+    },
+    "gravelly_sand-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/gravelly_sand/gravelly_sand_diff_2k.jpg",
+      "sha256": "cdab7130a67bc70f8c241b9ab2cd41b731d2baf1ec533939a333573b80070dd6"
+    },
+    "gravelly_sand-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/gravelly_sand/gravelly_sand_nor_gl_2k.jpg",
+      "sha256": "191985454de9403961aab2a6ffd33b6ca1e4c2715712e03f3c928a8140322719"
+    }
+  }
+}

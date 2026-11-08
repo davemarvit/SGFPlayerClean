@@ -84,6 +84,19 @@ private final class LayoutHTTP: URLProtocol {
             }
             return count > 20 ? CGPoint(x: total.x/count, y: total.y/count) : nil
         }
+        // The chevron is part of the production view; exercise its actual click target.
+        func click(_ point: CGPoint) {
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                window.sendEvent(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: 0,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!)
+            }
+            settle()
+        }
+        let initial = try capture("default-collapsed")
+        require(vm.reviewTreeCollapsed, "Panel starts with shared collapse state")
+        require(ringCenter(initial) == nil, "Opening a game starts with the variation tree collapsed")
+        click(CGPoint(x: 24, y: 850 - 22))
+        require(!vm.reviewTreeCollapsed, "Actual panel click updates the shared state used by board ghosts")
         let before = try capture("ai-off")
         guard let beforeCenter = ringCenter(before) else { require(false, "Selected tree node visible before AI"); return }
         model.aiAnalysisEnabled = true
@@ -97,14 +110,6 @@ private final class LayoutHTTP: URLProtocol {
         let aiHeader = text.first { $0.topCandidates(1).first?.string.hasSuffix(" analysis") == true }!
         require(aiHeader.boundingBox.midY < 0.46, "AI information sits below the tree")
         require(vm.currentMoveIndex == 3 && vm.reviewTree?.selectedID == 3, "Toggle preserves game position")
-        // The chevron is part of the production view; exercise its actual click target.
-        func click(_ point: CGPoint) {
-            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-                window.sendEvent(NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: 0,
-                    windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!)
-            }
-            settle()
-        }
         click(CGPoint(x: 24, y: 850 - 22))
         let collapsed = try capture("collapsed")
         let collapsedLabels = try labels(collapsed)
@@ -114,6 +119,14 @@ private final class LayoutHTTP: URLProtocol {
         click(CGPoint(x: 24, y: 850 - 22))
         let expanded = try capture("expanded")
         require(ringCenter(expanded) != nil && vm.reviewTree?.selectedID == 3, "Expanding restores selected node")
+        model.aiAnalysisEnabled = false
+        model.selectGame(SGFGameWrapper(url: URL(fileURLWithPath: "/private/tmp/layout-next-fixture.sgf"), game: game))
+        settle()
+        let nextGame = try capture("next-game-collapsed")
+        require(ringCenter(nextGame) == nil, "Opening another game collapses a previously expanded tree")
+        vm.seekToMove(3); settle()
+        click(CGPoint(x: 24, y: 850 - 22))
+        model.aiAnalysisEnabled = true
         // Pending positions retain the red cursor and never borrow another move's values.
         ai.currentAnalysisData[3] = nil
         let pending = try capture("pending")

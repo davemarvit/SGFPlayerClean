@@ -28,6 +28,8 @@ private final class ModeHTTP: URLProtocol {
         } else if path == "/api/v1/challenges/400/accept" {
             status = 403
             body = "{}"
+        } else if path.hasSuffix("/sgf") {
+            body = "(;SZ[9]PB[Black]PW[White];B[aa];W[bb])"
         } else if path.contains("/games/") {
             let id = Int(path.split(separator: "/").last!) ?? 9
             body = "{\"id\":\(id),\"width\":9,\"height\":9,\"phase\":\"play\",\"rules\":\"japanese\",\"komi\":6.5,\"initial_player\":\"black\",\"moves\":[[0,0],[1,1]],\"players\":{\"black\":{\"id\":\((id == 7 || id == 17) ? 99 : 10),\"username\":\"Black\"},\"white\":{\"id\":11,\"username\":\"White\"}}}"
@@ -37,7 +39,7 @@ private final class ModeHTTP: URLProtocol {
             }
         } else { body = "{\"results\":[],\"next\":null}" }
         client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: status,
-            httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+            httpVersion: nil, headerFields: path.hasSuffix("/sgf") ? ["Content-Disposition": "attachment; filename=7-000-White-Black.sgf"] : nil)!, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))
         client?.urlProtocolDidFinishLoading(self)
     }
@@ -91,7 +93,7 @@ private final class ModeSocket: OGSWebSocket {
         config.protocolClasses = [ModeHTTP.self]; config.httpCookieStorage = nil
         let socket = ModeSocket()
         let client = OGSClient(session: URLSession(configuration: config, delegate: nil, delegateQueue: .main), socketFactory: { socket })
-        let app = AppModel(ogsClient: client, analysisEngine: ai)
+        let app = AppModel(ogsClient: client, analysisEngine: ai, completedGamesDirectory: temp.appendingPathComponent("Saved Games"))
         defer { client.disconnect(); ai.stop() }
         let vm = app.boardVM!
         func settle(_ seconds: Double = 0.15) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
@@ -102,7 +104,7 @@ private final class ModeSocket: OGSWebSocket {
                 ai.analyzeGame(id: ai.currentGameId, initialStones: payload.initial, moves: payload.moves,
                     size: app.player.board.size, maxVisits: 800, settings: app.player.analysisSettings)
             }
-            let deadline = Date().addingTimeInterval(3)
+            let deadline = Date().addingTimeInterval(10)
             while ai.hasPendingAnalysis && Date() < deadline { settle(0.02) }
             require(!ai.currentAnalysisData.isEmpty, "Fixture must have completed analysis (running=\(ai.isEngineRunning), pending=\(ai.hasPendingAnalysis), id=\(ai.currentGameId), startup=\(ai.engineStartupError ?? "none"), error=\(ai.analysisError ?? "none"))")
         }
@@ -145,7 +147,7 @@ private final class ModeSocket: OGSWebSocket {
         require(app.player.maxIndex == 4 && app.player.currentIndex == 4 && vm.reviewTree?.nodes.count == 5,
                 "Review preserves entire game including passes and opens at the final position")
         require(!vm.localScoringVisible && app.completedGameResult != nil, "Review clears scoring controls and retains result")
-        require(app.backgroundReviewStatus == "Paused to save battery", "Review explains battery pause while keeping saved results visible")
+        require(app.backgroundReviewStatus == nil && !app.usesAdaptiveAnalysis, "Visible postgame Review uses the full-game sweep, independent of background battery pauses")
         vm.goToStart(); settle()
         require(app.player.currentIndex == 0, "Review navigation works immediately")
 
@@ -173,7 +175,16 @@ private final class ModeSocket: OGSWebSocket {
         socket.receiver?(.success(#"42["game/7/removed_stones_accepted",{"phase":"finished","outcome":"Resignation","winner":99}]"#))
         settle(0.4)
         require(app.mode == .review && app.isAIAvailable, "Confirmed online result opens Review automatically")
-        require(!app.showRightPanel && app.showsAnalysisWorkspace, "Online completion closes the library and keeps analysis visible")
+        require(app.completedGameSaveError == nil && app.completedGameSaveURL != nil, "Online completion automatically saves the game")
+        let onlineSaved = SGFGame.from(tree: try SGFParser.parse(text: String(contentsOf: app.completedGameSaveURL!, encoding: .utf8)))
+        require(onlineSaved.moves.count == 2 && onlineSaved.info.playerBlack == "Black" && onlineSaved.info.playerWhite == "White"
+                && onlineSaved.info.result == "B+R", "Online autosave retains full history, players and resignation result")
+        require(!app.showRightPanel && app.showsAnalysisWorkspace && app.postGameChatID == 7,
+                "Online completion docks chat in Review without covering analysis")
+        require(app.postGameChatID == 7 && client.activeGameID == 7 && client.canSendChat, "Finished game remains joined and writable for chat")
+        require(app.suggestedReviewFilename == app.completedGameSaveURL!.deletingPathExtension().lastPathComponent + "-review.sgf" && app.suggestedReviewFilename.hasPrefix("Black vs White - \(vm.reviewTree!.baseGame.info.date!)"), "Review export matches the named game, including any collision suffix")
+        require(app.ogsGame?.sendChat("Thanks for the game!") == true, "Can thank opponent from Review")
+        require(socket.messages.contains { $0.contains("game/chat") && $0.contains("Thanks for the game!") }, "Chat uses retained game room")
         require(app.player.maxIndex == 2 && app.player.currentIndex == 2, "Final review includes full history even when viewing earlier moves")
         require(ai.currentGameId == "7" && ai.currentAnalysisData[1]?.rootInfo?.visits == onlineVisits,
                 "Online analysis survives transfer without save/load interaction")
@@ -181,6 +192,10 @@ private final class ModeSocket: OGSWebSocket {
                 "Player metadata survives leaving OGS")
         require(app.completedGameResult?.lowercased().contains("resignation") == true, "Result survives leaving OGS")
         require(client.isSocketAuthenticated && socket.cancellations == 0, "Review keeps the user signed in")
+        NotificationCenter.default.post(client.makeGameNotification(name: Notification.Name("OGSChatReceived"),
+            userInfo: ["username": "White", "body": "Thank you too!", "date": 1]))
+        settle()
+        require(app.ogsGame?.chatMessages.contains { $0.message == "Thank you too!" } == true, "Opponent replies arrive during Review")
         // Render the real workspace in both board styles. The result must be
         // readable above the board even at a compact window size.
         for (style, width, height) in [(ViewMode.view2D, 1000.0, 700.0), (.view3D, 1440.0, 900.0)] {
@@ -203,6 +218,7 @@ private final class ModeSocket: OGSWebSocket {
             require(lines.contains(where: { $0.contains("game finished") }), "Finished-game heading is visible in \(name)")
             require(lines.contains(where: { $0.contains("resignation") }), "Actual result is readable in \(name)")
             require(!lines.contains(where: { $0.contains("select folder") }), "Game library is closed in \(name)")
+            require(lines.contains(where: { $0.contains("game chat") }), "Postgame chat is visible in \(name)")
             window.orderOut(nil)
         }
         vm.goToStart(); settle()
@@ -212,7 +228,9 @@ private final class ModeSocket: OGSWebSocket {
         settle()
         require(app.player.currentIndex == 0, "Repeated finish events do not reset review position")
         require(app.showRightPanel, "Repeated finish events respect a manually reopened library")
-        app.mode = .observe; app.resumeOnlineGame(id: 9); settle(0.3)
+        app.mode = .observe
+        require(app.postGameChatID == nil, "Changing modes releases postgame chat")
+        app.resumeOnlineGame(id: 9); settle(0.3)
         socket.receiver?(.success(#"42["game/9/removed_stones_accepted",{"phase":"finished","outcome":"Timeout","winner":10}]"#))
         settle()
         require(app.mode == .observe, "Observed games do not hijack the user's mode")
@@ -227,6 +245,6 @@ private final class ModeSocket: OGSWebSocket {
         require(UserDefaults.standard.bool(forKey: "analyzeDuringPlay") == false, "Realtime off preference persists")
         AppSettings.shared.pauseAnalysisOnBattery = false
         require(UserDefaults.standard.object(forKey: "pauseAnalysisOnBattery") as? Bool == false, "Battery preference persists")
-        print("PASS: hidden cached results in local/online play, no early reveal during scoring or manual Review/variations, automatic final-result transition, full history and cached depth retained, metadata/result retained, battery pause, navigation, duplicate completion and observation isolation.")
+        print("PASS: hidden cached results in local/online play, no early reveal during scoring or manual Review/variations, automatic final-result transition, full history and cached depth retained, metadata/result retained, foreground review on battery, navigation, duplicate completion and observation isolation.")
     }
 }

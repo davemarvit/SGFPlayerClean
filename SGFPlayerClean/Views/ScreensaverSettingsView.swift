@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ScreensaverSettingsView: View {
     @ObservedObject var manager: ScreensaverManager
+    var showsHeading = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Screensaver", systemImage: "display").font(.headline)
+            if showsHeading { Label("Screensaver", systemImage: "display").interfaceFont(.headline) }
             Toggle("Quiet Go playback", isOn: Binding(get: { manager.enabled }, set: { manager.setEnabled($0) }))
                 .toggleStyle(.switch).tint(.cyan)
             if let config = manager.configuration {
@@ -28,7 +30,7 @@ struct ScreensaverSettingsView: View {
                 .foregroundStyle(.secondary)
             if let status = manager.status { Text(status).fixedSize(horizontal: false, vertical: true) }
         }
-        .font(.caption).foregroundStyle(.white)
+        .interfaceFont(.caption).foregroundStyle(.white)
         .disabled(manager.busy)
         .accessibilityIdentifier("screensaver-settings")
     }

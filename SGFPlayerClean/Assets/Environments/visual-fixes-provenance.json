@@ -1,0 +1,31 @@
+{
+  "method": "Built-in image generation/editing tool",
+  "date": "2026-10-17",
+  "references": [
+    "https://kurokigoishiten.com/en/pages/about_go_board",
+    "https://www.maruhachigobanten.jp/en/go_b03.html"
+  ],
+  "assets": [
+    {
+      "asset": "garden-panorama-v2.png",
+      "prompt": "Use case: lighting-weather. Edit target: this equirectangular Japanese garden panorama for a realistic 3D game. Preserve the garden, pond, empty gravel clearing and 2:1 full spherical projection, seamless left/right edges. Change overcast weather to a beautiful clear sunny afternoon with blue sky, a few thin clouds, rich natural greens, sunlit stones and visible directional shadows. Sun is upper LEFT in the central forward-facing view (azimuth 315 degrees, elevation 50 degrees); shadows on central clearing extend toward lower right. Keep empty foreground without furniture or people. Photographic realism, not illustration, no text."
+    },
+    {
+      "asset": "moon-panorama-v2.png",
+      "prompt": "Use case: photorealistic-natural. Create a 2:1 full spherical equirectangular panorama from the summit of a lunar mountain, for a realistic 3D Go game. Apollo photographic appearance, fine pale gray lunar dust on a small broad level summit beneath the camera, slopes falling steeply away beyond the immediate foreground, magnificent distant crater rims far BELOW eye level, expansive completely black space, a small clearly visible blue Earth in the central forward view. Horizon/depressed distant ridges at 62 percent image height, black sky dominates upper 60%. No tall foreground boulders, no astronauts, no equipment. Single harsh sun offscreen to the LEFT of the central forward view: azimuth 315 degrees (image horizontal coordinate 37.5 percent), elevation 48 degrees; every small rock shadow agrees and extends right/away from that light. True equirectangular projection, left/right edges seamless, nadir fine lunar dust, no labels. Scientific photographic realism, not stylized CG."
+    },
+    {
+      "asset": "kaya-endgrain-v2.png",
+      "prompt": "Use case: precise-object-edit. Edit target is a macro wood texture for the end face of a premium Japanese kaya tenmasa floor Go board. Replace the exaggerated porous horizontal rings with very fine close-spaced VERTICAL growth-ring lines that gently bow sideways, as on real quarter-sawn kaya goban end grain. Preserve the existing warm honey golden yellow overall color. Physically subtle dense silky grain, no coarse oak pores, no knots, no concentric bullseyes, no dramatic stripes. Flat orthographic texture covering the entire square, uniform diffuse illumination, no shadows, no border, no board grid or objects. Photographic wood texture, fine grain resolving at close viewing distance."
+    },
+    {
+      "asset": "kaya-top-v2.png",
+      "prompt": "Use case: precise-object-edit. Improve this golden kaya Go board wood texture into a very high resolution photographic material. Preserve exactly its warm golden honey yellow color and fine straight VERTICAL grain orientation, full square continuous single-piece wood. Natural Hyuga kaya tenmasa silky closely spaced uneven growth lines, subtle real fiber detail and quiet organic variation, without coarse pores, knots, broad dark stripes or distracting features. Flat even diffuse light for a texture, no shadows or shading gradients, no objects, no grid, no text. This is the playing surface of an expensive traditional Japanese floor Go board."
+    },
+    {
+      "asset": "oil-flame.png",
+      "method": "Built-in image generation",
+      "prompt": "Use case: photorealistic-natural. Asset: small oil-lamp flame sprite for a real-time 3D scene. One single slender real kerosene wick flame, isolated on a genuinely transparent background. Photographic exposure: white-hot slender core near lower-middle, pale luminous yellow body, orange taper at tip, very subtle blue translucent foot. Soft naturally translucent edges, no black outline, no opaque colored bands, no geometric facets, slight organic asymmetric bend. Flame fills central 60 percent width and 90 percent height of a portrait image. No lamp, wick, smoke, sparks, objects, text or shadows. Transparent pixels around and partially transparent feathered flame edges, realistic optical glow kept very small."
+    }
+  ]
+}

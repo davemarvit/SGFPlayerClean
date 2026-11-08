@@ -6,8 +6,12 @@ the library, preview it, or open macOS Screen Saver settings. Select **Quiet Go*
 in macOS once to use it while idle. The in-app toggle controls Quiet Go playback;
 it does not change the Mac's idle timeout, lock policy, wallpaper or other savers.
 
-A game advances approximately every 1.5 seconds. Its final position remains for
-seven seconds, then another game plays. A shuffled queue includes every game
+A game advances approximately every 1.5 seconds, with at least two seconds for
+a pass. A translucent circle names the passing player, fading in quickly and
+out more slowly. Its final position and recorded result remain for seven seconds,
+then another game plays. Results include point margins, resignation, timeout,
+draws, void games and an explicit label when no result was recorded. The saver
+does not infer results or skip recorded dame moves. A shuffled queue includes every game
 before reshuffling and avoids immediate repeats across cycles (a one-game library
 necessarily repeats). Playback continues indefinitely. It is silent, uses the
 normal SGF parser/replay engine, and handles setup, captures, passes and main-line

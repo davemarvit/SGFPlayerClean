@@ -1,0 +1,166 @@
+{
+  "challenge": {
+    "labeled": 72,
+    "occluded": 0,
+    "episodes": 48,
+    "with_profiles": 72,
+    "modes": {
+      "baseline": {
+        "counts": {
+          "uncertain": 23,
+          "correct": 49
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.7256944444444444,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "pooled_outline": {
+        "counts": {
+          "uncertain": 23,
+          "correct": 49
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.7256944444444444,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "outline": {
+        "counts": {
+          "uncertain": 23,
+          "correct": 49
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.7256944444444444,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "shadow": {
+        "counts": {
+          "uncertain": 23,
+          "correct": 49
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.7256944444444444,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      }
+    }
+  },
+  "development": {
+    "labeled": 181,
+    "occluded": 6,
+    "episodes": 44,
+    "with_profiles": 109,
+    "modes": {
+      "baseline": {
+        "counts": {
+          "correct": 168,
+          "uncertain": 9,
+          "wrong": 4
+        },
+        "wrong_color_or_phantom": 2,
+        "episode_mean_accuracy": 0.931060606060606,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 2
+      },
+      "pooled_outline": {
+        "counts": {
+          "correct": 169,
+          "uncertain": 9,
+          "wrong": 3
+        },
+        "wrong_color_or_phantom": 2,
+        "episode_mean_accuracy": 0.9348484848484848,
+        "improved": 1,
+        "regressed": 0,
+        "occluded_stone_calls": 2
+      },
+      "outline": {
+        "counts": {
+          "correct": 169,
+          "uncertain": 9,
+          "wrong": 3
+        },
+        "wrong_color_or_phantom": 2,
+        "episode_mean_accuracy": 0.9348484848484848,
+        "improved": 1,
+        "regressed": 0,
+        "occluded_stone_calls": 2
+      },
+      "shadow": {
+        "counts": {
+          "correct": 168,
+          "uncertain": 9,
+          "wrong": 4
+        },
+        "wrong_color_or_phantom": 2,
+        "episode_mean_accuracy": 0.931060606060606,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 2
+      }
+    }
+  },
+  "holdout": {
+    "labeled": 196,
+    "occluded": 0,
+    "episodes": 46,
+    "with_profiles": 175,
+    "modes": {
+      "baseline": {
+        "counts": {
+          "correct": 164,
+          "uncertain": 30,
+          "wrong": 2
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.8229296066252588,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "pooled_outline": {
+        "counts": {
+          "correct": 167,
+          "uncertain": 28,
+          "wrong": 1
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.8533643892339544,
+        "improved": 3,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "outline": {
+        "counts": {
+          "correct": 167,
+          "uncertain": 28,
+          "wrong": 1
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.8533643892339544,
+        "improved": 3,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      },
+      "shadow": {
+        "counts": {
+          "correct": 164,
+          "uncertain": 30,
+          "wrong": 2
+        },
+        "wrong_color_or_phantom": 0,
+        "episode_mean_accuracy": 0.8229296066252588,
+        "improved": 0,
+        "regressed": 0,
+        "occluded_stone_calls": 0
+      }
+    }
+  }
+}

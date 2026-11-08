@@ -4,6 +4,17 @@ import Combine
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
+    @Published var savedGamesFolderURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Quiet Go Games", isDirectory: true) {
+        didSet {
+            UserDefaults.standard.set(savedGamesFolderURL.path, forKey: "savedGamesFolderPath")
+            UserDefaults.standard.set(true, forKey: "savedGamesFolderConfigured")
+            if let bookmark = try? savedGamesFolderURL.bookmarkData(options: .platformSecurityScope,
+                includingResourceValuesForKeys: nil, relativeTo: nil) {
+                UserDefaults.standard.set(bookmark, forKey: "savedGamesFolderBookmark")
+            } else { UserDefaults.standard.removeObject(forKey: "savedGamesFolderBookmark") }
+        }
+    }
     
     // MARK: - Playback
     @Published var moveInterval: TimeInterval {
@@ -55,7 +66,17 @@ class AppSettings: ObservableObject {
         } else { isMuted = true }
     }
 
+    @Published var environment3D: PlayingEnvironment {
+        didSet { UserDefaults.standard.set(environment3D.rawValue, forKey: "environment3D") }
+    }
+    @Published var lampFlicker: Bool {
+        didSet { UserDefaults.standard.set(lampFlicker, forKey: "lampFlicker") }
+    }
+
     // MARK: - Visuals
+    @Published var showBoardCoordinates: Bool {
+        didSet { UserDefaults.standard.set(showBoardCoordinates, forKey: "showBoardCoordinates") }
+    }
     @Published var showMoveNumbers: Bool {
         didSet { UserDefaults.standard.set(showMoveNumbers, forKey: "showMoveNumbers") }
     }
@@ -76,20 +97,26 @@ class AppSettings: ObservableObject {
     }
 
     // MARK: - 3D Viewport Default Persistence
-    @Published var camera3DRotationX: Double {
-        didSet { UserDefaults.standard.set(camera3DRotationX, forKey: "cam3D.rotX") }
+    // The active viewport is owned by ContentView3D's local state. Publishing
+    // these saved defaults rebuilt the entire scene five times per drag event.
+    var camera3DRotationX: Double {
+        didSet { if camera3DRotationX != oldValue { UserDefaults.standard.set(camera3DRotationX, forKey: "cam3D.rotX") } }
     }
-    @Published var camera3DRotationY: Double {
-        didSet { UserDefaults.standard.set(camera3DRotationY, forKey: "cam3D.rotY") }
+    var camera3DRotationY: Double {
+        didSet { if camera3DRotationY != oldValue { UserDefaults.standard.set(camera3DRotationY, forKey: "cam3D.rotY") } }
     }
-    @Published var camera3DDistance: Double {
-        didSet { UserDefaults.standard.set(camera3DDistance, forKey: "cam3D.dist") }
+    var camera3DDistance: Double {
+        didSet { if camera3DDistance != oldValue { UserDefaults.standard.set(camera3DDistance, forKey: "cam3D.dist") } }
     }
-    @Published var camera3DPanX: Double {
-        didSet { UserDefaults.standard.set(camera3DPanX, forKey: "cam3D.panX") }
+    var camera3DPanX: Double {
+        didSet { if camera3DPanX != oldValue { UserDefaults.standard.set(camera3DPanX, forKey: "cam3D.panX") } }
     }
-    @Published var camera3DPanY: Double {
-        didSet { UserDefaults.standard.set(camera3DPanY, forKey: "cam3D.panY") }
+    var camera3DPanY: Double {
+        didSet { if camera3DPanY != oldValue { UserDefaults.standard.set(camera3DPanY, forKey: "cam3D.panY") } }
+    }
+
+    @Published var interfaceTextScale: Double {
+        didSet { UserDefaults.standard.set(interfaceTextScale, forKey: "interfaceTextScale") }
     }
 
     // MARK: - UI Appearance
@@ -100,6 +127,9 @@ class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(panelDiffusiveness, forKey: "panelDiffusiveness") }
     }
     
+    @Published var analysisEnabled: Bool {
+        didSet { UserDefaults.standard.set(analysisEnabled, forKey: "analysisEnabled") }
+    }
     @Published var analyzeDuringPlay: Bool {
         didSet { UserDefaults.standard.set(analyzeDuringPlay, forKey: "analyzeDuringPlay") }
     }
@@ -119,7 +149,7 @@ class AppSettings: ObservableObject {
         didSet {
             if let url = folderURL {
                 do {
-                    let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    let data = try url.bookmarkData(options: .platformSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                     UserDefaults.standard.set(data, forKey: "folderURLBookmark")
                 } catch {
                      print("❌ Failed to save folder bookmark: \(error)")
@@ -134,7 +164,7 @@ class AppSettings: ObservableObject {
                 // For the specific file, we can also try security scope, or just rely on path if folder is open.
                 // Let's use security scope to be safe.
                 do {
-                    let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    let data = try url.bookmarkData(options: .platformSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                     UserDefaults.standard.set(data, forKey: "lastPlayedGameBookmark")
                 } catch {
                     print("❌ Failed to save last game bookmark: \(error)")
@@ -144,6 +174,18 @@ class AppSettings: ObservableObject {
     }
 
     private init() {
+        if let path = UserDefaults.standard.string(forKey: "savedGamesFolderPath") {
+            savedGamesFolderURL = URL(fileURLWithPath: path, isDirectory: true)
+        }
+        if let data = UserDefaults.standard.data(forKey: "savedGamesFolderBookmark") {
+            var stale = false
+            if let url = try? URL(resolvingBookmarkData: data, options: .platformSecurityScope,
+                relativeTo: nil, bookmarkDataIsStale: &stale) { savedGamesFolderURL = url }
+        }
+        let savedTextScale = UserDefaults.standard.object(forKey: "interfaceTextScale") as? Double ?? 1
+        interfaceTextScale = savedTextScale.isFinite ? min(1.6, max(1, savedTextScale)) : 1
+        environment3D = PlayingEnvironment(rawValue: UserDefaults.standard.string(forKey: "environment3D") ?? "") ?? .gardenRoom
+        lampFlicker = UserDefaults.standard.object(forKey: "lampFlicker") as? Bool ?? true
         self.moveInterval = UserDefaults.standard.double(forKey: "moveInterval") == 0 ? 0.5 : UserDefaults.standard.double(forKey: "moveInterval")
         self.jitterMultiplier = UserDefaults.standard.object(forKey: "jitterMultiplier") as? Double ?? 1.0
         self.shuffleGameOrder = UserDefaults.standard.bool(forKey: "shuffleGameOrder")
@@ -156,6 +198,7 @@ class AppSettings: ObservableObject {
         
         let sVol = UserDefaults.standard.object(forKey: "stoneVolume") as? Double
         self.stoneVolume = (sVol == nil) ? 1.0 : sVol!
+        self.showBoardCoordinates = UserDefaults.standard.bool(forKey: "showBoardCoordinates")
         self.showMoveNumbers = UserDefaults.standard.bool(forKey: "showMoveNumbers")
         self.showLastMoveDot = UserDefaults.standard.object(forKey: "showLastMoveDot") as? Bool ?? true
         self.showLastMoveCircle = UserDefaults.standard.bool(forKey: "showLastMoveCircle")
@@ -172,6 +215,7 @@ class AppSettings: ObservableObject {
         self.camera3DPanX = UserDefaults.standard.object(forKey: "cam3D.panX") as? Double ?? 0.0
         self.camera3DPanY = UserDefaults.standard.object(forKey: "cam3D.panY") as? Double ?? 0.0
 
+        self.analysisEnabled = UserDefaults.standard.object(forKey: "analysisEnabled") as? Bool ?? true
         self.analyzeDuringPlay = UserDefaults.standard.object(forKey: "analyzeDuringPlay") as? Bool ?? true
         self.pauseAnalysisOnBattery = UserDefaults.standard.object(forKey: "pauseAnalysisOnBattery") as? Bool ?? true
         // AI System Defaults
@@ -181,7 +225,7 @@ class AppSettings: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "folderURLBookmark") {
             var isStale = false
             do {
-                let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                let url = try URL(resolvingBookmarkData: data, options: .platformSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
                 if isStale { print("⚠️ Folder bookmark is stale") }
                 self.folderURL = url
             } catch {
@@ -192,7 +236,7 @@ class AppSettings: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "lastPlayedGameBookmark") {
             var isStale = false
             do {
-                let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                let url = try URL(resolvingBookmarkData: data, options: .platformSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
                 self.lastPlayedGameURL = url
             } catch {
                 print("❌ Failed to resolve last game bookmark: \(error)")
@@ -334,5 +378,38 @@ class SoundManager: ObservableObject {
             }
             play("you_lose")
         }
+    }
+}
+
+// iOS document-provider bookmarks carry their scope without the macOS flag.
+private extension URL.BookmarkCreationOptions {
+    static var platformSecurityScope: Self {
+        #if os(macOS)
+        return .withSecurityScope
+        #else
+        return []
+        #endif
+    }
+}
+private extension URL.BookmarkResolutionOptions {
+    static var platformSecurityScope: Self {
+        #if os(macOS)
+        return .withSecurityScope
+        #else
+        return []
+        #endif
+    }
+}
+
+/// Human board coordinates (GTP): A1 is bottom-left; I is omitted.
+enum GoBoardCoordinates {
+    static func column(_ index: Int) -> String {
+        let letters = Array("ABCDEFGHJKLMNOPQRSTUVWXYZ")
+        guard letters.indices.contains(index) else { return "" }
+        return String(letters[index])
+    }
+
+    static func row(_ index: Int, boardSize: Int) -> String {
+        String(boardSize - index)
     }
 }

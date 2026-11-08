@@ -6,31 +6,37 @@ import Foundation
 import SwiftUI
 import Combine
 import AVFoundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class AppModel: ObservableObject {
     @AppStorage("viewMode") var viewMode: ViewMode = .view2D
+    let recenter3DRequested = PassthroughSubject<Void, Never>()
     @Published var games: [SGFGameWrapper] = []
     
     var sortedGames: [SGFGameWrapper] {
-        switch gameSortMethod {
-        case .defaultIndex:
-            return games
-        case .name:
-            return games.sorted { 
-                let name1 = "\($0.game.info.playerBlack ?? "") \($0.game.info.playerWhite ?? "")"
-                let name2 = "\($1.game.info.playerBlack ?? "") \($1.game.info.playerWhite ?? "")"
-                return name1.caseInsensitiveCompare(name2) == .orderedAscending 
+        guard gameSortMethod != .defaultIndex else { return games }
+        func key(_ wrapper: SGFGameWrapper) -> String {
+            let info = wrapper.game.info
+            let value: String?
+            switch gameSortMethod {
+            case .name: value = info.playerBlack
+            case .whitePlayer: value = info.playerWhite
+            case .date, .oldestDate: value = info.date
+            case .defaultIndex: value = nil
             }
-        case .date:
-            return games.sorted { 
-                let d1 = $0.game.info.date ?? ""
-                let d2 = $1.game.info.date ?? ""
-                return d1 > d2 // Descending latest first (YYYY-MM-DD typical format)
-            }
+            return value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
+        // Preserve collection order for ties; missing metadata always goes last.
+        return games.enumerated().sorted { left, right in
+            let lhs = key(left.element), rhs = key(right.element)
+            if lhs.isEmpty != rhs.isEmpty { return !lhs.isEmpty }
+            let comparison = lhs.compare(rhs, options: [.caseInsensitive, .diacriticInsensitive, .numeric], locale: .current)
+            if comparison == .orderedSame { return left.offset < right.offset }
+            return gameSortMethod == .date ? comparison == .orderedDescending : comparison == .orderedAscending
+        }.map(\.element)
     }
-    
+
     @Published var selection: SGFGameWrapper? = nil
     @Published var player = SGFPlayer()
     @Published var ogsClient: OGSClient
@@ -49,6 +55,7 @@ final class AppModel: ObservableObject {
     
     @Published var aiAnalysisEnabled = false { didSet { refreshAIPolicy() } }
     var aiUnavailableReason: String? {
+        if !AppSettings.shared.analysisEnabled { return "Analysis is turned off in Settings." }
         if isChangingMode { return "Changing board…" }
         if mode == .playOnline || mode == .localPlay { return "AI results are hidden until the game finishes." }
         if unfinishedLocalAnalysisIDs.contains(where: { analysisEngine.currentGameId == $0 || analysisEngine.currentGameId.hasPrefix($0 + "#") }) { return "Finish the local game to reveal its AI review." }
@@ -61,8 +68,71 @@ final class AppModel: ObservableObject {
         return nil
     }
     var isAIAvailable: Bool { aiAnalysisEnabled && aiUnavailableReason == nil }
+    @Published private(set) var keepAnalyzing = false
+
+    func setKeepAnalyzing(_ enabled: Bool) {
+        guard enabled != keepAnalyzing else { return }
+        if enabled {
+            guard mode == .review, isAIAvailable else { return }
+            backgroundAnalysis.stop()
+            backgroundReviewStatus = nil
+            boardVM?.suspendAutomaticAnalysis()
+            analysisEngine.pauseAnalysis()
+            analysisEngine.retryFailedAnalysis()
+            keepAnalyzing = true
+            updateContinuousAnalysis()
+        } else {
+            stopKeepingAnalysis()
+            boardVM?.resumeAutomaticAnalysis()
+        }
+    }
+
+    /// Explicit review work uses the same opening-to-end sweep for imported and
+    /// just-finished games. It replaces a selected-position continuous search.
+    func analyzeFullGame() {
+        guard mode == .review, aiUnavailableReason == nil, let vm = boardVM else { return }
+        stopKeepingAnalysis()
+        backgroundAnalysis.stop()
+        backgroundReviewStatus = nil
+        vm.suspendAutomaticAnalysis()
+        vm.cancelVariationPreview()
+        analysisEngine.pauseAnalysis()
+        analysisEngine.retryFailedAnalysis()
+        if !analysisEngine.isEngineRunning { analysisEngine.start() }
+        aiAnalysisEnabled = true
+        vm.triggerFullGameAnalysis()
+    }
+
+    private func stopKeepingAnalysis() {
+        if keepAnalyzing { keepAnalyzing = false }
+        analysisEngine.stopContinuousAnalysis()
+    }
+
+    private func updateContinuousAnalysis() {
+        guard keepAnalyzing else { return }
+        guard mode == .review, isAIAvailable, let vm = boardVM else {
+            stopKeepingAnalysis(); return
+        }
+        guard !player.isPlaying, !vm.isScrubbing else {
+            analysisEngine.stopContinuousAnalysis(); return
+        }
+        if analysisEngine.continuousAnalysisTurn != player.currentIndex {
+            analysisEngine.stopContinuousAnalysis()
+        }
+        if !analysisEngine.isEngineRunning && analysisEngine.engineStartupError == nil { analysisEngine.start() }
+        let payload = player.getCurrentAIPayload()
+        analysisEngine.analyzeGame(id: analysisEngine.currentGameId, initialStones: payload.initial,
+            moves: payload.moves, size: player.board.size, settings: player.analysisSettings, continuous: true)
+    }
     @Published private(set) var backgroundReviewStatus: String?
     @Published private(set) var completedGameResult: String?
+    @Published private(set) var completedGameSaveURL: URL?
+    @Published private(set) var completedGameSaveError: String?
+    private let injectedGamesDirectory: URL?
+    private var completedGamesDirectory: URL { injectedGamesDirectory ?? AppSettings.shared.savedGamesFolderURL }
+    private var pendingArchiveActions: [() -> Void] = []
+    private var choosingSaveFolder = false
+    private var pendingCompletedGame: (id: String, data: Data, name: String)?
     private let backgroundAnalysis: BackgroundGameAnalysis
     private let analysisEngine: KataGoEngine
     private let analysisResources = AnalysisResourceMonitor()
@@ -71,18 +141,29 @@ final class AppModel: ObservableObject {
     private var armedOnlineReview: Int?
     private var terminalSnapshotID: Int?
     private var requestedTerminalSnapshotID: Int?
+    @Published private(set) var postGameChatID: Int?
+    private var openingPostGameReview = false
     private var reviewedOnlineGames = Set<Int>()
+
+    func closePostGameChat() {
+        guard postGameChatID != nil else { return }
+        ogsClient.leaveViewedGame()
+        postGameChatID = nil
+        ogsClient.observationOnly = mode != .playOnline
+        isTypingInChat = false
+    }
     private var unfinishedLocalAnalysisIDs = Set<String>()
     private var completedAnalysisIDs = Set<String>()
     private var completionResults: [String: String] = [:]
 
     var usesAdaptiveAnalysis: Bool {
-        mode == .playOnline || mode == .localPlay || completedAnalysisIDs.contains(analysisEngine.currentGameId)
+        keepAnalyzing || mode == .playOnline || mode == .localPlay
     }
     private var lastAIAvailability = false
     private var isChangingMode = false
     private func refreshAIPolicy(restartAnalysis: Bool = false) {
         let available = isAIAvailable
+        if !available || mode != .review { stopKeepingAnalysis() }
         if available && !usesAdaptiveAnalysis && !analysisEngine.isEngineRunning && analysisEngine.engineStartupError == nil {
             analysisEngine.start()
         }
@@ -114,11 +195,96 @@ final class AppModel: ObservableObject {
         case defaultIndex = "Default"
         case name = "Name"
         case date = "Date"
+        case oldestDate = "Oldest Date"
+        case whitePlayer = "White Player"
+
+        var label: String {
+            switch self {
+            case .defaultIndex: return "Collection order"
+            case .name: return "Black player (A–Z)"
+            case .whitePlayer: return "White player (A–Z)"
+            case .date: return "Date (newest first)"
+            case .oldestDate: return "Date (oldest first)"
+            }
+        }
     }
+
+    private var libraryLoadID = UUID()
     
     private var cancellables: Set<AnyCancellable> = []
     private var currentActiveInternalGameID: Int? = nil
     @Published var resumableGameID: Int? = nil
+    private struct LaunchPosition: Codable {
+        var version = 1
+        let mode: String
+        let sgf: String
+        let originalSGF: String?
+        let sourceURL: URL?
+        let analysisID: String
+        let selectedNode: Int?
+        let activeLeaf: Int?
+        let moveIndex: Int
+        let analysisSettings: GameAnalysisSettings
+        let freeHandicapPlacement: Bool
+    }
+    private static let launchPositionKey = "lastBoardSessionV1"
+
+    /// Save the real game, never the temporary hover continuation. Keeping the
+    /// SGF itself also permits recovery after its source is moved or disconnected.
+    func saveLaunchPosition() {
+        guard !mode.usesOGS, !isChangingMode, let vm = boardVM else { return }
+        let snapshot = player.createSnapshot()
+        var game = SGFGame()
+        game.info = selection?.game.info ?? SGFGame.Info()
+        game.boardSize = snapshot.size; game.moves = snapshot.moves; game.setup = snapshot.setup
+        game.initialPlayer = snapshot.initialPlayer
+        game.info.rules = snapshot.analysisSettings.rules
+        game.info.komi = String(snapshot.analysisSettings.effectiveKomi)
+        game.handicap = vm.localViewState().handicap
+        var document = mode == .review ? vm.reviewTree : nil
+        document?.followPlayback(index: snapshot.currentIndex)
+        let state = LaunchPosition(mode: mode.rawValue,
+            sgf: SGFWriter.serialize(document?.source ?? ReviewTree.linearTree(game)),
+            originalSGF: document?.originalSGF, sourceURL: selection?.url,
+            analysisID: document?.baseAnalysisID ?? analysisEngine.currentGameId,
+            selectedNode: document?.selectedID, activeLeaf: document?.activePath.last,
+            moveIndex: snapshot.currentIndex, analysisSettings: snapshot.analysisSettings,
+            freeHandicapPlacement: snapshot.freeHandicapMoves > 0)
+        guard let data = try? JSONEncoder().encode(state),
+              data != UserDefaults.standard.data(forKey: Self.launchPositionKey) else { return }
+        UserDefaults.standard.set(data, forKey: Self.launchPositionKey)
+    }
+
+    private func restoreLaunchPosition() -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: Self.launchPositionKey),
+              let state = try? JSONDecoder().decode(LaunchPosition.self, from: data),
+              state.version == 1, state.mode == mode.rawValue, !mode.usesOGS,
+              let source = try? SGFParser.parse(text: state.sgf), !source.branches.isEmpty else { return false }
+        var game = SGFGame.from(tree: source)
+        guard (2...19).contains(game.boardSize), state.moveIndex >= 0 else { return false }
+        game.analysisOnline = state.analysisSettings.online
+        game.whiteHandicapBonus = state.analysisSettings.whiteHandicapBonus
+        game.ruleOverrides = state.analysisSettings.ruleOverrides
+        game.freeHandicapPlacement = state.freeHandicapPlacement
+        let url = state.sourceURL ?? URL(fileURLWithPath: "/tmp/RestoredGame.sgf")
+        let wrapper = SGFGameWrapper(url: url, game: game)
+        var document: ReviewTree?
+        if mode == .review {
+            var tree = ReviewTree(game: game, analysisID: state.analysisID,
+                                  filename: url.lastPathComponent, originalSGF: state.originalSGF)
+            guard let selected = state.selectedNode, tree.nodes.indices.contains(selected),
+                  tree.nodes[selected].moveNumber == state.moveIndex else { return false }
+            if let leaf = state.activeLeaf, tree.nodes.indices.contains(leaf) { tree.select(leaf) }
+            tree.select(selected)
+            document = tree
+        } else if state.moveIndex > game.moves.count { return false }
+        selection = state.sourceURL == nil && game.moves.isEmpty && game.setup.isEmpty ? nil : wrapper
+        boardVM?.restoreLaunchPosition(wrapper, document: document, moveIndex: state.moveIndex)
+        if mode == .localPlay { beginLocalAnalysisSession() }
+        player.pause()
+        return true
+    }
+
     private struct SavedBoard {
         let snapshot: SGFPlayer.LocalGameSnapshot
         let selection: SGFGameWrapper?
@@ -137,7 +303,9 @@ final class AppModel: ObservableObject {
     // private var stoneClickPlayer: AVAudioPlayer? // Replaced by above
 
     init(ogsClient injectedClient: OGSClient? = nil, defaultMode: AppMode = .localPlay,
-         analysisEngine: KataGoEngine = .shared) {
+         analysisEngine: KataGoEngine = .shared,
+         completedGamesDirectory: URL? = nil) {
+        self.injectedGamesDirectory = completedGamesDirectory
         self.analysisEngine = analysisEngine
         self.backgroundAnalysis = BackgroundGameAnalysis(engine: analysisEngine)
         let savedMode = UserDefaults.standard.string(forKey: "lastAppMode").flatMap(AppMode.init(rawValue:))
@@ -165,6 +333,11 @@ final class AppModel: ObservableObject {
         bVM.canEditLocally = { [weak self] in self?.mode == .localPlay }
         bVM.usesAdaptiveAnalysis = { [weak self] in self?.usesAdaptiveAnalysis == true }
         self.boardVM = bVM
+        bVM.onReviewEdited = { [weak self] document in self?.saveEditedReview(document) }
+        Publishers.CombineLatest3(bVM.$currentMoveIndex, bVM.$isScrubbing, player.$isPlaying)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.updateContinuousAnalysis() }
+            .store(in: &cancellables)
         self.ogsGame = OGSGameViewModel(ogsClient: ogsClient, player: player, timeControl: timeControl)
         
         // Audio Binding
@@ -218,39 +391,56 @@ final class AppModel: ObservableObject {
         // willTerminate is synchronous on the main thread. Do not defer the flush
         // to a queue that may never run after the app exits.
         NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)
-            .sink { _ in analysisEngine.stop() }.store(in: &cancellables)
+            .sink { [weak self] _ in
+                self?.saveLaunchPosition()
+                UserDefaults.standard.synchronize()
+                analysisEngine.stop()
+            }.store(in: &cancellables)
         
         // CONDITION: Only connect if we restore Online Mode
         if wasOnline {
             print("⏳ Persistence detected. Connection deferred to handleStartup().")
         }
         
-        // This prevents the "confusing local game" issue when waking up in online mode.
-        // FIX: Always attempt to load the folder in background so it's ready if we switch to Local.
+        let restoredPosition = !wasOnline && restoreLaunchPosition()
+        // Populate the library independently. Its first batch must never choose
+        // the launch board or overwrite a restored standalone SGF/variation.
         if let url = AppSettings.shared.folderURL {
-             print("📂 Auto-loading saved folder: \(url.path)")
-             // Update status before calling (function will overwrite it, but good for tracing)
-             self.loadingStatus = "Startup: Loading Folder..."
-             // Loading the library must not replace a restored Local Play tab.
-             loadFolder(url, autoSelect: startupMode == .review || (savedMode == nil && !wasOnline))
-        } else {
-             self.loadingStatus = "Startup: No Folder Set"
+            loadFolder(url, autoSelect: false)
+        } else { loadingStatus = "Startup: No Folder Set" }
+        if !wasOnline && !restoredPosition {
+            if startupMode == .localPlay && AppSettings.shared.startGameOnLaunch { startInstantGame() }
+            else if startupMode == .review { boardVM?.prepareReviewTreeFromCurrentPosition(restoreDraft: false) }
         }
-        
-        if !wasOnline {
-            // Enhanced Startup Logic: Prioritize Folder > Instant Game
-            // Only start "Instant Game" if we are definitively NOT restoring online mode.
-            if startupMode == .localPlay && AppSettings.shared.folderURL == nil && AppSettings.shared.startGameOnLaunch {
-                self.loadingStatus = "Startup: Instant Game"
-                self.startInstantGame()
-            }
-        } else {
-            self.loadingStatus = "Startup: Resuming Online" // (This might be overwritten by loadFolder's status, which is fine)
-        }
-        
+        // Debounce redraw bursts, but flush synchronously at quit. Read the state
+        // after Published values and review-tree selection have finished updating.
+        player.objectWillChange.merge(with: bVM.objectWillChange)
+            .debounce(for: .milliseconds(250), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.saveLaunchPosition() }
+            .store(in: &cancellables)
+
         ogsClient.observationOnly = mode != .playOnline
         // Master mute/volume applies to every stone player, including active clips.
         let settings = AppSettings.shared
+        // Deliver after @Published has stored the new value, so every permission
+        // check sees the same master setting. Stop the process, including pending
+        // restarts, while retaining its flushed analysis cache on disk.
+        settings.$analysisEnabled.removeDuplicates().dropFirst().receive(on: RunLoop.main)
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                if !enabled {
+                    self.backgroundAnalysis.stop()
+                    self.backgroundReviewStatus = nil
+                    self.boardVM?.updateAnalysisPermission()
+                    self.analysisEngine.stop()
+                } else {
+                    _ = self.analysisEngine.loadAnalysisCache(for: self.analysisEngine.currentGameId, game: self.player)
+                }
+                self.refreshAIPolicy(restartAnalysis: enabled)
+                self.objectWillChange.send()
+                self.updatePlayedGameAnalysis()
+            }.store(in: &cancellables)
+        if !settings.analysisEnabled { analysisEngine.stop() }
         Publishers.CombineLatest3(settings.$stoneVolume, settings.$masterVolume, settings.$isMuted)
             .sink { [weak self] stone, master, muted in
                 guard let self else { return }
@@ -293,7 +483,7 @@ final class AppModel: ObservableObject {
         var newGame = SGFGame()
         newGame.boardSize = 19
         newGame.info.event = "Instant Game"
-        newGame.info.date = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short)
+        newGame.info.date = SGFGame.Info.formattedGameDate(Date())
         
         let dummyURL = URL(fileURLWithPath: "/tmp/InstantGame.sgf")
         let wrapper = SGFGameWrapper(url: dummyURL, game: newGame)
@@ -311,11 +501,14 @@ final class AppModel: ObservableObject {
     }
 
     private func changeMode(from previous: AppMode) {
+        stopKeepingAnalysis()
         if previous == .localPlay { updateLocalReviewEligibility() }
         isChangingMode = true
         backgroundAnalysis.stop()
         backgroundReviewStatus = nil
         completedGameResult = nil
+        completedGameSaveURL = nil
+        completedGameSaveError = nil
         defer {
             if mode == .localPlay && !analysisEngine.currentGameId.hasPrefix("played-local-") { beginLocalAnalysisSession() }
             isChangingMode = false
@@ -323,11 +516,14 @@ final class AppModel: ObservableObject {
         }
         player.pause()
         saveCurrentBoard(for: previous)
-        if previous.usesOGS { ogsClient.leaveViewedGame() }
+        if !openingPostGameReview {
+            closePostGameChat()
+            if previous.usesOGS { ogsClient.leaveViewedGame() }
+        }
         isCreatingChallenge = false
         isTypingInChat = false
         currentActiveInternalGameID = nil
-        ogsClient.observationOnly = mode != .playOnline
+        ogsClient.observationOnly = mode != .playOnline && postGameChatID == nil
         isOnlineMode = mode.usesOGS
         UserDefaults.standard.set(mode.rawValue, forKey: "lastAppMode")
         UserDefaults.standard.set(mode.usesOGS, forKey: "isOnlineModePersistent")
@@ -343,6 +539,9 @@ final class AppModel: ObservableObject {
             completedGameResult = completionResults[saved.analysisID]
             if let state = saved.viewState { boardVM?.restoreLocalViewState(state) }
             if mode == .review { boardVM?.prepareReviewTreeFromCurrentPosition(info: selection?.game.info) }
+            if completedGameResult != nil {
+                completedGameSaveURL = archivedURL(id: boardVM?.reviewTree?.baseAnalysisID ?? saved.analysisID)
+            }
             boardVM?.syncState()
         } else if mode == .localPlay { startInstantGame() }
         else if mode == .review { boardVM?.prepareReviewTreeFromCurrentPosition() }
@@ -361,16 +560,152 @@ final class AppModel: ObservableObject {
 
     var showsAnalysisWorkspace: Bool { isAIAvailable || (mode == .review && boardVM?.reviewTree != nil) }
 
+    var suggestedReviewFilename: String {
+        if let document = boardVM?.reviewTree { return reviewFilename(document) }
+        return reviewName(for: (selection?.game.info ?? SGFGame.Info()).suggestedFilename)
+    }
+
+    private func reviewName(for filename: String) -> String {
+        (filename as NSString).deletingPathExtension + "-review.sgf"
+    }
+
+    private func archivedURL(id: String, review: Bool = false) -> URL? {
+        let key = review ? "savedReviewPathsV1" : "savedCompletedGamePathsV1"
+        guard let path = (UserDefaults.standard.dictionary(forKey: key) as? [String: String])?[id] else { return nil }
+        let url = URL(fileURLWithPath: path)
+        if let injectedGamesDirectory,
+           url.deletingLastPathComponent().standardizedFileURL.path != injectedGamesDirectory.standardizedFileURL.path { return nil }
+        return url
+    }
+
+    private func reviewFilename(_ document: ReviewTree) -> String {
+        if let existing = archivedURL(id: document.baseAnalysisID, review: true) { return existing.lastPathComponent }
+        return reviewName(for: archivedURL(id: document.baseAnalysisID)?.lastPathComponent ?? document.baseGame.info.suggestedFilename)
+    }
+
+    private func rememberArchivedURL(_ url: URL, id: String, review: Bool) {
+        let key = review ? "savedReviewPathsV1" : "savedCompletedGamePathsV1"
+        var paths = UserDefaults.standard.dictionary(forKey: key) as? [String: String] ?? [:]
+        paths[id] = url.path
+        // Loading an SGF uses its path as the analysis identity. Keep that alias
+        // so reopening either the original or its review updates the same review.
+        paths[url.path.replacingOccurrences(of: "/", with: "_")] = url.path
+        if review, let original = archivedURL(id: id) {
+            paths[original.path.replacingOccurrences(of: "/", with: "_")] = url.path
+        }
+        UserDefaults.standard.set(paths, forKey: key)
+    }
+
+    /// Reserve new filenames without replacing another game with the same players/date.
+    /// Repeated completion notifications reuse identical saved content; review edits
+    /// update only the review file previously assigned to this document.
+    private func archiveSGF(_ data: Data, id: String, filename: String, review: Bool = false) throws -> URL {
+        let directory = review ? (archivedURL(id: id)?.deletingLastPathComponent() ?? completedGamesDirectory) : completedGamesDirectory
+        let scoped = directory.startAccessingSecurityScopedResource()
+        defer { if scoped { directory.stopAccessingSecurityScopedResource() } }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        if review, let url = archivedURL(id: id, review: true) {
+            if (try? Data(contentsOf: url)) != data { try data.write(to: url, options: .atomic) }
+            return url
+        }
+        if let url = archivedURL(id: id, review: review), let existing = try? Data(contentsOf: url) {
+            if existing == data { return url }
+        }
+        let stem = (filename as NSString).deletingPathExtension
+        var number = 1
+        while true {
+            let name = number == 1 ? filename : "\(stem) (\(number)).sgf"
+            let url = directory.appendingPathComponent(name)
+            do {
+                try data.write(to: url, options: .withoutOverwriting)
+                rememberArchivedURL(url, id: id, review: review)
+                return url
+            } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileWriteFileExistsError {
+                number += 1
+            }
+        }
+    }
+
+    func retryCompletedGameSave() {
+        guard let pending = pendingCompletedGame else { return }
+        do {
+            completedGameSaveURL = try archiveSGF(pending.data, id: pending.id, filename: pending.name)
+            completedGameSaveError = nil
+        } catch {
+            completedGameSaveURL = nil
+            completedGameSaveError = "Could not save the finished game: " + error.localizedDescription
+        }
+    }
+
+    private func saveEditedReview(_ document: ReviewTree) {
+        prepareAutomaticSave { [weak self] in self?.writeEditedReview(document) }
+    }
+
+    private func writeEditedReview(_ document: ReviewTree) {
+        do {
+            _ = try archiveSGF(Data(SGFWriter.serialize(document.source).utf8), id: document.baseAnalysisID,
+                               filename: reviewFilename(document), review: true)
+        } catch {
+            boardVM?.reviewTreeError = "Could not save the review SGF. The draft is retained; use Save SGF. " + error.localizedDescription
+        }
+    }
+
+    private func prepareAutomaticSave(_ action: @escaping () -> Void) {
+        guard injectedGamesDirectory == nil, !UserDefaults.standard.bool(forKey: "savedGamesFolderConfigured") else {
+            action(); return
+        }
+        pendingArchiveActions.append(action)
+        guard !choosingSaveFolder else { return }
+        choosingSaveFolder = true
+        chooseGameSaveFolder(firstSave: true) { [weak self] in
+            guard let self else { return }
+            self.choosingSaveFolder = false
+            let actions = self.pendingArchiveActions
+            self.pendingArchiveActions.removeAll()
+            actions.forEach { $0() }
+        }
+    }
+
+    func chooseGameSaveFolder(firstSave: Bool = false, completion: (() -> Void)? = nil) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false; panel.canChooseDirectories = true
+        panel.canCreateDirectories = true; panel.allowsMultipleSelection = false
+        panel.title = "Choose where games are saved"
+        panel.prompt = "Use This Folder"
+        panel.message = "Finished games and reviews save automatically here. You can change this in Settings → Saved Games."
+            + (firstSave ? " Cancel uses Documents/Quiet Go Games." : "")
+        if firstSave { try? FileManager.default.createDirectory(at: completedGamesDirectory, withIntermediateDirectories: true) }
+        panel.directoryURL = completedGamesDirectory
+        let finished: (NSApplication.ModalResponse) -> Void = { response in
+            if response == .OK, let url = panel.url { AppSettings.shared.savedGamesFolderURL = url }
+            if firstSave { UserDefaults.standard.set(true, forKey: "savedGamesFolderConfigured") }
+            completion?()
+        }
+        if let window = NSApp.keyWindow { panel.beginSheetModal(for: window, completionHandler: finished) }
+        else { panel.begin(completionHandler: finished) }
+    }
+
+    func rememberSGFSave(to url: URL, reviewID: String? = nil) {
+        if injectedGamesDirectory == nil { AppSettings.shared.savedGamesFolderURL = url.deletingLastPathComponent() }
+        if let reviewID {
+            rememberArchivedURL(url, id: reviewID, review: true)
+        }
+    }
+
     func saveReviewSGF() {
         guard mode == .review, let vm = boardVM, let data = vm.reviewSGFData() else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
         panel.title = "Save game with variations"
-        let name = (vm.reviewTree?.filename as NSString?)?.deletingPathExtension ?? "Game"
-        panel.nameFieldStringValue = name + "-review.sgf"
+        panel.nameFieldStringValue = suggestedReviewFilename
+        panel.directoryURL = completedGamesDirectory
+        let reviewID = vm.reviewTree?.baseAnalysisID
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            do { try data.write(to: url, options: .atomic) }
+            do {
+                try data.write(to: url, options: .atomic)
+                self.rememberSGFSave(to: url, reviewID: reviewID)
+            }
             catch { vm.reviewTreeError = "Could not save the SGF: " + error.localizedDescription }
         }
     }
@@ -403,6 +738,10 @@ final class AppModel: ObservableObject {
     /// finished online game from passes, a disconnect, or a local clock estimate.
     func updatePlayedGameAnalysis(resources: AnalysisResources? = nil, now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         guard !isChangingMode, let vm = boardVM else { return }
+        if keepAnalyzing {
+            updateContinuousAnalysis()
+            if keepAnalyzing { return }
+        }
         let delayed = lastAnalysisTick.map { now - $0 > 1.5 } ?? false
         lastAnalysisTick = now
         let ai = analysisEngine
@@ -434,9 +773,12 @@ final class AppModel: ObservableObject {
                 game.info.playerWhite = ogsClient.whitePlayerName
                 game.info.event = "Online game"
                 game.info.result = onlineSGFResult
-                game.info.date = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+                game.info.date = SGFGame.Info.formattedGameDate(Date())
                 selection = SGFGameWrapper(url: URL(fileURLWithPath: "/played-games/ogs-\(id).sgf"), game: game)
+                postGameChatID = id
+                openingPostGameReview = true
                 finishPlayedGame(result: ogsClient.activeGameOutcome ?? "Game finished")
+                openingPostGameReview = false
             }
         } else if mode == .localPlay, !completedAnalysisIDs.contains(ai.currentGameId),
                   let score = vm.localScoring, score.isFinal,
@@ -451,8 +793,10 @@ final class AppModel: ObservableObject {
         let playingOnline = mode == .playOnline && vm.isOnlineContext &&
             currentActiveInternalGameID == ogsClient.activeGameID && ogsClient.isAccountGameParticipant && !ogsClient.isGameFinished
         let playing = playingOnline || mode == .localPlay
-        let reviewing = mode == .review && completedAnalysisIDs.contains(ai.currentGameId) && isAIAvailable
-        let shouldCompute = (playing && AppSettings.shared.analyzeDuringPlay) || reviewing
+        // Only hidden work during play belongs to the resource-throttled worker.
+        // All visible Review sessions use BoardViewModel's whole-game sweep,
+        // including games that have just finished.
+        let shouldCompute = AppSettings.shared.analysisEnabled && playing && AppSettings.shared.analyzeDuringPlay
         guard shouldCompute else {
             backgroundAnalysis.stop()
             if backgroundReviewStatus != nil { backgroundReviewStatus = nil }
@@ -460,8 +804,7 @@ final class AppModel: ObservableObject {
         }
         backgroundAnalysis.tick(player: player, resources: resources ?? analysisResources.sample(),
             pauseOnBattery: AppSettings.shared.pauseAnalysisOnBattery, now: now, interfaceDelayed: delayed)
-        let status = reviewing ? backgroundAnalysis.status : nil
-        if backgroundReviewStatus != status { backgroundReviewStatus = status }
+        if backgroundReviewStatus != nil { backgroundReviewStatus = nil }
     }
 
     private var onlineSGFResult: String? {
@@ -480,6 +823,15 @@ final class AppModel: ObservableObject {
 
     private func finishPlayedGame(result: String) {
         let id = analysisEngine.currentGameId
+        let snapshot = player.createSnapshot()
+        var finished = SGFGame()
+        finished.info = selection?.game.info ?? SGFGame.Info()
+        finished.boardSize = snapshot.size; finished.moves = snapshot.moves; finished.setup = snapshot.setup
+        finished.initialPlayer = snapshot.initialPlayer
+        finished.info.rules = snapshot.analysisSettings.rules
+        finished.info.komi = String(snapshot.analysisSettings.effectiveKomi)
+        finished.handicap = boardVM?.localViewState().handicap ?? 0
+        pendingCompletedGame = (id, Data(SGFWriter.serialize(ReviewTree.linearTree(finished)).utf8), finished.info.suggestedFilename)
         backgroundAnalysis.stop()
         unfinishedLocalAnalysisIDs.remove(id)
         completedAnalysisIDs.insert(id)
@@ -494,6 +846,7 @@ final class AppModel: ObservableObject {
         boardVM?.clearScoringForReview()
         completedGameResult = result
         aiAnalysisEnabled = true
+        prepareAutomaticSave { [weak self] in self?.retryCompletedGameSave() }
     }
 
     func showOnlineBrowser() {
@@ -801,60 +1154,100 @@ final class AppModel: ObservableObject {
     }
 
     func selectGame(_ g: SGFGameWrapper) { 
+        stopKeepingAnalysis()
+        closePostGameChat()
         mode = .review
         completedGameResult = nil
         backgroundReviewStatus = nil
         backgroundAnalysis.stop()
         selection = g
-        boardVM?.loadGame(g) 
+        let id = g.url.path.replacingOccurrences(of: "/", with: "_")
+        let canonical = archivedURL(id: id, review: true)
+        let savedReview = canonical.flatMap { url in
+            url.path == g.url.path ? nil : try? String(contentsOf: url, encoding: .utf8)
+        }
+        boardVM?.loadGame(g, savedReviewSGF: savedReview)
         // Persist as last played
         AppSettings.shared.lastPlayedGameURL = g.url
         // Kickstart AI for the first view
         boardVM?.syncState()
         boardVM?.triggerFullGameAnalysis()
     }
-    func promptForFolder() {
+    static func makeSGFOpenPanel(folderOnly: Bool = false) -> NSOpenPanel {
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false
+        panel.canChooseFiles = !folderOnly
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Load Games"
-        
+        panel.allowedContentTypes = [UTType(filenameExtension: "sgf") ?? .data]
+        panel.prompt = "Open"
+        panel.title = folderOnly ? "Choose an SGF folder" : "Open an SGF game or folder"
+        panel.message = "Select a folder to load all its games, or open a folder and select an SGF to review just that game."
+        return panel
+    }
+
+    func promptForSGFs() { presentSGFOpenPanel(folderOnly: false) }
+    func promptForFolder() { presentSGFOpenPanel(folderOnly: true) }
+
+    private func presentSGFOpenPanel(folderOnly: Bool) {
+        let panel = Self.makeSGFOpenPanel(folderOnly: folderOnly)
         panel.begin { [weak self] response in
-            if response == .OK, let url = panel.url {
-                // 1. Persist (Only when user explicitly chooses)
-                AppSettings.shared.folderURL = url
-                // 2. Load
-                self?.loadFolder(url)
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try self?.openSGFSelection(url)
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Could not open SGF"
+                alert.informativeText = error.localizedDescription
+                alert.runModal()
             }
         }
     }
-    
+
+    func openSGFSelection(_ url: URL) throws {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        if try url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true {
+            AppSettings.shared.folderURL = url
+            loadFolder(url)
+        } else {
+            let data = try Data(contentsOf: url)
+            let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+            let wrapper = SGFGameWrapper(url: url, game: SGFGame.from(tree: try SGFParser.parse(text: text)))
+            // An earlier folder scan must not replace this explicitly chosen game.
+            libraryLoadID = UUID()
+            games = [wrapper]
+            selectGame(wrapper)
+            loadingStatus = "Loaded 1 game."
+        }
+    }
+
     func loadFolder(_ url: URL, autoSelect: Bool = true) {
+        let loadID = UUID()
+        libraryLoadID = loadID
         // 2. Clear current library
         self.games = []
-        self.selection = nil
+        if autoSelect { self.selection = nil }
         self.loadingStatus = "Loading Folder..." 
         
         // 3. Background Load
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
-            DispatchQueue.main.async { self.loadingStatus = "Requesting Access..." }
+            DispatchQueue.main.async {
+                guard self.libraryLoadID == loadID else { return }
+                self.loadingStatus = "Requesting Access..."
+            }
             
             // Security Scope
             let accessing = url.startAccessingSecurityScopedResource()
-            if !accessing {
-                DispatchQueue.main.async { 
-                    self.loadingStatus = "❌ Access Denied (Security Scope)" 
-                    AppSettings.shared.folderURL = nil
-                }
-                return
+            // Unscoped readable URLs are valid in the non-sandboxed Mac app.
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            DispatchQueue.main.async {
+                guard self.libraryLoadID == loadID else { return }
+                self.loadingStatus = "Reading Directory..."
             }
-            defer { url.stopAccessingSecurityScopedResource() }
-            
-            DispatchQueue.main.async { self.loadingStatus = "Reading Directory..." }
-            
+
             let fm = FileManager.default
             var foundURLs: [URL] = []
             
@@ -867,23 +1260,33 @@ final class AppModel: ObservableObject {
                 
                 if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: resourceKeys, options: options) {
                     for case let fileURL as URL in enumerator {
-                       if fileURL.pathExtension.lowercased() == "sgf" {
+                       if fileURL.pathExtension.lowercased() == "sgf",
+                          (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
                            foundURLs.append(fileURL)
                        }
                     }
                 }
             } catch {
                 let msg = "❌ Read Error: \(error.localizedDescription)"
-                DispatchQueue.main.async { self.loadingStatus = msg }
+                DispatchQueue.main.async {
+                    guard self.libraryLoadID == loadID else { return }
+                    self.loadingStatus = msg
+                }
                 return
             }
             
             if foundURLs.isEmpty {
-                 DispatchQueue.main.async { self.loadingStatus = "⚠️ Folder is empty (0 SGF files)." }
+                 DispatchQueue.main.async {
+                     guard self.libraryLoadID == loadID else { return }
+                     self.loadingStatus = "⚠️ Folder is empty (0 SGF files)."
+                 }
                  return
             }
             
-            DispatchQueue.main.async { self.loadingStatus = "Found \(foundURLs.count) files. Parsing..." }
+            DispatchQueue.main.async {
+                guard self.libraryLoadID == loadID else { return }
+                self.loadingStatus = "Found \(foundURLs.count) files. Parsing..."
+            }
             
             // Sort & Shuffle
             foundURLs.sort { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
@@ -906,6 +1309,7 @@ final class AppModel: ObservableObject {
                     if loaded.count == batchSize {
                         let batch = loaded
                         DispatchQueue.main.async {
+                            guard self.libraryLoadID == loadID else { return }
                             self.games = batch
                             self.loadingStatus = "Loaded \(batch.count)..."
                             
@@ -921,7 +1325,10 @@ final class AppModel: ObservableObject {
                         }
                     } else if loaded.count > batchSize, loaded.count % 100 == 0 {
                         let batch = loaded
-                        DispatchQueue.main.async { self.games = batch; self.loadingStatus = "Loaded \(batch.count)..." }
+                        DispatchQueue.main.async {
+                            guard self.libraryLoadID == loadID else { return }
+                            self.games = batch; self.loadingStatus = "Loaded \(batch.count)..."
+                        }
                     }
                 } catch {
                     print("Failed to parse \(sgfURL.lastPathComponent): \(error)")
@@ -931,6 +1338,7 @@ final class AppModel: ObservableObject {
             
             // 4. Update Main Actor (Final Flush)
             DispatchQueue.main.async {
+                guard self.libraryLoadID == loadID else { return }
                 self.games = loaded
                 
                 if autoSelect && !hasAutoSelected && !self.mode.usesOGS {

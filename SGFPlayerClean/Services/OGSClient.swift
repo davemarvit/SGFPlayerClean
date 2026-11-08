@@ -135,6 +135,13 @@ class OGSClient: NSObject, ObservableObject {
     private var observedRefreshRows: [OGSObservedGame] = []
     private var observedGamesTimeout: OGSCancellable?
     @Published var blackBoxContent: String = ""
+    struct GameError: Equatable {
+        let gameID: Int
+        let revision: Int
+        let message: String
+    }
+    @Published private(set) var lastGameError: GameError?
+    private var gameErrorRevision = 0
     @Published var isSubscribedToSeekgraph = false
     @Published var trafficLogs: [NetworkLogEntry] = []
     
@@ -741,8 +748,13 @@ class OGSClient: NSObject, ObservableObject {
     }
 
     func fetchSGF(gameID: Int, completion: @escaping (Data?) -> Void) {
+        fetchSGFDownload(gameID: gameID) { data, _ in completion(data) }
+    }
+
+    /// Preserve the server's download name, including its Unicode player names.
+    func fetchSGFDownload(gameID: Int, completion: @escaping (Data?, String?) -> Void) {
         guard let url = URL(string: "https://online-go.com/api/v1/games/\(gameID)/sgf") else {
-            completion(nil); return
+            completion(nil, nil); return
         }
         
         var request = URLRequest(url: url)
@@ -751,10 +763,12 @@ class OGSClient: NSObject, ObservableObject {
         _ = httpTransport.get(request) { result in
             do {
                 let response = try result.get()
-                completion(try response.validatedData())
+                let data = try response.validatedData()
+                let name = response.response.suggestedFilename
+                completion(data, name?.lowercased().hasSuffix(".sgf") == true ? name : nil)
             } catch {
                 NSLog("[OGS-SGF] Download failed: \(error.localizedDescription)")
-                completion(nil)
+                completion(nil, nil)
             }
         }
     }
@@ -1224,6 +1238,18 @@ class OGSClient: NSObject, ObservableObject {
             let parts = eventName.components(separatedBy: "/")
             guard parts.count >= 3, let packetID = Int(parts[1]), packetID == activeGameID else { return }
             if ["move", "gamedata", "undo_accepted"].contains(parts[2]) { gameMoveRevision += 1 }
+        }
+
+        // OGS sends move-rule failures on the game's error event, not as a
+        // board update. Keep that explanation available to physical-board input.
+        if let gameID=activeGameID, eventName == "game/\(gameID)/error" {
+            let text=(event.payload as? String) ?? (payload["message"] as? String) ?? (payload["error"] as? String)
+            if let text, !text.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty {
+                gameErrorRevision += 1
+                lastGameError=GameError(gameID:gameID,revision:gameErrorRevision,message:String(text.prefix(500)))
+                lastError=lastGameError?.message
+            }
+            return
         }
 
         if eventName.hasSuffix("/gamedata") {

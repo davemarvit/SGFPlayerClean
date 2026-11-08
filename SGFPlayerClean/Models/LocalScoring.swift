@@ -59,7 +59,8 @@ struct LocalScoringSession {
     struct Region { let points: Set<BoardPosition>; let owner: Stone? }
     let index: Int
     let board: BoardSnapshot
-    let capturesByBlack, capturesByWhite, handicap: Int
+    var capturesByBlack, capturesByWhite: Int
+    let handicap: Int
     var rule: LocalScoringRule
     var komiText: String
     var handicapBonusOverride: Double?
@@ -147,9 +148,12 @@ struct LocalScoringSession {
         return points
     }
 
-    var result: LocalScoreResult? {
+    var result: LocalScoreResult? { result(territory:territory) }
+
+    /// Arithmetic can also count a player-reviewed ownership map, including open
+    /// boundaries in an unfinished position. Life/death and agreement remain external.
+    func result(territory points:[BoardPosition:Stone]) -> LocalScoreResult? {
         guard issue == nil, let komi = Double(komiText.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
-        let points = territory
         func side(_ color: Stone) -> LocalScoreResult.Side {
             let empty = points.values.filter { $0 == color }.count
             let living = board.stones.filter { $0.value == color && !deadStones.contains($0.key) }.count

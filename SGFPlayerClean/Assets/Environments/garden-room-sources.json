@@ -1,0 +1,44 @@
+{
+  "photo": {
+    "file": "garden-room-ninomaru-8k.jpg",
+    "source": "https://polyhaven.com/a/ninomaru_teien",
+    "author": "Greg Zaal",
+    "license": "CC0",
+    "dimensions": [
+      8192,
+      4096
+    ],
+    "projection": "full 360 x 180 equirectangular",
+    "download": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/ninomaru_teien.jpg"
+  },
+  "plant": {
+    "source": "https://polyhaven.com/a/potted_plant_02",
+    "author": "Rico Cilliers",
+    "license": "CC0",
+    "license_url": "https://polyhaven.com/license",
+    "downloads": {
+      "plant.gltf": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/potted_plant_02/potted_plant_02_4k.gltf",
+      "plant.bin": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/potted_plant_02/potted_plant_02.bin",
+      "room-plant-leaf-color.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_leaves_diff_4k.jpg",
+      "room-plant-leaf-normal.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_leaves_nor_gl_4k.jpg",
+      "room-plant-leaf-rough.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_leaves_rough_4k.jpg",
+      "room-plant-leaf-alpha.png": "https://dl.polyhaven.org/file/ph-assets/Models/png/4k/potted_plant_02/potted_plant_02_leaves_alpha_4k.png",
+      "room-plant-pot-color.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_pot_diff_4k.jpg",
+      "room-plant-pot-normal.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_pot_nor_gl_4k.jpg",
+      "room-plant-pot-rough.jpg": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/4k/potted_plant_02/potted_plant_02_pot_rough_4k.jpg"
+    },
+    "conversion": "Tests/Preview/BakeRoomPlant.swift; normalized to 23.5 scene units high; grayscale opacity packed into alpha"
+  },
+  "lighting_reference": "https://www.seikenji.org/",
+  "sha256": {
+    "room-plant-pot-color.jpg": "edec3dd48e62fc685d1f93618ca5c281a5e44b4a1eb4d0ebea43c5f78513dd76",
+    "room-plant-leaf-normal.jpg": "0edd8878fc9cc81fe6673d1548f405c0287381987bd717108fd2bdebaa0bc27b",
+    "room-plant-pot-normal.jpg": "afb17402229f42976a514c6d3976b67c6b912d89c74250041d877a7005f91224",
+    "room-plant-opacity.png": "6819d96341817fef7f60d67a8ae6344807b5184eab90252817a80ecb34c5a6f3",
+    "room-plant-leaf-color.jpg": "740e36eb5bb00934e5780eac98e5617d9abb23a82a5e089693e72297e850bcea",
+    "room-plant-leaf-rough.jpg": "52ee107aa6b7f50c528bf330da07a345baa3d50e221916282b64469c43909327",
+    "room-plant-pot-rough.jpg": "b07e16760ab1aa860f6dd44c44a5bb94dba0d8aa2420c9f423d7e7506303aa66",
+    "room-plant.scn": "7a5c98eb49e574169dc0594e4376a2692d68e584d90b947df147258fe4612c31",
+    "garden-room-ninomaru-8k.jpg": "e5d430733d2cc186344fad950a7d7f75172061f4bb7dd1c7b89028a3e4bdda16"
+  }
+}

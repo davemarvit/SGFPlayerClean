@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// Represents a single candidate move from KataGo
 struct AIMoveInfo: Codable, Identifiable {
@@ -14,6 +15,22 @@ struct AIMoveInfo: Codable, Identifiable {
     // KataGo outputs winrate from the perspective of the player to move.
 }
 
+/// Use the engine's recommendation order, not noisy individual win percentages.
+enum AIMovePresentation {
+    static func ranked(_ moves: [AIMoveInfo]) -> [AIMoveInfo] {
+        moves.sorted {
+            let lhs = $0.order.flatMap { $0 >= 0 ? $0 : nil } ?? Int.max
+            let rhs = $1.order.flatMap { $0 >= 0 ? $0 : nil } ?? Int.max
+            if lhs != rhs { return lhs < rhs }
+            // Legacy caches have no order. Search visits are a safer fallback
+            // than optimistic winrate outliers, with stable coordinate ties.
+            if $0.visits != $1.visits { return $0.visits > $1.visits }
+            return $0.move < $1.move
+        }
+    }
+
+}
+
 /// Represents the analysis payload for a specific turn
 struct AIAnalysis: Codable {
     let id: String
@@ -21,6 +38,136 @@ struct AIAnalysis: Codable {
     let turnNumber: Int
     let moveInfos: [AIMoveInfo]?
     let rootInfo: AIRootInfo?
+    var ownership: [Double]? = nil
+    var ownershipStdev: [Double]? = nil
+}
+
+/// A conservative visual estimate of stones expected to be lost, not a death
+/// probability or scoring adjudication. Ownership uses the configured side-to-move
+/// perspective. Neutral ownership (including unsettled/seki points) is not death.
+struct AIOwnershipEstimate: Equatable {
+    let color: Stone
+    let strength: Double
+}
+
+enum AILikelyDeadStones {
+    static func ownershipEstimates(analysis: AIAnalysis?, size: Int,
+                                   playerToMove: Stone) -> [BoardPosition: AIOwnershipEstimate] {
+        guard (2...19).contains(size), let analysis, (analysis.rootInfo?.visits ?? 0) >= 50,
+              let ownership = analysis.ownership, ownership.count == size * size,
+              ownership.allSatisfy({ $0.isFinite && (-1...1).contains($0) }) else { return [:] }
+        let deviations = analysis.ownershipStdev
+        if let deviations, deviations.count != ownership.count ||
+            !deviations.allSatisfy({ $0.isFinite && (0...1).contains($0) }) { return [:] }
+        var result: [BoardPosition: AIOwnershipEstimate] = [:]
+        for (index, value) in ownership.enumerated() {
+            let evidence = abs(value) - (deviations?[index] ?? 0)
+            guard evidence > 0.65 else { continue }
+            let color = value > 0 ? playerToMove : playerToMove.opponent
+            result[BoardPosition(index / size, index % size)] = AIOwnershipEstimate(
+                color: color, strength: min(1, (evidence - 0.65) / 0.35))
+        }
+        // One confidently owned intersection beneath an isolated living stone
+        // is not a territory region. Require support from nearby strong estimates.
+        return result.filter { point, estimate in
+            let neighbors = [BoardPosition(point.row - 1, point.col), BoardPosition(point.row + 1, point.col),
+                             BoardPosition(point.row, point.col - 1), BoardPosition(point.row, point.col + 1)]
+            return neighbors.filter { result[$0]?.color == estimate.color }.count >= 2
+        }
+    }
+
+    static func strengths(analysis: AIAnalysis?, stones: [BoardPosition: Stone],
+                          size: Int, playerToMove: Stone) -> [BoardPosition: Double] {
+        guard (2...19).contains(size), let analysis, (analysis.rootInfo?.visits ?? 0) >= 50,
+              let ownership = analysis.ownership, ownership.count == size * size,
+              ownership.allSatisfy({ $0.isFinite && (-1...1).contains($0) }) else { return [:] }
+        let deviations = analysis.ownershipStdev
+        if let deviations, deviations.count != ownership.count ||
+            !deviations.allSatisfy({ $0.isFinite && (0...1).contains($0) }) { return [:] }
+        var remaining = Set(stones.keys)
+        var result: [BoardPosition: Double] = [:]
+        while let start = remaining.first {
+            guard let color = stones[start] else { break }
+            var group: [BoardPosition] = [], pending = [start]
+            remaining.remove(start)
+            var evidence = 1.0
+            while let point = pending.popLast() {
+                guard (0..<size).contains(point.row), (0..<size).contains(point.col) else { return [:] }
+                group.append(point)
+                let index = point.row * size + point.col
+                let own = ownership[index] * (color == playerToMove ? 1 : -1)
+                // Require the whole connected group to look lost. Search disagreement
+                // reduces the mark instead of being presented as calibrated confidence.
+                evidence = min(evidence, -own - (deviations?[index] ?? 0))
+                for neighbor in [BoardPosition(point.row - 1, point.col), BoardPosition(point.row + 1, point.col),
+                                 BoardPosition(point.row, point.col - 1), BoardPosition(point.row, point.col + 1)] {
+                    if stones[neighbor] == color, remaining.remove(neighbor) != nil { pending.append(neighbor) }
+                }
+            }
+            // Begin with a subtle warning for likely losses. Keep the existing
+            // stronger marks unchanged once evidence reaches 0.6.
+            guard evidence > 0.2 else { continue }
+            let strength = evidence < 0.6
+                ? (evidence - 0.2) * 0.5
+                : min(1, (evidence - 0.5) / 0.5)
+            for point in group { result[point] = strength }
+        }
+        return result
+    }
+}
+
+/// Shared feathered ownership field for the flat board and the lit 3D surface.
+/// Values are interpolated between intersections, leaving uncertain gaps clear.
+enum AIOwnershipTexture {
+    private static let cache = NSCache<NSString, CGImage>()
+    static let pixelsPerCell = 24
+    // Strongly settled regions should read clearly over the board grain.
+    // Confidence and feathering still taper the shading toward uncertain edges.
+    static let maximumOpacity = 0.50
+
+    static func image(estimates: [BoardPosition: AIOwnershipEstimate], size: Int) -> CGImage? {
+        guard (2...19).contains(size), !estimates.isEmpty else { return nil }
+        var field = Array(repeating: 0.0, count: size * size)
+        for (point, estimate) in estimates where (0..<size).contains(point.row) && (0..<size).contains(point.col) {
+            guard estimate.strength.isFinite else { continue }
+            field[point.row * size + point.col] = min(1, max(0, estimate.strength)) * (estimate.color == .black ? -1 : 1)
+        }
+        let key = ("\(size):" + field.map { String($0) }.joined(separator: ",")) as NSString
+        if let image = cache.object(forKey: key) { return image }
+        let dimension = size * pixelsPerCell
+        var pixels = Array(repeating: UInt8(0), count: dimension * dimension * 4)
+        func smooth(_ value: Double) -> Double { value * value * (3 - 2 * value) }
+        func sample(_ row: Int, _ col: Int) -> Double {
+            field[min(size - 1, max(0, row)) * size + min(size - 1, max(0, col))]
+        }
+        for y in 0..<dimension {
+            let row = (Double(y) + 0.5) / Double(pixelsPerCell) - 0.5
+            let r = Int(floor(row)), fy = smooth(row - Double(r))
+            for x in 0..<dimension {
+                let col = (Double(x) + 0.5) / Double(pixelsPerCell) - 0.5
+                let c = Int(floor(col)), fx = smooth(col - Double(c))
+                let top = sample(r, c) * (1 - fx) + sample(r, c + 1) * fx
+                let bottom = sample(r + 1, c) * (1 - fx) + sample(r + 1, c + 1) * fx
+                let value = top * (1 - fy) + bottom * fy
+                // Feather the outer half-cell as well, so the map has no hard frame.
+                let edge = min(Double(min(x, dimension - 1 - x)) + 0.5,
+                               Double(min(y, dimension - 1 - y)) + 0.5)
+                let alpha = UInt8((255 * maximumOpacity * abs(value) * smooth(min(1, edge / 12))).rounded())
+                let offset = (y * dimension + x) * 4
+                let ink: UInt8 = value > 0 ? alpha : 0
+                pixels[offset] = ink; pixels[offset + 1] = ink; pixels[offset + 2] = ink
+                pixels[offset + 3] = alpha
+            }
+        }
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData),
+              let image = CGImage(width: dimension, height: dimension, bitsPerComponent: 8,
+                  bitsPerPixel: 32, bytesPerRow: dimension * 4, space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                  provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else { return nil }
+        cache.totalCostLimit = 8 * 1024 * 1024
+        cache.setObject(image, forKey: key, cost: pixels.count)
+        return image
+    }
 }
 
 struct AIRootInfo: Codable {
@@ -60,6 +207,17 @@ struct AIPositionSummary {
 
 import SwiftUI
 
+/// Symmetric score bounds keep an even position centered. Probability uses the
+/// same screen extent but preserves its own fixed 0–100% meaning.
+struct AIReviewGraphScale {
+    let limit: Double
+    init(scores: [Double]) {
+        let magnitude = scores.filter(\.isFinite).map { abs($0) }.max() ?? 0
+        limit = magnitude > 0 ? magnitude : 1
+    }
+    func winratePosition(_ blackWinrate: Double) -> Double { (blackWinrate * 2 - 1) * limit }
+}
+
 enum MoveQuality: String, CaseIterable, Identifiable {
     case excellent = "Excellent"
     case good = "Good"
@@ -69,15 +227,53 @@ enum MoveQuality: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
     
-    var color: Color {
-        switch self {
-        case .excellent: return .blue
-        case .good: return .green
-        case .mediocre: return .yellow
-        case .poor: return .orange
-        case .disastrous: return .pink
+    /// Textual summary grades retain their existing thresholds. Board/graph colors
+    /// use the continuous point-loss scale below, independently of these categories.
+    static func classify(winDelta: Double, scoreDelta: Double) -> Self {
+        if winDelta < -0.20 || scoreDelta < -8.0 { return .disastrous }
+        if winDelta < -0.10 || scoreDelta < -4.0 { return .poor }
+        if winDelta < -0.05 || scoreDelta < -2.0 { return .mediocre }
+        if winDelta < -0.015 || scoreDelta < -0.5 { return .good }
+        return .excellent
+    }
+}
+
+/// KaTrain's normal palette and loss anchors, with interpolation instead of bands.
+/// https://github.com/sanderland/katrain/blob/master/katrain/gui/theme.py
+/// https://github.com/sanderland/katrain/blob/master/katrain/config.json
+enum MoveLossPalette {
+    struct Stop {
+        let loss: Double
+        let red: Double
+        let green: Double
+        let blue: Double
+        var color: Color { Color(.sRGB, red: red, green: green, blue: blue) }
+        var labelColor: Color {
+            func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+            let luminance = 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+            return luminance > 0.179 ? .black : .white
         }
     }
+    static let stops: [Stop] = [
+        Stop(loss: 0, red: 0.117, green: 0.588, blue: 0),
+        Stop(loss: 0.5, red: 0.67, green: 0.9, blue: 0.18),
+        Stop(loss: 1.5, red: 0.95, green: 0.95, blue: 0),
+        Stop(loss: 3, red: 0.9, green: 0.4, blue: 0.1),
+        Stop(loss: 6, red: 0.8, green: 0, blue: 0),
+        Stop(loss: 12, red: 0.447, green: 0.129, blue: 0.42)
+    ]
+    static func sample(pointsLost: Double) -> Stop {
+        guard pointsLost.isFinite else { return Stop(loss: 0, red: 0.5, green: 0.5, blue: 0.5) }
+        let loss = max(0, pointsLost)
+        for (low, high) in zip(stops, stops.dropFirst()) where loss <= high.loss {
+            let t = (loss - low.loss) / (high.loss - low.loss)
+            return Stop(loss: loss, red: low.red + (high.red - low.red) * t,
+                green: low.green + (high.green - low.green) * t,
+                blue: low.blue + (high.blue - low.blue) * t)
+        }
+        return stops[stops.count - 1]
+    }
+    static func color(pointsLost: Double) -> Color { sample(pointsLost: pointsLost).color }
 }
 
 struct MoveEvaluation {
@@ -229,12 +425,12 @@ struct SelectedMoveFeedback: Equatable {
     var title: String { "Move \(moveNumber) · \(player == .black ? "Black" : "White") · \(location)" }
     var stoneLossText: String? {
         guard let loss = pointsLost else { return nil }
-        return String(format: "%@%.1fpt", loss >= 0.05 ? "−" : "", loss < 0.05 ? 0 : loss)
+        return String(format: "%@%.1f", loss >= 0.05 ? "−" : "", loss < 0.05 ? 0 : loss)
     }
     var stoneChanceText: String? {
         guard let before = winBefore, let after = winAfter else { return nil }
         let change = (after - before) * 100
-        return String(format: "%@%.1fpp", abs(change) < 0.05 ? "" : (change < 0 ? "−" : "+"), abs(change) < 0.05 ? 0 : abs(change))
+        return String(format: "%@%.1f%%", abs(change) < 0.05 ? "" : (change < 0 ? "−" : "+"), abs(change) < 0.05 ? 0 : abs(change))
     }
     var lossText: String {
         pointsLost.map { String(format: "%.1f points lost", $0) } ?? "Analysis pending for this move"
@@ -245,10 +441,10 @@ struct SelectedMoveFeedback: Equatable {
         let direction = abs(change) < 0.05 ? "No change" : String(format: "%@%.1f percentage points", change < 0 ? "−" : "+", abs(change))
         return String(format: "Win chance: %.1f%% → %.1f%%", before * 100, after * 100) + " (" + direction + ")"
     }
-    init?(engine: SGFPlayer, analyses: [Int: AIAnalysis]) {
-        let move = engine.currentIndex - 1
+    init?(engine: SGFPlayer, analyses: [Int: AIAnalysis], moveNumber: Int? = nil) {
+        let move = (moveNumber ?? engine.currentIndex) - 1
         guard move >= 0, let color = engine.moveColor(at: move) else { return nil }
-        moveNumber = move + 1; player = color
+        self.moveNumber = move + 1; player = color
         if let position = engine.movePosition(at: move) {
             let letters = Array("ABCDEFGHJKLMNOPQRSTUVWXYZ")
             location = position.col < letters.count ? "\(letters[position.col])\(engine.board.size - position.row)" : "Intersection"
@@ -263,5 +459,29 @@ struct SelectedMoveFeedback: Equatable {
             winBefore = before.winrate
             winAfter = samePlayer ? after.winrate : 1 - after.winrate
         } else { pointsLost = nil; winBefore = nil; winAfter = nil }
+    }
+}
+
+/// The played move uses the same before/after evaluation as mistake navigation.
+/// An unevaluated move is never fabricated as a zero-loss candidate.
+enum HistoricalMoveHints {
+    static func candidates(analysis: AIAnalysis?, evaluation: MoveEvaluation?, position: BoardPosition?, size: Int) -> [AIMoveInfo] {
+        let moves = analysis?.moveInfos ?? []
+        var result = Array(AIMovePresentation.ranked(moves).prefix(10))
+        guard let position else { return result }
+        let letters = Array("ABCDEFGHJKLMNOPQRST")
+        guard letters.indices.contains(position.col) else { return result }
+        let coordinate = "\(letters[position.col])\(size - position.row)"
+        if let evaluation, let root = analysis?.rootInfo {
+            let existing = moves.first { $0.move.uppercased() == coordinate }
+            let played = AIMoveInfo(move: coordinate, visits: existing?.visits ?? 0,
+                winrate: root.winrate + evaluation.winDelta,
+                scoreLead: root.scoreLead + evaluation.scoreDelta, pv: existing?.pv,
+                prior: existing?.prior, order: existing?.order)
+            if let index = result.firstIndex(where: { $0.move.uppercased() == coordinate }) { result[index] = played }
+            else { result.append(played) }
+        } else if !result.contains(where: { $0.move.uppercased() == coordinate }),
+                  let played = moves.first(where: { $0.move.uppercased() == coordinate }) { result.append(played) }
+        return result
     }
 }

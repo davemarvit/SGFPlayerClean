@@ -116,6 +116,14 @@
 		C0DE10000000000000000011 /* ScreensaverManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000001 /* ScreensaverManager.swift */; };
 		C0DE10000000000000000012 /* ScreensaverSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE10000000000000000002 /* ScreensaverSettingsView.swift */; };
 		CA7A00000000000000000001 /* TatamiTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000002 /* TatamiTexture.swift */; };
+		B0A100000000000000000001 /* GoEquipment3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A100000000000000000002 /* GoEquipment3D.swift */; };
+		5A0A00000000000000000001 /* ShojiEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0A00000000000000000002 /* ShojiEnvironment.swift */; };
+		6A0A00000000000000000001 /* GardenScenery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0A00000000000000000002 /* GardenScenery.swift */; };
+		9A0A00000000000000000001 /* EnvironmentMaterials.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0A00000000000000000002 /* EnvironmentMaterials.swift */; };
+		8A0A00000000000000000001 /* KayaFloorBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A0A00000000000000000002 /* KayaFloorBoard.swift */; };
+		7A0A00000000000000000001 /* PlayingEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0A00000000000000000002 /* PlayingEnvironment.swift */; };
+		B0A100000000000000000003 /* BowlLayouts.json in Resources */ = {isa = PBXBuildFile; fileRef = B0A100000000000000000004 /* BowlLayouts.json */; };
+		AA0A00000000000000000001 /* Environments in Resources */ = {isa = PBXBuildFile; fileRef = AA0A00000000000000000002 /* Environments */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -230,6 +238,14 @@
 		C0DE10000000000000000001 /* ScreensaverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverManager.swift; sourceTree = "<group>"; };
 		C0DE10000000000000000002 /* ScreensaverSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreensaverSettingsView.swift; sourceTree = "<group>"; };
 		CA7A00000000000000000002 /* TatamiTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TatamiTexture.swift; sourceTree = "<group>"; };
+		B0A100000000000000000002 /* GoEquipment3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoEquipment3D.swift; sourceTree = "<group>"; };
+		5A0A00000000000000000002 /* ShojiEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShojiEnvironment.swift; sourceTree = "<group>"; };
+		6A0A00000000000000000002 /* GardenScenery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenScenery.swift; sourceTree = "<group>"; };
+		9A0A00000000000000000002 /* EnvironmentMaterials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentMaterials.swift; sourceTree = "<group>"; };
+		8A0A00000000000000000002 /* KayaFloorBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KayaFloorBoard.swift; sourceTree = "<group>"; };
+		7A0A00000000000000000002 /* PlayingEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayingEnvironment.swift; sourceTree = "<group>"; };
+		B0A100000000000000000004 /* BowlLayouts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BowlLayouts.json; sourceTree = "<group>"; };
+		AA0A00000000000000000002 /* Environments */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Environments; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -317,6 +333,7 @@
 			children = (
 				C0DE00000000000000000080 /* AppIcons.xcassets */,
 				55EEB4CE2EFFE34000030E2A /* board_kaya.jpg */,
+				AA0A00000000000000000002 /* Environments */,
 				55EEB4CF2EFFE34000030E2A /* clam_01.png */,
 				55EEB4D02EFFE34000030E2A /* clam_02.png */,
 				55EEB4D12EFFE34000030E2A /* clam_03.png */,
@@ -346,6 +363,13 @@
 				C0DE00000000000000000020 /* OGSScoringState.swift */,
 				C0DE00000000000000000040 /* LocalScoring.swift */,
 				55EEB5512EFFEAC600030E2A /* SceneManager3D.swift */,
+				B0A100000000000000000002 /* GoEquipment3D.swift */,
+				5A0A00000000000000000002 /* ShojiEnvironment.swift */,
+				6A0A00000000000000000002 /* GardenScenery.swift */,
+				9A0A00000000000000000002 /* EnvironmentMaterials.swift */,
+				8A0A00000000000000000002 /* KayaFloorBoard.swift */,
+				7A0A00000000000000000002 /* PlayingEnvironment.swift */,
+				B0A100000000000000000004 /* BowlLayouts.json */,
 				55EEB5552EFFEAC600030E2A /* SGFPlayerCleanApp.swift */,
 				55EEB5562EFFEAC600030E2A /* SGFPlayerEngine.swift */,
 				55EEB5572EFFEAC600030E2A /* StoneJitter.swift */,
@@ -535,11 +559,13 @@
 				55EEB53D2EFFE34000030E2A /* clam_02.png in Resources */,
 				55EEB53E2EFFE34000030E2A /* go_lid_1.png in Resources */,
 				55EEB53F2EFFE34000030E2A /* board_kaya.jpg in Resources */,
+				AA0A00000000000000000001 /* Environments in Resources */,
 				5577B0772F1F19B00031F12B /* won_resignation.aiff in Resources */,
 				5577B0782F1F19B00031F12B /* lost_resignation.aiff in Resources */,
 				5577B0792F1F19B00031F12B /* lost_timeout.aiff in Resources */,
 				5577B07A2F1F19B00031F12B /* won_timeout.aiff in Resources */,
 				55EEB5402EFFE34000030E2A /* tatami-woven-v4-3008.png in Resources */,
+				B0A100000000000000000003 /* BowlLayouts.json in Resources */,
 				A9F040FFBF3A3C4AD2071882 /* analysis.cfg in Resources */,
 				1DE44E609B6DA6E58604EA7B /* kata1-b18.bin.gz in Resources */,
 			);
@@ -568,6 +594,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0DE10000000000000000012 /* ScreensaverSettingsView.swift in Sources */,
+				B0A100000000000000000001 /* GoEquipment3D.swift in Sources */,
+				5A0A00000000000000000001 /* ShojiEnvironment.swift in Sources */,
+				6A0A00000000000000000001 /* GardenScenery.swift in Sources */,
+				9A0A00000000000000000001 /* EnvironmentMaterials.swift in Sources */,
+				8A0A00000000000000000001 /* KayaFloorBoard.swift in Sources */,
+				7A0A00000000000000000001 /* PlayingEnvironment.swift in Sources */,
 				C0DE10000000000000000011 /* ScreensaverManager.swift in Sources */,
 				C0DE10000000000000000010 /* ScreensaverConfiguration.swift in Sources */,
 				C0DE00000000000000000017 /* OGSSocketEvent.swift in Sources */,

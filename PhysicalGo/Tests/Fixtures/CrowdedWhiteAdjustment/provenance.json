@@ -1,0 +1,16 @@
+{
+  "source": "PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-02 16-11-09 B5E6E543",
+  "point": 39,
+  "viewCoordinate": "C2",
+  "initialSaved": 29,
+  "pending": [
+    39,
+    20,
+    58,
+    78,
+    77,
+    97,
+    96
+  ],
+  "notes": "Raw images before and after the actual adjustment. Final 16 consecutive delivered frames provide fresh confirmation; no simulated centering."
+}

@@ -27,13 +27,20 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
         window.title = "SGF Screensaver Preview"; window.contentView = view
         window.center(); window.makeKeyAndOrderFront(nil)
         saver.startAnimation()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in self?.saver.animateOneFrame() }
+        scheduleFrame()
         if testing { DispatchQueue.main.async { self.test() } }
         else { NSApp.activate(ignoringOtherApps: true) }
     }
     func configure(_ view: ScreenSaverView) {
         if let i = CommandLine.arguments.firstIndex(of: "--configuration-root"), i + 1 < CommandLine.arguments.count {
             view.perform(NSSelectorFromString("setConfigurationRoot:"), with: CommandLine.arguments[i + 1])
+        }
+    }
+    private func scheduleFrame() {
+        timer = Timer.scheduledTimer(withTimeInterval: saver.animationTimeInterval, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.saver.animateOneFrame()
+            self.scheduleFrame()
         }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -106,6 +113,35 @@ private final class HostDelegate: NSObject, NSApplicationDelegate {
                 window.setContentSize(size); saver.needsDisplay = true; settle(0.1); capture(name)
             }
             saver.startAnimation()
+            let endingID = UUID().uuidString
+            let ending = root.appendingPathComponent("Libraries").appendingPathComponent(endingID)
+            try! FileManager.default.createDirectory(at: ending, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: ending) }
+            try! "(;SZ[9]RE[B+3.5];B[dd];W[];B[])".write(to: ending.appendingPathComponent("ending.sgf"), atomically: true, encoding: .utf8)
+            config["generation"] = endingID; save(); settle(1.2)
+            func waitForPass(_ text: String) {
+                let deadline = Date().addingTimeInterval(6)
+                while Date() < deadline {
+                    if saver.value(forKey: "displayedPass") as? String == text,
+                       (saver.value(forKey: "displayedPassOpacity") as? Double ?? 0) > 0.9 { return }
+                    settle(0.02)
+                }
+                require(false, "Timed pass announcement: " + text)
+            }
+            waitForPass("White passes")
+            require(saver.value(forKey: "displayedResult") as? String == "", "No premature final result")
+            require(saver.animationTimeInterval < 0.04, "Fade uses smooth animation timing")
+            window.setContentSize(NSSize(width: 1200, height: 850)); saver.needsDisplay = true; capture("white-pass")
+            waitForPass("Black passes")
+            require(saver.value(forKey: "displayedResult") as? String == "Black +3.5", "Native saver displays recorded final score")
+            capture("final-pass-result")
+            settle(2.1)
+            require(saver.value(forKey: "displayedPassOpacity") as? Double == 0, "Pass fades away")
+            require(saver.value(forKey: "displayedResult") as? String == "Black +3.5", "Result stays after pass fades")
+            require(saver.animationTimeInterval == 0.2, "Saver returns to idle frame rate")
+            for (name, size) in [("result-small", NSSize(width: 320, height: 220)), ("result-portrait", NSSize(width: 600, height: 1000))] {
+                window.setContentSize(size); saver.needsDisplay = true; capture(name)
+            }
             config["generation"] = generation; save(); settle(1.2)
             require(saver.value(forKey: "displayedBlackCaptures") as? Int == 0 && saver.value(forKey: "displayedWhiteCaptures") as? Int == 0, "Both captured-stone lids reset after leaving the capture game")
         }

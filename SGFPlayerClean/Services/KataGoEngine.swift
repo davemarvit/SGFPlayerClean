@@ -12,6 +12,7 @@ class KataGoEngine: ObservableObject {
     @Published private(set) var analysisNotice: String?
     @Published private(set) var analysisError: String?
     @Published private(set) var analysisWarning: String?
+    @Published private(set) var continuousAnalysisTurn: Int?
     var hasPendingAnalysis: Bool { !requests.isEmpty || hoverRequest != nil }
     private var failedPositions = Set<String>()
     private var requestTimeouts: [Int: OGSCancellable] = [:]
@@ -47,6 +48,7 @@ class KataGoEngine: ObservableObject {
     private let scheduler: OGSConnectionScheduler
     private let executableOverride: URL?
     private let modelOverride: URL?
+    private let configOverride: URL?
     private let cacheDirectory: URL
     private let legacyImportDirectories: [URL]
     private var analysisEngineIdentity: String?
@@ -54,10 +56,11 @@ class KataGoEngine: ObservableObject {
     private var assetSignature: String?
     private var assetIdentity: String?
 
-    init(executableURL: URL? = nil, modelURL: URL? = nil, cacheDirectory: URL? = nil,
+    init(executableURL: URL? = nil, modelURL: URL? = nil, configURL: URL? = nil, cacheDirectory: URL? = nil,
          scheduler: OGSConnectionScheduler = OGSMainQueueScheduler(), legacyImportDirectories: [URL]? = nil) {
         executableOverride = executableURL
         modelOverride = modelURL
+        configOverride = configURL
         self.scheduler = scheduler
         #if SGF_OGS_REVIEW
         let cacheFolder = "com.davemarvit.SGFPlayerClean.ogs-review/AICache"
@@ -85,10 +88,11 @@ class KataGoEngine: ObservableObject {
         }
         return Bundle.main.url(forResource: "kata1-b18", withExtension: "bin.gz") ?? URL(fileURLWithPath: "/tmp/default_model.bin.gz")
     }
+    private var configURL: URL? {configOverride ?? Bundle.main.url(forResource:"analysis",withExtension:"cfg")}
     /// Hash contents once per asset change, including replacements at the same path.
     /// Captured at process launch so an on-disk replacement cannot relabel old results.
     private func configuredEngineIdentity() -> String? {
-        let urls = [executableURL, modelURL, Bundle.main.url(forResource: "analysis", withExtension: "cfg")]
+        let urls = [executableURL, modelURL, configURL]
         var signature = ""
         for url in urls {
             guard let url else { signature += "none;"; continue }
@@ -134,10 +138,14 @@ class KataGoEngine: ObservableObject {
         catch { engineStartupError = error.localizedDescription; return }
         p.currentDirectoryURL = work
         p.arguments = ["analysis", "-model", model]
-        if let config = Bundle.main.path(forResource: "analysis", ofType: "cfg") {
-            p.arguments! += ["-config", config]
+        if let config = configURL {
+            p.arguments! += ["-config", config.path]
         }
         var overrides = "numSearchThreads=1,numAnalysisThreads=1,nnMaxBatchSize=4"
+        #if PHYSICAL_GO
+        // Keep score/ownership perspective explicit in standalone scoring tools too.
+        overrides += ",reportAnalysisWinratesAs=SIDETOMOVE"
+        #endif
         #if SGF_OFFLINE_REVIEW || SGF_OGS_REVIEW
         overrides += ",homeDataDir=\(work.appendingPathComponent("EngineData").path)"
         #endif
@@ -186,6 +194,7 @@ class KataGoEngine: ObservableObject {
     }
 
     private func releaseProcess() {
+        continuousAnalysisTurn = nil
         cancelHoverAnalysis(message: "AI engine stopped. Move away and try again.")
         processGeneration += 1
         requestTimeouts.values.forEach { $0.cancel() }; requestTimeouts.removeAll()
@@ -220,6 +229,7 @@ class KataGoEngine: ObservableObject {
     }
 
     func invalidateAnalysis() {
+        continuousAnalysisTurn = nil
         terminatePositionRequests()
         cancelHoverAnalysis()
         hoverContinuations.removeAll()
@@ -238,6 +248,7 @@ class KataGoEngine: ObservableObject {
 
     /// Fence late replies when AI is hidden without discarding completed work.
     func pauseAnalysis() {
+        continuousAnalysisTurn = nil
         cancelHoverAnalysis()
         saveAnalysisCache(for: currentGameId)
         terminatePositionRequests()
@@ -249,8 +260,21 @@ class KataGoEngine: ObservableObject {
         for id in requests.values { sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id]) }
     }
 
+    /// Stop only the foreground search and fence late reports; retain its deepest result.
+    func stopContinuousAnalysis() {
+        guard let turn = continuousAnalysisTurn else { return }
+        continuousAnalysisTurn = nil
+        if let id = requests.removeValue(forKey: turn) {
+            sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id])
+        }
+        requestTimeouts.removeValue(forKey: turn)?.cancel()
+        pendingVisits.removeValue(forKey: turn)
+        saveAnalysisCache(for: currentGameId)
+    }
+
     /// An undo or replacement invalidates every descendant, even before it is searched again.
     func discardAnalysis(from turn: Int) {
+        if let active = continuousAnalysisTurn, active >= turn { stopContinuousAnalysis() }
         for key in Array(requests.keys) where key >= turn {
             if let id = requests.removeValue(forKey: key) {
                 sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id])
@@ -324,8 +348,11 @@ class KataGoEngine: ObservableObject {
     }
 
     @discardableResult
-    func loadAnalysisCache(for gameID: String, game: SGFPlayer? = nil) -> Bool {
+    func loadAnalysisCache(for gameID: String, game: SGFPlayer? = nil, reusing relatedGameIDs: [String] = []) -> Bool {
         dispatchPrecondition(condition: .onQueue(.main))
+        // Branch keys change when a line is extended. Reuse its previous line and
+        // original game only after validating every position against the new game.
+        let reuseIDs = game != nil && !relatedGameIDs.isEmpty ? relatedGameIDs + [currentGameId] : []
         saveAnalysisCache(for: currentGameId)
         currentGameId = gameID
         invalidateAnalysis()
@@ -336,14 +363,17 @@ class KataGoEngine: ObservableObject {
         hoverContinuations = cacheQueue.sync {
             (try? Data(contentsOf: hoverURL)).flatMap { try? JSONDecoder().decode([String: AIMoveInfo].self, from: $0) } ?? [:]
         }
-        let url = cacheURL(for: gameID, identity: identity)
+        let cacheIDs = Set([gameID] + reuseIDs).filter { $0 != "local" }
         let legacyName = "v3-\(digest(Data(gameID.utf8))).json"
         struct LegacyManifest: Decodable { let engineIdentity: String; let files: [String: String] }
         // Ordered after pending writes; apply synchronously so a deferred old load cannot replace a new game.
         guard let loaded = cacheQueue.sync(execute: { () -> Cache? in
             var candidates: [Cache] = []
-            if let data = try? Data(contentsOf: url), let cache = try? JSONDecoder().decode(Cache.self, from: data),
-               cache.engineIdentity == identity { candidates.append(cache) }
+            for id in cacheIDs.sorted() {
+                let url = self.cacheURL(for: id, identity: identity)
+                if let data = try? Data(contentsOf: url), let cache = try? JSONDecoder().decode(Cache.self, from: data),
+                   cache.engineIdentity == identity { candidates.append(cache) }
+            }
             // Legacy v3 files lack engine identity. Only import copies whose exact
             // bytes and engine/model/config were checked during the migration.
             for folder in legacyImportDirectories {
@@ -419,7 +449,7 @@ class KataGoEngine: ObservableObject {
     func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
                      moves: [(color: String, x: Int, y: Int)], size: Int = 19,
                      komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil,
-                     backgroundTimeLimit: Double? = nil) {
+                     backgroundTimeLimit: Double? = nil, continuous: Bool = false, requireOwnership: Bool = false) {
         dispatchPrecondition(condition: .onQueue(.main))
         let settings = settings ?? GameAnalysisSettings(rules: "chinese", komi: komi)
         guard id == currentGameId else { return }
@@ -428,6 +458,11 @@ class KataGoEngine: ObservableObject {
         guard settings.analysisRulesSupported, komi.isFinite, (-400...400).contains(komi),
               (komi * 2).rounded() == komi * 2 else { invalidateAnalysis(); return }
         guard isEngineRunning, (2...19).contains(size), maxVisits > 0 else { return }
+        // A hover owns the worker until it completes or is cancelled. In particular,
+        // the Keep analyzing timer must not restart the search we yielded below.
+        guard hoverRequest == nil else { return }
+        // Automatic sweeps yield to an explicitly requested foreground search.
+        guard continuous || continuousAnalysisTurn == nil else { return }
         guard var query = positionQuery(initialStones: initialStones, moves: moves, size: size, settings: settings) else { return }
         let turn = moves.count
         var context = query
@@ -442,9 +477,15 @@ class KataGoEngine: ObservableObject {
         guard let position = try? JSONSerialization.data(withJSONObject: query, options: .sortedKeys) else { return }
         let fingerprint = digest(position)
         guard !failedPositions.contains(fingerprint) else { return }
+        if continuous {
+            if continuousAnalysisTurn == turn, fingerprints[turn] == fingerprint, requests[turn] != nil { return }
+            stopContinuousAnalysis()
+        }
         if fingerprints[turn] == fingerprint {
-            if (currentAnalysisData[turn]?.rootInfo?.visits ?? 0) >= maxVisits { return }
-            if requests[turn] != nil, (pendingVisits[turn] ?? 0) >= maxVisits { return }
+            let hasOwnership = currentAnalysisData[turn]?.ownership?.count == size * size
+            if !continuous && (currentAnalysisData[turn]?.rootInfo?.visits ?? 0) >= maxVisits &&
+                (!requireOwnership || hasOwnership) { return }
+            if !continuous && requests[turn] != nil, (pendingVisits[turn] ?? 0) >= maxVisits { return }
         }
         if let previous = fingerprints[turn], previous != fingerprint {
             // Undo/variation at a known turn invalidates that turn and all its descendants.
@@ -455,22 +496,38 @@ class KataGoEngine: ObservableObject {
             pendingVisits = pendingVisits.filter { $0.key < turn }
         }
         requestTimeouts.removeValue(forKey: turn)?.cancel()
+        if let previousID = requests[turn] {
+            sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": previousID])
+        }
         let requestID = UUID().uuidString
         requests[turn] = requestID
         pendingVisits[turn] = maxVisits
         fingerprints[turn] = fingerprint
-        requestTimeouts[turn] = scheduler.schedule(after: 120) { [weak self] in
-            guard let self, self.requests[turn] == requestID else { return }
-            self.failRequest(turn: turn, message: "Analysis timed out. Retry when the engine is ready.")
-        }
+        armRequestTimeout(turn: turn, id: requestID)
         query["id"] = requestID
         query["maxVisits"] = maxVisits
-        if let seconds = backgroundTimeLimit {
+        // Reporting detail is not part of the position fingerprint, so existing
+        // analysis caches remain valid when uncertainty data becomes available.
+        query["includeOwnershipStdev"] = true
+        if continuous {
+            continuousAnalysisTurn = turn
+            query["maxVisits"] = 1_000_000_000
+            query["priority"] = 10
+            query["reportDuringSearchEvery"] = 0.25
+        } else if let seconds = backgroundTimeLimit {
             query["overrideSettings"] = ["maxTime": max(0.1, min(12, seconds))]
             query["priority"] = -100
             query["reportDuringSearchEvery"] = 1.0
         }
         sendQuery(query)
+    }
+
+    private func armRequestTimeout(turn: Int, id: String) {
+        requestTimeouts.removeValue(forKey: turn)?.cancel()
+        requestTimeouts[turn] = scheduler.schedule(after: 120) { [weak self] in
+            guard let self, self.requests[turn] == id else { return }
+            self.failRequest(turn: turn, message: "Analysis timed out. Retry when the engine is ready.")
+        }
     }
 
     private func sendQuery(_ query: [String: Any]) {
@@ -551,6 +608,10 @@ class KataGoEngine: ObservableObject {
         }
         analysisEngineIdentity = runningEngineIdentity
         let id = UUID().uuidString
+        // KataGo priority only orders queued work; it cannot interrupt a running
+        // billion-visit search. Retain its results and let the app's continuous
+        // analysis timer resume it after the hover finishes.
+        stopContinuousAnalysis()
         hoverRequest = HoverRequest(id: id, key: request.key, turn: game.currentIndex, move: request.move, completion: completion)
         query["id"] = id
         query["maxVisits"] = 100
@@ -627,14 +688,19 @@ class KataGoEngine: ObservableObject {
             currentAnalysisData[analysis.turnNumber] = analysis
         }
         if analysis.isDuringSearch != true {
+            if continuousAnalysisTurn == analysis.turnNumber { continuousAnalysisTurn = nil }
             requestTimeouts.removeValue(forKey: analysis.turnNumber)?.cancel()
             requests.removeValue(forKey: analysis.turnNumber)
             pendingVisits.removeValue(forKey: analysis.turnNumber)
+        } else if continuousAnalysisTurn == analysis.turnNumber {
+            // A healthy continuous search can run indefinitely. Only silence times out.
+            armRequestTimeout(turn: analysis.turnNumber, id: analysis.id)
         }
         scheduleCacheSave()
     }
 
     private func failRequest(turn: Int, message: String) {
+        if continuousAnalysisTurn == turn { continuousAnalysisTurn = nil }
         requestTimeouts.removeValue(forKey: turn)?.cancel()
         if let id = requests.removeValue(forKey: turn) {
             sendQuery(["id": "cancel-position-" + UUID().uuidString, "action": "terminate", "terminateId": id])
@@ -724,18 +790,7 @@ extension KataGoEngine {
             // Same perspective inversion logic for score.
             let scoreDelta = (samePlayer ? sNext : -sNext) - sPrev
             
-            let quality: MoveQuality
-            if winDelta < -0.20 || scoreDelta < -8.0 {
-                quality = .disastrous
-            } else if winDelta < -0.10 || scoreDelta < -4.0 {
-                quality = .poor
-            } else if winDelta < -0.05 || scoreDelta < -2.0 {
-                quality = .mediocre
-            } else if winDelta < -0.015 || scoreDelta < -0.5 {
-                quality = .good
-            } else {
-                quality = .excellent
-            }
+            let quality = MoveQuality.classify(winDelta: winDelta, scoreDelta: scoreDelta)
             
             evaluations[t] = MoveEvaluation(turn: t, quality: quality, winDelta: winDelta, scoreDelta: scoreDelta, player: player)
         }

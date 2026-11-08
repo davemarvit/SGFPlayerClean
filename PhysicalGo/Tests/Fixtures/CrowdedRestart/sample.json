@@ -1,0 +1,91 @@
+{
+  "alignmentNeedsRecovery" : true,
+  "automaticReference" : false,
+  "boardSize" : 19,
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.29830618935552944,
+        "y" : 0.12453121944530451
+      },
+      {
+        "x" : 0.7558487389813264,
+        "y" : 0.1336319461848173
+      },
+      {
+        "x" : 0.7648708542909951,
+        "y" : 0.9073506707767368
+      },
+      {
+        "x" : 0.2840498945457529,
+        "y" : 0.901075514995549
+      }
+    ],
+    "h" : [
+      0.4606001137780007,
+      -0.028029813997799122,
+      0.29830618935552944,
+      0.00964129554272939,
+      0.7328513347924314,
+      0.12453121944530451,
+      0.004045206394502246,
+      -0.04848978807068012
+    ],
+    "size" : 19
+  },
+  "cameraID" : "D4FA0B7E-BD26-4EF3-8843-5D4100000001",
+  "detectionMode" : "emptyReference",
+  "displayQuarterTurns" : 3,
+  "height" : 1080,
+  "manualLabels" : {
+
+  },
+  "name" : "Board 1 · even light",
+  "note" : "Experimental observations, not verified moves. Row 0 is top; column 0 is left. Manual label keys are row*boardSize+column. Confidence is a heuristic, not a probability.",
+  "perspectiveCorrectedView" : true,
+  "readings" : [
+
+  ],
+  "recordedMoveCount" : 107,
+  "recordingStatus" : "Frozen or resumed camera. Checking the accepted position before recording continues.",
+  "rectifiedLongAxisRows" : false,
+  "referenceCalibration" : {
+    "corners" : [
+      {
+        "x" : 0.2987925459557434,
+        "y" : 0.12454006767133931
+      },
+      {
+        "x" : 0.7558474075479326,
+        "y" : 0.1336309876158859
+      },
+      {
+        "x" : 0.76486151019862,
+        "y" : 0.9064913357502039
+      },
+      {
+        "x" : 0.28403401872534845,
+        "y" : 0.9019398471276385
+      }
+    ],
+    "h" : [
+      0.4617149580288923,
+      -0.028834305029462173,
+      0.2987925459557434,
+      0.009914807521593573,
+      0.7327026515092083,
+      0.12454006767133931,
+      0.006165393160269012,
+      -0.04955666177676428
+    ],
+    "size" : 19
+  },
+  "savedAt" : "2026-11-08T01:07:25Z",
+  "schemaVersion" : 3,
+  "source" : "Dave11 Camera",
+  "stoneFootprints" : [
+
+  ],
+  "threshold" : 0.13,
+  "width" : 1920
+}

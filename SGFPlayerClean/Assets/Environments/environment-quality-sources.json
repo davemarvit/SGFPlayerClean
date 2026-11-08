@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-19",
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "downloads": {
+    "garden-gravel-color.jpg": {
+      "source": "https://polyhaven.com/a/gravelly_sand",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/gravelly_sand/gravelly_sand_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "c5a505ca4e00ae72378cbcfc56d07d521d32b5292d3f8db8e51256784c13913e"
+    },
+    "garden-gravel-normal.jpg": {
+      "source": "https://polyhaven.com/a/gravelly_sand",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/gravelly_sand/gravelly_sand_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "877d53726c09600b2315cf26d09ba9c06d1c801edd6cecea51729fc4a96875c1"
+    },
+    "moon-regolith-color.jpg": {
+      "source": "https://polyhaven.com/a/forest_ground_04",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/forest_ground_04/forest_ground_04_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "6f5668c7d6a6ee9878c3e9f5f6ae5d4710056fae1a63c51906a28e29d8fa8b37"
+    },
+    "moon-regolith-normal.jpg": {
+      "source": "https://polyhaven.com/a/forest_ground_04",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/forest_ground_04/forest_ground_04_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "1dbcb73a272af0e3414c8f2894bb4473bb4e97d3cdb6e68f38999e4816bbc2ba"
+    },
+    "cave-riverbed-color.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "3f22bf22fd2576a0df63b8768af3ae12901f6945051c9c54553a4a62605f233e"
+    },
+    "cave-riverbed-normal.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "43762be2fb41b3c53959aeccaf0ae1ac6e78240b982c0745cc0628150c90689d"
+    },
+    "cave-riverbed-rough.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_rough_4k.jpg",
+      "resolution": 4096,
+      "sha256": "6479a23a997b6b91f0c43e3c84c5fcf0c52c3652e3d20e842f7c0f7782cd45be"
+    },
+    "weathered_brown_planks-color.jpg": {
+      "source": "https://polyhaven.com/a/weathered_brown_planks",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "d7e5d7f7ed0f81614f997466c293f6ffb73951d0edbf713a1ebaf1431871e612"
+    },
+    "weathered_brown_planks-normal.jpg": {
+      "source": "https://polyhaven.com/a/weathered_brown_planks",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "0bc551ce1202c68a9d564b280c7e81ef75cff84aa8c8032a6609e1b30c814b38"
+    },
+    "weathered_brown_planks-rough.jpg": {
+      "source": "https://polyhaven.com/a/weathered_brown_planks",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_rough_4k.jpg",
+      "resolution": 4096,
+      "sha256": "e9076e2093e701d33c0b980be4530b93fb4dd999b6b58ff0381fffe491ea0146"
+    },
+    "yugen-carpet-color.jpg": {
+      "source": "https://polyhaven.com/a/dirty_carpet",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dirty_carpet/dirty_carpet_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "88ab81df252f96ee9371a1a9144be9b05cbc6bc09e27caf65dd54b27efccf978"
+    },
+    "yugen-carpet-normal.jpg": {
+      "source": "https://polyhaven.com/a/dirty_carpet",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dirty_carpet/dirty_carpet_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "13109b7167a33a411b208858c34ef77c3092ddd4bbae53c99de76b0c71007a51"
+    }
+  },
+  "yugenReference": {
+    "source": "https://gomagic.org/the-surrounding-game/",
+    "use": "Rectangular pale blue-green rug, straight tatami perimeter; reference photograph not redistributed."
+  },
+  "moonProcessing": "Terrestrial ground scan used as a visual analogue for regolith; desaturated in the material shader."
+}

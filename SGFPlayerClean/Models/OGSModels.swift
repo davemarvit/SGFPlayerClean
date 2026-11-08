@@ -28,6 +28,7 @@ struct MoveRef: Equatable { let color: Stone; let x, y: Int }
 struct RenderStone: Identifiable, Equatable {
     let id: BoardPosition; let color: Stone; let offset: CGPoint
     var isDead: Bool = false
+    var predictedDeathStrength: Double = 0
 }
 
 // MARK: - OGS Network & Lobby Models
@@ -105,7 +106,7 @@ struct OGSObservedGame: Identifiable {
         }.map(\.element)
     }
 
-    private static func rank(_ player: [String: Any]?) -> (label: String, strength: Double?) {
+    static func rank(_ player: [String: Any]?) -> (label: String, strength: Double?) {
         guard let player else { return ("?", nil) }
         let legacy = (player["ranking"] ?? player["rank"]) as? Double
         if let value = legacy, value.isFinite,
@@ -449,11 +450,93 @@ enum SGFParser {
     }
 }
 
+/// Shared timing for the native saver and the app's pass announcement.
+struct PassAnnouncement: Identifiable {
+    let id = UUID()
+    let color: Stone
+    let startedAt: TimeInterval
+    static let fadeIn: TimeInterval = 0.15
+    static let hold: TimeInterval = 0.65
+    static let fadeOut: TimeInterval = 1.2
+    static let duration = fadeIn + hold + fadeOut
+    var text: String { color == .black ? "Black passes" : "White passes" }
+    func opacity(at time: TimeInterval) -> Double {
+        let age = time - startedAt
+        guard age >= 0, age < Self.duration else { return 0 }
+        if age < Self.fadeIn { return age / Self.fadeIn }
+        return min(1, (Self.duration - age) / Self.fadeOut)
+    }
+}
+
 struct SGFGame {
     // Retain the imported tree independently of the active playback path. ReviewTree
     // owns branch edits and export; local/online playback does not mutate this record.
     var sourceTree: SGFTree?
-    struct Info { var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String? }
+    struct Info {
+        var event, playerBlack, playerWhite, blackRank, whiteRank, result, date, komi, rules: String?
+
+        /// Only the recorded outcome is authoritative; never substitute an AI estimate.
+        var resultDescription: String {
+            let value = (result ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            switch value.uppercased() {
+            case "", "?": return "Result not recorded"
+            case "0", "DRAW", "JIGO": return "Draw"
+            case "VOID": return "Void game"
+            default: break
+            }
+            let parts = value.split(separator: "+", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2, ["B", "W"].contains(parts[0].uppercased()) else {
+                return "Recorded result: " + value
+            }
+            let winner = parts[0].uppercased() == "B" ? "Black" : "White"
+            let margin = parts[1].trimmingCharacters(in: .whitespaces)
+            switch margin.uppercased() {
+            case "R", "RESIGN": return winner + " wins by resignation"
+            case "T", "TIME": return winner + " wins on time"
+            case "F", "FORFEIT": return winner + " wins by forfeit"
+            case "": return winner + " wins"
+            default:
+                if let points = Double(margin), points.isFinite, points >= 0 {
+                    return winner + " +" + margin
+                }
+                return "Recorded result: " + value
+            }
+        }
+
+        static func formattedGameDate(_ date: Date) -> String {
+            let day = DateFormatter()
+            day.locale = Locale(identifier: "en_US_POSIX")
+            day.calendar = Calendar(identifier: .gregorian)
+            day.dateFormat = "yyyy-MM-dd"
+            return day.string(from: date)
+        }
+
+        var suggestedFilename: String {
+            func component(_ value: String?, fallback: String, byteLimit: Int) -> String {
+                let separators = CharacterSet(charactersIn: "/:\\").union(.controlCharacters)
+                let cleaned = (value ?? "").components(separatedBy: separators).joined(separator: "-")
+                    .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+                    .trimmingCharacters(in: CharacterSet(charactersIn: " .-"))
+                var result = ""
+                for character in cleaned {
+                    guard result.utf8.count + String(character).utf8.count <= byteLimit else { break }
+                    result.append(character)
+                }
+                return result.isEmpty ? fallback : result
+            }
+            var gameDate = date
+            // Older local games stored a localized date and time in DT.
+            let local = DateFormatter()
+            local.dateStyle = .short; local.timeStyle = .short
+            if let date, let parsed = local.date(from: date) {
+                gameDate = Self.formattedGameDate(parsed)
+            }
+            let black = component(playerBlack, fallback: "Black", byteLimit: 80)
+            let white = component(playerWhite, fallback: "White", byteLimit: 80)
+            let day = component(gameDate, fallback: "Undated", byteLimit: 60)
+            return "\(black) vs \(white) - \(day).sgf"
+        }
+    }
     var boardSize: Int = 19; var info: Info = .init(); var setup: [(Stone, Int, Int)] = []; var moves: [(Stone, (Int,Int)?)] = []
     var initialPlayer: Stone?
     var handicap = 0
@@ -910,6 +993,13 @@ enum SGFWriter {
 
 /// Stable document nodes, distinct from a chosen playback path and temporary AI PVs.
 struct ReviewTree {
+    struct BoardVariation: Identifiable, Equatable {
+        let id: Int
+        let position: BoardPosition
+        let color: Stone
+        let label: String
+    }
+
     struct Node: Identifiable {
         let id: Int
         let parent: Int?
@@ -1001,19 +1091,76 @@ struct ReviewTree {
         }
         return path
     }
+
+    /// Saved continuations at this fork, distinct from hypothetical AI moves.
+    var boardVariations: [BoardVariation] {
+        let children = nodes[selectedID].children
+        guard children.count > 1 else { return [] }
+        var seen = Set<BoardPosition>()
+        return children.enumerated().compactMap { index, child in
+            var node = nodes[child]
+            // Comments may precede a move. Do not preview through setup edits,
+            // another fork, or a pass, which has no board intersection.
+            let setupKeys = ["AB", "AW", "AE", "PL", "SZ", "RU", "KM", "HA"]
+            while node.color == nil {
+                guard !setupKeys.contains(where: { node.properties[$0] != nil }),
+                      node.children.count == 1 else { return nil }
+                node = nodes[node.children[0]]
+            }
+            guard !setupKeys.contains(where: { node.properties[$0] != nil }),
+                  let color = node.color,
+                  let coordinate = node.properties[color == .black ? "B" : "W"]?.first,
+                  let (col, row) = SGFCoordinates.parse(coordinate),
+                  (0..<baseGame.boardSize).contains(col), (0..<baseGame.boardSize).contains(row) else { return nil }
+            let point = BoardPosition(row, col)
+            // Coincident branches remain individually available in the tree.
+            guard seen.insert(point).inserted else { return nil }
+            let label = index < 26 ? String(UnicodeScalar(65 + index)!) : String(index + 1)
+            return BoardVariation(id: node.id, position: point, color: color, label: label)
+        }
+    }
     var isMainLine: Bool {
         let path = activePath
         return zip(path, path.dropFirst()).allSatisfy { nodes[$0.0].children.first == $0.1 }
     }
+    /// The earliest departure on the selected node's ancestry, even when the
+    /// variation itself contains further forks. Main-line nodes have no origin.
+    var mainLineBranchOrigin: Int? {
+        var child = selectedID
+        var origin: Int?
+        while let parent = nodes[child].parent {
+            if nodes[parent].children.first != child { origin = parent }
+            child = parent
+        }
+        return origin
+    }
+    /// Opening a game follows the first continuation at every fork, independent
+    /// of the branch most recently selected in a saved review draft.
+    mutating func selectMainLineEnd() {
+        chosenChildren.removeAll()
+        guard !nodes.isEmpty else { return }
+        var last = 0
+        while let next = nodes[last].children.first { last = next }
+        select(last)
+    }
+
     mutating func select(_ id: Int) {
         guard nodes.indices.contains(id) else { return }
         selectedID = id
+        // Returning to the main line forgets previously explored continuations.
+        var ancestor = id
+        var onMainLine = true
+        while let parent = nodes[ancestor].parent {
+            if nodes[parent].children.first != ancestor { onMainLine = false; break }
+            ancestor = parent
+        }
+        if onMainLine { chosenChildren.removeAll() }
         var child = id
         while let parent = nodes[child].parent { chosenChildren[parent] = child; child = parent }
     }
     mutating func followPlayback(index: Int) {
         guard nodes[selectedID].moveNumber != index else { return }
-        if let id = activePath.first(where: { nodes[$0].moveNumber == index }) { selectedID = id }
+        if let id = activePath.first(where: { nodes[$0].moveNumber == index }) { select(id) }
     }
     func neighbor(direction: Int) -> Int? {
         if direction < 0 { return nodes[selectedID].parent }
@@ -1077,6 +1224,28 @@ struct ReviewTree {
         game.sourceTree = SGFTree(branches: branches)
         var updated = ReviewTree(game: game, analysisID: baseAnalysisID, filename: filename, originalSGF: originalSGF)
         if let target = updated.nodes.first(where: { $0.sourceBranch == newBranch && $0.sourceIndex == newIndex }) {
+            updated.select(target.id)
+        }
+        return updated
+    }
+
+    /// Remove the selected node and its descendants; keep the root and sibling lines.
+    func deletingSelectedNode() -> ReviewTree? {
+        let selected = nodes[selectedID]
+        guard let parentID = selected.parent else { return nil }
+        let parent = nodes[parentID]
+        var branches = source.branches
+        if selected.sourceIndex > 0 {
+            branches[selected.sourceBranch].sequence = Array(branches[selected.sourceBranch].sequence.prefix(selected.sourceIndex))
+            branches[selected.sourceBranch].children = []
+        } else {
+            guard !parent.isVirtual else { return nil }
+            branches[parent.sourceBranch].children.removeAll { $0 == selected.sourceBranch }
+        }
+        var game = baseGame
+        game.sourceTree = SGFTree(branches: branches)
+        var updated = ReviewTree(game: game, analysisID: baseAnalysisID, filename: filename, originalSGF: originalSGF)
+        if let target = updated.nodes.first(where: { $0.sourceBranch == parent.sourceBranch && $0.sourceIndex == parent.sourceIndex }) {
             updated.select(target.id)
         }
         return updated
@@ -1162,4 +1331,51 @@ struct ReviewDraft: Codable {
         restored.select(selectedID)
         return restored
     }
+}
+
+
+/// Local bridge revisions are independent of OGS's optional state_version field.
+/// Heartbeats keep the same revision; moves, passes, undo and readiness changes do not.
+struct PhysicalBoardBridgeRevision {
+    struct Position: Equatable {
+        var game: Int
+        var serverVersion: Int
+        var size: Int
+        var cells: [String]
+        var moveNumber: Int
+        var currentPlayerID: Int?
+        var color: String
+        var lastX: Int
+        var lastY: Int
+        var ready: Bool
+    }
+    private var position: Position?
+    private(set) var version = 0
+
+    mutating func update(_ next: Position) -> Int {
+        if next != position {
+            position = next
+            version += 1
+        }
+        return version
+    }
+}
+
+
+/// Local bridge export messages. No OGS credentials cross this boundary.
+struct PhysicalSGFExportRequest: Codable {
+    let id: UUID
+    let token: String
+    let game: Int
+    let time: Double
+    func matches(token: String, game: Int?, now: Double = Date().timeIntervalSince1970) -> Bool {
+        self.token == token && self.game == game && self.game > 0 && abs(now-time) < 30
+    }
+}
+struct PhysicalSGFExportReply: Codable {
+    let id: UUID
+    let game: Int
+    let data: Data?
+    let filename: String?
+    let error: String?
 }

@@ -1,0 +1,47 @@
+{
+  "tool": "built-in image_gen",
+  "asset": "garden-late-autumn-panorama.png",
+  "prompt": "Use case: photorealistic-natural. Create a NEW photographic 360-degree equirectangular environment panorama, exact 2:1 format, ideally 3840x1920, for a Japanese dry gravel garden in late autumn. The three supplied photographs are visual reference only, not content to copy: first the real late-autumn Kyoto garden for sparse branches and restrained natural colors; second Ryoanji for simple garden structure and restrained planting; third close-up pale angular loose gravel for actual material. Make this look like an ordinary unretouched documentary landscape PHOTO taken in Japan, absolutely not an illustration, painting, fantasy garden, game rendering, HDR tone-mapped or overly sharpened picture. A modest open flat pale granite gravel clearing occupies the bottom half, with a few weathered garden stones toward its perimeter, low moss edging, a simple weathered beige plaster boundary wall partially visible behind plantings, two slender mature Japanese maples with at least 65 percent of fine branches bare, scattered small dull rust/brown/burgundy leaves remaining in sparse clusters, ordinary dark green shrubs and evergreen trees behind. Leaves do NOT form a solid colorful canopy. Mostly gray-brown bark, subdued natural olive green and faded moss with small accents of muted ochre and dusty russet. No huge saturated red/orange/yellow masses, no blue vivid sky, no candy colors, no unnaturally sculpted topiary, no pond, no dramatic scenery, no mountains, no glowing foliage, no people, text, logo, watermark, game board or furniture. Honest soft late-afternoon daylight from upper left through thin cloud, pale neutral gray sky with a little weak blue. Natural photographic exposure, calm ordinary garden. Entire center foreground clear for placing the board in 3D. Horizon at halfway down panorama, distant planting starts around 52 percent of image height, full 360x180 spherical mapping with continuous left/right seam, camera about 1 metre above gravel. Fine realistic branches, imperfect bark, discrete angular pale gravel with dark interstices. Preserve real-world scale and subtle natural contrast.",
+  "references": [
+    {
+      "page": "https://www.japan-guide.com/blog/koyo12/121122_kyoto.html",
+      "image": "https://www.japan-guide.com/blog/koyo12/g/121122_kyoto_34.jpg",
+      "role": "Sparse late-autumn branches and natural colors"
+    },
+    {
+      "page": "https://www.japan-guide.com/blog/joe/141128.html",
+      "image": "https://www.japan-guide.com/blog/koyo14/g/141128_04.jpg",
+      "role": "Ryoanji garden structure, gravel and restrained planting"
+    },
+    {
+      "page": "https://wabunka-lux.jp/experiences/en_sone-zoen/",
+      "image": "https://storage.otonami.jp/images/en_sone-zoen_sub_18_19e5be10.jpg?alt=media",
+      "role": "Dense pale angular loose gravel"
+    }
+  ],
+  "referenceUse": "Visual reference inputs only. Reference photographs are not bundled in the application.",
+  "resolution": [
+    1774,
+    887
+  ],
+  "gravel": {
+    "source": "https://polyhaven.com/a/clean_pebbles",
+    "license": "CC0",
+    "implementation": "4K scanned loose-pebble maps plus one cached mesh of approximately 7\u201311 mm irregular individual grains in the foreground. Stones follow the existing light-responsive rake relief.",
+    "downloads": {
+      "zen-loose-gravel-color.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/clean_pebbles/clean_pebbles_diff_4k.jpg",
+        "sha256": "baf4efc82425422e76b4a20caba367649cd94ffeb72979929fef7020a51defbe"
+      },
+      "zen-loose-gravel-normal.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/clean_pebbles/clean_pebbles_nor_gl_4k.jpg",
+        "sha256": "95707728287c8f57e422486001e5732d900e8fc7e139ef1283b717313afdc7a0"
+      },
+      "zen-loose-gravel-rough.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/clean_pebbles/clean_pebbles_rough_4k.jpg",
+        "sha256": "3d7ac54b44ef0b7d942b0c9c3482badeb1ebdfcb77be3e7c6c47a2400f4e70d7"
+      }
+    }
+  },
+  "sha256": "cb52201aed23c9f4a230b08f395d03e7786032b4b8452c5a40d805b120bb4698"
+}

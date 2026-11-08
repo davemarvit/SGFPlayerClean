@@ -37,6 +37,7 @@ final class QuietGoSaverView: ScreenSaverView {
         (NSColor.black.withAlphaComponent(0.13), 0.86),
         (NSColor.black.withAlphaComponent(0.0), 1.0))!
     private var stopObserver: NSObjectProtocol?
+    private var passWasVisible = false
 
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)
@@ -47,10 +48,20 @@ final class QuietGoSaverView: ScreenSaverView {
         prepare()
     }
     private func prepare() {
-        animationTimeInterval = 0.2 // Board is redrawn only when a move changes.
+        animationTimeInterval = 0.2 // Use a higher frame rate only while a pass fades.
         let bundle = Bundle(for: QuietGoSaverView.self)
         func image(_ name: String) -> NSImage? {
-            bundle.url(forResource: name, withExtension: nil).flatMap { NSImage(contentsOf: $0) }
+            // Own decoded pixels rather than a lazy reference to a bundle file:
+            // the app can update that bundle while Apple's saver host stays alive.
+            guard let url = bundle.url(forResource: name, withExtension: nil),
+                  let data = try? Data(contentsOf: url),
+                  let bitmap = NSBitmapImageRep(data: data), bitmap.bitmapData != nil else {
+                SaverPlaylist.log.error("Could not load screensaver image: \(name, privacy: .public)")
+                return nil
+            }
+            let result = NSImage(size: bitmap.size)
+            result.addRepresentation(bitmap)
+            return result
         }
         wood = image("board_kaya.jpg"); tatami = image(TatamiTexture.assetName)
         blackStone = image("stone_black.png"); whiteStone = image("stone_white.png")
@@ -113,7 +124,12 @@ final class QuietGoSaverView: ScreenSaverView {
     override func animateOneFrame() {
         guard isAnimating else { return }
         refreshConfiguration()
-        if playbackEnabled, playlist?.advance(at: CACurrentMediaTime()) == true { needsDisplay = true }
+        let now = CACurrentMediaTime()
+        if playbackEnabled, playlist?.advance(at: now) == true { needsDisplay = true }
+        let passVisible = playbackEnabled && playlist?.passAnnouncement.map { now - $0.startedAt < PassAnnouncement.duration } == true
+        if passVisible || passWasVisible { needsDisplay = true }
+        if passVisible != passWasVisible { animationTimeInterval = passVisible ? 1.0 / 30 : 0.2 }
+        passWasVisible = passVisible
     }
     // Read-only hooks let the standalone host test the actual installed bundle.
     @objc var displayedBoardSize: Int { playlist?.player.board.size ?? 0 }
@@ -121,6 +137,9 @@ final class QuietGoSaverView: ScreenSaverView {
     @objc var displayedGame: String { playlist?.file?.lastPathComponent ?? "" }
     @objc var loadedGameCount: Int { playlist?.files.count ?? 0 }
     @objc var playbackRunning: Bool { playlist?.running ?? false }
+    @objc var displayedPass: String { playlist?.passAnnouncement?.text ?? "" }
+    @objc var displayedPassOpacity: Double { playlist?.passAnnouncement?.opacity(at: CACurrentMediaTime()) ?? 0 }
+    @objc var displayedResult: String { playlist?.finalResult ?? "" }
     @objc var displayedBlackCaptures: Int { playlist?.player.blackStonesCaptured ?? 0 }
     @objc var displayedWhiteCaptures: Int { playlist?.player.whiteStonesCaptured ?? 0 }
     @objc var displayedStatusMessage: String {
@@ -184,6 +203,31 @@ final class QuietGoSaverView: ScreenSaverView {
         drawLid(in: layout.whiteLid, white: true, count: displayedWhiteCaptures, seed: playlist.player.captureSeed)
         let title = "● \(game.info.playerBlack ?? "Black")   ○ \(game.info.playerWhite ?? "White")   ·   \(playlist.player.currentIndex)/\(playlist.player.maxIndex)"
         drawText(title, in: layout.caption, size: max(9, min(18, bounds.width / 70)))
+        if let result = playlist.finalResult {
+            let badge = NSRect(x: board.minX + width * 0.06, y: board.minY + width * 0.035,
+                               width: width * 0.88, height: width * 0.105)
+            NSColor.black.withAlphaComponent(0.8).setFill()
+            NSBezierPath(roundedRect: badge, xRadius: width * 0.02, yRadius: width * 0.02).fill()
+            let size = max(10, width * 0.042)
+            drawText(result, in: NSRect(x: badge.minX + 8, y: badge.midY - size * 0.65,
+                                       width: badge.width - 16, height: size * 1.5), size: size)
+        }
+        if let pass = playlist.passAnnouncement {
+            let opacity = pass.opacity(at: CACurrentMediaTime())
+            if opacity > 0 {
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current?.cgContext.setAlpha(opacity)
+                let diameter = width * 0.38
+                let circle = NSRect(x: board.midX - diameter / 2, y: board.midY - diameter / 2,
+                                    width: diameter, height: diameter)
+                NSColor.black.withAlphaComponent(0.68).setFill()
+                NSBezierPath(ovalIn: circle).fill()
+                let size = max(10, width * 0.045)
+                drawText(pass.text, in: NSRect(x: circle.minX + 8, y: circle.midY - size * 0.65,
+                                               width: circle.width - 16, height: size * 1.5), size: size)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
     }
     private func drawStoneShadow(at point: NSPoint, diameter: CGFloat) {
         let center = NSPoint(x: point.x + diameter * 0.085, y: point.y + diameter * 0.085)

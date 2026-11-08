@@ -1,0 +1,76 @@
+{
+  "source": "https://polyhaven.com/a/gravel_stones",
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "downloads": {
+    "zen-gravel-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/gravel_stones/gravel_stones_diff_4k.jpg",
+      "sha256": "2f876d021171bbcaf8e2667c9a72fd1541dc9068e29b1a33a73a97d1d3d945e3",
+      "resolution": 4096
+    },
+    "zen-gravel-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/gravel_stones/gravel_stones_nor_gl_4k.jpg",
+      "sha256": "7d3f9cf1987507e8e198c67d3a94e010633b842c861af01a8ba218984e6accec",
+      "resolution": 4096
+    },
+    "zen-gravel-rough.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/gravel_stones/gravel_stones_rough_4k.jpg",
+      "sha256": "024b643e08fec5642326b96f43abab6b2c6386ca905c889337c7e12281e3aeb0",
+      "resolution": 4096
+    }
+  },
+  "stone": {
+    "source": "https://polyhaven.com/a/namaqualand_boulder_04",
+    "license": "CC0",
+    "downloads": {
+      "stone.gltf": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/namaqualand_boulder_04/namaqualand_boulder_04_2k.gltf",
+        "sha256": "199a6ff206a09086a82542238dbdc0e024832d8662c3f5648dd4b6bbf3e3c724"
+      },
+      "zen-stone-normal.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/namaqualand_boulder_04/namaqualand_boulder_04_nor_gl_2k.jpg",
+        "sha256": "3621233d2c493167b7897fb339ca935d50a1c2f8b9f700a8c8a7b0cc765ae464"
+      },
+      "zen-stone-color.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/namaqualand_boulder_04/namaqualand_boulder_04_diff_2k.jpg",
+        "sha256": "26f69446ee57722c402b45d22240a08ffc6b272fe3d3a42aaa733093f3eb6f50"
+      },
+      "stone.bin": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/namaqualand_boulder_04/namaqualand_boulder_04.bin",
+        "sha256": "99ba28ddc8da9ba24e1a419e69ed05f14c4b483bf06268a8a77495545985318a"
+      }
+    },
+    "processing": "Original scan crown retained; uniformly normalized to 20-unit width and grounded; converted with Tests/Preview/BakeZenStone.swift. Instances partially buried in gravel."
+  },
+  "leaf": {
+    "tool": "image_gen",
+    "asset": "zen-maple-leaf.png",
+    "description": "Generated botanical cutout of fallen seven-lobed Acer palmatum, russet with ochre weathering, transparent background.",
+    "sha256": "fa69933d34944b12924d61469e921d4a9c89aaa8aba842b0aca66fa4032407a8",
+    "scale": {
+      "bladeWidthMillimetres": [
+        60,
+        90
+      ],
+      "stoneDiameterMillimetres": 22.2,
+      "stoneDiameterModelUnits": 0.96,
+      "alphaWidthPixels": 1178,
+      "imageWidthPixels": 1254,
+      "botanicalReference": "https://plants.ces.ncsu.edu/plants/acer-palmatum/",
+      "referenceNote": "NC State describes 2\u20135 inch leaves; chosen 60\u201390 mm blade width is within that size range, accounting for cultivar variation."
+    }
+  },
+  "panorama": {
+    "asset": "garden-autumn-panorama.png",
+    "tool": "built-in image_gen",
+    "sourceEditTarget": "garden-panorama-v2.png",
+    "resolution": [
+      1774,
+      887
+    ],
+    "resolutionNote": "Requested 4096x2048 then 3840x1920; tool returned 1774x887 both times. No upscaling applied.",
+    "sha256": "7b435251b64a24cdf5ec209d8a5b1343fd3f937da95289a40f32bcb33bff0013",
+    "prompt": "Create a higher-resolution final version of this exact autumn Japanese garden panorama. Output size 3840x1920 pixels (2:1). Preserve the exact composition, horizon placement, wraparound panorama projection, pond, rocks, stone lantern, gravel clearing, autumn maple trees and sky. Reconstruct fine photographic detail in foliage, bark, rocks and gravel for viewing close-up. Only change resolution and detail; do not change season, layout, color or lighting. Photorealistic natural textures without painterly outlines or artificial over-sharpening. No text.",
+    "seasonEdit": "Autumn red, orange and gold Japanese maple trees frame the clearing, with evergreen pines retained. Pale raked gravel, sparse fallen maple leaves, upper-left afternoon sun."
+  }
+}

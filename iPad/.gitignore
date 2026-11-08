@@ -1,0 +1,8 @@
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+DeviceBuild/
+.build*.log
+__pycache__/
+Signing.local.xcconfig

@@ -157,6 +157,30 @@ final class OGSClientTests: XCTestCase {
         XCTAssertFalse(client.acceptsGameNotification(snapshot!))
     }
 
+    func testGameErrorsRetainOnlyActiveGameExplanations() {
+        connect()
+        client.activeGameID = 7
+        socket.deliver(.success(#"42["game/7/error","Illegal ko recapture"]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.lastGameError?.gameID, 7)
+        XCTAssertEqual(client.lastGameError?.message, "Illegal ko recapture")
+        let first = client.lastGameError
+        socket.deliver(.success(#"42["game/8/error","Other game"]"#))
+        socket.deliver(.success(#"42["review/7/error","Review error"]"#))
+        socket.deliver(.success(#"42["game/7/error",{}]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.lastGameError, first)
+        socket.deliver(.success(#"42["game/7/error",{"message":"Move rejected"}]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.lastGameError?.message, "Move rejected")
+        XCTAssertGreaterThan(client.lastGameError!.revision, first!.revision)
+        client.activeGameID = 8
+        let previous = client.lastGameError
+        socket.deliver(.success(#"42["game/7/error","Late old error"]"#))
+        drainMainQueue()
+        XCTAssertEqual(client.lastGameError, previous)
+    }
+
     func testMovePacketsLeaveCaptureAndTurnUpdatesToBoardReconciliation() {
         connect()
         client.activeGameID = 7
@@ -401,6 +425,21 @@ final class OGSClientTests: XCTestCase {
         wait(for: [cancelled, newRequested], timeout: 3)
         XCTAssertTrue(client.isSearchingForGame)
         held?.respond(status: 200, body: #"{"id":88}"#)
+        wait(for: [done], timeout: 3)
+    }
+
+    func testSGFDownloadPreservesServerUnicodeFilename() {
+        let name = "7-000-白-Black.sgf"
+        ClientHTTPFixture.handler = { fixture in
+            fixture.respond(status: 200, body: "(;SZ[9])", headers: [
+                "Content-Disposition": "attachment; filename*=UTF-8''7-000-%E7%99%BD-Black.sgf"])
+        }
+        let done = expectation(description: "Named SGF download")
+        client.fetchSGFDownload(gameID: 7) { data, filename in
+            XCTAssertEqual(data, Data("(;SZ[9])".utf8))
+            XCTAssertEqual(filename, name)
+            done.fulfill()
+        }
         wait(for: [done], timeout: 3)
     }
 
@@ -1458,8 +1497,8 @@ private final class ClientHTTPFixture: URLProtocol {
         }
     }
     override func stopLoading() {}
-    func respond(status: Int, body: String) {
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
+    func respond(status: Int, body: String, headers: [String: String]? = nil) {
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))
         client?.urlProtocolDidFinishLoading(self)

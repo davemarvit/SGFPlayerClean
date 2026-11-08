@@ -78,22 +78,24 @@ private struct KeyboardFixture: View {
         }
         let panel = host(RightPanelView().environmentObject(app), size: CGSize(width: 380, height: 700))
         try clickText("Bravo", in: panel); settle(0.8)
-        require(app.selection?.id == second.id && !app.player.isPlaying && app.player.currentIndex == 0,
+        require(app.selection?.id == second.id && !app.player.isPlaying && app.player.currentIndex == app.player.maxIndex,
                 "Clicking a Review library row opens it paused")
-        vm.startAutoPlay(); settle(0.15)
+        vm.goToStart(); vm.startAutoPlay(); settle(0.15)
         require(app.player.isPlaying && app.player.currentIndex > 0, "Explicit Play still advances")
         AppSettings.shared.moveInterval = 10
         app.selection = nil
+        UserDefaults.standard.set(true, forKey: "settings.library.expanded")
+        UserDefaults.standard.set(false, forKey: "settings.environment.expanded")
         let settings = host(SettingsPanel(app: app, isPresented: .constant(true)), size: CGSize(width: 380, height: 1800))
         require(app.player.isPlaying, "Previous game is still playing before selection")
         try clickText("Alpha", in: settings); settle(0.8)
-        require(app.selection?.id == first.id && !app.player.isPlaying && app.player.currentIndex == 0,
+        require(app.selection?.id == first.id && !app.player.isPlaying && app.player.currentIndex == app.player.maxIndex,
                 "Settings library selection stops previous playback and remains paused")
         AppSettings.shared.moveInterval = 0.1
-        vm.startAutoPlay(); settle(4.0)
+        vm.goToStart(); vm.startAutoPlay(); settle(4.0)
         require(app.selection?.id == first.id && !app.player.isPlaying && app.player.currentIndex == 3,
                 "Finishing playback stays on the same game without starting the next")
-        app.selectGame(first); settle()
+        app.selectGame(first); vm.goToStart(); settle()
         let keyboard = host(KeyboardFixture(app: app), size: CGSize(width: 600, height: 400))
         func key(_ code: UInt16, _ characters: String) {
             for type in [NSEvent.EventType.keyDown, .keyUp] {

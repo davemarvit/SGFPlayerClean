@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "generator": "Built-in image_gen tool",
+  "scope": "3D Buddhist monastery board only. 2D always retains the original kaya board and grid. Existing mesh retained. Grid generated separately in code.",
+  "approvedConcept": "/Users/dave/.codex/generated_images/01a151b5-58e0-7b12-86fb-4a92a19186f6/exec-1d4ceaf4-f09b-43b6-8360-5bdd3c2bb6cd.png",
+  "referenceUse": "User-approved generated concept. eBay photographs were visual research only; no listing photograph is bundled.",
+  "assets": [
+    {
+      "file": "temple-aged-board-top.png",
+      "sha256": "9a935feff7965948a9caaaeb48e68df3e886dad58ab83f5cd853e6e72cb75621",
+      "prompt": "Create a production wood albedo texture derived from the approved ancient Go board reference. OUTPUT A SINGLE SQUARE IMAGE, FULL BLEED WOOD ONLY. Extract/reconstruct its TOP playing face as a perfectly orthographic flat straight-down material texture, evenly lit, no perspective, no sides, no feet, no background, no shadows, no vignette, no highlights from directional lighting. CRITICAL remove ALL black grid lines and ALL star points completely; the app draws its own grid on top. Keep the approved warm medium-dark reddish chestnut brown wood color (not burnt or near-black), beautiful fine natural grain mostly running vertically top-to-bottom, abundant small shallow mechanical dents and fine light scrapes from centuries of heavy use, occasional short crossing scratches. Small worn lighter edge nicks within a narrow 1% band along the four boundaries, no decorative border. The surface remains clean, sound, flat and playable. Less broad blotchy color variation than reference to ensure black grid readability. No mold, stains, spills, water rings, dirt, dark speckling, rot, long cracks, gouges or broken wood. Fine detailed realistic wood wear, low-contrast enough to sit behind black grid and stones. This is a texture map of one single solid board, not planks; no seams. NO LINES, NO GRID, NO DOTS, NO TEXT."
+    },
+    {
+      "file": "temple-aged-board-endgrain.png",
+      "sha256": "14407da6d68c2125b0f4016af80e178acf8d85a51a77d6ffa9ea9a1fb63ef16d",
+      "prompt": "Create one SQUARE full bleed wood albedo texture for the END GRAIN side faces of the thick antique Go board in the reference. Flat perfectly orthographic evenly lit texture only, no perspective, no actual 3D object, no background or feet. Match the warm reddish chestnut brown wood of the reference, slightly more muted than orange, medium-dark but NOT near black. Dense fine tree growth rings crossing the image as subtle near-vertical nested curved grain arcs from a large old tree, not concentric target rings, one solid block not planks. Very old heavily used but lovingly maintained: many fine scratches, a few short pale scuffs and shallow mechanical dings in a calm wood surface, narrow gently rubbed edges. Surface detail beautiful and restrained. No spills, stains, blotches, mold, dark speckles, rot, dirt, cracks or water marks. Absolutely no Go grid or lines or dots or text. No lighting shadows, vignette or hot spots. Do not include playing surface, sides, feet or room, just the reconstructed flat endgrain material."
+    }
+  ]
+}

@@ -17,9 +17,15 @@ struct KeyboardShortcutsModifier: ViewModifier {
             if let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isEditable { return .ignored }
             
             let isShift = press.modifiers.contains(.shift)
+            let isControl = press.modifiers.contains(.control)
+            if press.key == .leftArrow, press.modifiers == .command {
+                boardVM.returnToMainLineBranchOrigin()
+                return .handled
+            }
+            guard !press.modifiers.contains(.command), !press.modifiers.contains(.option) else { return .ignored }
             switch press.key {
-            case .leftArrow: isShift ? boardVM.stepBackwardTen() : boardVM.stepBackward(); return .handled
-            case .rightArrow: isShift ? boardVM.stepForwardTen() : boardVM.stepForward(); return .handled
+            case .leftArrow: boardVM.navigatePlayback(direction: -1, tenMoves: isShift, variation: isControl); return .handled
+            case .rightArrow: boardVM.navigatePlayback(direction: 1, tenMoves: isShift, variation: isControl); return .handled
             case .upArrow: boardVM.goToStart(); return .handled
             case .downArrow: boardVM.goToEnd(); return .handled
             case .space: boardVM.toggleAutoPlay(); return .handled

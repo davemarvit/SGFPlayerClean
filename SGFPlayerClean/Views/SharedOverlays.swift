@@ -8,6 +8,62 @@
 
 import SwiftUI
 
+/// Overlaying the board keeps its geometry fixed as passes and results appear.
+struct BoardEventOverlay: View {
+    @ObservedObject var boardVM: BoardViewModel
+    var showsResult: Bool
+    @State private var passOpacity = 0.0
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if let pass = boardVM.passAnnouncement, !boardVM.isPreviewingVariation, !boardVM.isScrubbing {
+                    Text(pass.text)
+                        .font(.system(size: min(28, max(16, geometry.size.width * 0.037)), weight: .semibold))
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .padding(18)
+                        .frame(width: min(210, geometry.size.width * 0.4), height: min(210, geometry.size.width * 0.4))
+                        .background(.black.opacity(0.68), in: Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.2)))
+                        .opacity(passOpacity)
+                        .accessibilityIdentifier("board-pass-announcement")
+                }
+                if showsResult, let result = boardVM.reviewEndResult {
+                    VStack {
+                        VStack(spacing: 4) {
+                            Text("Final result").font(.subheadline).foregroundStyle(.white.opacity(0.8))
+                            Text(result).font(.system(size: 25, weight: .semibold))
+                                .multilineTextAlignment(.center)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24).padding(.vertical, 12)
+                        .background(.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal, 68).padding(.top, 70)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("review-final-result")
+                        Spacer()
+                    }
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .allowsHitTesting(false)
+        .task(id: boardVM.passAnnouncement?.id) {
+            passOpacity = 0
+            guard let pass = boardVM.passAnnouncement,
+                  Date.timeIntervalSinceReferenceDate - pass.startedAt < PassAnnouncement.duration else { return }
+            withAnimation(.easeOut(duration: PassAnnouncement.fadeIn)) { passOpacity = 1 }
+            do {
+                try await Task.sleep(nanoseconds: UInt64((PassAnnouncement.fadeIn + PassAnnouncement.hold) * 1_000_000_000))
+                try Task.checkCancellation()
+                withAnimation(.easeIn(duration: PassAnnouncement.fadeOut)) { passOpacity = 0 }
+            } catch { /* A newer move or a closed view cancels this announcement. */ }
+        }
+    }
+}
+
 struct SharedOverlays: View {
     @Binding var showSettings: Bool
     @Binding var buttonsVisible: Bool
@@ -43,7 +99,19 @@ struct SharedOverlays: View {
                         .buttonStyle(.plain)
                         .help("Settings & Load Game")
 
-                        // B. View Mode Toggle
+                        // B. Full Screen Toggle
+                        Button(action: toggleFullScreen) {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Toggle Full Screen")
+
+                        // C. View Mode Toggle
                         Button(action: {
                             withAnimation {
                                 app.viewMode = app.viewMode == .view2D ? .view3D : .view2D
@@ -58,32 +126,22 @@ struct SharedOverlays: View {
                         }
                         .buttonStyle(.plain)
                         .help("Switch View Mode")
-                        
-                        // C. Full Screen Toggle
-                        Button(action: toggleFullScreen) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(Color.black.opacity(0.6)))
-                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                        .help("Toggle Full Screen")
 
-                        // D. Debug Dashboard (Restored)
-                        Button(action: {
-                            app.showDebugDashboard.toggle()
-                        }) {
-                            Image(systemName: "ladybug.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(Color.red.opacity(0.8))) // Distinct color
-                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                        // D. Return to the comfortable playing view (3D only).
+                        if app.viewMode == .view3D {
+                            Button(action: { app.recenter3DRequested.send() }) {
+                                Image(systemName: "target")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.white)
+                                    .frame(width: 32, height: 32)
+                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                                    .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Recenter board")
+                            .accessibilityIdentifier("recenter-3d-board")
+                            .help("Recenter board — return to the seated playing view")
                         }
-                        .buttonStyle(.plain)
-                        .help("Open Debug Dashboard")
                     }
                     
                     Spacer()
@@ -113,7 +171,9 @@ struct SharedOverlays: View {
                                 .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
                         }
                         .buttonStyle(.plain)
-                        .help("Show Right Panel")
+                        .help("Show game information and controls")
+                        .accessibilityLabel("Show game information and controls")
+                        .accessibilityIdentifier("show-game-information")
                         .padding(20)
                         .transition(.opacity)
                     }

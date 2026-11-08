@@ -52,7 +52,7 @@ struct SGFPlayerCleanApp: App {
     #elseif SGF_OGS_REVIEW
     @StateObject private var appModel = makeOGSReviewModel()
     #else
-    @StateObject private var appModel = AppModel(defaultMode: .playOnline)
+    @StateObject private var appModel = AppModel(defaultMode: .localPlay)
     #endif
 
     var body: some Scene {
@@ -98,7 +98,7 @@ struct SGFPlayerCleanApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Open SGF File...") {
+                Button("Open SGF Game or Folder...") {
                     openSGFFile()
                 }
                 .keyboardShortcut("o", modifiers: .command)
@@ -106,36 +106,11 @@ struct SGFPlayerCleanApp: App {
         }
     }
 
-    /// Open SGF file picker
+    /// Use the same file-or-folder picker as the review library.
     private func openSGFFile() {
-        print("📂 Opening file picker...")
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
-        panel.title = "Choose an SGF file"
-
-        panel.begin { response in
-            if response == .OK, let url = panel.url {
-                print("📂 Selected file: \(url.path)")
-                let scoped = url.startAccessingSecurityScopedResource()
-                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-                do {
-                    let text = try String(contentsOf: url)
-                    let wrapper = SGFGameWrapper(url: url, game: SGFGame.from(tree: try SGFParser.parse(text: text)))
-                    appModel.boardVM?.stopAutoPlay()
-                    appModel.mode = .review
-                    appModel.selectGame(wrapper)
-                } catch {
-                    let alert = NSAlert()
-                    alert.messageText = "Could not open SGF"
-                    alert.informativeText = error.localizedDescription
-                    alert.runModal()
-                }
-            }
-        }
+        appModel.promptForSGFs()
     }
+
 }
 
 // MARK: - Stone Laboratory

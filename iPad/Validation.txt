@@ -1,0 +1,292 @@
+Quiet Go iPad prototype — October 18, 2026
+
+Environment: Xcode 26.3, Apple Silicon Mac, iPad Pro 11-inch (M5) simulator,
+iPadOS 26.3. Deployment target iPadOS 17.0. No physical iPad was connected.
+
+PASS: Debug simulator app and XCTest build.
+PASS: Release arm64 iPhoneOS app build, signing disabled.
+PASS: 6 iPad model/integration tests, 0 failures (9.68 seconds total):
+  capture/rewind/pass; branch-preserving SGF round trip; rejected import retention;
+  scoring isolation; session restore and archive; real native KataGo on 9x9 and
+  19x19, legal candidates, valid win probability, and cancelled-result suppression.
+PASS: 1 UI test, 0 failures: 2D tap/Place, backward/forward, 3D tap/Place,
+  portrait/landscape layout, return to 2D, no magenta shader-error output.
+PASS: 41 shared Mac tests, 0 failures: SGF parsing, Go rules, local scoring,
+  review trees, board-stone rendering. The board-rendering test helper was fixed
+  to exclude decorative supply stones by selecting the existing board-stone name.
+PASS: simulator launcher builds, installs and starts com.davemarvit.QuietGo.iPad.
+
+Results:
+  iPad/.build/TabletTests-final.xcresult
+  iPad/.build/TabletRender.xcresult (additional UI run after grid depth adjustment)
+  iPad/.build/mac-regression.log
+  iPad/.build/device-build.log
+  iPad/.build/launch.log
+Screenshots:
+  /Users/Dave/Documents/SGF PLayer/Main App Update/2026-10-18-iPad/Previews
+
+KataGo v1.16.4 source commit: 4b8de63bea2bd8790db96cd6f8daf86dc87be6f7
+Bundled network: kata1-b18c384nbt-s9996604416-d4316597426
+Network SHA256: 9d7a6afed8ff5b74894727e156f04f0cd36060a24824892008fbb6e0cba51f1d
+Eigen: 3.4.0. CPU only; one search and one evaluator thread.
+
+Not established by these checks: physical-device performance, Apple Pencil feel,
+older iPadOS runtimes, battery/thermal behavior, signing/distribution, live authenticated
+OGS play, full desktop feature parity, or App Store readiness. Simulator timing is
+not an iPad performance estimate. The installed Mac application was not replaced.
+
+Online-play update — October 18, 2026
+
+PASS: 8 iPad OGS integration tests against injected HTTP/socket fixtures:
+  login and join, single move dispatch and server echo, opponent turns, local
+  restoration and live-game edit/AI guards, gap/duplicate/undo reconciliation,
+  stale-game notification rejection, scoring and spectator restrictions,
+  lost-echo reconnect, ten-second confirmation timeout without a resend,
+  accepting a challenge once and auto-opening a newly created game.
+PASS: 6 existing iPad tests, including native KataGo, remain passing.
+PASS: 2 UI tests: the existing 2D/3D/local workflow, plus OGS fixture login,
+  resume, touch placement, chat echo, background/reactivation, local return and
+  AI restriction. Screenshots visually inspected.
+PASS: 160 shared tests selected by
+  OGS|GameReconciliationTests|ChallengeSetupTests|CountdownTests|LobbySpeedTests.
+PASS: Debug simulator build and unsigned Release arm64 device build.
+
+Final app-code run: iPad/.build/Online-final.xcresult. This run passed 13 hosted
+and both UI tests, but exposed a trailing-slash mismatch in the test server's
+challenge route. Foundation URL.path removes that slash. The fixture was corrected;
+the affected challenge-creation test then passed in
+  iPad/.build/Online-challenges-final.xcresult.
+Earlier online touch run: iPad/.build/Online-touch-2.xcresult.
+Shared test log: iPad/.build/online-shared-tests.log.
+Device build log: iPad/.build/online-device-build.log.
+Screenshot: Previews/iPad-online-simulated.png in the artifact directory above.
+
+No real credentials, challenge acceptance/creation, game moves, or chat messages
+were sent to OGS during these tests. The screenshot is explicitly a simulated game.
+Live authentication/gameplay and real-device background/network recovery remain
+unverified. Device installation still requires signing and an attached iPad.
+Environment artwork/materials were not changed for this online-play update.
+
+First physical iPad installation — October 18, 2026
+
+Device: iPad Pro 11-inch (M4), iPadOS 26.5.2.
+PASS: USB pairing and Developer Mode; developer disk image services available
+      with Xcode 26.3.
+PASS: Release device build signed with the existing Apple Development identity.
+PASS: Provisioning profile includes the attached iPad and signing certificate.
+PASS: codesign --verify --deep --strict.
+PASS: Application installed over USB (com.davemarvit.QuietGo.iPad, version 0.1/1).
+Signing.local.xcconfig is ignored by Git and preserves the local development team
+when generate_project.py recreates the Xcode project.
+Initial launch was denied with a generic signing/profile-trust error. The suggested
+Developer App trust entry was absent. A subsequent launch retry succeeded without
+an additional manual trust setting; the cause of the initial denial was not established.
+PASS: Physical-device launch of Quiet Go 0.1 (build 1); process 675 was still running
+about 22 seconds after launch. This is startup validation, not a full hardware test.
+Logs: iPad/.build/ipad-device-provisioning.log, ipad-install.log, ipad-launch.log.
+
+Touch feedback update — build 2, October 18, 2026
+
+Implemented direct board taps in both 2D and 3D, removed the Place button,
+restored the shared tatami background in the iPad 2D canvas, removed the gesture
+failure dependency blocking two-finger orbit, and added simultaneous pinch/twist
+recognition. Shared environment artwork/materials were not edited.
+PASS: 9 hosted tests (8 OGS integration tests and a new direct-tap/scoring/asset
+      test). Direct online taps cannot send a second move while awaiting its echo.
+PASS: 2 UI tests covering local and online direct taps, actual camera-position
+      changes during two-finger twist and pinch, no stones placed by camera
+      gestures, recentering, orientation, chat and reconnect.
+PASS: Signed Release build 2 for the attached M4 iPad; signature verified.
+Results: iPad/.build/Touch-update.xcresult.
+Build log: iPad/.build/touch-device-build.log.
+Physical two-finger drag/twist and three-finger pan still need user retesting.
+PASS: Build 2 installed and launched on the physical M4 iPad. Simulator screenshot
+      visually confirms tatami surrounds the board and the Place button is absent.
+Device logs: iPad/.build/touch-ipad-install.log, touch-ipad-launch.log.
+
+Adaptive 2D equipment update — build 3, October 18, 2026
+
+Reused shared bowl artwork and deterministic capture-pile positions in iPad-local
+views. Portrait puts equipment above/below the board, landscape beside it. Local
+portrait controls are compact, with Details exposing review/scoring and Analyze
+remaining directly accessible. The board's hit region follows its new rectangle.
+PASS: Two hosted equipment tests covering non-overlap/window bounds, edge/center
+      tap mapping on 9/13/19 boards, bundled artwork, supplies/captures and rewind.
+PASS: Three UI tests covering supplies/capture/rewind, portrait/landscape layout,
+      Details access, direct placement, OGS fixture play/chat/lifecycle, and 3D
+      pinch/twist without accidental placement.
+Results: iPad/.build/Equipment-update.xcresult.
+Visual inspection caught missing lid/stone images in SwiftUI's named-image path;
+changed those to UIImage-backed views and confirmed both orientations render.
+PASS: Equipment UI test rerun after final artwork and compact-label fixes.
+Results: iPad/.build/Equipment-release-check.xcresult.
+Screenshots: iPad/.build/Equipment-release-screenshots/manifest.json.
+PASS: Signed Release build 3 for M4 iPad; codesign --verify --deep --strict passed.
+Build log: iPad/.build/equipment-device-build.log.
+PASS: Installed and launched build 3 on the physical M4 iPad; device app listing
+      confirms 0.1/build 3 and Quiet Go process 863 remains running after launch.
+Device logs: iPad/.build/equipment-ipad-install.log, equipment-ipad-launch.log.
+
+3D camera animation update — build 4, October 18, 2026
+
+The iPad now calls the shared arrival and recenter animations. Initial 3D entry
+and environment changes survey the setting before arriving at the playing seat;
+Recenter glides from the actual camera pose. Environment selection defers the tour
+until Board settings closes. A touch-down recognizer consumes the full contact
+sequence when skipping, preventing accidental moves or camera gestures on release.
+Reduce Motion and inactive/background transitions finish the animation.
+PASS: Two hosted coordinator tests exercise every environment, natural completion,
+      interrupted tours, refreshes during flight, viewport lens changes, recenter
+      continuity, reduced motion, initial activation and background cancellation.
+PASS: Two UI tests verify visible camera movement and natural arrival, tap/held-touch
+      skipping without moves, normal placement afterward, recenter, pinch/twist,
+      orientation, and deferred arrival after selecting Moon in Board settings.
+Results: iPad/.build/Camera-update.xcresult, Camera-final.xcresult.
+PASS: Signed Release build 4 and codesign --verify --deep --strict.
+Build log: iPad/.build/camera-device-build.log.
+Device remains disconnected/unavailable. Build 4 is ready but has NOT been installed;
+physical-device camera performance and touch skip await the next device update.
+
+Build 4 device installation — October 18, 2026
+PASS: Installed signed build 4 after the M4 iPad reconnected. Device app listing
+      confirms Quiet Go version 0.1, bundle version 4.
+Launch was denied because the iPad was locked (FBSOpenApplicationErrorDomain 7).
+The update is installed; unlock the iPad and open Quiet Go to run it.
+Logs: iPad/.build/camera-ipad-install.log, camera-ipad-launch.log.
+
+2D lid fit — build 5, October 18, 2026
+
+Sized each lid from its visible seating ring and the bowl opening, accounting for
+different image padding. Lid frames are about 5% and 10% smaller; visible lids are
+about 87% of the bowl body. Board, bowl and captured-stone sizes are preserved.
+PASS: Two hosted tests covering artwork, physical lid fit, window bounds, tap
+      mapping, supply counts, capture and rewind.
+PASS: Portrait/landscape UI test with capture, rewind and direct placement.
+      The shared-simulator rerun was interrupted by a concurrent test run; a
+      separate simulator completed the final UI rerun successfully.
+Results: iPad/.build/Lid-fit.xcresult, Lid-fit-final.xcresult (hosted tests),
+         Lid-fit-isolated.xcresult (final UI run).
+PASS: Signed Release build 5 verified, installed and launched on the M4 iPad.
+      Device app listing confirms Quiet Go 0.1/build 5.
+Logs: iPad/.build/lid-fit-device-final-build.log, lid-fit-ipad-install.log,
+      lid-fit-ipad-launch.log.
+Backup, verified app and screenshots:
+/Users/Dave/Documents/SGF PLayer/Main App Update/2026-10-18-iPad-Lid-Fit
+
+Board proportions and landscape layout — build 6, October 18, 2026
+
+Rectangular 2D grid cells now use height/width 1.0773 with round stones and matching
+tap mapping. Landscape puts all titles and controls in a 280-point right sidebar,
+leaving the board full available height. Supply-count labels are removed; capture
+counts and the build-5 lid calibration remain. A visible Environment menu and a
+viewport-fitted playing lens enlarge the final 3D view. Rotation preserves the
+scene instead of restarting its tour.
+PASS: Hosted geometry/tap checks for 9/13/19 boards and four window dimensions.
+PASS: SceneKit projection and coordinator checks for viewport fit, margins, tours
+      and preservation of manual camera poses (Board-fit-final.xcresult).
+PASS: UI placement, capture/rewind, portrait/landscape equipment, pinch/twist and
+      recenter checks (Tablet-layout-final.xcresult).
+PASS: Environment selection in portrait and landscape, full-height 3D viewport,
+      rotation without a new tour, simulated online login/play/chat/resume and
+      return to local play (Tablet-rotation-final.xcresult).
+Reviewed portrait/landscape screenshots from both final test runs. Earlier bowl
+test failures were obsolete remaining-count expectations, removed before rerun.
+PASS: Signed Release build 6 and codesign --verify --deep --strict.
+PASS: Installed on the M4 iPad; device app listing confirms Quiet Go 0.1/build 6.
+Logs: iPad/.build/tablet-layout-device-build.log, tablet-layout-ipad-install.log,
+      tablet-layout-ipad-launch.log.
+
+Observe browser — build 7, October 18, 2026
+
+Added visible Observe entry points in portrait and landscape, an OGS live-game
+list, Play/Observe browser selection, pagination, timed/manual refresh, and direct
+link/number observation. Reused shared OGS list parsing and live reconciliation.
+Observation explicitly enforces read-only permissions, including the account's own
+games, and hides participant-only controls. Local play restores its prior position.
+PASS: All nine hosted online tests, including observation list retrieval, live
+      updates, read-only own-game permissions, reconnect and explicit return to Play.
+PASS: Observe UI login, game selection, ignored board taps, hidden player actions,
+      returning to the list, portrait entry and local restoration.
+PASS: Existing online login/play/chat/background/resume/local UI test.
+Results: iPad/.build/Tablet-observe.xcresult; final controller/UI checks in
+         iPad/.build/Tablet-observe-final.xcresult.
+Tests use an in-process OGS fixture; no live moves or chat were sent. Reviewed the
+Observe-list screenshot. Physical-device browsing against OGS remains a user check.
+PASS: Signed Release build 7 and codesign --verify --deep --strict.
+PASS: Installed on the connected M4 iPad.
+Logs: iPad/.build/tablet-observe-device-build.log, tablet-observe-ipad-install.log,
+      tablet-observe-ipad-launch.log.
+
+Compact mode controls — build 8, October 18, 2026
+
+Four persistent, highlighted mode choices replace the changing Online/Local button
+and separate Observe action. Portrait has a compact top mode/tool bar and a single
+bottom strip. Landscape has a 260-point detail panel, collapsible to a 112-point
+strip with all modes visible. Board/camera identity survives panel changes. Large
+app titles and repeated placement hints are removed. Review offers Choose game,
+uses current local history, and is selected automatically by SGF imports; new games
+select Local Play. The local mode persists across restarts and online sessions.
+PASS: Hosted import/new-game/mode/session preservation test (Tablet-modes.xcresult).
+PASS: Local capture/rewind/rotation, Observe login/read-only view, and online
+      login/play/chat/resume/local restoration (Tablet-modes-final.xcresult).
+PASS: Mode highlighting, history navigation, Choose game, local Pass, compact
+      portrait footer, collapse/expand, and >15% larger 2D board area when collapsed.
+PASS: 3D rotation and collapse preserve the seated camera; Environment remains
+      accessible in the compact strip and changing it still plays the tour.
+Final layout results: iPad/.build/Tablet-modes-rail.xcresult.
+Earlier runs caught accessibility identifiers propagating onto child buttons and
+a collapsed top/bottom-bar layout that reduced the board size; both were fixed.
+Online tests use fixtures and send no live moves or chat.
+PASS: Signed Release build 8 and codesign --verify --deep --strict.
+Build log: iPad/.build/tablet-modes-device-final-build.log.
+PASS: Installed build 8 on the M4 iPad; device app listing confirms version 0.1/8.
+Reviewed final 2D landscape compact-strip screenshot and portrait 3D controls.
+Device logs: iPad/.build/tablet-modes-ipad-install.log, tablet-modes-ipad-launch.log.
+
+Player information and browser cleanup — build 9, October 18, 2026
+
+Removed the popup Play/Observe selector and duplicate Observe games/OGS lobby
+button. Choose game is the sole board action for opening the online browser;
+reselecting the current mode no longer opens it. Pasted references use Open link
+or number. Player names/ranks remain visible in portrait and both landscape panel
+states. Detailed player rows include clocks. Capture labels explicitly name both
+the capturing player and captured stone color.
+
+Shared rank formatting is now internally accessible to the iPad adapter, with no
+formatting behavior changes. Snapshot ratings/pro ranks are supported, with same-
+game list fallback when snapshot rank fields are absent and explicit Rank unavailable
+otherwise. Loading another game cannot display the preceding game's identities.
+A newly introduced shared renderer call required adding UIColor.blended support to
+the iPad UIKit adapter; shared renderer/artwork changes were preserved.
+
+PASS: All 10 hosted online tests, including legacy/rating/pro rank labels, missing
+rank data, list fallback, stale identity protection, reconnect and read-only observe.
+PASS: Observe UI checks for player names/ranks visible in portrait, expanded and
+collapsed landscape, no popup mode toggle, one Choose game, and no duplicate
+Observe games action. Also verifies current-mode taps do not reopen the browser.
+PASS: Capture/rewind UI verifies explicit capture text; online play/chat/resume/local
+restoration still passes. All online tests use fixtures, not live moves or chat.
+Result: iPad/.build/Tablet-player-info-final.xcresult (13 tests, zero failures).
+Reviewed final portrait and collapsed landscape player-summary screenshots.
+PASS: Signed Release build 9, codesign --verify --deep --strict, and installation
+on the M4 iPad. Logs: iPad/.build/tablet-player-info-device-build.log,
+tablet-player-info-ipad-install.log, tablet-player-info-ipad-launch.log.
+
+October 22, 2026 — build 10 desktop adaptations
+- iPad simulator: 26 unit/integration tests passed, including new cache identity,
+  analysis master-switch gating, native whole-game coverage, board/variation
+  preservation, and cache restoration checks.
+- UI: compact mode/rotation/collapsed-panel regression and new variation-tree/
+  game-library check passed (2 tests). Screenshots exported to update backup.
+- Mac shared PlayingEnvironmentTests: 11 passed.
+- Final signed arm64 device build succeeded using the existing local team.
+- Expanded initial simulator attempt failed in Apple's test-service bootstrap
+  (Mach -308/lost testmanagerd); restarting the simulator and running the unit
+  and UI batches sequentially completed successfully.
+- Final coverage-label correction reports cached results for the current branch;
+  final signed build rechecked compilation after this display-only change.
+- No real OGS games, challenges, messages or account actions used in testing.
+- Source backup, logs and UI screenshots: Main App Update/2026-10-22-iPad-Parity.
+- Installed build 10 successfully on Dave_iPad_6 (iPad Pro 11-inch M4),
+  retaining the existing app container. Automatic launch was blocked because
+  the iPad is locked; unlock it and open Quiet Go for physical UI validation.

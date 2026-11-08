@@ -1,0 +1,14 @@
+{
+  "source": "https://github.com/Jud/kokoro-coreml",
+  "commit": "3853a83381d2fc62fa01b33fc86ce1c79f284082",
+  "license": "Apache-2.0",
+  "modifications": [
+    "Removed runtime model downloader; models are bundled.",
+    "Replaced SwiftPM resource lookup with an application resource bundle.",
+    "Omitted optional BART unknown-word model; retained lexicon, number expansion and spelling fallback."
+  ],
+  "model_release": "models-2026-03-23",
+  "model_archive_sha256": "0d24bbf80526456bd8640f9f484cd1c333aee8a936e618ac44e619eafb79aec9",
+  "model_source": "https://huggingface.co/hexgrad/Kokoro-82M",
+  "voice": "af_heart (Amelia in BookReader)"
+}

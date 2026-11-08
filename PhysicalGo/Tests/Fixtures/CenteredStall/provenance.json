@@ -1,0 +1,6 @@
+{
+  "archive": "PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-02 15-13-07 61BD02BE",
+  "eventsSHA256": "a368d3f330db32f4ef9ed79a16b9011f56f57d5b415a058cd0c32bb1077e9be2",
+  "finalFrame": 582,
+  "description": "Raw failing frames145/245, intermittent successful control166, final frame, exact reference and calibration for each. Original paused65saved4pending state. No simulated recentering."
+}

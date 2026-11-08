@@ -6,6 +6,20 @@ final class ReviewMistakeTests: XCTestCase {
     private func evaluation(_ turn: Int, _ color: Stone, _ loss: Double) -> MoveEvaluation {
         MoveEvaluation(turn: turn, quality: .excellent, winDelta: 0, scoreDelta: -loss, player: color)
     }
+    func testHistoricalCandidateUsesMeasuredCostAndNeverInventsZero() throws {
+        let before = analysis(0, score: 0)
+        let point = BoardPosition(0, 0)
+        let unknown = HistoricalMoveHints.candidates(analysis: before, evaluation: nil, position: point, size: 9)
+        XCTAssertFalse(unknown.contains { $0.move == "A9" })
+        let hints = HistoricalMoveHints.candidates(analysis: before, evaluation: evaluation(0, .black, 3), position: point, size: 9)
+        let played = try XCTUnwrap(hints.first { $0.move == "A9" })
+        XCTAssertEqual(played.scoreLead, -3)
+        XCTAssertTrue(hints.contains { $0.move == "D4" }, "Alternatives remain available")
+        let samePoint = HistoricalMoveHints.candidates(analysis: before, evaluation: evaluation(0, .black, 3), position: BoardPosition(5, 3), size: 9)
+        XCTAssertEqual(samePoint.filter { $0.move == "D4" }.count, 1)
+        XCTAssertEqual(samePoint.first?.scoreLead, -3)
+    }
+
     func testPointOnlyInclusiveFiltersReturnPlaybackIndices() {
         let evals = [evaluation(0, .black, 2), evaluation(1, .white, 5), evaluation(2, .black, 1.99), evaluation(4, .black, .nan)]
         XCTAssertEqual(MistakeFilter().moveNumbers(in: evals), [1,2])
@@ -71,11 +85,12 @@ final class ReviewMistakeTests: XCTestCase {
         p.restoreSnapshot(snapshot); XCTAssertEqual(p.captureSeed, seed)
         p.clear(); XCTAssertNotEqual(p.captureSeed, seed)
     }
-    func testSeeded3DPilesStayInsideStaticLidsAcrossGameAndSizeChanges() throws {
+    func testSeeded3DPilesSettleNearLidsAndClearOverflowAcrossGameAndSizeChanges() throws {
         let scene = SceneManager3D()
         let renderer = SCNRenderer(device: nil, options: nil)
         renderer.scene = scene.scene; renderer.pointOfView = scene.cameraNode
         var time = 0.0
+        var overflowCount = 0
         for (seed, size) in [(UInt64(123), 19), (456, 9), (789, 13), (123, 19)] {
             scene.updateBoardSize(size)
             scene.updateCapturedStones(black: 70, white: 70, seed: seed)
@@ -84,20 +99,30 @@ final class ReviewMistakeTests: XCTestCase {
                 _ = renderer.snapshot(atTime: time, with: CGSize(width: 64, height: 64), antialiasingMode: .none)
                 time += 1.0 / 60
             }
+            var captured: [SCNNode] = []
             for name in ["black-player-lid", "white-player-lid"] {
                 let lid = try XCTUnwrap(scene.scene.rootNode.childNode(withName: name, recursively: true))
                 XCTAssertEqual(lid.physicsBody?.type, .static)
                 let stones = lid.childNodes.filter { $0.name?.hasPrefix("captured-") == true }
                 XCTAssertEqual(stones.count, 70)
+                captured += stones
                 for stone in stones {
                     let position = stone.presentation.position
                     XCTAssertTrue(position.x.isFinite && position.y.isFinite && position.z.isFinite)
-                    XCTAssertLessThan(hypot(Double(position.x), Double(position.z)), 3.5)
-                    XCTAssertGreaterThan(position.y, -0.1)
+                    let radius = hypot(Double(position.x), Double(position.z))
+                    if radius > 3.5 { overflowCount += 1 }
+                    // Full lids may spill onto the surrounding surface; captures
+                    // must remain nearby and above the visible floor.
+                    XCTAssertLessThan(radius, 8, "Capture escaped the area around its lid")
+                    XCTAssertGreaterThan(CGFloat(stone.presentation.worldPosition.y), KayaFloorBoard.floorY,
+                                         "Capture fell through the visible floor")
                     XCTAssertLessThan(position.y, 4.5)
                 }
             }
+            scene.updateCapturedStones(black: 0, white: 0)
+            XCTAssertTrue(captured.allSatisfy { $0.parent == nil }, "Rewind removes captures, including spilled stones")
         }
+        XCTAssertGreaterThan(overflowCount, 0, "Fixture must exercise overflowing lids")
     }
 
 }

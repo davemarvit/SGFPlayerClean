@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-19",
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "ground": {
+    "source": "https://polyhaven.com/a/forest_leaves_02",
+    "resolution": 4096
+  },
+  "ferns": {
+    "source": "https://polyhaven.com/a/fern_02",
+    "textureResolution": 2048,
+    "variants": 4,
+    "conversion": "Tests/Preview/BakeWoodlandFerns.swift; glTF local vertex positions retained, texture V flipped for SceneKit; no materials embedded.",
+    "meshSource": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/fern_02/fern_02_2k.gltf",
+    "bufferSource": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/fern_02/fern_02.bin",
+    "sha256": "0abee20d3cc37308251b50988fac4643a6d78f1c082517a36375f67626f0976c",
+    "opacitySHA256": "991988eca93185157508388596f9d8cfd5ecf74f59c032402026a7431c288f6f"
+  },
+  "downloads": {
+    "woodland-ground-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/forest_leaves_02/forest_leaves_02_diffuse_4k.jpg",
+      "sha256": "e713aa7e0d7cf16705dd3ad5c32d72e5495b45957b5264a3f3b448111e9e9178"
+    },
+    "woodland-ground-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/forest_leaves_02/forest_leaves_02_nor_gl_4k.jpg",
+      "sha256": "0666140761d688ae6b246103676ee0d131588ee29326edec4803c50c61fa9d9b"
+    },
+    "woodland-fern-color.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_diff_2k.jpg",
+      "sha256": "9ee18172170728050871772e2cd6d8d37b52f9138e61b49b04486623f9caf84b"
+    },
+    "woodland-fern-normal.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_nor_gl_2k.jpg",
+      "sha256": "dfe1ac4a428d21f7c134411500177d66b8dd800c8fec6f0040c50f44414a777b"
+    },
+    "woodland-fern-rough.jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/fern_02/fern_02_rough_2k.jpg",
+      "sha256": "33d8284959dae53a3eeb11d4a38199320e9a64e2710515b2f0a1a71be4cae908"
+    },
+    "source-fern-alpha.png": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/2k/fern_02/fern_02_alpha_2k.png",
+      "sha256": "f51eb9b8f9f4b25a882f8fe12d1ef53ba69448bac7e71396ec1f05b684e9ea75",
+      "note": "Build input only; converted from grayscale opacity to RGBA alpha by BakeWoodlandFerns.swift."
+    }
+  }
+}

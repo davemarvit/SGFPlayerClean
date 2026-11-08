@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-20",
+  "panorama": {
+    "file": "mountain-summit-panorama.png",
+    "mode": "Built-in image_gen",
+    "base_dimensions": [
+      1774,
+      887
+    ],
+    "final_dimensions": [
+      3548,
+      1774
+    ],
+    "base_source": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-c257f49a-6ebb-40c2-b011-69eef6cbd5e9.png",
+    "method": "Six overlapping 640px square crops AI-enhanced to 1254px, geometrically aligned and blended at 2x scale. Wrapped edge repaired, preserving repair through broad-color matching.",
+    "tiles": {
+      "tile-0-0.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-e86a4568-02de-4bf6-b227-182897ce6a4e.png",
+      "tile-0-1.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-edb1e22b-9a81-4f5e-92f7-945c77bc6b13.png",
+      "tile-0-2.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-c1bbf498-ead8-4294-b987-34818f13cf38.png",
+      "tile-1-0.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-a45fae5f-4992-46a4-8900-b32b408085c4.png",
+      "tile-1-1.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-a1098fa1-6b12-41be-9206-920ee505d2e2.png",
+      "tile-1-2.png": "/Users/dave/.codex/generated_images/01a15759-c9af-7a72-bfc7-dd85d548d367/exec-b26f23a8-be8e-4d1a-ab11-07fbe2cff731.png"
+    },
+    "prompts": {
+      "base": "Use case: photorealistic-natural. Create an exact 2:1 full 360 by 180 degree equirectangular environment panorama, highest available resolution. A believable remote high alpine mountain summit at sunset, viewed from about one metre above a broad, stable, nearly level ledge of weathered grey granite and angular small stones. The viewer is on TOP of a high mountain; successive mountain ridges recede far below into a vast valley, with several rugged distant peaks and a few restrained snow patches on the highest distant faces. The nearby foreground is open, bare stone with fine mineral grain, cracks, small angular gravel, no plants or props; the summit ledge extends several metres before dropping away. Keep the central foreground clear for a separately rendered Go board. Natural photographic realism, restrained colors, fine credible geological detail, atmospheric perspective with muted blue-grey distant ridges. A single small setting sun at horizontal position 37.5 percent and vertical position 45.5 percent, about eight degrees above the horizontal horizon, with pale warm amber light and softly lit thin clouds; cool slate-blue sky overhead. No exaggerated red or magenta sky, fantasy peaks, glowing cliffs, excessive bloom, dramatic HDR, stylization, people, equipment, furniture, text, or watermark. One coherent full spherical panorama: horizon level at the vertical midpoint, zenith at top, rocky nadir at bottom; matching left/right edges, no panorama framing border. Photographic rock and mountain detail throughout. This is a background asset, not an image of a board game.",
+      "tiles": {
+        "tile-0-0.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance. There is an existing 360-degree wrap join at 7.5% from the LEFT edge: repair this local discontinuity to make sky, ridges and rocks flow continuously across that join. Only in that narrow band you may adjust structures for seamless continuity; the rest remains registered exactly.",
+        "tile-0-1.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance.",
+        "tile-0-2.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance.",
+        "tile-1-0.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance. There is an existing 360-degree wrap join at 7.5% from the LEFT edge: repair this local discontinuity to make sky, ridges and rocks flow continuously across that join. Only in that narrow band you may adjust structures for seamless continuity; the rest remains registered exactly.",
+        "tile-1-1.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance.",
+        "tile-1-2.png": "Use case: precise-object-edit. Edit target: the supplied exact 640x640 square crop of an equirectangular environment panorama. Restore/upscale it to the highest available square resolution, ideally 1536x1536 or greater. Recover fine photographic material detail within existing surfaces. Keep composition and every object exactly fixed. Preserve exact proportional pixel positions, perspective distortion, framing, silhouettes, edges, patterns, all lighting and shadows, color, brightness and contrast. Do not crop, zoom, straighten or correct the panoramic distortion. This tile must register exactly with neighboring tiles when stitched back together. No new objects, no extra lights or glow, no sharpening halos, no stylization, no increased saturation. Preserve all four boundary positions exactly.  Preserve every alpine ridge, sparse snow patch, sunset cloud and granite crack. Keep natural muted blue-grey ridges and pale amber sunset; no new peaks, no added snow, trees, vegetation, glow, props or objects. Recover plausible fine mineral grain and distant rock texture; maintain haze at distance."
+      }
+    },
+    "sha256": "aefc67a1c7674bb093a20fee56d60fe158f39b9719924e274893b868b98f5df2",
+    "display_mapping": "Horizontally mirrored at runtime using the same reversed azimuth for the surrounding sphere and projected floor; source pixels unchanged."
+  },
+  "ground": {
+    "source": "https://polyhaven.com/a/rock_boulder_dry",
+    "license": "CC0",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "dimensions": [
+      4096,
+      4096
+    ],
+    "physical_patch_metres": 1.8,
+    "files": {
+      "summit-rock-color.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/rock_boulder_dry/rock_boulder_dry_diff_4k.jpg",
+        "sha256": "2787cfdf899ea12442e67e337e32712d6e25f4a0763ab3df63fd9306a02e156f"
+      },
+      "summit-rock-normal.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/rock_boulder_dry/rock_boulder_dry_nor_gl_4k.jpg",
+        "sha256": "440e81881c0681f9dc7efbc5bcf97c9585801bcbdc95b7bd74d6d18657e46f20"
+      },
+      "summit-rock-rough.jpg": {
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/rock_boulder_dry/rock_boulder_dry_rough_4k.jpg",
+        "sha256": "69588fbeb8672ed0d448af7fbf28e834cc1e8dfde45bd1c5dbf6bf50d2674130"
+      }
+    }
+  },
+  "lighting": {
+    "sun_panorama_uv": [
+      0.3185,
+      0.4115
+    ],
+    "sun_direction": [
+      36,
+      11.4,
+      -16.6
+    ],
+    "description": "Warm directional sunlight matched to the mirrored panorama, sunset on the right; diffuse sky fill, matte foreground and cast shadows."
+  }
+}

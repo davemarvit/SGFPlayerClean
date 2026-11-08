@@ -1,0 +1,24 @@
+Tatami v3 — sharper fibers, 17 October 2026
+
+Asset: tatami-woven-v3-sharp.png
+Created with the built-in image generator as an edit of tatami-woven-v2.png.
+Actual dimensions: 1254 x 1254 pixels. The requested 2816 x 2816 output was NOT supplied.
+This is a sharper reconstruction at the same native resolution, not a true upres.
+
+Rendering keeps the approved 96 cm square coverage and the same mirrored repetition.
+Measured dominant vertical pitch: about 64.47 divisions per tile, compared with 64.45 before.
+The physical weave spacing therefore remains approximately 14.9 mm.
+Fine fiber contrast is stronger, but large Retina views will still interpolate the limited source pixels.
+No interpolation change or artificial pixel-doubling was presented as higher source resolution.
+
+Preview checks:
+Compact, portrait, wide, ultrawide and 5120 x 1440 sample compositions.
+Retina detail comparison uses the production renderer at the pixel scale of a 700-point board on a 2x display.
+The comparison shows a modest increase in fiber definition; residual softness remains.
+At a 960-pixel tile size, both mirrored joins have matching adjacent edge pixels.
+Build, native-host and installation records: Main App Update/2026-10-17-Tatami-Sharp.
+The v2 asset and every prior installed-version backup are preserved.
+
+Final prompt:
+Use case: precise-object-edit. Edit target: the attached square tatami texture. Create a genuinely higher-resolution, sharply detailed replacement texture with native output dimensions 2816 x 2816 pixels (about 8 megapixels), not a 1254px preview. The user prioritizes quality over file size. Preserve the identical physical coverage: 96 cm x 96 cm, approximately 64 vertical weave divisions across the width (each about 15 mm), fine horizontal igusa rush fibers. Preserve muted olive/sage straw colors, evenly lit top-down orthographic composition and scale. Restore fine individual fiber ridges and natural thread interlacing with clean crisp edges and detailed organic strand variation throughout. It currently looks blurred at Retina screen size: remove the softness by reconstructing realistic small details rather than merely increasing contrast. Natural photographic material scan, no sharpening halos, no overshoot, no gritty noise, no exaggerated black grooves. Uniform diffuse lighting, no vignette, no shadows or bright patches. Texture should seamlessly tile left-right and top-bottom with straight aligned weave; avoid conspicuous repeated knots or mottled shapes. Keep the number and width of vertical segments unchanged. No borders, labels, text, boards or other objects. Output the highest native resolution available, target 2816 x 2816.
+

@@ -1,0 +1,15 @@
+{
+  "description": "Visually checked physical board: white A4 and black F1; all other intersections empty. Image coordinates use row 0 at top, column 0 at left.",
+  "stones": [
+    {
+      "row": 15,
+      "col": 0,
+      "color": "white"
+    },
+    {
+      "row": 18,
+      "col": 5,
+      "color": "black"
+    }
+  ]
+}

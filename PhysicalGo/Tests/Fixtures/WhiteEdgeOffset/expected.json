@@ -1,0 +1,26 @@
+{
+  "size": 19,
+  "stones": [
+    {
+      "row": 14,
+      "col": 0,
+      "occupancy": "white"
+    },
+    {
+      "row": 8,
+      "col": 9,
+      "occupancy": "white"
+    },
+    {
+      "row": 18,
+      "col": 0,
+      "occupancy": "black"
+    },
+    {
+      "row": 15,
+      "col": 3,
+      "occupancy": "black"
+    }
+  ],
+  "allOtherIntersections": "empty"
+}

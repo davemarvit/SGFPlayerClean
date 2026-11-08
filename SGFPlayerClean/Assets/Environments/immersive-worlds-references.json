@@ -1,0 +1,32 @@
+{
+  "gobanFeet": [
+    {
+      "url": "https://store.baduk.club/products/c406-kaya-leg-set-for-go-or-shogi-board-like-new-accessory",
+      "dimensions": "11.3 cm exposed height; 8.6 cm maximum width"
+    },
+    {
+      "url": "https://kayajudo.jp/en/go-board-legs-and-chidamari/",
+      "use": "Traditional kuchinashi (gardenia) form"
+    },
+    {
+      "url": "https://www.gobanya.net/src/goban495.html",
+      "use": "Traditional carved leg shape"
+    }
+  ],
+  "zafu": [
+    {
+      "url": "https://www.butsudanya.co.jp/shop_chair19.html",
+      "use": "Round black meditation cushion construction"
+    },
+    {
+      "url": "https://torontozen.org/membership.html",
+      "use": "Zendo cushion arrangement"
+    }
+  ],
+  "retroFuture": [
+    {
+      "url": "https://www.artofvfx.com/tomorrowland/",
+      "use": "Optimistic retro-futurist architectural reference; new original generated artwork"
+    }
+  ]
+}

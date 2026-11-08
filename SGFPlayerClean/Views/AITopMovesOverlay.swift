@@ -7,14 +7,14 @@ struct AITopMovesOverlay: View {
     
     // Board geometry parameters used by BoardView
     let availableSize: CGSize
-    let padding: CGFloat
+    let padding: CGSize
     
     var body: some View {
         let size = vm.boardSize
         if size <= 0 { return AnyView(EmptyView()) }
         
-        let gridW = availableSize.width - (padding * 2)
-        let gridH = availableSize.height - (padding * 2)
+        let gridW = availableSize.width - (padding.width * 2)
+        let gridH = availableSize.height - (padding.height * 2)
         let cellWidth = gridW / CGFloat(max(1, size - 1))
         let rowHeight = gridH / CGFloat(max(1, size - 1))
         let stoneRadius = cellWidth / 2.0
@@ -25,32 +25,23 @@ struct AITopMovesOverlay: View {
         
         // Fetch current analysis
         let turn = vm.currentMoveIndex
-        guard let analysis = KataGoEngine.shared.currentAnalysisData[turn],
-              let moves = analysis.moveInfos else {
+        guard let analysis = KataGoEngine.shared.currentAnalysisData[turn] else {
             return AnyView(EmptyView())
         }
         
+        let moves = analysis.moveInfos ?? []
+        let bestMove = AIMovePresentation.ranked(moves).first
         // Find Root Data or fallback to best
-        let rootWinrate = analysis.rootInfo?.winrate ?? (moves.map { $0.winrate }.max() ?? 0)
-        let rootScore = analysis.rootInfo?.scoreLead ?? (moves.map { $0.scoreLead }.max() ?? 0)
+        let rootWinrate = analysis.rootInfo?.winrate ?? bestMove?.winrate ?? 0
+        let rootScore = analysis.rootInfo?.scoreLead ?? bestMove?.scoreLead ?? 0
         let nextMove = vm.engine.nextHistoricalMovePosition
         
-        var topMoves = Array(moves.sorted { $0.winrate > $1.winrate }.prefix(10))
-        
-        // Force include historical nextMove if not in top 10 but evaluated by KataGo
-        if let next = nextMove, !topMoves.contains(where: { parseSGFCoord($0.move, size: size) == next }) {
-            if let missingMove = moves.first(where: { parseSGFCoord($0.move, size: size) == next }) {
-                topMoves.append(missingMove)
-            } else {
-                let fallback = AIMoveInfo(move: toGTPCoord(next, size: size), visits: 0, winrate: rootWinrate, scoreLead: rootScore, pv: nil)
-                topMoves.append(fallback)
-            }
-        }
-        
+        let topMoves = vm.reviewCandidateMoves
+
         return AnyView(
             ZStack {
                 ForEach(topMoves, id: \.move) { info in
-                    let isBestMove = info.move == topMoves.first?.move
+                    let isBestMove = info.move == bestMove?.move
                     moveDot(info: info, size: size, stoneRadius: stoneRadius, cellWidth: cellWidth, rowHeight: rowHeight, rootWinrate: rootWinrate, rootScore: rootScore, nextMove: nextMove, isBestMove: isBestMove)
                 }
             }
@@ -59,42 +50,42 @@ struct AITopMovesOverlay: View {
     
     @ViewBuilder
     private func moveDot(info: AIMoveInfo, size: Int, stoneRadius: CGFloat, cellWidth: CGFloat, rowHeight: CGFloat, rootWinrate: Double, rootScore: Double, nextMove: BoardPosition?, isBestMove: Bool) -> some View {
-        if let pos = parseSGFCoord(info.move, size: size) {
+        if let pos = parseSGFCoord(info.move, size: size),
+           !vm.reviewVariationChoices.contains(where: { $0.position == pos }) {
             let dotSize = stoneRadius * 1.5
             
             // Match BoardView2D: Grid intersections are exactly at (col * cellWidth, row * rowHeight).
             let cx = CGFloat(pos.col) * cellWidth
             let cy = CGFloat(pos.row) * rowHeight
             
-            let diff = rootWinrate - info.winrate
-            let color = getColor(diff: diff)
+            let isNextPlayed = (pos == nextMove)
+            let lossColor = MoveLossPalette.sample(pointsLost: rootScore - info.scoreLead)
+            let color = lossColor.color
             
             ZStack {
                 Circle()
                     .fill(color)
                     .frame(width: dotSize, height: dotSize)
-                    .opacity(0.6) // More transparent in 2D
                     .shadow(radius: 2)
-                
-                let isNextPlayed = (pos == nextMove)
-                
-                if isBestMove && isNextPlayed {
-                    Circle()
-                        .stroke(Color.blue, style: StrokeStyle(lineWidth: dotSize * 0.1, dash: [5]))
-                        .frame(width: dotSize * 1.05, height: dotSize * 1.05)
-                    Circle()
-                        .stroke(Color.black, style: StrokeStyle(lineWidth: dotSize * 0.1, dash: [5, 5], dashPhase: 5))
-                        .frame(width: dotSize * 1.05, height: dotSize * 1.05)
-                } else if isBestMove {
-                    Circle()
-                        .stroke(Color.blue, lineWidth: dotSize * 0.1)
-                        .frame(width: dotSize * 1.05, height: dotSize * 1.05)
-                } else if isNextPlayed {
-                    Circle()
-                        .stroke(Color.black.opacity(0.8), lineWidth: dotSize * 0.1)
-                        .frame(width: dotSize * 1.05, height: dotSize * 1.05)
+
+                if isNextPlayed {
+                    Circle().stroke(color, lineWidth: dotSize * 0.025)
+                        .brightness(-0.18)
+                        .frame(width: dotSize * 0.97, height: dotSize * 0.97)
                 }
                 
+                if isBestMove {
+                    Circle().stroke(Color.blue, lineWidth: dotSize * 0.12)
+                        .frame(width: dotSize * 0.88, height: dotSize * 0.88)
+                }
+                if isNextPlayed {
+                    let dashPeriod = .pi * dotSize * 1.14 / 12
+                    let playedColor: Color = vm.engine.moveColor(at: vm.currentMoveIndex) == .white ? .white : .black
+                    Circle().stroke(playedColor, style: StrokeStyle(lineWidth: max(2, dotSize * 0.055),
+                        dash: [dashPeriod * 0.62, dashPeriod * 0.38]))
+                        .frame(width: dotSize * 1.14, height: dotSize * 1.14)
+                }
+
                 let deltaWin = (info.winrate - rootWinrate) * 100
                 let deltaPt = info.scoreLead - rootScore
                 
@@ -104,23 +95,16 @@ struct AITopMovesOverlay: View {
                 VStack(spacing: 0) {
                     Text(winStr)
                         .font(.system(size: dotSize * 0.38, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(lossColor.labelColor)
                     Text(ptStr)
                         .font(.system(size: dotSize * 0.38, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(lossColor.labelColor)
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(isNextPlayed ? 0.5 : 1)
+                .frame(width: isNextPlayed ? dotSize * 0.88 : nil)
             }
             .position(x: cx, y: cy)
-        }
-    }
-    
-    private func getColor(diff: Double) -> Color {
-        if diff < 0.05 {
-            return .green
-        } else if diff < 0.15 {
-            return .yellow
-        } else {
-            return .red.opacity(0.6)
         }
     }
     

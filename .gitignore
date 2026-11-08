@@ -4,3 +4,9 @@ DerivedData/
 xcuserdata/
 logs/
 __pycache__/
+
+# Local physical-board images and diagnostic recordings
+/PhysicalGo/Captures/
+
+# Local investigation outputs; regression fixtures live with their tests.
+/work/

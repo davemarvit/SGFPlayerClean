@@ -4,26 +4,40 @@ import SwiftUI
 struct ContentView2D: View {
     @EnvironmentObject var app: AppModel
     @Environment(\.boardControlsWidth) private var controlsWidth
-    static func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat) {
-        let boardAspectRatio: CGFloat = 1.0773
-        // Fit board, gap and lids inside the space reserved by BoardWorkspaceView.
-        let totalWFactor: CGFloat = 1 + 1 / 19 + boardAspectRatio / 3
-        let bH = min((area.width * 0.92 / totalWFactor) * boardAspectRatio, area.height * 0.85)
-        let bW = bH / boardAspectRatio
-        return (bW, bH, bH / 3.0, bW / 19.0)
+    static func getLayout(area: CGSize) -> (bW: CGFloat, bH: CGFloat, lidD: CGFloat, gap: CGFloat, bowlD: CGFloat) {
+        typealias D = GoEquipmentDimensions2D
+        let totalWidth = D.boardWidth + 2 * (D.columnPitch + D.bowlImageSpan)
+        let scale = max(0, min(area.width * 0.92 / totalWidth, area.height * 0.85 / D.boardHeight))
+        return (D.boardWidth * scale, D.boardHeight * scale, D.lidDiameter * scale,
+                D.columnPitch * scale, D.bowlImageSpan * scale)
     }
     
     var body: some View {
         GeometryReader { window in
             let area = window.size
             let L = Self.getLayout(area: area)
-            let margin = L.bW * 0.065
+            let margin = GoEquipmentDimensions2D.gridRect(in: CGSize(width: L.bW, height: L.bH)).minY
+            // Off-board equipment deliberately keeps the 19x19 scale for 9/13 games.
+            let stoneSize = GoEquipmentDimensions2D.blackStoneDiameter * L.bW / GoEquipmentDimensions2D.boardWidth
 
             ZStack(alignment: .topLeading) {
                 // 2. Board & Lids Container (Centered in Window)
                 VStack(spacing: 0) {
                     Spacer()
                     HStack(alignment: .top, spacing: L.gap) {
+                         // Opponent's right-hand bowl above our left-hand capture lid.
+                         VStack(spacing: 0) {
+                             if let bvm = app.boardVM {
+                                 PlayerSupplyBowlView(player: bvm.engine, stoneColor: .white, size: L.bowlD)
+                                     .padding(.top, margin / 2 - L.bowlD * (29.0 / 512.0))
+                             }
+                             Spacer()
+                             if let bvm = app.boardVM {
+                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .white, stoneSize: stoneSize, lidNumber: 2, lidSize: L.lidD)
+                                     .accessibilityIdentifier("black-player-capture-lid")
+                                     .padding(.bottom, margin / 2)
+                             }
+                         }.frame(width: L.bowlD, height: L.bH)
                          // Board
                          if let bvm = app.boardVM {
                              BoardView2D(boardVM: bvm, layoutVM: app.layoutVM, size: CGSize(width: L.bW, height: L.bH))
@@ -34,10 +48,9 @@ struct ContentView2D: View {
                          VStack(spacing: 0) {
                              // WHITE PLAYER SIDE (TOP): Captured Black stones
                              if let bvm = app.boardVM {
-                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .black, stoneSize: L.lidD * 0.15, lidNumber: 1, lidSize: L.lidD)
-                                     // Visible lid top sits halfway from board edge to grid.
-                                     // The lid asset has a 79px transparent top inset at 1024px.
-                                     .padding(.top, margin / 2 - L.lidD * (79.0 / 1024.0))
+                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .black, stoneSize: stoneSize, lidNumber: 1, lidSize: L.lidD)
+                                     .accessibilityIdentifier("white-player-capture-lid")
+                                     .padding(.top, margin / 2)
                              }
                              
                              if !app.showsAnalysisWorkspace, let game = app.selection, let bvm = app.boardVM {
@@ -48,21 +61,19 @@ struct ContentView2D: View {
 
                                  }
                                  .frame(width: L.lidD, alignment: .leading) // Forces overflow exclusively to the right
-                                 .offset(y: -45) // Nudge it upwards halfway between old 2D and old 3D
+                                 .padding(.top, 12)
                                  .frame(height: 80)
                              }
                              
                              Spacer()
-                             
-                             // BLACK PLAYER SIDE (BOTTOM): Captured White stones
                              if let bvm = app.boardVM {
-                                 PlayerCaptureLidView(player: bvm.engine, stoneColor: .white, stoneSize: L.lidD * 0.15, lidNumber: 2, lidSize: L.lidD)
-                                     .padding(.bottom, margin - (L.lidD / 2))
+                                 PlayerSupplyBowlView(player: bvm.engine, stoneColor: .black, size: L.bowlD)
+                                     .padding(.bottom, margin / 2 - L.bowlD * (45.0 / 512.0))
                              }
                          }
-                         .frame(height: L.bH)
+                         .frame(width: L.bowlD, height: L.bH)
                     }
-                    .frame(width: L.bW + L.gap + L.lidD)
+                    .frame(width: L.bW + 2 * (L.gap + L.bowlD))
                     
                     Spacer()
                     
@@ -99,26 +110,27 @@ struct PlaybackControlsView: View {
         return "● " + player(info?.playerBlack, info?.blackRank, fallback: "Black")
             + " · ○ " + player(info?.playerWhite, info?.whiteRank, fallback: "White")
     }
+    private var boardStatus: String? {
+        boardVM.variationFrame?.caption ?? boardVM.variationStatus ?? boardVM.moveError
+            ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : nil)
+            ?? boardVM.playbackPassStatus
+            ?? (boardVM.territoryIsEstimate ? "Territory overlay is an estimate; OGS supplies the final score." : nil)
+            ?? (app.viewMode == .view3D ? nil : playerSummary)
+    }
     var body: some View {
         VStack(spacing: 5) {
-            if let status = boardVM.localPassStatus {
-                Text(status).font(.caption).foregroundStyle(.white)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(.black.opacity(0.65), in: Capsule())
-                    .accessibilityIdentifier("local-pass-status")
-            }
-            if boardVM.territoryIsEstimate {
-                Text("Territory overlay is an estimate; OGS supplies the final score.")
-                    .font(.caption).foregroundStyle(.orange)
-                    .padding(5).background(.black.opacity(0.65), in: Capsule())
-            }
-            Text(boardVM.variationFrame?.caption ?? boardVM.variationStatus ?? boardVM.moveError ?? (boardVM.koPoint != nil ? "Ko: immediate recapture is not allowed" : playerSummary))
-                .font(.caption).foregroundStyle(boardVM.moveError == nil ? Color.white : Color.orange)
+            // The 3D viewport is fitted above these controls. Keep the status
+            // row's height even when empty so passes and hover captions cannot move the board.
+            Text(boardStatus ?? " ")
+                .font(.caption).foregroundStyle(boardVM.moveError == nil && !boardVM.territoryIsEstimate ? Color.white : Color.orange)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(.black.opacity(0.65), in: Capsule())
-                .help(boardVM.ruleSummary)
+                .help(boardVM.territoryIsEstimate ? "Territory overlay is an estimate; OGS supplies the final score." : boardVM.ruleSummary)
                 .lineLimit(1).truncationMode(.middle)
                 .accessibilityIdentifier("game-player-status")
+                .opacity(boardStatus == nil ? 0 : 1)
+                .allowsHitTesting(boardStatus != nil)
+                .accessibilityHidden(boardStatus == nil)
         HStack(spacing: 12) {
             if app.mode == .localPlay && !boardVM.isOnlineContext {
                 Button("Pass") { boardVM.passLocally() }
@@ -140,14 +152,16 @@ struct PlaybackControlsView: View {
                 }
                 Button(action: { boardVM.goToStart() }) { Image(systemName: "backward.end.fill") }.buttonStyle(.plain)
                 Button(action: {
-                    NSEvent.modifierFlags.contains(.shift) ? boardVM.stepBackwardTen() : boardVM.stepBackward()
+                    boardVM.navigatePlayback(direction: -1, tenMoves: NSEvent.modifierFlags.contains(.shift),
+                                             variation: NSEvent.modifierFlags.contains(.control))
                 }) { Image(systemName: "backward.fill") }.buttonStyle(.plain)
-                    .help("Previous move (Shift-click: 10 moves)")
+                    .help("Previous move (Shift-click: 10 moves; Control-click: previous variation)")
                 Button(action: { boardVM.toggleAutoPlay() }) { Image(systemName: boardVM.isAutoPlaying ? "pause.fill" : "play.fill") }.buttonStyle(.plain)
                 Button(action: {
-                    NSEvent.modifierFlags.contains(.shift) ? boardVM.stepForwardTen() : boardVM.stepForward()
+                    boardVM.navigatePlayback(direction: 1, tenMoves: NSEvent.modifierFlags.contains(.shift),
+                                             variation: NSEvent.modifierFlags.contains(.control))
                 }) { Image(systemName: "forward.fill") }.buttonStyle(.plain)
-                    .help("Next move (Shift-click: 10 moves)")
+                    .help("Next move (Shift-click: 10 moves; Control-click: next variation)")
                 Button(action: { boardVM.goToEnd() }) { Image(systemName: "forward.end.fill") }.buttonStyle(.plain)
                 if app.isAIAvailable {
                     Divider().frame(height: 12).background(Color.white.opacity(0.3))

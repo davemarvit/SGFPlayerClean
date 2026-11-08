@@ -1,0 +1,16 @@
+{
+  "tool": "Built-in image_gen",
+  "reference": "space-station-panorama.png",
+  "assets": [
+    {
+      "file": "station-window-cutout.png",
+      "transparent": true,
+      "prompt": "Use case: background-extraction. EDIT TARGET: the provided station panorama. Make ONLY the view THROUGH the main large central observation window fully transparent. Remove every star, truss, crane, ship, gantry, and exterior object seen THROUGH that opening. Leave the window frame, window seals, all room walls, ceiling, floor, equipment, lights, pipes and interior clutter fully opaque and EXACTLY in their original pixel positions. Do not move, crop, redraw, resize, reframe, or change any interior content. Preserve the full original 2:1 landscape panorama canvas. Transparent alpha inside the single wide window opening; opaque everywhere else. Precisely follow the inner window seal around the opening, including the rounded upper/lower corners. This is a texture for a 3D room with a hole through which a separate exterior background will be seen. No glass haze inside the transparent hole. No other transparency."
+    },
+    {
+      "file": "station-orbital-exterior.png",
+      "transparent": false,
+      "prompt": "Use case: photorealistic-natural. Asset type: seamless full 360-degree equirectangular SPACE ENVIRONMENT PANORAMA, 2:1 landscape. Use the exterior orbital construction seen through the reference window as the visual reference. Create a separate expanded EXTERIOR-ONLY backdrop for a 3D space station scene. There is NO interior, no window, no frame, no floor, no walls. Full uninterrupted vacuum and orbital shipyard in all directions. Across the central half: unfinished huge orbital ring sections, intricate skeletal silver trusses, ochre construction cranes, attached small utility spacecraft, dark solar panels, scaffold gantries, very small warm work lights, with plentiful deep black space and fine realistic stars between structures. Expand the reference window's orbital construction beyond all its old boundaries so a moving viewpoint never reveals an edge. Surrounding left and right azimuths show additional construction segments and sparse distant star fields. Zenith and nadir are predominantly black star fields. Match realistic practical science-fiction photography, muted weathered metal and restrained golden work lighting, no exaggerated neon or nebulae, no motion blur. Eye-level scene structures centered on the equator at image mid-height. Seamless left/right longitude edges. No text or watermark."
+    }
+  ]
+}

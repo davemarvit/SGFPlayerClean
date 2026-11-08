@@ -1,0 +1,12 @@
+{
+  "archive": "Diagnostic 2026-11-02 15-46-31 A6AF9918",
+  "point": 10,
+  "viewCoordinate": "A11",
+  "controlFrame": 210,
+  "occupiedFrames": [
+    243,
+    350,
+    653
+  ],
+  "note": "Raw camera images and original operation calibration/reference/readings. Later captures remove white 11 and 29; no inferred move sequence is stored."
+}

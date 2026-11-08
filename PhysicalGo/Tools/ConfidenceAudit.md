@@ -1,0 +1,22 @@
+The confidence audit runs the production detector offline on labeled frames. It writes a new report directory and does not change recordings, diagnostics, or the installed app. Run from the repository root on macOS with Xcode installed.
+
+    python3 PhysicalGo/Tools/confidence_audit.py PhysicalGo/.build/confidence-report
+
+The default labels live in `PhysicalGo/Tests/Fixtures/ConfidenceAudit/labels.csv`. They refer to images in the project's local diagnostic archives. Use `--archives` for a different archive root and `--labels` for another label set. Missing labeled frames are an error. A session ID is the final token of its diagnostic directory name. A point is a zero-based row-major index in the original grid, independent of display rotation.
+
+Label the images before inspecting either detector's scores. Use white, black, or empty. Omit obstructed points whose state cannot be judged. Give repeated observations of one placement or one uninterrupted empty spell the same episode ID. Change the ID when a stone is captured and replaced, even when the replacement has the same color. The included development split uses two sessions previously studied. The holdout split uses an earlier, separate game excluded from tuning the 0.47 color change; it is a holdout for that change only. Freeze the labels and reserve new games for future changes.
+
+By default, the comparison uses the readings each archive's installed version actually recorded. Those versions may differ. For a controlled algorithm comparison, use `--baseline-engine /path/to/ConfidenceReplay` compiled against the baseline source (see `build_engine` in the script). Both engines then analyze identical pixels with identical calibration, reference, and threshold. The summary records binary and label hashes. The `--engine` option reuses an already compiled current adapter.
+
+* `readings.csv` retains both calls, both raw heuristic scores, best outline quality, and fitted center offsets. Uncertain is a separate outcome. The score is evidence for the returned call, not a probability or the score of an unreturned alternative.
+* `episodes.csv` gives each labeled placement or empty spell one vote. Correct rates and paired score shifts are computed within each episode first. Outline coverage requires the right color and a fit of at least 0.86. Median center spread (grid spacings) measures repeatability conditional on a reliable fit. Two measurements can agree and still both be displaced.
+* `summary.json` reports the splits separately, including confident wrong calls (score at least 0.90), score-band counts, regressions, and score changes for calls both versions got right. The grid check pairs detector quality with four hand-labeled playable corner errors in pixels on each of two fixture images, plus wrong-size rejection. These images depict the same board.
+* Add `--recorder JOURNAL REFERENCE_SGF` once per observation journal for a single game without undo or manual history edits. Use a reviewed SGF when available. Each move votes once per confidence band it visits. “Ever disagreed” means at least one proposed coordinate differed from the reference. Moves may visit several bands. Confirmation time is from the first matching candidate observed in this clip to the first recording observation at or beyond its move number. Pending moves inherited at resume are excluded from that timing. Reference agreement is a retrospective check; an SGF from the same recognizer is not independent ground truth.
+
+Do not pool frames as independent games. Check the per-episode and per-session rows, compare decision coverage as well as accuracy, and inspect confident mistakes in the original images. The included examples use one physical setup; transfer to another board, stone set, or camera angle requires its own labeled game.
+
+For a direct comparison of two native versions against all frozen ShadowRegression labels (including its additional neighbor challenge), use:
+
+    python3 PhysicalGo/Tools/native_corpus_audit.py NEW_REPORT_DIRECTORY --baseline-engine OLD_CONFIDENCE_REPLAY --engine NEW_CONFIDENCE_REPLAY
+
+This checks all corpus hashes, analyzes identical pixels and transforms with each engine, separates occluded readings, and writes paired predictions, changes, mistakes, episode summaries and provenance. It does not apply the separate Python outline/shadow experiments. The original 250 ConfidenceAudit labels are a subset of the 455 frozen labels, so do not add those counts together.

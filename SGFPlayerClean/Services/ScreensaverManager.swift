@@ -73,6 +73,12 @@ import Combine
             throw NSError(domain: "SGFScreensaver", code: 2, userInfo: [NSLocalizedDescriptionKey: "This build does not include the screensaver. Install the complete app build."])
         }
         let fm = FileManager.default, parent = installationURL.deletingLastPathComponent()
+        // Replacing an identical bundle can invalidate resource paths held by
+        // Apple's long-lived screensaver host. Only install actual changes.
+        if fm.contentsEqual(atPath: templateURL.path, andPath: installationURL.path) {
+            installed = true
+            return
+        }
         try fm.createDirectory(at: parent, withIntermediateDirectories: true)
         let staging = parent.appendingPathComponent(".QuietGo-\(UUID().uuidString).saver")
         try fm.copyItem(at: templateURL, to: staging)

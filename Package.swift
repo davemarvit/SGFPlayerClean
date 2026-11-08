@@ -38,6 +38,13 @@ let package = Package(
                     "Models/AIModels.swift",
                     "Models/ScreensaverConfiguration.swift",
                     "Models/SceneManager3D.swift",
+                    "Models/TatamiTexture.swift",
+                    "Models/GoEquipment3D.swift",
+                    "Models/ShojiEnvironment.swift",
+                    "Models/GardenScenery.swift",
+                    "Models/PlayingEnvironment.swift",
+                    "Models/KayaFloorBoard.swift",
+                    "Models/EnvironmentMaterials.swift",
                     "Services/OGSClient.swift",
                     "Models/OGSModels.swift",
                     "Models/OGSScoringState.swift",
@@ -47,7 +54,8 @@ let package = Package(
                     "Models/StoneJitter.swift",
                     "ViewModels/OGSGameViewModel.swift",
                     "ViewModels/TimeControlManager.swift",
-                ]),
+                ],
+                resources: [.copy("Models/BowlLayouts.json")]),
         .testTarget(name: "SGFPlayerNetworkingTests", dependencies: ["SGFPlayerNetworking"],
                     path: "Tests/Networking")
     ]

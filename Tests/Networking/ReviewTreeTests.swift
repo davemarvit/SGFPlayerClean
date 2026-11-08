@@ -2,6 +2,27 @@ import XCTest
 @testable import SGFPlayerNetworking
 
 final class ReviewTreeTests: XCTestCase {
+    func testMainLineOriginSkipsNestedForksAndPreservesDocument() throws {
+        var tree = try document("(;SZ[9];B[aa](;W[bb];B[cc])(;C[branch];W[];B[dd](;W[ee])(;C[nested];W[ff])))")
+        let original = SGFWriter.serialize(tree.source)
+        let fork = tree.nodes.first { $0.properties["B"] == ["aa"] }!.id
+        for node in tree.nodes {
+            tree.select(node.id)
+            if tree.columns[node.id] == 0 {
+                XCTAssertNil(tree.mainLineBranchOrigin)
+            } else {
+                XCTAssertEqual(tree.mainLineBranchOrigin, fork, "Comments, passes and nested forks return to the main line")
+                tree.select(tree.mainLineBranchOrigin!)
+                XCTAssertEqual(tree.selectedID, fork)
+                XCTAssertTrue(tree.isMainLine)
+            }
+        }
+        XCTAssertEqual(SGFWriter.serialize(tree.source), original)
+        var rootFork = try document("(;SZ[9](;B[aa])(;B[bb]))")
+        rootFork.select(rootFork.nodes.last!.id)
+        XCTAssertEqual(rootFork.mainLineBranchOrigin, 0)
+        XCTAssertNil(try document("(;SZ[9])").mainLineBranchOrigin)
+    }
     private func document(_ text: String) throws -> ReviewTree {
         ReviewTree(game: SGFGame.from(tree: try SGFParser.parse(text: text)), analysisID: "fixture", filename: "fixture.sgf")
     }
@@ -12,6 +33,70 @@ final class ReviewTreeTests: XCTestCase {
             XCTAssertEqual(x.sequence.map(\.props), y.sequence.map(\.props), file: file, line: line)
         }
     }
+    func testReturningToMainLineResetsForwardContinuation() throws {
+        var tree = try document("(;SZ[9];B[aa](;W[bb];B[cc])(;W[dd];B[ee](;W[ff])(;W[gg])))")
+        let fork = tree.nodes.first { $0.properties["B"] == ["aa"] }!.id
+        let alternative = tree.nodes.first { $0.properties["W"] == ["dd"] }!.id
+        let nested = tree.nodes.first { $0.properties["W"] == ["gg"] }!.id
+        tree.select(nested)
+        tree.followPlayback(index: 2)
+        XCTAssertEqual(tree.selectedID, alternative)
+        XCTAssertFalse(tree.isMainLine, "Backing up within a variation keeps its continuation")
+        tree.followPlayback(index: 1)
+        XCTAssertEqual(tree.selectedID, fork)
+        XCTAssertTrue(tree.isMainLine)
+        XCTAssertEqual(tree.neighbor(direction: 1), tree.nodes[fork].children.first)
+        tree.select(nested)
+        tree.select(fork)
+        XCTAssertTrue(tree.isMainLine, "Clicking a main-line node also restores the main continuation")
+    }
+
+    func testMainLineEndIgnoresRememberedBranchesAndKeepsEdits() throws {
+        var tree = try document("(;SZ[9];B[aa](;W[bb](;B[cc];C[Final note])(;B[dd]))(;W[ee];B[ff];W[gg]))")
+        let original = SGFWriter.serialize(tree.source)
+        for node in tree.nodes.reversed() {
+            tree.select(node.id)
+            tree.selectMainLineEnd()
+            XCTAssertTrue(tree.isMainLine)
+            XCTAssertEqual(tree.nodes[tree.selectedID].comment, "Final note")
+            XCTAssertEqual(tree.nodes[tree.selectedID].moveNumber, 3)
+            XCTAssertEqual(try tree.playbackGame().moves.count, 3, "Main line need not be the longest variation")
+            XCTAssertEqual(SGFWriter.serialize(tree.source), original)
+        }
+        var empty = try document("(;SZ[9]AB[aa])")
+        empty.selectMainLineEnd()
+        XCTAssertEqual(empty.selectedID, 0)
+        XCTAssertEqual(try empty.playbackGame().setup.count, 1)
+        var passes = try document("(;SZ[9];B[aa];W[];B[])")
+        passes.selectMainLineEnd()
+        XCTAssertTrue(passes.nodes[passes.selectedID].isPass)
+        XCTAssertEqual(passes.nodes[passes.selectedID].moveNumber, 3)
+    }
+
+    func testDeletionKeepsSiblingsMetadataAndRecoverableDraft() throws {
+        var tree = try document("(;SZ[9]PB[Alice]XX[keep];B[aa](;W[bb];B[cc])(;W[dd]C[stray];B[ee]))")
+        XCTAssertNil(tree.deletingSelectedNode(), "Root is protected")
+        tree.select(4)
+        let deleted = try XCTUnwrap(tree.deletingSelectedNode())
+        XCTAssertEqual(deleted.nodes.count, 4)
+        XCTAssertEqual(deleted.selectedID, 1)
+        XCTAssertEqual(try deleted.playbackGame().moves.count, 3)
+        let exported = SGFWriter.serialize(deleted.source)
+        XCTAssertFalse(exported.contains("stray"))
+        XCTAssertTrue(exported.contains("XX[keep]"))
+        let original = try document(tree.originalSGF)
+        let restored = try XCTUnwrap(ReviewDraft(deleted).restore(over: original))
+        XCTAssertEqual(SGFWriter.serialize(restored.source), exported)
+        tree.select(2)
+        let mainDeleted = try XCTUnwrap(tree.deletingSelectedNode())
+        XCTAssertEqual(mainDeleted.nodes.count, 4)
+        XCTAssertEqual(mainDeleted.boardVariations.count, 0)
+        XCTAssertTrue(SGFWriter.serialize(mainDeleted.source).contains("W[dd]"))
+        var linear = try document("(;SZ[9];B[aa];W[bb];B[cc])")
+        linear.select(2)
+        XCTAssertEqual(try linear.deletingSelectedNode()?.playbackGame().moves.count, 1)
+    }
+
     func testWriterPreservesBranchesCommentsAndUnknownProperties() throws {
         let sgf = #"(;CA[UTF-8]SZ[9]C[日本語 and \] and \\];B[aa](;W[]C[pass](;B[cc])(;B[dd]XX[private][two]LB[ee:A]))(;W[ff];C[comment];B[gg]))"#
         let original = try SGFParser.parse(text: sgf)

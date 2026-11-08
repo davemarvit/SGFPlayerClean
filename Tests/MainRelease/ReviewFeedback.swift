@@ -165,10 +165,15 @@ private final class FeedbackHTTP: URLProtocol {
                         size: CGSize(width: 760, height: 810), name: "2d")
         app.viewMode = .view3D
         _ = try capture(ContentView3D().environmentObject(app), size: CGSize(width: 1100, height: 850), name: "3d")
+        let cleanControls = try capture(PlaybackControlsView(boardVM: vm).environmentObject(app).background(.black),
+                                        size: CGSize(width: 750, height: 110), name: "3d-controls")
+        require(!cleanControls.contains("Alice") && !cleanControls.contains("Bob"), "3D player metadata stays in the sidebar")
+        app.viewMode = .view2D
         let pill = try capture(PlaybackControlsView(boardVM: vm).environmentObject(app).background(.black),
                                size: CGSize(width: 750, height: 110), name: "players")
         require(pill.contains("Alice") && pill.contains("Bob") && pill.contains("4k") && pill.contains("6k") && !pill.contains("Japanese"),
                 "Player pill shows names/ranks instead of rules: \(pill)")
+        app.viewMode = .view3D
         vm.moveError = "That intersection is occupied."
         let error = try capture(PlaybackControlsView(boardVM: vm).environmentObject(app).background(.black),
                                 size: CGSize(width: 750, height: 110), name: "error")

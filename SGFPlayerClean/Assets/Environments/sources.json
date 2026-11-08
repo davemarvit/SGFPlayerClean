@@ -1,0 +1,18 @@
+{
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "assets": {
+    "rock_face": "https://polyhaven.com/a/rock_face",
+    "fine_grained_wood": "https://polyhaven.com/a/fine_grained_wood"
+  },
+  "downloads": {
+    "rock_face-color.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/rock_face/rock_face_diff_2k.jpg",
+    "rock_face-normal.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_nor_gl_1k.jpg",
+    "rock_face-rough.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_rough_1k.jpg",
+    "rock_face-ao.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_face/rock_face_ao_1k.jpg",
+    "fine_grained_wood-color.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/fine_grained_wood/fine_grained_wood_col_2k.jpg",
+    "fine_grained_wood-normal.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_nor_gl_1k.jpg",
+    "fine_grained_wood-rough.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_rough_1k.jpg",
+    "fine_grained_wood-ao.jpg": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fine_grained_wood/fine_grained_wood_ao_1k.jpg"
+  }
+}

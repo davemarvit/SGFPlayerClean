@@ -1,0 +1,45 @@
+{
+  "reference": "https://www.nps.gov/cave/learn/nature/lechuguilla_cave.htm",
+  "textureSource": "https://polyhaven.com/a/dry_riverbed_rock",
+  "license": "CC0",
+  "licenseURL": "https://polyhaven.com/license",
+  "downloads": {
+    "cave-riverbed-color.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_diff_4k.jpg",
+      "resolution": 4096,
+      "sha256": "3f22bf22fd2576a0df63b8768af3ae12901f6945051c9c54553a4a62605f233e"
+    },
+    "cave-riverbed-normal.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_nor_gl_4k.jpg",
+      "resolution": 4096,
+      "sha256": "43762be2fb41b3c53959aeccaf0ae1ac6e78240b982c0745cc0628150c90689d"
+    },
+    "cave-riverbed-rough.jpg": {
+      "source": "https://polyhaven.com/a/dry_riverbed_rock",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/dry_riverbed_rock/dry_riverbed_rock_rough_4k.jpg",
+      "resolution": 4096,
+      "sha256": "6479a23a997b6b91f0c43e3c84c5fcf0c52c3652e3d20e842f7c0f7782cd45be"
+    }
+  },
+  "rockMesh": {
+    "source": "https://polyhaven.com/a/namaqualand_boulder_04",
+    "license": "CC0",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/namaqualand_boulder_04/namaqualand_boulder_04.bin",
+    "downloadSHA256": "99ba28ddc8da9ba24e1a419e69ed05f14c4b483bf06268a8a77495545985318a",
+    "processing": "Rescaled into the existing lamp location; upper shoulder worn flat at the lamp footing; normals recomputed from final triangles. Bundled as SceneKit scene.",
+    "inUse": false
+  },
+  "panorama": {
+    "tool": "built-in image_gen",
+    "asset": "cave-mineral-panorama.png",
+    "prompt": "Use case: precise-object-edit. Edit target: the attached equirectangular cave panorama used inside a 3D game. Preserve the exact 2:1 full-sphere equirectangular projection, camera origin, horizon, cave silhouette, openings, sheltering ceiling and general arrangement. Keep seamless left/right edges and pole distortion. Improve photorealism and mineral color diversity inspired by Lechuguilla Cave: ivory calcite and gypsum on some formations, soft honey ochre, restrained rusty terracotta seams, cool blue-gray and subtle slate/lilac stone in shadows. Still subdued and intimate, with localized warm lamplight, never rainbow or colored theatrical lighting. Replace ALL the brown dirt ground across the lower half with continuous ancient water-worn exposed gray granite-like bedrock: broad smooth eroded rock surfaces, irregular thin dark fissures, pale quartz veins, tiny dark mica inclusions, occasional dusty rose feldspar, gentle shallow water-scoured hollows, subdued satin highlights. Floor must look unquestionably solid stone, not gravel, soil, cobblestones, tiles or rippled mud. Keep floor level and clear near camera; no foreground boulders, no pool. Photographic natural cave, detailed tactile rock, restrained contrasts. No people, lamps, furniture, board, text or added objects. Output 4096x2048 if possible."
+  },
+  "lampSupport": {
+    "geometry": "Procedural tapered flowstone stalagmite with asymmetric fluted sides, flared base and narrow crown supporting the lamp.",
+    "material": "Muted calcite with irregular mineral layering; existing CC0 riverbed scan contributes fine surface texture.",
+    "base": "Low flared stone foot sharing the floor color/normal/roughness maps and planar UV scale; irregular gradual transition into calcite above the ground."
+  },
+  "lighting": "Dark cave fill; right-side photographic illumination suppressed in the surrounding and distant-floor shaders. Lamp remains the principal light."
+}

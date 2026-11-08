@@ -1,0 +1,174 @@
+{
+  "calibration": {
+    "corners": [
+      {
+        "x": 0.23986349721828062,
+        "y": 0.03977667230762283
+      },
+      {
+        "x": 0.7519027909981387,
+        "y": 0.02906043839909348
+      },
+      {
+        "x": 0.8236151226150547,
+        "y": 0.914953122135064
+      },
+      {
+        "x": 0.19139709063251983,
+        "y": 0.9286174831242576
+      }
+    ],
+    "h": [
+      0.5123363970090978,
+      -0.084857782858063,
+      0.23986349721828062,
+      -0.010704751107567759,
+      0.7122776868436766,
+      0.03977667230762283,
+      0.0003951351594870061,
+      -0.19013547255100768
+    ],
+    "size": 19
+  },
+  "referenceCalibration": {
+    "corners": [
+      {
+        "x": 0.23986349721828062,
+        "y": 0.03977667230762283
+      },
+      {
+        "x": 0.7519027909981387,
+        "y": 0.02906043839909348
+      },
+      {
+        "x": 0.8236151226150547,
+        "y": 0.914953122135064
+      },
+      {
+        "x": 0.19139709063251983,
+        "y": 0.9286174831242576
+      }
+    ],
+    "h": [
+      0.5123363970090978,
+      -0.084857782858063,
+      0.23986349721828062,
+      -0.010704751107567759,
+      0.7122776868436766,
+      0.03977667230762283,
+      0.0003951351594870061,
+      -0.19013547255100768
+    ],
+    "size": 19
+  },
+  "threshold": 0.13,
+  "boardSize": 19,
+  "source": "Diagnostic 2026-11-02 01-17-06 FEC6343B; originals unchanged in Captures/Diagnostics",
+  "expectedMoves": [
+    {
+      "row": 15,
+      "col": 15,
+      "occupancy": "black"
+    },
+    {
+      "row": 3,
+      "col": 3,
+      "occupancy": "white"
+    },
+    {
+      "row": 15,
+      "col": 2,
+      "occupancy": "black"
+    },
+    {
+      "row": 15,
+      "col": 4,
+      "occupancy": "white"
+    },
+    {
+      "row": 16,
+      "col": 4,
+      "occupancy": "black"
+    },
+    {
+      "row": 15,
+      "col": 3,
+      "occupancy": "white"
+    },
+    {
+      "row": 16,
+      "col": 3,
+      "occupancy": "black"
+    },
+    {
+      "row": 14,
+      "col": 2,
+      "occupancy": "white"
+    },
+    {
+      "row": 15,
+      "col": 1,
+      "occupancy": "black"
+    },
+    {
+      "row": 13,
+      "col": 3,
+      "occupancy": "white"
+    },
+    {
+      "row": 3,
+      "col": 16,
+      "occupancy": "black"
+    },
+    {
+      "row": 3,
+      "col": 14,
+      "occupancy": "white"
+    },
+    {
+      "row": 2,
+      "col": 14,
+      "occupancy": "black"
+    },
+    {
+      "row": 2,
+      "col": 13,
+      "occupancy": "white"
+    },
+    {
+      "row": 2,
+      "col": 15,
+      "occupancy": "black"
+    },
+    {
+      "row": 3,
+      "col": 13,
+      "occupancy": "white"
+    },
+    {
+      "row": 5,
+      "col": 16,
+      "occupancy": "black"
+    },
+    {
+      "row": 3,
+      "col": 9,
+      "occupancy": "white"
+    }
+  ],
+  "note": "Expected move order checked against the sequential photographs, including return of B[qd] after its temporary removal. Stored replay classifications are detector output, not hand labels.",
+  "frames": [
+    {
+      "frameID": 180,
+      "expectedMoveCount": 11
+    },
+    {
+      "frameID": 200,
+      "expectedMoveCount": 11
+    },
+    {
+      "frameID": 440,
+      "expectedMoveCount": 18
+    }
+  ]
+}

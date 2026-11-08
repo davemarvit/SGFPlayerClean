@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-18",
+  "material": {
+    "asset": "weathered_brown_planks",
+    "source": "https://polyhaven.com/a/weathered_brown_planks",
+    "license": "CC0",
+    "maps": [
+      "color",
+      "normal",
+      "rough"
+    ],
+    "resolution": 4096,
+    "use": "Individual horizontal temple planks, cropped inside photographed boards; darker stain and foot-polished roughness",
+    "downloads": {
+      "weathered_brown_planks-color.jpg": {
+        "source": "https://polyhaven.com/a/weathered_brown_planks",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_diff_4k.jpg",
+        "resolution": 4096,
+        "sha256": "d7e5d7f7ed0f81614f997466c293f6ffb73951d0edbf713a1ebaf1431871e612"
+      },
+      "weathered_brown_planks-normal.jpg": {
+        "source": "https://polyhaven.com/a/weathered_brown_planks",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_nor_gl_4k.jpg",
+        "resolution": 4096,
+        "sha256": "0bc551ce1202c68a9d564b280c7e81ef75cff84aa8c8032a6609e1b30c814b38"
+      },
+      "weathered_brown_planks-rough.jpg": {
+        "source": "https://polyhaven.com/a/weathered_brown_planks",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/4k/weathered_brown_planks/weathered_brown_planks_rough_4k.jpg",
+        "resolution": 4096,
+        "sha256": "e9076e2093e701d33c0b980be4530b93fb4dd999b6b58ff0381fffe491ea0146"
+      }
+    }
+  },
+  "visualReferences": [
+    {
+      "source": "https://igoseka.jp/2685/",
+      "image": "https://igoseka.jp/wp-content/uploads/2026/09/MG_6010-1024x683.jpg",
+      "use": "Nihon Ki-in floor chairs, upholstery, separate elbow rests; modeled locally, photograph not redistributed"
+    },
+    {
+      "source": "https://gomagic.org/the-surrounding-game/",
+      "use": "Secondary Yugen-no-ma furniture proportions; photograph not redistributed"
+    },
+    {
+      "source": "https://jl-db.nfaj.go.jp/location/330300088/",
+      "use": "Hirokane Residence shoji timber patina and uneven transmitted daylight; photograph not redistributed"
+    }
+  ]
+}

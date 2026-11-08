@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "generator": "Built-in image_gen tool",
+  "scope": "3D cave only. Monastery retains aged wood; 2D retains original kaya.",
+  "reference": "/Users/dave/.codex/generated_images/01a151b5-58e0-7b12-86fb-4a92a19186f6/exec-5229cbb9-33bb-48fa-a1f8-cff74ed77c39.png",
+  "assets": [
+    {
+      "file": "/Users/Dave/SGFPlayerClean/SGFPlayerClean/Assets/Environments/cave-limestone-board-top.png",
+      "prompt": "Create a production square full-bleed albedo texture from the TOP of the approved limestone Go board reference. Perfectly orthographic straight down, flat material texture only, no perspective, no board sides, no feet, no background, no directional lighting or shadows or vignette. Reconstruct the warm medium-light gray honed limestone top with fine, subdued mineral grain and tiny shallow pores. Calm low-contrast stone surface that can sit behind a dark grid, same material character as reference. Matte well-used smooth face with a few shallow pale scratches and tiny worn edge chips in a narrow 1% perimeter band, but flat usable surface. Neutral illumination; retain warm gray stone rather than orange lamplight. CRITICAL REMOVE ALL grid lines, star dots, Go stones, their shadows, black marks and any hints of a grid. NO lines or dots anywhere. Stone only. No wood, marble veining, large cracks, seams, stains, spills, mold, moss, dirt or ruin. Uniform broad tone across image, high photographic texture fidelity. The app will draw its precise grid separately.",
+      "sha256": "52e9fee341d374bbe878c891d89af200dcd6b69c5957d9725dcf83793f5be82a"
+    },
+    {
+      "file": "/Users/Dave/SGFPlayerClean/SGFPlayerClean/Assets/Environments/cave-limestone-board-side.png",
+      "prompt": "Create one square full-bleed albedo material texture reconstructing the limestone SIDE FACES of the approved stone Go board in reference. Orthographic flat straight-on stone texture only, no perspective, no visible top edge, feet, object silhouette, grid, Go stones, floor or background. Neutral even illumination, NO cast shadows, directional shading or vignette. Warm medium-light gray limestone matching the top of the reference but with slightly rougher fine pores and subtle sedimentary mineral texture. Solid cut stone, clean and matte. Very fine scattered shallow pits, tiny mechanical dings and restrained pale scuffs. Full bleed natural mineral texture to every edge with NO frame or border, suitable for wrapping side faces and small carved feet. No large cracks, dramatic marble veins, planks, wood grain, mold, moss, stains, watermarks, spills, dirt, labels or text. No black grid lines or dots. Natural neutral-warm gray, not orange from the lamp. High photographic texture detail, restrained tonal variation.",
+      "sha256": "9e78fb74f33cf38b8640e2cc3a5155143fb0f152e5840be2ccc5560945cbdfa7"
+    }
+  ],
+  "implementation": "Existing slab and carved feet geometry. Matte nonmetallic limestone, separate continuous black grid. Small chips and pores are texture details; silhouette and collisions remain unchanged."
+}

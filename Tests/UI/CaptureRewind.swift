@@ -50,9 +50,8 @@ import SceneKit
             precondition(model.player.capturesByWhite == captures)
             precondition(model.boardVM!.whiteCapturedCount == captures)
             precondition(count == captures && shown == captures, "3D lid failed: \(label)")
-            let text = lid.childNode(withName: "capture-count", recursively: false)!.geometry as! SCNText
-            precondition(text.string as? String == String(captures))
-            print("3D \(label): engine, view model, visible stones, and label all = \(captures)")
+            precondition(lid.childNode(withName: "capture-count", recursively: false) == nil)
+            print("3D \(label): engine, sidebar count, and visible stones all = \(captures)")
         }
         check3D("captured", captures: 2)
         // The UI probe can run while the display is asleep, when SCNView's
@@ -75,6 +74,7 @@ import SceneKit
 
         // Keep the actual 2D view mounted across the rewind. A fresh root would conceal
         // the old missing-observer bug by supplying the correct count only on creation.
+        model.viewMode = .view2D
         let host2D = NSHostingView(rootView: ContentView2D().environmentObject(model))
         window.contentView = host2D; wait(0.5)
         func snapshot(_ view: NSView, _ name: String) throws -> CGImage {
@@ -95,7 +95,7 @@ import SceneKit
         // the board, player metadata, controls, and other independently changing UI.
         func lidPixels(_ image: CGImage) -> Data {
             let scale = CGFloat(image.width) / 800
-            let crop = image.cropping(to: CGRect(x: 560 * scale, y: 75 * scale, width: 120 * scale, height: 75 * scale))!
+            let crop = image.cropping(to: CGRect(x: 675 * scale, y: 80 * scale, width: 60 * scale, height: 55 * scale))!
             return NSBitmapImageRep(cgImage: crop).representation(using: .png, properties: [:])!
         }
         precondition(lidPixels(captured) != lidPixels(fresh), "Fixture did not show the two captured stones")

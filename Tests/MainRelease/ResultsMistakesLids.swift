@@ -48,15 +48,23 @@ private final class ResultsHTTP: URLProtocol {
         settle()
         vm.mistakeMinimumLoss = 4; vm.mistakePlayers = .both
         require(vm.matchingMistakeMoves == [4,5,6], "Point-loss filter must use played move numbers")
-        vm.goToStart(); settle(); vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 4, "Forward lands AFTER the mistake")
-        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 5, "Next mistake")
-        vm.seekPrevMistake(); settle(); require(vm.currentMoveIndex == 4, "Previous mistake")
+        vm.goToStart(); settle(); vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 3, "Forward lands BEFORE the mistake")
+        require(vm.engine.board.stones[vm.engine.nextHistoricalMovePosition!] == nil, "Mistake has not been played")
+        require(vm.historicalMoveEvaluation?.scoreDelta == -5, "Played marker retains the measured five-point cost")
+        require(vm.reviewCandidateMoves.contains { $0.scoreLead == -4 }, "Historical marker uses root score minus measured loss")
+        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 4, "Next mistake")
+        vm.seekPrevMistake(); settle(); require(vm.currentMoveIndex == 3, "Previous mistake")
         vm.mistakePlayers = .black; require(vm.matchingMistakeMoves == [5], "Black filter")
         vm.mistakePlayers = .white; require(vm.matchingMistakeMoves == [4,6], "White filter")
-        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 6 && vm.nextMistakeMove == nil, "No wrap at end")
-        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 6, "No surprise jump at end")
+        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 5 && vm.nextMistakeMove == nil, "No wrap at end")
+        vm.seekNextMistake(); settle(); require(vm.currentMoveIndex == 5, "No surprise jump at end")
         vm.mistakeMinimumLoss = 20; vm.seekPrevMistake(); settle()
-        require(vm.previousMistakeMove == nil && vm.currentMoveIndex == 6, "Empty filter does not jump to start")
+        require(vm.previousMistakeMove == nil && vm.currentMoveIndex == 5, "Empty filter does not jump to start")
+        vm.mistakeMinimumLoss = 0; vm.mistakePlayers = .both
+        vm.goToStart(); settle(); vm.seekNextMistake(); settle()
+        require(vm.currentMoveIndex == 0 && vm.focusedMistakeMove == 1, "First-move mistakes stop at the empty board")
+        vm.seekNextMistake(); settle()
+        require(vm.currentMoveIndex == 1 && vm.focusedMistakeMove == 2, "Next advances beyond an unplayed first-move mistake")
         vm.mistakeMinimumLoss = 4; vm.mistakePlayers = .both
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 340, height: 700), styleMask: [.titled], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: .darkAqua)
@@ -84,6 +92,22 @@ private final class ResultsHTTP: URLProtocol {
             SimpleLidView(stoneColor: .white, stoneCount: 55, stoneSize: 48, lidNumber: 2, lidSize: 320, seed: 456)
             SimpleLidView(stoneColor: .black, stoneCount: 55, stoneSize: 48, lidNumber: 1, lidSize: 320, seed: 123)
         }.padding().background(.gray), size: CGSize(width: 1040, height: 360), name: "lids")
+        vm.goToStart(); settle(); vm.seekNextMistake(); settle()
+        app.showRightPanel = false
+        _ = try capture(ContentView().environmentObject(app), size: CGSize(width: 1200, height: 800), name: "before-mistake")
+        let markerScene = SceneManager3D()
+        markerScene.updateAIHints(moves: vm.reviewCandidateMoves, isAvailable: true,
+            root: ai.currentAnalysisData[3]?.rootInfo, nextMove: vm.engine.nextHistoricalMovePosition)
+        var dashedSegments = 0
+        var costs: [String] = []
+        markerScene.scene.rootNode.enumerateChildNodes { node, _ in
+            if node.name == "historical-move-dash" { dashedSegments += 1 }
+            if let text = node.geometry as? SCNText { costs.append(String(describing: text.string ?? "")) }
+        }
+        require(dashedSegments == 12 && costs.contains("-5.0"), "3D historical move has a dashed outline and measured loss")
+        markerScene.updateAIHints(moves: [], isAvailable: false, root: nil, nextMove: nil)
+        require(markerScene.scene.rootNode.childNode(withName: "historical-move-dash", recursively: true) == nil,
+                "Disabling hints removes historical rings too")
         // Fixed footer remains available without closing a result at normal and short heights.
         app.mode = .playOnline; client.activeGameID = 91
         client.activeGameResult = .init(title: "You win!", subtitle: "Alice [Black] wins", method: "By resignation", isMe: true)

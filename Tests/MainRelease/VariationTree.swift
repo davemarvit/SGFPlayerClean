@@ -34,6 +34,7 @@ private final class TreeHTTP: URLProtocol {
         let wrapper = SGFGameWrapper(url: url, game: SGFGame.from(tree: try SGFParser.parse(text: text)))
         app.selectGame(wrapper); app.aiAnalysisEnabled = false; app.showRightPanel = false
         let vm = app.boardVM!
+        vm.goToStart() // This fixture deliberately edits a branch at the root.
         func settle(_ seconds: Double = 0.1) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
         settle()
         require(app.mode == .review && app.showsAnalysisWorkspace && !app.isAIAvailable, "Tree available with AI off")
@@ -62,6 +63,15 @@ private final class TreeHTTP: URLProtocol {
         require(vm.reviewTree?.nodes.count == 6 && vm.reviewTree?.selectedID == branchID, "Replaying an existing move reuses its branch")
         vm.placeStone(at: BoardPosition(0,1)); settle()
         require(vm.reviewTree?.nodes.count == 6 && vm.moveError != nil, "Illegal occupied move cannot change tree")
+        let beforeDeletion = vm.reviewSGFData()
+        vm.deleteSelectedReviewNode(); settle()
+        require(vm.reviewTree?.nodes.count == 4 && vm.currentMoveIndex == 0 && vm.blackCapturedCount == 0,
+                "Deleting the stray branch removes its pass and restores parent board/captures")
+        require(vm.canUndoReviewDeletion && vm.reviewDraftSaved, "Deletion is undoable and saved to draft")
+        require(!vm.canDeleteReviewNode, "Root cannot be deleted")
+        vm.undoReviewDeletion(); settle()
+        require(vm.reviewSGFData() == beforeDeletion && vm.blackCapturedCount == 1 && vm.currentMoveIndex == 1,
+                "Undo Delete restores the entire branch, selection and capture")
         let saved = temp.appendingPathComponent("export.sgf")
         try vm.writeReviewSGF(to: saved)
         let exported = try SGFParser.parse(text: String(contentsOf: saved))
@@ -70,7 +80,8 @@ private final class TreeHTTP: URLProtocol {
         require(vm.reviewSGFData() != originalData, "Only explicit play changes saved tree")
         // Recover from disk by loading the unchanged source again, independent of in-memory saved modes.
         app.selectGame(wrapper); settle()
-        require(vm.reviewTree?.nodes.count == 6 && vm.reviewDraftSaved && vm.currentMoveIndex == 1, "Reopening source recovers draft and edited position")
+        require(vm.reviewTree?.nodes.count == 6 && vm.reviewDraftSaved && vm.currentMoveIndex == 3 && vm.reviewTree!.isMainLine, "Reopening keeps draft edits but selects the main-line end")
+        vm.selectReviewNode(branchID); settle()
         app.mode = .localPlay; settle(); app.mode = .review; settle()
         require(vm.reviewTree?.nodes.count == 6 && vm.currentMoveIndex == 1, "Mode round trip preserves complete review tree")
         app.copyCurrentBoard(to: .localPlay); settle()
@@ -135,7 +146,7 @@ private final class TreeHTTP: URLProtocol {
                            y: 320 - ys.reduce(0,+) / CGFloat(ys.count) * 320 / CGFloat(bitmap.pixelsHigh))
         }
         guard let selectedCenter = selectionCenter() else { require(false, "Selected node ring visible"); return }
-        let originalCenter = CGPoint(x: selectedCenter.x - 22, y: selectedCenter.y)
+        let originalCenter = CGPoint(x: selectedCenter.x - VariationTreeLens.columnPitch, y: selectedCenter.y)
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
             let event = NSEvent.mouseEvent(with: type, location: originalCenter, modifierFlags: [], timestamp: 0,
                 windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!
@@ -151,7 +162,45 @@ private final class TreeHTTP: URLProtocol {
         let longText = "(;SZ[9]RU[Japanese]" + (0..<200).map { ";\($0.isMultiple(of: 2) ? "B" : "W")[]" }.joined() + ")"
         app.selectGame(SGFGameWrapper(url: temp.appendingPathComponent("long.sgf"), game: SGFGame.from(tree: try SGFParser.parse(text: longText))))
         settle(); vm.selectReviewNode(200); settle(0.4)
-        require(selectionCenter() != nil, "Distant selected node automatically scrolls into view")
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap { descendants($0) } }
+        let surface = descendants(treeHost).compactMap { $0 as? VariationTreeMouseSurface.Surface }.first!
+        let controller = surface.actions!.controller
+        let scroll = controller.scroll!
+        func requireCentered(_ context: String) {
+            guard let center = selectionCenter() else { require(false, "Missing active ring: \(context)"); return }
+            let viewport = scroll.contentView.convert(scroll.contentView.bounds, to: nil)
+            require(abs(center.y - viewport.midY) < 2, "Active move stays at viewport midpoint: \(context), \(center.y) vs \(viewport.midY)")
+        }
+        requireCentered("last move")
+        for focus in [0, 1, 100, 200] {
+            let lens = VariationTreeLens(focusRow: focus)
+            for row in 0...200 {
+                require(lens.height(of: row) > lens.diameter(at: row) + 4, "Lens leaves space around every node")
+                require(lens.row(at: lens.top(of: row) + lens.height(of: row) / 2, count: 201) == row,
+                        "Hit testing inverts the lens at every depth")
+            }
+            require(lens.diameter(at: focus) > lens.diameter(at: focus + 1)
+                    && lens.diameter(at: focus + 1) > lens.diameter(at: focus + 10), "Nodes taper away from focus")
+        }
+        let beforeStep = scroll.contentView.bounds.origin.y
+        vm.selectReviewNode(199); settle()
+        requireCentered("previous move")
+        let expectedStep = VariationTreeLens(focusRow: 199).top(of: 199) - VariationTreeLens(focusRow: 200).top(of: 200)
+        require(abs(scroll.contentView.bounds.origin.y - beforeStep - expectedStep) < 2, "Scrolling follows the integrated lens")
+        controller.drag(CGSize(width: 0, height: 44)); controller.endDrag(); settle()
+        let dragged = scroll.contentView.bounds.origin
+        vm.objectWillChange.send(); settle()
+        require(scroll.contentView.bounds.origin == dragged, "Ordinary redraw preserves manual scroll")
+        vm.selectReviewNode(198); settle(); requireCentered("navigation resumes tracking after drag")
+        vm.selectReviewNode(100); settle(); requireCentered("jump to middle")
+        vm.selectReviewNode(0); settle(); requireCentered("starting position")
+        // Centering padding must not break mouse-to-row mapping.
+        let center = selectionCenter()!
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            window.sendEvent(NSEvent.mouseEvent(with: type, location: CGPoint(x: center.x, y: center.y - (VariationTreeLens(focusRow: 0).height(of: 0) + VariationTreeLens(focusRow: 0).height(of: 1)) / 2), modifierFlags: [], timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!)
+        }
+        settle(); require(vm.reviewTree?.selectedID == 1, "Click picks the correct row with centering padding")
         let branchedText = "(;SZ[9]" + String(repeating: "(;B[]", count: 200)
             + String(repeating: ")(;W[])", count: 200) + ")"
         app.selectGame(SGFGameWrapper(url: temp.appendingPathComponent("compact.sgf"),

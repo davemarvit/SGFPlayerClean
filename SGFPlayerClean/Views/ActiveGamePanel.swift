@@ -7,12 +7,116 @@ struct ActiveGamePanel: View {
     @State private var resignTarget: Int?
     @State private var isSavingSGF = false
     @State private var exportError: String?
+    @State private var physicalBoardEnabled = false
+    @State private var physicalToken = UUID().uuidString
+    @State private var physicalSentVersion: Int?
+    @State private var physicalRevision = PhysicalBoardBridgeRevision()
+    @State private var physicalLegalityKey = ""
+    @State private var physicalIllegalMoves = [String:String]()
+    @State private var physicalFeedback = [String:Any]()
+    @State private var physicalRequestErrorRevision = 0
+    @State private var physicalExportID: UUID?
+    private var physicalDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Physical Go/Online Bridge")
+    }
+    private func physicalExportTick() {
+        let requestURL=physicalDirectory.appendingPathComponent("sgf-request.json")
+        guard let data=try? Data(contentsOf:requestURL),
+              let request=try? JSONDecoder().decode(PhysicalSGFExportRequest.self,from:data) else {return}
+        try? FileManager.default.removeItem(at:requestURL)
+        guard request.matches(token:physicalToken,game:app.ogsClient.activeGameID) else {return}
+        physicalExportID=request.id
+        let token=physicalToken
+        let replyURL=physicalDirectory.appendingPathComponent("sgf-result.json")
+        app.ogsClient.fetchSGFDownload(gameID:request.game) { data,name in
+            DispatchQueue.main.async {
+                guard physicalExportID == request.id else {return}
+                physicalExportID=nil
+                let current=physicalBoardEnabled && token == physicalToken && app.ogsClient.activeGameID == request.game
+                let reply=PhysicalSGFExportReply(id:request.id,game:request.game,data:current ? data:nil,
+                    filename:name,error:!current ? "The connected game changed. Try saving again." : data == nil ? "OGS could not download this game's SGF. Try again." : nil)
+                do {try JSONEncoder().encode(reply).write(to:replyURL,options:.atomic)}
+                catch {exportError="Physical board SGF export: \(error.localizedDescription)"}
+            }
+        }
+    }
+    private func physicalTick() {
+        guard physicalBoardEnabled else { return }
+        let client = app.ogsClient
+        let ready = client.canPlayMoves && app.player.currentIndex == app.player.maxIndex
+        let board = app.player.board
+        let cells = board.grid.flatMap { $0.map { $0?.rawValue ?? "empty" } }
+        let version = physicalRevision.update(.init(
+            game: client.activeGameID ?? -1, serverVersion: client.currentStateVersion,
+            size: board.size, cells: cells, moveNumber: app.player.currentIndex,
+            currentPlayerID: client.currentPlayerID, color: client.playerColor?.rawValue ?? "",
+            lastX: app.player.lastMove?.x ?? -1, lastY: app.player.lastMove?.y ?? -1,
+            ready: ready))
+        let legalityKey="\(version)/\(String(describing:app.player.analysisSettings.playRules))"
+        if physicalLegalityKey != legalityKey {
+            physicalLegalityKey=legalityKey
+            physicalIllegalMoves=[:]
+            if ready,let color=client.playerColor {
+                for y in 0..<board.size { for x in 0..<board.size where board.grid[y][x] == nil {
+                    if let reason=app.player.moveRejection(color:color,x:x,y:y) {
+                        physicalIllegalMoves[String(y*board.size+x)]=reason.rawValue
+                    }
+                } }
+            }
+        }
+        if physicalFeedback["version"] as? Int != version {physicalFeedback=[:]}
+        if physicalFeedback["status"] as? String == "submitted",
+           let error=client.lastGameError,error.gameID==client.activeGameID,error.revision>physicalRequestErrorRevision {
+            physicalFeedback["status"]="rejected";physicalFeedback["message"]="OGS: \(error.message)"
+            physicalSentVersion=nil
+        }
+        let state: [String: Any] = ["token":physicalToken,"time":Date().timeIntervalSince1970,
+            "sgfExport":true,"game":client.activeGameID ?? -1,"version":version,"size":board.size,"cells":cells,
+            "ready":ready,"myTurn":client.currentPlayerID != nil && client.currentPlayerID == client.playerID,
+            "color":client.playerColor?.rawValue ?? "", "lastX":app.player.lastMove?.x ?? -1,
+            "lastY":app.player.lastMove?.y ?? -1,"illegalMoves":physicalIllegalMoves,"moveFeedback":physicalFeedback]
+        do {
+            try FileManager.default.createDirectory(at:physicalDirectory,withIntermediateDirectories:true)
+            try JSONSerialization.data(withJSONObject:state).write(to:physicalDirectory.appendingPathComponent("state.json"),options:.atomic)
+            physicalExportTick()
+            let requestURL = physicalDirectory.appendingPathComponent("move.json")
+            guard let data = try? Data(contentsOf:requestURL),
+                  let request = try JSONSerialization.jsonObject(with:data) as? [String:Any] else { return }
+            try? FileManager.default.removeItem(at:requestURL)
+            // Only requests from this bridge session can receive feedback.
+            guard request["token"] as? String == physicalToken,
+                  request["game"] as? Int == client.activeGameID else {return}
+            let reply:[String:Any]=["id":request["id"] as? String ?? "","version":request["version"] as? Int ?? -1,
+                "status":"rejected","message":"The game position changed before this move could be sent. Match the online board and try again."]
+            guard ready, client.currentPlayerID == client.playerID,
+                  request["token"] as? String == physicalToken,
+                  request["game"] as? Int == client.activeGameID,
+                  request["version"] as? Int == version, physicalSentVersion != version,
+                  let stamp = request["time"] as? Double, abs(Date().timeIntervalSince1970-stamp)<3,
+                  let x = request["x"] as? Int, let y = request["y"] as? Int,
+                  (0..<board.size).contains(x), (0..<board.size).contains(y), board.grid[y][x] == nil else { physicalFeedback=reply; return }
+            if let color=client.playerColor,let reason=app.player.moveRejection(color:color,x:x,y:y) {
+                physicalFeedback=reply;physicalFeedback["message"]=reason.rawValue
+                return
+            }
+            physicalSentVersion = version
+            physicalFeedback=reply;physicalFeedback["status"]="submitted";physicalFeedback["message"]="Move submitted to OGS."
+            physicalRequestErrorRevision=client.lastGameError?.revision ?? 0
+            client.sendMove(gameID:client.activeGameID!,x:x,y:y)
+        } catch { exportError = "Physical board connection: \(error.localizedDescription)" }
+    }
     
     var body: some View {
         VStack(spacing: 12) {
             ScrollView {
             VStack(spacing: 12) {
                 headerSection
+                Toggle("Use physical board", isOn: $physicalBoardEnabled)
+                    .help("Open Physical Go, choose Online play, and match the server position before placing your move.")
+                if physicalBoardEnabled,physicalFeedback["status"] as? String == "rejected",
+                   let reason=physicalFeedback["message"] as? String {
+                    Label(reason,systemImage:"exclamationmark.triangle.fill").foregroundColor(.red)
+                }
                 if app.ogsClient.isGameFinished { resultBanner }
                 
                 Divider().background(Color.white.opacity(0.1))
@@ -31,7 +135,7 @@ struct ActiveGamePanel: View {
                    !app.ogsClient.isGameFinished, !app.ogsClient.isScoringPhase {
                     let passedColor = last.color == .black ? "Black" : "White"
                     Text("\(passedColor) Passed")
-                        .font(.headline)
+                        .interfaceFont(.headline)
                         .foregroundColor(.yellow)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
@@ -51,11 +155,20 @@ struct ActiveGamePanel: View {
             }
             controlsSection.padding([.horizontal, .bottom])
         }
+        .task(id: physicalBoardEnabled) {
+            guard physicalBoardEnabled else { return }
+            while !Task.isCancelled {
+                physicalTick()
+                do { try await Task.sleep(nanoseconds: 250_000_000) }
+                catch { return }
+            }
+        }
+        .onChange(of: physicalBoardEnabled) { _ in physicalToken = UUID().uuidString; physicalSentVersion = nil; physicalFeedback=[:];physicalLegalityKey="" }
         .onChange(of: app.ogsClient.activeGameID) { _ in
-            cancelResignation(); exportError = nil
+            cancelResignation(); exportError = nil; physicalBoardEnabled = false; physicalToken = UUID().uuidString; physicalSentVersion = nil
         }
         .onChange(of: app.ogsClient.canResign) { allowed in if !allowed { cancelResignation() } }
-        .onDisappear { cancelResignation() }
+        .onDisappear { cancelResignation(); physicalBoardEnabled = false }
         .alert("Are you sure you want to resign?", isPresented: $showResignConfirmation) {
             Button("Resign Game", role: .destructive) {
                 if let id = resignTarget { app.ogsClient.resignGame(gameID: id) }
@@ -70,11 +183,11 @@ struct ActiveGamePanel: View {
     private var resultBanner: some View {
         VStack(spacing: 4) {
             if let result = app.ogsClient.activeGameResult {
-                Text(result.title).font(.title2.bold())
-                Text(result.subtitle).font(.headline)
+                Text(result.title).interfaceFont(.title2, weight: .bold)
+                Text(result.subtitle).interfaceFont(.headline)
                 Text(result.method).foregroundStyle(.yellow)
             } else if let outcome = app.ogsClient.activeGameOutcome {
-                Text(outcome).font(.headline)
+                Text(outcome).interfaceFont(.headline)
             }
         }
         .multilineTextAlignment(.center)
@@ -97,23 +210,23 @@ struct ActiveGamePanel: View {
 
             Spacer()
             // Version Indicator
-            Text("v1.0.0").font(.caption2).foregroundColor(.white.opacity(0.3))
+            Text("v1.0.0").interfaceFont(.caption2).foregroundColor(.white.opacity(0.3))
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 if let tc = app.ogsClient.activeGameTimeControl {
-                    Text(tc).font(.subheadline).foregroundColor(.secondary)
+                    Text(tc).interfaceFont(.subheadline).foregroundColor(.secondary)
                 }
                 if let k = app.ogsClient.komi {
                     Text("Komi: \(k, specifier: "%.1f")")
-                        .font(.caption2)
+                        .interfaceFont(.caption2)
                         .foregroundColor(.white.opacity(0.5))
                 }
                 HStack(spacing: 4) {
                     if let rules = app.ogsClient.gameRules {
-                        Text(rules).font(.caption2).foregroundColor(.white.opacity(0.5))
+                        Text(rules).interfaceFont(.caption2).foregroundColor(.white.opacity(0.5))
                     }
                     Text(app.ogsClient.isRanked ? "Ranked" : "Unranked")
-                        .font(.caption2)
+                        .interfaceFont(.caption2)
                         .foregroundColor(app.ogsClient.isRanked ? .green.opacity(0.8) : .white.opacity(0.4))
                 }
             }.padding(.horizontal)
@@ -124,7 +237,7 @@ struct ActiveGamePanel: View {
     
     private func undoApprovalSection(username: String) -> some View {
         VStack(spacing: 8) {
-            Text("Undo request from \(username)").font(.caption).bold()
+            Text("Undo request from \(username)").interfaceFont(.caption).bold()
             HStack {
                 Button("Decline") {
                     if let id = app.ogsClient.activeGameID { app.ogsClient.sendUndoReject(gameID: id) }
@@ -163,10 +276,10 @@ struct ActiveGamePanel: View {
                             alignment: .bottomLeading
                         )
                     if let r = app.ogsClient.blackPlayerRank { 
-                        Text("[\(ChallengeHelpers.formatRank(r))]").font(.caption).foregroundColor(.white.opacity(0.7)) 
+                        Text("[\(ChallengeHelpers.formatRank(r))]").interfaceFont(.caption).foregroundColor(.white.opacity(0.7)) 
                     }
                 }
-                Text("\(app.ogsClient.blackCaptures) captures").font(.caption2).foregroundColor(.white.opacity(0.6))
+                Text("\(app.ogsClient.blackCaptures) captures").interfaceFont(.caption2).foregroundColor(.white.opacity(0.6))
                 GameClockView(
                     mainTime: app.ogsClient.blackTimeRemaining,
                     periods: app.ogsClient.blackClockPeriods,
@@ -198,10 +311,10 @@ struct ActiveGamePanel: View {
                             alignment: .bottomTrailing
                         )
                     if let r = app.ogsClient.whitePlayerRank { 
-                        Text("[\(ChallengeHelpers.formatRank(r))]").font(.caption).foregroundColor(.black.opacity(0.6)) 
+                        Text("[\(ChallengeHelpers.formatRank(r))]").interfaceFont(.caption).foregroundColor(.black.opacity(0.6)) 
                     }
                 }
-                Text("\(app.ogsClient.whiteCaptures) captures").font(.caption2).foregroundColor(.black.opacity(0.5))
+                Text("\(app.ogsClient.whiteCaptures) captures").interfaceFont(.caption2).foregroundColor(.black.opacity(0.5))
                 GameClockView(
                     mainTime: app.ogsClient.whiteTimeRemaining,
                     periods: app.ogsClient.whiteClockPeriods,
@@ -221,18 +334,18 @@ struct ActiveGamePanel: View {
     private var controlsSection: some View {
         VStack(spacing: 8) {
             if app.ogsClient.isGameFinished, let outcome = app.ogsClient.activeGameOutcome {
-                Text(outcome).font(.headline).multilineTextAlignment(.center)
+                Text(outcome).interfaceFont(.headline).multilineTextAlignment(.center)
             }
             if !app.ogsClient.isConnected || !app.ogsClient.isSocketAuthenticated {
-                Text(app.ogsClient.connectionStatus).font(.caption).foregroundColor(.orange)
+                Text(app.ogsClient.connectionStatus).interfaceFont(.caption).foregroundColor(.orange)
             }
             if app.player.currentIndex != app.player.maxIndex {
                 Text("Showing move \(app.player.currentIndex) of \(app.player.maxIndex)")
-                    .font(.caption).foregroundColor(.secondary)
+                    .interfaceFont(.caption).foregroundColor(.secondary)
                 Button("Return to latest move") { app.boardVM?.goToEnd() }
             }
-            if let error = app.ogsClient.lastError { Text(error).font(.caption).foregroundColor(.orange) }
-            if let error = exportError { Text(error).font(.caption).foregroundColor(.orange) }
+            if let error = app.ogsClient.lastError { Text(error).interfaceFont(.caption).foregroundColor(.orange) }
+            if let error = exportError { Text(error).interfaceFont(.caption).foregroundColor(.orange) }
             if !app.ogsClient.isGameFinished { controlButtons }
             saveSGFButton
             HStack {
@@ -247,7 +360,7 @@ struct ActiveGamePanel: View {
     private var controlButtons: some View {
         Group {
             if app.ogsClient.isReconcilingMoves {
-                Label("Refreshing game state…", systemImage: "arrow.clockwise").font(.caption)
+                Label("Refreshing game state…", systemImage: "arrow.clockwise").interfaceFont(.caption)
             }
             if app.ogsClient.isScoringPhase || app.ogsClient.isGameFinished {
                 OGSScoringPanel(
@@ -269,7 +382,7 @@ struct ActiveGamePanel: View {
             } else {
                 // NORMAL CONTROLS
                 if !app.ogsClient.isGameParticipant {
-                    Text("Observing • Game actions disabled").font(.caption).foregroundColor(.secondary)
+                    Text("Observing • Game actions disabled").interfaceFont(.caption).foregroundColor(.secondary)
                 } else {
                 HStack(spacing: 8) {
                     if app.ogsClient.isRequestingUndo {
@@ -331,14 +444,10 @@ struct ActiveGamePanel: View {
 
     private func saveSGF() {
         guard !isSavingSGF, let gid = app.ogsClient.activeGameID else { return }
-        func filename(_ name: String) -> String {
-            name.replacingOccurrences(of: " ", with: "_")
-                .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: ":", with: "_")
-        }
-        let black = filename(app.ogsClient.blackPlayerName ?? "Black")
-        let white = filename(app.ogsClient.whitePlayerName ?? "White")
+        let black = app.ogsClient.blackPlayerName
+        let white = app.ogsClient.whitePlayerName
         isSavingSGF = true; exportError = nil
-        app.ogsClient.fetchSGF(gameID: gid) { data in
+        app.ogsClient.fetchSGFDownload(gameID: gid) { data, _ in
             DispatchQueue.main.async {
                 guard app.mode.usesOGS, app.ogsClient.activeGameID == gid else { isSavingSGF = false; return }
                 guard let data, !data.isEmpty else {
@@ -348,12 +457,20 @@ struct ActiveGamePanel: View {
                 }
                 let panel = NSSavePanel()
                 panel.allowedContentTypes = [.init(filenameExtension: "sgf")!]
-                let date = Date().formatted(.iso8601.year().month().day())
-                panel.nameFieldStringValue = "\(black)_vs_\(white)_\(date).sgf"
+                let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
+                var info = text.flatMap { try? SGFParser.parse(text: $0) }
+                    .map { SGFGame.from(tree: $0).info } ?? SGFGame.Info()
+                if info.playerBlack?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false { info.playerBlack = black }
+                if info.playerWhite?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false { info.playerWhite = white }
+                panel.nameFieldStringValue = info.suggestedFilename
+                panel.directoryURL = AppSettings.shared.savedGamesFolderURL
                 panel.begin { response in
                     isSavingSGF = false
                     if response == .OK, let url = panel.url {
-                        do { try data.write(to: url, options: .atomic) }
+                        do {
+                            try data.write(to: url, options: .atomic)
+                            app.rememberSGFSave(to: url)
+                        }
                         catch { exportError = "Could not save the SGF: \(error.localizedDescription)" }
                     }
                 }
@@ -402,26 +519,26 @@ struct GameClockView: View {
                 if let p = periods, let pt = periodTime {
                     let pStr = (p == 1) ? "SD" : "\(p)"
                     Text("\(Self.formattedTime(pt)) (\(pStr))")
-                        .font(.title2).monospacedDigit().bold() // Promoted Size
+                        .interfaceFont(.title2).monospacedDigit().bold() // Promoted Size
                         .foregroundColor(isDark ? .white : .black) // Standard Color
                 }
                 
                 // MAIN TIME (Small/Hidden or "0:00")
                 // User said "main time is exhausted anyways", so we can arguably hide it or show simplified.
                 // We'll show "0:00" small just for context, or hide it.
-                // Text("0:00").font(.caption).foregroundColor(isDark ? .white.opacity(0.3) : .black.opacity(0.3))
+                // Text("0:00").interfaceFont(.caption).foregroundColor(isDark ? .white.opacity(0.3) : .black.opacity(0.3))
                 
             } else {
                 // NORMAL MAIN TIME (Large)
                 Text(mainTime.map(Self.formattedTime) ?? "--:--")
-                    .font(.title2).monospacedDigit().bold()
+                    .interfaceFont(.title2).monospacedDigit().bold()
                     .foregroundColor(isDark ? .white : .black)
                 
                 // BYOYOMI (Small/Secondary)
                 if let p = periods, let pt = periodTime {
                     let pStr = (p == 1) ? "SD" : "\(p)"
                     Text("+ \(Self.formattedTime(pt)) (\(pStr))")
-                        .font(.body).monospacedDigit()
+                        .interfaceFont(.body).monospacedDigit()
                         .foregroundColor(isDark ? .white.opacity(0.7) : .black.opacity(0.6))
                 }
             }
@@ -443,9 +560,15 @@ struct OGSChatView: View {
             // Header
             HStack {
                 Text("Game Chat")
-                    .font(.headline)
+                    .interfaceFont(.headline)
                     .foregroundColor(.white.opacity(0.8))
                 Spacer()
+                if app.postGameChatID != nil {
+                    Button { app.closePostGameChat() } label: { Image(systemName: "xmark.circle") }
+                        .buttonStyle(.plain)
+                        .help("Close game chat")
+                        .accessibilityLabel("Close game chat")
+                }
             }
             .padding(.horizontal)
             .padding(.top, 8)
@@ -522,7 +645,7 @@ struct ChatBubble: View {
                 Circle()
                     .fill(Color.gray.opacity(0.5))
                     .frame(width: 24, height: 24)
-                    .overlay(Text(msg.sender.prefix(1).uppercased()).font(.caption).bold())
+                    .overlay(Text(msg.sender.prefix(1).uppercased()).interfaceFont(.caption).bold())
             } else {
                 Spacer()
             }
@@ -530,13 +653,13 @@ struct ChatBubble: View {
             VStack(alignment: msg.isSelf ? .trailing : .leading, spacing: 2) {
                 if !msg.isSelf {
                     HStack {
-                         Text(msg.sender).font(.caption2).foregroundColor(.gray)
-                         Text(timeAndMoveString(for: msg)).font(.caption2).foregroundColor(.gray.opacity(0.6))
+                         Text(msg.sender).interfaceFont(.caption2).foregroundColor(.gray)
+                         Text(timeAndMoveString(for: msg)).interfaceFont(.caption2).foregroundColor(.gray.opacity(0.6))
                     }
                 }
                 
                 Text(msg.message)
-                    .font(.body)
+                    .interfaceFont(.body)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(msg.isSelf ? Color.blue.opacity(0.8) : Color.white.opacity(0.1))
@@ -544,7 +667,7 @@ struct ChatBubble: View {
                     .cornerRadius(12)
                 
                 if msg.isSelf {
-                    Text(timeAndMoveString(for: msg)).font(.caption2).foregroundColor(.gray.opacity(0.5))
+                    Text(timeAndMoveString(for: msg)).interfaceFont(.caption2).foregroundColor(.gray.opacity(0.5))
                 }
             }
             

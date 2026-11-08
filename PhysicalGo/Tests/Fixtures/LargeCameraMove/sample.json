@@ -1,0 +1,54 @@
+{
+  "alignmentNeedsRecovery" : true,
+  "automaticReference" : false,
+  "boardSize" : 19,
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.2516594078834421,
+        "y" : 0.06504051593935936
+      },
+      {
+        "x" : 0.7598060853002719,
+        "y" : 0.0397691746009418
+      },
+      {
+        "x" : 0.8389741095025739,
+        "y" : 0.9247377231431789
+      },
+      {
+        "x" : 0.20541798803184239,
+        "y" : 0.946250209936082
+      }
+    ],
+    "h" : [
+      0.5012842506283445,
+      -0.08667110653090138,
+      0.2516594078834421,
+      -0.025630529102792468,
+      0.6949718680181673,
+      0.06504051593935936,
+      -0.009031813407724087,
+      -0.19681668127834326
+    ],
+    "size" : 19
+  },
+  "detectionMode" : "localAppearance",
+  "displayQuarterTurns" : 3,
+  "height" : 1080,
+  "manualLabels" : {
+
+  },
+  "name" : "Board 1 · even light",
+  "note" : "Experimental observations, not verified moves. Row 0 is top; column 0 is left. Manual label keys are row*boardSize+column. Confidence is a heuristic, not a probability.",
+  "perspectiveCorrectedView" : true,
+  "readings" : [
+
+  ],
+  "rectifiedLongAxisRows" : false,
+  "savedAt" : "2026-11-01T21:42:44Z",
+  "schemaVersion" : 3,
+  "source" : "FULL HD WEB CAM",
+  "threshold" : 0.13,
+  "width" : 1920
+}

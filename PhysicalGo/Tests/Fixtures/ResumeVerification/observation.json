@@ -1,0 +1,17 @@
+{
+  "position": ".......BB.B..........B.B.BBWB..........WB..BWWWWWWW.WWW....WW.WBB?BBBBW.BWB......WWWB?B.B..BBW...B.....WWWW.B...W..WB.W..WBWB.B..BW..W.WWWBB.B.B.BW.BW...WB??WB.B.BW?WWBW...BBBBW.W.WB???BW.....BWBW.W.WB?W.W........BBW.BWW??..........BW.WBBWWW...W......BW..BWWBW.WBWW......W.B.W.B....BB...B.BB...WB.BB.B..........BWWB.WB..........BBWWWB.............BW?.B.........",
+  "time": 1794111968.715321,
+  "unclearPointCount": 12,
+  "tentativeConfidence": [
+    {
+      "alternatives": [],
+      "clearSightings": 54,
+      "level": "high",
+      "orderSupported": true,
+      "placementUncertain": false,
+      "point": 88,
+      "requiredSightings": 8
+    }
+  ],
+  "status": "Retaining 1 tentative moves. An earlier stone is unclear; later moves are still tracked. SGF waits for confirmation."
+}

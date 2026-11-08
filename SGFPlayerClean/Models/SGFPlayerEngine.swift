@@ -135,16 +135,20 @@ final class SGFPlayer: ObservableObject {
     private var timer: AnyCancellable?
     private var playbackSettings: AnyCancellable?
     private var playbackInterval: TimeInterval = 0.5
+    private var playbackMoveNotBefore: TimeInterval = 0
     
     init() {
         self.board = BoardSnapshot(size: 19, grid: Array(repeating: Array(repeating: nil, count: 19), count: 19), stones: [:])
         positionHistory = [PositionState(key: positionKey(board.grid), next: initialPlayer)]
+        // Physical Go shares rules/replay without the main app's playback preferences.
+        #if !PHYSICAL_GO
         playbackSettings = AppSettings.shared.$moveInterval.removeDuplicates().sink { [weak self] interval in
             guard let self = self else { return }
             // Match the settings slider's range, including protection against corrupt preferences.
             self.playbackInterval = interval.isFinite ? min(10, max(0.1, interval)) : 0.5
             if self.isPlaying { self.startPlaybackTimer() }
         }
+        #endif
     }
     
     var turn: Stone { playerToMove(at: currentIndex) }
@@ -344,6 +348,7 @@ final class SGFPlayer: ObservableObject {
     
     func play() {
         guard !isPlaying else { return }
+        playbackMoveNotBefore = 0
         isPlaying = true
         startPlaybackTimer()
     }
@@ -352,7 +357,13 @@ final class SGFPlayer: ObservableObject {
         // Changing speed must not publish a pause (which also triggers game auto-advance).
         timer?.cancel()
         timer = Timer.publish(every: playbackInterval, on: .main, in: .common)
-            .autoconnect().sink { [weak self] _ in self?.stepForward() }
+            .autoconnect().sink { [weak self] _ in
+                guard let self, CACurrentMediaTime() >= self.playbackMoveNotBefore else { return }
+                self.stepForward()
+                if let move = self.lastMove, move.x == -1, move.y == -1 {
+                    self.playbackMoveNotBefore = CACurrentMediaTime() + PassAnnouncement.duration
+                }
+            }
     }
     func pause() { isPlaying = false; timer?.cancel(); timer = nil }
     

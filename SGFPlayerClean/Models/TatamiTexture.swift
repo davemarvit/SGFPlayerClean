@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 
 /// Physical scale shared by the app and native screensaver. Approximately 64
 /// weave divisions at 1.5 cm each fill this square; a Japanese board is 45.5 cm long.
@@ -12,6 +16,7 @@ enum TatamiTexture {
         boardHeight * tileCentimetres / boardLengthCentimetres
     }
 
+    #if os(macOS)
     /// Reflect alternate repeats so every join uses identical edge pixels.
     /// A fixed origin prevents the floor sliding when the window gets wider.
     static func draw(image: NSImage?, in bounds: CGRect, boardHeight: CGFloat) {
@@ -40,8 +45,10 @@ enum TatamiTexture {
             }
         }
     }
+    #endif
 }
 
+#if os(macOS)
 final class TatamiSurfaceView: NSView {
     var boardHeight: CGFloat = 455 { didSet { if oldValue != boardHeight { needsDisplay = true } } }
     var texture: NSImage? { didSet { needsDisplay = true } }
@@ -56,3 +63,5 @@ final class TatamiSurfaceView: NSView {
         TatamiTexture.draw(image: texture, in: bounds, boardHeight: boardHeight)
     }
 }
+
+#endif

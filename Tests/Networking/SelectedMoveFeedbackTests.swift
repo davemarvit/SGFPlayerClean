@@ -10,6 +10,22 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         AIAnalysis(id: "test", isDuringSearch: false, turnNumber: turn, moveInfos: nil,
                    rootInfo: AIRootInfo(winrate: win, scoreLead: score, visits: visits))
     }
+    func testUpcomingMistakeDescribesUnplayedStoneAndPass() throws {
+        let player = try game("(;SZ[9];B[dd];W[])")
+        let data = [0: root(0, score: 3, win: 0.7), 1: root(1, score: 0, win: 0.5),
+                    2: root(2, score: 4, win: 0.6)]
+        let first = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data, moveNumber: 1))
+        XCTAssertEqual(first.location, "D6")
+        XCTAssertEqual(first.pointsLost, 3)
+        XCTAssertFalse(first.hasStone)
+        XCTAssertEqual(player.currentIndex, 0)
+        player.seek(to: 1)
+        let pass = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data, moveNumber: 2))
+        XCTAssertEqual(pass.location, "Pass")
+        XCTAssertEqual(pass.pointsLost, 4)
+        XCTAssertEqual(player.currentIndex, 1)
+    }
+
     func testSelectedMoveUsesBeforeAfterAndMoversPerspective() throws {
         let player = try game("(;SZ[19];B[dd];W[jk];B[pp])")
         let data = [0: root(0, score: 4, win: 0.7), 1: root(1, score: -2, win: 0.35),
@@ -19,7 +35,7 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         let black = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data))
         XCTAssertEqual(black.moveNumber, 1); XCTAssertEqual(black.player, .black)
         XCTAssertEqual(black.location, "D16"); XCTAssertTrue(black.hasStone)
-        XCTAssertEqual(black.stoneLossText, "−2.0pt"); XCTAssertEqual(black.stoneChanceText, "−5.0pp")
+        XCTAssertEqual(black.stoneLossText, "−2.0"); XCTAssertEqual(black.stoneChanceText, "−5.0%")
         XCTAssertEqual(black.pointsLost, 2)
         XCTAssertEqual(black.winBefore, 0.7); XCTAssertEqual(black.winAfter, 0.65)
         player.seek(to: 2)
@@ -57,7 +73,7 @@ final class SelectedMoveFeedbackTests: XCTestCase {
         let data = [0: root(0, score: 0, win: 0.5), 1: root(1, score: -1, win: 0.4)]
         let move = try XCTUnwrap(SelectedMoveFeedback(engine: player, analyses: data))
         XCTAssertEqual(move.location, "A5"); XCTAssertFalse(move.hasStone)
-        XCTAssertEqual(move.stoneLossText, "0.0pt"); XCTAssertEqual(move.stoneChanceText, "+10.0pp")
+        XCTAssertEqual(move.stoneLossText, "0.0"); XCTAssertEqual(move.stoneChanceText, "+10.0%")
         XCTAssertEqual(move.pointsLost, 0)
         XCTAssertEqual(move.chanceText, "Win chance: 50.0% → 60.0% (+10.0 percentage points)")
     }

@@ -9,6 +9,11 @@ final class SaverPlaylist {
     private(set) var files: [URL] = []
     private(set) var errorMessage: String?
     private(set) var running = false
+    private(set) var passAnnouncement: PassAnnouncement?
+    var finalResult: String? {
+        guard let game, player.currentIndex == player.maxIndex else { return nil }
+        return game.info.resultDescription
+    }
     private var playedGames = 0
     private var queue: [URL] = []
     private let shuffle: Bool
@@ -38,7 +43,10 @@ final class SaverPlaylist {
         guard !running else { return }
         running = true
         if game == nil { loadNext(at: time) }
-        else { nextMoveAt = time + (player.currentIndex == player.maxIndex ? endPause : moveInterval) }
+        else {
+            passAnnouncement = nil
+            nextMoveAt = time + (player.currentIndex == player.maxIndex ? endPause : moveInterval)
+        }
         Self.log.notice("Started; files=\(self.files.count, privacy: .public), move=\(self.player.currentIndex, privacy: .public)")
     }
     func stop() {
@@ -52,7 +60,11 @@ final class SaverPlaylist {
             loadNext(at: time)
         } else {
             player.stepForward()
-            nextMoveAt = time + (player.currentIndex == player.maxIndex ? endPause : moveInterval)
+            passAnnouncement = player.lastMove.flatMap { move in
+                move.x == -1 && move.y == -1 ? PassAnnouncement(color: move.color, startedAt: time) : nil
+            }
+            let interval = passAnnouncement == nil ? moveInterval : max(moveInterval, PassAnnouncement.duration)
+            nextMoveAt = time + (player.currentIndex == player.maxIndex ? max(endPause, passAnnouncement == nil ? 0 : PassAnnouncement.duration) : interval)
             if player.currentIndex <= 3 || player.currentIndex.isMultiple(of: 25) {
                 Self.log.notice("Move \(self.player.currentIndex, privacy: .public)/\(self.player.maxIndex, privacy: .public)")
             }
@@ -60,6 +72,7 @@ final class SaverPlaylist {
         return true
     }
     private func loadNext(at time: TimeInterval) {
+        passAnnouncement = nil
         if queue.isEmpty { reloadFiles() }
         for _ in files.indices {
             if queue.isEmpty { reloadFiles() }

@@ -87,6 +87,88 @@ final class KataGoEngineTests: XCTestCase {
             "isDuringSearch": false, "rootInfo": ["winrate": 0.7, "scoreLead": 2.5, "visits": visits]])
     }
 
+    func testLegacyAnalysisCanAcquireOwnershipWithoutDiscardingDepthAndPersistsIt() throws {
+        try hold(); engine.start(); analyze(visits: 500)
+        engine.receiveAnalysisLine(try response(queries(1)[0], visits: 500))
+        XCTAssertNil(engine.currentAnalysisData[0]?.ownership)
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, maxVisits: 500, requireOwnership: true)
+        let query = queries(2)[1]
+        XCTAssertEqual(query["includeOwnership"] as? Bool, true)
+        XCTAssertEqual(query["includeOwnershipStdev"] as? Bool, true)
+        var reply = try JSONSerialization.jsonObject(with: response(query, visits: 500)) as! [String: Any]
+        reply["ownership"] = Array(repeating: -0.95, count: 81)
+        reply["ownershipStdev"] = Array(repeating: 0.02, count: 81)
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: reply))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 500)
+        XCTAssertEqual(engine.currentAnalysisData[0]?.ownership?.count, 81)
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, maxVisits: 500, requireOwnership: true)
+        XCTAssertFalse(engine.hasPendingAnalysis, "Complete cached ownership does not cause a fresh search")
+        engine.flushAnalysisCache()
+        XCTAssertTrue(engine.loadAnalysisCache(for: "game-a"))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.ownership?.first, -0.95)
+        XCTAssertEqual(engine.currentAnalysisData[0]?.ownershipStdev?.first, 0.02)
+    }
+
+    func testContinuousSearchStreamsBeyondNormalDepthAndSurvivesWhileReporting() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, continuous: true)
+        let query = queries(1)[0]
+        XCTAssertEqual(query["maxVisits"] as? Int, 1_000_000_000)
+        XCTAssertEqual(query["reportDuringSearchEvery"] as? Double, 0.25)
+        XCTAssertEqual(query["priority"] as? Int, 10)
+        XCTAssertNil(query["overrideSettings"])
+        func report(_ visits: Int) throws {
+            var message = try JSONSerialization.jsonObject(with: response(query, visits: visits)) as! [String: Any]
+            message["isDuringSearch"] = true
+            engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: message))
+        }
+        scheduler.advance(by: 100); try report(800)
+        scheduler.advance(by: 100); try report(4000)
+        XCTAssertEqual(engine.continuousAnalysisTurn, 0)
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 4000)
+        XCTAssertNil(engine.analysisError, "Progress renews the watchdog beyond the ordinary two-minute limit")
+        try report(500)
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 4000, "Never replace deeper cached work")
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, continuous: true)
+        analyze(x: 1)
+        XCTAssertEqual(queries(1).count, 1, "Repeated ticks and background scans cannot restart continuous search")
+        engine.stopContinuousAnalysis()
+        XCTAssertNil(engine.continuousAnalysisTurn)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+        let all = queries(2, includePositionCancellations: true)
+        XCTAssertEqual(all.last?["terminateId"] as? String, query["id"] as? String)
+        try report(9000)
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 4000, "Late reports are fenced")
+        engine.flushAnalysisCache()
+        XCTAssertTrue(engine.loadAnalysisCache(for: "game-a"))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits, 4000, "Partial search results persist")
+    }
+
+    func testContinuousSearchFollowsPositionAndStopsOnPauseFailureOrGameChange() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, continuous: true)
+        let original = queries(1)[0]
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [("B", 0, 0)], size: 9, continuous: true)
+        let replacement = queries(2)[1]
+        XCTAssertEqual(engine.continuousAnalysisTurn, 1)
+        engine.receiveAnalysisLine(try response(original, visits: 9000))
+        XCTAssertNil(engine.currentAnalysisData[0])
+        engine.pauseAnalysis()
+        XCTAssertNil(engine.continuousAnalysisTurn)
+        engine.receiveAnalysisLine(try response(replacement, visits: 9000))
+        XCTAssertNil(engine.currentAnalysisData[1])
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, continuous: true)
+        scheduler.advance(by: 121)
+        XCTAssertNil(engine.continuousAnalysisTurn)
+        XCTAssertNotNil(engine.analysisError, "A silent or stalled search still times out")
+        engine.retryFailedAnalysis()
+        engine.analyzeGame(id: "game-a", initialStones: [], moves: [], size: 9, continuous: true)
+        XCTAssertEqual(engine.continuousAnalysisTurn, 0)
+        engine.currentGameId = "game-b"
+        XCTAssertNil(engine.continuousAnalysisTurn)
+        XCTAssertFalse(engine.hasPendingAnalysis)
+    }
+
     func testFailedPositionIsNotAutomaticallyResubmittedAndManualRetryWorks() throws {
         try hold(); engine.start(); analyze()
         let first = queries(1)[0]
@@ -232,6 +314,54 @@ final class KataGoEngineTests: XCTestCase {
         XCTAssertEqual(query["komi"] as? Double, 6.5)
         XCTAssertEqual(GameAnalysisSettings(rules: "New_Zealand", komi: 0).kataRules, "new-zealand")
         XCTAssertEqual(GameAnalysisSettings(rules: "AGA", komi: 0).effectiveKomi, 0)
+    }
+
+    func testReviewBranchesReuseOnlyMatchingSavedPositionsAndKeepDeepestWork() throws {
+        try hold(); engine.start()
+        let player = SGFPlayer()
+        var game = SGFGame()
+        game.boardSize = 9; game.info.rules = "japanese"; game.info.komi = "0.5"
+        game.moves = [(.black, (0,0)), (.white, (1,1))]
+        player.load(game: game)
+        for turn in 0...2 {
+            let payload = player.getAIPayload(at: turn)
+            engine.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves,
+                size: 9, maxVisits: 500, settings: player.analysisSettings)
+            engine.receiveAnalysisLine(try response(queries(turn + 1)[turn], visits: 500))
+        }
+        engine.flushAnalysisCache()
+        game.moves[1] = (.white, (2,2))
+        player.load(game: game)
+        let branch = "game-a#variation-one"
+        XCTAssertTrue(engine.loadAnalysisCache(for: branch, game: player, reusing: ["game-a"]))
+        XCTAssertEqual(Set(engine.currentAnalysisData.keys), [0,1], "Only the unchanged prefix is reused")
+        let prefix = player.getAIPayload(at: 1)
+        engine.analyzeGame(id: branch, initialStones: prefix.initial, moves: prefix.moves,
+            size: 9, maxVisits: 500, settings: player.analysisSettings)
+        XCTAssertFalse(engine.hasPendingAnalysis, "The saved prefix requires no engine request")
+        let changed = player.getAIPayload(at: 2)
+        engine.analyzeGame(id: branch, initialStones: changed.initial, moves: changed.moves,
+            size: 9, maxVisits: 900, settings: player.analysisSettings)
+        engine.receiveAnalysisLine(try response(queries(4)[3], visits: 900))
+        game.moves.append((.black, (3,3)))
+        player.load(game: game)
+        let extended = "game-a#variation-extended"
+        XCTAssertTrue(engine.loadAnalysisCache(for: extended, game: player, reusing: ["game-a"]))
+        XCTAssertEqual(engine.currentAnalysisData[2]?.rootInfo?.visits, 900, "Extending a branch retains its own analysis")
+        XCTAssertNil(engine.currentAnalysisData[3], "The new position still needs analysis")
+        engine.flushAnalysisCache()
+        let fresh = newEngine()
+        defer { fresh.stop() }
+        XCTAssertTrue(fresh.loadAnalysisCache(for: extended, game: player, reusing: ["game-a"]))
+        XCTAssertEqual(fresh.currentAnalysisData[1]?.rootInfo?.visits, 500)
+        XCTAssertEqual(fresh.currentAnalysisData[2]?.rootInfo?.visits, 900, "Merged work survives restart")
+        game.moves[1] = (.white, (1,1)); game.moves.removeLast()
+        player.load(game: game)
+        XCTAssertTrue(fresh.loadAnalysisCache(for: "game-a", game: player, reusing: ["game-a"]))
+        XCTAssertEqual(fresh.currentAnalysisData[2]?.rootInfo?.visits, 500, "Original game retains its own result")
+        game.info.komi = "7.5"; player.load(game: game)
+        XCTAssertFalse(fresh.loadAnalysisCache(for: "changed-komi", game: player, reusing: ["game-a", extended]))
+        XCTAssertTrue(fresh.currentAnalysisData.isEmpty, "Incompatible rules/komi never leak through fallback")
     }
 
     func testCacheLoadRejectsChangedRulesAndTurnsBeyondUndoBeforePublishing() throws {
@@ -526,6 +656,47 @@ final class KataGoEngineTests: XCTestCase {
         XCTAssertEqual(engine.currentAnalysisData[1]?.rootInfo?.scoreLead, 2.5)
         XCTAssertEqual(game.board, original); XCTAssertEqual(game.currentIndex, 1); XCTAssertEqual(game.maxIndex, 2)
         XCTAssertFalse(engine.hasPendingAnalysis)
+    }
+
+    func testUncachedHoverYieldsContinuousWorkerAndBlocksItsRestartUntilFinished() throws {
+        try hold(); engine.start()
+        let game = try hoverGame(turn: 1)
+        let payload = game.getCurrentAIPayload()
+        func resume() {
+            engine.analyzeGame(id: "game-a", initialStones: payload.initial, moves: payload.moves,
+                size: 9, settings: game.analysisSettings, continuous: true)
+        }
+        resume()
+        let continuous = queries(1)[0]
+        var partial = try JSONSerialization.jsonObject(with: response(continuous, visits: 4500)) as! [String: Any]
+        partial["isDuringSearch"] = true
+        engine.receiveAnalysisLine(try JSONSerialization.data(withJSONObject: partial))
+        var received: AIMoveInfo?
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { received = try? $0.get() }
+        let all = queries(3, includePositionCancellations: true)
+        XCTAssertEqual(all[1]["terminateId"] as? String, continuous["id"] as? String,
+                       "Release the occupied worker before enqueueing the hover")
+        let hover = all[2]
+        XCTAssertNotNil(hover["allowMoves"])
+        XCTAssertNil(engine.continuousAnalysisTurn)
+        for _ in 0..<3 { resume() }
+        XCTAssertNil(engine.continuousAnalysisTurn, "Periodic ticks cannot reoccupy the worker")
+        XCTAssertEqual(queries(3, includePositionCancellations: true).count, 3)
+        engine.receiveAnalysisLine(try response(continuous, visits: 9000))
+        XCTAssertEqual(engine.currentAnalysisData[1]?.rootInfo?.visits, 4500, "Yield preserves depth and fences late reports")
+        engine.receiveAnalysisLine(try hoverResponse(hover))
+        XCTAssertEqual(received?.pv, ["C7", "D6", "E5"])
+        resume()
+        XCTAssertEqual(engine.continuousAnalysisTurn, 1, "The next tick can resume after completion")
+        let resumed = queries(4, includePositionCancellations: true).last!
+        engine.analyzeHover(game: game, point: BoardPosition(2,2)) { _ in }
+        XCTAssertEqual(engine.continuousAnalysisTurn, 1, "A cached hover needs no worker interruption")
+        engine.analyzeHover(game: game, point: BoardPosition(4,4)) { _ in }
+        let cancelled = queries(6, includePositionCancellations: true)
+        XCTAssertEqual(cancelled[4]["terminateId"] as? String, resumed["id"] as? String)
+        engine.cancelHoverAnalysis()
+        resume()
+        XCTAssertEqual(engine.continuousAnalysisTurn, 1, "Moving away also releases the worker for continuous analysis")
     }
 
     func testHoverOnlyCacheSurvivesQuitAndReloadAndDoesNotSendAnotherQuery() throws {
