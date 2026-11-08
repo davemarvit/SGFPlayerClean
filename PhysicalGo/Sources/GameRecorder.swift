@@ -86,9 +86,13 @@ enum LocalGameSetup {
     @Published private(set) var reviewCameraRevision=0
     private var reviewCameraWitnesses:[(time:Double,position:[Occupancy])]=[]
     private func noteReviewCamera(_ observation:BoardObservation,now:Double) {
-        guard hasDeferredMoves,!observation.lightingBlocked,observation.size==game.boardSize,
-              observation.readings.count==game.boardSize*game.boardSize,
-              reviewCameraWitnesses.last.map({now>$0.time}) ?? true else {return}
+        guard hasDeferredMoves else {return}
+        guard !observation.lightingBlocked,observation.size==game.boardSize,
+              observation.readings.count==game.boardSize*game.boardSize,now.isFinite else {
+            reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
+            return
+        }
+        guard reviewCameraWitnesses.last.map({now>$0.time}) ?? true else {return}
         if let last=reviewCameraWitnesses.last,now-last.time>0.5 {reviewCameraWitnesses=[]}
         let position=observation.signature
         reviewCameraWitnesses.append((now,position));reviewCameraWitnesses.removeAll{now-$0.time>2}
@@ -99,6 +103,61 @@ enum LocalGameSetup {
     func accidentalWithdrawalPlan(_ id:UUID)->AccidentalStoneWithdrawal? {
         guard let context=contextForReview(id),context.turnKnown else {return nil}
         return AccidentalStoneWithdrawal.make(history:reviewHistory,id:id,context:context.game)
+    }
+    func captureReviewPlan(_ id:UUID)->CaptureReviewPlan? {
+        guard let context=contextForReview(id),context.turnKnown else {return nil}
+        return CaptureReviewPlan.make(history:reviewHistory,id:id,context:context.game)
+    }
+    var pendingCaptureReview:CaptureReviewPlan? {
+        guard let section=reviewHistory.sections.last,!section.committed else {return nil}
+        return captureReviewPlan(section.id)
+    }
+    func captureRemovalVerified(_ plan:CaptureReviewPlan,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
+        freshReviewCameraMatches(plan.matches,now:now)
+    }
+    private func freshReviewCameraMatches(_ matches:([Occupancy])->Bool,now:Double)->Bool {
+        guard let last=reviewCameraWitnesses.last,now>=last.time,now-last.time<1.5 else {return false}
+        let matching=reviewCameraWitnesses.reversed().prefix {matches($0.position)}
+        return matching.count>=5 && last.time-(matching.last?.time ?? last.time)>=0.8
+    }
+    func boardRestorationPlan(_ id:UUID)->BoardRestorationPlan? {
+        guard let context=contextForReview(id),context.turnKnown else {return nil}
+        return BoardRestorationPlan.make(history:reviewHistory,id:id,context:context.game)
+    }
+    var pendingBoardRestoration:BoardRestorationPlan? {
+        guard let section=reviewHistory.sections.last,!section.committed else {return nil}
+        return boardRestorationPlan(section.id)
+    }
+    func boardRestorationVerified(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
+        freshReviewCameraMatches(plan.matches,now:now)
+    }
+    @discardableResult func confirmBoardRestoration(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime)->String? {
+        guard state == .paused,!reviewing,!recoveryReadBlocked,
+              let plan=boardRestorationPlan(id),let context=contextForReview(id) else {
+            return "This position needs another review before restoration can be confirmed."
+        }
+        guard boardRestorationVerified(plan,now:now) else {
+            return "Restore the marked stones to their recorded intersections and wait for a fresh clear view."
+        }
+        let error=resolveReview(id,draft:MoveRecoveryDraft(game:context.game,observation:nil),overrideCamera:true,
+            resolutionReason:"Player restored accidentally moved or removed stones; fresh camera views verified the recorded position. No move was added.")
+        if error == nil {clock.queueResumeAnnouncement("Board position restored.")}
+        return error
+    }
+    @discardableResult func confirmCaptureReview(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime)->String? {
+        guard state == .paused,!reviewing,!recoveryReadBlocked,
+              let plan=captureReviewPlan(id),let context=contextForReview(id) else {
+            return "This position needs another review before the capture can be confirmed."
+        }
+        guard captureRemovalVerified(plan,now:now) else {
+            return "Remove the remaining captured stones, keep the capturing stone in place, and wait for a fresh clear view."
+        }
+        var draft=MoveRecoveryDraft(game:context.game,observation:nil)
+        if let error=draft.add(plan.move.point,checkCameraColor:false) {return error}
+        let error=resolveReview(id,draft:draft,overrideCamera:true,
+            resolutionReason:"Single legal capture confirmed after fresh camera views verified removal of the captured stones.")
+        if error == nil {clock.queueResumeAnnouncement("Capture complete.")}
+        return error
     }
     func accidentalRemovalVerified(_ plan:AccidentalStoneWithdrawal,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
         guard let last=reviewCameraWitnesses.last,now>=last.time,now-last.time<1.5 else {return false}
@@ -1103,7 +1162,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.121"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.122"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {

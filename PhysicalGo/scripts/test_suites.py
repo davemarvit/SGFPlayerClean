@@ -29,7 +29,7 @@ SUITES = {
     'layout-voice-test': Suite('LayoutVoiceTests', 'app', ('Tests/LayoutVoiceTests.swift',), extra=(), optimized=False),
     'live-play-test': Suite('LivePlayTests', 'app', ('Tests/LivePlayTests.swift',), extra=(), optimized=False),
     'order-recovery-test': Suite('OrderRecoveryTests', 'app', ('Tests/OrderRecoveryTests.swift',), extra=(), optimized=False),
-    'review-queue-test': Suite('ReviewQueueTests', 'app', ('Tests/ReviewQueueTests.swift',), extra=(), optimized=False),
+    'review-queue-test': Suite('ReviewQueueTests', 'app', ('Tests/ReviewQueueTests.swift', 'Tests/PhysicalReviewTests.swift'), extra=(), optimized=False),
     'move-recovery-test': Suite('MoveRecoveryTests', 'app', ('Tests/MoveRecoveryTests.swift',), extra=(), optimized=False),
     'workflow-ui-test': Suite('WorkflowUITests', 'app', ('Tests/CameraContinuityTests.swift', 'Tests/CoveredBorderTests.swift', 'Tests/HandicapTests.swift', 'Tests/HandicapVerificationTests.swift', 'Tests/WorkflowUITests.swift', 'Tests/LocalClockTests.swift', 'Tests/ObstructionEvidenceTests.swift', 'Tests/ObservationHistoryTests.swift', 'Tests/LocalMoveEvidenceTests.swift'), extra=(), optimized=False),
     'stone-tracking-ui-test': Suite('StoneTrackingUITests', 'app', ('Tests/StoneTrackingUITests.swift',), extra=(), optimized=False),

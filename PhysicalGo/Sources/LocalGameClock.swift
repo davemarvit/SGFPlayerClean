@@ -24,6 +24,7 @@ import Combine
         var awaitingTurn:Bool?
         var timingNote:String?
         var automaticPause:AutomaticPause?
+        var resumeAnnouncement:String?
     }
     struct LivePress:Codable {
         let id:UUID
@@ -46,6 +47,8 @@ import Combine
     @Published private(set) var automaticPause:AutomaticPause?
     var onAutomaticPause:((AutomaticPause)->Void)?
     var onAutomaticPauseCleared:(()->Void)?
+    var onResumeAnnouncement:((String)->Void)?
+    private(set) var pendingResumeAnnouncement:String?
     private let audio=LocalClockAudio()
     var onSpeechEvent:SpeechEventHandler? {didSet {audio.onSpeechEvent=onSpeechEvent}}
     private var timer:Timer?
@@ -68,6 +71,7 @@ import Combine
         engine=LocalClockEngine(settings:settings,blackToPlay:blackToPlay);moves=[];self.baseMove=baseMove
         needsCorrection=false;manuallyPaused=false;notice="Clock starts when the board is ready."
         liveReviewActive=false;awaitingTurn=false;timingNote=nil;liveEvents=[]
+        pendingResumeAnnouncement=nil
         clearAutomaticPause()
         file=nil;signature="";saveError=nil;turnBaseline=nil
     }
@@ -78,8 +82,14 @@ import Combine
     func ready(at now:Double) {
         guard enabled,!running,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
         engine.resume(at:now);clearAutomaticPause();turnBaseline=engine;notice="\(engine.blackToPlay ? "Black":"White") to play"
-        if audible {audio.beganTurn(engine,settings:sounds)}
+        let announcement=pendingResumeAnnouncement;pendingResumeAnnouncement=nil
+        if announcement == nil && audible {audio.beganTurn(engine,settings:sounds)}
         armTimer();save()
+        if let announcement {onResumeAnnouncement?("\(announcement) Clocks resumed. \(engine.blackToPlay ? "Black":"White") to play.")}
+    }
+    func queueResumeAnnouncement(_ message:String) {
+        guard enabled,!running else {return}
+        pendingResumeAnnouncement=message;save()
     }
     func requestResume() {manuallyPaused=false}
     func resume(at now:Double=ProcessInfo.processInfo.systemUptime) {
@@ -111,6 +121,7 @@ import Combine
         automaticPause=nil;onAutomaticPauseCleared?()
     }
     func finish(at now:Double=ProcessInfo.processInfo.systemUptime) {
+        pendingResumeAnnouncement=nil
         pause("Game ended · clocks stopped",at:now);clearAutomaticPause();save()
     }
     func tick(at now:Double) {
@@ -251,6 +262,7 @@ import Combine
     }
     func undo(to moveCount:Int,blackToPlay:Bool,at now:Double=ProcessInfo.processInfo.systemUptime) {
         guard enabled else {return}
+        pendingResumeAnnouncement=nil
         pause(at:now)
         if let move=moves.last,move.number==moveCount+1,move.number>baseMove {
             engine=move.before;engine.restoredPaused();moves.removeLast();needsCorrection=false
@@ -278,6 +290,7 @@ import Combine
             needsCorrection=data.needsCorrection;manuallyPaused=true;file=url;self.signature=signature
             liveEvents=data.liveEvents ?? [];liveReviewActive=data.liveReviewActive ?? false
             awaitingTurn=data.awaitingTurn ?? false;timingNote=data.timingNote;automaticPause=data.automaticPause
+            pendingResumeAnnouncement=data.resumeAnnouncement
             notice=requiresReview ? "Saved clocks need review. Choose Review & resume to confirm or adjust both times."
                 : "Saved clocks restored · paused. Resume the clock when ready."
         } catch {saveError=error.localizedDescription;notice="Saved clock could not be restored."}
@@ -301,7 +314,8 @@ import Combine
         guard enabled,let file,!signature.isEmpty else {return}
         do {
             let saved=Saved(signature:signature,engine:engine,moves:moves,baseMove:baseMove,needsCorrection:needsCorrection,
-                            liveEvents:liveEvents,liveReviewActive:liveReviewActive,awaitingTurn:awaitingTurn,timingNote:timingNote,automaticPause:automaticPause)
+                            liveEvents:liveEvents,liveReviewActive:liveReviewActive,awaitingTurn:awaitingTurn,timingNote:timingNote,automaticPause:automaticPause,
+                            resumeAnnouncement:pendingResumeAnnouncement)
             try JSONEncoder().encode(saved).write(to:file,options:.atomic);saveError=nil
         } catch {saveError="Could not save clock: \(error.localizedDescription)"}
     }

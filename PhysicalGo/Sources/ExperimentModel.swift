@@ -438,7 +438,11 @@ enum PhysicalPlayMode: String, CaseIterable {
             if self.recorder.clock.running {self.recorder.logAutomaticClockResume()}
             self.clockPauseAnnouncements.cleared(running:self.recorder.clock.running,
                 blackToPlay:self.recorder.clock.engine.blackToPlay,
-                enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,settings:self.recorder.clock.sounds)
+                enabled:self.recoverySpeechEnabled && self.recorder.clock.audible && self.recorder.clock.pendingResumeAnnouncement == nil,settings:self.recorder.clock.sounds)
+        }
+        recorder.clock.onResumeAnnouncement = { [weak self] words in
+            guard let self,self.recoverySpeechEnabled,self.recorder.clock.audible else {return}
+            self.recoverySpeech.request(.clockResume,text:words,settings:self.recorder.clock.sounds,priority:true)
         }
         recorder.onGameStarted = { [weak self] in
             guard let self,self.soundMode != .off else {return}

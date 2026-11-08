@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ReviewSectionView:View {
-    enum Mode {case choose,cleanup,order}
+    enum Mode {case choose,cleanup,order,restore}
     @ObservedObject var recorder:GameRecorder
     let id:UUID
     let orientation:BoardOrientation
@@ -40,6 +40,16 @@ struct ReviewSectionView:View {
         _mode=State(initialValue:section.moves == nil ? .choose:.order)
     }
     private var section:DeferredMoveHistory.Section? {recorder.reviewHistory.sections.first{$0.id==id}}
+    private var restoration:BoardRestorationPlan? {recorder.boardRestorationPlan(id)}
+    private var showsRestoration:Bool {
+        if mode == .restore {return true}
+        if mode == .choose,let restoration,case .displaced = restoration.kind {return true}
+        return false
+    }
+    private var changeKind:ReviewChangeKind {
+        guard let section else {return .mixed}
+        return .classify(before:section.before,after:section.after)
+    }
     private var withdrawal:AccidentalStoneWithdrawal? {section?.committed == false ? initialWithdrawal:nil}
     private var cleanupReady:Bool {withdrawal.map{recorder.accidentalRemovalVerified($0)} ?? false}
     private var showsCleanupBoard:Bool {mode == .cleanup || (mode == .choose && cleanupReady)}
@@ -82,7 +92,16 @@ struct ReviewSectionView:View {
         if error==nil {completeReview()}
     }
     var body:some View {
+        Group {
         if reviewSaved {SavedReviewNotice(recorder:recorder,onClose:close)}
+        else if mode != .order,let capture=recorder.captureReviewPlan(id) {
+            CaptureReviewView(recorder:recorder,plan:capture,orientation:orientation,onClose:close,
+                onSaved:completeReview,onOtherMove:{mode = .order;error=nil})
+        }
+        else if showsRestoration,let restoration {
+            BoardRestorationReviewView(recorder:recorder,plan:restoration,orientation:orientation,onClose:close,
+                onSaved:completeReview,onActualMoves:{mode = .order;error=nil})
+        }
         else if let section {
             VStack(alignment:.leading,spacing:14) {
                 HStack {
@@ -133,14 +152,14 @@ struct ReviewSectionView:View {
                     }
                 }
             }.padding(20).frame(minWidth:882,minHeight:670)
-                .sheet(isPresented:$reviewingClocks,onDismiss:{close()}) {
-                    LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)
-                }
                 .task {if !section.committed {await recoverOrder()}}
                 .onChange(of:firstColor) {_,color in
                     var updated=context;updated.initialPlayer=color
                     draft=MoveRecoveryDraft(game:updated,observation:draft.observation);error=nil;recoveredOrders=[];recoveryMessage=nil;turnConflict=nil
                 }
+        }
+        }.sheet(isPresented:$reviewingClocks,onDismiss:{close()}) {
+            LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)
         }
     }
     private var problem:some View {
@@ -149,10 +168,13 @@ struct ReviewSectionView:View {
                 Text("Ready to confirm the cleanup").font(.title3.bold())
                 Text("The extra stones are gone. \(plan.nextPlayer.rawValue.capitalized) plays next after you save.")
             } else {
-                Text(turnConflict != nil ? "The wrong color appears to have played first":"These moves need checking").font(.title3.bold())
+                Text(turnConflict != nil ? "The wrong color appears to have played first":changeKind.title).font(.title3.bold())
                 if let conflict=turnConflict {
                     Text("\(firstColor.rawValue.capitalized) was next. The camera saw \(conflict.color.rawValue.capitalized) first among the marked stones.")
-                } else {Text(turnKnown ? "The saved game has \(firstColor.rawValue.capitalized) to play. Choose how to handle the marked stones.":"An earlier review is unresolved. Enter what actually happened here; the complete order will be checked afterward.")}
+                } else {
+                    Text(changeKind.instructions)
+                    Text(turnKnown ? "The saved game has \(firstColor.rawValue.capitalized) to play.":"An earlier review is unresolved. The complete sequence will be checked afterward.").font(.callout)
+                }
             }
         }.fixedSize(horizontal:false,vertical:true)
     }
@@ -168,11 +190,12 @@ struct ReviewSectionView:View {
                     Text("Use this if the wrong color or extra stones were played. The next step shows exactly what to remove.").font(.callout)
                 }
             }
-            Button("Enter the actual move order") {mode = .order;error=nil}
-            Text("Use this if these were real moves that should be kept.").font(.callout).foregroundStyle(.secondary)
-            if withdrawal==nil {
-                Text("Later moves or captures prevent a simple cleanup. Enter the real sequence; later sections remain preserved.").font(.callout)
+            if restoration != nil {
+                Button("Restore accidentally removed stones") {mode = .restore;error=nil}
+                Text("Use this only if the stones were moved or removed accidentally.").font(.callout).foregroundStyle(.secondary)
             }
+            Button(changeKind.reviewAction) {mode = .order;error=nil}
+            Text("Use this for moves and captures that actually occurred. Later sections remain preserved.").font(.callout).foregroundStyle(.secondary)
         }.fixedSize(horizontal:false,vertical:true)
     }
     private func keptMovesDescription(_ plan:AccidentalStoneWithdrawal)->some View {
@@ -270,7 +293,7 @@ struct ReviewQueueRail:View {
                         Button {onReview(section.id)} label: {
                             VStack(spacing:4) {
                                 Label("Review \(section.reviewNumber ?? 0)",systemImage:resolved ? "checkmark.circle.fill":"exclamationmark.circle.fill")
-                                Text(resolved ? "Resolved":"Needs review").font(.caption)
+                                Text(resolved ? "Resolved":recorder.captureReviewPlan(section.id) != nil ? "Finish capture":recorder.boardRestorationPlan(section.id) != nil ? "Check moved stones":"Needs review").font(.caption)
                             }.frame(maxWidth:.infinity).padding(.vertical,8)
                                 .background((resolved ? Color.green:Color.red).opacity(0.18),in:RoundedRectangle(cornerRadius:8))
                                 .overlay(RoundedRectangle(cornerRadius:8).stroke(resolved ? Color.green:Color.red,lineWidth:2))

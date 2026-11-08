@@ -143,7 +143,9 @@ struct RecordingView: View {
                                       allowsLiveSelection:display == .live && recorder.state != .finished) {point in
                             if display == .live {
                                 let index=point.row*recorder.game.boardSize+point.col
-                                if checkPoints.contains(index) {model.beginBoardCorrection(at:index)}
+                                if let capture=recorder.pendingCaptureReview,capture.captured.contains(index) {openReview(capture.id)}
+                                else if let restoration=recorder.pendingBoardRestoration,restoration.changed.contains(index) {openReview(restoration.id)}
+                                else if checkPoints.contains(index) {model.beginBoardCorrection(at:index)}
                                 else {beginRecovery(at:point)}
                             } else {manualPoint=point}
                         }
@@ -195,6 +197,13 @@ struct RecordingView: View {
             if let explanation=RecordingClarity.explanation(recorder:recorder,observation:model.visibleObservation,orientation:model.orientation) {
                 Text(explanation).font(.system(size:12*model.interfaceScale)).foregroundStyle(.orange)
             }
+            if let capture=recorder.pendingCaptureReview {
+                Button("Finish capture…",systemImage:"checkmark.circle") {openReview(capture.id)}
+                    .buttonStyle(.borderedProminent).tint(.orange)
+            } else if let restoration=recorder.pendingBoardRestoration {
+                Button("Check moved stones…",systemImage:"arrow.uturn.backward.circle") {openReview(restoration.id)}
+                    .buttonStyle(.borderedProminent).tint(.orange)
+            } else {
             if !checkPoints.isEmpty {
                 Button("Check highlighted intersections…",systemImage:"viewfinder") {model.beginBoardCorrection(at:checkPoints.sorted().first)}
                     .buttonStyle(.borderedProminent).tint(.orange)
@@ -207,6 +216,7 @@ struct RecordingView: View {
                 .actionAttention(unrecordedDetections>0 ? .required:.none)
                 .disabled(recorder.state == .finished)
             Text("If moves are missing or their order is wrong, choose Order missed moves and approve their sequence.").font(.callout)
+            }
             Text("Red ring: pending move needs checking. Dashed red: detected stone outside the retained sequence. Orange: a persistent conflict or ambiguous placement to check. Center dot: last interpreted move.")
                 .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
             Text(recorder.hasDeferredMoves ? "Observed position · reviewed history is kept separately until finalized" : "Live position · \(recorder.moveCount+recorder.pendingConfidence.count) moves")

@@ -5,6 +5,7 @@ import SwiftUI
     @MainActor static func main() throws {
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
         var checks=0
+        checks += try PhysicalReviewTests.run()
         func check(_ value:Bool,_ text:String) {checks += 1;precondition(value,text)}
         let root=FileManager.default.temporaryDirectory.appendingPathComponent("review-queue-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)

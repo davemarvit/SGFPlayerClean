@@ -59,7 +59,7 @@ import SwiftUI
         window.appearance=NSAppearance(named:.darkAqua);window.contentView=host;window.orderFront(nil)
         RunLoop.main.run(until:Date().addingTimeInterval(0.2));host.layoutSubtreeIfNeeded()
         let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!;host.cacheDisplay(in:host.bounds,to:bitmap)
-        let output=TestArtifacts.file("physical-clock-catchup/clock-review-while-recording.png")
+        let output=try TestArtifacts.file("physical-clock-catchup/clock-review-while-recording.png")
         try bitmap.representation(using:.png,properties:[:])!.write(to:output);window.orderOut(nil);r.pause()
         // Persistent unreadability follows the user's camera-pause preference;
         // short hand occlusion and sequence-only gaps must not stop timing.
@@ -74,6 +74,11 @@ import SwiftUI
             observe(6);check(health.clock.running,"Health test failed to start clock")
             for i in 20..<45 {values[i] = .uncertain}
             observe(12);check(health.clock.running,"Brief hand occlusion paused the clock")
+            observe(50)
+            check(health.clock.running && health.needsAttention,"Partial uncertainty incorrectly stopped timing")
+            // CameraViewContinuity requires loss of more than a third of the board;
+            // 25 uncertain points on a 9x9 board remain a partial view.
+            for i in 0..<60 {values[i] = .uncertain}
             observe(50)
             check(health.clock.running != pauses && health.needsAttention,"Persistent unreadability ignored camera-pause preference")
             check(health.recordingProblemTitle=="Camera cannot read the board reliably","Unclear view reported as player error")

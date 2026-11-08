@@ -132,6 +132,33 @@ is still on demand on battery; this display does not start another engine.
 all four orientations with native renders, uncertain/malformed ownership, final-score
 corrections, fresh-position reset, and the existing real KataGo/power/handoff tests.
 
+## Physical correction guidance (0.122)
+
+Review distinguishes an incomplete legal capture, a possible neighboring-stone
+bump, missing recorded stones, new additions, color disagreements and mixed
+changes. A capture shows only the captured stones still needing removal and
+keeps the capturing stone identified. A possible bump offers restoration to the
+saved intersections; missing stones can be restored if removed accidentally.
+Actual moves and captures retain the sequence-review path.
+
+Capture confirmation uses full game history, including turn and ko legality,
+and saves exactly one move. Restoration adds no moves. Both require at least five
+fresh matching camera views over 0.8 seconds, with clear evidence at every affected
+intersection and no positive contradictions elsewhere. Stale, interrupted or
+unreadable views cannot confirm a correction. These shortcuts apply only to the
+last unresolved section with a matching saved context. Original snapshots and
+accrued clock readings are preserved, and resuming remains explicit.
+
+After a confirmed capture or restoration, spoken feedback waits until the clocks
+actually restart: “Capture complete. Clocks resumed. White to play,” for example.
+The next player comes from the running clock. The announcement plays once,
+survives closing and reopening the game before resuming, and respects the existing
+recovery-speech setting. A blocked resume or camera verification alone stays quiet.
+
+`--review-queue-test` includes the three-stone capture with one stone left behind,
+camera freshness and obstruction, illegal ko recapture, unrelated changes,
+bumped/missing stones, persistence and native guidance renders.
+
 ## One-board guided review (0.111)
 
 Review starts with the problem and two distinct choices: undo accidental stones or

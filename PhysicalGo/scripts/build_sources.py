@@ -8,7 +8,7 @@ DEPENDENCIES = {
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
         'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
-        'AccidentalStoneWithdrawal.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
+        'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),
     'Sources/PhysicalScoring.swift': tuple('../SGFPlayerClean/' + name for name in (
