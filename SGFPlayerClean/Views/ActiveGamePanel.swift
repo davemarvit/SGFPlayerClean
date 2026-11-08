@@ -16,6 +16,7 @@ struct ActiveGamePanel: View {
     @State private var physicalFeedback = [String:Any]()
     @State private var physicalRequestErrorRevision = 0
     @State private var physicalExportID: UUID?
+    @State private var physicalUndoIDs = [UUID]()
     private var physicalDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Physical Go/Online Bridge")
     }
@@ -43,7 +44,11 @@ struct ActiveGamePanel: View {
     private func physicalTick() {
         guard physicalBoardEnabled else { return }
         let client = app.ogsClient
-        let ready = client.canPlayMoves && app.player.currentIndex == app.player.maxIndex
+        let undo = PhysicalUndoState(available:client.canPlayMoves && app.player.currentIndex == app.player.maxIndex &&
+            (client.lastKnownRemoteMoveNumber == nil || client.lastKnownRemoteMoveNumber == app.player.maxIndex),
+            moveNumber:app.player.maxIndex,requesting:client.isRequestingUndo,
+            requestedMove:client.undoRequestedMoveNumber,requester:client.undoRequestedUsername)
+        let ready = client.canPlayMoves && app.player.currentIndex == app.player.maxIndex && !undo.pending
         let board = app.player.board
         let cells = board.grid.flatMap { $0.map { $0?.rawValue ?? "empty" } }
         let version = physicalRevision.update(.init(
@@ -70,15 +75,17 @@ struct ActiveGamePanel: View {
             physicalFeedback["status"]="rejected";physicalFeedback["message"]="OGS: \(error.message)"
             physicalSentVersion=nil
         }
-        let state: [String: Any] = ["token":physicalToken,"time":Date().timeIntervalSince1970,
+        var state: [String: Any] = ["token":physicalToken,"time":Date().timeIntervalSince1970,
             "sgfExport":true,"game":client.activeGameID ?? -1,"version":version,"size":board.size,"cells":cells,
             "ready":ready,"myTurn":client.currentPlayerID != nil && client.currentPlayerID == client.playerID,
             "color":client.playerColor?.rawValue ?? "", "lastX":app.player.lastMove?.x ?? -1,
             "lastY":app.player.lastMove?.y ?? -1,"illegalMoves":physicalIllegalMoves,"moveFeedback":physicalFeedback]
         do {
+            state["undo"] = try JSONSerialization.jsonObject(with:JSONEncoder().encode(undo))
             try FileManager.default.createDirectory(at:physicalDirectory,withIntermediateDirectories:true)
             try JSONSerialization.data(withJSONObject:state).write(to:physicalDirectory.appendingPathComponent("state.json"),options:.atomic)
             physicalExportTick()
+            let handledUndo=physicalUndoTick(version:version,state:undo)
             let requestURL = physicalDirectory.appendingPathComponent("move.json")
             guard let data = try? Data(contentsOf:requestURL),
                   let request = try JSONSerialization.jsonObject(with:data) as? [String:Any] else { return }
@@ -88,7 +95,7 @@ struct ActiveGamePanel: View {
                   request["game"] as? Int == client.activeGameID else {return}
             let reply:[String:Any]=["id":request["id"] as? String ?? "","version":request["version"] as? Int ?? -1,
                 "status":"rejected","message":"The game position changed before this move could be sent. Match the online board and try again."]
-            guard ready, client.currentPlayerID == client.playerID,
+            guard !handledUndo, ready, !client.isRequestingUndo, client.undoRequestedMoveNumber == nil, client.currentPlayerID == client.playerID,
                   request["token"] as? String == physicalToken,
                   request["game"] as? Int == client.activeGameID,
                   request["version"] as? Int == version, physicalSentVersion != version,
@@ -104,6 +111,29 @@ struct ActiveGamePanel: View {
             physicalRequestErrorRevision=client.lastGameError?.revision ?? 0
             client.sendMove(gameID:client.activeGameID!,x:x,y:y)
         } catch { exportError = "Physical board connection: \(error.localizedDescription)" }
+    }
+    private func physicalUndoTick(version:Int,state:PhysicalUndoState)->Bool {
+        let url=physicalDirectory.appendingPathComponent("undo.json")
+        guard let data=try? Data(contentsOf:url),let request=try? JSONDecoder().decode(PhysicalUndoRequest.self,from:data) else {return false}
+        try? FileManager.default.removeItem(at:url)
+        guard request.token==physicalToken,request.game==app.ogsClient.activeGameID,
+              !physicalUndoIDs.contains(request.id) else {return false}
+        physicalUndoIDs.append(request.id)
+        if physicalUndoIDs.count>64 {physicalUndoIDs.removeFirst(physicalUndoIDs.count-64)}
+        let accepted=request.matches(token:physicalToken,game:app.ogsClient.activeGameID,version:version,state:state)
+        if accepted {
+            switch request.action {
+            case .request: app.ogsClient.sendUndoRequest(gameID:request.game,moveNumber:request.move)
+            case .accept: app.ogsClient.sendUndoAccept(gameID:request.game,moveNumber:request.move)
+            case .cancel: app.ogsClient.sendUndoReject(gameID:request.game)
+            }
+        }
+        let reply=PhysicalUndoReply(id:request.id,
+            message:accepted ? "Undo action sent to OGS. Wait for the server before moving stones."
+                : "The online position or undo request changed. Check the current game and try again.",accepted:accepted)
+        do {try JSONEncoder().encode(reply).write(to:physicalDirectory.appendingPathComponent("undo-result.json"),options:.atomic)}
+        catch {exportError="Physical board undo: \(error.localizedDescription)"}
+        return true
     }
     
     var body: some View {

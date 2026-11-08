@@ -269,6 +269,10 @@ import Combine
             audio.resetAnnouncements(to:engine)
             notice="Last clock press undone · clocks paused"
         } else {engine.blackToPlay=blackToPlay;needsCorrection=true;notice="Undo needs clock review. Check both clocks."}
+        // A resolved review can place the checkpoint at the move being undone.
+        // Keep the shortened recording reloadable without inventing press times.
+        baseMove=min(baseMove,moveCount);moves.removeAll{$0.number>moveCount}
+        liveEvents=[];liveReviewActive=false;awaitingTurn=false
         save()
     }
     func restore(from sgf:URL,signature:String,moveCount:Int,blackToPlay:Bool) {

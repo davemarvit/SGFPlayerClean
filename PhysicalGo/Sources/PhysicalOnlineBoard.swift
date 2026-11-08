@@ -138,6 +138,10 @@ struct PhysicalBoardMismatch: Equatable {
     @Published private(set) var cells = [String]()
     @Published private(set) var size = 19
     @Published private(set) var lastPoint: Int?
+    let undo: PhysicalUndoController
+    var moveInFlight: Bool { sent }
+    private var lastRemoteMoveNumber: Int?
+    private var remoteUndoSession = ""
     var stoneTrackingIdentity:String {identity.isEmpty ? "":synchronizationContext}
     private var identity = ""
     private var lastSession = ""
@@ -189,6 +193,7 @@ struct PhysicalBoardMismatch: Equatable {
         self.announceCorrection = announceCorrection
         self.announceOpponent = announceOpponent
         self.directory = directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/Online Bridge")
+        self.undo = PhysicalUndoController(directory:self.directory)
         self.decisionLog = decisionLog ?? (directory == nil ? PhysicalOnlineDecisionLog(url:self.directory.appendingPathComponent("decisions.jsonl")) : nil)
         self.moveTiming=moveTiming ?? (directory == nil ? PhysicalMoveTiming(directory:self.directory.appendingPathComponent("Move Timing")) : nil)
         self.moveTiming?.onWriteError={ [weak self] error in self?.timingError="Move timing could not be saved: \(error)" }
@@ -354,6 +359,7 @@ struct PhysicalBoardMismatch: Equatable {
     func consume(_ observation: BoardObservation, now: Double = ProcessInfo.processInfo.systemUptime, quarterTurns: Int = 0,
                  corrections: ManualBoardCorrections? = nil) {
         guard enabled else { return }
+        undo.refresh()
         var observation=observation
         timingContext=nil
         let previousPoint=pending, interval=lastObservation>0 ? now-lastObservation : nil
@@ -363,7 +369,6 @@ struct PhysicalBoardMismatch: Equatable {
             let data = try Data(contentsOf:directory.appendingPathComponent("state.json"))
             guard let state = try JSONSerialization.jsonObject(with:data) as? [String:Any],
                   let stamp = state["time"] as? Double, abs(Date().timeIntervalSince1970-stamp)<2,
-                  state["ready"] as? Bool == true,
                   let token=state["token"] as? String, let game=state["game"] as? Int,
                   let version=state["version"] as? Int, let n=state["size"] as? Int,
                   [9,13,19].contains(n), let board=state["cells"] as? [String], board.count==n*n,
@@ -371,6 +376,23 @@ struct PhysicalBoardMismatch: Equatable {
                   let myTurn=state["myTurn"] as? Bool,
                   board.allSatisfy({ ["empty","black","white"].contains($0) }) else {
                 reset(); status="Waiting for a connected live game in SGF Player."; return
+            }
+            if undo.awaitingCommand || undo.state?.pending == true {
+                resetPendingMove();status="Undo is being reviewed. Leave the stones in place until OGS updates the board."
+                return
+            }
+            guard state["ready"] as? Bool == true else {
+                reset();status="Waiting for a connected live game in SGF Player.";return
+            }
+            if let number=undo.state?.moveNumber {
+                let session="\(token)/\(game)"
+                if session != remoteUndoSession {lastRemoteMoveNumber=nil;remoteUndoSession=session}
+                if let previous=lastRemoteMoveNumber,number<previous {
+                    // An accepted takeback must be matched physically before
+                    // the old stone can be mistaken for a fresh legal move.
+                    synchronized=false;synchronizationContext="";history=HistoricalMoveEvidence()
+                }
+                lastRemoteMoveNumber=number
             }
             // Include the position itself for compatibility with older publishers
             // whose OGS state_version can remain zero throughout a live game.
@@ -552,6 +574,7 @@ struct PhysicalOnlineBoardView: View {
         GroupBox {
             VStack(alignment:.leading,spacing:10) {
                 Text("Online board").font(.headline)
+                if bridge.enabled {PhysicalUndoView(controller:bridge.undo,moveInFlight:bridge.moveInFlight)}
                 if bridge.enabled { OnlineTurnIndicator(bridge:bridge,textScale:1) }
                 if let issue=bridge.moveIssue {
                     Label(issue,systemImage:"exclamationmark.triangle.fill")

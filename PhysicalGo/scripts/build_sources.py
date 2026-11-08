@@ -5,7 +5,8 @@ DEPENDENCIES = {
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift'),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
     'Sources/PhysicalOnlineBoard.swift': (
-        'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift'),
+        'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
+        'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
         'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
         'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',

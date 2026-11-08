@@ -1379,3 +1379,41 @@ struct PhysicalSGFExportReply: Codable {
     let filename: String?
     let error: String?
 }
+
+/// Session-scoped takeback controls. Only the OGS client changes online history.
+struct PhysicalUndoState: Codable, Equatable {
+    var available: Bool
+    var moveNumber: Int
+    var requesting: Bool
+    var requestedMove: Int?
+    var requester: String?
+    var pending: Bool { requesting || requestedMove != nil }
+    func permits(_ action: PhysicalUndoRequest.Action, move: Int) -> Bool {
+        guard available else { return false }
+        switch action {
+        case .request: return moveNumber > 0 && move == moveNumber && !pending
+        case .accept: return !requesting && requestedMove == move && requester != nil
+        case .cancel: return pending && move == (requestedMove ?? moveNumber)
+        }
+    }
+}
+struct PhysicalUndoRequest: Codable {
+    enum Action: String, Codable { case request, accept, cancel }
+    let id: UUID
+    let token: String
+    let game: Int
+    let version: Int
+    let time: Double
+    let action: Action
+    let move: Int
+    func matches(token: String, game: Int?, version: Int, state: PhysicalUndoState,
+                 now: Double = Date().timeIntervalSince1970) -> Bool {
+        self.token == token && self.game == game && self.game > 0 && self.version == version &&
+        time.isFinite && abs(now - time) < 3 && state.permits(action, move: move)
+    }
+}
+struct PhysicalUndoReply: Codable {
+    let id: UUID
+    let message: String
+    let accepted: Bool
+}

@@ -17,6 +17,7 @@ struct RecordingView: View {
     @State private var recoveryFirstPoint:BoardPosition?
     @State private var reviewRecoveryClocks=false
     @State private var showRecoveryClockReview=false
+    @State private var undoPlan:UndoMovePlan?
     private var unrecordedDetections:Int {
         InterpretationDetectionMarks.make(board:recorder.positions.last,observation:model.visibleObservation,size:recorder.game.boardSize).filter{$0.kind == .untracked}.count
     }
@@ -45,7 +46,7 @@ struct RecordingView: View {
             if view == .saved {recorder.pause()}
             else if view == .live && recorder.reviewing {recorder.returnToLatest()}
         }
-        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;reviewWindow.close()}
+        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;reviewWindow.close();undoPlan=nil}
         .onChange(of:recorder.state) {_,state in
             if state == .verifying || (state == .recording && display == .saved) {display = .live}
         }
@@ -59,6 +60,9 @@ struct RecordingView: View {
             }
         }
         .sheet(isPresented:$showRecoveryClockReview) {LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)}
+        .sheet(item:$undoPlan) {plan in
+            UndoMoveView(model:model,recorder:recorder,plan:plan,onClose:{undoPlan=nil})
+        }
         .sheet(isPresented:$confirmNew) {
             ScrollView { VStack(alignment:.leading,spacing:14) {
                 Text("Start a new game").font(.title2.bold())
@@ -117,7 +121,15 @@ struct RecordingView: View {
     private var boardSection:some View {
         GroupBox {
             VStack(alignment:.leading,spacing:10) {
-                Text("Board interpretation").font(.system(size:14*model.interfaceScale,weight:.semibold))
+                HStack {
+                    Text("Board interpretation").font(.system(size:14*model.interfaceScale,weight:.semibold))
+                    Spacer()
+                    if recorder.hasGame && !onlineBoard.enabled {
+                        Button("Undo move…",systemImage:"arrow.uturn.backward") {beginUndo()}
+                            .disabled(UndoMovePlan.unavailableReason(recorder) != nil)
+                            .help(UndoMovePlan.unavailableReason(recorder) ?? "Pause and review the last saved move before undoing it.")
+                    }
+                }
                 if recorder.hasGame && !onlineBoard.enabled {
                     RecordedTurnIndicator(recorder:recorder,textScale:model.interfaceScale)
                     Picker("Board display",selection:$display) {
@@ -171,7 +183,9 @@ struct RecordingView: View {
                 if recorder.hasGame && !onlineBoard.enabled {
                     if model.showDiagnostics {confidenceDetails}
                     HStack {
-                        Button("Undo last move") {recorder.undo()}.disabled(recorder.moveCount==0)
+                        if let reason=UndoMovePlan.unavailableReason(recorder),recorder.moveCount>0 {
+                            Text("Undo move: \(reason)").font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     if let error=recorder.diagnosticError {Text(error).foregroundStyle(.red)}
                     if let error=recorder.reviewSaveError,recorder.reviewHistory.reviews.isEmpty {
@@ -222,6 +236,11 @@ struct RecordingView: View {
             Text(recorder.hasDeferredMoves ? "Observed position · reviewed history is kept separately until finalized" : "Live position · \(recorder.moveCount+recorder.pendingConfidence.count) moves")
                 .font(.system(size:13*model.interfaceScale).monospacedDigit())
         }
+    }
+    private func beginUndo() {
+        guard let plan=UndoMovePlan(recorder:recorder) else {return}
+        recorder.pause();recorder.returnToLatest()
+        undoPlan=plan
     }
     private var reviewControls:some View {
         VStack(alignment:.leading,spacing:6) {

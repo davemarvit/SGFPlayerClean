@@ -25,6 +25,7 @@ struct DeferredMoveHistory:Codable {
         var recordedAt=Date().timeIntervalSince1970
         var resolvedAt:Double?
         var recoverySource:String?
+        var undoneMoveNumbers:[Int]?
         // Observed turn is independent of later edits to historical move order.
         var liveNext:Stone?
     }

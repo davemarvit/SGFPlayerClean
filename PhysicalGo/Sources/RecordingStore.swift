@@ -48,8 +48,14 @@ import Foundation
     func preserveBeforeUndo(_ text: String) throws {
         try requireWritable()
         guard let url else { return }
-        try text.write(to: url.deletingPathExtension().appendingPathExtension("before-undo-\(UUID().uuidString).sgf"),
-                       atomically: true, encoding: .utf8)
+        let backup=url.deletingPathExtension().appendingPathExtension("before-undo-\(UUID().uuidString)")
+        try text.write(to:backup.appendingPathExtension("sgf"),atomically:true,encoding:.utf8)
+        for suffix in ["clock.json","reviews.json","pending.json"] {
+            let source=url.deletingPathExtension().appendingPathExtension(suffix)
+            if FileManager.default.fileExists(atPath:source.path) {
+                try FileManager.default.copyItem(at:source,to:backup.appendingPathExtension(suffix))
+            }
+        }
     }
     func savePending(_ checkpoint: PendingCheckpoint) throws {
         try requireWritable()

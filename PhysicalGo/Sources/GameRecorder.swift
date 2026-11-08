@@ -1151,18 +1151,32 @@ enum LocalGameSetup {
         if trial.lastTwoMovesWerePasses {finish()}
         return nil
     }
-    func undo() {
-        guard !hasDeferredMoves else {status="Resolve the review sections before undoing saved moves.";return}
-        guard !recoveryReadBlocked,hasGame,moveCount>0 else { return }
+    @discardableResult func undo(expectedSignature:String?=nil)->String? {
+        guard !hasDeferredMoves else {status="Resolve the review sections before undoing saved moves.";return status}
+        guard !recoveryReadBlocked,hasGame,moveCount>0 else { return "There is no editable saved move to undo." }
+        if let expectedSignature {
+            guard expectedSignature==RecordingIdentity.signature(for:game),pendingMoveCount==0,!hasUnfinishedReviews else {
+                return "The saved game or pending board changes changed. Close this preview and review Undo move again."
+            }
+        }
         // Preserve the previous record before a correction changes the autosave.
         do {try recordingStore.preserveBeforeUndo(sgf())}
-        catch {saveError="Could not preserve the game before undo: \(error.localizedDescription)";return}
+        catch {saveError="Could not preserve the game before undo: \(error.localizedDescription)";return saveError}
+        for i in reviewHistory.sections.indices {
+            guard reviewHistory.sections[i].committed,let start=reviewHistory.sections[i].savedStart,
+                  let moves=reviewHistory.sections[i].moves,start<moveCount,moveCount<=start+moves.count,
+                  reviewHistory.sections[i].undoneMoveNumbers?.contains(moveCount) != true else {continue}
+            reviewHistory.sections[i].undoneMoveNumbers=(reviewHistory.sections[i].undoneMoveNumbers ?? [])+[moveCount]
+        }
         placementChimes = PlacementChimeMonitor()
         manualMoves.remove(moveCount); game.moves.removeLast(); positions.removeLast(); reviewIndex=moveCount
         resetWarningMonitor()
         player.load(game:game); player.seek(to:moveCount); state = .paused; suspendVision("")
         clock.undo(to:moveCount,blackToPlay:nextPlayer == .black)
-        status="Last move undone. Restore the physical board to this position, then Resume recording."; persist();trace(event:"undo")
+        status="Last move undone. Restore the physical board to this position, then Resume recording."; persist()
+        if !reviewHistory.sections.isEmpty {saveReviewHistory()}
+        trace(event:"undo")
+        return saveError ?? pendingSaveError ?? reviewSaveError ?? clock.saveError
     }
     func attachClock(_ settings:LocalClockSettings) {
         guard !recoveryReadBlocked,state == .paused,pendingMoveCount==0,!clock.enabled,settings.validationError==nil,settings.kind != .none else {return}

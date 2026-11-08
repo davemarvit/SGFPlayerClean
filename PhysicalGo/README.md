@@ -132,6 +132,37 @@ is still on demand on battery; this display does not start another engine.
 all four orientations with native renders, uncertain/malformed ownership, final-score
 corrections, fresh-position reset, and the existing real KataGo/power/handoff tests.
 
+## Undo a move
+
+Local play exposes **Undo move…** beside the board heading. It pauses recording
+and clocks, previews the previous position, and identifies both the last stone
+to remove and captured stones to replace. **Confirm undo** becomes available
+after fresh camera frames verify that restoration. A pass has no stone changes.
+Pending detections or unresolved reviews must be handled first. Cancel leaves
+the recording unchanged and paused; after confirmation, resuming remains explicit.
+
+Undo backs up the original SGF and its clock, review and pending-history sidecars.
+Known per-move clock history is restored; otherwise current clock readings are
+preserved and require review. Reviews whose moves were later undone retain their
+source snapshots and identify the undone move numbers. A failed save offers a
+save retry without undoing another move.
+
+Online play provides **Request undo…**, **Accept undo**, **Decline** and
+**Cancel undo request** through SGF Player’s existing OGS takeback API. Both apps
+must be updated to use these controls from Physical Go. Older SGF Player builds
+show an **Undo in SGF Player…** shortcut instead. The opponent/server decides the
+takeback, and the server clock continues. Leave stones in place until OGS updates
+the board, then follow the physical restoration marks. New camera moves are held
+while an undo is being negotiated; an approved undo requires synchronization so
+the old stone cannot be sent again as a new move.
+
+`--undo-move-test` covers local capture/pass restoration, fresh frame provenance,
+stale previews, duplicate confirmation, save failures, clock checkpoints and
+review audit/restart. It also checks online action validation, old peers,
+disconnects and physical synchronization after a takeback. `--online-test`
+checks the existing move bridge; the regular SGF Player release build verifies
+the publishing/OGS side without connecting to a live game.
+
 ## Physical correction guidance (0.122)
 
 Version 0.123 fixes confirmation being blocked by limited uncertainty away from

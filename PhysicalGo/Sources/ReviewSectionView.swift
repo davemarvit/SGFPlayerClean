@@ -126,7 +126,9 @@ struct ReviewSectionView:View {
                         VStack(alignment:.leading,spacing:14) {
                             if section.committed {
                                 Label("Review resolved",systemImage:"checkmark.circle.fill").foregroundStyle(.green)
-                                Text("These choices are already saved in the game.")
+                                if let undone=section.undoneMoveNumbers,!undone.isEmpty {
+                                    Text("Move\(undone.count == 1 ? "":"s") \(undone.sorted().map(String.init).joined(separator:", ")) from this review \(undone.count == 1 ? "was":"were") later undone. The original review evidence is preserved here.")
+                                } else {Text("These choices are already saved in the game.")}
                             } else {
                                 problem
                                 if mode == .cleanup {cleanupInstructions}
@@ -293,7 +295,7 @@ struct ReviewQueueRail:View {
                         Button {onReview(section.id)} label: {
                             VStack(spacing:4) {
                                 Label("Review \(section.reviewNumber ?? 0)",systemImage:resolved ? "checkmark.circle.fill":"exclamationmark.circle.fill")
-                                Text(resolved ? "Resolved":recorder.captureReviewPlan(section.id) != nil ? "Finish capture":recorder.boardRestorationPlan(section.id) != nil ? "Check moved stones":"Needs review").font(.caption)
+                                Text(section.undoneMoveNumbers?.isEmpty == false ? "Later changed by undo":resolved ? "Resolved":recorder.captureReviewPlan(section.id) != nil ? "Finish capture":recorder.boardRestorationPlan(section.id) != nil ? "Check moved stones":"Needs review").font(.caption)
                             }.frame(maxWidth:.infinity).padding(.vertical,8)
                                 .background((resolved ? Color.green:Color.red).opacity(0.18),in:RoundedRectangle(cornerRadius:8))
                                 .overlay(RoundedRectangle(cornerRadius:8).stroke(resolved ? Color.green:Color.red,lineWidth:2))
