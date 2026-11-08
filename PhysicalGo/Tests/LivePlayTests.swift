@@ -17,7 +17,7 @@ import SwiftUI
             window.contentView=host;window.orderFront(nil)
             try await Task.sleep(nanoseconds:200_000_000);host.layoutSubtreeIfNeeded()
             let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!;host.cacheDisplay(in:host.bounds,to:bitmap)
-            let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-live-play")
+            let output=try TestArtifacts.directory("physical-live-play")
             try bitmap.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent(name+".png"));window.orderOut(nil)
         }
         // Clock presses have their own identity, independent of SGF numbering.

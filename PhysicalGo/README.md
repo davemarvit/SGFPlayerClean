@@ -6,6 +6,64 @@ and saves SGF. It supports two-player local games and online games through SGF P
 OGS connection, with visual guidance for opponent moves. Camera detection remains experimental.
 Do not rely on it as your only tournament game record yet.
 
+## Structure and maintenance
+
+The pre-maintenance snapshot is Git tag `baseline/physical-go-0.120` (commit
+`22f3c7d`). It includes the shared application sources, assets and regression
+fixtures. Raw camera captures, build products and scratch investigations are
+excluded from Git.
+
+| Component | Responsibility |
+| --- | --- |
+| `CameraCapture` | Device lifecycle and fresh camera-frame delivery |
+| `CameraAnalysisPipeline` | Immutable frame processing on its serial worker; classification, tracking and rectification |
+| `ExperimentModel` | Session coordination and presentation; rejects stale pipeline results using its revision |
+| `GameRecorder` | Accepted game transitions and confirmation policy |
+| `MoveObservationHistory`, `LocalMoveEvidence` | Bounded tentative chronology and fresh confirmation evidence |
+| `ReviewHistoryCoordinator` | Review restoration, interrupted-commit reconciliation and known-pass policy |
+| `RecordingStore`, `RecordingIdentity` | File formats, atomic file writes, stable signatures and failed-load protection |
+| `LocalClockEngine`, `LocalGameClock` | Deterministic clock arithmetic and clock lifecycle/audio |
+
+Keep domain decisions independent of diagnostic event text. Pending chronology
+is checkpointed by recording transitions and fresh observations, including camera
+stop. Shutdown flushes the session and cancels termination if a write fails;
+starting or opening another game also requires saving the current session. The
+recording panel provides a save retry. A pending or review sidecar that fails to load makes that
+recording read-only until repaired and successfully reloaded. Closing a read-only
+session preserves the original files. Pending checkpoints never move ahead of the
+successfully saved SGF identity. Each file write is atomic; recovery reconciles
+the known SGF/review interrupted-commit case across files.
+
+Unknown review chronology is distinct from a pass. An explicit pass only ends a
+game when the preceding known move was also a pass. Empty resolved false detections
+are skipped when determining the preceding move.
+
+### Running tests
+
+Run these commands from the repository root:
+
+```sh
+python3 PhysicalGo/Tests/test_build.py
+python3 PhysicalGo/build.py --list-tests
+python3 PhysicalGo/build.py --persistence-test --recorder-test --review-queue-test
+python3 PhysicalGo/build.py --workflow-ui-test --score-overlay-test --online-test
+python3 PhysicalGo/build.py --all-tests
+```
+
+`scripts/test_suites.py` is the registry for all Swift regression suites;
+`scripts/build_sources.py` resolves their production dependencies. Multiple test
+flags run every selected suite and return failure if any fail. `--all-tests` also
+runs the build-registry checks, continues through failures, and prints a summary.
+`--test` retains its original meaning: the basic vision/placement/rectification
+suite. `--debug-tests` disables optimization for faster iteration. UI suites need
+a macOS GUI session; scoring integration suites use the configured local KataGo.
+
+Native screenshots go to `PhysicalGo/.build/TestArtifacts`. Set
+`PHYSICAL_GO_TEST_OUTPUT` to choose another output root. Add new suites to the
+registry; its checks verify source existence, unique executables and coverage of
+every regression entry point. Keep recorded fixtures separate from generated
+test outputs.
+
 ## App icon
 
 The app icon pairs a physical black Go stone with a pale wiremesh stone.

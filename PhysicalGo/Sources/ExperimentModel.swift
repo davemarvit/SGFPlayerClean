@@ -301,7 +301,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     private var referenceCameraID: String?
     private var referenceCameraName = ""
 
-    private let processing = DispatchQueue(label: "PhysicalGo.detection", qos: .userInitiated)
+    private let cameraAnalysis = CameraAnalysisPipeline()
     private var processingBusy = false
     @Published private(set) var lastVerifiedLiveFrameAt:Double?
     private var revision = 0 {didSet {
@@ -941,192 +941,181 @@ enum PhysicalPlayMode: String, CaseIterable {
         let trackingFresh=supplied != nil && running && cameraState == .live && !frozen &&
             stoneCalibrationSession == nil && !boardCorrections.isEditing && !lightingNeedsRecovery
         let trackingTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
-        processing.async { [weak self] in
-            let frame=GrayFrame(image:target)
-            let exposureFailure=frame.map {LightingCompensation.exposureFailure(frame:$0,calibration:calibration)} ?? false
-            var alignmentReport:[String:Any]=["outcome":checkAlignment ? "unavailable":"tracking disabled"]
-            let aligned:BoardCalibration? = exposureFailure ? nil : checkAlignment
-                ? frame.flatMap { frame in trackingAnchor.flatMap { AutoGridDetector.track(frame:frame,from:calibration,anchor:$0,expected:alignmentExpected,report:{alignmentReport=$0}) } } : calibration
-            if checkAlignment,aligned==nil,alignmentReport["rejectionReason"]==nil {
-                alignmentReport["rejectionReason"]=frame==nil ? "camera frame decoding failed":"tracking anchor unavailable"
-            }
-            let result:BoardObservation? = exposureFailure
-                ? BoardObservation(readings:(0..<calibration.size*calibration.size).map {
-                    .init(row:$0/calibration.size,col:$0%calibration.size,occupancy:.uncertain,confidence:0,delta:0)
-                },size:calibration.size,notice:"The board is too dark or overexposed to read.",lightingBlocked:true)
-                : aligned.flatMap { current in
-                frame.flatMap { frame -> BoardObservation? in
-                    if let reference {
-                        return BoardDetector.detect(frame:frame,reference:reference,calibration:current,
-                            threshold:threshold,referenceCalibration:referenceCalibration)
-                    }
-                    return BoardAppearanceDetector.detect(frame:frame,calibration:current,threshold:threshold)
-                }
-            }
-            var tracker=trackingState
-            let trackedObservation:BoardObservation?
-            if var raw=result {
-                raw.manualPoints.formUnion(trackingManualPoints)
-                trackedObservation=tracker.observe(raw,expected:trackingExpected,context:trackingContext,
-                    now:trackingTime,valid:trackingFresh && aligned != nil)
-            } else {tracker.reset();trackedObservation=nil}
-            let trackingResult=tracker
-            let stoneAspect:StoneAspectEstimator.Estimate?
-            if checkStoneAspect,let frame,let aligned,let result,!result.lightingBlocked {
-                stoneAspect=StoneAspectEstimator.estimate(frame:frame,calibration:aligned,readings:result.readings)
-            } else { stoneAspect=nil }
-            // Changing an established stone-based choice needs agreement on a second check.
-            let applyAspect=stoneAspect.map { previousStoneCount==0 || $0.longAxisRows==longAxisRows || pendingAxis==$0.longAxisRows } ?? false
-            let displayRows=applyAspect ? stoneAspect!.longAxisRows : longAxisRows
-            let geometry = straighten ? aligned.map { BoardRectifiedGeometry(calibration:$0,longAxisRows:displayRows) } : nil
-            let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
-            DispatchQueue.main.async {
-                guard let self else { return }
-                var result=result
-                self.processingBusy = false
-                if let data=try? JSONSerialization.data(withJSONObject:alignmentReport,options:[.prettyPrinted,.sortedKeys]),
-                   let report=String(data:data,encoding:.utf8) {self.latestAlignmentReport=report}
-                var diagnosticOutcome="analyzed without recording",recorderTime:Double?
-                self.diagnosticDecisionTicket=diagnosticTicket
-                defer {
-                    if let captureUptime,self.moveEvidenceCapture.enabled {
-                        self.moveEvidenceCapture.annotate(["captureUptime":captureUptime,"outcome":diagnosticOutcome,
-                            "alignment":alignmentReport,"calibration":DiagnosticRecorder.value(aligned),
-                            "readings":DiagnosticRecorder.value(result?.readings),
-                            "footprints":DiagnosticRecorder.value(result?.footprints),
-                            "placementFits":DiagnosticRecorder.value(result?.placementFits),
-                            "lightingBlocked":result?.lightingBlocked ?? false,
-                            "lightingAdjusted":result?.lightingAdjusted ?? false,"lightingField":DiagnosticRecorder.value(result?.lightingField),
-                            "stoneTracking":DiagnosticRecorder.value(trackingResult.report),
-                            "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point})])
-                    }
-                    self.diagnostics.end(diagnosticOperation,outcome:diagnosticOutcome,details:[
-                        "alignment":alignmentReport,
-                        "calibration":DiagnosticRecorder.value(aligned),"readings":DiagnosticRecorder.value(result?.readings),
-                        "footprints":DiagnosticRecorder.value(result?.footprints),"placementFits":DiagnosticRecorder.value(result?.placementFits),"notice":result?.notice ?? NSNull() as Any,
-                        "lightingBlocked":result?.lightingBlocked ?? false,"lightingAdjusted":result?.lightingAdjusted ?? false,
-                        "lightingRecovery":self.lightingNeedsRecovery,"exposureFailure":exposureFailure,
-                        "lightingField":DiagnosticRecorder.value(result?.lightingField),
+        cameraAnalysis.submit(.init(
+            target:target,
+            calibration:calibration,
+            threshold:threshold,
+            reference:reference,
+            referenceCalibration:referenceCalibration,
+            straighten:straighten,
+            longAxisRows:longAxisRows,
+            checkStoneAspect:checkStoneAspect,
+            previousStoneCount:previousStoneCount,
+            pendingAxis:pendingAxis,
+            trackingAnchor:trackingAnchor,
+            alignmentExpected:alignmentExpected,
+            checkAlignment:checkAlignment,
+            trackingState:trackingState,
+            trackingExpected:trackingExpected,
+            trackingContext:trackingContext,
+            trackingManualPoints:trackingManualPoints,
+            trackingFresh:trackingFresh,
+            trackingTime:trackingTime)) { [weak self] analysis in
+            let frame=analysis.frame
+            let exposureFailure=analysis.exposureFailure
+            let alignmentReport=analysis.alignmentReport
+            let aligned=analysis.aligned
+            let trackedObservation=analysis.trackedObservation
+            let trackingResult=analysis.trackingResult
+            let stoneAspect=analysis.stoneAspect
+            let applyAspect=analysis.applyAspect
+            let geometry=analysis.geometry
+            let corrected=analysis.corrected
+            guard let self else { return }
+            var result=analysis.result
+            self.processingBusy = false
+            if let data=try? JSONSerialization.data(withJSONObject:alignmentReport,options:[.prettyPrinted,.sortedKeys]),
+               let report=String(data:data,encoding:.utf8) {self.latestAlignmentReport=report}
+            var diagnosticOutcome="analyzed without recording",recorderTime:Double?
+            self.diagnosticDecisionTicket=diagnosticTicket
+            defer {
+                if let captureUptime,self.moveEvidenceCapture.enabled {
+                    self.moveEvidenceCapture.annotate(["captureUptime":captureUptime,"outcome":diagnosticOutcome,
+                        "alignment":alignmentReport,"calibration":DiagnosticRecorder.value(aligned),
+                        "readings":DiagnosticRecorder.value(result?.readings),
+                        "footprints":DiagnosticRecorder.value(result?.footprints),
+                        "placementFits":DiagnosticRecorder.value(result?.placementFits),
+                        "lightingBlocked":result?.lightingBlocked ?? false,
+                        "lightingAdjusted":result?.lightingAdjusted ?? false,"lightingField":DiagnosticRecorder.value(result?.lightingField),
                         "stoneTracking":DiagnosticRecorder.value(trackingResult.report),
-                        "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point}),
-                        "frameDecoded":frame != nil,"checkAlignment":checkAlignment,"recorderUptime":recorderTime ?? NSNull() as Any,
-                        "recorder":self.diagnosticRecorderState])
-                    self.diagnosticDecisionTicket=nil
+                        "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point})])
                 }
-                guard self.revision == token else { diagnosticOutcome="discarded stale analysis";self.analyze();return }
-                let alignmentTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
-                if aligned==nil && !exposureFailure {
-                    let allowGrace=supplied != nil && self.running && self.cameraState == .live && !self.frozen &&
-                        self.playMode == .local && self.recorder.state == .recording && self.recorder.synchronized && !self.alignmentNeedsRecovery
-                    let hold=self.boardAlignmentGate.shouldHold(report:alignmentReport,now:alignmentTime,allowGrace:allowGrace)
-                    self.recorder.logAlignmentCheck(alignmentReport,decision:hold ? "hold":"retry without stopping clock",now:alignmentTime)
-                    if !hold {
-                        diagnosticOutcome="marginal alignment; awaiting another fresh check"
-                        self.onlineBoard.recordCameraWait("Grid alignment being rechecked",details:alignmentReport)
-                        // Keep the last verified interpretation. No move is accepted
-                        // or evidence accumulated from this unaligned frame.
-                        return
-                    }
-                } else if supplied != nil || exposureFailure {
-                    // Redrawing an old frame is not a fresh successful check.
-                    if self.boardAlignmentGate.failures>0 {
-                        self.recorder.logAlignmentCheck(alignmentReport,decision:exposureFailure ? "exposure blocked":"alignment recovered",now:alignmentTime)
-                    }
-                    self.boardAlignmentGate.reset()
-                }
-                let trackingCurrent=self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected
-                if trackingCurrent {
-                    self.establishedStones=trackingResult
-                    if trackingResult.report.scanned || trackingResult.report.possibleBoardShift || !trackingFresh {
-                        self.stoneTrackingReport=trackingResult.report
-                    }
-                }
-                if let raw=result {
-                    result=self.applyLightingRecovery(raw,fresh:supplied != nil && self.running && self.cameraState == .live && !self.frozen,
-                        now:captureUptime ?? ProcessInfo.processInfo.systemUptime)
-                }
-                self.image = target; self.observation = result
-                self.trackedBoardObservation=trackingCurrent && result?.lightingBlocked == false ? trackedObservation:result
-                if checkStoneAspect {
-                    self.pendingStoneAxis=stoneAspect?.longAxisRows
-                    if applyAspect,let stoneAspect {
-                        self.rectifiedLongAxisRows=stoneAspect.longAxisRows; self.aspectConfident=true
-                        self.aspectStoneCount=stoneAspect.measurements.count
-                        self.orientBoardForPlayer()
-                    }
-                }
-                self.rectifiedGeometry = corrected == nil ? nil : geometry
-                self.rectifiedImage = corrected
-                if exposureFailure,let result {
-                    diagnosticOutcome="unreadable exposure"
-                    self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
-                    if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
-                        self.deliverLiveObservation(result,now:ProcessInfo.processInfo.systemUptime)
-                    }
+                self.diagnostics.end(diagnosticOperation,outcome:diagnosticOutcome,details:[
+                    "alignment":alignmentReport,
+                    "calibration":DiagnosticRecorder.value(aligned),"readings":DiagnosticRecorder.value(result?.readings),
+                    "footprints":DiagnosticRecorder.value(result?.footprints),"placementFits":DiagnosticRecorder.value(result?.placementFits),"notice":result?.notice ?? NSNull() as Any,
+                    "lightingBlocked":result?.lightingBlocked ?? false,"lightingAdjusted":result?.lightingAdjusted ?? false,
+                    "lightingRecovery":self.lightingNeedsRecovery,"exposureFailure":exposureFailure,
+                    "lightingField":DiagnosticRecorder.value(result?.lightingField),
+                    "stoneTracking":DiagnosticRecorder.value(trackingResult.report),
+                    "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point}),
+                    "frameDecoded":frame != nil,"checkAlignment":checkAlignment,"recorderUptime":recorderTime ?? NSNull() as Any,
+                    "recorder":self.diagnosticRecorderState])
+                self.diagnosticDecisionTicket=nil
+            }
+            guard self.revision == token else { diagnosticOutcome="discarded stale analysis";self.analyze();return }
+            let alignmentTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
+            if aligned==nil && !exposureFailure {
+                let allowGrace=supplied != nil && self.running && self.cameraState == .live && !self.frozen &&
+                    self.playMode == .local && self.recorder.state == .recording && self.recorder.synchronized && !self.alignmentNeedsRecovery
+                let hold=self.boardAlignmentGate.shouldHold(report:alignmentReport,now:alignmentTime,allowGrace:allowGrace)
+                self.recorder.logAlignmentCheck(alignmentReport,decision:hold ? "hold":"retry without stopping clock",now:alignmentTime)
+                if !hold {
+                    diagnosticOutcome="marginal alignment; awaiting another fresh check"
+                    self.onlineBoard.recordCameraWait("Grid alignment being rechecked",details:alignmentReport)
+                    // Keep the last verified interpretation. No move is accepted
+                    // or evidence accumulated from this unaligned frame.
                     return
                 }
-                guard let aligned else {
-                    diagnosticOutcome="grid alignment rejected"
-                    self.onlineBoard.recordCameraWait("Grid alignment rejected",details:alignmentReport)
-                    self.lastVerifiedLiveFrameAt=nil
-                    self.recorder.suspendVision("Grid alignment lost. The recorded game is preserved.",preserveObservations:true)
-                    self.alignmentNeedsRecovery=true; self.stable=false; self.stability.reset(); self.emptyBoardVerifier.reset()
-                    if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
-                        self.recoveryChecks += 1
-                        if !self.recoverySearchExhausted && self.recoveryChecks >= 3
-                            && ProcessInfo.processInfo.systemUptime >= self.nextRecoverySearch {
-                            self.detectGrid(recovering:true)
-                        } else if self.recoverySearchAttempts == 0 {
-                            self.gridStatus = "Checking local alignment — \(min(self.recoveryChecks,3)) of 3 frames. A full-view search follows if needed."
-                        }
-                    } else if self.recoverySearchAttempts == 0 {
-                        self.gridStatus = "Alignment paused. Resume the camera for automatic recovery, or choose Find grid again for this frame."
-                    }
-                    return
+            } else if supplied != nil || exposureFailure {
+                // Redrawing an old frame is not a fresh successful check.
+                if self.boardAlignmentGate.failures>0 {
+                    self.recorder.logAlignmentCheck(alignmentReport,decision:exposureFailure ? "exposure blocked":"alignment recovered",now:alignmentTime)
                 }
-                let recovered=self.alignmentNeedsRecovery || aligned != calibration
-                self.alignmentNeedsRecovery=false
-                if supplied != nil && self.awaitingReferenceFrame {
-                    self.awaitingReferenceFrame = false
-                    if self.hasReference { self.referenceStatus = "Saved reference reused; alignment checked against the fresh frame." }
-                    self.gridStatus = "Grid alignment verified against the fresh frame."
+                self.boardAlignmentGate.reset()
+            }
+            let trackingCurrent=self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected
+            if trackingCurrent {
+                self.establishedStones=trackingResult
+                if trackingResult.report.scanned || trackingResult.report.possibleBoardShift || !trackingFresh {
+                    self.stoneTrackingReport=trackingResult.report
                 }
-                self.resetRecoverySearch()
-                if recovered {
-                    // Tracking has already verified the grid and retained intersection identity.
-                    // Small valid corrections must not restart move confirmation every frame.
-                    // Actual alignment loss and full-grid searches suspend the recorder separately.
-                    self.calibration=aligned; self.corners=aligned.corners
-                    self.alignmentRecoveries += 1; self.stability.reset(); self.stable=false; self.emptyBoardVerifier.reset()
-                    self.gridStatus=self.hasReference ? "Grid realigned automatically. The empty-board reference is preserved." : "Grid realigned automatically. Detecting without a reference."
-                    // Labels belong to the frozen frame's board coordinates, which do not change.
+            }
+            if let raw=result {
+                result=self.applyLightingRecovery(raw,fresh:supplied != nil && self.running && self.cameraState == .live && !self.frozen,
+                    now:captureUptime ?? ProcessInfo.processInfo.systemUptime)
+            }
+            self.image = target; self.observation = result
+            self.trackedBoardObservation=trackingCurrent && result?.lightingBlocked == false ? trackedObservation:result
+            if checkStoneAspect {
+                self.pendingStoneAxis=stoneAspect?.longAxisRows
+                if applyAspect,let stoneAspect {
+                    self.rectifiedLongAxisRows=stoneAspect.longAxisRows; self.aspectConfident=true
+                    self.aspectStoneCount=stoneAspect.measurements.count
+                    self.orientBoardForPlayer()
                 }
-                if reference==nil,let result,let frame {
-                    let fresh=self.automaticReferenceAllowed && supplied != nil && self.running && self.cameraState == .live && !self.frozen
-                    if self.emptyBoardVerifier.observe(result,isFresh:fresh,now:ProcessInfo.processInfo.systemUptime) {
-                        self.reference=frame; self.referenceImage=target; self.referenceCalibration=aligned
-                        self.hasReference=true; self.automaticReference=true
-                        self.setTrackingAnchor(); self.bindReferenceCamera(); self.persistReference(); self.emptyBoardVerifier.reset()
-                        self.message="Empty board verified. A reference was captured automatically."
-                    }
+            }
+            self.rectifiedGeometry = corrected == nil ? nil : geometry
+            self.rectifiedImage = corrected
+            if exposureFailure,let result {
+                diagnosticOutcome="unreadable exposure"
+                self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
+                if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
+                    self.deliverLiveObservation(result,now:ProcessInfo.processInfo.systemUptime)
                 }
-                if supplied != nil, self.running, self.cameraState == .live, !self.frozen, let result {
-                    let now=ProcessInfo.processInfo.systemUptime
-                    self.lastVerifiedLiveFrameAt=result.lightingBlocked ? nil : now
-                    recorderTime=now;diagnosticOutcome="delivered to recorder"
-                    if trackingCurrent && trackingResult.report.possibleBoardShift && self.tracksCameraMotion {
-                        diagnosticOutcome="established stones suggest board movement"
-                        self.alignmentNeedsRecovery=true
+                return
+            }
+            guard let aligned else {
+                diagnosticOutcome="grid alignment rejected"
+                self.onlineBoard.recordCameraWait("Grid alignment rejected",details:alignmentReport)
+                self.lastVerifiedLiveFrameAt=nil
+                self.recorder.suspendVision("Grid alignment lost. The recorded game is preserved.",preserveObservations:true)
+                self.alignmentNeedsRecovery=true; self.stable=false; self.stability.reset(); self.emptyBoardVerifier.reset()
+                if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
+                    self.recoveryChecks += 1
+                    if !self.recoverySearchExhausted && self.recoveryChecks >= 3
+                        && ProcessInfo.processInfo.systemUptime >= self.nextRecoverySearch {
                         self.detectGrid(recovering:true)
-                        return
+                    } else if self.recoverySearchAttempts == 0 {
+                        self.gridStatus = "Checking local alignment — \(min(self.recoveryChecks,3)) of 3 frames. A full-view search follows if needed."
                     }
-                    let delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
-                    self.deliverLiveObservation(delivered,now:now)
+                } else if self.recoverySearchAttempts == 0 {
+                    self.gridStatus = "Alignment paused. Resume the camera for automatic recovery, or choose Find grid again for this frame."
                 }
-                if let result, newObservation {
-                    if result.lightingBlocked { self.stability.reset(); self.stable=false }
-                    else { self.stable = self.stability.update(result) && self.running && self.cameraState == .live && !self.frozen }
+                return
+            }
+            let recovered=self.alignmentNeedsRecovery || aligned != calibration
+            self.alignmentNeedsRecovery=false
+            if supplied != nil && self.awaitingReferenceFrame {
+                self.awaitingReferenceFrame = false
+                if self.hasReference { self.referenceStatus = "Saved reference reused; alignment checked against the fresh frame." }
+                self.gridStatus = "Grid alignment verified against the fresh frame."
+            }
+            self.resetRecoverySearch()
+            if recovered {
+                // Tracking has already verified the grid and retained intersection identity.
+                // Small valid corrections must not restart move confirmation every frame.
+                // Actual alignment loss and full-grid searches suspend the recorder separately.
+                self.calibration=aligned; self.corners=aligned.corners
+                self.alignmentRecoveries += 1; self.stability.reset(); self.stable=false; self.emptyBoardVerifier.reset()
+                self.gridStatus=self.hasReference ? "Grid realigned automatically. The empty-board reference is preserved." : "Grid realigned automatically. Detecting without a reference."
+                // Labels belong to the frozen frame's board coordinates, which do not change.
+            }
+            if reference==nil,let result,let frame {
+                let fresh=self.automaticReferenceAllowed && supplied != nil && self.running && self.cameraState == .live && !self.frozen
+                if self.emptyBoardVerifier.observe(result,isFresh:fresh,now:ProcessInfo.processInfo.systemUptime) {
+                    self.reference=frame; self.referenceImage=target; self.referenceCalibration=aligned
+                    self.hasReference=true; self.automaticReference=true
+                    self.setTrackingAnchor(); self.bindReferenceCamera(); self.persistReference(); self.emptyBoardVerifier.reset()
+                    self.message="Empty board verified. A reference was captured automatically."
                 }
+            }
+            if supplied != nil, self.running, self.cameraState == .live, !self.frozen, let result {
+                let now=ProcessInfo.processInfo.systemUptime
+                self.lastVerifiedLiveFrameAt=result.lightingBlocked ? nil : now
+                recorderTime=now;diagnosticOutcome="delivered to recorder"
+                if trackingCurrent && trackingResult.report.possibleBoardShift && self.tracksCameraMotion {
+                    diagnosticOutcome="established stones suggest board movement"
+                    self.alignmentNeedsRecovery=true
+                    self.detectGrid(recovering:true)
+                    return
+                }
+                let delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
+                self.deliverLiveObservation(delivered,now:now)
+            }
+            if let result, newObservation {
+                if result.lightingBlocked { self.stability.reset(); self.stable=false }
+                else { self.stable = self.stability.update(result) && self.running && self.cameraState == .live && !self.frozen }
             }
         }
     }

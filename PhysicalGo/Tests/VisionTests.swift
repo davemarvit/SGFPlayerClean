@@ -179,7 +179,9 @@ import UniformTypeIdentifiers
             check(result.snapshot.stones.count==4,"Offset fixture: no false stones")
             if dx==0 && dy==0 {
                 check(result.signature.filter { $0 == .uncertain }.count<=2,"Offset fixture: reduce background uncertainty without masking unresolved points")
-                check(result.positionSGF()==nil,"Unresolved background points still prevent unverified SGF export")
+                // Classification improvements may resolve every background point.
+                // Supply an unresolved point explicitly to keep testing the export gate.
+                check(result.positionSGF(labels:[1:.uncertain])==nil,"Unresolved background points still prevent unverified SGF export")
                 let labels=Dictionary(uniqueKeysWithValues:result.readings.enumerated().filter { $0.element.occupancy == .uncertain }.map { ($0.offset,Occupancy.empty) })
                 let game=SGFGame.from(tree:try SGFParser.parse(text:result.positionSGF(labels:labels)!))
                 check(game.setup.count==4 && game.moves.isEmpty,"Verified manual empty labels permit four-stone position export")

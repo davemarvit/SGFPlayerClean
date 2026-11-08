@@ -52,11 +52,13 @@ struct DiagnosticIndicator:View {
 }
 
 @MainActor final class DiagnosticAppDelegate:NSObject,NSApplicationDelegate {
+    weak var recorder:GameRecorder?
     weak var scoring:PhysicalScoring?
     weak var diagnostics:DiagnosticRecorder?
     weak var onlineBoard:PhysicalOnlineBoard?
     weak var moveEvidence:MoveEvidenceCapture?
     func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {
+        guard recorder?.flushForExit() != false else {return .terminateCancel}
         scoring?.shutdown()
         diagnostics?.closeForExit()
         onlineBoard?.flushTiming()

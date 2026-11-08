@@ -84,7 +84,7 @@ import SwiftUI
         }
         check(recoveredBoards[0]==recoveredBoards[1],"Two legal orders should explain the same current board")
 
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-move-recovery")
+        let output=try TestArtifacts.directory("physical-move-recovery")
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         let ui=GameRecorder(storage:root);ui.clock.audible=false;ui.start(size:19);ui.pause();var proposed=MoveRecoveryDraft(recorder:ui,observation:nil)
         _=proposed.add(BoardPosition(2,2));_=proposed.add(BoardPosition(5,6));_=proposed.add(BoardPosition(6,3))

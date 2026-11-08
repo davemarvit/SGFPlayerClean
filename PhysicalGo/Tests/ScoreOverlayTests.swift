@@ -6,7 +6,7 @@ import SwiftUI
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
         var checks=0
         func check(_ value:Bool,_ reason:String) {checks += 1;precondition(value,reason)}
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-score-audit")
+        let output=try TestArtifacts.directory("physical-score-audit")
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         let root=FileManager.default.temporaryDirectory.appendingPathComponent("score-overlay-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)

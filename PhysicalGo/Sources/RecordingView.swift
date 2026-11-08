@@ -172,6 +172,14 @@ struct RecordingView: View {
                         Button("Undo last move") {recorder.undo()}.disabled(recorder.moveCount==0)
                     }
                     if let error=recorder.diagnosticError {Text(error).foregroundStyle(.red)}
+                    if let error=recorder.reviewSaveError,recorder.reviewHistory.reviews.isEmpty {
+                        Text(error).foregroundStyle(.red)
+                        Button(recorder.recoveryReadBlocked ? "Reload saved history":"Retry saving recording") {recorder.retryRecordingSave()}
+                    }
+                    if let error=recorder.pendingSaveError {Text(error).foregroundStyle(.red)}
+                    if recorder.saveError != nil || recorder.pendingSaveError != nil || (recorder.clock.enabled && recorder.clock.saveError != nil) {
+                        Button(recorder.recoveryReadBlocked ? "Reload saved history":"Retry saving recording") {recorder.retryRecordingSave()}
+                    }
                     if let error=recorder.saveError {Text(error).foregroundStyle(.red)}
                     else if let url=recorder.autosaveURL {
                         Button("Show autosaved game") {NSWorkspace.shared.activateFileViewerSelecting([url])}

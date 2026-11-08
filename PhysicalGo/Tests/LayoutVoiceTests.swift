@@ -17,7 +17,7 @@ import SwiftUI
         model.recorder.start(size:19,clockSettings:.init(kind:.none));model.recorder.pause()
         model.recorder.manualMove(at:BoardPosition(3,3));model.recorder.manualMove(at:BoardPosition(15,15))
         let original=model.recorder.sgf()
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-layout-voice")
+        let output=try TestArtifacts.directory("physical-layout-voice")
         func render<V:View>(_ view:V,_ name:String,width:CGFloat=1000,height:CGFloat=1100)throws->NSBitmapImageRep {
             let host=NSHostingView(rootView:view.background(Color(nsColor:.windowBackgroundColor)))
             let window=NSWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleMask:[.titled],backing:.buffered,defer:false)

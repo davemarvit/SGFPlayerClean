@@ -4,9 +4,11 @@ import Foundation
     static func run()throws->Int {
         var checks=0,time=0.0
         func check(_ ok:Bool,_ message:String) {checks += 1;if !ok {fatalError(message)}}
+        // Exercise ambiguous assignment. A 0.94+ outline now certifies unique
+        // coverage at this offset; an offset-only fixture cannot claim that fit.
         func feed(_ recorder:GameRecorder,_ colors:[Occupancy],_ count:Int) {
             for _ in 0..<count {time += 0.21
-                let shape=StoneFootprint(row:1,col:1,center:.init(x:1.36,y:1),radiusCol:0.46,radiusRow:0.46,quality:1)
+                let shape=StoneFootprint(row:1,col:1,center:.init(x:1.36,y:1),radiusCol:0.46,radiusRow:0.46,quality:0.90)
                 recorder.consume(BoardObservation(readings:colors.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,footprints:colors[10] == .black ? [shape] : []),now:time)
             }
         }
@@ -57,7 +59,14 @@ import Foundation
         wrongColors[50] = .white;feed(wrongTurn,wrongColors,6)
         check(wrongTurn.pendingConfidence.compactMap(\.point)==[10,20,30],"Later White was moved before the observed extra Black")
         feed(wrongTurn,wrongColors,80)
-        check(wrongTurn.pendingConfidence.compactMap(\.point)==[10,20,30],"Expired chronology permitted an invented alternating order")
+        // Long unresolved interruptions now enter the durable review queue.
+        // Preserve the known prefix as a proposal without inventing an order
+        // for the out-of-turn stone and the later reply.
+        let deferred=wrongTurn.reviewHistory.sections.first
+        check(wrongTurn.moveCount==0 && wrongTurn.hasDeferredMoves && deferred?.moves==nil &&
+              deferred?.suggestedOrders?.contains(where:{$0.compactMap{$0.point.map{$0.row*9+$0.col}} == [10,20,30]})==true &&
+              wrongTurn.reviewHistory.latest==wrongColors,
+              "Expired chronology lost its known prefix or invented an accepted alternating order")
         let fixture=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/TentativeFalseTail")
         let initialData=try Data(contentsOf:fixture.appendingPathComponent("initial.sgf"))
         let output=URL(fileURLWithPath:"PhysicalGo/.build/G1FalseStone/RecorderRegression-\(UUID().uuidString)")
@@ -75,7 +84,7 @@ import Foundation
             }
             let colors=Array(row["position"] as! String).map {c -> Occupancy in c=="B" ? .black : c=="W" ? .white : c=="?" ? .uncertain : .empty}
             let shapes=(row["offsets"] as! [String:Double]).map {key,value -> StoneFootprint in
-                let p=Int(key)!;return .init(row:p/19,col:p%19,center:.init(x:Double(p%19)+value,y:Double(p/19)),radiusCol:0.46,radiusRow:0.46,quality:1)
+                let p=Int(key)!;return .init(row:p/19,col:p%19,center:.init(x:Double(p%19)+value,y:Double(p/19)),radiusCol:0.46,radiusRow:0.46,quality:0.90)
             }
             actual.consume(BoardObservation(readings:colors.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:1,delta:0)},size:19,footprints:shapes),now:row["time"] as! Double)
             let frame=row["frame"] as! Int,points=actual.pendingConfidence.compactMap(\.point)
@@ -84,7 +93,10 @@ import Foundation
             if frame>=1194 {check(!points.contains(114),"Retracted G1 reappeared")}
         }
         check(sawFalse && sawCorrection,"Fixture skipped the failing and corrected moments")
-        check(actual.moveCount==63 && actual.pendingConfidence.compactMap(\.point)==[49,68,67,100,214],"Changed saved history or hid the subsequent unresolved capture")
+        check(actual.moveCount==63 && actual.hasDeferredMoves && actual.reviewHistory.unresolved>0 &&
+              actual.reviewHistory.sections.first?.suggestedOrders?.contains(where: {
+                  $0.compactMap {$0.point.map {$0.row*19+$0.col}} == [49,68,67,100,214]
+              })==true, "Changed saved history or lost the retained prefix and unresolved capture review")
         let engine=SGFPlayer();engine.load(game:actual.game);engine.seek(to:actual.moveCount)
         for point in [49,68,67,100,214] {check(engine.tryPlayMove(color:engine.turn,x:point%19,y:point/19)==nil,"Invalid retained order")}
         let beforeCapture=engine.board

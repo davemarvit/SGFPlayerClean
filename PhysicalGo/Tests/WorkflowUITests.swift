@@ -40,7 +40,7 @@ import SwiftUI
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:root.appendingPathComponent("games"),settings:settings,diagnosticRoot:root.appendingPathComponent("diagnostics"))
         model.showDiagnostics=false
         model.recorder.clock.audible=false
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-move-recovery")
+        let output=try TestArtifacts.directory("physical-move-recovery")
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         let window=NSWindow(contentRect:NSRect(x:0,y:0,width:1280,height:880),styleMask:[.titled],backing:.buffered,defer:false)
         window.appearance=NSAppearance(named:.darkAqua)
@@ -523,7 +523,7 @@ import SwiftUI
     host.frame=NSRect(origin:.zero,size:host.fittingSize);host.layoutSubtreeIfNeeded()
     let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
     host.cacheDisplay(in:host.bounds,to:bitmap)
-    try bitmap.representation(using:.png,properties:[:])!.write(to:URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-pause-explanation/pause-feedback.png"))
+    try bitmap.representation(using:.png,properties:[:])!.write(to:TestArtifacts.file("physical-pause-explanation/pause-feedback.png"))
     let fake=FakeRecoveryVoice(),speech=RecoverySpeech(audio:fake)
     speech.request(.clockPause,text:"Clocks paused. Please check the screen.",settings:.init())
     speech.resolved(.clockPause,reason:"clock resumed")
@@ -649,7 +649,7 @@ import SwiftUI
     check(BoardAdjustmentMonitor.evidence(readings:[.empty],base:base,after:after).isEmpty,"Mismatched grids indexed past the board")
     // Native render shows the same saved position without fluctuating old-stone
     // rings, and a separate persistent conflict at its fixed board intersection.
-    let out=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-history-first")
+    let out=try TestArtifacts.directory("physical-history-first")
     let window=NSWindow(contentRect:NSRect(x:0,y:0,width:650,height:720),styleMask:[.titled],backing:.buffered,defer:false)
     window.appearance=NSAppearance(named:.darkAqua);window.backgroundColor = .windowBackgroundColor
     for (name,recording,observation) in [("retained",recorder,actual),("conflict",conflict,view(wrong))] {
@@ -724,7 +724,7 @@ import SwiftUI
     feed(plan.target,count:5)
     check(recorder.accidentalRemovalVerified(plan,now:time+0.01),"Actual cleanup was not verified")
     check(!recorder.accidentalRemovalVerified(plan,now:time+2),"Stale camera verification survived a missing feed")
-    let out=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-simple-review")
+    let out=try TestArtifacts.directory("physical-simple-review")
     let window=NSWindow(contentRect:NSRect(x:0,y:0,width:920,height:720),styleMask:[.titled],backing:.buffered,defer:false)
     window.appearance=NSAppearance(named:.darkAqua);window.backgroundColor = .windowBackgroundColor
     // Keep the witness clock aligned with real time for the actual view's button.

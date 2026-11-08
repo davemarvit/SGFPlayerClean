@@ -49,7 +49,8 @@ import SwiftUI
         r.manualMove(at:BoardPosition(0,1))
         _=r.confirmClockReview(black:r.clock.engine.black,white:r.clock.engine.white,resume:false)
         let actual=SGFPlayer();actual.load(game:r.game);actual.seek(to:r.moveCount)
-        r.resume();feed(r,actual.board)
+        // Match the clock-and-recording Resume control after clock correction.
+        r.clock.requestResume();r.resume();feed(r,actual.board)
         let orders=[[BoardPosition(0,0),BoardPosition(6,6),BoardPosition(7,7)],
                     [BoardPosition(1,7),BoardPosition(1,6),BoardPosition(1,5)],
                     [BoardPosition(7,1),BoardPosition(6,1),BoardPosition(5,1)]]
@@ -263,7 +264,7 @@ import SwiftUI
             print("Actual glare clip: \(frames.count) frames, no false moves/reviews, White clock resumes.")
         }
 
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-review-queue")
+        let output=try TestArtifacts.directory("physical-review-queue")
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         func render<V:View>(_ value:V,_ name:String,width:CGFloat,height:CGFloat)throws {
             let host=NSHostingView(rootView:value.background(Color(nsColor:.windowBackgroundColor)))

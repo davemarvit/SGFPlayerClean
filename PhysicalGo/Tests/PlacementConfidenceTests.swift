@@ -4,7 +4,7 @@ import Foundation
     static func run()->Int {
         var checks=0,time=0.0
         func check(_ ok:Bool,_ message:String) {checks += 1;if !ok {fatalError(message)}}
-        func edgeView(_ point:Int, dx:Double, dy:Double, quality:Double=0.94) -> BoardObservation {
+        func edgeView(_ point:Int, dx:Double, dy:Double, quality:Double=0.90) -> BoardObservation {
             let row=point/9, col=point%9
             let shape=StoneFootprint(row:row,col:col,center:.init(x:Double(col)+dx,y:Double(row)+dy),
                                      radiusCol:0.48,radiusRow:0.49,quality:quality)
@@ -12,6 +12,11 @@ import Foundation
                 .init(row:$0/9,col:$0%9,occupancy:$0==point ? .white : .empty,confidence:1,delta:0)
             },size:9,footprints:[shape])
         }
+        // Keep ambiguous fixtures below the unique-outline certification threshold.
+        check(edgeView(40,dx:0,dy:0.36,quality:0.99).ambiguousPlacements.isEmpty,
+              "A strong unique outline did not certify the displaced intersection")
+        check(edgeView(40,dx:0,dy:0.36).ambiguousPlacements==[40],
+              "An uncertified outline erased placement ambiguity")
         let outward=edgeView(5,dx:-0.04,dy:-0.40)
         check(outward.ambiguousPlacements.isEmpty && outward.placementOffsets[5]==0.4,
               "Margin displacement is unambiguous but must still use ordinary timing")
@@ -35,7 +40,7 @@ import Foundation
         var colors=[Occupancy](repeating:.empty,count:81),offsets=[Int:Double]()
         func view()->BoardObservation {
             BoardObservation(readings:colors.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,
-                footprints:offsets.map{point,offset in .init(row:point/9,col:point%9,center:.init(x:Double(point%9),y:Double(point/9)+offset),radiusCol:0.46,radiusRow:0.46,quality:0.99)})
+                footprints:offsets.map{point,offset in .init(row:point/9,col:point%9,center:.init(x:Double(point%9),y:Double(point/9)+offset),radiusCol:0.46,radiusRow:0.46,quality:0.90)})
         }
         func feed(_ count:Int) {for _ in 0..<count {time += 0.21;recorder.consume(view(),now:time)}}
         recorder.start(size:9);feed(5)
@@ -68,7 +73,7 @@ import Foundation
         let branched=GameRecorder(storage:nil)
         var branchColors=[Occupancy](repeating:.empty,count:81)
         func branch(_ count:Int) {for _ in 0..<count {time += 0.21
-            let footprint=StoneFootprint(row:1,col:1,center:.init(x:1,y:1.36),radiusCol:0.46,radiusRow:0.46,quality:0.99)
+            let footprint=StoneFootprint(row:1,col:1,center:.init(x:1,y:1.36),radiusCol:0.46,radiusRow:0.46,quality:0.90)
             branched.consume(BoardObservation(readings:branchColors.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,footprints:branchColors[10] == .black ? [footprint] : []),now:time)
         }}
         branched.start(size:9);branch(5);branchColors[10] = .black;branch(3)

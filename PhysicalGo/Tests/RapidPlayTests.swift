@@ -60,7 +60,8 @@ import Foundation
         let expected=[300,60,307,269,268,249,287,73,250,230,251]
         let actual=r.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}
         check(actual==expected,"Rapid-play replay failed to recover the supported prefix or invented/reordered a move: \(actual)")
-        check(r.moveCount==11 && r.needsAttention,"Unordered later moves were guessed instead of leaving a visible blockage")
+        check(r.moveCount==11 && r.hasDeferredMoves && r.reviewHistory.unresolved==1 && r.reviewHistory.retainedMoveCount==0,
+              "Unordered later moves were guessed or discarded instead of retained for review")
         print("PASS: \(checks) rapid-play checks: weak vs isolated candidates, hidden-point protection, and replay with real grid interruptions.")
         return checks
     }

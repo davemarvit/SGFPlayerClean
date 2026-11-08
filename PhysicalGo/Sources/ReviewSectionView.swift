@@ -288,7 +288,7 @@ struct ReviewQueueRail:View {
             }
             if let error=recorder.reviewSaveError {
                 Text(error).font(.caption).foregroundStyle(.red)
-                Button("Retry saving reviews") {recorder.retryReviewSave()}
+                Button(recorder.recoveryReadBlocked ? "Reload saved history":"Retry saving reviews") {recorder.retryReviewSave()}
             }
         }.frame(width:150)
     }

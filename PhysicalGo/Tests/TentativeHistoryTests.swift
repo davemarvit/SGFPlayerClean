@@ -61,7 +61,11 @@ import Foundation
         base[10] = .uncertain;base[20] = .white;feed(accepted,base,2)
         base[30] = .black;feed(accepted,base,80)
         check(accepted.game.moves.first?.1?.0==1 && accepted.game.moves.first?.1?.1==1,"A later uncertain view changed an already confirmed move")
-        check(accepted.moveCount==1 && accepted.pendingMoveCount==2,"An obscured accepted stone prevented tracking later tentative moves")
+        // History-first recognition retains an accepted stone through uncertainty;
+        // fresh evidence for later moves can confirm without re-seeing that stone.
+        check(accepted.moveCount==3 && accepted.pendingMoveCount==0 &&
+              accepted.game.moves.compactMap{$0.1.map{$0.1*9+$0.0}}==[10,20,30],
+              "An obscured accepted stone blocked later confirmed moves or changed their order")
         base[10] = .black;feed(accepted,base,5)
         check(accepted.moveCount==3,"Restoring the accepted stone did not confirm later moves")
         let paused=GameRecorder(storage:nil);paused.start(size:9);feed(paused,empty,5)

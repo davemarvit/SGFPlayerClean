@@ -34,7 +34,7 @@ import AppKit
     let player=SGFPlayer();player.load(game:g);s.session=LocalScoringSession(player:player,handicap:0)
     s.toggle(BoardPosition(4,4))
     check(s.pendingApprovals == [.deadGroups],"Dead-group edit cleared unrelated approvals")
-    let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-score-approval")
+    let output=try TestArtifacts.directory("physical-score-approval")
     try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
     func render(_ expanded:Bool,_ name:String)throws->NSHostingView<PhysicalScoreApprovals> {
         let host=NSHostingView(rootView:PhysicalScoreApprovals(scoring:s,expanded:expanded))

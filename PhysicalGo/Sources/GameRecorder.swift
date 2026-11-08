@@ -66,6 +66,9 @@ enum LocalGameSetup {
     @Published private(set) var saveError: String?
     @Published private(set) var autosaveURL: URL?
     private let storage: URL?
+    private let recordingStore = RecordingStore()
+    @Published private(set) var pendingSaveError: String?
+    var recoveryReadBlocked: Bool { recordingStore.isReadBlocked }
     private let player = SGFPlayer()
     let clock=LocalGameClock()
     @Published private(set) var synchronized = false
@@ -177,10 +180,10 @@ enum LocalGameSetup {
     private var recoveredReviewCommit=false
     var activeReviewID:UUID?
     var hasDeferredMoves:Bool {reviewHistory.active}
-    var hasUnfinishedReviews:Bool {hasDeferredMoves || reviewSaveError != nil}
+    var hasUnfinishedReviews:Bool {hasDeferredMoves || reviewSaveError != nil || pendingSaveError != nil || recoveryReadBlocked}
     var liveNextPlayer:Stone? {hasDeferredMoves ? reviewHistory.nextColor : nextPlayer}
     var needsTurnConfirmation:Bool {hasDeferredMoves && liveNextPlayer == nil && state != .finished}
-    var canScorePosition:Bool {hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
+    var canScorePosition:Bool {!recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
     var scoringGame:SGFGame {
         guard let board=reviewHistory.latest else {return game}
         var live=DeferredMoveHistory.positionGame(board,size:game.boardSize,rules:game.info.rules,turn:liveNextPlayer ?? .black)
@@ -248,9 +251,9 @@ enum LocalGameSetup {
     var nextPlayer: Stone { player.turn }
     var reviewing: Bool { reviewIndex != moveCount }
     var reviewedBoard: BoardSnapshot? { positions.indices.contains(reviewIndex) ? positions[reviewIndex] : nil }
-    var canEdit: Bool { !awaitingFirstStart && state == .paused && !reviewing && !hasDeferredMoves }
+    var canEdit: Bool { !recoveryReadBlocked && !awaitingFirstStart && state == .paused && !reviewing && !hasDeferredMoves }
     var canPass: Bool {
-        guard !awaitingFirstStart else {return false}
+        guard !recoveryReadBlocked, !awaitingFirstStart else {return false}
         if hasDeferredMoves {return reviewHistory.nextColor != nil && !reviewing && (state == .recording || state == .paused)}
         return pendingMoveCount==0 && !reviewing && (state == .paused || (state == .recording && synchronized && boardReadyForPass))
     }
@@ -264,11 +267,10 @@ enum LocalGameSetup {
         emptyViewVerified && emptyViewSize==size && emptyViewLast.map {now >= $0 && now-$0<=1} == true
     }
     func start(size:Int, now:Double = ProcessInfo.processInfo.systemUptime,info:SGFGame.Info?=nil,handicap:Int=0,clockSettings:LocalClockSettings = .init(kind:.none),startPaused:Bool=false) {
-        guard clockSettings.validationError==nil,[9,13,19].contains(size), handicap == 0 || (2...9).contains(handicap),
+        guard !recoveryReadBlocked,clockSettings.validationError==nil,[9,13,19].contains(size), handicap == 0 || (2...9).contains(handicap),
               info?.rules == nil || LocalGameSetup.rules.contains(info!.rules!) else { return }
-        if hasDeferredMoves {saveReviewHistory();if reviewSaveError != nil {return}}
         // Each new session has a separate file. Never overwrite the previous game.
-        if hasGame { persist() ; if saveError != nil { return } }
+        if hasGame,saveSession() != nil {return}
         let ready=handicap == 0 && hasVerifiedEmptyBoard(size:size,now:now)
         timingNeedsFreshEpoch=true;reviewTriggers=[];reviewStarts=[:]
         placementChimes = PlacementChimeMonitor()
@@ -281,6 +283,7 @@ enum LocalGameSetup {
         resetAdjustmentGuidance()
         game=fresh; player.load(game:fresh); positions=[player.board]; reviewIndex=0; manualMoves=[]
         autosaveURL=storage?.appendingPathComponent("Physical Go \(UUID().uuidString).sgf")
+        recordingStore.bind(to: autosaveURL); pendingSaveError=nil
         awaitingFirstStart=startPaused;announceFirstStart=false
         state = startPaused ? .paused : ready ? .recording : .verifying; synchronized=ready; boardReadyForPass=ready
         clearBlock(); resetPending(); handicapViews=[]; viewContinuity.reset(); resetObservationHistory(); resetWarningMonitor(); lastTime=nil; verificationFrames=ready ? 5 : 0
@@ -294,6 +297,7 @@ enum LocalGameSetup {
         trace(event:"start")
     }
     private func initialPositionReady(at now:Double) {
+        defer {checkpointPendingMoves()}
         awaitingFirstStart=false
         clock.ready(at:now)
         if announceFirstStart {announceFirstStart=false;onGameStarted?();trace(event:"game started",now:now)}
@@ -323,7 +327,9 @@ enum LocalGameSetup {
             guard validation.tryPlayMove(color:move.0,x:move.1?.0 ?? -1,y:move.1?.1 ?? -1)==nil else { throw RestoreError.invalidMove(index+1) }
             restored.append(validation.board)
         }
-        if hasGame { persist(); if let saveError { throw NSError(domain:"PhysicalGo",code:1,userInfo:[NSLocalizedDescriptionKey:saveError]) } }
+        if hasGame,let error=saveSession() {
+            throw NSError(domain:"PhysicalGo",code:1,userInfo:[NSLocalizedDescriptionKey:error])
+        }
         awaitingFirstStart=false;announceFirstStart=false
         placementChimes = PlacementChimeMonitor()
         resetAdjustmentGuidance()
@@ -334,11 +340,19 @@ enum LocalGameSetup {
             if node.props["C"]?.contains("Entered manually.")==true { manualMoves.insert(number) }
         }
         player.load(game:loaded);player.seek(to:moveCount)
+        resetObservationHistory()
         autosaveURL=url
+        recordingStore.bind(to: url,savedSignature:checkpointSignature); pendingSaveError=nil
+        reviewHistory=DeferredMoveHistory();reviewHistory.size=game.boardSize
+        reviewSaveError=nil;reviewLoadFailed=false;recoveredReviewCommit=false
         state=player.lastTwoMovesWerePasses ? .finished : .paused
-        clearBlock();resetWarningMonitor();suspendVision("")
+        clearBlock();resetWarningMonitor();suspendVision("",checkpoint:false)
         status="Restored \(moveCount) recorded moves. Review them, or resume recording when the live board is ready."
         clock.restore(from:url,signature:checkpointSignature,moveCount:moveCount,blackToPlay:nextPlayer == .black)
+        try restoreChronology()
+        beginTrace(append:true);trace(event:"restored saved game")
+    }
+    private func restoreChronology()throws {
         try restoreReviewHistory()
         if hasDeferredMoves || recoveredReviewCommit {
             resetObservationHistory()
@@ -352,47 +366,56 @@ enum LocalGameSetup {
                 persist();saveReviewHistory()
             }
         } else {try restorePendingCheckpoint()}
-        beginTrace(append:true);trace(event:"restored saved game")
     }
-    private struct PendingCheckpoint:Codable {
-        let version:Int
-        let signature:String
-        let history:MoveObservationHistory.Checkpoint
-        var awaitingFirstStart:Bool?=nil
-    }
-    private var checkpointSignature:String {signature(for:game)}
-    private func signature(for game:SGFGame)->String {
-        // Preserve compatibility with existing Japanese, empty-board checkpoints.
-        let setupKey = game.handicap == 0 && game.info.rules?.lowercased()=="japanese" ? "" :
-            "\(game.info.rules ?? ""):\(game.handicap):"+game.setup.map {"\($0.0.rawValue),\($0.1),\($0.2)"}.joined(separator:";")+":"
-        return setupKey+"\(game.boardSize):"+game.moves.map { move in
-            move.0.rawValue+":"+(move.1.map {"\($0.0),\($0.1)"} ?? "pass")
-        }.joined(separator:";")
-    }
+    private var checkpointSignature:String {RecordingIdentity.signature(for:game)}
+    private func signature(for game:SGFGame)->String {RecordingIdentity.signature(for:game)}
     /// A separate internal file; pending moves never enter SGF prematurely.
     func savePendingCheckpoint()throws {
-        guard let autosaveURL else {return}
-        let url=autosaveURL.deletingPathExtension().appendingPathExtension("pending.json")
         let history=pausedTentativeHistory ?? observationHistory
-        let checkpoint=PendingCheckpoint(version:1,signature:checkpointSignature,history:history.checkpoint,awaitingFirstStart:awaitingFirstStart)
-        try JSONEncoder().encode(checkpoint).write(to:url,options:.atomic)
+        do {
+            try recordingStore.savePending(.init(version:1,signature:checkpointSignature,
+                history:history.checkpoint,awaitingFirstStart:awaitingFirstStart))
+            pendingSaveError=nil
+        } catch {
+            pendingSaveError="Could not save pending moves: \(error.localizedDescription). Keep the app open and retry saving."
+            throw error
+        }
+    }
+    private func checkpointPendingMoves() {
+        guard hasGame,!recoveryReadBlocked,saveError==nil,recordingStore.canCheckpoint(signature:checkpointSignature) else {return}
+        do {try savePendingCheckpoint()}
+        catch { /* savePendingCheckpoint publishes the error for retry. */ }
     }
     private func restorePendingCheckpoint()throws {
-        guard let autosaveURL,state != .finished else {return}
-        let url=autosaveURL.deletingPathExtension().appendingPathExtension("pending.json")
-        guard FileManager.default.fileExists(atPath:url.path) else {return}
-        let saved=try JSONDecoder().decode(PendingCheckpoint.self,from:Data(contentsOf:url))
-        guard saved.version==1,saved.signature==checkpointSignature else {
-            throw NSError(domain:"PhysicalGo",code:2,userInfo:[NSLocalizedDescriptionKey:"The pending-move checkpoint does not match this SGF. The saved moves are open, but pending moves were not restored."])
-        }
-        awaitingFirstStart=saved.awaitingFirstStart == true && moveCount==0
-        if awaitingFirstStart {status="Game setup saved. Press Start when both players are ready."}
-        guard !saved.history.paths.isEmpty else {return}
-        guard let retained=MoveObservationHistory.restore(saved.history,game:game,now:ProcessInfo.processInfo.systemUptime) else {
-            throw NSError(domain:"PhysicalGo",code:3,userInfo:[NSLocalizedDescriptionKey:"The pending-move checkpoint could not be validated. The saved moves are open."])
-        }
-        pausedTentativeHistory=retained;pendingMoveCount=retained.pendingCount
-        status="Restored \(moveCount) saved and \(pendingMoveCount) pending moves. Red rings mark pending confirmation; Resume rechecks the physical board."
+        guard autosaveURL != nil,state != .finished else {return}
+        do {
+            let saved=try recordingStore.loadPending(game:game,now:ProcessInfo.processInfo.systemUptime)
+            awaitingFirstStart=saved.awaitingStart;pendingSaveError=nil
+            if awaitingFirstStart {status="Game setup saved. Press Start when both players are ready."}
+            guard let retained=saved.history else {return}
+            pausedTentativeHistory=retained;pendingMoveCount=retained.pendingCount
+            status="Restored \(moveCount) saved and \(pendingMoveCount) pending moves. Red rings mark pending confirmation; Resume rechecks the physical board."
+        } catch {pendingSaveError=error.localizedDescription;throw error}
+    }
+    /// Flush game, pending chronology and clocks before leaving the session.
+    /// A failed load has made no edits: leave its original files untouched.
+    @discardableResult func flushForExit()->Bool {
+        guard hasGame,!recoveryReadBlocked else {return true}
+        pause();clock.pause("Recording closed · clocks paused")
+        return saveSession()==nil
+    }
+    func retryRecordingSave() {
+        if recoveryReadBlocked {retryReviewSave();return}
+        _=saveSession()
+    }
+    /// Use one save boundary for shutdown, session replacement and retries.
+    private func saveSession()->String? {
+        persist()
+        if !reviewHistory.sections.isEmpty {saveReviewHistory()}
+        checkpointPendingMoves()
+        // A failed clock load leaves the clock disabled and its file untouched.
+        // Only an enabled clock can have unsaved changes that block leaving.
+        return saveError ?? pendingSaveError ?? reviewSaveError ?? (clock.enabled ? clock.saveError:nil)
     }
     private func resetPending() { pendingKey=""; pendingCount=0; pendingSince=0; pendingUnknownCounts=[:] }
     private func stable(_ key:String, now:Double)->Bool {
@@ -400,7 +423,9 @@ enum LocalGameSetup {
         pendingCount += 1
         return pendingCount >= 5 && now-pendingSince >= 0.8
     }
-    func suspendVision(_ reason:String, preserveObservations:Bool=false, preserveOrder:Bool=false) {
+    func suspendVision(_ reason:String, preserveObservations:Bool=false, preserveOrder:Bool=false,checkpoint:Bool=true) {
+        // Restoration must validate sidecars before any checkpoint can replace them.
+        defer {if checkpoint {checkpointPendingMoves()}}
         viewContinuity.reset()
         reviewHistory.interrupt();unresolvedSince=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
@@ -427,10 +452,11 @@ enum LocalGameSetup {
         if state == .recording || state == .verifying { status=reason; trace(event:"vision interrupted: \(reason)") }
     }
     func pause() {
+        defer {checkpointPendingMoves()}
         guard state == .recording || state == .verifying else { return }
         let retained=observationHistory.retainedForResume()
         let problem=needsAttention ? status:nil
-        state = .paused; resetWarningMonitor(); suspendVision("");clock.pause("Clock and recording paused")
+        state = .paused; resetWarningMonitor(); suspendVision("",preserveOrder:true);clock.pause("Clock and recording paused")
         pausedProblem=problem
         pausedTentativeHistory=retained;pendingMoveCount=retained?.pendingCount ?? 0
         status=awaitingFirstStart ? "Game setup saved. Press Start when both players are ready." : retained == nil ? "Paused. Review the moves, or correct a missed move at the latest position."
@@ -438,7 +464,8 @@ enum LocalGameSetup {
         trace(event:"paused")
     }
     func resume() {
-        guard state == .paused else { return }
+        guard !recoveryReadBlocked,state == .paused else { return }
+        defer {checkpointPendingMoves()}
         if awaitingFirstStart {
             announceFirstStart=true;clock.requestResume()
         }
@@ -452,7 +479,7 @@ enum LocalGameSetup {
         let retained=pausedTentativeHistory
         resetWarningMonitor();reviewIndex=moveCount
         state = retained != nil ? .recording : positions.count == 1 && moveCount == 0 ? .verifying : .recording
-        suspendVision("Checking that the physical board matches the recorded position before continuing.")
+        suspendVision("Checking that the physical board matches the recorded position before continuing.",preserveOrder:retained != nil)
         if let retained {observationHistory=retained;pendingMoveCount=retained.pendingCount}
         trace(event:"resumed")
     }
@@ -460,14 +487,14 @@ enum LocalGameSetup {
     /// resumes through normal board verification; this does not start a clock
     /// against an unverified camera position.
     @discardableResult func confirmClockReview(black:LocalClockEngine.Side,white:LocalClockEngine.Side,resume:Bool,turn:Stone?=nil)->Bool {
-        guard state == .paused,let next=hasDeferredMoves ? (turn ?? liveNextPlayer):nextPlayer,
+        guard !recoveryReadBlocked,state == .paused,let next=hasDeferredMoves ? (turn ?? liveNextPlayer):nextPlayer,
               clock.correct(black:black,white:white,blackToPlay:next == .black,moveCount:moveCount) else {return false}
         if hasDeferredMoves {reviewHistory.turnOverride=next;saveReviewHistory();clock.followLiveTurn(next,at:ProcessInfo.processInfo.systemUptime)}
         if resume {clock.requestResume();self.resume()}
         return true
     }
     func confirmLiveTurn(_ color:Stone,at now:Double=ProcessInfo.processInfo.systemUptime) {
-        guard hasDeferredMoves,state != .finished else {return}
+        guard !recoveryReadBlocked,hasDeferredMoves,state != .finished else {return}
         reviewHistory.turnOverride=color;saveReviewHistory()
         clock.followLiveTurn(color,at:now,resumeIfReady:state == .recording)
         trace(event:"live turn confirmed",now:now,extra:["nextPlayer":color.rawValue])
@@ -477,13 +504,14 @@ enum LocalGameSetup {
         reviewHistory.scoredPosition=DeferredMoveHistory.states(board);saveReviewHistory()
     }
     func updateInfo(_ info:SGFGame.Info) {
-        guard hasGame else {return}
+        guard hasGame,!recoveryReadBlocked else {return}
         let rules=game.info.rules
         game.info=info;game.info.rules=rules
         persist()
         trace(event:"game info updated")
     }
     func finish() {
+        guard !recoveryReadBlocked else {return}
         if hasDeferredMoves {
             pause();clock.finish();state = .finished;reviewHistory.endRequested=true;saveReviewHistory()
             status="Game ended. Scoring is available; resolve the red reviews before exporting the complete SGF."
@@ -567,10 +595,6 @@ enum LocalGameSetup {
         trace(event:"speech "+event,extra:details)
     }
     private func trace(event:String,observation:BoardObservation?=nil,now:Double?=nil,extra:[String:Any]=[:]) {
-        if event == "start" || event == "resumed" || event == "game started" || event == "tentative adjustment reconciled" || event == "paused" || event == "finished" || event.hasPrefix("accepted") || event == "manual move" || event == "manual sequence approved" || event == "undo" {
-            do {try savePendingCheckpoint()}
-            catch {diagnosticError="Could not save pending moves: \(error.localizedDescription)"}
-        }
         let history=pausedTentativeHistory ?? observationHistory
         var entry:[String:Any] = ["event":event,"time":Date().timeIntervalSince1970,"state":String(describing:state),
             "moveCount":moveCount,"synchronized":synchronized,"pendingFrames":pendingCount,"status":status,"unconfirmedMoves":pendingMoveCount,"bufferedFrames":observationHistory.frameCount,"unsavedStoneCandidates":unsavedStoneCount,"needsAttention":needsAttention,"unclearPointCount":unclearPointCount,"adjustmentPoints":adjustmentIssues.keys.sorted(),"recordingProblem":needsAttention ? recordingProblemTitle:"","localEvidenceRuns":localEvidenceRunCount,"localEvidenceSamples":localEvidenceSampleCount,"usedLocalEvidence":observationHistory.usedLocalEvidence,
@@ -693,9 +717,13 @@ enum LocalGameSetup {
 
 
     func consume(_ observation:BoardObservation, now:Double) {
+        guard !recoveryReadBlocked else {return}
+        // Let this fresh frame clear a resolved contradiction before deciding
+        // whether the same frame confirms a move. Each timestamp is counted once.
+        updateAdjustmentGuidance(observation,now:now)
         defer {
+            checkpointPendingMoves()
             noteReviewCamera(observation,now:now)
-            updateAdjustmentGuidance(observation,now:now)
             if hasGame { trace(event:"observation",observation:observation,now:now) }
         }
         if timingNeedsFreshEpoch {timingEpoch=now;timingNeedsFreshEpoch=false}
@@ -992,7 +1020,7 @@ enum LocalGameSetup {
         guard canPass else {return}
         if hasDeferredMoves,let color=reviewHistory.nextColor,let board=reviewHistory.latest {
             let now=ProcessInfo.processInfo.systemUptime
-            let precedingWasPass=reviewHistory.sections.last?.moves?.last?.point == nil
+            let precedingWasPass=ReviewHistoryCoordinator.precedingWasPass(reviewHistory,game:game)
             reviewHistory.sections.append(.init(before:board,after:board,moves:[.init(color:color,point:nil)],manual:true,
                                                 reason:"Pass entered by player",firstSeen:now,confirmedAt:now,liveNext:color.opponent))
             reviewHistory.turnOverride=nil
@@ -1029,7 +1057,7 @@ enum LocalGameSetup {
         let first=moveCount+1
         game=updated;positions.append(contentsOf:boards);reviewIndex=moveCount
         manualMoves.formUnion(manualMoveNumbers ?? Set(first...moveCount))
-        persist()
+        persist(checkpoint:false)
         if let error=saveError {
             game=oldGame;positions=oldPositions;manualMoves=oldManual;reviewIndex=oldIndex
             return error
@@ -1038,6 +1066,7 @@ enum LocalGameSetup {
         resetObservationHistory();resetWarningMonitor();resetPending();clearBlock()
         synchronized=false;boardReadyForPass=false;timingNeedsFreshEpoch=true
         if !allowDeferred {clock.recover(toBlack:nextPlayer == .black,reason:"Missed moves entered manually. Check both clocks before resuming.",at:ProcessInfo.processInfo.systemUptime)}
+        checkpointPendingMoves()
         status="Saved \(draft.moves.count) recovered moves. Check the board before resuming."
         let selected=game.moves.suffix(draft.moves.count).enumerated().map { offset,move -> [String:Any] in
             ["moveNumber":first+offset,"color":move.0.rawValue,"point":move.1.map{$0.1*game.boardSize+$0.0} as Any? ?? NSNull()]
@@ -1057,12 +1086,10 @@ enum LocalGameSetup {
     }
     func undo() {
         guard !hasDeferredMoves else {status="Resolve the review sections before undoing saved moves.";return}
-        guard hasGame,moveCount>0 else { return }
+        guard !recoveryReadBlocked,hasGame,moveCount>0 else { return }
         // Preserve the previous record before a correction changes the autosave.
-        if let url=autosaveURL {
-            do { try sgf().write(to:url.deletingPathExtension().appendingPathExtension("before-undo-\(UUID().uuidString).sgf"),atomically:true,encoding:.utf8) }
-            catch { saveError="Could not preserve the game before undo: \(error.localizedDescription)"; return }
-        }
+        do {try recordingStore.preserveBeforeUndo(sgf())}
+        catch {saveError="Could not preserve the game before undo: \(error.localizedDescription)";return}
         placementChimes = PlacementChimeMonitor()
         manualMoves.remove(moveCount); game.moves.removeLast(); positions.removeLast(); reviewIndex=moveCount
         resetWarningMonitor()
@@ -1071,7 +1098,7 @@ enum LocalGameSetup {
         status="Last move undone. Restore the physical board to this position, then Resume recording."; persist();trace(event:"undo")
     }
     func attachClock(_ settings:LocalClockSettings) {
-        guard state == .paused,pendingMoveCount==0,!clock.enabled,settings.validationError==nil,settings.kind != .none else {return}
+        guard !recoveryReadBlocked,state == .paused,pendingMoveCount==0,!clock.enabled,settings.validationError==nil,settings.kind != .none else {return}
         clock.configure(settings,blackToPlay:nextPlayer == .black,baseMove:moveCount)
         persist();trace(event:"local clock attached")
     }
@@ -1098,56 +1125,38 @@ enum LocalGameSetup {
         }
         return SGFWriter.serialize(SGFTree(branches:[.init(sequence:nodes)]))
     }
-    private func persist() {
+    private func persist(checkpoint:Bool=true) {
         guard let autosaveURL else { return }
         do {
-            try FileManager.default.createDirectory(at:autosaveURL.deletingLastPathComponent(),withIntermediateDirectories:true)
-            try sgf().write(to:autosaveURL,atomically:true,encoding:.utf8); saveError=nil
+            try recordingStore.saveGame(sgf(),signature:checkpointSignature); saveError=nil
             clock.bind(to:autosaveURL,signature:checkpointSignature)
+            if checkpoint {checkpointPendingMoves()}
         } catch { saveError="Game is in memory but autosave failed: \(error.localizedDescription)" }
     }
 }
 
 
 extension GameRecorder {
-    private var reviewFile:URL? {autosaveURL?.deletingPathExtension().appendingPathExtension("reviews.json")}
     private func saveReviewHistory() {
-        guard let reviewFile else {return}
-        do {
-            try JSONEncoder().encode(reviewHistory).write(to:reviewFile,options:.atomic);reviewSaveError=nil
-        } catch {reviewSaveError="Review history could not be saved: \(error.localizedDescription). Keep the app open and retry saving."}
+        do {try recordingStore.saveReviews(reviewHistory);reviewSaveError=nil}
+        catch {reviewSaveError="Review history could not be saved: \(error.localizedDescription). Keep the app open and retry saving."}
     }
     func retryReviewSave() {
-        if reviewLoadFailed {try? restoreReviewHistory()} else {saveReviewHistory()}
+        if recoveryReadBlocked {
+            do {
+                try restoreChronology()
+            } catch { /* The corresponding load error remains visible; no writes. */ }
+        } else {saveReviewHistory()}
     }
     private func restoreReviewHistory()throws {
-        reviewHistory=DeferredMoveHistory();reviewHistory.size=game.boardSize;reviewSaveError=nil;reviewLoadFailed=false;recoveredReviewCommit=false
-        guard let reviewFile,FileManager.default.fileExists(atPath:reviewFile.path) else {return}
         do {
-            var history=try JSONDecoder().decode(DeferredMoveHistory.self,from:Data(contentsOf:reviewFile))
-            // Recover a completed SGF write if the app stopped before the recovery
-            // sidecar was marked committed. Never append that suffix twice.
-            if history.active,history.anchorSignature != checkpointSignature,
-               let base=history.baseMove,base<=moveCount,history.unresolved==0 {
-                var prefix=game;prefix.moves=Array(game.moves.prefix(base))
-                let moves=history.sections.filter{!$0.committed}.flatMap{$0.moves ?? []}
-                let suffix=game.moves.dropFirst(base).map{DeferredMoveHistory.Move(color:$0.0,point:$0.1.map{BoardPosition($0.1,$0.0)})}
-                if signature(for:prefix)==history.anchorSignature,moves==suffix {
-                    var number=base
-                    for i in history.sections.indices where !history.sections[i].committed {
-                        history.sections[i].savedStart=number;number += history.sections[i].moves?.count ?? 0;history.sections[i].committed=true
-                    }
-                    history.anchorSignature=nil;history.baseMove=nil;recoveredReviewCommit=true
-                }
-            }
-            guard history.validate(size:game.boardSize,signature:checkpointSignature) else {
-                throw NSError(domain:"PhysicalGo",code:20,userInfo:[NSLocalizedDescriptionKey:"Review history does not match the saved game."])
-            }
-            reviewHistory=history
-            if history.active {
+            let restored=try recordingStore.loadReviews(game:game)
+            reviewHistory=restored.history;recoveredReviewCommit=restored.recoveredCommit
+            reviewSaveError=nil;reviewLoadFailed=false
+            if reviewHistory.active {
                 resetObservationHistory();clock.pause("Saved live clock restored · paused")
-                if history.endRequested {state = .finished}
-                status="Restored \(history.unresolved) reviews and \(history.retainedMoveCount) later ordered moves. Resume recording to keep tracking."
+                if reviewHistory.endRequested {state = .finished}
+                status="Restored \(reviewHistory.unresolved) reviews and \(reviewHistory.retainedMoveCount) later ordered moves. Resume recording to keep tracking."
             }
         } catch {reviewLoadFailed=true;reviewSaveError="Could not restore review history: \(error.localizedDescription)";throw error}
     }

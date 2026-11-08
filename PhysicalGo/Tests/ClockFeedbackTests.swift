@@ -59,7 +59,7 @@ import SwiftUI
         window.appearance=NSAppearance(named:.darkAqua);window.contentView=host;window.orderFront(nil)
         RunLoop.main.run(until:Date().addingTimeInterval(0.2));host.layoutSubtreeIfNeeded()
         let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!;host.cacheDisplay(in:host.bounds,to:bitmap)
-        let output=URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-clock-catchup/clock-review-while-recording.png")
+        let output=TestArtifacts.file("physical-clock-catchup/clock-review-while-recording.png")
         try bitmap.representation(using:.png,properties:[:])!.write(to:output);window.orderOut(nil);r.pause()
         // Persistent unreadability follows the user's camera-pause preference;
         // short hand occlusion and sequence-only gaps must not stop timing.

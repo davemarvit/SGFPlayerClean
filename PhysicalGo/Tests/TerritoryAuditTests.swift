@@ -37,7 +37,7 @@ import SwiftUI
     let window=NSWindow(contentRect:NSRect(x:0,y:0,width:930,height:860),styleMask:[.titled],backing:.buffered,defer:false)
     window.appearance=NSAppearance(named:.darkAqua);host.appearance=window.appearance;window.contentView=host;window.orderFront(nil);host.layoutSubtreeIfNeeded()
     let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!;host.cacheDisplay(in:host.bounds,to:bitmap)
-    try bitmap.representation(using:.png,properties:[:])!.write(to:URL(fileURLWithPath:"/Users/Dave/Documents/SGF PLayer/work/physical-score-audit/reviewed-territory.png"));window.orderOut(nil)
+    try bitmap.representation(using:.png,properties:[:])!.write(to:TestArtifacts.file("physical-score-audit/reviewed-territory.png"));window.orderOut(nil)
     // Point corrections change both the drawn map and count, and revoke agreement.
     let p=scoring.countedTerritory.first {$0.value == .black && scoring.session!.board.stones[$0.key]==nil}!.key
     let before=scoring.countedResult!
