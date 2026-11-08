@@ -43,13 +43,35 @@ import Foundation
 }
 
 enum ReviewBoardVerification {
-    static func matches(_ readings: [Occupancy], target: [Occupancy], requiredClear: Set<Int>) -> Bool {
-        guard readings.count == target.count else { return false }
-        guard readings.filter({ $0 == .uncertain }).count <= max(2, target.count / 20) else { return false }
-        return target.indices.allSatisfy { p in
-            if requiredClear.contains(p) { return readings[p] == target[p] }
-            return readings[p] == target[p] || readings[p] == .uncertain
+    enum Status: Equatable {
+        case ready, waitingForCamera, checking
+        case unclear([Int]), different([Int]), obstructed(Int)
+
+        func guidance(coordinate: (Int) -> String) -> String {
+            switch self {
+            case .ready: return "The camera has verified the corrected position."
+            case .waitingForCamera: return "Waiting for a fresh camera view. Check that the camera is running and the board is visible."
+            case .checking: return "The position matches. Keep hands clear while the camera confirms a steady view."
+            case .unclear(let points): return "The camera cannot yet verify \(points.map(coordinate).joined(separator: ", ")). Keep those intersections clearly visible."
+            case .different(let points): return "The camera sees a different position at \(points.prefix(8).map(coordinate).joined(separator: ", "))\(points.count > 8 ? " and other intersections" : ""). Check these locations against the board shown."
+            case .obstructed(let count): return "The camera cannot read \(count) intersections. Clear hands or shadows and check the camera view."
+            }
         }
+    }
+    static func matches(_ readings: [Occupancy], target: [Occupancy], requiredClear: Set<Int>) -> Bool {
+        status(readings, target: target, requiredClear: requiredClear) == .ready
+    }
+    static func status(_ readings: [Occupancy], target: [Occupancy], requiredClear: Set<Int>) -> Status {
+        guard readings.count == target.count else { return .waitingForCamera }
+        let unclear = target.indices.filter { requiredClear.contains($0) && readings[$0] == .uncertain }
+        if !unclear.isEmpty { return .unclear(unclear) }
+        let different = target.indices.filter { readings[$0] != .uncertain && readings[$0] != target[$0] }
+        if !different.isEmpty { return .different(different) }
+        let unknown = readings.filter { $0 == .uncertain }.count
+        // Match CameraViewContinuity's broad-loss boundary. Limited uncertainty
+        // outside the corrected points must not erase known, unchanged history.
+        if unknown > max(2, target.count / 3) { return .obstructed(unknown) }
+        return .ready
     }
 }
 

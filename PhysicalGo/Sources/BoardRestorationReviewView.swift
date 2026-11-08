@@ -9,7 +9,8 @@ struct BoardRestorationReviewView: View {
     let onActualMoves: () -> Void
     @State private var error: String?
 
-    private var ready: Bool { recorder.boardRestorationVerified(plan) }
+    private var verification: ReviewBoardVerification.Status { recorder.boardRestorationVerificationStatus(plan) }
+    private var ready: Bool { verification == .ready }
     private func coordinate(_ point: Int) -> String {
         let size = recorder.game.boardSize, last = Double(size - 1)
         let p = orientation.display(.init(x: Double(point % size) / last, y: Double(point / size) / last))
@@ -41,7 +42,7 @@ struct BoardRestorationReviewView: View {
                         Text("If they were removed accidentally, put the stones back at \(plan.changed.sorted().map(coordinate).joined(separator: ", ")), matching the board shown here.")
                     }
                     Text(ready ? "Fresh camera views match the saved position. Confirm to clear this review."
-                         : "Keep your hands clear while the camera checks the restored position.")
+                         : verification.guidance(coordinate: coordinate))
                     Text("Restoration adds no moves and leaves clock times unchanged.").font(.callout).foregroundStyle(.secondary)
                     if let error { Text(error).foregroundStyle(.red) }
                     Button("These were played moves or captures…", action: onActualMoves).padding(.top, 12)

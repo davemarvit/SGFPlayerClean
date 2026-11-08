@@ -10,7 +10,8 @@ struct CaptureReviewView: View {
     @State private var error: String?
 
     private var remaining: Set<Int> { plan.remaining(in: recorder.reviewCameraPosition) }
-    private var ready: Bool { recorder.captureRemovalVerified(plan) }
+    private var verification: ReviewBoardVerification.Status { recorder.captureVerificationStatus(plan) }
+    private var ready: Bool { verification == .ready }
     private func coordinate(_ point: Int) -> String {
         let size = recorder.game.boardSize, last = Double(size - 1)
         let p = orientation.display(.init(x: Double(point % size) / last, y: Double(point / size) / last))
@@ -45,7 +46,7 @@ struct CaptureReviewView: View {
                         Text("Remove the remaining captured \(plan.move.color.opponent.rawValue) \(remaining.count == 1 ? "stone" : "stones") at \(remaining.sorted().map(coordinate).joined(separator: ", ")).")
                     }
                     Text(ready ? "The camera has verified the removal. Confirm to save the capturing move."
-                         : "Keep your hands clear while the camera checks the removal and the rest of the position.")
+                         : verification.guidance(coordinate: coordinate))
                     Text("This saves one capturing move. Clock times stay unchanged; you decide when to resume.")
                         .font(.callout).foregroundStyle(.secondary)
                     if let error { Text(error).foregroundStyle(.red) }

@@ -134,6 +134,14 @@ corrections, fresh-position reset, and the existing real KataGo/power/handoff te
 
 ## Physical correction guidance (0.122)
 
+Version 0.123 fixes confirmation being blocked by limited uncertainty away from
+the correction. The actual affected intersections must remain clear, and any
+positive contradiction still blocks confirmation. Broad unreadability uses the
+same more-than-one-third boundary as camera continuity. Disabled confirmation
+now explains missing/stale frames, affected unclear points, differing locations,
+broad obstruction, or a matching view still accumulating evidence. The regression
+fixture includes 20 consecutive live frames with 22–29 unchanged uncertain points.
+
 Review distinguishes an incomplete legal capture, a possible neighboring-stone
 bump, missing recorded stones, new additions, color disagreements and mixed
 changes. A capture shows only the captured stones still needing removal and

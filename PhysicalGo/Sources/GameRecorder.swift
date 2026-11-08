@@ -113,12 +113,17 @@ enum LocalGameSetup {
         return captureReviewPlan(section.id)
     }
     func captureRemovalVerified(_ plan:CaptureReviewPlan,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
-        freshReviewCameraMatches(plan.matches,now:now)
+        captureVerificationStatus(plan,now:now) == .ready
     }
-    private func freshReviewCameraMatches(_ matches:([Occupancy])->Bool,now:Double)->Bool {
-        guard let last=reviewCameraWitnesses.last,now>=last.time,now-last.time<1.5 else {return false}
-        let matching=reviewCameraWitnesses.reversed().prefix {matches($0.position)}
-        return matching.count>=5 && last.time-(matching.last?.time ?? last.time)>=0.8
+    func captureVerificationStatus(_ plan:CaptureReviewPlan,now:Double=ProcessInfo.processInfo.systemUptime)->ReviewBoardVerification.Status {
+        reviewVerificationStatus(target:plan.target,requiredClear:plan.captured.union([plan.point]),now:now)
+    }
+    private func reviewVerificationStatus(target:[Occupancy],requiredClear:Set<Int>,now:Double)->ReviewBoardVerification.Status {
+        guard let last=reviewCameraWitnesses.last,now>=last.time,now-last.time<1.5 else {return .waitingForCamera}
+        let status=ReviewBoardVerification.status(last.position,target:target,requiredClear:requiredClear)
+        guard status == .ready else {return status}
+        let matching=reviewCameraWitnesses.reversed().prefix {ReviewBoardVerification.matches($0.position,target:target,requiredClear:requiredClear)}
+        return matching.count>=5 && last.time-(matching.last?.time ?? last.time)>=0.8 ? .ready:.checking
     }
     func boardRestorationPlan(_ id:UUID)->BoardRestorationPlan? {
         guard let context=contextForReview(id),context.turnKnown else {return nil}
@@ -129,7 +134,10 @@ enum LocalGameSetup {
         return boardRestorationPlan(section.id)
     }
     func boardRestorationVerified(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
-        freshReviewCameraMatches(plan.matches,now:now)
+        boardRestorationVerificationStatus(plan,now:now) == .ready
+    }
+    func boardRestorationVerificationStatus(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->ReviewBoardVerification.Status {
+        reviewVerificationStatus(target:plan.target,requiredClear:plan.changed,now:now)
     }
     @discardableResult func confirmBoardRestoration(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime)->String? {
         guard state == .paused,!reviewing,!recoveryReadBlocked,
@@ -1162,7 +1170,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.122"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.123"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
