@@ -2746,3 +2746,28 @@ move…** with a move-number field. Canceling a preview keeps existing selection
 frame capture, active/pinned protection, the actual move55/Review3 scenario,
 stale edits, retained original evidence, unchanged clocks, persistence and native
 review rendering.
+
+## Specific recovery speech (0.130)
+
+Spoken guidance identifies incomplete captures, possible displaced stones,
+missing stones, color disagreements, new additions, mixed changes, unreadable
+lighting, lost camera alignment, uncertain turns and clock/save problems.
+Locations use the interpretation board's current orientation, with at most three
+coordinates per announcement. A possible bump asks the player to check the stone;
+it does not instruct them to relocate it based on an uncertain reading. Capture
+guidance names remaining captured intersections and the appropriate verification
+or **Confirm capture** step, rather than requesting move order.
+
+Recovery speech finishes an audible sentence when clocks restart or the view
+recovers. Important instructions precede queued acknowledgements. Repeated
+requests replace only the queued update for that topic, and queued recorder
+guidance is refreshed before playback so resolved problems and old coordinates
+do not produce stale instructions. A clock restart does not discard an unresolved
+review warning. Stopping/freezing the camera drops queued guidance while an
+audible sentence finishes. Explicit mute still stops speech immediately.
+Speech events record natural completion, deliberate stopping and obsolete queued
+prompts; they cannot prove that external speakers were audible.
+
+`--recovery-guidance-test` exercises actual capture/review fixtures, rotated
+coordinates, warning priority, changing/obsolete guidance, the model's clock
+restart callback, explicit mute and natural completion using muted real audio.

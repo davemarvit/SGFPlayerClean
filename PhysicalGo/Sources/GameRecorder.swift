@@ -809,6 +809,12 @@ enum LocalGameSetup {
     @Published private(set) var handOverBoard=false
     @Published private(set) var automaticCaptureStatus:String?
     private var automaticCapture:AutomaticCapture?
+    private var captureReadings:[Occupancy]?
+    var automaticCaptureRemainingPoints:[Int]? {
+        guard let capture=automaticCapture else {return nil}
+        let readings=captureReadings?.count==capture.source.count ? captureReadings!:capture.source
+        return capture.captured.filter{readings[$0] != .empty}.sorted()
+    }
     private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int)?
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
@@ -845,12 +851,14 @@ enum LocalGameSetup {
         return section.id
     }
     private func resetAutomaticCapture() {
+        captureReadings=nil
         automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handOverBoard=false
     }
     /// Intercept a confidently identified removal before it becomes a generic
     /// chronology review. Only the fully verified target is eventually recorded.
     private func handleAutomaticCapture(_ observation:BoardObservation,now:Double)->Bool {
         let readings=observation.signature
+        captureReadings=readings
         let stamp=observation.capturedAt.flatMap { $0.isFinite && $0<=now && now-$0<1.5 ? $0:nil } ?? now
         if let capture=automaticCapture {
             let ready=observation.handObstructed == false && ReviewBoardVerification.matches(readings,target:capture.target,requiredClear:capture.captured.union([capture.point]))
@@ -1314,7 +1322,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.129"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.130"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {

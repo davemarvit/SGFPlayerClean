@@ -17,6 +17,8 @@ struct BoardRecoveryPrompt {
         guard enabled,needsHelp,!announced else {return nil}
         guard lastSpoken.map({now-$0>=30}) ?? true else {return nil}
         announced=true;lastSpoken=now
-        return likelyObstruction ? "Please clear the board view." : "Board view unclear. Please check the camera view."
+        return likelyObstruction
+            ? "Part of the board is hidden. Move hands and other obstructions clear, and keep the camera in place."
+            : "The camera grid no longer matches the board. Show all four corners and keep the camera steady while alignment is checked."
     }
 }

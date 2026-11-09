@@ -84,18 +84,3 @@ import Foundation
         reviews=history
     }
 }
-
-extension GameRecorder {
-    var spokenRecoveryInstruction:String {
-        let prefix=clock.enabled && !clock.running ? "Clocks paused.":"Please pause play."
-        if automaticCaptureStatus != nil || pendingCaptureReview != nil {return "\(prefix) Remove the captured stones, then move your hands clear."}
-        if hasDeferredMoves {
-            if clock.running,let turn=liveNextPlayer {
-                return "Move history needs review. \(turn.rawValue.capitalized) to play. You can review the moves after play."
-            }
-            return "\(prefix) Board changes need review. Check the screen\(liveNextPlayer == nil ? " and confirm whose turn it is":"") before continuing."
-        }
-        if clock.requiresReview {return "\(prefix) Check both clock times before resuming."}
-        return "\(prefix) A board change is not confirmed. Check the highlighted intersections on the screen."
-    }
-}

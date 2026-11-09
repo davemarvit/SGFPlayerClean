@@ -269,7 +269,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             if !recoverySpeechEnabled {recoverySpeech.stop(reason:"recovery speech muted")}
         }
     }
-    private let recoverySpeech=RecoverySpeech()
+    private let recoverySpeech:RecoverySpeech
     private lazy var boardViewFeedback=BoardViewRecoveryFeedback(speech:recoverySpeech)
     private var boardAlignmentGate=BoardAlignmentGate()
     private lazy var clockPauseAnnouncements=ClockPauseAnnouncements(speech:recoverySpeech)
@@ -405,8 +405,9 @@ enum PhysicalPlayMode: String, CaseIterable {
         let names = ["top-left", "top-right", "bottom-right", "bottom-left"]
         return corners.count < 4 ? "Hover to magnify · Click the \(names[corners.count]) corner intersection" : "Grid aligned"
     }
-    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics) {
+    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, recoveryAudio:(any RecoverySpeechOutput)?=nil) {
         self.settings=settings;discoversCameras=discoverCameras
+        self.recoverySpeech=RecoverySpeech(audio:recoveryAudio)
         self.recorder = GameRecorder(storage:recordingStorage)
         self.diagnostics = DiagnosticRecorder(root:diagnosticRoot)
         self.referenceArchive = referenceArchive
@@ -470,7 +471,9 @@ enum PhysicalPlayMode: String, CaseIterable {
         recorder.clock.$engine.map(\.running).removeDuplicates().dropFirst().sink { [weak self] running in
             if running {
                 self?.recoverySpeech.cancel(.viewRecovered,reason:"clocks resumed")
-                self?.recoverySpeech.cancel(.recordingWarning,reason:"clocks resumed")
+                if let self,!self.recorder.needsAttention && !self.recorder.hasDeferredMoves {
+                    self.recoverySpeech.resolved(.recordingWarning,reason:"clocks resumed without an unresolved review")
+                }
             }
         }.store(in:&clockSubscriptions)
         recorder.clock.$pauseOnInterruption.dropFirst().sink { [weak self] value in
@@ -496,7 +499,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard let self else {return}
             self.recorder.logAutomaticClockPause(pause)
             self.clockPauseAnnouncements.began(settings:self.recorder.clock.sounds,message:{ [weak self] in
-                self?.recorder.spokenRecoveryInstruction ?? "Clocks paused. Please check the screen."
+                self?.spokenRecoveryInstruction ?? "Clocks paused. Keep hands clear while the board is verified."
             }) { [weak self] in
                 guard let self else {return false}
                 return self.recoverySpeechEnabled && self.recorder.clock.audible && self.recorder.clock.automaticPause != nil && !self.recorder.clock.running
@@ -607,10 +610,26 @@ enum PhysicalPlayMode: String, CaseIterable {
             recorder.logSpeech("warning sound requested",details:["sound":"Basso","channel":"recording"])
         }
         if recoverySpeechEnabled && recorder.clock.audible {
-            recoverySpeech.request(.recordingWarning,text:recorder.spokenRecoveryInstruction,settings:recorder.clock.sounds)
+            recoverySpeech.request(.recordingWarning,text:spokenRecoveryInstruction,settings:recorder.clock.sounds,refresh:{ [weak self] in
+                guard let self,self.recoverySpeechEnabled,self.recorder.clock.audible,
+                      self.recorder.needsAttention || self.recorder.hasDeferredMoves else {return nil}
+                return self.spokenRecoveryInstruction
+            })
         }
         // One alert per problem episode; the recorder bounds reminders. A
         // delayed second failure pulse can overlap a successful confirmation.
+    }
+    var spokenRecoveryInstruction:String {
+        let prefix=recorder.clock.enabled && !recorder.clock.running ? "Clocks paused.":"Please pause play."
+        if cameraState != .live {return "\(prefix) The camera is not providing a live view. Reconnect or select the board camera, then show the full board before resuming."}
+        if frozen {return "\(prefix) The camera view is frozen. Unfreeze the live view and move your hands clear before resuming."}
+        if lightingNeedsRecovery {return "\(prefix) The board is too dark or affected by glare. Improve lighting across the board and keep the stones in place while the view is checked."}
+        if alignmentNeedsRecovery {
+            return recoveryLikelyObstruction
+                ? "\(prefix) Part of the board is hidden. Move hands and other obstructions clear. Keep the camera in place while alignment is checked."
+                : "\(prefix) The camera grid no longer matches the board. Show all four corners and keep the camera steady while alignment is checked."
+        }
+        return recorder.spokenRecoveryInstruction(orientation:orientation)
     }
     func handleCameraStatus(_ status: String, state: CameraState) {
         diagnostics.event("camera status",details:["message":status,"state":String(describing:state)])
@@ -749,7 +768,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     func stop() {
         boardViewFeedback.reset()
-        recoverySpeech.stop(reason:"camera stopped")
+        recoverySpeech.finishCurrent(reason:"camera stopped")
         moveEvidenceCapture.stop(reason:"Camera stopped")
         diagnostics.event("camera stopped")
         recorder.suspendVision("Camera stopped. The recorded game is preserved.",preserveOrder:true)
@@ -763,7 +782,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         boardViewFeedback.reset()
         recorder.suspendVision("Frozen or resumed camera. Checking the accepted position before recording continues.",preserveOrder:true)
         frozen.toggle(); emptyBoardVerifier.reset(); revision += 1; labels = [:]; stability.reset(); stable = false
-        if frozen { recoverySpeech.stop(reason:"camera frozen");cancelGridDetection(); automaticGridArmed = false }
+        if frozen { recoverySpeech.finishCurrent(reason:"camera frozen");cancelGridDetection(); automaticGridArmed = false }
         else if calibration == nil && corners.isEmpty && !manualCornerMode && automaticGridEnabled {
             automaticGridArmed = true; nextAutomaticGridAttempt = 0
         }

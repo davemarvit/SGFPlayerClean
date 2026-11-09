@@ -25,7 +25,7 @@ import AppKit
                 obstructed:BoardAlignmentGate.likelyObstruction(report))==nil,"Recorded hand wave immediately asked for camera adjustment")
         }
         check(prompt.likelyObstruction && !prompt.maySearch(now:7.9),"Obstruction hint did not survive temporary loss of more landmarks")
-        check(prompt.update(recovering:true,needsHelp:true,enabled:true,now:8)=="Please clear the board view.","Prolonged obstruction did not give short relevant guidance")
+        check(prompt.update(recovering:true,needsHelp:true,enabled:true,now:8)?.contains("Move hands and other obstructions clear") == true,"Prolonged obstruction did not explain what to clear")
         check(prompt.update(recovering:true,needsHelp:true,enabled:true,now:20)==nil,"One obstruction repeated its warning")
         var moved=reports[0];moved["rejectionReason"]="fitted grid moved at least 0.4 intersections"
         check(!BoardAlignmentGate.likelyObstruction(moved),"Measured camera displacement was mistaken for a hand")

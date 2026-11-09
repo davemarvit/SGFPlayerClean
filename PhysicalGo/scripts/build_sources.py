@@ -3,6 +3,7 @@ from pathlib import Path
 
 DEPENDENCIES = {
     'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),
+    'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
     'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift',),
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift'),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
@@ -10,7 +11,7 @@ DEPENDENCIES = {
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
-        'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
+        'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
         'AutomaticCapture.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),

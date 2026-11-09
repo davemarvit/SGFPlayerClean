@@ -85,7 +85,7 @@ import SwiftUI
         }
         reviewFeed(8);changes[10] = .black;changes[30] = .black;changes[50] = .white;reviewFeed(75)
         check(review.hasDeferredMoves && warnings>0,"A new unresolved review stayed silent without a clock-pause transition")
-        check(review.spokenRecoveryInstruction.contains("Board changes need review"),"Review warning did not explain the issue")
+        check(review.spokenRecoveryInstruction().contains("Open Review"),"Review warning did not explain the issue")
         review.pause()
         let view=HistoricalMoveCorrectionView(recorder:loaded,orientation:.init(3),number:55,onClose:{})
         let host=NSHostingView(rootView:view);host.frame=NSRect(x:0,y:0,width:600,height:820);host.layoutSubtreeIfNeeded()

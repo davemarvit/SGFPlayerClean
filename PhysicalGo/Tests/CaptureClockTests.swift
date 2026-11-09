@@ -44,6 +44,9 @@ import ImageIO
         var speech=[String]();r.clock.onResumeAnnouncement={speech.append($0)}
         let baseline=r.clock.engine,first=feed(r,incomplete,count:3)
         check(r.clock.automaticCapturePaused && !r.clock.running && r.moveCount==45,"Capture removal did not pause both clocks without saving")
+        check(r.automaticCaptureRemainingPoints == [312],"Automatic capture speech included already removed stones")
+        let instruction=r.spokenRecoveryInstruction(orientation:.init(3))
+        check(instruction.contains(BoardCoordinates.name(point:312,size:19,orientation:.init(3))) && instruction.contains("clocks restart after verification") && !instruction.contains("Confirm capture"),"Automatic capture guidance requested manual confirmation or omitted the remaining point")
         check(near(r.clock.engine.black.remaining,baseline.black.remaining-(first-baseline.anchor!)),"Recognition delay charged during removal")
         let stopped=r.clock.engine
         _=feed(r,incomplete,count:20,hand:true)

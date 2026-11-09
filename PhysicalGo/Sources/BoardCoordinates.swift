@@ -3,6 +3,12 @@ import Foundation
 /// Labels use the viewer's orientation, like the interpretation diagram. Keep
 /// glyphs upright and transform only their grid anchors back to camera space.
 enum BoardCoordinates {
+    static func name(point:Int,size:Int,orientation:BoardOrientation)->String {
+        guard size>1,size<=19,(0..<size*size).contains(point) else {return "unknown intersection"}
+        let last=Double(size-1)
+        let displayed=orientation.display(.init(x:Double(point%size)/last,y:Double(point/size)/last))
+        return "\(Array("ABCDEFGHJKLMNOPQRST")[Int((displayed.x*last).rounded())])\(size-Int((displayed.y*last).rounded()))"
+    }
     struct Label {let text:String;let grid:ImagePoint}
     static func labels(size:Int,orientation:BoardOrientation,margin:Double=0.55)->[Label] {
         guard [9,13,19].contains(size) else {return []}

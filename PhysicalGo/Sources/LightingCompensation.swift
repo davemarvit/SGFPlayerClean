@@ -95,6 +95,6 @@ struct LightingRecovery {
         if active,let began,now-began>=8 {needsHelp=true}
         guard active,needsHelp,speech,!spoken,lastSpoken.map({now-$0>=30}) ?? true else {return nil}
         spoken=true;lastSpoken=now
-        return "Board view unclear. Please check for obstructions or glare."
+        return "The board is too dark or affected by glare. Improve lighting across the board and keep the stones in place while the view is checked."
     }
 }

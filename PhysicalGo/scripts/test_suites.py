@@ -25,6 +25,7 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'recovery-guidance-test': Suite('RecoveryGuidanceTests', 'app', ('Tests/RecoveryGuidanceTests.swift',), optimized=False),
     'archive-storage-test': Suite('ArchiveStorageTests', 'standalone', ('Tests/ArchiveStorageTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),
     'archive-review-test': Suite('ArchiveReviewCorrectionTests', 'app', ('Tests/ArchiveReviewCorrectionTests.swift',), optimized=False),
     'historical-correction-test': Suite('HistoricalCorrectionTests', 'app', ('Tests/HistoricalCorrectionTests.swift',), optimized=False),

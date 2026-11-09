@@ -3,10 +3,17 @@ import Foundation
 /// One voice for camera/lighting guidance. Recovery cancels unsaid instructions;
 /// an audible sentence finishes naturally. Explicit mute/stop still silences it.
 @MainActor final class RecoverySpeech {
-    enum Topic:String {case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning}
-    private struct Prompt {let topic:Topic;let text:String;let settings:LocalClockSounds}
+    enum Topic:String {
+        case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning
+        var isWarning:Bool {self != .clockResume && self != .viewRecovered}
+    }
+    private struct Prompt {
+        let topic:Topic;let text:String;let settings:LocalClockSounds
+        let refresh:(()->String?)?
+    }
     private let audio:any RecoverySpeechOutput
     private var active:Topic?
+    private var activeText:String?
     private var activeResolved=false
     private var heard=Set<Topic>()
     private var queued=[Prompt]()
@@ -15,7 +22,7 @@ import Foundation
         self.audio=audio ?? LocalClockAudio()
         self.audio.onSpeechFinished = { [weak self] in
             guard let self else {return}
-            self.active=nil;self.advance()
+            self.active=nil;self.activeText=nil;self.advance()
         }
         self.audio.onSpeechEvent = { [weak self] event,details in
             guard let self else {return}
@@ -24,28 +31,33 @@ import Foundation
             self.onSpeechEvent?(event,fields)
         }
     }
-    func request(_ topic:Topic,text:String,settings:LocalClockSounds,priority:Bool=false) {
+    /// Refresh queued guidance against current state before playback. Returning
+    /// nil discards an obsolete instruction without claiming it was heard.
+    func request(_ topic:Topic,text:String,settings:LocalClockSounds,priority:Bool=false,refresh:(()->String?)?=nil) {
         queued.removeAll{$0.topic==topic}
-        guard active != topic else {activeResolved=false;return}
+        if active==topic,activeText==text {activeResolved=false;return}
         heard.remove(topic)
-        let prompt=Prompt(topic:topic,text:text,settings:settings)
-        if priority {queued.insert(prompt,at:0)} else {queued.append(prompt)}
+        let prompt=Prompt(topic:topic,text:text,settings:settings,refresh:refresh)
+        // Important instructions precede queued acknowledgements, but never
+        // interrupt a sentence already in progress. One queued update per topic.
+        let index=queued.firstIndex { topic.isWarning && !$0.topic.isWarning || priority && topic.isWarning==$0.topic.isWarning }
+        queued.insert(prompt,at:index ?? queued.count)
         advance()
     }
     func wasHeard(_ topic:Topic)->Bool {heard.contains(topic) || (active==topic && audio.hasStartedSpeech)}
     func hasAnnouncement(_ topic:Topic)->Bool {wasHeard(topic) || active==topic || queued.contains{$0.topic==topic}}
     func forgetAnnouncement(_ topic:Topic) {heard.remove(topic)}
-    /// Superseded factual clock messages must not play after the state reverses.
+    /// Drop unsaid messages when state reverses. Once audible, finish the
+    /// sentence; the current-state follow-up is queued by the caller.
     func cancel(_ topic:Topic,reason:String) {
-        queued.removeAll {$0.topic==topic};heard.remove(topic)
-        guard active==topic else {return}
-        audio.stop(reason:reason);active=nil;activeResolved=false;advance()
+        heard.remove(topic)
+        resolved(topic,reason:reason)
     }
     func resolved(_ topic:Topic,reason:String="condition recovered") {
         queued.removeAll{$0.topic==topic}
         guard active==topic else {return}
         if !audio.hasStartedSpeech {
-            audio.stop(reason:reason+" before playback");active=nil;advance()
+            audio.stop(reason:reason);active=nil;activeText=nil;advance()
         } else if !activeResolved {
             activeResolved=true
             onSpeechEvent?("finishing guidance",["channel":"recovery","topic":topic.rawValue,"reason":reason])
@@ -56,12 +68,19 @@ import Foundation
         if let active {resolved(active,reason:reason)}
     }
     func stop(reason:String) {
-        queued=[];heard=[];audio.stop(reason:reason);active=nil;activeResolved=false
+        queued=[];heard=[];audio.stop(reason:reason);active=nil;activeText=nil;activeResolved=false
     }
     private func advance() {
         guard active==nil,!queued.isEmpty else {return}
-        let next=queued.removeFirst();active=next.topic;activeResolved=false
-        audio.say(next.text,settings:next.settings,announcement:true)
+        let next=queued.removeFirst()
+        let text:String?
+        if let refresh=next.refresh {text=refresh()} else {text=next.text}
+        guard let text,!text.isEmpty else {
+            onSpeechEvent?("cancelled before playback",["channel":"recovery","topic":next.topic.rawValue,"phrase":next.text,"reason":"condition changed while queued"])
+            advance();return
+        }
+        active=next.topic;activeText=text;activeResolved=false
+        audio.say(text,settings:next.settings,announcement:true)
     }
 }
 
@@ -91,7 +110,7 @@ import Foundation
             guard let self else {return}
             do {try await Task.sleep(nanoseconds:self.delay)} catch {return}
             guard !Task.isCancelled,enabled() else {return}
-            self.speech.request(.clockPause,text:message(),settings:settings,priority:true)
+            self.speech.request(.clockPause,text:message(),settings:settings,priority:true,refresh:{enabled() ? message():nil})
         }
     }
     func cleared(running:Bool,blackToPlay:Bool,enabled:Bool,settings:LocalClockSounds) {
