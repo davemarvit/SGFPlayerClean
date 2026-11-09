@@ -19,16 +19,7 @@ struct PlaySessionControls:View {
                     .actionAttention(model.playMode == .local && recorder.saveError != nil ? .required:.none)
                     .disabled(model.exportingSGF || (model.playMode == .local && (!recorder.hasGame || recorder.hasUnfinishedReviews)))
             }
-            if model.playMode == .local && !recorder.clock.enabled && recorder.needsTurnConfirmation {LiveTurnPrompt(recorder:recorder)}
-            if model.playMode == .local && recorder.hasUnfinishedReviews {
-                Text("Resolve the review sections beside the board before exporting the complete SGF. Later moves are saved in the recovery record.").font(.callout).foregroundStyle(.orange)
-            }
-            if !model.exportStatus.isEmpty {Text(model.exportStatus).font(.callout).textSelection(.enabled)}
-            if let error=recorder.reviewSaveError,model.playMode == .local {
-                Text(error).foregroundStyle(.red)
-                Button("Retry review recovery") {recorder.retryReviewSave()}
-            }
-            if let error=recorder.saveError,model.playMode == .local {Text(error).foregroundStyle(.red)}
+            if model.playMode == .online && !model.exportStatus.isEmpty {Text(model.exportStatus).font(.callout).textSelection(.enabled)}
         }.confirmationDialog("End this game?",isPresented:$confirmEnd,titleVisibility:.visible) {
             Button("End game") {recorder.finish();endNeedsAttention=recorder.state != .finished}
             Button("Cancel",role:.cancel) {}

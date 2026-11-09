@@ -58,6 +58,8 @@ import SwiftUI
         try snapshot("setup")
         model.recorder.start(size:19,info:SGFGame.Info(playerBlack:"Black player",playerWhite:"White player"),clockSettings:.init(),startPaused:true)
         try snapshot("play-paused")
+        let initialStatus=LocalPlayStatus(recorder:model.recorder)
+        check(initialStatus.title=="Ready to start" && initialStatus.nextStep.contains("Start"),"First-start status is misleading")
         let sgf=model.recorder.sgf(),state=model.recorder.state
         model.showDiagnostics=true
         try snapshot("diagnostic-controls")

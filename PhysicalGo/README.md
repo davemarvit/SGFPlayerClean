@@ -132,6 +132,55 @@ is still on demand on battery; this display does not start another engine.
 all four orientations with native renders, uncertain/malformed ownership, final-score
 corrections, fresh-position reset, and the existing real KataGo/power/handoff tests.
 
+## Shared play status and capture timing (0.127)
+
+Local play has one status area below the clock controls. It shows the current
+clock/recording state, next action, review completion and export feedback.
+The original automatic-pause reason and earlier timing notes are collapsed under
+**Earlier clock details**, so an obsolete turn question cannot remain a current
+instruction after review. Review editors are attached sheets; successful saves
+close the editor and report completion in the main status area. Clock review,
+when required, remains enforced by **Review & resume**.
+
+Setup → Players, rules & clock includes **Automatically pause for captures**:
+Off, two or more (default), three or more, or five or more stones. This is a local
+clock policy, independent of scoring rules; it does not control an online server
+clock. [AGA Tournament Regulations](https://www.usgo.org/docs.ashx?id=1166826)
+(February 20, 2023), VII.11(c), permit stopping
+both clocks for removal of more than one captured stone. Automatic pausing is
+our configurable implementation of that permission, not an AGA requirement.
+The regulations also require removal before move completion (VI.B.3).
+
+A legal incomplete capture must be identified in repeated fresh views before an
+automatic hold begins. The clock is reconstructed at the first supporting frame;
+neither player is charged for removal. Five fresh matching views spanning at
+least 0.8 seconds verify the finished capture. The move is saved once and the
+opponent's clock is reconstructed from the first clear completion frame, including
+recognition delay. Manual pauses are respected. Camera interruptions invalidate
+confirmation evidence; cancellation of a presumed capture requires clock review.
+Pending capture holds survive restart with both clocks paused until Resume.
+**Review capture…** hands a stuck hold to the existing capture/photo workflow;
+that explicit fallback asks players to check clock times before resuming.
+A capture entirely hidden until removal finishes has no reliable removal-start
+timestamp: this policy does not invent or refund an unobserved interval.
+
+Local timed play uses Apple's on-device Vision hand-pose detector in the existing
+camera analysis worker. Detected hands over the calibrated board postpone move
+acceptance. Completed positions use retained clear-frame capture timestamps for
+clock accounting, with existing legal-move and temporal confirmation gates.
+The camera feeds analysis at most five times per second; 0.2 seconds is nominal
+sampling resolution, not a guaranteed accuracy bound. Missed detections, processing
+backlog and dropped frames can reduce precision. Old or interrupted evidence cannot
+cross a pause/recalibration boundary. Recorded fixtures without hand metadata retain
+the previous first-candidate timing behavior. Online clock times remain server-owned.
+
+`--capture-clock-test` covers actual incomplete-capture data, thresholds/off,
+manual pause/resume, camera interruptions, cancellation, clock balances, confirmation
+delay, hand gating, clear-frame timestamps, restart, legacy settings, photographed
+hand detection and native sheet attachment. `--review-queue-test` and
+`--workflow-ui-test` cover resolved-turn guidance, completion messages, retained
+review selections, photo handoff, and the unified native play layout.
+
 ## Recovery without persistent overrides (0.126)
 
 Board-photo labels now apply only to the frozen photograph being checked. Saving
@@ -195,7 +244,7 @@ When a capture or board restoration remains unresolved and clocks are stopped,
 the main transport opens that correction instead of offering Resume or Pause
 checking. Its guidance explains the outstanding action; the unknown-turn prompt
 does not compete with a capture that already establishes the next player.
-Clock and board controls share one review window, including the enlarged clock.
+Clock and board controls share one attached review sheet (since 0.127).
 An expired camera witness shows the capture diagram as the last known position,
 rather than claiming the previously seen stone is still present. Confirmation
 still requires fresh alignment and clear evidence at the corrected intersections.

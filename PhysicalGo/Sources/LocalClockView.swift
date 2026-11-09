@@ -24,10 +24,61 @@ import AVFoundation
         else if recorder.awaitingFirstStart && recorder.state == .paused {title="Ready to start"}
         else if recorder.state == .finished {title="Game finished"}
         else if recorder.state == .paused {title="Game paused"}
+        else if recorder.automaticCaptureStatus != nil {title="Removing captured stones · clocks stopped"}
         else if automaticHold {title="Waiting for board · clocks stopped"}
         else if clock.enabled && !clock.running {title="Clocks paused"}
         else if !recorder.synchronized {title="Checking board"}
         else {title="Playing"}
+    }
+}
+
+/// Current instructions come from current state, never from an old pause reason.
+@MainActor struct LocalPlayStatus {
+    let title:String
+    let detail:String
+    let nextStep:String
+    init(recorder:GameRecorder) {
+        let clock=recorder.clock
+        let presentation=LocalPlayPresentation(recorder:recorder,clock:clock)
+        let clocks=clock.enabled ? (clock.running ? "Clock running.":"Clocks stopped."):""
+        if let error=recorder.saveError ?? recorder.pendingSaveError ?? recorder.reviewSaveError ?? clock.saveError {
+            title="Saving needs attention";detail=error;nextStep="Retry saving before continuing."
+        } else if recorder.state == .finished {
+            title="Game finished";detail="\(recorder.moveCount) moves saved. \(clocks)"
+            nextStep=recorder.hasUnfinishedReviews ? "Resolve the remaining reviews before exporting the complete game.":"The saved game is ready for scoring or export."
+        } else if let correction=presentation.correction {
+            title=correction.title.replacingOccurrences(of:"…",with:"")
+            detail="\(clocks) The saved game is preserved.";nextStep=correction.guidance
+        } else if clock.requiresReview {
+            title="Check clock times";detail="\(clocks) The saved game is preserved."
+            nextStep="Choose Review & resume to check both times before continuing."
+        } else if let capture=recorder.automaticCaptureStatus {
+            title="Removing captured stones";detail="Both clocks stopped. The capture is being checked."
+            nextStep=recorder.state == .paused ? "Press Resume to continue checking the capture. Both clocks stay stopped until removal is verified.":capture
+        } else if recorder.handOverBoard && recorder.state == .recording {
+            title="Waiting for hands to clear";detail="\(clocks) The move will be confirmed after the board is clear."
+            nextStep="Keep the stones in place. Timing uses the first clear frame of the completed move."
+        } else if recorder.needsTurnConfirmation {
+            title="Confirm who plays next";detail="\(clocks) Earlier moves remain in the review history."
+            nextStep="Choose Black or White below."
+        } else if recorder.awaitingFirstStart && recorder.state == .paused {
+            title="Ready to start";detail="Game setup saved. Timing and move recording have not started."
+            nextStep="Press Start when both players are ready."
+        } else if recorder.state == .paused {
+            title="Game paused";detail="\(clocks) New moves are not being recorded."
+            let turn=(recorder.liveNextPlayer ?? recorder.nextPlayer).rawValue.capitalized
+            nextStep=recorder.pendingMoveCount>0
+                ? "Press Resume to recheck \(recorder.pendingMoveCount) pending moves. Keep the stones in place."
+                : "\(turn) plays next. Press Resume when ready; the board is verified before play continues."
+        } else if recorder.state == .idle {
+            title="Camera preview";detail="No game is being recorded.";nextStep="Save a game setup to begin."
+        } else if !recorder.synchronized || recorder.needsAttention || recorder.pendingMoveCount>0 {
+            title="Checking the board";detail="\(clocks) \(recorder.moveCount) moves saved."
+            nextStep=recorder.status
+        } else {
+            title="Playing";detail="\(clocks) \(recorder.moveCount) moves saved."
+            nextStep="\((recorder.liveNextPlayer ?? recorder.nextPlayer).rawValue.capitalized) to play."
+        }
     }
 }
 
@@ -80,6 +131,13 @@ struct LocalClockSettingsView:View {
                 case .simple:duration("Time per move",\.periodSeconds)
                 default:EmptyView()
                 }
+                Picker("Automatically pause for captures",selection:Binding(get:{settings.capturePauseMinimum},set:{settings.automaticCaptureMinimum=$0})) {
+                    Text("Off").tag(0)
+                    Text("2 or more stones (AGA)").tag(2)
+                    Text("3 or more stones").tag(3)
+                    Text("5 or more stones").tag(5)
+                }
+                Text("Both clocks pause during removal. The opponent’s clock resumes after the cleared board is verified. A manual pause always stays paused.").font(.caption).foregroundStyle(.secondary)
                 Text(settings.summary).font(.caption).foregroundStyle(.secondary)
                 Text("The clock starts after the starting board is verified. A recognized legal move or Pass switches it to the other player.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -119,6 +177,7 @@ struct LocalClockPanel:View {
     @ObservedObject var clock:LocalGameClock
     @ObservedObject var recorder:GameRecorder
     var large=false
+    var showsStatus=true
     var onReview:(UUID)->Void = {_ in}
     @State private var expanded=false
     @State private var correction=false
@@ -150,25 +209,20 @@ struct LocalClockPanel:View {
                 side(black:false)
             }
             transport
-            if recorder.needsTurnConfirmation,presentation.correction==nil {LiveTurnPrompt(recorder:recorder)}
-            if let note=clock.timingNote {
+            if showsStatus,recorder.needsTurnConfirmation,presentation.correction==nil {LiveTurnPrompt(recorder:recorder)}
+            if showsStatus,let note=clock.timingNote {
                 DisclosureGroup("Earlier clock timing") {Text(note).font(.callout)}
             }
-            if let pause=clock.automaticPause,!clock.running,recorder.state != .finished {
-                ClockPauseFeedback(pause:pause,paused:recorder.state == .paused,
-                    pendingMoves:recorder.pendingMoveCount,requiresReview:clock.requiresReview,awaitingTurn:clock.awaitingTurn,
-                    correctionGuidance:presentation.correction?.guidance,boardStatus:recorder.synchronized ? nil:recorder.status)
-            } else if let correction=presentation.correction {
-                Text(correction.guidance).font(.callout).foregroundStyle(.orange)
-            } else {
-                Text(clock.notice).font(large ? .title2:.headline)
-                    .foregroundStyle(clock.needsCorrection || clock.engine.expiredBlack != nil ? Color.red:clock.running ? Color.primary:Color.orange)
-                    .frame(maxWidth:.infinity,alignment:.leading)
+            if showsStatus {
+                let message=LocalPlayStatus(recorder:recorder)
+                VStack(alignment:.leading,spacing:6) {
+                    Text(message.title).font(.headline)
+                    Text(message.detail).font(.callout)
+                    if !message.nextStep.isEmpty {Text(message.nextStep).font(.callout)}
+                    if let notice=recorder.reviewNotice {Label(notice,systemImage:"checkmark.circle.fill").foregroundStyle(.green)}
+                    if let error=clock.saveError {Text(error).foregroundStyle(.red)}
+                }
             }
-            if clock.requiresReview {
-                Text("Choose Review & resume to check both times. You can keep the displayed times or enter corrections agreed by both players.").font(.callout)
-            }
-            if let error=clock.saveError {Text(error).foregroundStyle(.red)}
             if large {
                 Text("Move recognition switches the clock automatically. Use the recording controls to pass. Countdown numbers show seconds remaining; byoyomi counts include the current period.")
                     .foregroundStyle(.secondary)
@@ -347,7 +401,7 @@ struct ClockPauseFeedback:View {
     var body:some View {
         VStack(alignment:.leading,spacing:6) {
             Label("Clocks stopped automatically",systemImage:"pause.circle.fill").font(.headline).foregroundStyle(.orange)
-            if correctionGuidance == nil {Text("Why it stopped: \(pause.reason)").font(.callout)}
+            if correctionGuidance == nil {DisclosureGroup("Earlier pause details") {Text(pause.reason).font(.callout)}}
             Text(nextStep).font(.callout).fontWeight(.medium)
             if correctionGuidance==nil,!requiresReview,!awaitingTurn,let boardStatus,!boardStatus.isEmpty {
                 Text(boardStatus).font(.callout)

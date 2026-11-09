@@ -113,7 +113,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         return "Check the photo and label any incorrect readings. Photo confirmation becomes available when it matches the capture or restoration being reviewed."
     }
     var photoReviewAction:PhotoReviewAction? {
-        guard playMode == .local,recorder.state == .paused,!recorder.reviewing,
+        guard playMode == .local,recorder.state == .paused,!recorder.reviewing,!recorder.handOverBoard,
               running,cameraState == .live,!frozen,!alignmentNeedsRecovery,!lightingNeedsRecovery,
               correctionRevision==revision,let time=correctionFrameTime,
               let snapshot=correctionSnapshot,!snapshot.observation.lightingBlocked,let original=correctionReviewTarget else {return nil}
@@ -133,6 +133,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     func beginBoardCorrection(at point:Int?=nil) {
         guard !savingCorrections, !boardCorrections.isEditing,
               let image, let observation, let calibration, !alignmentNeedsRecovery else {return}
+        if recorder.automaticCaptureStatus != nil,recorder.prepareAutomaticCaptureReview()==nil {return}
         correctionInitialPoint=point
         correctionRevision=revision
         let now=ProcessInfo.processInfo.systemUptime
@@ -176,7 +177,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                             ? self.recorder.confirmCaptureReview(action.photo.reviewID,checkedPhoto:action.photo)
                             : self.recorder.confirmBoardRestoration(action.photo.reviewID,checkedPhoto:action.photo)
                         if let error {self.correctionError=error;return}
-                        self.reviewWindow.close()
+                        self.reviewPresentation.close()
                     }
                     self.boardCorrections.commit(); self.correctionSnapshot=nil
                     self.onlineBoard.pauseForCorrection()
@@ -191,7 +192,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         boardCorrections.clear(reason:reason); correctionSnapshot=nil
     }
     let recorder: GameRecorder
-    let reviewWindow=ReviewWindow()
+    let reviewPresentation=ReviewPresentation()
     let diagnostics: DiagnosticRecorder
     private var diagnosticDecisionTicket:DiagnosticRecorder.Ticket?
     private var lastDiagnosticSGF=""
@@ -1027,7 +1028,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingContext:trackingContext,
             trackingManualPoints:trackingManualPoints,
             trackingFresh:trackingFresh,
-            trackingTime:trackingTime)) { [weak self] analysis in
+            trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil)) { [weak self] analysis in
             let frame=analysis.frame
             let exposureFailure=analysis.exposureFailure
             let alignmentReport=analysis.alignmentReport
@@ -1073,11 +1074,22 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard self.revision == token else { diagnosticOutcome="discarded stale analysis";self.analyze();return }
             let alignmentTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
             let freshView=supplied != nil && self.running && self.cameraState == .live && !self.frozen
+            if freshView,let captureUptime,ProcessInfo.processInfo.systemUptime-captureUptime>1.5 {
+                diagnosticOutcome="stale analysis frame discarded";return
+            }
             defer {
-                self.boardViewFeedback.observe(clear:aligned != nil && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
+                self.boardViewFeedback.observe(clear:aligned != nil && analysis.handObstructed != true && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
                     fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
                     clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
+            }
+            if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
+            if freshView,analysis.handObstructed == true {
+                self.recorder.noteHandObstruction()
+                self.image=target;self.observation=nil;self.trackedBoardObservation=nil
+                self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
+                diagnosticOutcome="hand over board; waiting for clear frame"
+                return
             }
             if freshView,aligned==nil,BoardAlignmentGate.likelyObstruction(alignmentReport) {
                 self.recoveryLikelyObstruction=true
@@ -1191,7 +1203,8 @@ enum PhysicalPlayMode: String, CaseIterable {
                     self.detectGrid(recovering:true)
                     return
                 }
-                let delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
+                var delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
+                delivered.capturedAt=captureUptime;delivered.handObstructed=analysis.handObstructed
                 self.deliverLiveObservation(delivered,now:now)
             }
             if let result, newObservation {

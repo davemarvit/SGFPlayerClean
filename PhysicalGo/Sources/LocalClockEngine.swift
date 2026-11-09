@@ -15,7 +15,11 @@ struct LocalClockSettings:Codable,Equatable {
     var incrementSeconds=30
     var maximumSeconds=1200
     var stonesPerPeriod=25
+    // Missing in older settings: use the default. Zero explicitly disables it.
+    var automaticCaptureMinimum:Int?=2
+    var capturePauseMinimum:Int {automaticCaptureMinimum ?? 2}
     var validationError:String? {
+        guard capturePauseMinimum==0 || (2...361).contains(capturePauseMinimum) else {return "Capture pause must be off or at least two stones."}
         guard kind != .none else {return nil}
         guard (0...604800).contains(mainSeconds),(1...86400).contains(periodSeconds),
               (1...100).contains(periods),(0...86400).contains(incrementSeconds),

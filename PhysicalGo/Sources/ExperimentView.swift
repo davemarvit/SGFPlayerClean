@@ -11,6 +11,7 @@ struct PlayWorkspace {
 struct ExperimentView: View {
     @ObservedObject var model:ExperimentModel
     @ObservedObject private var recorder:GameRecorder
+    @ObservedObject private var reviews:ReviewPresentation
     @ObservedObject private var bridge:PhysicalOnlineBoard
     @State private var workspace=PlayWorkspace()
     @State private var showsInfo=false
@@ -21,6 +22,7 @@ struct ExperimentView: View {
     @State private var changeMode:PhysicalPlayMode?
     init(model:ExperimentModel) {
         self.model=model
+        _reviews=ObservedObject(wrappedValue:model.reviewPresentation)
         _recorder=ObservedObject(wrappedValue:model.recorder)
         _bridge=ObservedObject(wrappedValue:model.onlineBoard)
     }
@@ -31,7 +33,7 @@ struct ExperimentView: View {
             Divider()
             ScrollView {
                 VStack(alignment:.leading,spacing:20) {
-                    if workspace.activity == .play {
+                    if workspace.activity == .play && model.playMode == .online {
                         if model.alignmentNeedsRecovery {BoardRecoveryBanner(model:model)}
                         else if model.lightingNeedsRecovery {LightingRecoveryBanner(model:model)}
                     }
@@ -50,6 +52,10 @@ struct ExperimentView: View {
                 if model.playMode == .online && wasEmpty && !isEmpty {workspace.gameBecameAvailable()}
             }
             .onChange(of:model.playMode) {_,_ in workspace.changedMode()}
+            .sheet(item:Binding(get:{reviews.session},set:{if $0==nil {reviews.close()}}),onDismiss:{reviews.didDismiss()}) {session in
+                ReviewSectionView(recorder:session.recorder,id:session.id,orientation:session.orientation,
+                    onClose:{reviews.close()},onCheckPhoto:session.onCheckPhoto == nil ? nil:{reviews.checkPhoto()})
+            }
             .sheet(isPresented:$showsInfo) {
                 VStack(spacing:0) {
                     HStack {Text("Info & settings").font(.title2.bold());Spacer();Button("Done") {showsInfo=false}.keyboardShortcut(.cancelAction)}.padding(20)
@@ -181,14 +187,9 @@ struct ExperimentView: View {
                 } description:{Text("Set up the camera and game before recording moves.")}
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
             } else {
-                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewWindow.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
+                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
-                if model.playMode == .local && recorder.needsAttention {
-                    Button("Pause and inspect board",systemImage:"pause.circle.fill") {
-                        recorder.pause()
-                    }.buttonStyle(.borderedProminent).tint(.red)
-                }
             }
             if model.playMode == .online {PhysicalOnlineBoardView(bridge:bridge).frame(maxWidth:600).frame(maxWidth:.infinity)}
             // Keep one stable panel in play. Its tabs are the user's explicit
@@ -607,7 +608,7 @@ private struct LocalClockVisibility:View {
     @ObservedObject var clock:LocalGameClock
     @ObservedObject var recorder:GameRecorder
     let onReview:(UUID)->Void
-    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,onReview:onReview)}}
+    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,showsStatus:false,onReview:onReview)}}
 }
 
 /// Always visible during alignment loss, including when diagnostics are hidden.

@@ -16,8 +16,6 @@ struct ReviewSectionView:View {
     @State private var error:String?
     @State private var colorOverride:BoardPosition?
     @State private var overrideCamera=false
-    @State private var reviewingClocks=false
-    @State private var reviewSaved=false
     @State private var recoveringOrder=false
     @State private var recoveryMessage:String?
     @State private var turnConflict:ReviewOrderRecovery.Interval?
@@ -94,8 +92,7 @@ struct ReviewSectionView:View {
     }
     var body:some View {
         Group {
-        if reviewSaved {SavedReviewNotice(recorder:recorder,onClose:close)}
-        else if mode != .order,let capture=recorder.captureReviewPlan(id) {
+        if mode != .order,let capture=recorder.captureReviewPlan(id) {
             CaptureReviewView(recorder:recorder,plan:capture,orientation:orientation,onClose:close,
                 onSaved:completeReview,onOtherMove:{mode = .order;error=nil},onCheckPhoto:onCheckPhoto)
         }
@@ -161,8 +158,6 @@ struct ReviewSectionView:View {
                     draft=MoveRecoveryDraft(game:updated,observation:draft.observation);error=nil;recoveredOrders=[];recoveryMessage=nil;turnConflict=nil
                 }
         }
-        }.sheet(isPresented:$reviewingClocks,onDismiss:{close()}) {
-            LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)
         }
     }
     private var problem:some View {
@@ -247,11 +242,7 @@ struct ReviewSectionView:View {
             }
         }.fixedSize(horizontal:false,vertical:true)
     }
-    private func completeReview() {
-        if !recorder.hasDeferredMoves && recorder.clock.requiresReview && recorder.state != .finished {reviewingClocks=true}
-        else if recorder.state == .finished {close()}
-        else {reviewSaved=true}
-    }
+    private func completeReview() {close()}
     private func proposal(_ points:[Int])->MoveRecoveryDraft? {
         var game=context;if !turnKnown {game.initialPlayer=firstColor}
         var result=MoveRecoveryDraft(game:game,observation:draft.observation)

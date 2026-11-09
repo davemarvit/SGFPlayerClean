@@ -195,6 +195,8 @@ struct BoardObservation {
     var manualPoints: Set<Int> = []
     /// Geometry-supported associations; never ground-truth training labels.
     var trackedAssignments: [Int:Int] = [:]
+    var capturedAt:Double?=nil
+    var handObstructed:Bool?=nil
     /// Positive geometric evidence about displacement, in grid-spacing units.
     /// Missing/weak outlines are not evidence that a placement is centered.
     var placementOffsets:[Int:Double] { offsets(forAssignment: false) }

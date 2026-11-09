@@ -60,6 +60,7 @@ enum LocalGameSetup {
     enum State { case idle, verifying, recording, paused, finished }
     @Published private(set) var state: State = .idle
     @Published private(set) var status = "Start with an empty board. Black plays first."
+    @Published private(set) var reviewNotice:String?
     @Published private(set) var reviewIndex = 0
     @Published private(set) var positions = [BoardSnapshot]()
     @Published private(set) var game = SGFGame()
@@ -247,10 +248,10 @@ enum LocalGameSetup {
     private var recoveredReviewCommit=false
     var activeReviewID:UUID?
     var hasDeferredMoves:Bool {reviewHistory.active}
-    var hasUnfinishedReviews:Bool {hasDeferredMoves || reviewSaveError != nil || pendingSaveError != nil || recoveryReadBlocked}
+    var hasUnfinishedReviews:Bool {automaticCapture != nil || hasDeferredMoves || reviewSaveError != nil || pendingSaveError != nil || recoveryReadBlocked}
     var liveNextPlayer:Stone? {hasDeferredMoves ? reviewHistory.nextColor : nextPlayer}
     var needsTurnConfirmation:Bool {hasDeferredMoves && liveNextPlayer == nil && state != .finished}
-    var canScorePosition:Bool {!recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
+    var canScorePosition:Bool {automaticCapture == nil && !recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
     var scoringGame:SGFGame {
         guard let board=reviewHistory.latest else {return game}
         var live=DeferredMoveHistory.positionGame(board,size:game.boardSize,rules:game.info.rules,turn:liveNextPlayer ?? .black)
@@ -318,7 +319,7 @@ enum LocalGameSetup {
     var nextPlayer: Stone { player.turn }
     var reviewing: Bool { reviewIndex != moveCount }
     var reviewedBoard: BoardSnapshot? { positions.indices.contains(reviewIndex) ? positions[reviewIndex] : nil }
-    var canEdit: Bool { !recoveryReadBlocked && !awaitingFirstStart && state == .paused && !reviewing && !hasDeferredMoves }
+    var canEdit: Bool { automaticCapture == nil && !recoveryReadBlocked && !awaitingFirstStart && state == .paused && !reviewing && !hasDeferredMoves }
     var canPass: Bool {
         guard !recoveryReadBlocked, !awaitingFirstStart else {return false}
         if hasDeferredMoves {return reviewHistory.nextColor != nil && !reviewing && (state == .recording || state == .paused)}
@@ -339,6 +340,7 @@ enum LocalGameSetup {
         // Each new session has a separate file. Never overwrite the previous game.
         if hasGame,saveSession() != nil {return}
         let ready=handicap == 0 && hasVerifiedEmptyBoard(size:size,now:now)
+        reviewNotice=nil;resetAutomaticCapture()
         timingNeedsFreshEpoch=true;reviewTriggers=[];reviewStarts=[:]
         placementChimes = PlacementChimeMonitor()
         var fresh=SGFGame(); fresh.boardSize=size; fresh.initialPlayer = handicap>0 ? .white:.black
@@ -397,6 +399,7 @@ enum LocalGameSetup {
         if hasGame,let error=saveSession() {
             throw NSError(domain:"PhysicalGo",code:1,userInfo:[NSLocalizedDescriptionKey:error])
         }
+        reviewNotice=nil;resetAutomaticCapture()
         awaitingFirstStart=false;announceFirstStart=false
         placementChimes = PlacementChimeMonitor()
         resetAdjustmentGuidance()
@@ -417,6 +420,12 @@ enum LocalGameSetup {
         status="Restored \(moveCount) recorded moves. Review them, or resume recording when the live board is ready."
         clock.restore(from:url,signature:checkpointSignature,moveCount:moveCount,blackToPlay:nextPlayer == .black)
         try restoreChronology()
+        if let source=clock.automaticCapturePosition {
+            if !hasDeferredMoves,let capture=AutomaticCapture.find(game:game,readings:source,minimum:2) {
+                automaticCapture=capture
+                automaticCaptureStatus="Capture removal was paused. Press Resume to continue checking it."
+            } else {clock.releaseAutomaticCapture()}
+        }
         beginTrace(append:true);trace(event:"restored saved game")
     }
     private func restoreChronology()throws {
@@ -493,7 +502,7 @@ enum LocalGameSetup {
     func suspendVision(_ reason:String, preserveObservations:Bool=false, preserveOrder:Bool=false,checkpoint:Bool=true) {
         // Restoration must validate sidecars before any checkpoint can replace them.
         defer {if checkpoint {checkpointPendingMoves()}}
-        viewContinuity.reset()
+        viewContinuity.reset();clearBoardTiming.reset();captureCandidate=nil;captureClearViews=[];handOverBoard=false
         reviewHistory.interrupt();unresolvedSince=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if reason.isEmpty {clock.pause("Recording paused")} else {clock.interrupt(reason)}
@@ -532,6 +541,7 @@ enum LocalGameSetup {
     }
     func resume() {
         guard !recoveryReadBlocked,state == .paused else { return }
+        reviewNotice=nil
         defer {checkpointPendingMoves()}
         if awaitingFirstStart {
             announceFirstStart=true;clock.requestResume()
@@ -579,6 +589,10 @@ enum LocalGameSetup {
     }
     func finish() {
         guard !recoveryReadBlocked else {return}
+        if automaticCapture != nil {
+            if prepareAutomaticCaptureReview() != nil {status="Finish reviewing the capture before ending the game. Both clocks remain stopped."}
+            return
+        }
         if hasDeferredMoves {
             pause();clock.finish();state = .finished;reviewHistory.endRequested=true;saveReviewHistory()
             status="Game ended. Scoring is available; resolve the red reviews before exporting the complete SGF."
@@ -783,8 +797,102 @@ enum LocalGameSetup {
     }
 
 
+    @Published private(set) var handOverBoard=false
+    @Published private(set) var automaticCaptureStatus:String?
+    private var automaticCapture:AutomaticCapture?
+    private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int)?
+    private var captureClearViews:[Double]=[]
+    private var clearBoardTiming=ClearBoardTiming()
+    func noteHandClear() {handOverBoard=false}
+    func noteHandObstruction() {
+        handOverBoard=true;clearBoardTiming.reset();captureClearViews=[];captureCandidate=nil
+        reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
+        if state == .recording {status="Waiting for hands to clear the board. Saved moves are preserved."}
+    }
+    /// Move an automatic hold into the existing explicit review/photo workflow.
+    /// Persist that review before releasing the hold; failures remain retryable.
+    func prepareAutomaticCaptureReview()->UUID? {
+        guard let capture=automaticCapture,!hasDeferredMoves else {return nil}
+        pause()
+        let previous=reviewHistory
+        reviewHistory.anchorSignature=checkpointSignature;reviewHistory.baseMove=moveCount
+        let number=(reviewHistory.reviews.compactMap(\.reviewNumber).max() ?? 0)+1
+        let now=ProcessInfo.processInfo.systemUptime
+        let section=DeferredMoveHistory.Section(reviewNumber:number,before:capture.before,after:capture.source,
+            reason:"Capture removal needs checking.",firstSeen:now,confirmedAt:now)
+        reviewHistory.sections.append(section)
+        saveReviewHistory()
+        if reviewSaveError != nil {reviewHistory=previous;return nil}
+        automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[]
+        clock.releaseAutomaticCapture()
+        clock.recover(toBlack:nextPlayer == .black,reason:"Automatic capture switched to manual review. Check both clock times before resuming.",at:now)
+        status="Check the capture or its camera photo. Both clocks remain stopped."
+        return section.id
+    }
+    private func resetAutomaticCapture() {
+        automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handOverBoard=false
+    }
+    /// Intercept a confidently identified removal before it becomes a generic
+    /// chronology review. Only the fully verified target is eventually recorded.
+    private func handleAutomaticCapture(_ observation:BoardObservation,now:Double)->Bool {
+        let readings=observation.signature
+        let stamp=observation.capturedAt.flatMap { $0.isFinite && $0<=now && now-$0<1.5 ? $0:nil } ?? now
+        if let capture=automaticCapture {
+            let ready=observation.handObstructed == false && ReviewBoardVerification.matches(readings,target:capture.target,requiredClear:capture.captured.union([capture.point]))
+            let cancelled=readings==capture.before
+            if ready || cancelled {
+                if let last=captureClearViews.last,stamp<=last {return true}
+                if let last=captureClearViews.last,stamp-last>0.5 {captureClearViews=[]}
+                // A base-position reading must not share target-position evidence.
+                let key=cancelled ? "capture cancelled":"capture cleared"
+                if pendingKey != key {captureClearViews=[];pendingKey=key}
+                captureClearViews.append(stamp)
+                if captureClearViews.count>=5,let first=captureClearViews.first,stamp-first>=0.8 {
+                    automaticCapture=nil;automaticCaptureStatus=nil;captureClearViews=[];captureCandidate=nil
+                    if cancelled {
+                        clock.abandonAutomaticCapture(blackToPlay:nextPlayer == .black,at:now)
+                        status="The expected capture was not completed. Check clock times before continuing."
+                    } else {
+                        appendVerifiedSequence([capture.point],boards:[capture.board],now:now)
+                        synchronized=true;boardReadyForPass=true
+                        if saveError != nil || pendingSaveError != nil {clock.pause("Capture needs saving before clocks resume",at:now)}
+                        clock.finishAutomaticCapture(at:first,now:now)
+                        trace(event:"automatic capture removal complete",now:now,extra:["captured":capture.captured.count,"clearFrameTime":first])
+                    }
+                    return true
+                }
+            } else {captureClearViews=[]}
+            let remaining=capture.captured.filter {readings[$0] != .empty}.count
+            automaticCaptureStatus=remaining>0
+                ? "Remove the remaining \(remaining) captured stones, then move hands clear. Both clocks stay stopped."
+                : "Captured points are empty. Keep hands clear while the complete position is verified."
+            status=automaticCaptureStatus!;return true
+        }
+        guard clock.enabled,clock.running,!clock.needsCorrection,!hasDeferredMoves,observation.handObstructed == false,
+              let plan=AutomaticCapture.find(game:game,readings:readings,minimum:clock.engine.settings.capturePauseMinimum) else {
+            captureCandidate=nil;return false
+        }
+        guard observation.readings[plan.point].confidence>=0.9,
+              (observation.assignmentOffsets[plan.point] ?? 0)<0.24 else {captureCandidate=nil;return false}
+        if let candidate=captureCandidate,candidate.plan.point==plan.point,stamp>candidate.last,stamp-candidate.last<=0.5 {
+            captureCandidate=(plan,candidate.first,stamp,candidate.samples+1)
+        } else {captureCandidate=(plan,stamp,stamp,1)}
+        guard let candidate=captureCandidate,candidate.samples>=3,stamp-candidate.first>=0.4 else {
+            status="Checking a possible capture. Keep the stones in place.";return true
+        }
+        guard clock.beginAutomaticCapture(at:candidate.first,now:now,position:plan.source) else {captureCandidate=nil;return false}
+        automaticCapture=plan;captureClearViews=[];synchronized=false;boardReadyForPass=false
+        resetObservationHistory();resetPending()
+        automaticCaptureStatus="Remove the captured stones, then move hands clear. Both clocks are stopped."
+        status=automaticCaptureStatus!
+        trace(event:"automatic capture removal pause",now:now,extra:["captured":plan.captured.count,"firstFrameTime":candidate.first])
+        return true
+    }
+
     func consume(_ observation:BoardObservation, now:Double) {
         guard !recoveryReadBlocked else {return}
+        if observation.handObstructed == true {noteHandObstruction();return}
+        handOverBoard=false
         // Let this fresh frame clear a resolved contradiction before deciding
         // whether the same frame confirms a move. Each timestamp is counted once.
         updateAdjustmentGuidance(observation,now:now)
@@ -814,6 +922,7 @@ enum LocalGameSetup {
         }
         lastTime=now
         let readings=observation.signature
+        clearBoardTiming.observe(observation,now:now)
         unclearPointCount=readings.filter{$0 == .uncertain}.count
         // Evaluate after acceptance so a move saved in this frame never gets a
         // failure sound. This runs even when global uncertainty blocks the move.
@@ -868,6 +977,7 @@ enum LocalGameSetup {
             return
         }
         let expected=player.board.grid.flatMap { $0 }.map { $0 == .black ? Occupancy.black : $0 == .white ? .white : .empty }
+        if handleAutomaticCapture(observation,now:now) {return}
         guard observationHistory.noteFrame(now:now) else {return}
         let rawUnknown=Set(readings.indices.filter{readings[$0] == .uncertain})
         let retainedOld=MoveObservationHistory.confirmedOcclusions(readings,base:expected,after:expected)
@@ -1030,17 +1140,22 @@ enum LocalGameSetup {
     /// Confirm only the supported common prefix. Keep later tentative moves in
     /// memory, and preserve every intermediate board for ordinary SGF review.
     private func appendVerifiedSequence(_ indices:[Int],boards:[BoardSnapshot],now:Double) {
-        // Use retained recognition evidence; do not infer a physical placement instant.
-        // Pauses, restored checkpoints and alignment interruptions have a fresh epoch.
+        // Prefer the first hand-clear frame of the completed legal position.
+        // Legacy/replayed observations retain their existing candidate boundary.
+        // Pauses, restored checkpoints and alignment interruptions start a fresh epoch.
         let matching=observationHistory.candidates.filter {Array($0.moves.prefix(indices.count))==indices}
         let timings:[[String:Any]]=indices.enumerated().map {offset,point in
             let starts=matching.compactMap {candidate in
                 candidate.witnesses.first(where:{$0.depth>offset && !$0.unknown.contains(point)})?.time
             }
-            let first=starts.min()
+            let target=DeferredMoveHistory.states(boards[offset])
+            let before=DeferredMoveHistory.states(offset==0 ? player.board:boards[offset-1])
+            let changed=Set(before.indices.filter {before[$0] != target[$0]})
+            let clear=clearBoardTiming.firstMatch(target:target,changed:changed,after:timingEpoch)
+            let first=clear ?? starts.min()
             var value:[String:Any]=["moveNumber":moveCount+offset+1,"point":point,"size":game.boardSize,
                 "color":boards[offset].grid[point/game.boardSize][point%game.boardSize]?.rawValue ?? "",
-                "timingScope":"first retained candidate to recorded","run":timingRun]
+                "timingScope":clear == nil ? "first retained candidate to recorded":"first hand-clear completed-board frame to recorded","run":timingRun]
             if let first,first>=timingEpoch,now>=first {value["seconds"]=now-first}
             else {value["unavailableReason"]="No uninterrupted candidate timing (pause, recovery or missing evidence)."}
             return value
@@ -1184,7 +1299,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.126"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.127"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
@@ -1363,6 +1478,7 @@ extension GameRecorder {
             "removedPoints":plan.removedPoints.sorted(),"keptLaterMoves":plan.keptMoves.count])
         if reviewHistory.unresolved==0 {return finalizeReviews()}
         status="Accidental stones removed from the record. Later moves are preserved; \(reviewHistory.unresolved) reviews remain."
+        reviewNotice="Cleanup saved. Later moves are preserved."
         return nil
     }
     @discardableResult func resolveReview(_ id:UUID,draft:MoveRecoveryDraft,overrideCamera:Bool,resolutionReason:String?=nil)->String? {
@@ -1390,6 +1506,7 @@ extension GameRecorder {
         trace(event:"review section resolved",extra:["review":reviewHistory.sections[index].reviewNumber ?? 0,"approvalSeconds":ProcessInfo.processInfo.systemUptime-approvalStarted,"selectedMoves":moves.map{["color":$0.color.rawValue,"point":$0.point.map{$0.row*game.boardSize+$0.col} as Any? ?? NSNull()]}])
         if reviewHistory.unresolved==0 {return finalizeReviews()}
         status="Review saved. \(reviewHistory.unresolved) sections still need review. Later moves remain preserved."
+        reviewNotice="Review \(reviewHistory.sections[index].reviewNumber ?? 0) saved."
         return nil
     }
     @discardableResult func finalizeReviews()->String? {
@@ -1435,6 +1552,7 @@ extension GameRecorder {
         trace(event:"review queue finalized",extra:["reviewHistory":((try? JSONSerialization.jsonObject(with:JSONEncoder().encode(reviewHistory))) ?? NSNull())])
         if ending {finish()}
         if scoreChanged {status="Reviews resolved. The corrected board differs from the scored board; score the game again before saving the result."}
+        if reviewSaveError==nil && saveError==nil {reviewNotice=scoreChanged ? status:"Review saved. All reviews resolved · \(moveCount) moves saved."}
         return reviewSaveError
     }
 }

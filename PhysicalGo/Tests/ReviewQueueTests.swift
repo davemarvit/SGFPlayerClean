@@ -95,6 +95,10 @@ import SwiftUI
         check(restored.reviewHistory.unresolved==1 && restored.moveCount==1,"Unresolved gap was finalized")
         check(restored.resolveReview(reviews[1].id,draft:proposal(restored,reviews[1],orders[1]),overrideCamera:false)==nil,"Final review failed: \(restored.status)")
         check(restored.moveCount==13 && !restored.hasUnfinishedReviews,"All-green queue did not finalize")
+        check(restored.reviewNotice?.contains("All reviews resolved") == true,"Review completion missing from main status")
+        let message=LocalPlayStatus(recorder:restored)
+        check(message.title=="Game paused" && !message.nextStep.contains("Choose Black or White"),"Resolved turn still asks for a player choice")
+        check(message.nextStep.contains(restored.nextPlayer.rawValue.capitalized),"Main status lost the next player")
         check(restored.positions.last==actual.board && restored.nextPlayer==actual.turn,"Replayed board/turn differs from observed game")
         check(restored.reviewHistory.reviews.allSatisfy{$0.committed && $0.moves != nil},"Green review history disappeared")
         check(restored.clock.engine.black.remaining==oldClock.0 && restored.clock.engine.white.remaining==oldClock.1,"Recovered history invented clock time")
@@ -189,13 +193,19 @@ import SwiftUI
         check(ReviewComparison.differences(selected:DeferredMoveHistory.board(selected,size:19),camera:camera)[0].camera == .black,"Wrong-color discrepancy lost")
         camera[231] = .white;camera[100] = .black
         check(ReviewComparison.differences(selected:DeferredMoveHistory.board(selected,size:19),camera:camera)[0].selected == .empty,"Extra camera stone discrepancy lost")
-        let reviewWindow=ReviewWindow()
-        reviewWindow.open(recorder:r,id:reviews[0].id,orientation:BoardOrientation(1))
-        let independent=reviewWindow.window!
-        check(independent.sheetParent==nil && independent.isMovable && independent.styleMask.contains(.resizable),"Review still attached or immovable")
-        reviewWindow.open(recorder:r,id:reviews[1].id,orientation:BoardOrientation(1))
-        check(reviewWindow.window === independent,"Opening another review discarded unsubmitted selections")
-        reviewWindow.close();check(reviewWindow.window==nil,"Review window did not close")
+        let reviewPresentation=ReviewPresentation()
+        var photos=0
+        reviewPresentation.open(recorder:r,id:reviews[0].id,orientation:BoardOrientation(1),onCheckPhoto:{photos += 1})
+        check(reviewPresentation.session?.id==reviews[0].id && r.activeReviewID==reviews[0].id,"Attached review did not retain its context")
+        reviewPresentation.open(recorder:r,id:reviews[1].id,orientation:BoardOrientation(1))
+        check(reviewPresentation.session?.id==reviews[0].id,"Opening another review discarded unsubmitted selections")
+        reviewPresentation.checkPhoto()
+        check(reviewPresentation.session==nil && r.activeReviewID==nil && photos==0,"Photo editor opened before review dismissal")
+        reviewPresentation.didDismiss();reviewPresentation.didDismiss()
+        check(photos==1,"Photo editor was lost or opened twice")
+        reviewPresentation.open(recorder:r,id:reviews[0].id,orientation:BoardOrientation(1))
+        reviewPresentation.close();reviewPresentation.didDismiss()
+        check(reviewPresentation.session==nil && r.activeReviewID==nil,"Attached review did not close")
 
         // Optional read-only session reproduction uses an isolated copy, never the live game.
         if let fixture=ProcessInfo.processInfo.environment["PHYSICAL_GO_REVIEW_FIXTURE"] {

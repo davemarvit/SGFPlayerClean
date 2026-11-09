@@ -25,6 +25,7 @@ import Combine
         var timingNote:String?
         var automaticPause:AutomaticPause?
         var resumeAnnouncement:String?
+        var capturePosition:[Occupancy]?
     }
     struct LivePress:Codable {
         let id:UUID
@@ -53,6 +54,8 @@ import Combine
     var onSpeechEvent:SpeechEventHandler? {didSet {audio.onSpeechEvent=onSpeechEvent}}
     private var timer:Timer?
     private var manuallyPaused=false
+    @Published private(set) var automaticCapturePaused=false
+    private(set) var automaticCapturePosition:[Occupancy]?
     private(set) var moves=[Move]()
     private(set) var baseMove=0
     private var file:URL?
@@ -69,6 +72,7 @@ import Combine
         timer?.invalidate();timer=nil;audio.stop(reason:"clock configured")
         audio.resetAnnouncements()
         engine=LocalClockEngine(settings:settings,blackToPlay:blackToPlay);moves=[];self.baseMove=baseMove
+        automaticCapturePaused=false;automaticCapturePosition=nil
         needsCorrection=false;manuallyPaused=false;notice="Clock starts when the board is ready."
         liveReviewActive=false;awaitingTurn=false;timingNote=nil;liveEvents=[]
         pendingResumeAnnouncement=nil
@@ -80,12 +84,38 @@ import Combine
         save()
     }
     func ready(at now:Double) {
-        guard enabled,!running,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
+        guard enabled,!running,!automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
         engine.resume(at:now);clearAutomaticPause();turnBaseline=engine;notice="\(engine.blackToPlay ? "Black":"White") to play"
         let announcement=pendingResumeAnnouncement;pendingResumeAnnouncement=nil
         if announcement == nil && audible {audio.beganTurn(engine,settings:sounds)}
         armTimer();save()
         if let announcement {onResumeAnnouncement?("\(announcement) Clocks resumed. \(engine.blackToPlay ? "Black":"White") to play.")}
+    }
+    /// Rewind only this uninterrupted turn; removal time is charged to neither side.
+    @discardableResult func beginAutomaticCapture(at observed:Double,now:Double,position:[Occupancy]?=nil)->Bool {
+        guard !automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,
+              let baseline=turnBaseline,let start=baseline.anchor,observed.isFinite,
+              observed>=start,observed<=now else {return false}
+        var paused=baseline;paused.pause(at:observed)
+        guard paused.expiredBlack==nil else {return false}
+        engine=paused
+        automaticCapturePaused=true;automaticCapturePosition=position;turnBaseline=nil
+        timer?.invalidate();timer=nil;audio.stop(reason:"Removing captured stones")
+        notice="Both clocks paused while captured stones are removed.";save()
+        return true
+    }
+    func finishAutomaticCapture(at cleared:Double,now:Double) {
+        guard automaticCapturePaused else {return}
+        automaticCapturePaused=false;automaticCapturePosition=nil
+        queueResumeAnnouncement("Capture complete.")
+        ready(at:cleared);tick(at:now)
+    }
+    func releaseAutomaticCapture() {
+        automaticCapturePaused=false;automaticCapturePosition=nil;save()
+    }
+    func abandonAutomaticCapture(blackToPlay:Bool,at now:Double) {
+        automaticCapturePaused=false;automaticCapturePosition=nil
+        recover(toBlack:blackToPlay,reason:"The expected capture was not completed. Check both clock times before resuming.",at:now)
     }
     func queueResumeAnnouncement(_ message:String) {
         guard enabled,!running else {return}
@@ -295,6 +325,7 @@ import Combine
             liveEvents=data.liveEvents ?? [];liveReviewActive=data.liveReviewActive ?? false
             awaitingTurn=data.awaitingTurn ?? false;timingNote=data.timingNote;automaticPause=data.automaticPause
             pendingResumeAnnouncement=data.resumeAnnouncement
+            automaticCapturePosition=data.capturePosition;automaticCapturePaused=data.capturePosition != nil
             notice=requiresReview ? "Saved clocks need review. Choose Review & resume to confirm or adjust both times."
                 : "Saved clocks restored · paused. Resume the clock when ready."
         } catch {saveError=error.localizedDescription;notice="Saved clock could not be restored."}
@@ -319,7 +350,7 @@ import Combine
         do {
             let saved=Saved(signature:signature,engine:engine,moves:moves,baseMove:baseMove,needsCorrection:needsCorrection,
                             liveEvents:liveEvents,liveReviewActive:liveReviewActive,awaitingTurn:awaitingTurn,timingNote:timingNote,automaticPause:automaticPause,
-                            resumeAnnouncement:pendingResumeAnnouncement)
+                            resumeAnnouncement:pendingResumeAnnouncement,capturePosition:automaticCapturePosition)
             try JSONEncoder().encode(saved).write(to:file,options:.atomic);saveError=nil
         } catch {saveError="Could not save clock: \(error.localizedDescription)"}
     }

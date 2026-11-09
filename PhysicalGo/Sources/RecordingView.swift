@@ -22,7 +22,7 @@ struct RecordingView: View {
     }
     private var checkPoints:Set<Int> {RecordingClarity.checkPoints(recorder:recorder,observation:model.visibleObservation)}
     private func openReview(_ id:UUID) {
-        model.reviewWindow.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
+        model.reviewPresentation.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
     }
     private func beginRecovery(at point:BoardPosition?=nil) {
         if recorder.hasDeferredMoves,let section=recorder.reviewHistory.reviews.first(where:{$0.moves==nil}) ?? recorder.reviewHistory.reviews.last {openReview(section.id);return}
@@ -45,7 +45,7 @@ struct RecordingView: View {
             if view == .saved {recorder.pause()}
             else if view == .live && recorder.reviewing {recorder.returnToLatest()}
         }
-        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewWindow.close();undoPlan=nil}
+        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewPresentation.close();undoPlan=nil}
         .onChange(of:recorder.state) {_,state in
             if state == .verifying || (state == .recording && display == .saved) {display = .live}
         }
@@ -545,26 +545,64 @@ struct RecordingStatusBanner: View {
         self.model=model;self.recorder=recorder;self.textScale=textScale
         _clock=ObservedObject(wrappedValue:recorder.clock)
     }
-    private var needsDetails:Bool {
-        !clock.enabled || recorder.needsAttention || recorder.pausedProblem != nil || recorder.retainingTentativeMoves || recorder.pendingMoveCount>0 || recorder.state == .verifying
-    }
-    private var warningColor:Color {recorder.awaitingFirstStart ? .accentColor : recorder.needsAttention && !recorder.retainingTentativeMoves ? .red:.orange}
     var body:some View {
-        VStack(alignment:.leading,spacing:8) {
-            transport
-            if needsDetails {details}
-            else {
-                Text(recorder.state == .paused ? model.recordingReadiness:recorder.status)
-                    .font(.system(size:12*textScale)).foregroundStyle(.secondary).lineLimit(2).help(recorder.status)
+        let message=LocalPlayStatus(recorder:recorder)
+        let warning=model.alignmentNeedsRecovery || model.lightingNeedsRecovery || recorder.state != .recording || !recorder.synchronized || recorder.needsAttention
+        let tint:Color=recorder.saveError != nil || recorder.reviewSaveError != nil || recorder.pendingSaveError != nil || clock.saveError != nil ? .red:warning ? .orange:.green
+        VStack(alignment:.leading,spacing:10) {
+            HStack {
+                Label(message.title,systemImage:warning ? "pause.circle.fill":"checkmark.circle.fill")
+                    .font(.system(size:17*textScale,weight:.semibold)).foregroundStyle(tint)
+                Spacer()
+                if !clock.enabled || (clock.running && recorder.state == .paused) {transport}
             }
-        }.frame(maxWidth:.infinity,alignment:.leading).padding(12)
-            .background(warningColor.opacity(recorder.needsAttention ? 0.18:0.08),in:RoundedRectangle(cornerRadius:10))
-            .overlay(RoundedRectangle(cornerRadius:10).stroke(warningColor.opacity(recorder.needsAttention ? 1:recorder.state == .paused ? 0.65:0),lineWidth:recorder.needsAttention ? 3:1))
+            Text(message.detail).font(.system(size:13*textScale))
+            if model.alignmentNeedsRecovery {
+                Text(model.recoveryLikelyObstruction
+                     ? "Move hands or obstructions clear. Visible stones still match; keep the camera and board in place."
+                     : "Check lighting and clear obstructions. Keep all four corners visible while the grid is checked.")
+                Text(model.recoveryDetail).font(.callout).foregroundStyle(.secondary)
+                Button("Board is in view — retry") {model.detectGrid()}
+                    .disabled(model.detectingGrid || model.image == nil || model.frozen || model.cameraState != .live)
+            } else if model.lightingNeedsRecovery {
+                Text("Light the board evenly and reduce glare or strong shadows. Keep the stones in place while the view is checked.")
+            }
+            Text(message.nextStep).font(.system(size:13*textScale,weight:.medium))
+            if let notice=recorder.reviewNotice {Label(notice,systemImage:"checkmark.circle.fill").foregroundStyle(.green)}
+            if recorder.needsTurnConfirmation,LocalPlayPresentation(recorder:recorder,clock:clock).correction==nil {LiveTurnPrompt(recorder:recorder)}
+            if recorder.state == .verifying && recorder.game.handicap>0 {
+                HandicapSetupBoard(size:recorder.game.boardSize,handicap:recorder.game.handicap,orientation:model.orientation).frame(width:260,height:260)
+            }
+            if recorder.automaticCaptureStatus != nil {
+                Button("Review capture…") {
+                    if let id=recorder.prepareAutomaticCaptureReview() {
+                        model.reviewPresentation.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
+                    }
+                }
+            }
+            if recorder.needsAttention && recorder.state == .recording {
+                Button("Pause and inspect board",systemImage:"pause.circle.fill") {recorder.pause()}
+            }
+            if recorder.saveError != nil || recorder.pendingSaveError != nil || recorder.reviewSaveError != nil || clock.saveError != nil {
+                Button("Retry saving") {recorder.retryRecordingSave()}
+            }
+            if recorder.hasUnfinishedReviews {Text("Resolve the remaining reviews before exporting the complete SGF. Later moves remain in the recovery record.").font(.callout).foregroundStyle(.secondary)}
+            if !model.exportStatus.isEmpty {Text(model.exportStatus).textSelection(.enabled)}
+            if let pause=clock.automaticPause,!clock.running || clock.timingNote != nil {
+                DisclosureGroup("Earlier clock details") {
+                    Text("Original pause: \(pause.reason)")
+                    if let note=clock.timingNote {Text(note)}
+                }.font(.callout).foregroundStyle(.secondary)
+            } else if let note=clock.timingNote {
+                DisclosureGroup("Earlier clock details") {Text(note)}.font(.callout).foregroundStyle(.secondary)
+            }
+        }.frame(maxWidth:.infinity,alignment:.leading).padding(14)
+            .background(tint.opacity(0.10),in:RoundedRectangle(cornerRadius:10))
+            .overlay(RoundedRectangle(cornerRadius:10).stroke(tint.opacity(0.5),lineWidth:1))
+            .accessibilityIdentifier("play-status")
     }
     private var transport:some View {
 HStack(alignment:.center,spacing:16) {
-                RecordingStateLabel(recorder:recorder,textScale:textScale)
-                Spacer(minLength:0)
                 // A clock deliberately left running must not prevent recording from resuming.
                 if (!clock.enabled || clock.running) && (recorder.state == .paused || recorder.state == .idle) {
                     Button {
@@ -580,52 +618,6 @@ HStack(alignment:.center,spacing:16) {
                         .accessibilityLabel("Pause recording")
                 }
             }
-    }
-    @ViewBuilder private var details:some View {
-            if recorder.retainingTentativeMoves {
-                let placementUnclear=recorder.pendingConfidence.contains(where:{$0.placementUncertain})
-                Label(placementUnclear ? "Stone placement needs review — moves retained":"Confirming moves — history retained",systemImage:"questionmark.circle.fill")
-                    .font(.system(size:18*textScale,weight:.bold)).foregroundStyle(.orange)
-                Text(placementUnclear
-                     ? "The camera cannot safely assign the marked stone to one intersection. Check its intended position; later moves are still tracked."
-                     : "Waiting for consistent camera evidence. Recorded stones and later moves remain in history.")
-                    .font(.system(size:14*textScale))
-            } else if recorder.needsAttention && recorder.state == .recording {
-                VStack(alignment:.leading,spacing:6) {
-                    Label(recorder.recordingProblemTitle,systemImage:"exclamationmark.triangle.fill")
-                        .font(.system(size:20*textScale,weight:.bold)).foregroundStyle(.red)
-                    Text("Saved through move \(recorder.moveCount). The current camera interpretation has not been accepted.")
-                        .font(.system(size:15*textScale,weight:.semibold))
-                    Text(recorder.status)
-                        .font(.system(size:14*textScale,weight:.semibold))
-                    Text("Use Pause and inspect board below to compare the marked interpretation with the camera. Do not remove stones just because the camera disagrees.")
-                        .font(.system(size:14*textScale))
-                    if clock.enabled {
-                        Text(clock.running ? "\(clock.engine.blackToPlay ? "Black’s":"White’s") clock is still running. Pause and inspect stops both clock and recording." : "Both clocks are stopped. Recognition will recheck the board before timing continues.")
-                            .font(.system(size:14*textScale,weight:.semibold))
-                    }
-                    if model.soundMode != .all {
-                        Label(model.soundMode == .off ? "Sound is off" : "Sound is set to adjustments only",systemImage:"speaker.slash.fill")
-                            .font(.system(size:13*textScale,weight:.semibold)).foregroundStyle(.red)
-                    }
-                }
-            }
-            if recorder.state == .verifying && recorder.game.handicap>0 {
-                Text("Handicap setup — place these black stones").font(.headline)
-                HandicapSetupBoard(size:recorder.game.boardSize,handicap:recorder.game.handicap,orientation:model.orientation)
-                    .frame(width:260,height:260)
-            } else {RecordedTurnIndicator(recorder:recorder,textScale:textScale)}
-            if recorder.state == .paused {
-                if let problem=recorder.pausedProblem {Text("Paused to investigate: "+problem).foregroundStyle(.orange)}
-                Text(recorder.awaitingFirstStart ? "Press Start when both players are ready." : "Resume when you are ready to continue saving moves.")
-                    .font(.system(size:13*textScale))
-                RecordingReadinessPanel(model:model,recorder:recorder,compact:true)
-            } else if recorder.state == .idle {
-                RecordingReadinessPanel(model:model,recorder:recorder,compact:true)
-            } else {
-                Text(recorder.status).font(.system(size:13*textScale))
-            }
-
     }
 }
 
