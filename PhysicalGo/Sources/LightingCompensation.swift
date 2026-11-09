@@ -92,9 +92,9 @@ struct LightingRecovery {
             clearFrames += 1
             if clearFrames>=3,now-clearSince!>=0.6 {active=false;needsHelp=false;began=nil;spoken=false}
         }
-        if active,let began,now-began>=3 {needsHelp=true}
+        if active,let began,now-began>=8 {needsHelp=true}
         guard active,needsHelp,speech,!spoken,lastSpoken.map({now-$0>=30}) ?? true else {return nil}
         spoken=true;lastSpoken=now
-        return "Please pause play. Improve the lighting on the whole board and reduce glare. Keep the stones in place while I check the view."
+        return "Board view unclear. Please check for obstructions or glare."
     }
 }

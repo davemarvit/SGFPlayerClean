@@ -137,6 +137,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         boardCorrections.clear(reason:reason); correctionSnapshot=nil
     }
     let recorder: GameRecorder
+    let reviewWindow=ReviewWindow()
     let diagnostics: DiagnosticRecorder
     private var diagnosticDecisionTicket:DiagnosticRecorder.Ticket?
     private var lastDiagnosticSGF=""
@@ -214,6 +215,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         }
     }
     private let recoverySpeech=RecoverySpeech()
+    private lazy var boardViewFeedback=BoardViewRecoveryFeedback(speech:recoverySpeech)
     private var boardAlignmentGate=BoardAlignmentGate()
     private lazy var clockPauseAnnouncements=ClockPauseAnnouncements(speech:recoverySpeech)
     private var lightingRecovery=LightingRecovery()
@@ -243,12 +245,13 @@ enum PhysicalPlayMode: String, CaseIterable {
         return result
     }
     private var recoveryPrompt=BoardRecoveryPrompt()
+    @Published private(set) var recoveryLikelyObstruction=false
     private func updateRecoverySpeech() {
-        if !alignmentNeedsRecovery {recoverySpeech.resolved(.alignment)}
+        if !alignmentNeedsRecovery {recoverySpeech.resolved(.alignment);recoveryLikelyObstruction=false}
         if let words=recoveryPrompt.update(recovering:alignmentNeedsRecovery,
                                            needsHelp:recoveryNeedsFullBoard || recoverySearchExhausted,
-                                           enabled:recoverySpeechEnabled && running && cameraState == .live,
-                                           now:ProcessInfo.processInfo.systemUptime) {
+                                           enabled:recoverySpeechEnabled && running && cameraState == .live && !frozen,
+                                           now:ProcessInfo.processInfo.systemUptime,obstructed:recoveryLikelyObstruction) {
             recoverySpeech.request(.alignment,text:words,settings:recorder.clock.sounds)
         }
     }
@@ -409,6 +412,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard let self,self.persistViewSettings,let data=try? JSONEncoder().encode(value) else {return}
             self.settings.set(data,forKey:"PhysicalGo.clockSounds")
         }.store(in:&clockSubscriptions)
+        recorder.clock.$engine.map(\.running).removeDuplicates().dropFirst().sink { [weak self] running in
+            if running {self?.recoverySpeech.cancel(.viewRecovered,reason:"clocks resumed")}
+        }.store(in:&clockSubscriptions)
         recorder.clock.$pauseOnInterruption.dropFirst().sink { [weak self] value in
             guard let self,self.persistViewSettings else {return};self.settings.set(value,forKey:"PhysicalGo.clockAutoPause")
         }.store(in:&clockSubscriptions)
@@ -546,6 +552,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             settings.set(selected.name,forKey:"PhysicalGo.lastCameraName")
         }
         if state != .live {
+            boardViewFeedback.reset()
             recoverySpeech.finishCurrent(reason:"camera stream interrupted")
             recorder.suspendVision("Camera interrupted. Recording waits for the board to match the accepted position.",preserveOrder:true)
             emptyBoardVerifier.reset()
@@ -672,6 +679,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         prepareCameraStart(); camera.start(deviceID: cameraID)
     }
     func stop() {
+        boardViewFeedback.reset()
         recoverySpeech.stop(reason:"camera stopped")
         moveEvidenceCapture.stop(reason:"Camera stopped")
         diagnostics.event("camera stopped")
@@ -683,6 +691,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         revision += 1; cancelGridDetection(); automaticGridArmed = false
     }
     func toggleFreeze() {
+        boardViewFeedback.reset()
         recorder.suspendVision("Frozen or resumed camera. Checking the accepted position before recording continues.",preserveOrder:true)
         frozen.toggle(); emptyBoardVerifier.reset(); revision += 1; labels = [:]; stability.reset(); stable = false
         if frozen { recoverySpeech.stop(reason:"camera frozen");cancelGridDetection(); automaticGridArmed = false }
@@ -1009,6 +1018,16 @@ enum PhysicalPlayMode: String, CaseIterable {
             }
             guard self.revision == token else { diagnosticOutcome="discarded stale analysis";self.analyze();return }
             let alignmentTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
+            let freshView=supplied != nil && self.running && self.cameraState == .live && !self.frozen
+            defer {
+                self.boardViewFeedback.observe(clear:aligned != nil && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
+                    fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
+                    clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
+                    clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
+            }
+            if freshView,aligned==nil,BoardAlignmentGate.likelyObstruction(alignmentReport) {
+                self.recoveryLikelyObstruction=true
+            }
             if aligned==nil && !exposureFailure {
                 let allowGrace=supplied != nil && self.running && self.cameraState == .live && !self.frozen &&
                     self.playMode == .local && self.recorder.state == .recording && self.recorder.synchronized && !self.alignmentNeedsRecovery
@@ -1068,10 +1087,13 @@ enum PhysicalPlayMode: String, CaseIterable {
                 if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
                     self.recoveryChecks += 1
                     if !self.recoverySearchExhausted && self.recoveryChecks >= 3
+                        && self.recoveryPrompt.maySearch(now:ProcessInfo.processInfo.systemUptime)
                         && ProcessInfo.processInfo.systemUptime >= self.nextRecoverySearch {
                         self.detectGrid(recovering:true)
                     } else if self.recoverySearchAttempts == 0 {
-                        self.gridStatus = "Checking local alignment — \(min(self.recoveryChecks,3)) of 3 frames. A full-view search follows if needed."
+                        self.gridStatus = self.recoveryLikelyObstruction
+                            ? "Some stones still match. Waiting for the obstruction to clear; keep the camera and board in place."
+                            : "Waiting for a clear, steady view before reassessing alignment."
                     }
                 } else if self.recoverySearchAttempts == 0 {
                     self.gridStatus = "Alignment paused. Resume the camera for automatic recovery, or choose Find grid again for this frame."

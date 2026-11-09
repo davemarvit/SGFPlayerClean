@@ -36,13 +36,14 @@ struct CaptureReviewView: View {
                         boardOverride: board, highlightedPoints: remaining.sorted(), highlightColor: .orange,
                         showsLastMoveMarker: false, onPoint: { _ in })
                         .frame(width: 520, height: 520)
-                    Text(remaining.isEmpty ? "The captured stones appear to be removed." : "Remove only the orange-ringed stones.")
+                    Text(verification == .waitingForCamera ? "Last known capture position · waiting for live verification."
+                         : remaining.isEmpty ? "The captured stones appear to be removed." : "Remove only the orange-ringed stones.")
                         .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 14) {
                     Text("\(plan.move.color.rawValue.capitalized) captures at \(coordinate(plan.point))").font(.title3.bold())
                     Text("Keep the capturing stone at \(coordinate(plan.point)) in place.")
-                    if !remaining.isEmpty {
+                    if !remaining.isEmpty,verification != .waitingForCamera {
                         Text("Remove the remaining captured \(plan.move.color.opponent.rawValue) \(remaining.count == 1 ? "stone" : "stones") at \(remaining.sorted().map(coordinate).joined(separator: ", ")).")
                     }
                     Text(ready ? "The camera has verified the removal. Confirm to save the capturing move."

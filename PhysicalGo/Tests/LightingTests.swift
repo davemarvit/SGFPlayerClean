@@ -79,8 +79,9 @@ import CoreImage
         var recovery=LightingRecovery()
         check(recovery.update(blocked:true,fresh:true,now:0,speech:true)==nil && recovery.active,"Immediate silent interruption missing")
         check(recovery.update(blocked:true,fresh:true,now:2,speech:true)==nil,"Brief exposure change spoke")
-        check(recovery.update(blocked:true,fresh:true,now:3,speech:true) != nil && recovery.needsHelp,"Persistent failure did not speak")
-        check(recovery.update(blocked:true,fresh:true,now:4,speech:true)==nil,"Repeated speech in same episode")
+        check(recovery.update(blocked:true,fresh:true,now:3,speech:true) == nil && !recovery.needsHelp,"Brief obstruction triggered lighting advice")
+        check(recovery.update(blocked:true,fresh:true,now:8,speech:true) != nil && recovery.needsHelp,"Persistent failure did not speak")
+        check(recovery.update(blocked:true,fresh:true,now:9,speech:true)==nil,"Repeated speech in same episode")
         _=recovery.update(blocked:false,fresh:false,now:10,speech:true)
         check(recovery.active,"Redraw cleared recovery")
         for now in [10.0,10.3] {_=recovery.update(blocked:false,fresh:true,now:now,speech:true)}
@@ -89,11 +90,11 @@ import CoreImage
         check(!recovery.active && !recovery.needsHelp,"Clear frames failed to recover")
         _=recovery.update(blocked:true,fresh:true,now:12,speech:true)
         check(recovery.update(blocked:true,fresh:true,now:15,speech:true)==nil,"Flicker bypassed cooldown")
-        check(recovery.update(blocked:true,fresh:true,now:34,speech:false)==nil,"Disabled voice spoke")
-        check(recovery.update(blocked:true,fresh:true,now:35,speech:true) != nil,"Re-enabled voice stayed silent")
-        for now in [36.0,36.3,38.0,38.3] {_=recovery.update(blocked:false,fresh:true,now:now,speech:true)}
+        check(recovery.update(blocked:true,fresh:true,now:37,speech:false)==nil,"Disabled voice spoke")
+        check(recovery.update(blocked:true,fresh:true,now:38,speech:true) != nil,"Re-enabled voice stayed silent")
+        for now in [39.0,39.3,41.0,41.3] {_=recovery.update(blocked:false,fresh:true,now:now,speech:true)}
         check(recovery.active,"Camera gap counted as stable recovery")
-        _=recovery.update(blocked:false,fresh:true,now:38.7,speech:true)
+        _=recovery.update(blocked:false,fresh:true,now:41.7,speech:true)
         check(!recovery.active,"Fresh stable frames failed to recover after gap")
         print("PASS: \(checks) lighting checks")
     }

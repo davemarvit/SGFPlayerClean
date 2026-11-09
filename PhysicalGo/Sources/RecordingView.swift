@@ -12,7 +12,6 @@ struct RecordingView: View {
     @State private var display=Display.live
     @State private var confirmNew=false
     @State private var manualPoint:BoardPosition?
-    @StateObject private var reviewWindow=ReviewWindow()
     @State private var recovery:MoveRecoveryDraft?
     @State private var recoveryFirstPoint:BoardPosition?
     @State private var reviewRecoveryClocks=false
@@ -23,7 +22,7 @@ struct RecordingView: View {
     }
     private var checkPoints:Set<Int> {RecordingClarity.checkPoints(recorder:recorder,observation:model.visibleObservation)}
     private func openReview(_ id:UUID) {
-        reviewWindow.open(recorder:recorder,id:id,orientation:model.orientation)
+        model.reviewWindow.open(recorder:recorder,id:id,orientation:model.orientation)
     }
     private func beginRecovery(at point:BoardPosition?=nil) {
         if recorder.hasDeferredMoves,let section=recorder.reviewHistory.reviews.first(where:{$0.moves==nil}) ?? recorder.reviewHistory.reviews.last {openReview(section.id);return}
@@ -46,7 +45,7 @@ struct RecordingView: View {
             if view == .saved {recorder.pause()}
             else if view == .live && recorder.reviewing {recorder.returnToLatest()}
         }
-        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;reviewWindow.close();undoPlan=nil}
+        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewWindow.close();undoPlan=nil}
         .onChange(of:recorder.state) {_,state in
             if state == .verifying || (state == .recording && display == .saved) {display = .live}
         }

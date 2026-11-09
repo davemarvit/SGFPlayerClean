@@ -181,7 +181,7 @@ struct ExperimentView: View {
                 } description:{Text("Set up the camera and game before recording moves.")}
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
             } else {
-                if model.playMode == .local {LocalClockHost(recorder:recorder)}
+                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewWindow.open(recorder:recorder,id:$0,orientation:model.orientation)})}
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
                 if model.playMode == .local && recorder.needsAttention {
@@ -600,12 +600,14 @@ struct DetectedBoard: View {
 
 private struct LocalClockHost:View {
     @ObservedObject var recorder:GameRecorder
-    var body:some View {LocalClockVisibility(clock:recorder.clock,recorder:recorder)}
+    let onReview:(UUID)->Void
+    var body:some View {LocalClockVisibility(clock:recorder.clock,recorder:recorder,onReview:onReview)}
 }
 private struct LocalClockVisibility:View {
     @ObservedObject var clock:LocalGameClock
     @ObservedObject var recorder:GameRecorder
-    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder)}}
+    let onReview:(UUID)->Void
+    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,onReview:onReview)}}
 }
 
 /// Always visible during alignment loss, including when diagnostics are hidden.
@@ -635,9 +637,11 @@ private struct BoardRecoveryBanner:View {
             Image(systemName:model.recoveryNeedsFullBoard ? "viewfinder":"camera.metering.unknown")
                 .font(.system(size:32)).accessibilityHidden(true)
             VStack(alignment:.leading,spacing:6) {
-                Text(model.recoveryNeedsFullBoard ? "Show the whole board":model.recoverySearchExhausted ? "Board alignment needs attention":"Reacquiring board…")
+                Text(model.recoveryLikelyObstruction ? "Board partly obscured":model.recoveryNeedsFullBoard ? "Show the whole board":model.recoverySearchExhausted ? "Board alignment needs attention":"Checking board view…")
                     .font(.title2.bold()).lineLimit(1)
-                Text(model.recoveryNeedsFullBoard
+                Text(model.recoveryLikelyObstruction
+                     ? "Visible stones still match their positions. Move hands or other obstructions clear; keep the camera and board in place."
+                     : model.recoveryNeedsFullBoard
                      ? "Adjust the camera or board so all four corners and the outer grid lines are visible. Move hands away, then hold everything steady."
                      : "Please pause play and hold the camera and board steady. Stones can stay in place while we verify their positions.").lineLimit(3,reservesSpace:true)
                 Text("Automatic move recording and sending are paused while alignment is uncertain. Your saved game is preserved.")

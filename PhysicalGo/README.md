@@ -132,6 +132,36 @@ is still on demand on battery; this display does not start another engine.
 all four orientations with native renders, uncertain/malformed ownership, final-score
 corrections, fresh-position reset, and the existing real KataGo/power/handoff tests.
 
+## Obstruction and recovery feedback (0.125)
+
+Surviving distributed stone landmarks plus partial loss of outer rails suggest
+a temporary obstruction. This is an obstruction hint, not semantic hand detection;
+a measured large camera shift overrides it. Invalid frames remain excluded from
+move confirmation. Likely obstructions get eight seconds before full-grid search
+or a short spoken prompt; other alignment failures get five seconds. Lighting
+advice also waits eight seconds, allowing ordinary hand movement to finish.
+
+After an interruption lasting at least 0.8 seconds, five fresh clear frames over
+at least one second produce “Board view clear.” If local clocks remain paused,
+the message says so. An existing clock-resume announcement supplies the recovery
+acknowledgement instead of adding a duplicate. Redraws, frozen frames, short
+flicker and camera gaps cannot supply stable recovery evidence. A renewed
+obstruction cancels pending all-clear speech. This feedback does not resume play.
+
+When a capture or board restoration remains unresolved and clocks are stopped,
+the main transport opens that correction instead of offering Resume or Pause
+checking. Its guidance explains the outstanding action; the unknown-turn prompt
+does not compete with a capture that already establishes the next player.
+Clock and board controls share one review window, including the enlarged clock.
+An expired camera witness shows the capture diagram as the last known position,
+rather than claiming the previously seen stone is still present. Confirmation
+still requires fresh alignment and clear evidence at the corrected intersections.
+
+`--obstruction-feedback-test` replays the reported hand-wave geometry evidence,
+checks speech timing/lifecycle and runs the photographed covered-border cases.
+`--recovery-ui-test`, `--lighting-test` and `--bump-test` cover the camera delivery
+path, unchanged saved games/references, lighting adaptation and real movement.
+
 ## Undo a move
 
 Local play exposes **Undo move…** beside the board heading. It pauses recording

@@ -22,7 +22,12 @@ import ImageIO
         let elapsed=Date().timeIntervalSince(start)
         let original=BoardDetector.detect(frame:frame,reference:reference,calibration:meta.calibration,threshold:meta.threshold)!
         let result=BoardDetector.detect(frame:frame,reference:reference,calibration:tracked,threshold:meta.threshold,referenceCalibration:meta.calibration)!
-        check(original.signature.filter{$0 == .uncertain}.count>200,"Fixture must reproduce the camera bump failure")
+        print("Saved-grid uncertainty: \(original.signature.filter{$0 == .uncertain}.count); tracked: \(result.signature.filter{$0 == .uncertain}.count)")
+        // The live wood classifier now reads this historical frame correctly
+        // even at its old grid. Test recovery accuracy below against independent
+        // landmarks and deliberate translations, rather than requiring old errors.
+        check(result.signature.filter{$0 == .uncertain}.count<=original.signature.filter{$0 == .uncertain}.count,
+              "Tracking increased uncertainty in the historical camera-bump photo")
         check(result.signature.filter{$0 == .uncertain}.count<=5,"Alignment should remove widespread false uncertainty")
         let black=[(12,16),(13,16),(14,16),(15,15),(16,5),(16,13),(16,15),(17,14)]
         let white=[(13,17),(14,17),(15,3),(15,16),(16,7),(16,16),(17,15),(17,16)]
@@ -109,12 +114,14 @@ import ImageIO
         _=try JSONSerialization.data(withJSONObject:report) // Includes nonfinite profile-error handling.
         var voice=BoardRecoveryPrompt()
         check(voice.update(recovering:true,needsHelp:false,enabled:true,now:0)==nil,"Short recovery unnecessarily interrupted players")
-        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:1) != nil,"Reframing did not produce voice prompt")
+        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:1) == nil,"Brief obstruction prompted camera adjustment")
+        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:5) != nil,"Persistent failure did not produce voice prompt")
         check(voice.update(recovering:true,needsHelp:true,enabled:true,now:60)==nil,"Ongoing failure repeated voice prompt")
         _=voice.update(recovering:false,needsHelp:false,enabled:true,now:61)
-        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:62) != nil,"New recovery episode did not announce")
-        _=voice.update(recovering:false,needsHelp:false,enabled:true,now:63)
-        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:64)==nil,"Recovery flicker spammed speech")
+        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:62) == nil,"New episode skipped its grace period")
+        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:67) != nil,"New recovery episode did not announce")
+        _=voice.update(recovering:false,needsHelp:false,enabled:true,now:68)
+        check(voice.update(recovering:true,needsHelp:true,enabled:true,now:69)==nil,"Recovery flicker spammed speech")
         check(voice.update(recovering:true,needsHelp:true,enabled:false,now:100)==nil,"Disabled recovery speech was ignored")
         check(voice.update(recovering:true,needsHelp:true,enabled:true,now:101) != nil,"Speech did not resume when enabled")
         var expected=[Occupancy](repeating:.empty,count:361)

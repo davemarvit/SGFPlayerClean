@@ -59,7 +59,7 @@ import CoreImage
         check(!model.alignmentNeedsRecovery,"Lights-out was mistaken for a camera nudge")
         check(model.visibleObservation==nil && !model.liveBoardReady,"Unreadable exposure remained playable")
         check(model.recorder.sgf()==saved && model.referenceCalibration==reference,"Lighting changed saved game/reference")
-        model.receive(dark,capturedAt:time+3.2)
+        model.receive(dark,capturedAt:time+8.2)
         wait {model.lightingNeedsHelp}
         let lightingOutput=URL(fileURLWithPath:"PhysicalGo/.build/RecoveryUI")
         try FileManager.default.createDirectory(at:lightingOutput,withIntermediateDirectories:true)
@@ -72,7 +72,7 @@ import CoreImage
         let lightingContext=CIContext(),lightingInput=CIImage(cgImage:goodImage)
         for i in 0..<4 {
             let fresh=lightingContext.createCGImage(lightingInput,from:lightingInput.extent)!
-            model.receive(fresh,capturedAt:time+4+Double(i)*0.3)
+            model.receive(fresh,capturedAt:time+9+Double(i)*0.3)
             wait {model.image === fresh}
         }
         wait {!model.lightingNeedsRecovery}
@@ -135,8 +135,9 @@ import CoreImage
             }
         }
         recorder.pause();try recorder.savePendingCheckpoint()
-        check(recorder.pendingMoveCount>0,"Historical replay has no tentative moves to protect")
+        check(recorder.pendingMoveCount>0 || recorder.hasDeferredMoves,"Historical replay has no unresolved moves to protect")
         let pending=recorder.pendingConfidence.compactMap(\.point),savedCount=recorder.moveCount,pendingSGF=recorder.sgf()
+        let reviewSections=recorder.reviewHistory.sections
         let pendingModel=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil)
         try pendingModel.openSample(from:pendingFixture)
         wait {pendingModel.observation != nil && !pendingModel.alignmentNeedsRecovery}
@@ -145,6 +146,9 @@ import CoreImage
         wait {!pendingModel.detectingGrid && !pendingModel.alignmentNeedsRecovery && pendingModel.observation != nil}
         check(pendingModel.recorder.moveCount==savedCount && pendingModel.recorder.sgf()==pendingSGF,"Recovery changed historical accepted moves")
         check(pendingModel.recorder.pendingConfidence.compactMap(\.point)==pending,"Recovery erased or reordered historical tentative moves")
+        check(pendingModel.recorder.reviewHistory.sections.map(\.id)==reviewSections.map(\.id)
+            && zip(pendingModel.recorder.reviewHistory.sections,reviewSections).allSatisfy {$0.before==$1.before && $0.after==$1.after && $0.moves==$1.moves && $0.committed==$1.committed},
+            "Recovery changed retained review history")
         print("Historical recovery preserved \(savedCount) saved + \(pending.count) tentative moves")
         print("PASS: \(checks) recovery UI checks: speech preference, real photo reacquisition, loss notice, missing-board guidance, retry/clear, saved game/reference preservation and native banner render")
     }

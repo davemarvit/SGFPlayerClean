@@ -3,7 +3,7 @@ import Foundation
 /// One voice for camera/lighting guidance. Recovery cancels unsaid instructions;
 /// an audible sentence finishes naturally. Explicit mute/stop still silences it.
 @MainActor final class RecoverySpeech {
-    enum Topic:String {case alignment,lighting,clockPause,clockResume}
+    enum Topic:String {case alignment,lighting,clockPause,clockResume,viewRecovered}
     private struct Prompt {let topic:Topic;let text:String;let settings:LocalClockSounds}
     private let audio:any RecoverySpeechOutput
     private var active:Topic?
@@ -33,6 +33,7 @@ import Foundation
         advance()
     }
     func wasHeard(_ topic:Topic)->Bool {heard.contains(topic) || (active==topic && audio.hasStartedSpeech)}
+    func hasAnnouncement(_ topic:Topic)->Bool {wasHeard(topic) || active==topic || queued.contains{$0.topic==topic}}
     func forgetAnnouncement(_ topic:Topic) {heard.remove(topic)}
     /// Superseded factual clock messages must not play after the state reverses.
     func cancel(_ topic:Topic,reason:String) {

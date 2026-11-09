@@ -1,0 +1,119 @@
+[
+  {
+    "time": -0.6580710411071777,
+    "report": {
+      "initialSupport": {
+        "borderMatches": [
+          0,
+          11,
+          9,
+          0
+        ],
+        "failedChecks": [
+          "too few matching line samples",
+          "matching fraction below minimum",
+          "one or more outer rails lack support",
+          "one or more quadrants lack support"
+        ],
+        "matched": 112,
+        "minimumFraction": 0.6,
+        "minimumMatched": 152,
+        "minimumPerBorder": 3,
+        "minimumPerQuadrant": 9,
+        "minimumTested": 76,
+        "quadrantMatches": [
+          16,
+          66,
+          2,
+          28
+        ],
+        "tested": 676
+      },
+      "knownStoneFraction": 0.7659574468085106,
+      "knownStoneMatches": 36,
+      "knownStonesDistributed": true,
+      "outcome": "rejected",
+      "profileError": 0.04245253657018363,
+      "profileErrorLimit": 0.04,
+      "rejectionReason": "no grid fit; profile error too high"
+    }
+  },
+  {
+    "time": -0.42443084716796875,
+    "report": {
+      "initialSupport": {
+        "borderMatches": [
+          0,
+          12,
+          7,
+          0
+        ],
+        "failedChecks": [
+          "too few matching line samples",
+          "matching fraction below minimum",
+          "one or more outer rails lack support",
+          "one or more quadrants lack support"
+        ],
+        "matched": 92,
+        "minimumFraction": 0.6,
+        "minimumMatched": 152,
+        "minimumPerBorder": 3,
+        "minimumPerQuadrant": 9,
+        "minimumTested": 76,
+        "quadrantMatches": [
+          3,
+          58,
+          0,
+          31
+        ],
+        "tested": 676
+      },
+      "knownStoneFraction": 0.44680851063829785,
+      "knownStoneMatches": 21,
+      "knownStonesDistributed": true,
+      "outcome": "rejected",
+      "profileError": 0.041954559601618424,
+      "profileErrorLimit": 0.04,
+      "rejectionReason": "no grid fit; profile error too high"
+    }
+  },
+  {
+    "time": -0.21298503875732422,
+    "report": {
+      "initialSupport": {
+        "borderMatches": [
+          0,
+          14,
+          7,
+          0
+        ],
+        "failedChecks": [
+          "too few matching line samples",
+          "matching fraction below minimum",
+          "one or more outer rails lack support",
+          "one or more quadrants lack support"
+        ],
+        "matched": 91,
+        "minimumFraction": 0.6,
+        "minimumMatched": 152,
+        "minimumPerBorder": 3,
+        "minimumPerQuadrant": 9,
+        "minimumTested": 76,
+        "quadrantMatches": [
+          0,
+          64,
+          0,
+          27
+        ],
+        "tested": 676
+      },
+      "knownStoneFraction": 0.48936170212765956,
+      "knownStoneMatches": 23,
+      "knownStonesDistributed": true,
+      "outcome": "rejected",
+      "profileError": 0.04257703081232495,
+      "profileErrorLimit": 0.04,
+      "rejectionReason": "no grid fit; profile error too high"
+    }
+  }
+]
