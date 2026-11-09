@@ -29,6 +29,14 @@ import Foundation
             check(health.check(now:Double(t)) == .none, "Fresh frames prevent false watchdog triggers")
         }
         check(health.retries == 0, "A stationary board still supplies frames without recovery")
+        check(health.check(now:436) == .restart(1),"First outage after healthy operation failed")
+        for t in 437...469 {health.receivedFrame(now:Double(t))}
+        check(health.check(now:475) == .restart(1),"Healthy recovery did not replenish retry budget")
+        check(health.check(now:484) == .restart(2),"Second uninterrupted outage retry missing")
+        check(health.check(now:493) == .failed,"Unhealthy loop was not bounded")
+        check(health.wake(now:500) && health.active,"Wake did not recover a requested failed camera")
+        health.stop()
+        check(!health.wake(now:600) && !health.active,"Wake reopened a camera the user stopped")
         print("PASS: \(count) camera startup, stall, retry-limit, cancellation and healthy-stream checks.")
     }
 }

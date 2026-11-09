@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreImage
 import OSLog
+import AppKit
 
 /// Public callbacks and start/stop are main-thread only; session state stays on queue.
 final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -23,9 +24,25 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     var onFrame: ((CGImage, Double) -> Void)?
     var onStatus: ((String, CameraState) -> Void)?
     private var observers = [NSObjectProtocol]()
+    private var wakeObserver:NSObjectProtocol?
 
     override init() {
         super.init()
+        wakeObserver=NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didWakeNotification,object:nil,queue:nil) { [weak self] _ in
+            self?.queue.async { [weak self] in
+                guard let self,self.health.wake(now:ProcessInfo.processInfo.systemUptime) else {return}
+                self.endSession();self.installWatchdog();self.configure()
+            }
+        }
+        observers.append(NotificationCenter.default.addObserver(forName:AVCaptureDevice.wasConnectedNotification,object:nil,queue:nil) { [weak self] note in
+            guard let device=note.object as? AVCaptureDevice else {return}
+            let connectedID=device.uniqueID
+            self?.queue.async { [weak self] in
+                guard let self,connectedID==self.deviceID,!self.health.active,
+                      self.health.wake(now:ProcessInfo.processInfo.systemUptime) else {return}
+                self.endSession();self.installWatchdog();self.configure()
+            }
+        })
         for name in [AVCaptureSession.runtimeErrorNotification, AVCaptureSession.wasInterruptedNotification, AVCaptureSession.interruptionEndedNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] note in
                 guard let source = note.object as? AVCaptureSession else { return }
@@ -38,7 +55,10 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             })
         }
     }
-    deinit { timer?.cancel(); observers.forEach(NotificationCenter.default.removeObserver) }
+    deinit {
+        timer?.cancel(); observers.forEach(NotificationCenter.default.removeObserver)
+        if let wakeObserver {NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)}
+    }
     static func devices() -> [AVCaptureDevice] {
         AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera], mediaType: .video, position: .unspecified).devices
     }
@@ -150,7 +170,9 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         }
     }
     private func fail(_ message: String) {
-        health.stop(); timer?.cancel(); timer = nil; endSession()
+        // Retain the user's camera intent after exhausted watchdog retries so a
+        // system wake can recover. Explicit Stop still clears that intent.
+        health.failed();timer?.cancel(); timer = nil; endSession()
         status(message, state: .failed)
     }
     func stop() {

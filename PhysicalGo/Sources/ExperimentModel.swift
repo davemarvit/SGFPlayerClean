@@ -94,10 +94,52 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
 
     private(set) var correctionInitialPoint:Int?
+    private var correctionRevision:Int?
+    private var correctionFrameTime:Double?
+    private var correctionReviewTarget:(id:UUID,target:[Occupancy],capture:Bool)?
+    struct PhotoReviewAction {
+        let title:String
+        let capture:Bool
+        let photo:CheckedReviewPhoto
+    }
+    var photoReviewGuidance:String? {
+        guard correctionReviewTarget != nil else {return nil}
+        if photoReviewAction != nil {return nil}
+        guard correctionRevision==revision,let time=correctionFrameTime,
+              ProcessInfo.processInfo.systemUptime-time<=60,running,cameraState == .live,!frozen,
+              !alignmentNeedsRecovery,!lightingNeedsRecovery else {
+            return "Wait for a stable live view, then Retake photo to verify this review."
+        }
+        return "Check the photo and label any incorrect readings. Photo confirmation becomes available when it matches the capture or restoration being reviewed."
+    }
+    var photoReviewAction:PhotoReviewAction? {
+        guard playMode == .local,recorder.state == .paused,!recorder.reviewing,
+              running,cameraState == .live,!frozen,!alignmentNeedsRecovery,!lightingNeedsRecovery,
+              correctionRevision==revision,let time=correctionFrameTime,
+              let snapshot=correctionSnapshot,!snapshot.observation.lightingBlocked,let original=correctionReviewTarget else {return nil}
+        let position=boardCorrections.apply(to:snapshot.observation,preview:true).signature
+        let photo=CheckedReviewPhoto(reviewID:original.id,target:original.target,position:position,capturedAt:time)
+        let now=ProcessInfo.processInfo.systemUptime
+        if original.capture,let plan=recorder.pendingCaptureReview,
+           photo.verifies(id:plan.id,target:plan.target,requiredClear:plan.captured.union([plan.point]),now:now) {
+            return PhotoReviewAction(title:"Confirm capture from this photo",capture:true,photo:photo)
+        }
+        if !original.capture,let plan=recorder.pendingBoardRestoration,
+           photo.verifies(id:plan.id,target:plan.target,requiredClear:plan.changed,now:now) {
+            return PhotoReviewAction(title:"Confirm restoration from this photo",capture:false,photo:photo)
+        }
+        return nil
+    }
     func beginBoardCorrection(at point:Int?=nil) {
         guard !savingCorrections, !boardCorrections.isEditing,
               let image, let observation, let calibration, !alignmentNeedsRecovery else {return}
         correctionInitialPoint=point
+        correctionRevision=revision
+        let now=ProcessInfo.processInfo.systemUptime
+        correctionFrameTime=lastVerifiedLiveFrameAt.flatMap {now >= $0 && now-$0<1.5 ? $0:nil}
+        correctionReviewTarget=nil
+        if let plan=recorder.pendingCaptureReview {correctionReviewTarget=(plan.id,plan.target,true)}
+        else if let plan=recorder.pendingBoardRestoration {correctionReviewTarget=(plan.id,plan.target,false)}
         correctionSnapshot=BoardCorrectionSnapshot(id:UUID(),capturedAt:Date(),image:image,
             reference:referenceImage,calibration:calibration,referenceCalibration:referenceCalibration,
             observation:observation,threshold:threshold,quarterTurns:viewQuarterTurns,source:sourceName)
@@ -109,12 +151,14 @@ enum PhysicalPlayMode: String, CaseIterable {
         guard !savingCorrections else {return}
         boardCorrections.cancel(); correctionSnapshot=nil; correctionError=""
     }
-    func finishBoardCorrection() {
+    func finishBoardCorrection(confirmReview:Bool=false) {
         guard !savingCorrections, boardCorrections.isEditing, let snapshot=correctionSnapshot else {return}
-        guard !boardCorrections.edits.isEmpty else {cancelBoardCorrection();return}
+        let action=confirmReview ? photoReviewAction:nil
+        if confirmReview,action==nil {correctionError="This photo no longer verifies the current review. Retake the photo and check the marked points.";return}
+        guard confirmReview || !boardCorrections.edits.isEmpty else {cancelBoardCorrection();return}
         let edits=boardCorrections.edits
         savingCorrections=true; correctionError=""
-        // Archive before activating corrections. A disk failure keeps the editor
+        // Archive before resolving a review. A disk failure keeps the editor
         // open and dispatch paused rather than silently losing valuable labels.
         DispatchQueue.global(qos:.utility).async {
             let outcome=Result {try CorrectionArchive.save(snapshot,edits:edits)}
@@ -124,6 +168,16 @@ enum PhysicalPlayMode: String, CaseIterable {
                 guard self.correctionSnapshot?.id == snapshot.id, self.boardCorrections.isEditing else {return}
                 switch outcome {
                 case .success:
+                    if let action {
+                        guard self.photoReviewAction?.photo.reviewID==action.photo.reviewID else {
+                            self.correctionError="The camera or review changed while saving. Labels were archived; retake the photo before confirming.";return
+                        }
+                        let error=action.capture
+                            ? self.recorder.confirmCaptureReview(action.photo.reviewID,checkedPhoto:action.photo)
+                            : self.recorder.confirmBoardRestoration(action.photo.reviewID,checkedPhoto:action.photo)
+                        if let error {self.correctionError=error;return}
+                        self.reviewWindow.close()
+                    }
                     self.boardCorrections.commit(); self.correctionSnapshot=nil
                     self.onlineBoard.pauseForCorrection()
                     self.stability.reset(); self.stable=false
@@ -786,9 +840,9 @@ enum PhysicalPlayMode: String, CaseIterable {
                     if reportCheck {self.alignmentCheck = .failed}
                     if recovering {
                         self.recoverySearchExhausted = self.recoverySearchAttempts >= self.maximumRecoverySearches
-                        self.nextRecoverySearch = ProcessInfo.processInfo.systemUptime + 2
+                        self.nextRecoverySearch = ProcessInfo.processInfo.systemUptime + (self.recoverySearchExhausted ? 30:2)
                         self.gridStatus = self.recoverySearchExhausted
-                            ? "Could not verify the grid after \(self.maximumRecoverySearches) full-view searches. Show the entire board, then choose Find grid again or Manual corners."
+                            ? "The board is not yet verifiable. Automatic checks continue every 30 seconds; you can retry sooner when the view is clear."
                             : "Full-view search \(self.recoverySearchAttempts) of \(self.maximumRecoverySearches) did not verify the grid. Waiting for a fresh view before retrying."
                         return
                     }
@@ -1086,9 +1140,10 @@ enum PhysicalPlayMode: String, CaseIterable {
                 self.alignmentNeedsRecovery=true; self.stable=false; self.stability.reset(); self.emptyBoardVerifier.reset()
                 if supplied != nil && self.running && self.cameraState == .live && !self.frozen {
                     self.recoveryChecks += 1
-                    if !self.recoverySearchExhausted && self.recoveryChecks >= 3
+                    if self.recoveryChecks >= 3
                         && self.recoveryPrompt.maySearch(now:ProcessInfo.processInfo.systemUptime)
                         && ProcessInfo.processInfo.systemUptime >= self.nextRecoverySearch {
+                        if self.recoverySearchExhausted {self.recoverySearchAttempts=0;self.recoverySearchExhausted=false}
                         self.detectGrid(recovering:true)
                     } else if self.recoverySearchAttempts == 0 {
                         self.gridStatus = self.recoveryLikelyObstruction

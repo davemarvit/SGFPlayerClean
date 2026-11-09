@@ -6,8 +6,8 @@ struct BoardCorrectionEditor: View {
     @State private var selection: Int?
     var body: some View {
         VStack(alignment:.leading,spacing:14) {
-            Text("Correct the physical board").font(.title2.bold())
-            Text("Moves are paused. Select an intersection, then tell us what is there. The photo and board below are frozen together for this correction.")
+            Text("Check the board photo").font(.title2.bold())
+            Text("Move detection is paused while you check this photo. Select an intersection and label what is there. Labels apply only to this photograph.")
             if let snapshot=model.correctionSnapshot {
                 HStack(alignment:.top,spacing:18) {
                     CorrectionBoard(snapshot:snapshot,values:corrections.displayedValues,selection:$selection,
@@ -31,25 +31,32 @@ struct BoardCorrectionEditor: View {
                                 }.frame(maxWidth:.infinity)
                             }.disabled(selection == nil || model.savingCorrections)
                         }
-                        Text("Purple rings: your authoritative corrections. They stay until you select Use camera, change games, reset the board, or restart the app.")
+                        Text("Purple rings mark labels on this photo. Future camera readings are never overridden; new stones remain detectable.")
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 }
             }
             Text("Orange rings mark camera readings that need checking. Select a ring and confirm Black, White, or Empty from the photo; it turns purple when corrected.").font(.callout)
-            Text("Your explicit labels and the original images are saved locally to improve recognition. Unedited points are not treated as verified labels.")
+            Text("Your explicit labels and the original images are saved locally for recognition testing. Unedited points are not treated as verified labels.")
                 .font(.callout).foregroundStyle(.secondary)
             if model.playMode == .local && model.recorder.state == .paused {
-                Text("Clocks will stay paused. After saving, press Resume when both players are ready.").font(.callout)
+                Text("Clocks stay paused. Saving labels alone does not save a move or resolve a review.").font(.callout)
             }
             if !model.correctionError.isEmpty {Text(model.correctionError).foregroundStyle(.red)}
+            if let guidance=model.photoReviewGuidance {Text(guidance).font(.callout)}
+            if let action=model.photoReviewAction {
+                Text("Check the whole photo before confirming. This resolves only the current review; clocks stay paused.").font(.callout)
+                Button(action.title) {model.finishBoardCorrection(confirmReview:true)}
+                    .buttonStyle(.borderedProminent).disabled(model.savingCorrections)
+            }
+            Button("Retake photo") {model.cancelBoardCorrection();model.beginBoardCorrection()}.disabled(model.savingCorrections)
             HStack {
-                Button("Use camera everywhere") {corrections.useCameraEverywhere()}
+                Button("Clear photo labels") {corrections.useCameraEverywhere()}
                     .disabled(corrections.displayedValues.isEmpty || model.savingCorrections)
                 Spacer()
                 if model.savingCorrections {ProgressView().controlSize(.small); Text("Saving images…")}
                 Button("Cancel") {model.cancelBoardCorrection()}.keyboardShortcut(.cancelAction).disabled(model.savingCorrections)
-                Button(model.playMode == .local && model.recorder.state == .paused ? "Save corrections":"Save corrections & resume") {model.finishBoardCorrection()}
+                Button("Save photo labels") {model.finishBoardCorrection()}
                     .keyboardShortcut(.defaultAction).disabled(model.savingCorrections)
             }
         }.padding(22).frame(width:850)

@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import CoreImage
+import ImageIO
 
 @main struct RecoveryUITests {
     struct Entry:Decodable {
@@ -14,10 +15,10 @@ import CoreImage
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
         var checks=0
         func check(_ value:Bool,_ message:String) {checks += 1;precondition(value,message)}
-        func wait(_ ready:()->Bool) {
+        func wait(line:Int = #line,_ ready:()->Bool) {
             let end=Date().addingTimeInterval(60)
             while !ready() && Date()<end {RunLoop.main.run(until:Date().addingTimeInterval(0.05))}
-            check(ready(),"Timed out waiting for board recovery")
+            check(ready(),"Timed out waiting for board recovery at line \(line)")
         }
         let root=FileManager.default.temporaryDirectory.appendingPathComponent("recovery-ui-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
@@ -149,6 +150,41 @@ import CoreImage
         check(pendingModel.recorder.reviewHistory.sections.map(\.id)==reviewSections.map(\.id)
             && zip(pendingModel.recorder.reviewHistory.sections,reviewSections).allSatisfy {$0.before==$1.before && $0.after==$1.after && $0.moves==$1.moves && $0.committed==$1.committed},
             "Recovery changed retained review history")
+        // A checked photo is invalidated by stream interruption, even if the
+        // same camera later returns. No archived label may revive as a live mask.
+        struct GlareMetadata:Decodable {let calibration:BoardCalibration}
+        let glareFolder=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/RecoveryGlare")
+        let glareMetadata=try JSONDecoder().decode(GlareMetadata.self,from:Data(contentsOf:glareFolder.appendingPathComponent("sample.json")))
+        let glarePhoto=CGImageSourceCreateImageAtIndex(CGImageSourceCreateWithURL(glareFolder.appendingPathComponent("camera.png") as CFURL,nil)!,0,nil)!
+        let captureFolder=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/IncompleteCapture")
+        let captureText=try String(contentsOf:captureFolder.appendingPathComponent("before.sgf"),encoding:.utf8)
+        let captureGame=SGFGame.from(tree:try SGFParser.parse(text:captureText))
+        let capturePlayer=SGFPlayer();capturePlayer.load(game:captureGame);capturePlayer.seek(to:captureGame.moves.count)
+        var captureHistory=DeferredMoveHistory();captureHistory.size=19;captureHistory.baseMove=captureGame.moves.count
+        captureHistory.anchorSignature=RecordingIdentity.signature(for:captureGame)
+        let captureAfter=try JSONDecoder().decode([Occupancy].self,from:Data(contentsOf:captureFolder.appendingPathComponent("observed.json")))
+        captureHistory.sections=[.init(reviewNumber:1,before:DeferredMoveHistory.states(capturePlayer.board),after:captureAfter,reason:"Incomplete capture",firstSeen:1,confirmedAt:2)]
+        let captureFile=root.appendingPathComponent("photo-review.sgf")
+        try captureText.write(to:captureFile,atomically:true,encoding:.utf8)
+        try JSONEncoder().encode(captureHistory).write(to:captureFile.deletingPathExtension().appendingPathExtension("reviews.json"))
+        let photoModel=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:root)
+        photoModel.recoverySpeechEnabled=false;photoModel.recorder.clock.audible=false;photoModel.moveEvidenceCapture.enabled=false
+        try photoModel.recorder.restoreSavedGame(from:captureFile)
+        photoModel.tracksCameraMotion=false // Already aligned fixture; exercise stream/approval lifetime independently of grid fitting.
+        photoModel.calibration=glareMetadata.calibration;photoModel.running=true;photoModel.cameraState = .live;photoModel.frozen=false
+        photoModel.receive(glarePhoto,capturedAt:ProcessInfo.processInfo.systemUptime)
+        wait {photoModel.lastVerifiedLiveFrameAt != nil}
+        photoModel.beginBoardCorrection()
+        for point in [185,204,261] {photoModel.boardCorrections.set(.empty,at:point)}
+        check(photoModel.photoReviewAction != nil,"Fresh checked photo did not offer scoped capture confirmation")
+        photoModel.handleCameraStatus("Test interruption",state:.recovering)
+        check(photoModel.photoReviewAction==nil,"Interrupted camera left old photo authorized")
+        photoModel.handleCameraStatus("Live",state:.live)
+        photoModel.receive(glarePhoto,capturedAt:ProcessInfo.processInfo.systemUptime)
+        wait {photoModel.lastVerifiedLiveFrameAt != nil}
+        check(photoModel.photoReviewAction==nil,"Reconnected stream revived a stale photo approval")
+        photoModel.cancelBoardCorrection()
+        check(photoModel.recorder.moveCount==45 && photoModel.recorder.state == .paused && photoModel.boardCorrections.values.isEmpty,"Cancelled photo review changed history, timing or live readings")
         print("Historical recovery preserved \(savedCount) saved + \(pending.count) tentative moves")
         print("PASS: \(checks) recovery UI checks: speech preference, real photo reacquisition, loss notice, missing-board guidance, retry/clear, saved game/reference preservation and native banner render")
     }

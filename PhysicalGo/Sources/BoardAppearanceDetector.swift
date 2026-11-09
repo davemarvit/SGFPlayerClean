@@ -159,13 +159,40 @@ enum BoardAppearanceDetector {
         if dark>=0.85 && ink<0.65 { return Candidate(state:.black,confidence:dark,delta:delta) }
         // Parallel shell grain can resemble one printed rail. A surviving grid
         // cross needs support in BOTH directions; color/patch votes still apply.
-        if light>=0.85 && !grid.crossVisible { return Candidate(state:.white,confidence:light,delta:delta) }
+        if light>=0.85 && !grid.crossVisible && boundedWhite(frame:frame,calibration:calibration,col:col.rounded(),row:row.rounded()) {
+            return Candidate(state:.white,confidence:light,delta:delta)
+        }
         // The empty-board hypothesis must be supported by wood AND a visible cross.
         if Double(similar)/count>=0.75 && ink>=0.65 {
             return Candidate(state:.empty,confidence:min(Double(similar)/count,ink),delta:delta)
         }
         return Candidate(state:.uncertain,confidence:0,delta:delta)
     }
+    /// A pale patch needs a surrounding boundary. A smooth lighting gradient
+    /// can be brighter than a wood estimate without being a physical white stone.
+    /// Sample between the printed axes so grid ink alone cannot supply the rim.
+    static func boundedWhite(frame:GrayFrame,calibration:BoardCalibration,col:Double,row:Double)->Bool {
+        var tested=0,supported=0
+        for sector in 0..<12 {
+            let angle=(Double(sector)+0.5)*Double.pi/6
+            func sample(_ radius:Double)->Double? {
+                let c=col+cos(angle)*radius,r=row+sin(angle)*radius
+                guard c>=0,r>=0,c<=Double(calibration.size-1),r<=Double(calibration.size-1),
+                      let value=frame.patchMean(calibration.point(col:c,row:r)) else {return nil}
+                return value
+            }
+            let radial=[0.2,0.3,0.4,0.5,0.6,0.7,0.8].compactMap(sample)
+            guard radial.count>=5 else {continue}
+            tested+=1
+            let levels=radial
+            let drop=zip(levels,levels.dropFirst()).map(-).max() ?? 0
+            // A rim changes abruptly over a tenth of a grid spacing. The
+            // relative threshold also works when the whole scene is dimmed.
+            if drop>max(0.025,min(0.065,median(Array(levels.prefix(3)))*0.18)) {supported+=1}
+        }
+        return tested>=3 && supported*2>tested
+    }
+
     /// Positive current-image evidence: two printed rails cross a wood-colored
     /// interior. Unlike a reference contrast ratio, this survives a moved glare
     /// patch or different camera exposure. It never uses accepted game labels.

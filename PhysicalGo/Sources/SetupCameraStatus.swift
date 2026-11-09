@@ -21,7 +21,7 @@ struct SetupCameraMessage {
         } else if alignment {
             title=needsFullBoard ? "Show the whole board":exhausted ? "Board alignment needs attention":"Reacquiring board…"
             detail=needsFullBoard
-                ? "Adjust the camera or board so all four corners and the outer grid lines are visible. Then hold everything steady."
+                ? "Check room lighting and clear obstructions. Keep the camera and board steady with all four corners visible."
                 : exhausted ? "Keep the whole board in view and retry. If alignment cannot be verified, use Manual corners in the camera controls."
                 : "Hold the camera and board steady while their positions are verified. Stones can stay in place."
         } else if lighting {

@@ -9,6 +9,7 @@ struct ReviewSectionView:View {
     let turnKnown:Bool
     private let initialWithdrawal:AccidentalStoneWithdrawal?
     let onClose:(()->Void)?
+    let onCheckPhoto:(()->Void)?
     @State private var draft:MoveRecoveryDraft
     @State private var firstColor:Stone
     @State private var mode=Mode.choose
@@ -22,8 +23,8 @@ struct ReviewSectionView:View {
     @State private var turnConflict:ReviewOrderRecovery.Interval?
     @State private var recoveredOrders=[[Int]]()
     @Environment(\.dismiss) private var dismiss
-    init(recorder:GameRecorder,id:UUID,orientation:BoardOrientation,onClose:(()->Void)?=nil) {
-        self.recorder=recorder;self.id=id;self.orientation=orientation;self.onClose=onClose
+    init(recorder:GameRecorder,id:UUID,orientation:BoardOrientation,onClose:(()->Void)?=nil,onCheckPhoto:(()->Void)?=nil) {
+        self.recorder=recorder;self.id=id;self.orientation=orientation;self.onClose=onClose;self.onCheckPhoto=onCheckPhoto
         let section=recorder.reviewHistory.sections.first{$0.id==id}!
         let source=recorder.contextForReview(id)!
         var selectedContext=source.game
@@ -96,11 +97,11 @@ struct ReviewSectionView:View {
         if reviewSaved {SavedReviewNotice(recorder:recorder,onClose:close)}
         else if mode != .order,let capture=recorder.captureReviewPlan(id) {
             CaptureReviewView(recorder:recorder,plan:capture,orientation:orientation,onClose:close,
-                onSaved:completeReview,onOtherMove:{mode = .order;error=nil})
+                onSaved:completeReview,onOtherMove:{mode = .order;error=nil},onCheckPhoto:onCheckPhoto)
         }
         else if showsRestoration,let restoration {
             BoardRestorationReviewView(recorder:recorder,plan:restoration,orientation:orientation,onClose:close,
-                onSaved:completeReview,onActualMoves:{mode = .order;error=nil})
+                onSaved:completeReview,onActualMoves:{mode = .order;error=nil},onCheckPhoto:onCheckPhoto)
         }
         else if let section {
             VStack(alignment:.leading,spacing:14) {

@@ -132,6 +132,49 @@ is still on demand on battery; this display does not start another engine.
 all four orientations with native renders, uncertain/malformed ownership, final-score
 corrections, fresh-position reset, and the existing real KataGo/power/handoff tests.
 
+## Recovery without persistent overrides (0.126)
+
+Board-photo labels now apply only to the frozen photograph being checked. Saving
+labels archives the original image and explicit labels, then discards the draft;
+local and online move recognition always receive live camera readings. There is
+no sticky Empty/Black/White mask, including after a game, turn, or camera change.
+This does not train the recognizer automatically.
+
+Capture and restoration reviews offer **Check camera photo…**. If the checked
+photo matches the current legal correction, an explicit **Confirm … from this
+photo** action can resolve that review. Saving labels alone does not resolve it.
+The approval is tied to the review ID and target, expires after 60 seconds, and
+is invalidated by a camera interruption, freeze or calibration revision. The
+archive must succeed before resolution. Clocks remain paused, and the existing
+capture-complete announcement is deferred until they actually resume. Photo
+labels never authorize automatic online submissions.
+
+The current-image White classifier now requires a surrounding edge, rather than
+accepting a smooth bright patch solely because it is paler than nearby wood.
+Unbounded glare remains uncertain; history is not relabeled as visual truth.
+
+Camera retry allowances replenish after 30 seconds of uninterrupted healthy
+frames. A system wake or reconnection of the selected camera can recover an
+exhausted stream, while explicit Stop prevents automatic reopening. Each failed
+outage remains bounded. Exhausted grid searches retry every 30 seconds while
+fresh frames continue; lighting/visibility guidance asks players to check the
+view without assuming that the camera needs moving. Recovery never bypasses
+fresh-board verification or a manual clock pause.
+
+`--recovery-lifecycle-test` replays the actual glare labels, confirms the legal
+capture once, and then records real White and Black observations at formerly
+labeled points. It checks expiry, changed review/target, replay, clock values and
+restart. `--recovery-glare-test` checks the archived camera photo and six synthetic
+transfers of photographed stones with their rims/shadows into the glare region.
+Those composites are regression probes, not measured live-placement accuracy.
+The user also supplied a real matched Empty → White → Empty sequence at L15
+without moving the camera or changing the lighting; all three frames are required
+and checked exactly, independently of the synthetic probes.
+`--recovery-ui-test` covers the native pipeline, lights off/on and photo approval
+invalidation on camera interruption. `--camera-test`, `--correction-test`,
+`--online-test` and `--review-queue-test` cover retry limits, Stop, label isolation,
+no submissions from labels and legal review persistence.
+
 ## Obstruction and recovery feedback (0.125)
 
 Surviving distributed stone landmarks plus partial loss of outer rails suggest
@@ -2238,7 +2281,7 @@ The ShadedCross fixture stores three real frames and the empty reference from th
 
 ### Authoritative physical-board corrections and labeled images (0.64)
 
-Use **Correct board…** in the header or Board interpretation. Camera processing continues, but move dispatch and recording ingestion pause while the editor is open. The editor freezes a matched photo, calibration and raw observation; selecting an intersection reveals its original camera crop. Choose Empty, Black, White, or Use camera, then Save corrections & resume. Purple rings identify explicit user facts. Those facts override subsequent camera guesses until individually released, a new game/account/orientation or grid is selected, or the app restarts. Corrected observations still pass ordinary legal-move inference, fresh-camera, lighting, server freshness, synchronization and stable-confirmation checks. An edit never rewrites the server board or submits an arbitrary move. Cancel leaves existing corrections unchanged.
+Use **Check board photo…** in the header. Camera processing continues, but move dispatch and recording ingestion pause while the editor is open. The editor freezes a matched photo, calibration and raw observation; selecting an intersection reveals its original camera crop. The original persistent-correction behavior is superseded by 0.126: labels apply only to a reviewed photograph and never override subsequent camera readings. Saving labels archives the photograph without changing the game. A separate explicit confirmation can resolve an eligible local capture or restoration review, subject to the freshness and context checks described above. Labels never authorize an online move. Cancel discards the draft.
 
 Each committed edit is archived atomically under `~/Library/Application Support/Physical Go/Corrections/<UUID>/`: lossless `camera.png`, optional empty `reference.png`, and `corrections.json`. Metadata contains original uncorrected readings/outlines, both calibrations, threshold, orientation, timestamps, app/source version, explicit actions and labels in raw camera coordinates. Only points explicitly labeled in that edit become training truth; prior manual values and the other 359 camera readings are not silently labeled. Returning a point to automatic detection is an action, not an occupancy label. An archive write failure leaves editing paused and preserves the draft for retry. Files remain across app updates; there is no automatic upload, retraining, or deletion. Ordinary diagnostic replay also records which user corrections were active without replacing its raw readings.
 

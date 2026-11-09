@@ -50,7 +50,7 @@ import ImageIO
         for i in 0..<6 {try publish();bridge.consume(detected[0],now:4+Double(i)*0.3,quarterTurns:3,corrections:corrections)}
         check(!FileManager.default.fileExists(atPath:move.path),"Duplicate capture request")
         try publish(2);bridge.consume(raw(fixture.serverBefore),now:6,quarterTurns:3,corrections:corrections)
-        let empty=5*19+2,black=5*19+4
+        let empty=5*19+2,black=4*19+2
         let after=raw(fixture.afterCapture)
         let uncertain=BoardObservation(readings:after.readings.map {r in
             [empty,black].contains(r.row*19+r.col) ? IntersectionReading(row:r.row,col:r.col,occupancy:.uncertain,confidence:0,delta:r.delta) : r
@@ -70,22 +70,22 @@ import ImageIO
         check(GrayFrame(image:archived)!.pixels == GrayFrame(image:snapshot.image)!.pixels,"Archive changed image pixels")
         corrections.commit();bridge.pauseForCorrection()
         check(uncertain.signature[empty] == .uncertain,"Raw observation mutated")
-        check(corrections.apply(to:uncertain).manualPoints == Set([empty,black]),"Manual provenance missing")
+        check(corrections.values.isEmpty && corrections.apply(to:uncertain).manualPoints.isEmpty,"Photo labels became persistent live overrides")
         for i in 0..<8 {try publish(2);bridge.consume(uncertain,now:9+Double(i)*0.3,quarterTurns:3,corrections:corrections)}
-        check(FileManager.default.fileExists(atPath:move.path),"Corrected capture did not send")
-        try FileManager.default.removeItem(at:move)
-        try publish(2,turn:false);bridge.consume(uncertain,now:11.5,quarterTurns:3,corrections:corrections)
-        check(corrections.values[empty] == .empty && corrections.values[black] == .black,"Ordinary turn update erased user labels")
-        var contradictory=fixture.afterCapture;contradictory[309]="white"
-        check(corrections.apply(to:raw(contradictory)).signature[empty] == .empty,"Camera replaced authoritative label")
+        check(!FileManager.default.fileExists(atPath:move.path),"Archived labels manufactured a live capture request")
+        check(corrections.apply(to:uncertain).signature==uncertain.signature,"Live uncertainty was overwritten")
+        let realStone=BoardObservation(readings:uncertain.readings.map {r in
+            r.row*19+r.col==empty ? IntersectionReading(row:r.row,col:r.col,occupancy:.white,confidence:1,delta:0):r
+        },size:19)
+        check(corrections.apply(to:realStone).signature[empty] == .white,"A later real stone was hidden by an old Empty label")
         corrections.begin(size:19);corrections.set(.white,at:empty);corrections.cancel()
-        check(corrections.values[empty] == .empty,"Cancel applied edits")
+        check(corrections.values.isEmpty,"Cancel installed live labels")
         corrections.begin(size:19);corrections.set(.automatic,at:empty)
         let autoSnapshot=BoardCorrectionSnapshot(id:UUID(),capturedAt:Date(),image:snapshot.image,reference:nil,calibration:f.calibration,referenceCalibration:nil,observation:uncertain,threshold:f.threshold,quarterTurns:3,source:"test")
         let autoSaved=try CorrectionArchive.save(autoSnapshot,edits:corrections.edits,root:tmp.appendingPathComponent("archive"))
         let autoMetadata=try JSONSerialization.jsonObject(with:Data(contentsOf:autoSaved.appendingPathComponent("corrections.json"))) as! [String:Any]
         check((autoMetadata["labels"] as! [Any]).isEmpty,"Automatic action became training truth")
-        corrections.commit();check(corrections.values[empty] == nil && corrections.values[black] == .black,"Release failed")
+        corrections.commit();check(corrections.values.isEmpty,"Release failed")
         var blocked=uncertain;blocked.lightingBlocked=true
         check(corrections.apply(to:blocked).lightingBlocked,"Lighting guard bypassed")
         try publish(3);bridge.consume(uncertain,now:13,quarterTurns:3,corrections:corrections)

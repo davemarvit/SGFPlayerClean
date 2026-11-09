@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor final class ReviewWindow: NSObject,ObservableObject,NSWindowDelegate {
     private(set) var window:NSWindow?
     private weak var recorder:GameRecorder?
-    func open(recorder:GameRecorder,id:UUID,orientation:BoardOrientation) {
+    func open(recorder:GameRecorder,id:UUID,orientation:BoardOrientation,onCheckPhoto:(()->Void)?=nil) {
         // Keep unsubmitted selections intact if another review button is clicked.
         if let window {window.makeKeyAndOrderFront(nil);return}
         guard recorder.contextForReview(id) != nil else {return}
@@ -16,7 +16,7 @@ import SwiftUI
         window.title="Review \(recorder.reviewHistory.sections.first{$0.id==id}?.reviewNumber ?? 0)"
         window.isReleasedWhenClosed=false;window.delegate=self
         window.contentMinSize=NSSize(width:890,height:690)
-        window.contentView=NSHostingView(rootView:ReviewSectionView(recorder:recorder,id:id,orientation:orientation,onClose:{[weak self] in self?.close()}))
+        window.contentView=NSHostingView(rootView:ReviewSectionView(recorder:recorder,id:id,orientation:orientation,onClose:{[weak self] in self?.close()},onCheckPhoto:onCheckPhoto.map {action in { [weak self] in self?.close();action() }}))
         self.window=window;window.center();window.makeKeyAndOrderFront(nil)
     }
     func close() {window?.close()}

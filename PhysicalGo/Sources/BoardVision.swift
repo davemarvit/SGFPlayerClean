@@ -725,7 +725,8 @@ enum BoardDetector {
         }
         let outlined=Set((geometry.footprints+geometry.placementFits+recoveredShapes).filter{$0.quality>=0.80}.map{$0.row*calibration.size+$0.col})
         for (index,reading) in resolved.enumerated() where reading.occupancy.stone != nil && !outlined.contains(index) {
-            if retainsWoodTint(frame:frame,reference:reference,calibration:calibration,referenceCalibration:referenceCalibration,
+            if (reading.occupancy == .white && !BoardAppearanceDetector.boundedWhite(frame:frame,calibration:calibration,col:Double(reading.col),row:Double(reading.row))) ||
+                retainsWoodTint(frame:frame,reference:reference,calibration:calibration,referenceCalibration:referenceCalibration,
                 col:reading.col,row:reading.row) {
                 resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.uncertain,confidence:0,delta:reading.delta)
             }

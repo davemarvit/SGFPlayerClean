@@ -22,7 +22,7 @@ struct RecordingView: View {
     }
     private var checkPoints:Set<Int> {RecordingClarity.checkPoints(recorder:recorder,observation:model.visibleObservation)}
     private func openReview(_ id:UUID) {
-        model.reviewWindow.open(recorder:recorder,id:id,orientation:model.orientation)
+        model.reviewWindow.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
     }
     private func beginRecovery(at point:BoardPosition?=nil) {
         if recorder.hasDeferredMoves,let section=recorder.reviewHistory.reviews.first(where:{$0.moves==nil}) ?? recorder.reviewHistory.reviews.last {openReview(section.id);return}

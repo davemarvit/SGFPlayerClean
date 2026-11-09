@@ -1,13 +1,13 @@
 import Foundation
 import Combine
 
-/// Explicit physical-board facts, independent of the camera classifier and Go
-/// transport. Raw camera coordinates keep corrections attached to intersections.
+/// Labels belong to the single photograph being reviewed. They never replace
+/// later live readings, locally or online.
 @MainActor final class ManualBoardCorrections: ObservableObject {
     enum Choice: String, Codable, CaseIterable {
         case empty, black, white, automatic
         var occupancy: Occupancy? { Occupancy(rawValue:rawValue) }
-        var label: String { self == .automatic ? "Use camera" : rawValue.capitalized }
+        var label: String { self == .automatic ? "Use photo reading" : rawValue.capitalized }
     }
     @Published private(set) var values: [Int: Occupancy] = [:]
     @Published private(set) var draft: [Int: Occupancy]?
@@ -37,9 +37,9 @@ import Combine
         for point in draft.keys { set(.automatic,at:point) }
     }
     func commit() {
-        guard let draft else { return }
-        values=draft; self.draft=nil; edits=[:]
-        notice="Corrections saved. Purple rings mark manual intersections."
+        guard draft != nil else { return }
+        values=[:]; self.draft=nil; edits=[:]
+        notice="Photo labels saved. Live recognition continues without overrides."
     }
     func cancel() { draft=nil; edits=[:] }
     func clear(reason: String) {
@@ -47,8 +47,8 @@ import Combine
         values=[:]; draft=nil; edits=[:]; context=nil
     }
     func apply(to observation: BoardObservation, preview: Bool = false) -> BoardObservation {
-        guard observation.size==size else { return observation }
-        let overrides=preview ? displayedValues : values
+        guard preview, isEditing, observation.size==size else { return observation }
+        let overrides=displayedValues
         var result=observation
         result=BoardObservation(readings:observation.readings.map { reading in
             guard let state=overrides[reading.row*size+reading.col] else { return reading }

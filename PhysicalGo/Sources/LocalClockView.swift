@@ -157,7 +157,7 @@ struct LocalClockPanel:View {
             if let pause=clock.automaticPause,!clock.running,recorder.state != .finished {
                 ClockPauseFeedback(pause:pause,paused:recorder.state == .paused,
                     pendingMoves:recorder.pendingMoveCount,requiresReview:clock.requiresReview,awaitingTurn:clock.awaitingTurn,
-                    correctionGuidance:presentation.correction?.guidance)
+                    correctionGuidance:presentation.correction?.guidance,boardStatus:recorder.synchronized ? nil:recorder.status)
             } else if let correction=presentation.correction {
                 Text(correction.guidance).font(.callout).foregroundStyle(.orange)
             } else {
@@ -240,7 +240,7 @@ struct LocalClockPanel:View {
                 Circle().fill(black ? Color.black:Color.white).overlay(Circle().stroke(.gray,lineWidth:1)).frame(width:22,height:22)
                 Text((black ? "Black":"White")+(player.map{ $0.isEmpty ? "":" · "+$0 } ?? "")).font(.system(size:large ? 28:22,weight:.semibold)).lineLimit(1).minimumScaleFactor(0.7)
                 Spacer()
-                Text(recorder.needsTurnConfirmation ? "CONFIRM TURN":active ? (recorder.awaitingFirstStart ? "READY":clock.running ? "TO PLAY":"PAUSED"):"Waiting").font(.headline)
+                Text(recorder.needsTurnConfirmation ? (LocalPlayPresentation(recorder:recorder,clock:clock).correction != nil ? "REVIEW PENDING":"CONFIRM TURN"):active ? (recorder.awaitingFirstStart ? "READY":clock.running ? "TO PLAY":"PAUSED"):"Waiting").font(.headline)
             }
             Text(LocalClockEngine.display(state.remaining))
                 .font(.system(size:large ? 180:160,weight:.bold,design:.rounded)).monospacedDigit()
@@ -331,6 +331,7 @@ struct ClockPauseFeedback:View {
     let requiresReview:Bool
     let awaitingTurn:Bool
     var correctionGuidance:String?=nil
+    var boardStatus:String?=nil
     var nextStep:String {
         if let correctionGuidance {return correctionGuidance}
         if requiresReview {return "Choose Review & resume to check both times before continuing."}
@@ -346,8 +347,11 @@ struct ClockPauseFeedback:View {
     var body:some View {
         VStack(alignment:.leading,spacing:6) {
             Label("Clocks stopped automatically",systemImage:"pause.circle.fill").font(.headline).foregroundStyle(.orange)
-            Text("Why it stopped: \(pause.reason)").font(.callout)
+            if correctionGuidance == nil {Text("Why it stopped: \(pause.reason)").font(.callout)}
             Text(nextStep).font(.callout).fontWeight(.medium)
+            if correctionGuidance==nil,!requiresReview,!awaitingTurn,let boardStatus,!boardStatus.isEmpty {
+                Text(boardStatus).font(.callout)
+            }
         }
         .frame(maxWidth:.infinity,alignment:.leading).padding(12)
         .background(Color.orange.opacity(0.12),in:RoundedRectangle(cornerRadius:8))

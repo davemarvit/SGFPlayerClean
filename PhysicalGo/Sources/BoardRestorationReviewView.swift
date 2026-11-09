@@ -7,6 +7,7 @@ struct BoardRestorationReviewView: View {
     let onClose: () -> Void
     let onSaved: () -> Void
     let onActualMoves: () -> Void
+    var onCheckPhoto:(()->Void)?=nil
     @State private var error: String?
 
     private var verification: ReviewBoardVerification.Status { recorder.boardRestorationVerificationStatus(plan) }
@@ -48,6 +49,7 @@ struct BoardRestorationReviewView: View {
                     Button("These were played moves or captures…", action: onActualMoves).padding(.top, 12)
                 }.frame(width: 300, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             }
+            if let onCheckPhoto {Button("Check camera photo…",action:onCheckPhoto).disabled(verification == .waitingForCamera)}
             Divider()
             HStack {
                 Button("Cancel", action: onClose).keyboardShortcut(.cancelAction)

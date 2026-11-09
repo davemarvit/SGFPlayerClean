@@ -139,31 +139,31 @@ enum LocalGameSetup {
     func boardRestorationVerificationStatus(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->ReviewBoardVerification.Status {
         reviewVerificationStatus(target:plan.target,requiredClear:plan.changed,now:now)
     }
-    @discardableResult func confirmBoardRestoration(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime)->String? {
+    @discardableResult func confirmBoardRestoration(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime,checkedPhoto:CheckedReviewPhoto?=nil)->String? {
         guard state == .paused,!reviewing,!recoveryReadBlocked,
               let plan=boardRestorationPlan(id),let context=contextForReview(id) else {
             return "This position needs another review before restoration can be confirmed."
         }
-        guard boardRestorationVerified(plan,now:now) else {
+        guard checkedPhoto.map({$0.verifies(id:id,target:plan.target,requiredClear:plan.changed,now:now)}) ?? boardRestorationVerified(plan,now:now) else {
             return "Restore the marked stones to their recorded intersections and wait for a fresh clear view."
         }
         let error=resolveReview(id,draft:MoveRecoveryDraft(game:context.game,observation:nil),overrideCamera:true,
-            resolutionReason:"Player restored accidentally moved or removed stones; fresh camera views verified the recorded position. No move was added.")
+            resolutionReason:checkedPhoto == nil ? "Player restored accidentally moved or removed stones; fresh camera views verified the recorded position. No move was added." : "Player confirmed restoration from a checked camera photograph. No move was added; photo labels do not override live recognition.")
         if error == nil {clock.queueResumeAnnouncement("Board position restored.")}
         return error
     }
-    @discardableResult func confirmCaptureReview(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime)->String? {
+    @discardableResult func confirmCaptureReview(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime,checkedPhoto:CheckedReviewPhoto?=nil)->String? {
         guard state == .paused,!reviewing,!recoveryReadBlocked,
               let plan=captureReviewPlan(id),let context=contextForReview(id) else {
             return "This position needs another review before the capture can be confirmed."
         }
-        guard captureRemovalVerified(plan,now:now) else {
+        guard checkedPhoto.map({$0.verifies(id:id,target:plan.target,requiredClear:plan.captured.union([plan.point]),now:now)}) ?? captureRemovalVerified(plan,now:now) else {
             return "Remove the remaining captured stones, keep the capturing stone in place, and wait for a fresh clear view."
         }
         var draft=MoveRecoveryDraft(game:context.game,observation:nil)
         if let error=draft.add(plan.move.point,checkCameraColor:false) {return error}
         let error=resolveReview(id,draft:draft,overrideCamera:true,
-            resolutionReason:"Single legal capture confirmed after fresh camera views verified removal of the captured stones.")
+            resolutionReason:checkedPhoto == nil ? "Single legal capture confirmed after fresh camera views verified removal of the captured stones." : "Player confirmed a single legal capture from a checked camera photograph. Photo labels do not override live recognition.")
         if error == nil {clock.queueResumeAnnouncement("Capture complete.")}
         return error
     }
@@ -611,7 +611,7 @@ enum LocalGameSetup {
         if now-blockedSince!>=delay && !needsAttention {
             needsAttention=true
             attentionMessage=kind == .settling
-                ? "Observations are being retained. Move order is still being checked; unresolved sequences can be reviewed later."
+                ? "\(message) Observations are being retained."
                 : "Please stop playing. Last saved: move \(moveCount). \(message)"
             warningMonitor.noteSound(now:now)
             trace(event:"recording warning: persistent blockage",now:now)
@@ -887,7 +887,7 @@ enum LocalGameSetup {
         // Broad uncertainty over previously empty space still suspends confirmation.
         guard unknown.count<=unclearLimit else {
             reviewHistory.interrupt()
-            reject("Checking \(unknown.count) unclear intersections. Observations are retained while move order is resolved.",kind:.settling)
+            reject("Waiting for a readable view of \(unknown.count) intersections. Clear hands or glare; the saved position is preserved.",kind:.settling)
             // Partial uncertainty and unresolved move order are not a lost camera
             // view. Only a separate, sustained broad loss may stop the clock.
             if sustainedViewLoss,clock.running {
@@ -1184,7 +1184,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.125"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.126"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {

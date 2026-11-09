@@ -7,6 +7,7 @@ struct CaptureReviewView: View {
     let onClose: () -> Void
     let onSaved: () -> Void
     let onOtherMove: () -> Void
+    var onCheckPhoto:(()->Void)?=nil
     @State private var error: String?
 
     private var remaining: Set<Int> { plan.remaining(in: recorder.reviewCameraPosition) }
@@ -54,6 +55,7 @@ struct CaptureReviewView: View {
                     Button("This was a different move…", action: onOtherMove).padding(.top, 12)
                 }.frame(width: 300, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             }
+            if let onCheckPhoto {Button("Check camera photo…",action:onCheckPhoto).disabled(verification == .waitingForCamera)}
             Divider()
             HStack {
                 Button("Cancel", action: onClose).keyboardShortcut(.cancelAction)

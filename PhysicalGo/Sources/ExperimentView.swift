@@ -172,7 +172,7 @@ struct ExperimentView: View {
                 if model.playMode == .local {LocalPlayHeading(recorder:recorder,clock:recorder.clock)}
                 else {Text("Playing").font(.largeTitle.bold())}
                 Spacer()
-                Button("Correct board…") {model.beginBoardCorrection()}
+                Button("Check board photo…") {model.beginBoardCorrection()}
                     .disabled(model.observation == nil || model.calibration == nil || model.alignmentNeedsRecovery)
             }
             if !hasSession && model.playMode == .local {
@@ -181,7 +181,7 @@ struct ExperimentView: View {
                 } description:{Text("Set up the camera and game before recording moves.")}
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
             } else {
-                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewWindow.open(recorder:recorder,id:$0,orientation:model.orientation)})}
+                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewWindow.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
                 if model.playMode == .local && recorder.needsAttention {
@@ -637,18 +637,18 @@ private struct BoardRecoveryBanner:View {
             Image(systemName:model.recoveryNeedsFullBoard ? "viewfinder":"camera.metering.unknown")
                 .font(.system(size:32)).accessibilityHidden(true)
             VStack(alignment:.leading,spacing:6) {
-                Text(model.recoveryLikelyObstruction ? "Board partly obscured":model.recoveryNeedsFullBoard ? "Show the whole board":model.recoverySearchExhausted ? "Board alignment needs attention":"Checking board view…")
+                Text(model.recoveryLikelyObstruction ? "Board partly obscured":model.recoveryNeedsFullBoard ? "Check the board view":model.recoverySearchExhausted ? "Board alignment needs attention":"Checking board view…")
                     .font(.title2.bold()).lineLimit(1)
                 Text(model.recoveryLikelyObstruction
                      ? "Visible stones still match their positions. Move hands or other obstructions clear; keep the camera and board in place."
                      : model.recoveryNeedsFullBoard
-                     ? "Adjust the camera or board so all four corners and the outer grid lines are visible. Move hands away, then hold everything steady."
+                     ? "Check room lighting and clear obstructions. Keep the camera and board steady with all four corners visible."
                      : "Please pause play and hold the camera and board steady. Stones can stay in place while we verify their positions.").lineLimit(3,reservesSpace:true)
                 Text("Automatic move recording and sending are paused while alignment is uncertain. Your saved game is preserved.")
                     .font(.callout.bold())
                 if model.playMode == .online {Text("The online game clock continues running.").font(.callout)}
                 Text(model.recoveryDetail.isEmpty ? "Checking grid alignment…":model.recoveryDetail).font(.caption).lineLimit(2,reservesSpace:true)
-                Text(model.recoverySearchExhausted ? "If retry cannot verify alignment, use Manual corners in the camera controls.":"Keep the camera and board steady while checking.").font(.caption).lineLimit(2,reservesSpace:true)
+                Text(model.recoverySearchExhausted ? "Automatic checks continue every 30 seconds. You can retry sooner once the view is clear.":"Keep the camera and board steady while checking.").font(.caption).lineLimit(2,reservesSpace:true)
             }.frame(maxWidth:.infinity,alignment:.leading)
             VStack(spacing:10) {
                 ProgressView().controlSize(.small).opacity(model.detectingGrid ? 1:0)
