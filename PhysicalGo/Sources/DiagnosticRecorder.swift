@@ -25,7 +25,8 @@ enum CaptureFolders {
     @Published private(set) var folder:URL?
     @Published private(set) var savedFrames=0
     @Published private(set) var savedBytes:Int64=0
-    @Published var limitGB=5
+    @Published var limitGB=10
+    private let archiveStorage:DiagnosticArchiveStorage?
     var isCapturing:Bool {state == .capturing}
     var isOpen:Bool {worker != nil && (state == .capturing || state == .finishing)}
     var canStart:Bool {worker == nil}
@@ -42,8 +43,9 @@ enum CaptureFolders {
     private var anchorPath:String?
     private var anchorInfo:[String:Any]?
     private let maximumPendingFrames:Int
-    init(root:URL=CaptureFolders.diagnostics,maximumPendingFrames:Int=12) {
+    init(root:URL=CaptureFolders.diagnostics,maximumPendingFrames:Int=12,archiveStorage:DiagnosticArchiveStorage?=nil) {
         self.root=root;self.maximumPendingFrames=maximumPendingFrames
+        self.archiveStorage=archiveStorage ?? (root==CaptureFolders.diagnostics ? .shared:nil)
     }
     static func value<T:Encodable>(_ value:T?)->Any {
         guard let value,let data=try? JSONEncoder().encode(value),let json=try? JSONSerialization.jsonObject(with:data,options:.fragmentsAllowed) else {return NSNull()}
@@ -53,7 +55,18 @@ enum CaptureFolders {
         guard canStart else {return}
         let id=UUID(),formatter=DateFormatter();formatter.dateFormat="yyyy-MM-dd HH-mm-ss"
         let url=root.appendingPathComponent("Diagnostic \(formatter.string(from:Date())) \(id.uuidString.prefix(8))",isDirectory:true)
-        let writer=try DiagnosticWriter(folder:url,limit:byteLimit ?? Int64(limitGB)*1_000_000_000,reserve:reserveBytes,context:context)
+        let requested=byteLimit ?? min(Int64(limitGB)*1_000_000_000,DiagnosticArchiveStorage.defaultLimit-DiagnosticArchiveStorage.metadataAllowance)
+        let writer:DiagnosticWriter
+        if let archiveStorage {
+            let result:Result<DiagnosticWriter,Error>=try archiveStorage.allocate(payload:requested,minimumPayload:byteLimit==nil ? 64_000_000:nil) {limit,removed in
+                Result {
+                    var details=context;details["archiveByteLimit"]=archiveStorage.limit;details["rotatedArchives"]=removed
+                    details["retentionPolicy"]="Oldest unpinned, inactive camera archives rotate automatically. KEEP files preserve selected archives."
+                    return try DiagnosticWriter(folder:url,limit:limit,reserve:reserveBytes,context:details)
+                }
+            }
+            writer=try result.get()
+        } else {writer=try DiagnosticWriter(folder:url,limit:requested,reserve:reserveBytes,context:context)}
         worker=writer;sessionID=id;folder=url;nextFrame=0;nextOperation=0;nextAsset=0;pendingWrites=0
         operations=[:];finishing=false;endReason="Stopped by user";lastReference=nil;referencePath=nil;lastAnchorRevision=nil;anchorPath=nil;anchorInfo=nil
         savedFrames=0;savedBytes=0;state = .capturing;status="Saving diagnostic frames · game recording is separate."
@@ -161,6 +174,7 @@ private final class DiagnosticWriter {
     let folder:URL
     private let queue=DispatchQueue(label:"PhysicalGo.diagnostic-writer",qos:.utility)
     private let limit:Int64,reserve:Int64
+    private var lease:DiagnosticArchiveLock?
     private var handle:FileHandle?
     private var bytes:Int64=0,frames=0,closed=false
     private var context:[String:Any]
@@ -169,6 +183,7 @@ private final class DiagnosticWriter {
         self.folder=folder;self.limit=limit;self.reserve=reserve;self.context=context
         try FileManager.default.createDirectory(at:folder.appendingPathComponent("frames"),withIntermediateDirectories:true)
         try FileManager.default.createDirectory(at:folder.appendingPathComponent("assets"),withIntermediateDirectories:true)
+        lease=try DiagnosticArchiveLock(folder.appendingPathComponent(".writer.lock"))
         let url=folder.appendingPathComponent("events.jsonl");try Data().write(to:url,options:.atomic)
         handle=try FileHandle(forWritingTo:url)
         self.context["schemaVersion"]=1;self.context["startedAt"]=Date().timeIntervalSince1970
@@ -211,7 +226,7 @@ private final class DiagnosticWriter {
         let message=error.localizedDescription
         try? append(["event":"capture failed","reason":message,"time":Date().timeIntervalSince1970],enforceLimit:false)
         try? manifest(status:"failed",reason:message)
-        closed=true;try? handle?.close();handle=nil
+        closed=true;try? handle?.close();handle=nil;lease=nil
         DispatchQueue.main.async {self.onFailure?(message)}
     }
     func event(_ entry:[String:Any]) {
@@ -244,11 +259,17 @@ private final class DiagnosticWriter {
         guard !closed else {return}
         do {
             try append(["event":"capture ended","reason":reason,"time":Date().timeIntervalSince1970],enforceLimit:false)
-            try manifest(status:status,reason:reason);try handle?.close();handle=nil;closed=true
+            try manifest(status:status,reason:reason);try handle?.close();handle=nil;closed=true;lease=nil
         }catch {abort(error)}
     }
     func finish(reason:String,status:String="complete",completion:@escaping()->Void) {
         queue.async {self.complete(reason,status:status);DispatchQueue.main.async {completion()}}
     }
     func finishSynchronously(reason:String) {queue.sync {complete(reason)}}
+}
+
+@MainActor extension DiagnosticArchiveStorage {
+    static let shared=DiagnosticArchiveStorage(roots:[
+        FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/Move Evidence"),
+        CaptureFolders.diagnostics])
 }

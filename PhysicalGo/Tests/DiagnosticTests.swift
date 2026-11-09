@@ -102,6 +102,7 @@ import ImageIO
         // Exercise actual ExperimentModel routing and recorder correlation, without
         // opening a physical camera or changing the user's reference/settings.
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil,diagnosticRoot:root)
+        model.moveEvidenceCapture.enabled=false // This test owns only its isolated continuous-capture directory.
         model.soundMode = .off;model.tracksCameraMotion=false
         try model.openSample(from:fixture);settle(0.6)
         model.running=true;model.frozen=false;model.handleCameraStatus("Live · diagnostic test",state:.live)
@@ -146,12 +147,17 @@ import ImageIO
         model.startDiagnostics();model.tracksCameraMotion=true
         context.setFillColor(CGColor(gray:0,alpha:1));context.fill(CGRect(x:0,y:0,width:empty.width,height:empty.height))
         model.receive(context.makeImage()!);settle(0.7)
-        check(model.alignmentNeedsRecovery,"Black frame did not exercise the failed-alignment path")
+        check(model.lightingNeedsRecovery && !model.alignmentNeedsRecovery,"Lights-out frame was not classified as unreadable exposure")
+        // A readable, featureless image separately exercises missing grid geometry.
+        context.setFillColor(CGColor(gray:0.5,alpha:1));context.fill(CGRect(x:0,y:0,width:empty.width,height:empty.height))
+        model.receive(context.makeImage()!);settle(0.7)
+        check(model.alignmentNeedsRecovery,"Featureless gray frame did not exercise the failed-alignment path")
         model.detectGrid();wait({!model.detectingGrid})
         model.receive(empty);settle(0.7)
         model.detectGrid();model.resetCalibration() // Invalidate a search in flight.
         model.diagnostics.stop();wait({model.diagnostics.canStart})
         let gridEvents=try entries(model.diagnostics.folder!)
+        check(gridEvents.contains{$0["outcome"] as? String == "unreadable exposure"},"Lights-out frame was not recorded with its exposure failure")
         check(gridEvents.contains{$0["outcome"] as? String == "grid alignment rejected"},"Failed tracking frame was not recorded")
         check(gridEvents.contains{$0["outcome"] as? String == "grid not found"},"Failed full-view search was not recorded")
         check(gridEvents.contains{$0["outcome"] as? String == "discarded stale grid search"},"Canceled search lost its diagnostic result")

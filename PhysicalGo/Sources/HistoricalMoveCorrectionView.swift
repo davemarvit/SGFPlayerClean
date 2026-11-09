@@ -8,13 +8,16 @@ struct HistoricalMoveCorrectionView:View {
     let orientation:BoardOrientation
     let number:Int
     let onClose:()->Void
+    var initialDestination:BoardPosition?=nil
+    var reviewEdit:ReviewObservationEdit?=nil
+    var onSaved:(()->Void)?=nil
     @State private var destination:BoardPosition?
     @State private var keepsLaterMoves=true
     @State private var coordinateText=""
     @State private var saveError:String?
     private var original:BoardPosition? {recorder.game.moves[number-1].1.map{BoardPosition($0.1,$0.0)}}
     private var result:Result<HistoricalMoveCorrection,Error>? {
-        destination.map{point in Result{try HistoricalMoveCorrection(recorder:recorder,number:number,destination:point,keepsLaterMoves:keepsLaterMoves)}}
+        destination.map{point in Result{try HistoricalMoveCorrection(recorder:recorder,number:number,destination:point,keepsLaterMoves:keepsLaterMoves,reviewEdit:reviewEdit)}}
     }
     private var plan:HistoricalMoveCorrection? {try? result?.get()}
     private func coordinate(_ p:BoardPosition)->String {
@@ -61,9 +64,9 @@ struct HistoricalMoveCorrectionView:View {
                 Button("Cancel",action:onClose).keyboardShortcut(.cancelAction)
                 Button("Save corrected copy") {
                     guard let plan else {return}
-                    do {try recorder.applyHistoricalCorrection(plan);onClose()} catch {saveError=error.localizedDescription}
+                    do {try recorder.applyHistoricalCorrection(plan);onSaved?();onClose()} catch {saveError=error.localizedDescription}
                 }.disabled(plan==nil).keyboardShortcut(.defaultAction)
             }
-        }.padding(20).frame(width:560)
+        }.padding(20).frame(width:560).onAppear {if destination==nil,let initialDestination {select(initialDestination)}}
     }
 }

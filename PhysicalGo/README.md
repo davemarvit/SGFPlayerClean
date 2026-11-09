@@ -2713,3 +2713,36 @@ Regression command: `python3 PhysicalGo/build.py --historical-correction-test`
 Review3 and clock balances, restart, provenance, illegal suffixes, explicit
 truncation, stale previews, hand/camera continuity, write failures,
 review notices, and a native editor render.
+
+## Rotating evidence and review-board corrections (0.129)
+
+Automatic move clips and continuous camera diagnostics share a 10 GB archive
+budget. Before a new capture starts, the oldest inactive, unpinned diagnostic
+folders are removed until the capture has room. Space is reserved for the whole
+bounded automatic clip, rather than starting with only a few megabytes left.
+Writer locks protect active captures across app processes; interrupted captures
+become eligible after their writer exits. Recordings, correction photographs,
+regression fixtures and unknown folders are outside deletion eligibility.
+
+**Keep this capture — exclude from rotation** pins the latest capture. A `KEEP`
+file inside any older diagnostic folder has the same effect. If active or pinned
+captures occupy the budget, collection reports the blocked state instead of
+deleting protected evidence. Continuous captures still stop at their selected
+maximum (up to 10 GB) or when the app closes. The 10 GB allowance is shared, not
+an additional allocation for each capture mode.
+
+A review board displays the interpretation saved when the review began; it can
+therefore still show a wrong detection after an earlier saved move is corrected.
+Drag that detection to its actual intersection to open a correction preview.
+**Use corrected interpretation** changes only that review snapshot, retains its
+original camera interpretation, and reopens affected later sections for review.
+It does not apply persistent camera overrides, infer move order or restart clocks.
+If the source stone is still at the wrong location in accepted history, the drag
+opens the saved-move correction editor instead; saving that corrected copy also
+updates the selected review snapshot. Every review also offers **Correct saved
+move…** with a move-number field. Canceling a preview keeps existing selections.
+
+`python3 PhysicalGo/build.py --archive-review-test --move-capture-test --diagnostic-test --historical-correction-test --review-queue-test` exercises rotation and real
+frame capture, active/pinned protection, the actual move55/Review3 scenario,
+stale edits, retained original evidence, unchanged clocks, persistence and native
+review rendering.

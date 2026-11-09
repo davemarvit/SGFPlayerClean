@@ -12,6 +12,7 @@ struct DeferredMoveHistory:Codable {
         var reviewNumber:Int?
         var before:[Occupancy]
         var after:[Occupancy]
+        var originalCameraAfter:[Occupancy]?
         var moves:[Move]?
         var resolvedAfter:[Occupancy]?
         var committed=false
@@ -124,6 +125,7 @@ struct DeferredMoveHistory:Codable {
         return sections.allSatisfy {s in
             s.before.count==size*size && s.after.count==size*size &&
             !s.before.contains(.uncertain) && !s.after.contains(.uncertain) &&
+            (s.originalCameraAfter == nil || (s.originalCameraAfter!.count==size*size && !s.originalCameraAfter!.contains(.uncertain))) &&
             (s.resolvedAfter == nil || s.resolvedAfter!.count==size*size) &&
             (s.moves?.allSatisfy{m in m.point.map{(0..<size).contains($0.row) && (0..<size).contains($0.col)} ?? true} ?? !s.committed)
         }

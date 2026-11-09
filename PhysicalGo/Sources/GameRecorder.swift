@@ -1314,7 +1314,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.128"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.129"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
@@ -1381,6 +1381,23 @@ enum LocalGameSetup {
 
 
 extension GameRecorder {
+    func correctReviewObservation(_ edit:ReviewObservationEdit)throws {
+        guard state == .paused,!recoveryReadBlocked,autosaveURL==edit.recordingURL,
+              checkpointSignature==edit.signature,edit.savedMoveNumber==nil else {
+            throw RecordingStore.Failure(message:"The recording changed, or this correction belongs to a saved move. Reopen the preview.")
+        }
+        let changed=try edit.applying(to:reviewHistory)
+        guard changed.validate(size:game.boardSize,signature:checkpointSignature) else {
+            throw RecordingStore.Failure(message:"The corrected review could not be validated.")
+        }
+        // Persist before publishing; a failed write leaves the visible draft and
+        // accepted game untouched. Original evidence is stored in the sidecar.
+        try recordingStore.saveReviews(changed)
+        reviewHistory=changed;reviewSaveError=nil
+        reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
+        reviewNotice="Detected stone corrected. Check the remaining review changes before continuing."
+        trace(event:"review observation corrected",extra:["reviewID":edit.reviewID.uuidString,"from":edit.from.row*game.boardSize+edit.from.col,"to":edit.to.row*game.boardSize+edit.to.col])
+    }
     private func saveReviewHistory() {
         do {try recordingStore.saveReviews(reviewHistory);reviewSaveError=nil}
         catch {reviewSaveError="Review history could not be saved: \(error.localizedDescription). Keep the app open and retry saving."}

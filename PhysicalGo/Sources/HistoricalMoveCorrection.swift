@@ -26,7 +26,7 @@ import Foundation
         if recorder.pendingMoveCount>0 && !recorder.hasDeferredMoves {return "Review pending moves before correcting saved history."}
         return nil
     }
-    init(recorder:GameRecorder,number:Int,destination:BoardPosition,keepsLaterMoves:Bool=true)throws {
+    init(recorder:GameRecorder,number:Int,destination:BoardPosition,keepsLaterMoves:Bool=true,reviewEdit:ReviewObservationEdit?=nil)throws {
         func fail(_ message:String)->RecordingStore.Failure {.init(message:message)}
         if let reason=Self.unavailableReason(recorder) {throw fail(reason)}
         guard (1...recorder.moveCount).contains(number),
@@ -60,6 +60,12 @@ import Foundation
         }
         positions=boards;discardedMoves=recorder.moveCount-game.moves.count
         var history=recorder.reviewHistory
+        if let reviewEdit {
+            // Validate the original preview before rebuilding a changed destination.
+            _=try reviewEdit.applying(to:history)
+            let revised=try ReviewObservationEdit(recorder:recorder,reviewID:reviewEdit.reviewID,from:reviewEdit.from,to:destination)
+            history=try revised.applying(to:history)
+        }
         // Committed reviews are an audit trail of the original observations.
         // Pending sections must be reconsidered against the corrected baseline.
         let retainedMoveCount=game.moves.count

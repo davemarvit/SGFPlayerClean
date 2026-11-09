@@ -20,7 +20,7 @@ struct DiagnosticControls:View {
                         NSWorkspace.shared.open(folder)
                     }
                 }
-                Picker("Storage limit",selection:$diagnostics.limitGB) {
+                Picker("Maximum continuous capture",selection:$diagnostics.limitGB) {
                     ForEach([1,5,10],id:\.self) {Text("\($0) GB").tag($0)}
                 }.disabled(!diagnostics.canStart)
                 Text(diagnostics.status).foregroundStyle(diagnostics.state == .failed ? Color.red : Color.secondary)
@@ -29,8 +29,9 @@ struct DiagnosticControls:View {
                     Text("\(diagnostics.savedFrames) images · \(ByteCountFormatter.string(fromByteCount:diagnostics.savedBytes,countStyle:.file)) saved")
                         .font(.system(size:12*model.interfaceScale).monospacedDigit())
                 }
+                KeepDiagnosticCapture(folder:diagnostics.folder)
                 MoveEvidenceControls(capture:model.moveEvidenceCapture,textScale:model.interfaceScale)
-                Text("About 5 lossless images/second, including skipped frames. Continues while the game is paused. Stops at the limit or when the app closes; saved files stay until you delete them.")
+                Text("About 5 lossless images/second, including skipped frames. Continues while the game is paused. A shared 10 GB archive rotates the oldest inactive captures to make room. Add a KEEP file inside an archive folder to preserve it.")
                     .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
             }.frame(maxWidth:.infinity,alignment:.leading).padding(4)
         }
@@ -73,9 +74,10 @@ private struct MoveEvidenceControls:View {
     var body:some View {
         VStack(alignment:.leading,spacing:5) {
             Toggle("Save unusual moves automatically",isOn:$capture.enabled)
-            Text("Online borderline moves, or local candidates unresolved for 2 seconds, save a short camera clip. Delays over 5 seconds are flagged. 4 seconds before, 3 after, up to 2 frames/second. Stored locally, up to 5 GB; saved clips are retained.")
+            Text("Online borderline moves, or local candidates unresolved for 2 seconds, save a short camera clip. Delays over 5 seconds are flagged. 4 seconds before, 3 after, up to 2 frames/second. Stored locally in a shared 10 GB rotating archive. Oldest inactive clips are removed automatically; active captures and folders containing a KEEP file are protected.")
             Text(capture.recorder.state == .failed ? capture.recorder.status:capture.status)
                 .foregroundStyle(capture.recorder.state == .failed ? Color.red:Color.secondary)
+            KeepDiagnosticCapture(folder:capture.recorder.folder)
             Button("Show move captures") {
                 do {
                     try FileManager.default.createDirectory(at:capture.root,withIntermediateDirectories:true)
@@ -101,4 +103,27 @@ struct MoveCaptureIndicator:View {
             Label(capture.recorder.status,systemImage:"exclamationmark.triangle.fill").foregroundStyle(.red)
         }
     }
+}
+
+
+private struct KeepDiagnosticCapture:View {
+    let folder:URL?
+    @State private var kept=false
+    @State private var error:String?
+    var body:some View {
+        Group {
+            if let folder {
+                Toggle("Keep this capture — exclude from rotation",isOn:Binding(get:{kept},set:{value in
+                    do {
+                        let marker=folder.appendingPathComponent("KEEP")
+                        if value {try Data().write(to:marker,options:.atomic)}
+                        else if FileManager.default.fileExists(atPath:marker.path) {try FileManager.default.removeItem(at:marker)}
+                        kept=value;error=nil
+                    } catch {self.error="Could not change capture retention: \(error.localizedDescription)"}
+                })).disabled(!FileManager.default.fileExists(atPath:folder.path))
+                if let error {Text(error).foregroundStyle(.red)}
+            }
+        }.onAppear {refresh()}.onChange(of:folder) {_,_ in refresh()}
+    }
+    private func refresh() {kept=folder.map{FileManager.default.fileExists(atPath:$0.appendingPathComponent("KEEP").path)} ?? false;error=nil}
 }

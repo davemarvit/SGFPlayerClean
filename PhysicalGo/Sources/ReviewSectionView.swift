@@ -20,6 +20,11 @@ struct ReviewSectionView:View {
     @State private var recoveryMessage:String?
     @State private var turnConflict:ReviewOrderRecovery.Interval?
     @State private var recoveredOrders=[[Int]]()
+    @State private var observationEdit:ReviewObservationEdit?
+    @State private var savedCorrection:HistoricalMoveSelection?
+    @State private var savedMoveNumber=1
+    @State private var editedWithdrawal:AccidentalStoneWithdrawal?
+    @State private var hasEditedObservation=false
     @Environment(\.dismiss) private var dismiss
     init(recorder:GameRecorder,id:UUID,orientation:BoardOrientation,onClose:(()->Void)?=nil,onCheckPhoto:(()->Void)?=nil) {
         self.recorder=recorder;self.id=id;self.orientation=orientation;self.onClose=onClose;self.onCheckPhoto=onCheckPhoto
@@ -49,7 +54,7 @@ struct ReviewSectionView:View {
         guard let section else {return .mixed}
         return .classify(before:section.before,after:section.after)
     }
-    private var withdrawal:AccidentalStoneWithdrawal? {section?.committed == false ? initialWithdrawal:nil}
+    private var withdrawal:AccidentalStoneWithdrawal? {section?.committed == false ? (hasEditedObservation ? editedWithdrawal:initialWithdrawal):nil}
     private var cleanupReady:Bool {withdrawal.map{recorder.accidentalRemovalVerified($0)} ?? false}
     private var showsCleanupBoard:Bool {mode == .cleanup || (mode == .choose && cleanupReady)}
     private var differences:[ReviewComparison.Difference] {ReviewComparison.differences(selected:draft.board,camera:section?.after ?? [])}
@@ -112,12 +117,15 @@ struct ReviewSectionView:View {
                         Text(showsCleanupBoard ? "Position to continue from":"Position when this review began").font(.headline)
                         RecordedBoard(recorder:recorder,orientation:orientation,allowsLiveSelection:mode == .order && !section.committed,
                             boardOverride:shownBoard,numberedMoves:mode == .order ? draft.moves:[],
-                            highlightedPoints:markers,highlightColor:.orange,showsLastMoveMarker:false) {select($0)}
+                            highlightedPoints:markers,highlightColor:.orange,showsLastMoveMarker:false,onDrag:{from,to in
+                                guard !section.committed else {return}
+                                do {observationEdit=try ReviewObservationEdit(recorder:recorder,reviewID:id,from:from,to:to)} catch {self.error=error.localizedDescription}
+                            }) {select($0)}
                             .frame(width:520,height:520)
-                            .allowsHitTesting(mode == .order && !section.committed)
+                            .allowsHitTesting(!section.committed)
                             .accessibilityLabel("Review board")
                         Text(showsCleanupBoard ? (markers.isEmpty ? "No extra stones remain marked.":"Remove only the orange-ringed stones.")
-                             : mode == .order ? "Click stones in play order. Numbers show your selections.":"Orange rings identify the stones involved in this review.")
+                             : mode == .order ? "Click stones in play order. Numbers show your selections.":"Orange rings identify changes. Drag a misplaced detection to preview a correction.")
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
                     }
                     ScrollView {
@@ -158,6 +166,30 @@ struct ReviewSectionView:View {
                     draft=MoveRecoveryDraft(game:updated,observation:draft.observation);error=nil;recoveredOrders=[];recoveryMessage=nil;turnConflict=nil
                 }
         }
+        }
+        .safeAreaInset(edge:.bottom) {
+            if recorder.moveCount>0 {
+                HStack {
+                    Text("Earlier saved move wrong?")
+                    TextField("Move number",value:$savedMoveNumber,format:.number).frame(width:55)
+                    Button("Correct saved move…") {
+                        savedCorrection=HistoricalMoveSelection(number:max(1,min(savedMoveNumber,recorder.moveCount)))
+                    }.disabled(HistoricalMoveCorrection.unavailableReason(recorder) != nil)
+                    Spacer()
+                }.padding(12).background(.bar)
+            }
+        }
+        .sheet(item:$observationEdit) {edit in
+            ReviewObservationEditView(recorder:recorder,edit:edit,orientation:orientation,onClose:{observationEdit=nil},onSaved:{
+                if let section=self.section {
+                    let observation=BoardObservation(readings:section.after.enumerated().map{.init(row:$0.offset/recorder.game.boardSize,col:$0.offset%recorder.game.boardSize,occupancy:$0.element,confidence:1,delta:0)},size:recorder.game.boardSize)
+                    editedWithdrawal=recorder.accidentalWithdrawalPlan(id);hasEditedObservation=true
+                    draft=MoveRecoveryDraft(game:context,observation:observation);mode = .choose;error=nil;recoveredOrders=[];recoveryMessage=nil;turnConflict=nil;overrideCamera=false;colorOverride=nil
+                }
+            },onHistorySaved:close)
+        }
+        .sheet(item:$savedCorrection) {selected in
+            HistoricalMoveCorrectionView(recorder:recorder,orientation:orientation,number:selected.number,onClose:{savedCorrection=nil},onSaved:close)
         }
     }
     private var problem:some View {
@@ -267,7 +299,7 @@ struct ReviewSectionView:View {
         let before=section.before,after=section.after,through=section.recordedAt,first=firstColor
         do {
             let result=try await Task.detached(priority:.utility) {try ReviewOrderRecovery.load(url:url,before:before,after:after,first:first,through:through)}.value
-            guard firstColor==first else {return}
+            guard firstColor==first,self.section?.after==after else {return}
             recoveredOrders=result.orders.filter{proposal($0) != nil};recoveryMessage=result.message;turnConflict=result.turnConflict
             if recoveredOrders.count==1,draft.moves.isEmpty {useOrder(recoveredOrders[0]);if mode == .choose && !cleanupReady {mode = .order}}
         } catch {recoveryMessage="Saved observations could not be read. Your selections are preserved."}

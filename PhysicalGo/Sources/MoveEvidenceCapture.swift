@@ -29,10 +29,12 @@ import CoreGraphics
     private(set) var droppedSamples=0
     var bufferedFrames:Int {frames.count}
     var bufferedImageBytes:Int {frames.reduce(0){$0+$1.bytes}}
-    init(root:URL=MoveEvidenceCapture.directory,byteLimit:Int64=5_000_000_000,
+    init(root:URL=MoveEvidenceCapture.directory,byteLimit:Int64=10_000_000_000,
          memoryLimit:Int=80*1024*1024,scheduleDeadlines:Bool=true) {
         self.root=root;self.byteLimit=byteLimit;self.memoryLimit=memoryLimit;self.scheduleDeadlines=scheduleDeadlines
-        recorder=DiagnosticRecorder(root:root,maximumPendingFrames:12)
+        let archiveStorage = root==Self.directory && byteLimit==DiagnosticArchiveStorage.defaultLimit
+            ? DiagnosticArchiveStorage.shared:DiagnosticArchiveStorage(roots:[root],limit:byteLimit)
+        recorder=DiagnosticRecorder(root:root,maximumPendingFrames:12,archiveStorage:archiveStorage)
         subscription=recorder.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
     }
     func offer(_ image:CGImage,at now:Double,online:Bool,context:[String:Any],reference:CGImage?,
@@ -70,10 +72,11 @@ import CoreGraphics
         frames.removeAll{now-$0.time>4}
         guard !frames.isEmpty else {status="No buffered camera images were available for the unusual move.";return nil}
         do {
-            let used=try storedBytes()
-            // Leave room for manifests/failure records, which are deliberately
-            // written even when an archive reaches its payload limit.
-            guard byteLimit-used>1_000_000 else {storageBlocked=true;status="Automatic captures paused: 5 GB storage allowance reached. Saved clips are retained.";return nil}
+            // Reserve room for a full bounded clip before starting, including
+            // pre-roll, the maximum extension, reference PNGs and metadata.
+            let largest=Int64(frames.map(\.bytes).max() ?? 0)
+            let referenceBytes=Int64(frames.compactMap{$0.reference}.map{$0.bytesPerRow*$0.height}.max() ?? 0)
+            let clipBudget=max(64_000_000,largest*40+referenceBytes*2+8_000_000)
             storageBlocked=false
             var context:[String:Any]=["kind":"automatic move evidence","trigger":event,
                 "capturePolicy":"Lossless full-resolution PNG, at most 2 samples/second; 4 seconds before and 3 seconds after a trigger, subject to memory/storage/writer limits. Overlapping triggers extend the clip up to 12 seconds after the first trigger.",
@@ -81,7 +84,7 @@ import CoreGraphics
                 "bufferImageByteLimit":memoryLimit,"droppedBufferSamples":droppedSamples,
                 "totalArchiveByteLimit":byteLimit,"samplesPerSecond":2,"labelsAreGroundTruth":false]
             for key in ["appVersion","appBuild","sourceHash"] {context[key]=event[key]}
-            try recorder.start(context:context,byteLimit:byteLimit-used-1_000_000)
+            try recorder.start(context:context,byteLimit:clipBudget)
             activeGame=game;deadline=now+3;maximumEnd=now+12
             for frame in frames {save(frame)}
             for entry in events where now-entry.time<=4 {recorder.event("automatic analysis",details:entry.details)}
@@ -89,20 +92,7 @@ import CoreGraphics
             status="Saving an unusual move and its surrounding camera frames."
             scheduleExpiry()
             return recorder.folder?.path
-        } catch {status="Automatic move capture failed: \(error.localizedDescription)";return nil}
-    }
-    private func storedBytes() throws -> Int64 {
-        guard FileManager.default.fileExists(atPath:root.path) else {return 0}
-        var enumerationError:Error?
-        guard let walker=FileManager.default.enumerator(at:root,includingPropertiesForKeys:[.fileSizeKey,.isRegularFileKey],
-            errorHandler:{_,error in enumerationError=error;return false}) else {return byteLimit}
-        var bytes:Int64=0
-        for case let url as URL in walker {
-            let info=try url.resourceValues(forKeys:[.fileSizeKey,.isRegularFileKey])
-            if info.isRegularFile==true {bytes += Int64(info.fileSize ?? 0)}
-        }
-        if let enumerationError {throw enumerationError}
-        return bytes
+        } catch {storageBlocked=true;status="Automatic move capture failed: \(error.localizedDescription)";return nil}
     }
     private func save(_ frame:Frame) {
         _=recorder.capture(frame.image,at:frame.time,context:frame.context,reference:frame.reference,
