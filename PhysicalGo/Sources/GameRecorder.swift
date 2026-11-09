@@ -210,6 +210,7 @@ enum LocalGameSetup {
     private var announceFirstStart=false
     var onMoveAccepted:((Int,Stone)->Void)?
     var onAttention:(()->Void)?
+    var onReviewNeeded:(()->Void)?
     var onPlacementChime: (([PlacementChimeMonitor.Issue]) -> Void)? {
         didSet { placementChimes.interrupt() }
     }
@@ -235,6 +236,7 @@ enum LocalGameSetup {
     private var pendingCount = 0
     private var pendingSince = 0.0
     private var lastTime: Double?
+    private var lastCameraTime: Double?
     private var manualMoves = Set<Int>()
     private var warningMonitor=RecordingWarningMonitor()
     @Published private(set) var unsavedStoneCount=0
@@ -355,7 +357,7 @@ enum LocalGameSetup {
         recordingStore.bind(to: autosaveURL); pendingSaveError=nil
         awaitingFirstStart=startPaused;announceFirstStart=false
         state = startPaused ? .paused : ready ? .recording : .verifying; synchronized=ready; boardReadyForPass=ready
-        clearBlock(); resetPending(); handicapViews=[]; viewContinuity.reset(); resetObservationHistory(); resetWarningMonitor(); lastTime=nil; verificationFrames=ready ? 5 : 0
+        clearBlock(); resetPending(); handicapViews=[]; viewContinuity.reset(); resetObservationHistory(); resetWarningMonitor(); lastTime=nil;lastCameraTime=nil; verificationFrames=ready ? 5 : 0
         status=ready ? "Ready · Black to play. Moves are saved as the camera confirms them."
             : handicap>0 ? "Place the \(handicap) black handicap stones shown on the setup board. Wait for verification before White plays." : "Not recording yet. Clear the board and wait for Ready before playing Black."
         if startPaused {
@@ -524,7 +526,7 @@ enum LocalGameSetup {
             observationHistory.interruptLocally()
         } else {resetObservationHistory();resetWarningMonitor();clearBlock()}
         emptyViewVerified=false; emptyViews.removeAll(); handicapViews=[]; emptyViewLast=nil; verificationFrames=0
-        synchronized=false; boardReadyForPass=false; resetPending(); lastTime=nil
+        synchronized=false; boardReadyForPass=false; resetPending(); lastTime=nil;lastCameraTime=nil
         if state == .recording || state == .verifying { status=reason; trace(event:"vision interrupted: \(reason)") }
     }
     func pause() {
@@ -688,6 +690,13 @@ enum LocalGameSetup {
             entry["lightingBlocked"]=observation.lightingBlocked
             if let notice=observation.notice { entry["detectionNotice"]=notice }
             observationNumber += 1; entry["observation"]=observationNumber; entry["size"]=observation.size
+            let candidates=Set(history.tentativeSequences.flatMap{$0})
+            if !candidates.isEmpty {
+                entry["assignmentOffsets"]=Dictionary(uniqueKeysWithValues:observation.assignmentOffsets.map{(String($0.key),$0.value)})
+                entry["candidateReadings"]=observation.readings.filter {reading in
+                    candidates.contains{abs($0/observation.size-reading.row)+abs($0%observation.size-reading.col)<=1}
+                }.map{["point":$0.row*observation.size+$0.col,"occupancy":$0.occupancy.rawValue,"confidence":$0.confidence] as [String:Any]}
+            }
             entry["trackedAssignments"]=Dictionary(uniqueKeysWithValues:observation.trackedAssignments.map{(String($0.key),$0.value)})
             entry["position"]=observation.signature.map { $0 == .black ? "B" : $0 == .white ? "W" : $0 == .empty ? "." : "?" }.joined()
         }
@@ -804,7 +813,13 @@ enum LocalGameSetup {
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
     func noteHandClear() {handOverBoard=false}
-    func noteHandObstruction() {
+    func noteHandObstruction(now:Double = ProcessInfo.processInfo.systemUptime) {
+        guard now.isFinite,lastCameraTime.map({now>$0}) ?? true else {return}
+        if let lastCameraTime,now-lastCameraTime>1.5 {
+            suspendVision("Checking the board after a camera interruption.",preserveOrder:true)
+        }
+        // A fresh obstructed frame proves camera continuity, never stone placement.
+        lastCameraTime=now
         handOverBoard=true;clearBoardTiming.reset();captureClearViews=[];captureCandidate=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if state == .recording {status="Waiting for hands to clear the board. Saved moves are preserved."}
@@ -890,8 +905,8 @@ enum LocalGameSetup {
     }
 
     func consume(_ observation:BoardObservation, now:Double) {
-        guard !recoveryReadBlocked else {return}
-        if observation.handObstructed == true {noteHandObstruction();return}
+        guard !recoveryReadBlocked,now.isFinite else {return}
+        if observation.handObstructed == true {noteHandObstruction(now:now);return}
         handOverBoard=false
         // Let this fresh frame clear a resolved contradiction before deciding
         // whether the same frame confirms a move. Each timestamp is counted once.
@@ -916,11 +931,11 @@ enum LocalGameSetup {
               observation.readings.enumerated().allSatisfy({ $0.element.row == $0.offset/game.boardSize && $0.element.col == $0.offset%game.boardSize }) else {
             suspendVision("Board size or grid changed. Restore the recorded board before continuing."); return
         }
-        if let lastTime {
-            guard now > lastTime else { return } // Repeated redraws cannot make a move stable.
-            if now-lastTime > 1.5 { suspendVision("Checking the board after a camera interruption.",preserveOrder:true) }
+        if let lastCameraTime {
+            guard now > lastCameraTime else { return } // Repeated redraws cannot make a move stable.
+            if now-lastCameraTime > 1.5 { suspendVision("Checking the board after a camera interruption.",preserveOrder:true) }
         }
-        lastTime=now
+        lastTime=now;lastCameraTime=now
         let readings=observation.signature
         clearBoardTiming.observe(observation,now:now)
         unclearPointCount=readings.filter{$0 == .uncertain}.count
@@ -1299,7 +1314,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.127"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.128"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
@@ -1313,13 +1328,46 @@ enum LocalGameSetup {
         props.merge(clock.engine.settings.sgfProperties) {_,new in new}
         if clock.enabled && clock.baseMove>0 {props["C",default:[]].append("Clock started or corrected after move \(clock.baseMove). Earlier times are not inferred.")}
         var nodes=[SGFNode(props:props)]
+        let sourceMoves=game.sourceTree?.mainLineNodes.filter{$0.props["B"] != nil || $0.props["W"] != nil} ?? []
         for (i,move) in game.moves.enumerated() {
             var node=[move.0 == .black ? "B" : "W":[move.1.map{SGFCoordinates.toSGF(x:$0.0,y:$0.1)} ?? ""]]
             node.merge(clock.sgfMoveProperties(i+1)) {_,new in new}
-            if manualMoves.contains(i+1) { node["C"]=["Entered manually."] }
+            let tag=move.0 == .black ? "B":"W"
+            if sourceMoves.indices.contains(i),sourceMoves[i].props[tag]==node[tag] {node["C"]=sourceMoves[i].props["C"]}
+            if manualMoves.contains(i+1),node["C"]?.contains("Entered manually.") != true {node["C",default:[]].append("Entered manually.")}
             nodes.append(SGFNode(props:node))
         }
         return SGFWriter.serialize(SGFTree(branches:[.init(sequence:nodes)]))
+    }
+    /// Save a validated correction to new files before switching the open session.
+    /// Cancellation, stale previews and write failures cannot alter accepted moves.
+    func applyHistoricalCorrection(_ plan:HistoricalMoveCorrection)throws {
+        guard state == .paused || state == .finished,
+              autosaveURL==plan.sourceURL,checkpointSignature==plan.sourceSignature,
+              try HistoricalMoveCorrection.fingerprint(reviewHistory)==plan.sourceReviews else {
+            throw RecordingStore.Failure(message:"The recording changed. Close this preview and check the move again.")
+        }
+        if let reason=HistoricalMoveCorrection.unavailableReason(self) {throw RecordingStore.Failure(message:reason)}
+        if let error=saveSession() {throw RecordingStore.Failure(message:error)}
+        let file=plan.sourceURL.deletingLastPathComponent().appendingPathComponent("Physical Go corrected move \(plan.number) \(UUID().uuidString).sgf")
+        let signature=RecordingIdentity.signature(for:plan.game)
+        let store=RecordingStore();store.bind(to:file)
+        do {
+            try store.saveReviews(plan.reviews)
+            try clock.writeHistoricalCorrection(to:file,signature:signature,moveCount:plan.game.moves.count,
+                blackToPlay:(plan.game.moves.last?.0.opponent ?? plan.game.initialPlayer ?? .black) == .black,
+                discardedMoves:plan.discardedMoves,hasReviews:plan.reviews.active)
+            // Publish the SGF last: an incomplete copy cannot appear as a game.
+            try store.saveGame(plan.text,signature:signature)
+        } catch {
+            for suffix in ["sgf","reviews.json","clock.json"] {
+                try? FileManager.default.removeItem(at:file.deletingPathExtension().appendingPathExtension(suffix))
+            }
+            throw error
+        }
+        try restoreSavedGame(from:file)
+        reviewNotice="Move \(plan.number) corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
+        trace(event:"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"point":plan.destination.row*game.boardSize+plan.destination.col,"discardedMoves":plan.discardedMoves])
     }
     private func persist(checkpoint:Bool=true) {
         guard let autosaveURL else { return }
@@ -1381,6 +1429,9 @@ extension GameRecorder {
         status="Recording continues · \(reviewHistory.unresolved) sections can be reviewed after play."
         trace(event:"review history extended",now:now,extra:["reviewCount":reviewHistory.reviews.count,"unresolvedReviews":reviewHistory.unresolved,"laterOrderedMoves":reviewHistory.retainedMoveCount])
         if let section=reviewHistory.sections.last,section.moves==nil {
+            // A new review can arise while clocks are already paused; it needs
+            // its own notice, independent of an automatic-pause transition.
+            onReviewNeeded?()
             Task {await recoverSavedReviewOrder(section.id)}
         }
         return true

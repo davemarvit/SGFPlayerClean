@@ -1,0 +1,502 @@
+{
+  "appVersion": "0.127",
+  "reportedCorrection": {
+    "move": 55,
+    "color": "White",
+    "recorded": "N18",
+    "actual": "N17",
+    "orientationQuarterTurns": 3,
+    "recordedSGF": "rm",
+    "correctedSGF": "qm"
+  },
+  "findings": [
+    "N17 remained uncertain before N18 was classified White. Moves55 and56 were then accepted together.",
+    "No tracked identity reassignment was logged.",
+    "Fresh hand-obstructed frames did not update the recorder camera heartbeat, causing false camera interruption holds after a hand cleared.",
+    "Playback logs report completed generic pause/resume announcements and interrupted board-clear announcements. No N17/N18-specific warning was logged. Playback completion does not establish external speaker audibility.",
+    "Diagnostic frame capture failed at the archive storage limit. The precise visual cause is unproven."
+  ],
+  "speechEvents": [
+    {
+      "event": "speech finished",
+      "time": 1794215056.1271172,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.43186304171104
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215056.127305,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215056.1422,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 7.666647434234619e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215058.296067,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.153866541571915
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215061.8021688,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215061.93581,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 8.875038474798203e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215064.060379,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.1245694583049044
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215065.67997,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215065.70101,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 7.875030860304832e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215068.239955,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 2.5389383333968
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215068.240236,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215068.251869,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 6.083399057388306e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215070.6779652,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.4260912083555013
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215074.038433,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215074.175085,
+      "moveCount": 54,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 7.166643626987934e-06
+    },
+    {
+      "event": "speech interrupted",
+      "time": 1794215074.472587,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 0.29751920828130096,
+      "reason": "clocks resumed"
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215074.477849,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215074.48855,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.7082860469818115e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215076.628964,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.1404008750105277
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215077.942844,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215077.960167,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 6.291666068136692e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215080.386435,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.4262484583305195
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215081.30374,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215081.3152409,
+      "moveCount": 56,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 4.541710950434208e-06
+    },
+    {
+      "event": "speech interrupted",
+      "time": 1794215081.7378302,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 0.422598791657947,
+      "reason": "clocks resumed"
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215081.745769,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215081.7565079,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 4.958361387252808e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215083.902204,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.1456844999920577
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215087.34579,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215087.4832,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 8.708331733942032e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215089.909474,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.4262756666867062
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215091.239533,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215091.2563372,
+      "moveCount": 58,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 3.875000402331352e-06
+    },
+    {
+      "event": "speech interrupted",
+      "time": 1794215091.6662102,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 0.40987858339212835,
+      "reason": "clocks resumed"
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215091.674248,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215091.6859689,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.541695721447468e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215093.81043,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.1244429167127237
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215095.845629,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215095.866152,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 8.874922059476376e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215098.292821,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.4266612916253507
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215100.398271,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215100.547173,
+      "moveCount": 60,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 9.708339348435402e-06
+    },
+    {
+      "event": "speech interrupted",
+      "time": 1794215100.872779,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 0.3256285416428,
+      "reason": "clocks resumed"
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215100.886907,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215100.898411,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 3.8333237171173096e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215103.0247269,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockResume",
+      "phrase": "Clocks resumed. White to play.",
+      "playedSeconds": 2.1262949167285115
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215107.063709,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215107.193341,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 7.458380423486233e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215109.7368112,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 2.543460208340548
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215109.7370272,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215109.7476459,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 6.708316504955292e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215112.1744819,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "clockPause",
+      "phrase": "Clocks paused. Please check the screen.",
+      "playedSeconds": 2.42682658333797
+    },
+    {
+      "event": "speech requested",
+      "time": 1794215119.884079,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused."
+    },
+    {
+      "event": "speech started",
+      "time": 1794215120.01265,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 6.749993190169334e-06
+    },
+    {
+      "event": "speech finished",
+      "time": 1794215122.572618,
+      "moveCount": 62,
+      "channel": "recovery",
+      "topic": "viewRecovered",
+      "phrase": "Board view clear. Clocks remain paused.",
+      "playedSeconds": 2.559962375089526
+    }
+  ]
+}

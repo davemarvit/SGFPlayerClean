@@ -78,6 +78,13 @@ import AppKit
         check(voice.phrases.last=="Please clear the board view.","Recovery spoke over an active warning")
         voice.finish()
         check(voice.phrases.last=="Board view clear. Clocks remain paused.","Audible warning was not followed by all-clear")
+        voice.finish();feedback.reset()
+        let beforeHand=voice.phrases.count
+        for i in 0..<20 {
+            feedback.observe(clear:false,fresh:true,now:50+Double(i)*0.2,handObstructed:true,enabled:true,clocksEnabled:true,clockRunning:true,settings:settings)
+        }
+        for t in [54.0,54.25,54.5,54.75,55.0] {sample(true,t,running:true)}
+        check(voice.phrases.count==beforeHand,"Ordinary hand placement generated recovery chatter")
         try runCoveredBorderTests()
         print("PASS: \(checks) obstruction feedback checks: actual hand reports, grace, real movement, fresh stable recovery, manual pause, mute, flicker, camera gaps, queued speech and clock-resume deduplication")
     }

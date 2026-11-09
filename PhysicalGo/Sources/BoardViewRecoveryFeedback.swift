@@ -14,14 +14,14 @@ import Foundation
         began=nil;last=nil;clearSince=nil;clearFrames=0;acknowledgementOwed=false
         speech.cancel(.viewRecovered,reason:"camera view interrupted")
     }
-    func observe(clear:Bool,fresh:Bool,now:Double,enabled:Bool,clocksEnabled:Bool,clockRunning:Bool,settings:LocalClockSounds) {
+    func observe(clear:Bool,fresh:Bool,now:Double,handObstructed:Bool=false,enabled:Bool,clocksEnabled:Bool,clockRunning:Bool,settings:LocalClockSounds) {
         guard fresh,now.isFinite,last.map({now>$0}) ?? true else {return}
         if let last,now-last>1.5 {clearSince=nil;clearFrames=0}
         last=now
         if !clear {
             if began==nil {began=now;speech.forgetAnnouncement(.clockResume)}
             clearSince=nil;clearFrames=0
-            acknowledgementOwed = acknowledgementOwed || now-began!>=0.8
+            acknowledgementOwed = acknowledgementOwed || now-began! >= (handObstructed ? 8:0.8)
             speech.cancel(.viewRecovered,reason:"board view unclear again")
             return
         }

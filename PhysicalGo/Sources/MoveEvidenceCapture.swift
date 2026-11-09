@@ -18,6 +18,7 @@ import CoreGraphics
     @Published private(set) var status="Buffering during play or local recording; unusual moves save automatically."
     let recorder:DiagnosticRecorder
     let root:URL
+    @Published private(set) var storageBlocked=false
     private let byteLimit:Int64,memoryLimit:Int
     private let scheduleDeadlines:Bool
     private var frames=[Frame](),events=[(time:Double,details:[String:Any])]()
@@ -72,7 +73,8 @@ import CoreGraphics
             let used=try storedBytes()
             // Leave room for manifests/failure records, which are deliberately
             // written even when an archive reaches its payload limit.
-            guard byteLimit-used>1_000_000 else {status="Automatic captures paused: 5 GB storage allowance reached. Saved clips are retained.";return nil}
+            guard byteLimit-used>1_000_000 else {storageBlocked=true;status="Automatic captures paused: 5 GB storage allowance reached. Saved clips are retained.";return nil}
+            storageBlocked=false
             var context:[String:Any]=["kind":"automatic move evidence","trigger":event,
                 "capturePolicy":"Lossless full-resolution PNG, at most 2 samples/second; 4 seconds before and 3 seconds after a trigger, subject to memory/storage/writer limits. Overlapping triggers extend the clip up to 12 seconds after the first trigger.",
                 "preSecondsAvailable":max(0,now-frames[0].time),"preFrameCount":frames.count,
@@ -116,7 +118,7 @@ import CoreGraphics
         if let deadline,now>=deadline {
             recorder.stop(reason:"Automatic move evidence window complete")
             self.deadline=nil;maximumEnd=nil;activeGame=nil
-            status="Unusual move captured; saved clips stay on this Mac."
+            status=recorder.state == .failed ? recorder.status:"Unusual move capture finished; saved clips stay on this Mac."
         }
     }
     func stop(reason:String) {

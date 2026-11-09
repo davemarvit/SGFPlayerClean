@@ -468,7 +468,10 @@ enum PhysicalPlayMode: String, CaseIterable {
             self.settings.set(data,forKey:"PhysicalGo.clockSounds")
         }.store(in:&clockSubscriptions)
         recorder.clock.$engine.map(\.running).removeDuplicates().dropFirst().sink { [weak self] running in
-            if running {self?.recoverySpeech.cancel(.viewRecovered,reason:"clocks resumed")}
+            if running {
+                self?.recoverySpeech.cancel(.viewRecovered,reason:"clocks resumed")
+                self?.recoverySpeech.cancel(.recordingWarning,reason:"clocks resumed")
+            }
         }.store(in:&clockSubscriptions)
         recorder.clock.$pauseOnInterruption.dropFirst().sink { [weak self] value in
             guard let self,self.persistViewSettings else {return};self.settings.set(value,forKey:"PhysicalGo.clockAutoPause")
@@ -479,6 +482,9 @@ enum PhysicalPlayMode: String, CaseIterable {
         }.store(in:&clockSubscriptions)
         recorder.onMoveAccepted = { [weak self] _,_ in
             guard let self else {return}
+            if !self.recorder.needsAttention && !self.recorder.hasDeferredMoves {
+                self.recoverySpeech.resolved(.recordingWarning)
+            }
             if self.soundMode == .all && !(self.recorder.clock.enabled && self.recorder.clock.sounds.moveBeep) { NSSound(named:"Pop")?.play() }
         }
         recoverySpeech.onSpeechEvent = { [weak self] event,details in self?.recorder.logSpeech(event,details:details) }
@@ -489,7 +495,9 @@ enum PhysicalPlayMode: String, CaseIterable {
         recorder.clock.onAutomaticPause = { [weak self] pause in
             guard let self else {return}
             self.recorder.logAutomaticClockPause(pause)
-            self.clockPauseAnnouncements.began(settings:self.recorder.clock.sounds) { [weak self] in
+            self.clockPauseAnnouncements.began(settings:self.recorder.clock.sounds,message:{ [weak self] in
+                self?.recorder.spokenRecoveryInstruction ?? "Clocks paused. Please check the screen."
+            }) { [weak self] in
                 guard let self else {return false}
                 return self.recoverySpeechEnabled && self.recorder.clock.audible && self.recorder.clock.automaticPause != nil && !self.recorder.clock.running
             }
@@ -510,6 +518,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             NSSound(named:"Pop")?.play()
         }
         recorder.onAttention = { [weak self] in self?.playRecordingWarning() }
+        recorder.onReviewNeeded = { [weak self] in self?.playRecordingWarning() }
         recorder.onDiagnosticEvent = { [weak self] entry in
             guard let self,self.diagnostics.isOpen else {return}
             var details=entry;let sgf=self.recorder.sgf()
@@ -593,8 +602,13 @@ enum PhysicalPlayMode: String, CaseIterable {
         } else { recorder.onPlacementChime = nil }
     }
     private func playRecordingWarning() {
-        guard soundMode == .all else {return}
-        NSSound(named:"Basso")?.play()
+        if soundMode == .all {
+            NSSound(named:"Basso")?.play()
+            recorder.logSpeech("warning sound requested",details:["sound":"Basso","channel":"recording"])
+        }
+        if recoverySpeechEnabled && recorder.clock.audible {
+            recoverySpeech.request(.recordingWarning,text:recorder.spokenRecoveryInstruction,settings:recorder.clock.sounds)
+        }
         // One alert per problem episode; the recorder bounds reminders. A
         // delayed second failure pulse can overlap a successful confirmation.
     }
@@ -1079,13 +1093,13 @@ enum PhysicalPlayMode: String, CaseIterable {
             }
             defer {
                 self.boardViewFeedback.observe(clear:aligned != nil && analysis.handObstructed != true && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
-                    fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
+                    fresh:freshView,now:alignmentTime,handObstructed:analysis.handObstructed == true,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
                     clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
             }
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView,analysis.handObstructed == true {
-                self.recorder.noteHandObstruction()
+                self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime)
                 self.image=target;self.observation=nil;self.trackedBoardObservation=nil
                 self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
                 diagnosticOutcome="hand over board; waiting for clear frame"

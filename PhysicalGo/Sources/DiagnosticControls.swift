@@ -91,7 +91,9 @@ private struct MoveEvidenceControls:View {
 struct MoveCaptureIndicator:View {
     @ObservedObject var capture:MoveEvidenceCapture
     var body:some View {
-        if capture.enabled {
+        if capture.storageBlocked {
+            Label(capture.status,systemImage:"exclamationmark.triangle.fill").foregroundStyle(.orange)
+        } else if capture.enabled && capture.recorder.state != .failed {
             Label("Unusual-move clips enabled",systemImage:"camera.badge.ellipsis")
                 .font(.caption).foregroundStyle(.secondary)
         }

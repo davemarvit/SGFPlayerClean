@@ -330,6 +330,17 @@ import Combine
                 : "Saved clocks restored · paused. Resume the clock when ready."
         } catch {saveError=error.localizedDescription;notice="Saved clock could not be restored."}
     }
+    /// Coordinate corrections keep measured balances. Truncation cannot infer
+    /// historical thinking time and explicitly requires a clock review.
+    func writeHistoricalCorrection(to url:URL,signature:String,moveCount:Int,blackToPlay:Bool,discardedMoves:Int,hasReviews:Bool)throws {
+        guard enabled else {return}
+        var corrected=engine;corrected.restoredPaused();corrected.blackToPlay=blackToPlay
+        let saved=Saved(signature:signature,engine:corrected,moves:moves.filter{$0.number<=moveCount},
+            baseMove:min(baseMove,moveCount),needsCorrection:needsCorrection || discardedMoves>0,
+            liveEvents:discardedMoves>0 ? []:liveEvents,liveReviewActive:hasReviews,awaitingTurn:hasReviews,
+            timingNote:discardedMoves>0 ? "Later moves set aside. Check both clock times.":timingNote)
+        try JSONEncoder().encode(saved).write(to:url.deletingPathExtension().appendingPathExtension("clock.json"),options:.atomic)
+    }
     func sgfMoveProperties(_ number:Int)->[String:[String]] {
         guard let move=moves.first(where:{$0.number==number}) else {return [:]}
         let side=move.black ? move.after.black:move.after.white

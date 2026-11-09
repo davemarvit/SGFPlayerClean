@@ -17,6 +17,7 @@ struct RecordingView: View {
     @State private var reviewRecoveryClocks=false
     @State private var showRecoveryClockReview=false
     @State private var undoPlan:UndoMovePlan?
+    @State private var correctionSelection:HistoricalMoveSelection?
     private var unrecordedDetections:Int {
         InterpretationDetectionMarks.make(board:recorder.positions.last,observation:model.visibleObservation,size:recorder.game.boardSize).filter{$0.kind == .untracked}.count
     }
@@ -45,7 +46,7 @@ struct RecordingView: View {
             if view == .saved {recorder.pause()}
             else if view == .live && recorder.reviewing {recorder.returnToLatest()}
         }
-        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewPresentation.close();undoPlan=nil}
+        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewPresentation.close();undoPlan=nil;correctionSelection=nil}
         .onChange(of:recorder.state) {_,state in
             if state == .verifying || (state == .recording && display == .saved) {display = .live}
         }
@@ -61,6 +62,9 @@ struct RecordingView: View {
         .sheet(isPresented:$showRecoveryClockReview) {LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)}
         .sheet(item:$undoPlan) {plan in
             UndoMoveView(model:model,recorder:recorder,plan:plan,onClose:{undoPlan=nil})
+        }
+        .sheet(item:$correctionSelection) {selection in
+            HistoricalMoveCorrectionView(recorder:recorder,orientation:model.orientation,number:selection.number,onClose:{correctionSelection=nil})
         }
         .sheet(isPresented:$confirmNew) {
             ScrollView { VStack(alignment:.leading,spacing:14) {
@@ -243,13 +247,23 @@ struct RecordingView: View {
     }
     private var reviewControls:some View {
         VStack(alignment:.leading,spacing:6) {
-            Text(reviewLabel).font(.system(size:13*model.interfaceScale).monospacedDigit())
+            HStack {
+                Text(reviewLabel).font(.system(size:13*model.interfaceScale).monospacedDigit())
+                Spacer()
+                Button("Correct move…") {recorder.pause();correctionSelection=HistoricalMoveSelection(number:recorder.reviewIndex)}
+                    .disabled(recorder.reviewIndex==0 || HistoricalMoveCorrection.unavailableReason(recorder) != nil || onlineBoard.enabled)
+                    .help(HistoricalMoveCorrection.unavailableReason(recorder) ?? "Correct the saved intersection and check subsequent moves")
+            }
             HStack {
                 navigation("Starting position",icon:"backward.end.fill",target:0).disabled(recorder.reviewIndex==0)
                 navigation("Previous move",icon:"chevron.left",target:recorder.reviewIndex-1).disabled(recorder.reviewIndex==0)
                 navigation("Next move",icon:"chevron.right",target:recorder.reviewIndex+1).disabled(recorder.reviewIndex==recorder.moveCount)
                 navigation("Latest move",icon:"forward.end.fill",target:recorder.moveCount).disabled(recorder.reviewIndex==recorder.moveCount)
-                Spacer();Text("\(recorder.reviewIndex) / \(recorder.moveCount)").monospacedDigit()
+                Spacer()
+                Text("Go to move")
+                TextField("Move number",value:Binding(get:{recorder.reviewIndex},set:{recorder.seek($0)}),format:.number)
+                    .frame(width:50).accessibilityLabel("Go to saved move")
+                Text("/ \(recorder.moveCount)").monospacedDigit()
             }
         }
     }
@@ -295,6 +309,7 @@ struct RecordedBoard: View {
     var highlightedPoints:[Int]=[]
     var highlightColor:Color = .pink
     var showsLastMoveMarker=true
+    var onDrag:((BoardPosition,BoardPosition)->Void)?=nil
     let onPoint:(BoardPosition)->Void
     var body: some View {
         GeometryReader { proxy in
@@ -376,6 +391,15 @@ struct RecordedBoard: View {
                 guard (0..<recorder.game.boardSize).contains(row),(0..<recorder.game.boardSize).contains(col) else {return}
                 if !allowsLiveSelection && recorder.reviewedBoard?.grid[row][col] != nil {return}
                 onPoint(BoardPosition(row,col))
+            }).simultaneousGesture(DragGesture(minimumDistance:4).onEnded {drag in
+                guard let onDrag else {return}
+                func position(_ location:CGPoint)->BoardPosition? {
+                    let p=orientation.source(ImagePoint(x:(location.x-origin.x)/(side-2*margin),y:(location.y-origin.y)/(side-2*margin)))
+                    let col=Int((p.x*Double(boardSize-1)).rounded()),row=Int((p.y*Double(boardSize-1)).rounded())
+                    guard (0..<boardSize).contains(row),(0..<boardSize).contains(col) else {return nil}
+                    return BoardPosition(row,col)
+                }
+                if let from=position(drag.startLocation),let to=position(drag.location) {onDrag(from,to)}
             })
         }.accessibilityLabel(showsLivePosition ? "Live interpretation: \(recorder.moveCount) saved, \(recorder.pendingMoveCount) pending, \(recorder.interpretationWarnings.count) stones need attention" : "Recorded game at move \(recorder.reviewIndex) of \(recorder.moveCount)")
     }

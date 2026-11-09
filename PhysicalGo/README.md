@@ -2675,3 +2675,41 @@ checks visually labeled photographs in `Fixtures/LiveWood/v1`; the immutable
 0 wrong to 425 / 24 / 0. These selected regressions do not estimate overall
 live-game accuracy. The incident's archived photos replayed four successive
 moves in order, retaining the fifth pending a fresh view.
+
+## Correcting a saved intersection (0.128)
+
+In **Board interpretation → Saved moves**, enter a move number, then choose
+**Correct move…**. Drag the marked stone, click its actual intersection, or enter
+its displayed coordinate. The preview replays the entire sequence with the Go
+rules engine. An illegal continuation blocks saving; explicitly disabling
+**Keep later moves** sets that suffix aside in the original recording.
+**Save corrected copy** preserves the original game and opens a new recording.
+Clocks stay paused, measured balances are preserved, and pending reviews are
+rechecked against the corrected position. Truncating history requires clock
+review. A correction to this local recorder does not rewrite an online server's
+move history.
+
+The move55 test incident is retained in `Tests/Fixtures/Move55Correction`.
+White N18 (SGF rm) was reported as actually played at N17 (qm). The observation
+journal shows N17 remaining uncertain, then N18 becoming White after Black M18
+appeared. Moves55–56 were accepted together. No identity remapping was logged.
+Diagnostic frame capture hit its storage limit, so the exact visual cause cannot
+be established from this incident. A proposed blanket hold for unreadable
+neighbors also blocked a verified edge-board regression and was not retained.
+Candidate-neighbor confidence and assignment offsets are now journaled so a
+future visual diagnosis can distinguish glare, geometry and classification errors.
+
+The playback journal records completed generic pause/resume phrases, interrupted
+board-clear phrases, and no location-specific warning about N17/N18. New
+unresolved reviews now trigger their own spoken notice, independently of whether
+the clock was already paused. Recovery speech follows the recovery-speech setting;
+optional warning tones follow All feedback. Fresh frames containing a hand now
+maintain camera continuity without contributing move-confirmation evidence.
+Ordinary hand placements no longer produce board-recovery chatter. Actual camera
+gaps still invalidate verification and follow the interruption policy.
+
+Regression command: `python3 PhysicalGo/build.py --historical-correction-test`
+(from the repository root). This covers the actual 62-move record, preservation of
+Review3 and clock balances, restart, provenance, illegal suffixes, explicit
+truncation, stale previews, hand/camera continuity, write failures,
+review notices, and a native editor render.

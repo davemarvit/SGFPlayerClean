@@ -3,7 +3,7 @@ import Foundation
 /// One voice for camera/lighting guidance. Recovery cancels unsaid instructions;
 /// an audible sentence finishes naturally. Explicit mute/stop still silences it.
 @MainActor final class RecoverySpeech {
-    enum Topic:String {case alignment,lighting,clockPause,clockResume,viewRecovered}
+    enum Topic:String {case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning}
     private struct Prompt {let topic:Topic;let text:String;let settings:LocalClockSounds}
     private let audio:any RecoverySpeechOutput
     private var active:Topic?
@@ -75,7 +75,7 @@ import Foundation
         self.speech=speech;self.delay=UInt64(max(0,delay)*1_000_000_000)
     }
     deinit {pending?.cancel()}
-    func began(settings:LocalClockSounds,enabled:@escaping ()->Bool) {
+    func began(settings:LocalClockSounds,message:@escaping ()->String = {"Clocks paused. Please check the screen."},enabled:@escaping ()->Bool) {
         pending?.cancel()
         // If a queued resume was canceled by another brief hold, the original
         // audible pause still needs closure when this hold clears.
@@ -91,7 +91,7 @@ import Foundation
             guard let self else {return}
             do {try await Task.sleep(nanoseconds:self.delay)} catch {return}
             guard !Task.isCancelled,enabled() else {return}
-            self.speech.request(.clockPause,text:"Clocks paused. Please check the screen.",settings:settings,priority:true)
+            self.speech.request(.clockPause,text:message(),settings:settings,priority:true)
         }
     }
     func cleared(running:Bool,blackToPlay:Bool,enabled:Bool,settings:LocalClockSounds) {
