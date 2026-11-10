@@ -10,7 +10,9 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private let queue = DispatchQueue(label: "PhysicalGo.camera")
     private let context = CIContext(options: [.cacheIntermediates: false])
     private let logger = Logger(subsystem: "com.davemarvit.PhysicalGo", category: "Camera")
-    private var lastFrame = 0.0
+    private var cadence=CameraProcessingCadence()
+    private var timingClock:LocalClockEngine?
+    private var deliveryPending=false
     private var lastPTS: CMTime?
     private var health = CameraHealth()
     private var timer: DispatchSourceTimer?
@@ -26,6 +28,11 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     var onStatus: ((String, CameraState) -> Void)?
     private var observers = [NSObjectProtocol]()
     private var wakeObserver:NSObjectProtocol?
+
+    func setTimingClock(_ clock:LocalClockEngine?) {
+        dispatchPrecondition(condition:.onQueue(.main))
+        queue.async { [weak self] in self?.timingClock=clock }
+    }
 
     override init() {
         super.init()
@@ -109,6 +116,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     }
     private func endSession() {
         stream += 1
+        deliveryPending=false
         retryPending = false
         currentOutput?.setSampleBufferDelegate(nil, queue: nil)
         currentOutput = nil
@@ -145,7 +153,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 connection.automaticallyAdjustsVideoMirroring = false; connection.isVideoMirrored = false
             }
             captureSession.commitConfiguration()
-            lastFrame = 0; lastPTS = nil; waitingForFirstFrame = true
+            cadence=CameraProcessingCadence();lastPTS = nil;waitingForFirstFrame = true
             status("Waiting for frames · \(deviceName)", state: .starting)
             captureSession.startRunning()
             // Live is reported only from a successfully converted, advancing camera frame.
@@ -188,21 +196,29 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard output === currentOutput, health.active else { return }
         let now = ProcessInfo.processInfo.systemUptime
-        guard now-lastFrame >= 0.2, let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard !deliveryPending,let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let timestamp=CameraFrameTimestamp.make(sampleBuffer,clock:session?.synchronizationClock,arrival:now)
         if pts.isValid && !pts.isIndefinite, let previous = lastPTS, CMTimeCompare(pts, previous) <= 0 { return }
+        guard cadence.accept(at:now,interval:CameraProcessingCadence.interval(clock:timingClock,at:now)) else {return}
         let ci = CIImage(cvPixelBuffer: buffer)
         // Detach CGImage storage from the camera's buffer pool before retaining it in the UI.
         guard let image = context.createCGImage(ci, from: ci.extent, format: .BGRA8,
             colorSpace: CGColorSpaceCreateDeviceRGB(), deferred: false) else { return }
-        lastFrame = now
         if pts.isValid && !pts.isIndefinite { lastPTS = pts }
         health.receivedFrame(now: now)
         if waitingForFirstFrame { waitingForFirstFrame = false; status("Live · \(deviceName)", state: .live) }
-        let token = queueRequest
+        let token = queueRequest,expectedStream=stream
+        deliveryPending=true
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.request == token else { return }
+            guard let self else {return}
+            defer {
+                self.queue.async { [weak self] in
+                    guard let self,self.stream==expectedStream else {return}
+                    self.deliveryPending=false
+                }
+            }
+            guard self.request == token else { return }
             if let callback=self.onTimedFrame {callback(image,timestamp)} else {self.onFrame?(image,timestamp.capturedAt)}
         }
     }

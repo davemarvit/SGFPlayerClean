@@ -2902,3 +2902,39 @@ clock-press uncertainty, source/camera gaps and the recorded fixtures. Clock,
 capture and obstruction-feedback suites exercise integration. The capture's
 `outline-evaluation.json` retains detailed tracking decisions; the local analysis
 folder `Captures/Analyses/Hand outline 2026-11-09` contains the CSV, summary and plot.
+
+## Capture continuity and clock-aware processing (0.134)
+
+A clear, confident glimpse of a legal qualifying capture now survives fresh
+hand-covered frames during prisoner removal. Those covered frames prove camera
+continuity only; they never confirm a placement. Later intermediate views or the
+fully removed target can confirm the same move, and the clock pause is backdated
+to the earliest retained clear observation. Final verification retains its first
+clear timestamp, so verification delay is charged to the next player. A provisional
+timeout can be rewound only when the uninterrupted turn proves the capture was
+seen before expiry. A capture first seen after expiry cannot revive a clock.
+
+Conflicting/uncertain clear views, camera interruption, explicit pause, and an
+age limit of 120 seconds invalidate tentative capture evidence. Hand re-entry
+also resets final-clear verification, but no longer erases the original placement.
+There is no inference of an exact placement time for a move hidden throughout
+removal. Established automatic capture holds still keep both clocks stopped
+until the complete target is verified, and announce the actual resumption.
+
+Camera processing targets 5 fps normally and 10 fps in the last five seconds of
+the active local clock period. This includes main time, every Japanese byoyomi
+period, Canadian overtime blocks, Fischer/absolute time and per-move limits.
+Paused, expired and untimed clocks use the normal rate. The policy projects an
+immutable clock snapshot to the current time and follows the active player after
+a move. Sampling uses fixed deadlines rather than accumulating camera jitter;
+missed slots are dropped. Camera-to-UI delivery is bounded to one pending frame,
+and the existing analysis-busy guard prevents queued vision work. Actual achieved
+analysis rate remains dependent on the camera and processing load. Diagnostic
+context includes the target processing rate. This policy is for local clocks;
+online server clocks are not controlled by it.
+
+`--adaptive-frame-rate-test` covers clock boundaries, player changes, pauses,
+expiry, short periods, frame jitter, rate transitions and missed slots.
+`--capture-clock-test` covers repeated hand entry, a single initial glimpse,
+fully removed confirmation, reset conditions, expiry recovery and unchanged
+0.4-second capture / 0.8-second final-verification durations at 10 fps.

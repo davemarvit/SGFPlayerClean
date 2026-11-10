@@ -15,20 +15,20 @@ import ImageIO
         let sgf=try String(contentsOf:fixture.appendingPathComponent("before.sgf"),encoding:.utf8)
         let incomplete=try JSONDecoder().decode([Occupancy].self,from:Data(contentsOf:fixture.appendingPathComponent("observed.json")))
         var now=ProcessInfo.processInfo.systemUptime
-        func feed(_ r:GameRecorder,_ values:[Occupancy],count:Int=5,hand:Bool=false,delay:Double=0)->Double {
+        func feed(_ r:GameRecorder,_ values:[Occupancy],count:Int=5,hand:Bool=false,delay:Double=0,step:Double=0.21)->Double {
             var first=0.0
             for i in 0..<count {
-                now += 0.21
+                now += step
                 if i==0 {first=now-delay}
                 r.consume(.init(readings:values.enumerated().map {.init(row:$0.offset/r.game.boardSize,col:$0.offset%r.game.boardSize,occupancy:$0.element,confidence:1,delta:0)},size:r.game.boardSize,capturedAt:now-delay,handObstructed:hand),now:now)
             }
             return first
         }
-        func make(minimum:Int=2,kind:LocalClockSettings.Kind = .absolute)throws->GameRecorder {
+        func make(minimum:Int=2,kind:LocalClockSettings.Kind = .absolute,mainSeconds:Int=100)throws->GameRecorder {
             let file=root.appendingPathComponent(UUID().uuidString+".sgf")
             try sgf.write(to:file,atomically:true,encoding:.utf8)
             let r=GameRecorder(storage:root);r.clock.audible=false;try r.restoreSavedGame(from:file)
-            r.attachClock(.init(kind:kind,mainSeconds:100,periodSeconds:15,periods:5,incrementSeconds:5,automaticCaptureMinimum:minimum))
+            r.attachClock(.init(kind:kind,mainSeconds:mainSeconds,periodSeconds:15,periods:5,incrementSeconds:5,automaticCaptureMinimum:minimum))
             r.resume();_ = feed(r,DeferredMoveHistory.states(r.positions.last!))
             check(r.clock.running,"Capture fixture did not resume")
             return r
@@ -60,6 +60,74 @@ import ImageIO
         r.pause()
         let restored=GameRecorder(storage:root);restored.clock.audible=false;try restored.restoreSavedGame(from:r.autosaveURL!)
         check(restored.moveCount==46 && !restored.clock.running,"Restart changed accepted move or resumed clocks")
+        // One clear glimpse per removal trip must retain the original boundary.
+        // Hand-covered frames establish continuity without confirming a stone.
+        let trips=try make(),tripBaseline=trips.clock.engine
+        let placed=feed(trips,incomplete,count:1)
+        _=feed(trips,extra,count:10,hand:true)
+        check(!trips.clock.automaticCapturePaused && trips.moveCount==45,"Covered frames confirmed a tentative capture")
+        _=feed(trips,incomplete,count:1)
+        _=feed(trips,extra,count:10,hand:true)
+        let removed=feed(trips,plan.target,count:5)
+        check(trips.moveCount==46 && trips.clock.running && !trips.hasDeferredMoves,"Repeated hand entry lost capture evidence")
+        check(near(trips.clock.engine.black.remaining,tripBaseline.black.remaining-(placed-tripBaseline.anchor!)),"Removal trips were charged to the capturing player")
+        check(near(trips.clock.engine.white.remaining,tripBaseline.white.remaining-(now-removed)),"Final verification was charged from a later view")
+        trips.pause()
+        // No second incomplete glimpse: the fully removed target confirms the
+        // earlier capture rather than requiring prisoners to reappear.
+        let quick=try make(),quickBaseline=quick.clock.engine
+        let quickPlaced=feed(quick,incomplete,count:1)
+        _=feed(quick,incomplete,count:8,hand:true)
+        let quickRemoved=feed(quick,plan.target,count:5)
+        check(quick.moveCount==46 && quick.clock.running,"Fully removed target discarded the initial capture glimpse")
+        check(near(quick.clock.engine.black.remaining,quickBaseline.black.remaining-(quickPlaced-quickBaseline.anchor!)),"Fully removed target lost the placement timestamp")
+        check(near(quick.clock.engine.white.remaining,quickBaseline.white.remaining-(now-quickRemoved)),"Retroactive capture lost the first final-clear timestamp")
+        quick.pause()
+        let faster=try make()
+        _=feed(faster,incomplete,count:4,step:0.101)
+        check(!faster.clock.automaticCapturePaused,"10 fps shortened capture identification below 0.4 seconds")
+        _=feed(faster,incomplete,count:1,step:0.101)
+        check(faster.clock.automaticCapturePaused,"10 fps did not identify a stable capture")
+        _=feed(faster,plan.target,count:5,step:0.101)
+        check(!faster.clock.running && faster.moveCount==45,"10 fps shortened final verification below 0.8 seconds")
+        _=feed(faster,plan.target,count:4,step:0.101)
+        check(faster.clock.running && faster.moveCount==46,"10 fps final verification did not finish")
+        faster.pause()
+        // Clear contradictions start a fresh candidate; a genuine interruption
+        // or an explicit pause invalidates all tentative timing evidence.
+        for interruption in ["conflict","camera","pause"] {
+            let reset=try make(),start=reset.clock.engine
+            _=feed(reset,incomplete,count:1)
+            if interruption=="conflict" {_=feed(reset,plan.before,count:1)}
+            if interruption=="camera" {reset.suspendVision("Camera interrupted",preserveOrder:true)}
+            if interruption=="pause" {reset.pause()}
+            if interruption != "conflict" {
+                if interruption=="pause" {reset.clock.requestResume();reset.resume()}
+                _=feed(reset,plan.before,count:5)
+            }
+            let freshBaseline=reset.clock.engine
+            let fresh=feed(reset,incomplete,count:3)
+            check(reset.clock.automaticCapturePaused,"Fresh capture after \(interruption) failed")
+            check(near(reset.clock.engine.black.remaining,freshBaseline.black.remaining-(fresh-freshBaseline.anchor!)),"\(interruption) reused stale capture evidence")
+            check(reset.clock.engine.black.remaining<start.black.remaining,"\(interruption) invented clock time")
+            reset.pause()
+        }
+        // A provisional timeout during hidden removal may be corrected only
+        // from evidence before expiry, never from a post-expiry placement.
+        let late=try make(mainSeconds:2)
+        let lateStart=late.clock.engine.anchor!
+        let onTime=feed(late,incomplete,count:1)
+        _=feed(late,incomplete,count:12,hand:true);late.clock.tick(at:now)
+        check(late.clock.engine.expiredBlack==true,"Fixture did not reach provisional expiry")
+        _=feed(late,plan.target,count:5)
+        check(late.moveCount==46 && late.clock.running && late.clock.engine.expiredBlack==nil,"Pre-expiry capture could not correct delayed recognition")
+        check(near(late.clock.engine.black.remaining,2-(onTime-lateStart)),"Expiry recovery used an invented pause boundary")
+        late.pause()
+        let tooLate=try make(mainSeconds:2)
+        _=feed(tooLate,incomplete,count:12,hand:true);tooLate.clock.tick(at:now)
+        _=feed(tooLate,incomplete,count:4)
+        check(!tooLate.clock.automaticCapturePaused && !tooLate.clock.running && tooLate.clock.engine.expiredBlack==true,"Capture first seen after expiry revived the clock")
+        tooLate.pause()
         for minimum in [0,5] {
             let disabled=try make(minimum:minimum);_=feed(disabled,incomplete,count:4)
             check(!disabled.clock.automaticCapturePaused,"Nonqualifying capture auto-paused")

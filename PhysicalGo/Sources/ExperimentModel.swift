@@ -433,6 +433,10 @@ enum PhysicalPlayMode: String, CaseIterable {
         }
         // Property observers do not run for initial assignments in init.
         onlineBoard.enabled = playMode == .online
+        recorder.clock.$engine.sink { [weak self] clock in
+            guard let self else {return}
+            self.camera.setTimingClock(self.playMode == .local ? clock:nil)
+        }.store(in:&clockSubscriptions)
         configurePlacementChime()
         onlineBoard.onEvidenceCapture = { [weak self] event in
             self?.moveEvidenceCapture.trigger(event,now:event["uptime"] as? Double ?? ProcessInfo.processInfo.systemUptime)
@@ -582,6 +586,7 @@ enum PhysicalPlayMode: String, CaseIterable {
          "tracksCameraMotion":tracksCameraMotion,"alignmentNeedsRecovery":alignmentNeedsRecovery,
          "revision":revision,"gridGeneration":gridGeneration,"frozen":frozen,
          "cameraFrameNumber":frameCount,"recorder":diagnosticRecorderState,
+         "targetProcessingFPS":1/CameraProcessingCadence.interval(clock:playMode == .local ? recorder.clock.engine:nil,at:ProcessInfo.processInfo.systemUptime),
          "manualCorrections":boardCorrections.values.sorted{$0.key<$1.key}.map {["point":$0.key,"occupancy":$0.value.rawValue] as [String:Any]},
          "editingCorrections":boardCorrections.isEditing]
     }

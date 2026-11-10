@@ -97,9 +97,14 @@ import Combine
         armTimer();save()
         if let announcement {onResumeAnnouncement?("\(announcement) Clocks resumed. \(engine.blackToPlay ? "Black":"White") to play.")}
     }
+    // A displayed timeout can precede delayed recognition. Only the retained
+    // uninterrupted turn can prove that a capture started before expiry.
+    var canBeginAutomaticCapture:Bool {
+        enabled && !automaticCapturePaused && !manuallyPaused && !needsCorrection && !awaitingTurn && turnBaseline?.running == true
+    }
     /// Rewind only this uninterrupted turn; removal time is charged to neither side.
     @discardableResult func beginAutomaticCapture(at observed:Double,now:Double,position:[Occupancy]?=nil)->Bool {
-        guard !automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,
+        guard canBeginAutomaticCapture,
               let baseline=turnBaseline,let start=baseline.anchor,observed.isFinite,
               observed>=start,observed<=now else {return false}
         var paused=baseline;paused.pause(at:observed)

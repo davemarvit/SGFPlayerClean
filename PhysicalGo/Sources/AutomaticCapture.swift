@@ -10,6 +10,13 @@ import Foundation
     let source:[Occupancy]
     let target:[Occupancy]
     let board:BoardSnapshot
+    /// Intermediate removals and the completed board belong to the same move.
+    /// Uncertainty, replacement stones and unrelated changes are not evidence.
+    func matchesRemoval(_ readings:[Occupancy])->Bool {
+        readings.count==target.count && readings.indices.allSatisfy { p in
+            captured.contains(p) ? readings[p]==before[p] || readings[p] == .empty : readings[p]==target[p]
+        }
+    }
     static func find(game:SGFGame,readings:[Occupancy],minimum:Int)->Self? {
         guard minimum>=2,readings.count==game.boardSize*game.boardSize else {return nil}
         let trial=SGFPlayer();trial.load(game:game);trial.seek(to:game.moves.count)

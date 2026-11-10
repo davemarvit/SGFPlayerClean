@@ -815,7 +815,7 @@ enum LocalGameSetup {
         let readings=captureReadings?.count==capture.source.count ? captureReadings!:capture.source
         return capture.captured.filter{readings[$0] != .empty}.sorted()
     }
-    private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int)?
+    private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int,completedViews:[Double])?
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
     private var handMotionTiming=HandMotionTiming()
@@ -837,7 +837,11 @@ enum LocalGameSetup {
         // A fresh obstructed frame proves camera continuity, never stone placement.
         lastCameraTime=now
         clearBoardTiming.noteHand(at:now)
-        handOverBoard=true;captureClearViews=[];captureCandidate=nil
+        handOverBoard=true;captureClearViews=[]
+        // Hand re-entry proves continuity, not a contradiction of a placement
+        // already seen. Preserve the candidate, but require fresh final views.
+        if let candidate=captureCandidate,now-candidate.first>120 {captureCandidate=nil}
+        captureCandidate?.completedViews=[]
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if state == .recording {status="Waiting for hands to clear the board. Saved moves are preserved."}
     }
@@ -902,21 +906,38 @@ enum LocalGameSetup {
                 : "Captured points are empty. Keep hands clear while the complete position is verified."
             status=automaticCaptureStatus!;return true
         }
-        guard clock.enabled,clock.running,!clock.needsCorrection,!hasDeferredMoves,observation.handObstructed == false,
-              let plan=AutomaticCapture.find(game:game,readings:readings,minimum:clock.engine.settings.capturePauseMinimum) else {
+        guard clock.canBeginAutomaticCapture,!hasDeferredMoves,observation.handObstructed == false else {
+            captureCandidate=nil;return false
+        }
+        if let candidate=captureCandidate,stamp-candidate.first>120 {captureCandidate=nil}
+        // A complete target can confirm an earlier incomplete capture even if
+        // there was never time for three clear views between removal trips.
+        let retained=captureCandidate.flatMap { candidate -> AutomaticCapture? in
+            guard clock.engine.settings.capturePauseMinimum>=2,
+                  candidate.plan.captured.count>=clock.engine.settings.capturePauseMinimum,
+                  candidate.plan.matchesRemoval(readings) else {return nil}
+            return candidate.plan
+        }
+        guard let plan=retained ?? AutomaticCapture.find(game:game,readings:readings,minimum:clock.engine.settings.capturePauseMinimum) else {
             captureCandidate=nil;return false
         }
         guard observation.readings[plan.point].confidence>=0.9,
               (observation.assignmentOffsets[plan.point] ?? 0)<0.24 else {captureCandidate=nil;return false}
-        if let candidate=captureCandidate,candidate.plan.point==plan.point,stamp>candidate.last,stamp-candidate.last<=0.5 {
-            captureCandidate=(plan,candidate.first,stamp,candidate.samples+1)
-        } else {captureCandidate=(plan,stamp,stamp,1)}
+        if let candidate=captureCandidate,candidate.plan.point==plan.point,candidate.plan.target==plan.target {
+            guard stamp>candidate.last else {return true}
+            captureCandidate=(plan,candidate.first,stamp,candidate.samples+1,candidate.completedViews)
+        } else {captureCandidate=(plan,stamp,stamp,1,[])}
+        if readings==plan.target {
+            if let last=captureCandidate?.completedViews.last,stamp-last>0.5 {captureCandidate?.completedViews=[]}
+            captureCandidate?.completedViews.append(stamp)
+        } else {captureCandidate?.completedViews=[]}
         guard let candidate=captureCandidate,candidate.samples>=3,stamp-candidate.first>=0.4 else {
-            status="Checking a possible capture. Keep the stones in place.";return true
+            status="Checking the capture. Remove captured stones, then move hands clear.";return true
         }
         guard clock.beginAutomaticCapture(at:candidate.first,now:now,position:plan.source) else {captureCandidate=nil;return false}
-        automaticCapture=plan;captureClearViews=[];synchronized=false;boardReadyForPass=false
+        automaticCapture=plan;captureClearViews=candidate.completedViews;synchronized=false;boardReadyForPass=false
         resetObservationHistory();resetPending()
+        if !captureClearViews.isEmpty {pendingKey="capture cleared"}
         automaticCaptureStatus="Remove the captured stones, then move hands clear. Both clocks are stopped."
         status=automaticCaptureStatus!
         trace(event:"automatic capture removal pause",now:now,extra:["captured":plan.captured.count,"firstFrameTime":candidate.first])
@@ -1341,7 +1362,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.133"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.134"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
