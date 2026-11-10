@@ -2771,3 +2771,32 @@ prompts; they cannot prove that external speakers were audible.
 `--recovery-guidance-test` exercises actual capture/review fixtures, rotated
 coordinates, warning priority, changing/obsolete guidance, the model's clock
 restart callback, explicit mute and natural completion using muted real audio.
+
+## Quiet ordinary play (0.131)
+
+“Board view clear” now closes a camera/lighting warning that actually started
+playing during the same interruption. Duration alone never triggers it, so an
+ordinary hand placement stays silent even when the hand detector misses it.
+Playback counters prevent an old warning from causing acknowledgements on later
+moves. Fresh stable views, explicit mute and clock-resume deduplication still
+apply. `--obstruction-feedback-test` covers repeated short/long silent episodes,
+heard versus queued warnings, old warnings, camera gaps and recovery acknowledgements.
+
+An audit of the 50-move test game on November 9 found that moves 1–40 used the
+retained hand-clear boundary exactly in their clock checkpoints. Recognition
+delay had a median of 0.584 seconds (range 0.131–1.052), and the saved balances
+matched charging the opponent from that boundary. Moves 41–42 and 44–50 were
+batch confirmations without reconstructed individual presses; move 43's earlier
+candidate preceded the new clock baseline and was not backdated. These later
+times should not be treated as independently verified per-player timings.
+
+Recognition delay is not measurement error. Eight hand-to-delivered transitions
+in the saved difficult-sequence clips span 0.231–0.467 seconds, conditional on
+correct hand classification. Motion interpolation can refine a crossing estimate
+within a frame interval; its uncertainty must come from tracking residuals,
+motion changes and camera timing. The current detector discards joint trajectories,
+stored images sample at most twice per second, and timestamps measure camera
+callback arrival rather than exposure time. No sub-frame accuracy or physical
+hand-exit error bar has been validated by this audit, and no clock values were
+changed. Catch-up timing and higher-rate trajectory measurement remain separate
+follow-up work.

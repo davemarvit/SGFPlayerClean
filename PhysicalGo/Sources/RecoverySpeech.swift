@@ -16,6 +16,7 @@ import Foundation
     private var activeText:String?
     private var activeResolved=false
     private var heard=Set<Topic>()
+    private var starts=[Topic:Int]()
     private var queued=[Prompt]()
     var onSpeechEvent:SpeechEventHandler?
     init(audio:(any RecoverySpeechOutput)?=nil) {
@@ -26,7 +27,9 @@ import Foundation
         }
         self.audio.onSpeechEvent = { [weak self] event,details in
             guard let self else {return}
-            if event == "started",let topic=self.active {self.heard.insert(topic)}
+            if event == "started",let topic=self.active {
+                self.heard.insert(topic);self.starts[topic,default:0] += 1
+            }
             var fields=details;fields["channel"]="recovery";fields["topic"]=self.active?.rawValue ?? "none"
             self.onSpeechEvent?(event,fields)
         }
@@ -45,6 +48,9 @@ import Foundation
         advance()
     }
     func wasHeard(_ topic:Topic)->Bool {heard.contains(topic) || (active==topic && audio.hasStartedSpeech)}
+    /// A monotonic playback count lets recovery acknowledge only warnings from
+    /// the current interruption, even after another consumer clears `heard`.
+    func startCount(_ topic:Topic)->Int {starts[topic,default:0]}
     func hasAnnouncement(_ topic:Topic)->Bool {wasHeard(topic) || active==topic || queued.contains{$0.topic==topic}}
     func forgetAnnouncement(_ topic:Topic) {heard.remove(topic)}
     /// Drop unsaid messages when state reverses. Once audible, finish the

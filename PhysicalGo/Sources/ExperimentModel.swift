@@ -1112,7 +1112,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             }
             defer {
                 self.boardViewFeedback.observe(clear:aligned != nil && analysis.handObstructed != true && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
-                    fresh:freshView,now:alignmentTime,handObstructed:analysis.handObstructed == true,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
+                    fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
                     clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
             }

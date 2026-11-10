@@ -7,6 +7,7 @@ import AppKit
     var phrases=[String](),stops=[String]()
     func say(_ text:String,settings:LocalClockSounds,announcement:Bool) {phrases.append(text);hasStartedSpeech=false}
     func stop(reason:String) {stops.append(reason);hasStartedSpeech=false}
+    func start() {hasStartedSpeech=true;onSpeechEvent?("started",[:])}
     func finish() {hasStartedSpeech=false;onSpeechFinished?()}
 }
 
@@ -39,53 +40,76 @@ import AppKit
         func sample(_ clear:Bool,_ time:Double,fresh:Bool=true,enabled:Bool=true,running:Bool=false) {
             feedback.observe(clear:clear,fresh:fresh,now:time,enabled:enabled,clocksEnabled:true,clockRunning:running,settings:settings)
         }
-        sample(false,0);sample(false,1)
-        sample(true,1.2,fresh:false);sample(true,1.2,fresh:false)
-        check(voice.phrases.isEmpty,"Redrawing an old image announced recovery")
-        for t in [1.25,1.5,1.75,2.0] {sample(true,t)}
-        check(voice.phrases.isEmpty,"Single/short clear view announced stability")
-        sample(true,2.25)
-        check(voice.phrases==["Board view clear. Clocks remain paused."],"Paused game did not receive truthful recovery acknowledgement")
-        voice.finish();sample(true,3);sample(true,4)
-        check(voice.phrases.count==1,"Stable view repeatedly announced itself")
-        sample(false,5);sample(false,6);sample(true,6.25);sample(true,6.5)
-        sample(false,6.6)
-        for t in [7.0,7.25,7.5,7.75] {sample(true,t)}
-        check(voice.phrases.count==1,"Flicker counted as sustained recovery")
-        sample(true,8)
-        check(voice.phrases.count==2,"Stable recovery after flicker stayed silent")
-        sample(false,8.1)
-        check(voice.stops.contains("board view unclear again"),"A queued all-clear survived another obstruction")
-        feedback.reset();sample(false,10);sample(false,11)
-        for t in [12.0,12.25,14.0,14.25,14.5,14.75] {sample(true,t)}
-        check(voice.phrases.count==2,"Camera gap counted as continuous clear evidence")
-        sample(true,15)
-        check(voice.phrases.count==3,"Fresh clear frames after gap failed recovery")
-        voice.finish();feedback.reset()
-        sample(false,20);sample(false,21)
-        for t in [21.25,21.5,21.75,22.0,22.25] {sample(true,t,enabled:false)}
-        check(voice.phrases.count==3,"Muted recovery spoke")
-        feedback.reset();sample(false,25);sample(false,26)
-        speech.request(.clockResume,text:"Clocks resumed. White to play.",settings:settings)
-        for t in [26.25,26.5,26.75,27.0,27.25] {sample(true,t,running:true)}
-        check(voice.phrases.last=="Clocks resumed. White to play." && voice.phrases.count==4,"Clock resume and board recovery produced duplicate announcements")
-        voice.finish();feedback.reset();sample(false,30)
-        for t in [30.25,30.5,30.75,31.0,31.25] {sample(true,t)}
-        check(voice.phrases.count==4,"A fleeting silent obstruction produced unnecessary chatter")
-        feedback.reset();sample(false,40);sample(false,41)
-        speech.request(.alignment,text:"Please clear the board view.",settings:settings);voice.hasStartedSpeech=true
-        for t in [41.25,41.5,41.75,42.0,42.25] {sample(true,t)}
-        check(voice.phrases.last=="Please clear the board view.","Recovery spoke over an active warning")
-        voice.finish()
-        check(voice.phrases.last=="Board view clear. Clocks remain paused.","Audible warning was not followed by all-clear")
-        voice.finish();feedback.reset()
-        let beforeHand=voice.phrases.count
-        for i in 0..<20 {
-            feedback.observe(clear:false,fresh:true,now:50+Double(i)*0.2,handObstructed:true,enabled:true,clocksEnabled:true,clockRunning:true,settings:settings)
+        func clearView(_ time:Double,enabled:Bool=true,running:Bool=false) {
+            for i in 0..<5 {sample(true,time+Double(i)*0.25,enabled:enabled,running:running)}
         }
-        for t in [54.0,54.25,54.5,54.75,55.0] {sample(true,t,running:true)}
-        check(voice.phrases.count==beforeHand,"Ordinary hand placement generated recovery chatter")
+        // A hand need not be recognized as a hand: every silent interruption,
+        // including long ones, must recover silently during ordinary play.
+        for turn in 0..<20 {
+            let t=Double(turn)*15
+            sample(false,t,running:true);sample(false,t+9,running:true)
+            clearView(t+10,running:true)
+        }
+        check(voice.phrases.isEmpty,"Routine moves or a long silent obstruction produced all-clear chatter")
+        feedback.reset();sample(false,400)
+        speech.request(.alignment,text:"Check the camera",settings:settings);voice.start();voice.finish()
+        sample(false,401)
+        sample(true,401.2,fresh:false);sample(true,401.2,fresh:false)
+        for t in [401.25,401.5,401.75,402.0] {sample(true,t)}
+        check(voice.phrases==["Check the camera"],"Stale or insufficient clear frames announced recovery")
+        sample(true,402.25)
+        check(voice.phrases.last=="Board view clear. Clocks remain paused.","An audible camera warning lacked its recovery acknowledgement")
+        voice.start();voice.finish();sample(true,403)
+        let afterWarning=voice.phrases.count
+        for turn in 0..<5 {
+            let t=410+Double(turn)*5
+            sample(false,t);sample(false,t+1);clearView(t+1.25)
+        }
+        check(voice.phrases.count==afterWarning,"An old warning caused acknowledgements after later routine moves")
+
+        feedback.reset();sample(false,450)
+        speech.request(.lighting,text:"Improve the lighting",settings:settings) // Never audible.
+        clearView(451)
+        check(voice.phrases.last=="Improve the lighting" && voice.stops.last=="condition recovered","An unplayed warning earned an unnecessary all-clear")
+        feedback.reset();sample(false,460)
+        speech.request(.lighting,text:"Reduce glare",settings:settings);voice.start()
+        clearView(461)
+        check(voice.phrases.last=="Reduce glare","All-clear interrupted an audible warning")
+        voice.finish()
+        check(voice.phrases.last=="Board view clear. Clocks remain paused.","Lighting recovery failed to follow the audible warning")
+        sample(false,462.1)
+        check(voice.stops.last=="board view unclear again","Queued all-clear survived renewed obstruction")
+        clearView(463)
+        check(voice.phrases.filter{$0=="Board view clear. Clocks remain paused."}.count==2,"Renewed silent obstruction repeated the same recovery announcement")
+
+        feedback.reset();sample(false,480)
+        speech.request(.alignment,text:"Show the corners",settings:settings);voice.start();voice.finish()
+        for t in [481.0,481.25,483.0,483.25,483.5,483.75] {sample(true,t)}
+        check(voice.phrases.last=="Show the corners","A camera gap counted as sustained clear evidence")
+        sample(true,484)
+        check(voice.phrases.last=="Board view clear. Clocks remain paused.","Fresh clear evidence after a gap failed to acknowledge recovery")
+        voice.finish();feedback.reset();sample(false,490)
+        speech.request(.lighting,text:"Check glare",settings:settings);voice.start();voice.finish()
+        clearView(491,enabled:false)
+        check(voice.phrases.last=="Check glare","Muted recovery spoke")
+        clearView(493)
+        check(voice.phrases.last=="Check glare","Unmuting replayed an old recovery")
+
+        feedback.reset();sample(false,500)
+        speech.request(.alignment,text:"Check alignment",settings:settings);voice.start();voice.finish()
+        speech.request(.clockResume,text:"Clocks resumed. White to play.",settings:settings)
+        clearView(501,running:true)
+        check(voice.phrases.last=="Clocks resumed. White to play.","Clock resume was followed by a duplicate board all-clear")
+        voice.finish()
+        // The clock coordinator may forget the warning; actual playback still
+        // earns one acknowledgement in this interruption, never in a later one.
+        feedback.reset();sample(false,510)
+        speech.request(.lighting,text:"Improve lighting",settings:settings);voice.start();voice.finish()
+        speech.forgetAnnouncement(.lighting);clearView(511,running:true)
+        check(voice.phrases.last=="Board view clear.","Another consumer clearing heard-state lost a genuine recovery")
+        voice.finish();feedback.reset();sample(false,520);clearView(521,running:true)
+        check(voice.phrases.filter{$0=="Board view clear."}.count==1,"Reset carried a completed warning into a new silent episode")
         try runCoveredBorderTests()
-        print("PASS: \(checks) obstruction feedback checks: actual hand reports, grace, real movement, fresh stable recovery, manual pause, mute, flicker, camera gaps, queued speech and clock-resume deduplication")
+        print("PASS: \(checks) obstruction feedback checks: actual hand reports, silent routine moves, episode-scoped audible recovery, fresh frames, mute, camera gaps, queued speech and clock-resume deduplication")
     }
 }
