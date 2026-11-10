@@ -188,8 +188,9 @@ import Combine
            let baseline=turnBaseline,let start=baseline.anchor,observedAt>=start,baseline.blackToPlay==black {
             // Verification can arrive after the visible timeout. Only retained evidence
             // from this uninterrupted turn can establish an earlier, on-time move.
-            if let upper=estimate?.observedUpper,upper<=now {
-                var earliest=baseline;earliest.advance(to:max(start,estimate?.observedLower ?? observedAt))
+            if let estimate {
+                let upper=min(now,estimate.latestPlausibleTime)
+                var earliest=baseline;earliest.advance(to:max(start,estimate.earliestPlausibleTime))
                 var latest=baseline;latest.advance(to:upper)
                 if earliest.expiredBlack==nil && latest.expiredBlack != nil {
                     baseMove=number
@@ -254,9 +255,10 @@ import Combine
         for (offset,value) in estimates.enumerated() {
             guard let estimate=value,estimate.valid,estimate.method != .candidate,
                   estimate.time>=start,estimate.time<=now,(offset==0 ? estimate.time>=previous:estimate.time>previous) else {return false}
-            if let upper=estimate.observedUpper,upper<=now {
+            do {
+                let upper=min(now,estimate.latestPlausibleTime)
                 var latest=trial;latest.advance(to:upper)
-                var point=trial;point.advance(to:max(previous,estimate.observedLower ?? estimate.time))
+                var point=trial;point.advance(to:max(previous,estimate.earliestPlausibleTime))
                 if point.expiredBlack==nil && latest.expiredBlack != nil {
                     baseMove=last
                     recover(toBlack:blackToPlay,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.",at:now)
@@ -315,8 +317,9 @@ import Combine
         var boundary=now
         if observedAt.isFinite,observedAt<=now,let baseline=turnBaseline,
            let start=baseline.anchor,observedAt>=start,baseline.blackToPlay==black {
-            if let upper=estimate?.observedUpper,upper<=now {
-                var lowerClock=baseline;lowerClock.advance(to:max(start,estimate?.observedLower ?? observedAt))
+            if let estimate {
+                let upper=min(now,estimate.latestPlausibleTime)
+                var lowerClock=baseline;lowerClock.advance(to:max(start,estimate.earliestPlausibleTime))
                 var upperClock=baseline;upperClock.advance(to:upper)
                 if lowerClock.expiredBlack==nil && upperClock.expiredBlack != nil {
                     recover(toBlack:!black,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.",at:now)

@@ -26,10 +26,14 @@ final class CameraAnalysisPipeline {
         let trackingFresh: Bool
         let trackingTime: Double
         var checkHands=false
+        var handTracking=HandOutlineTracker()
+        var handTimestampSource="callback"
     }
     struct Output {
         let handPose:HandMotionPose?
         let handObstructed:Bool?
+        let handOutline:HandOutlineTracker.Result?
+        let handTracking:HandOutlineTracker
         let frame: GrayFrame?
         let exposureFailure: Bool
         let alignmentReport: [String:Any]
@@ -70,7 +74,6 @@ final class CameraAnalysisPipeline {
         let trackingFresh = input.trackingFresh
         let trackingTime = input.trackingTime
         let handPose=input.checkHands ? BoardHandDetector.pose(image:target,calibration:calibration):nil
-        let handObstructed=handPose?.obstructed(size:calibration.size)
         let frame=GrayFrame(image:target)
         let exposureFailure=frame.map {LightingCompensation.exposureFailure(frame:$0,calibration:calibration)} ?? false
         var alignmentReport:[String:Any]=["outcome":checkAlignment ? "unavailable":"tracking disabled"]
@@ -79,6 +82,14 @@ final class CameraAnalysisPipeline {
         if checkAlignment,aligned==nil,alignmentReport["rejectionReason"]==nil {
             alignmentReport["rejectionReason"]=frame==nil ? "camera frame decoding failed":"tracking anchor unavailable"
         }
+        var handTracking=input.handTracking
+        let handOutline:HandOutlineTracker.Result?
+        if input.checkHands,input.trackingFresh,let frame,!exposureFailure,
+           aligned != nil || BoardAlignmentGate.likelyObstruction(alignmentReport) {
+            handOutline=handTracking.observe(HandOutlineSampling.sample(frame,calibration:aligned ?? calibration),
+                pose:handPose,at:trackingTime,source:input.handTimestampSource)
+        } else {handTracking.reset();handOutline=nil}
+        let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size)
         let result:BoardObservation? = exposureFailure
             ? BoardObservation(readings:(0..<calibration.size*calibration.size).map {
                 .init(row:$0/calibration.size,col:$0%calibration.size,occupancy:.uncertain,confidence:0,delta:0)
@@ -109,6 +120,6 @@ final class CameraAnalysisPipeline {
         let displayRows=applyAspect ? stoneAspect!.longAxisRows : longAxisRows
         let geometry = straighten ? aligned.map { BoardRectifiedGeometry(calibration:$0,longAxisRows:displayRows) } : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
-        return Output(handPose:handPose,handObstructed:handObstructed,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
+        return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
     }
 }

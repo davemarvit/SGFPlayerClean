@@ -2,12 +2,14 @@
 from pathlib import Path
 
 DEPENDENCIES = {
+    'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
+    'Sources/HandOutlineSampling.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
     'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),
     'Sources/CameraCapture.swift': ('Sources/CameraFrameTimestamp.swift',),
     'Sources/BoardHandDetector.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/LocalClockEngine.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
-    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift',),
+    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift'),
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift', 'Sources/HandMotionTiming.swift'),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
     'Sources/PhysicalOnlineBoard.swift': (
@@ -15,7 +17,7 @@ DEPENDENCIES = {
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
         'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
-        'AutomaticCapture.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
+        'AutomaticCapture.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),
     'Sources/PhysicalScoring.swift': tuple('../SGFPlayerClean/' + name for name in (

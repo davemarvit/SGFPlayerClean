@@ -12,15 +12,21 @@ struct ClockPressEstimate:Codable,Equatable {
     var samples=1
     var timestampSource="callback"
     var fallbackReason:String?=nil
+    var earliestPlausibleTime:Double {min(observedLower ?? time,time-(estimatedError ?? 0))}
+    var latestPlausibleTime:Double {max(observedUpper ?? time,time+(estimatedError ?? 0))}
     var valid:Bool {
         time.isFinite && (estimatedError.map{$0.isFinite && $0>=0} ?? true) &&
         (observedLower.map{$0.isFinite && $0<=time} ?? true) &&
-        (observedUpper.map{$0.isFinite && $0>=time} ?? true)
+        (observedUpper.map{$0.isFinite && $0>=time} ?? true) && earliestPlausibleTime.isFinite && latestPlausibleTime.isFinite
     }
     var summary:String {
         switch method {
         case .handMotion:return String(format:"Hand motion · estimated ±%.2f s",estimatedError ?? 0)
-        case .handBracket:return String(format:"Hand-clear interval %.2f s · used first clear frame",(observedUpper ?? time)-(observedLower ?? time))
+        case .handBracket:
+            if let upper=observedUpper,time<upper,let error=estimatedError {
+                return String(format:"Visual exit interval · estimated ±%.2f s",error)
+            }
+            return String(format:"Hand-clear interval %.2f s · used first clear frame",(observedUpper ?? time)-(observedLower ?? time))
         case .clearFrame:return "First verified clear frame · hand-exit uncertainty unavailable"
         case .candidate:return "Candidate observation · hand-exit uncertainty unavailable"
         }

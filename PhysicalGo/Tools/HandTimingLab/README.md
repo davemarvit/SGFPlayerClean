@@ -33,11 +33,16 @@ frame. The grid is specific to that capture and camera position.
 
 ```sh
 python3 Tools/replay_hand_timing.py '/absolute/path/to/capture-folder'
+python3 Tools/replay_hand_timing.py '/absolute/path/to/capture-folder' --outline
 ```
 
 The evaluator reuses the production Vision detector and motion estimator. It
 runs 5 and 10 fps sampling at six phase offsets plus every saved native frame,
-writing `poses.json` and `evaluation.json`. For each manual interval it reports
+writing `poses.json` and `evaluation.json`. `--outline` uses the 0.133 visual
+tracker and writes separate `outline-poses.json` / `outline-evaluation.json`
+files, including per-frame tracking decisions, without replacing the pose-only
+baseline. Each sampling phase starts its own tracker/reference history and only
+sees that phase's selected frames. For each manual interval it reports
 the estimate, observed bracket, model error, distance outside the manual interval
 and whether the model band overlaps it. For scoring, the capture is partitioned
 halfway between independently labeled withdrawals. Exactly one estimate in each
@@ -49,9 +54,10 @@ The native run's `fps: 30` denotes the requested capture rate; it uses every sav
 frame even when actual delivery is lower or irregular. Dropped frames widen the
 manual interval. A wide interval cannot establish fine accuracy.
 
-The app fits joint motion, not a full hand/forearm silhouette. Joint confidence,
-outline allowance, acceleration, shadows and camera/exposure timing can all affect
-physical clearance. Its estimated ± error is an uncalibrated engineering estimate,
+The 0.133 app follows a pose-seeded foreground outline against a recent clear
+reference, continuing after joint loss and confirming clearance in two views.
+Acceleration, foreground contrast, shadows and camera/exposure timing can affect
+physical clearance. Its estimated ± error is an engineering estimate,
 not a confidence interval. Use the labeled captures to measure coverage and bias
 before claiming a particular physical timing accuracy. Offline replay isolates
 motion estimation; compare live app journals separately for recognition latency
@@ -60,7 +66,7 @@ and clock balance accounting under processing load.
 Regression commands:
 
 ```sh
-python3 build.py --hand-motion-test --hand-clock-test --hand-lab-test
+python3 build.py --hand-outline-test --hand-motion-test --hand-clock-test --hand-lab-test
 python3 build.py --capture-clock-test --clock-review-test --clock-feedback-test
 ```
 
@@ -69,3 +75,10 @@ image/journal writer, checks timestamp conversion/fallback, frame decode and dro
 indexing, and requires no camera grant. For an inspectable fixture, run
 `.build/HandTimingLabTests /absolute/path/to/new-fixture` after building the suite.
 It is an integration fixture, **not hand-motion accuracy evidence**.
+
+`--hand-outline-test` additionally replays sampled color/luminance features from
+the three real withdrawals. The fixture contains 85 selected frames at 10 samples
+per grid space, with normalized features quantized to 12 bits (rounding error at
+most 0.000123), compressed losslessly after quantization. Its manifest retains
+pose observations, original timestamps, independent visual label intervals and
+the native/5 fps test sequences. These fixtures are excluded from release bundles.

@@ -2859,3 +2859,46 @@ verify clearance before trusting narrower error estimates. The lab scoring was
 corrected to retain early/late failures and keep sampling phases on a fixed
 timeline. Raw captures, independent labels, replay outputs and the CSV summary
 remain together in the lab capture folder. The test did not run or alter clocks.
+
+## Visual hand-exit tracking (0.133)
+
+A hand pose now seeds a visual foreground tracker rather than acting as the sole
+clearance signal. The tracker learns the observed hand's appearance relative to
+a recent clear board image; it does not use a fixed skin-color range. References
+lag entry by at least half a second so delayed pose recognition cannot immediately
+teach the hand itself as background. Connected regions retain their boundary
+pixels but must have a solid core, reducing confusion with thin shadows/grid
+artifacts and detached stones. The tracked trailing edge continues through joint
+loss. Two visually clear observations confirm an exit; the estimate retains the
+original crossing/first-clear interval rather than charging confirmation delay.
+
+Reliable withdrawal samples estimate the boundary crossing. When acceleration
+or sparse frames do not support interpolation, the midpoint of the observed visual
+interval is retained with a wider error estimate. Timing includes outline/blur
+allowances, not just fit residuals. Pose failures, multiple hands, camera gaps,
+invalid imagery, revision changes and timestamp-source changes cannot manufacture
+an interpolated exit. Clock expiry review now considers the model error band as
+well as the sampled interval. Existing per-move catch-up/checkpoint behavior remains.
+
+Replay of session `69B81321-7DD6-4C98-9DFA-2039C19286B8` against the unchanged
+independent visual labels found:
+
+| Sampling | Mean absolute offset from labeled interval midpoint, before → after | Largest absolute offset, before → after | Accepted motion estimates |
+|---|---|---|---|
+| 5 fps, six phases | 59 → 31 ms | 150 → 83 ms | 8 of 18 |
+| 10 fps, six phases | 41 → 18 ms | 100 → 36 ms | 12 of 18 |
+| Native ~30 fps | 56 → 12 ms | 100 → 29 ms | 3 of 3 |
+
+All new error bands overlap the manual intervals; at 5 and 10 fps they contain
+the entire intervals. The native run contains two entire intervals and overlaps
+the third. These are three independent withdrawals replayed at several phases,
+not 39 independent trials. They were used while developing the change, and the
+interval midpoints are approximations, not exact ground truth. More varied held-out
+motions/cameras/lighting are needed to establish general accuracy. Production
+board analysis remains at 5 fps; high-rate capture remains a separate lab tool.
+
+`--hand-outline-test` covers all four edges, pose loss, confirmation delay,
+clock-press uncertainty, source/camera gaps and the recorded fixtures. Clock,
+capture and obstruction-feedback suites exercise integration. The capture's
+`outline-evaluation.json` retains detailed tracking decisions; the local analysis
+folder `Captures/Analyses/Hand outline 2026-11-09` contains the CSV, summary and plot.

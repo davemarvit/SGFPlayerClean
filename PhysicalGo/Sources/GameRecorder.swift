@@ -819,8 +819,10 @@ enum LocalGameSetup {
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
     private var handMotionTiming=HandMotionTiming()
-    func observeHandMotion(_ pose:HandMotionPose?,at time:Double,source:String)->ClockPressEstimate? {
-        let estimate=handMotionTiming.observe(pose,at:time,size:game.boardSize,source:source)
+    func observeHandMotion(_ pose:HandMotionPose?,at time:Double,source:String,visual:HandOutlineTracker.Result?=nil)->ClockPressEstimate? {
+        let estimate:ClockPressEstimate?
+        if let visual {handMotionTiming.reset();estimate=visual.estimate}
+        else {estimate=handMotionTiming.observe(pose,at:time,size:game.boardSize,source:source)}
         if let estimate,let data=try? JSONEncoder().encode(estimate),let json=try? JSONSerialization.jsonObject(with:data) {
             trace(event:"hand-clear clock boundary",now:time,extra:["clockPressEstimate":json])
         }
@@ -1339,7 +1341,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.132"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.133"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {

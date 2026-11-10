@@ -360,9 +360,11 @@ enum PhysicalPlayMode: String, CaseIterable {
     private var referenceCameraName = ""
 
     private let cameraAnalysis = CameraAnalysisPipeline()
+    private var handOutlineTracking=HandOutlineTracker()
     private var processingBusy = false
     @Published private(set) var lastVerifiedLiveFrameAt:Double?
     private var revision = 0 {didSet {
+        handOutlineTracking.reset()
         lastVerifiedLiveFrameAt=nil
         trackedBoardObservation=nil;establishedStones.reset();stoneTrackingReport = .init()
     }}
@@ -1061,7 +1063,8 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingContext:trackingContext,
             trackingManualPoints:trackingManualPoints,
             trackingFresh:trackingFresh,
-            trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil)) { [weak self] analysis in
+            trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil,
+            handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback")) { [weak self] analysis in
             let frame=analysis.frame
             let exposureFailure=analysis.exposureFailure
             let alignmentReport=analysis.alignmentReport
@@ -1082,7 +1085,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             defer {
                 if let captureUptime,self.moveEvidenceCapture.enabled {
                     self.moveEvidenceCapture.annotate(["captureUptime":captureUptime,"outcome":diagnosticOutcome,
-                        "handPose":DiagnosticRecorder.value(analysis.handPose),"frameTimestamp":DiagnosticRecorder.value(frameTimestamp),
+                        "handPose":DiagnosticRecorder.value(analysis.handPose),"handOutline":DiagnosticRecorder.value(analysis.handOutline),"frameTimestamp":DiagnosticRecorder.value(frameTimestamp),
                         "alignment":alignmentReport,"calibration":DiagnosticRecorder.value(aligned),
                         "readings":DiagnosticRecorder.value(result?.readings),
                         "footprints":DiagnosticRecorder.value(result?.footprints),
@@ -1106,6 +1109,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                 self.diagnosticDecisionTicket=nil
             }
             guard self.revision == token else { diagnosticOutcome="discarded stale analysis";self.analyze();return }
+            self.handOutlineTracking=analysis.handTracking
             let alignmentTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
             let freshView=supplied != nil && self.running && self.cameraState == .live && !self.frozen
             if freshView,let captureUptime,ProcessInfo.processInfo.systemUptime-captureUptime>1.5 {
@@ -1120,7 +1124,8 @@ enum PhysicalPlayMode: String, CaseIterable {
             let handEstimate:ClockPressEstimate?
             if freshView,self.playMode == .local {
                 let valid = !exposureFailure && (aligned != nil || analysis.handObstructed == true && !self.alignmentNeedsRecovery)
-                handEstimate=self.recorder.observeHandMotion(valid ? analysis.handPose:nil,at:alignmentTime,source:frameTimestamp?.source ?? "callback")
+                handEstimate=self.recorder.observeHandMotion(valid && analysis.handOutline != nil ? analysis.handPose:nil,
+                    at:alignmentTime,source:frameTimestamp?.source ?? "callback",visual:valid ? analysis.handOutline:nil)
             } else {handEstimate=nil}
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView,analysis.handObstructed == true {

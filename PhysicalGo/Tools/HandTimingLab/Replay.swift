@@ -7,7 +7,11 @@ import ImageIO
 @main struct HandTimingReplay {
     struct Grid:Decodable {let size:Int;let corners:[ImagePoint]}
     struct Sample:Codable {let index:Int;let time:Double;let pose:HandMotionPose?;let source:String}
-    struct Run:Codable {let fps:Double;let phase:Int;let estimates:[ClockPressEstimate];let comparisons:[Comparison]}
+    struct OutlineTrace:Codable {let index:Int;let time:Double;let result:HandOutlineTracker.Result}
+    struct Run:Codable {
+        let fps:Double;let phase:Int;let estimates:[ClockPressEstimate];let comparisons:[Comparison]
+        var outline:[OutlineTrace]?=nil
+    }
     struct Comparison:Codable {
         let lastObstructed:Int,firstClear:Int
         let lower:Double,upper:Double
@@ -16,7 +20,8 @@ import ImageIO
         let estimatedBandOverlapsManualInterval:Bool?
     }
     static func main()throws {
-        guard CommandLine.arguments.count==2 else {throw NSError(domain:"Usage: HandTimingReplay CAPTURE_FOLDER",code:1)}
+        guard (2...3).contains(CommandLine.arguments.count),CommandLine.arguments.count==2 || CommandLine.arguments[2]=="--outline" else {throw NSError(domain:"Usage: HandTimingReplay CAPTURE_FOLDER [--outline]",code:1)}
+        let outline=CommandLine.arguments.count==3
         let folder=URL(fileURLWithPath:CommandLine.arguments[1],isDirectory:true)
         let grid=try JSONDecoder().decode(Grid.self,from:Data(contentsOf:folder.appendingPathComponent("calibration.json")))
         guard let calibration=BoardCalibration(size:grid.size,corners:grid.corners) else {throw NSError(domain:"Invalid grid corners",code:2)}
@@ -29,7 +34,7 @@ import ImageIO
             guard data.session==folder.lastPathComponent else {throw NSError(domain:"Labels belong to another capture",code:3)}
             labels=data.withdrawals
         }
-        var samples=[Sample](),previous = -Double.infinity
+        var samples=[Sample](),visualFrames=[HandOutlineFrame](),previous = -Double.infinity
         for frame in frames where frame.file != nil {
             guard frame.timestamp.capturedAt.isFinite,frame.timestamp.capturedAt>previous,
                   let name=frame.file,URL(fileURLWithPath:name).lastPathComponent==name else {throw NSError(domain:"Invalid frame journal",code:4)}
@@ -37,6 +42,10 @@ import ImageIO
             try autoreleasepool {
                 guard let source=CGImageSourceCreateWithURL(folder.appendingPathComponent(name) as CFURL,nil),let image=CGImageSourceCreateImageAtIndex(source,0,nil) else {throw NSError(domain:"Cannot read \(name)",code:5)}
                 samples.append(.init(index:frame.index,time:frame.timestamp.capturedAt,pose:BoardHandDetector.pose(image:image,calibration:calibration),source:frame.timestamp.source))
+                if outline {
+                    guard let gray=GrayFrame(image:image) else {throw NSError(domain:"Cannot sample image",code:9)}
+                    visualFrames.append(HandOutlineSampling.sample(gray,calibration:calibration))
+                }
             }
         }
         guard let first=samples.first else {throw NSError(domain:"Capture has no saved frames",code:6)}
@@ -46,13 +55,19 @@ import ImageIO
             guard index==0 || labels[index-1].firstClear<label.lastObstructed else {throw NSError(domain:"Manual intervals overlap",code:8)}
         }
         let encoder=JSONEncoder();encoder.outputFormatting=[.prettyPrinted,.sortedKeys]
-        try encoder.encode(samples).write(to:folder.appendingPathComponent("poses.json"),options:.atomic)
+        let prefix=outline ? "outline-":""
+        try encoder.encode(samples).write(to:folder.appendingPathComponent(prefix+"poses.json"),options:.atomic)
         var runs=[Run]()
         for fps in [5.0,10.0,30.0] {
             for phase in 0..<(fps==30 ? 1:6) {
                 var estimator=HandMotionTiming(),next=first.time+Double(phase)/(6*fps),estimates=[ClockPressEstimate]()
-                for sample in samples where fps==30 || sample.time+1e-7>=next {
-                    if let estimate=estimator.observe(sample.pose,at:sample.time,size:grid.size,source:sample.source) {estimates.append(estimate)}
+                var tracker=HandOutlineTracker(),traces=[OutlineTrace]()
+                for (i,sample) in samples.enumerated() where fps==30 || sample.time+1e-7>=next {
+                    if outline {
+                        let result=tracker.observe(visualFrames[i],pose:sample.pose,at:sample.time,source:sample.source)
+                        traces.append(.init(index:sample.index,time:sample.time,result:result))
+                        if let estimate=result.estimate {estimates.append(estimate)}
+                    } else if let estimate=estimator.observe(sample.pose,at:sample.time,size:grid.size,source:sample.source) {estimates.append(estimate)}
                     // Advance on a fixed schedule. Resetting to each selected
                     // frame's timestamp lets jitter collapse distinct phases.
                     repeat {next+=1/fps} while next<=sample.time+1e-7
@@ -71,11 +86,11 @@ import ImageIO
                     let overlap=estimate.flatMap{e in e.estimatedError.map{e.time+$0>=lower && e.time-$0<=upper}}
                     return .init(lastObstructed:label.lastObstructed,firstClear:label.firstClear,lower:lower,upper:upper,estimate:estimate,distanceOutsideManualInterval:error,estimatedBandOverlapsManualInterval:overlap)
                 }
-                runs.append(.init(fps:fps,phase:phase,estimates:estimates,comparisons:comparisons))
+                runs.append(.init(fps:fps,phase:phase,estimates:estimates,comparisons:comparisons,outline:outline ? traces:nil))
             }
         }
-        try encoder.encode(runs).write(to:folder.appendingPathComponent("evaluation.json"),options:.atomic)
-        print("Replayed \(samples.count) frames, \(labels.count) manual intervals, \(runs.count) sampling runs. See poses.json and evaluation.json.")
+        try encoder.encode(runs).write(to:folder.appendingPathComponent(prefix+"evaluation.json"),options:.atomic)
+        print("Replayed \(samples.count) frames, \(labels.count) manual intervals, \(runs.count) sampling runs. See \(prefix)poses.json and \(prefix)evaluation.json.")
         print("Manual labels bound a crossing; they are not exact timestamps. Missing/ambiguous detector matches stay unscored. Model error is uncalibrated.")
     }
 }
