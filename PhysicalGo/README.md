@@ -2839,3 +2839,23 @@ native lab camera smoke check saved 294 1920×1080 frames from Dave11 Camera in
 spacing was 33.33 ms; the widest interval was 150 ms, so actual timestamps remain
 essential. Replaying that unobstructed baseline detected no hands and emitted no
 presses. It contains no scripted withdrawals or independent accuracy labels.
+
+The first withdrawal validation on November 9 saved 596 frames over 19.90 s
+(session `69B81321-7DD6-4C98-9DFA-2039C19286B8`). Visual labels were made before
+estimator replay: frames 330–331, 405–407 (blur requires a wider interval), and
+556–557. All three withdrawals fell back to detector-frame timing at native rate
+and in 5/10 fps phase replays; none validated the motion fit. At native rate the
+first two estimates preceded visible clearance by 33–67 ms and 67–133 ms, and
+the third by 0–33 ms. Across six fixed 5 fps phases the signed error envelope was
+−133 to +167 ms. These are three independent withdrawals, not 39 independent
+trials, and the visual intervals have frame/blur and boundary-definition uncertainty.
+
+The pose detector loses fingertips while they remain visibly above the board;
+an empty pose result is therefore not proof of physical clearance. Joint identities
+also become unstable near exit. The observed bracket is conditional on correct
+classification and must not be advertised as a guaranteed physical bound. Further
+work should retain visual hand-edge tracking through pose loss and independently
+verify clearance before trusting narrower error estimates. The lab scoring was
+corrected to retain early/late failures and keep sampling phases on a fixed
+timeline. Raw captures, independent labels, replay outputs and the CSV summary
+remain together in the lab capture folder. The test did not run or alter clocks.

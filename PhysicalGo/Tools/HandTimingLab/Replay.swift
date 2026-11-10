@@ -3,7 +3,7 @@ import ImageIO
 
 /// Offline evaluation of the production detector/estimator, sampled from the
 /// same native-rate capture at several phases. Manual labels are never input
-/// to detection, fitting or selection of an estimate.
+/// to detection or fitting; they only associate outputs for scoring.
 @main struct HandTimingReplay {
     struct Grid:Decodable {let size:Int;let corners:[ImagePoint]}
     struct Sample:Codable {let index:Int;let time:Double;let pose:HandMotionPose?;let source:String}
@@ -40,8 +40,10 @@ import ImageIO
             }
         }
         guard let first=samples.first else {throw NSError(domain:"Capture has no saved frames",code:6)}
-        for label in labels {
+        labels.sort{$0.lastObstructed<$1.lastObstructed}
+        for (index,label) in labels.enumerated() {
             guard label.lastObstructed<label.firstClear,samples.contains(where:{$0.index==label.lastObstructed}),samples.contains(where:{$0.index==label.firstClear}) else {throw NSError(domain:"Invalid manual label",code:7)}
+            guard index==0 || labels[index-1].firstClear<label.lastObstructed else {throw NSError(domain:"Manual intervals overlap",code:8)}
         }
         let encoder=JSONEncoder();encoder.outputFormatting=[.prettyPrinted,.sortedKeys]
         try encoder.encode(samples).write(to:folder.appendingPathComponent("poses.json"),options:.atomic)
@@ -51,14 +53,19 @@ import ImageIO
                 var estimator=HandMotionTiming(),next=first.time+Double(phase)/(6*fps),estimates=[ClockPressEstimate]()
                 for sample in samples where fps==30 || sample.time+1e-7>=next {
                     if let estimate=estimator.observe(sample.pose,at:sample.time,size:grid.size,source:sample.source) {estimates.append(estimate)}
-                    next=sample.time+1/fps-0.002
+                    // Advance on a fixed schedule. Resetting to each selected
+                    // frame's timestamp lets jitter collapse distinct phases.
+                    repeat {next+=1/fps} while next<=sample.time+1e-7
                 }
-                let comparisons=labels.map {label->Comparison in
+                let comparisons=labels.enumerated().map {index,label->Comparison in
                     let lower=samples.first{$0.index==label.lastObstructed}!.time
                     let upper=samples.first{$0.index==label.firstClear}!.time
-                    // Match by the observed transition bracket, not nearest
-                    // fitted time (which would bias reported accuracy).
-                    let matches=estimates.filter{($0.observedLower ?? $0.time)<=upper && ($0.observedUpper ?? $0.time)>=lower}
+                    // Partition the capture halfway between independently
+                    // marked withdrawals. Bracket-overlap matching discarded
+                    // early/late failures and would bias the accuracy report.
+                    let windowStart=index==0 ? first.time:(samples.first{$0.index==labels[index-1].firstClear}!.time+lower)/2
+                    let windowEnd=index+1==labels.count ? Double.infinity:(upper+samples.first{$0.index==labels[index+1].lastObstructed}!.time)/2
+                    let matches=estimates.filter{$0.time>=windowStart && $0.time<windowEnd}
                     let estimate=matches.count==1 ? matches[0]:nil
                     let error=estimate.map{max(0,lower-$0.time,$0.time-upper)}
                     let overlap=estimate.flatMap{e in e.estimatedError.map{e.time+$0>=lower && e.time-$0<=upper}}

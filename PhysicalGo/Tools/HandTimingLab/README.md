@@ -39,8 +39,12 @@ The evaluator reuses the production Vision detector and motion estimator. It
 runs 5 and 10 fps sampling at six phase offsets plus every saved native frame,
 writing `poses.json` and `evaluation.json`. For each manual interval it reports
 the estimate, observed bracket, model error, distance outside the manual interval
-and whether the model band overlaps it. Unmatched or ambiguous transitions stay
-unscored; count these failures rather than reporting accuracy only on successes.
+and whether the model band overlaps it. For scoring, the capture is partitioned
+halfway between independently labeled withdrawals. Exactly one estimate in each
+window is scored even when it is early or late; matching only overlapping brackets
+would hide timing failures. Unmatched or ambiguous transitions stay unscored;
+count these failures rather than reporting accuracy only on successes. Sampling
+offsets follow a fixed schedule so frame jitter cannot collapse them to one phase.
 The native run's `fps: 30` denotes the requested capture rate; it uses every saved
 frame even when actual delivery is lower or irregular. Dropped frames widen the
 manual interval. A wide interval cannot establish fine accuracy.
