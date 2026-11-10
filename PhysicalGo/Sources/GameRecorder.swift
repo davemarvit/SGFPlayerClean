@@ -504,7 +504,7 @@ enum LocalGameSetup {
     func suspendVision(_ reason:String, preserveObservations:Bool=false, preserveOrder:Bool=false,checkpoint:Bool=true) {
         // Restoration must validate sidecars before any checkpoint can replace them.
         defer {if checkpoint {checkpointPendingMoves()}}
-        viewContinuity.reset();clearBoardTiming.reset();captureCandidate=nil;captureClearViews=[];handOverBoard=false
+        viewContinuity.reset();clearBoardTiming.reset();handMotionTiming.reset();captureCandidate=nil;captureClearViews=[];handOverBoard=false
         reviewHistory.interrupt();unresolvedSince=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if reason.isEmpty {clock.pause("Recording paused")} else {clock.interrupt(reason)}
@@ -818,6 +818,14 @@ enum LocalGameSetup {
     private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int)?
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
+    private var handMotionTiming=HandMotionTiming()
+    func observeHandMotion(_ pose:HandMotionPose?,at time:Double,source:String)->ClockPressEstimate? {
+        let estimate=handMotionTiming.observe(pose,at:time,size:game.boardSize,source:source)
+        if let estimate,let data=try? JSONEncoder().encode(estimate),let json=try? JSONSerialization.jsonObject(with:data) {
+            trace(event:"hand-clear clock boundary",now:time,extra:["clockPressEstimate":json])
+        }
+        return estimate
+    }
     func noteHandClear() {handOverBoard=false}
     func noteHandObstruction(now:Double = ProcessInfo.processInfo.systemUptime) {
         guard now.isFinite,lastCameraTime.map({now>$0}) ?? true else {return}
@@ -826,7 +834,8 @@ enum LocalGameSetup {
         }
         // A fresh obstructed frame proves camera continuity, never stone placement.
         lastCameraTime=now
-        handOverBoard=true;clearBoardTiming.reset();captureClearViews=[];captureCandidate=nil
+        clearBoardTiming.noteHand(at:now)
+        handOverBoard=true;captureClearViews=[];captureCandidate=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if state == .recording {status="Waiting for hands to clear the board. Saved moves are preserved."}
     }
@@ -852,7 +861,7 @@ enum LocalGameSetup {
     }
     private func resetAutomaticCapture() {
         captureReadings=nil
-        automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handOverBoard=false
+        automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handMotionTiming.reset();handOverBoard=false
     }
     /// Intercept a confidently identified removal before it becomes a generic
     /// chronology review. Only the fully verified target is eventually recorded.
@@ -1167,6 +1176,8 @@ enum LocalGameSetup {
         // Legacy/replayed observations retain their existing candidate boundary.
         // Pauses, restored checkpoints and alignment interruptions start a fresh epoch.
         let matching=observationHistory.candidates.filter {Array($0.moves.prefix(indices.count))==indices}
+        var estimates=[ClockPressEstimate?]()
+        var afterBoundary=timingEpoch
         let timings:[[String:Any]]=indices.enumerated().map {offset,point in
             let starts=matching.compactMap {candidate in
                 candidate.witnesses.first(where:{$0.depth>offset && !$0.unknown.contains(point)})?.time
@@ -1174,11 +1185,15 @@ enum LocalGameSetup {
             let target=DeferredMoveHistory.states(boards[offset])
             let before=DeferredMoveHistory.states(offset==0 ? player.board:boards[offset-1])
             let changed=Set(before.indices.filter {before[$0] != target[$0]})
-            let clear=clearBoardTiming.firstMatch(target:target,changed:changed,after:timingEpoch)
+            let estimate=clearBoardTiming.estimate(target:target,changed:changed,after:afterBoundary)
+            estimates.append(estimate)
+            if let estimate {afterBoundary=estimate.time+1e-6}
+            let clear=estimate?.time
             let first=clear ?? starts.min()
             var value:[String:Any]=["moveNumber":moveCount+offset+1,"point":point,"size":game.boardSize,
                 "color":boards[offset].grid[point/game.boardSize][point%game.boardSize]?.rawValue ?? "",
                 "timingScope":clear == nil ? "first retained candidate to recorded":"first hand-clear completed-board frame to recorded","run":timingRun]
+            if let estimate,let data=try? JSONEncoder().encode(estimate) {value["clockPressEstimate"]=try? JSONSerialization.jsonObject(with:data)}
             if let first,first>=timingEpoch,now>=first {value["seconds"]=now-first}
             else {value["unavailableReason"]="No uninterrupted candidate timing (pause, recovery or missing evidence)."}
             return value
@@ -1200,10 +1215,12 @@ enum LocalGameSetup {
             ? "Recorded through move \(moveCount) · Tracking \(pendingMoveCount) later unconfirmed moves."
             : "Recorded move \(moveCount) · \(nextPlayer.rawValue.capitalized) to play."
         if indices.count==1 {
-            clock.recordMove(number:moveCount,black:colors[0] == .black,at:now,observedAt:(timings[0]["seconds"] as? Double).map {now-$0})
+            clock.recordMove(number:moveCount,black:colors[0] == .black,at:now,observedAt:(timings[0]["seconds"] as? Double).map {now-$0},estimate:estimates[0])
         } else {
-            clock.recordCatchUp(first:firstNumber,last:moveCount,blackToPlay:nextPlayer == .black,at:now)
+            clock.recordCatchUp(first:firstNumber,last:moveCount,blackToPlay:nextPlayer == .black,at:now,estimates:estimates)
         }
+        if let last=estimates.last ?? nil {clearBoardTiming.consume(through:last.time)}
+        else {clearBoardTiming.consume(through:now)}
         clock.ready(at:now) // May resume an automatic view hold; never a manual pause/review.
         persist()
         trace(event:indices.count==1 ? "accepted move" : indices.count==2 ? "accepted two-move catch-up" : "accepted observed sequence",now:now,extra:["moveTimings":timings])
@@ -1322,7 +1339,7 @@ enum LocalGameSetup {
         persist();trace(event:"local clock attached")
     }
     func sgf()->String {
-        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.131"],
+        var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(game.boardSize)],"RU":[game.info.rules ?? "Japanese"],"PL":[game.initialPlayer == .white ? "W":"B"],"AP":["PhysicalGo:0.132"],
             "C":["Physical Go camera recording. Review move history before sharing."]]
         for (tag,value) in [("DT",game.info.date),("PB",game.info.playerBlack),("PW",game.info.playerWhite),
             ("BR",game.info.blackRank),("WR",game.info.whiteRank),("KM",game.info.komi),("RE",game.info.result),("EV",game.info.event)] {
@@ -1443,7 +1460,10 @@ extension GameRecorder {
         if let section=reviewHistory.sections.last {
             synchronized=true
             if wasActive,let move=section.moves?.first,section.moves?.count==1 {
-                clock.recordLiveMove(id:section.id,black:move.color == .black,at:now,observedAt:section.firstSeen)
+                let changed=Set(section.before.indices.filter{section.before[$0] != section.after[$0]})
+                let estimate=clearBoardTiming.estimate(target:section.after,changed:changed,after:timingEpoch)
+                clock.recordLiveMove(id:section.id,black:move.color == .black,at:now,observedAt:estimate?.time ?? section.firstSeen,estimate:estimate)
+                clearBoardTiming.consume(through:estimate?.time ?? now)
             } else {clock.followLiveTurn(reviewHistory.nextColor,at:now,resumeIfReady:true)}
         }
         if let section=reviewHistory.sections.last,let number=section.reviewNumber {

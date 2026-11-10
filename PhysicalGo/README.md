@@ -2800,3 +2800,42 @@ callback arrival rather than exposure time. No sub-frame accuracy or physical
 hand-exit error bar has been validated by this audit, and no clock values were
 changed. Catch-up timing and higher-rate trajectory measurement remain separate
 follow-up work.
+
+## Hand-motion clock timing (0.132)
+
+Camera presentation timestamps are converted from the capture session clock to
+host uptime when available, retaining callback arrival and an explicit fallback
+source. Two or three reliable single-hand poses now fit common joint trajectories
+to the edge of the playing area. The last predicted joint exit refines the
+hand-clear boundary only within the observed obstructed-to-clear interval.
+Residuals, acceleration and a joint/outline allowance produce an estimated error;
+weak, discontinuous, multiple-hand or nonlinear tracks keep the first clear frame
+and the wider observed interval. These are engineering error estimates, not yet
+calibrated physical accuracy or statistical confidence intervals. The clock panel
+can disclose the latest press's method and uncertainty without adding audio to
+ordinary moves.
+
+A bounded clear-view history survives hand re-entry, retaining each intermediate
+board and press for recognition catch-up. Unexplained camera gaps, calibration
+changes and pauses reset the epoch; a definite stone withdrawal invalidates its
+earlier placement boundary. Complete chronological sequences replay each press
+through the clock engine, including increments and overtime, and charge subsequent
+thinking time to the correct opponent. Missing or invalid times are retained as
+unapplied evidence without invented bonuses. Manual pauses stay paused; ambiguous
+expiry requires clock review. Deferred live presses keep their estimates through
+review finalization. Clock sidecars and observation journals preserve the estimates
+and observed bounds; restarting never reapplies old uptime-based presses.
+
+The separate [Hand Timing Lab](Tools/HandTimingLab/README.md) records short,
+high-rate JPEG sequences, timestamps and drop records for independent frame labels
+and offline replay. Its executable and capture UI are excluded from release
+builds. Native-rate labels are the next validation step; synthetic timing and clock
+tests verify behavior but do not establish real hand-clear accuracy.
+
+Validation for this build: hand-motion, hand-clock, capture-clock, clock-review,
+clock-feedback and lab-writer suites pass, along with the build registry. The
+native lab camera smoke check saved 294 1920×1080 frames from Dave11 Camera in
+9.93 seconds (29.5 fps), all with camera presentation timestamps. Median frame
+spacing was 33.33 ms; the widest interval was 150 ms, so actual timestamps remain
+essential. Replaying that unobstructed baseline detected no hands and emitted no
+presses. It contains no scripted withdrawals or independent accuracy labels.

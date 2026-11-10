@@ -22,6 +22,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private var request = 0 // main thread: rejects deliveries queued before Stop or a new Start.
     private var queueRequest = 0
     var onFrame: ((CGImage, Double) -> Void)?
+    var onTimedFrame:((CGImage,CameraFrameTimestamp)->Void)?
     var onStatus: ((String, CameraState) -> Void)?
     private var observers = [NSObjectProtocol]()
     private var wakeObserver:NSObjectProtocol?
@@ -189,6 +190,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         let now = ProcessInfo.processInfo.systemUptime
         guard now-lastFrame >= 0.2, let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        let timestamp=CameraFrameTimestamp.make(sampleBuffer,clock:session?.synchronizationClock,arrival:now)
         if pts.isValid && !pts.isIndefinite, let previous = lastPTS, CMTimeCompare(pts, previous) <= 0 { return }
         let ci = CIImage(cvPixelBuffer: buffer)
         // Detach CGImage storage from the camera's buffer pool before retaining it in the UI.
@@ -201,7 +203,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         let token = queueRequest
         DispatchQueue.main.async { [weak self] in
             guard let self, self.request == token else { return }
-            self.onFrame?(image, now)
+            if let callback=self.onTimedFrame {callback(image,timestamp)} else {self.onFrame?(image,timestamp.capturedAt)}
         }
     }
 }

@@ -118,7 +118,7 @@ import ImageIO
         var timing=ClearBoardTiming()
         var o=BoardObservation(readings:board.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,capturedAt:1,handObstructed:false)
         timing.observe(o,now:1.1);timing.reset();o.capturedAt=2;timing.observe(o,now:2.1)
-        check(timing.firstMatch(target:board,changed:[20],after:0)==2,"Hand reentry retained an old completion boundary")
+        check(timing.firstMatch(target:board,changed:[20],after:0)==2,"Explicit interruption retained an old completion boundary")
         o.capturedAt=10;timing.observe(o,now:10.1)
         check(timing.firstMatch(target:board,changed:[20],after:0)==10,"Camera gap retained a stale boundary")
         var empty=board;empty[20] = .empty

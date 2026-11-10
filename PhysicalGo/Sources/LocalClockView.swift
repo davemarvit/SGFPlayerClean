@@ -210,6 +210,14 @@ struct LocalClockPanel:View {
             }
             transport
             if showsStatus,recorder.needsTurnConfirmation,presentation.correction==nil {LiveTurnPrompt(recorder:recorder)}
+            if showsStatus,let estimate=clock.latestPressEstimate {
+                DisclosureGroup("Last virtual clock press") {
+                    Text(estimate.summary).font(.callout)
+                    if estimate.method == .handMotion,let lower=estimate.observedLower,let upper=estimate.observedUpper {
+                        Text(String(format:"Observed interval %.2f s. The narrower error estimate is model-based and has not yet been calibrated against labeled video.",upper-lower)).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
             if showsStatus,let note=clock.timingNote {
                 DisclosureGroup("Earlier clock timing") {Text(note).font(.callout)}
             }

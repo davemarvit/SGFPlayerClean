@@ -197,6 +197,7 @@ struct BoardObservation {
     var trackedAssignments: [Int:Int] = [:]
     var capturedAt:Double?=nil
     var handObstructed:Bool?=nil
+    var clockPressEstimate:ClockPressEstimate?=nil
     /// Positive geometric evidence about displacement, in grid-spacing units.
     /// Missing/weak outlines are not evidence that a placement is centered.
     var placementOffsets:[Int:Double] { offsets(forAssignment: false) }

@@ -542,9 +542,9 @@ enum PhysicalPlayMode: String, CaseIterable {
 
         }
         automaticGridArmed = automaticGridDetection
-        camera.onFrame = { [weak self] image,time in
+        camera.onTimedFrame = { [weak self] image,stamp in
             guard let self, self.acceptsFrames else { return }
-            self.receiveCameraFrame(image,capturedAt:time)
+            self.receiveCameraFrame(image,capturedAt:stamp.capturedAt,frameTimestamp:stamp)
         }
         camera.onStatus = { [weak self] status, state in
             guard let self, self.acceptsFrames else { return }
@@ -991,7 +991,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         message="Detecting without an empty-board reference."
         analyze()
     }
-    func receiveCameraFrame(_ image:CGImage,capturedAt:Double) {
+    func receiveCameraFrame(_ image:CGImage,capturedAt:Double,frameTimestamp:CameraFrameTimestamp?=nil) {
         frameCount += 1
         moveEvidenceCapture.offer(image,at:capturedAt,online:onlineBoard.enabled || (playMode == .local && recorder.state == .recording),context:diagnosticContext,
                                   reference:referenceImage,anchor:trackingAnchor,anchorRevision:diagnosticAnchorRevision)
@@ -999,9 +999,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             if let ticket=diagnosticFrame(image,at:capturedAt,source:"camera") {
                 diagnostics.event("frame skipped",ticket:ticket,details:["reason":"View is frozen"])
             }
-        } else {receive(image,capturedAt:capturedAt)}
+        } else {receive(image,capturedAt:capturedAt,frameTimestamp:frameTimestamp)}
     }
-    func receive(_ newImage: CGImage,capturedAt:Double = ProcessInfo.processInfo.systemUptime) {
+    func receive(_ newImage: CGImage,capturedAt:Double = ProcessInfo.processInfo.systemUptime,frameTimestamp:CameraFrameTimestamp?=nil) {
         let diagnosticTicket=diagnosticFrame(newImage,at:capturedAt,source:running ? "camera" : "photo/test input")
         if let old = image ?? referenceImage, old.width != newImage.width || old.height != newImage.height {
             resetCalibration(allowAutomatic: true); message = "Image dimensions changed. Finding the grid again."
@@ -1011,13 +1011,13 @@ enum PhysicalPlayMode: String, CaseIterable {
             image = newImage; rectifiedImage = nil; rectifiedGeometry = nil
             if let diagnosticTicket {diagnostics.event("frame skipped",ticket:diagnosticTicket,details:["reason":"Grid not yet established"])}
         }
-        else { analyze(newImage,diagnosticTicket:diagnosticTicket,captureUptime:capturedAt) }
+        else { analyze(newImage,diagnosticTicket:diagnosticTicket,captureUptime:capturedAt,frameTimestamp:frameTimestamp) }
         if automaticGridArmed && calibration == nil && corners.isEmpty && !detectingGrid
             && ProcessInfo.processInfo.systemUptime >= nextAutomaticGridAttempt && (!running || frameCount >= 8) {
             detectGrid(retryAutomatically:running && !frozen)
         }
     }
-    func analyze(_ supplied: CGImage? = nil,diagnosticTicket suppliedTicket:DiagnosticRecorder.Ticket?=nil,captureUptime:Double?=nil) {
+    func analyze(_ supplied: CGImage? = nil,diagnosticTicket suppliedTicket:DiagnosticRecorder.Ticket?=nil,captureUptime:Double?=nil,frameTimestamp:CameraFrameTimestamp?=nil) {
         guard !(awaitingReferenceFrame && supplied == nil), !(running && cameraState != .live), !detectingGrid, !processingBusy, let target = supplied ?? image, let calibration else {
             let reason=processingBusy ? "Analysis busy" : detectingGrid ? "Grid search in progress" : "Camera or grid not ready"
             if supplied != nil {onlineBoard.recordCameraWait(reason)}
@@ -1082,6 +1082,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             defer {
                 if let captureUptime,self.moveEvidenceCapture.enabled {
                     self.moveEvidenceCapture.annotate(["captureUptime":captureUptime,"outcome":diagnosticOutcome,
+                        "handPose":DiagnosticRecorder.value(analysis.handPose),"frameTimestamp":DiagnosticRecorder.value(frameTimestamp),
                         "alignment":alignmentReport,"calibration":DiagnosticRecorder.value(aligned),
                         "readings":DiagnosticRecorder.value(result?.readings),
                         "footprints":DiagnosticRecorder.value(result?.footprints),
@@ -1116,6 +1117,11 @@ enum PhysicalPlayMode: String, CaseIterable {
                     clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
             }
+            let handEstimate:ClockPressEstimate?
+            if freshView,self.playMode == .local {
+                let valid = !exposureFailure && (aligned != nil || analysis.handObstructed == true && !self.alignmentNeedsRecovery)
+                handEstimate=self.recorder.observeHandMotion(valid ? analysis.handPose:nil,at:alignmentTime,source:frameTimestamp?.source ?? "callback")
+            } else {handEstimate=nil}
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView,analysis.handObstructed == true {
                 self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime)
@@ -1237,7 +1243,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                     return
                 }
                 var delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
-                delivered.capturedAt=captureUptime;delivered.handObstructed=analysis.handObstructed
+                delivered.capturedAt=captureUptime;delivered.handObstructed=analysis.handObstructed;delivered.clockPressEstimate=handEstimate
                 self.deliverLiveObservation(delivered,now:now)
             }
             if let result, newObservation {

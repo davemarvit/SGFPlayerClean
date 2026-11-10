@@ -28,6 +28,7 @@ final class CameraAnalysisPipeline {
         var checkHands=false
     }
     struct Output {
+        let handPose:HandMotionPose?
         let handObstructed:Bool?
         let frame: GrayFrame?
         let exposureFailure: Bool
@@ -68,7 +69,8 @@ final class CameraAnalysisPipeline {
         let trackingManualPoints = input.trackingManualPoints
         let trackingFresh = input.trackingFresh
         let trackingTime = input.trackingTime
-        let handObstructed=input.checkHands ? BoardHandDetector.obstructed(image:target,calibration:calibration):nil
+        let handPose=input.checkHands ? BoardHandDetector.pose(image:target,calibration:calibration):nil
+        let handObstructed=handPose?.obstructed(size:calibration.size)
         let frame=GrayFrame(image:target)
         let exposureFailure=frame.map {LightingCompensation.exposureFailure(frame:$0,calibration:calibration)} ?? false
         var alignmentReport:[String:Any]=["outcome":checkAlignment ? "unavailable":"tracking disabled"]
@@ -107,6 +109,6 @@ final class CameraAnalysisPipeline {
         let displayRows=applyAspect ? stoneAspect!.longAxisRows : longAxisRows
         let geometry = straighten ? aligned.map { BoardRectifiedGeometry(calibration:$0,longAxisRows:displayRows) } : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
-        return Output(handObstructed:handObstructed,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
+        return Output(handPose:handPose,handObstructed:handObstructed,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
     }
 }

@@ -28,20 +28,48 @@ import Foundation
     }
 }
 
-/// Uses frame times, not the later completion time of image analysis. A hand
-/// re-entering invalidates the earlier boundary; repeated frames add no evidence.
+/// Bounded, chronological evidence survives hand re-entry and recognition lag.
+/// Camera interruption, pause or calibration changes still invalidate the epoch.
 struct ClearBoardTiming {
-    private var views:[(time:Double,position:[Occupancy])]=[]
-    mutating func reset() {views=[]}
+    private struct View {let time:Double;let position:[Occupancy];let estimate:ClockPressEstimate}
+    private var views=[View]()
+    private var consumedUntil = -Double.infinity
+    private var lastActivity:Double?
+    mutating func reset() {views=[];consumedUntil = -Double.infinity;lastActivity=nil}
+    mutating func noteHand(at time:Double) {
+        guard time.isFinite else {return}
+        if let lastActivity,time-lastActivity>1.5 {reset()}
+        lastActivity=max(lastActivity ?? time,time)
+    }
+    mutating func consume(through time:Double) {
+        consumedUntil=max(consumedUntil,time);views.removeAll{$0.time<=consumedUntil}
+    }
     mutating func observe(_ observation:BoardObservation,now:Double) {
         guard observation.handObstructed == false,let stamp=observation.capturedAt,
               stamp.isFinite,stamp<=now,now-stamp<1.5,!observation.lightingBlocked else {return}
         guard views.last.map({stamp>$0.time}) ?? true else {return}
-        if let last=views.last,stamp-last.time>0.6 {views=[]}
-        views.removeAll {stamp-$0.time>15}
-        views.append((stamp,observation.signature))
+        if let lastActivity,stamp-lastActivity>1.5 {reset()}
+        lastActivity=stamp
+        views.removeAll {stamp-$0.time>120}
+        let estimate=observation.clockPressEstimate.flatMap{$0.valid && $0.time<=stamp ? $0:nil}
+            ?? ClockPressEstimate(time:stamp,method:.clearFrame)
+        views.append(.init(time:stamp,position:observation.signature,estimate:estimate))
+        if views.count>1000 {views.removeFirst(views.count-1000)}
+    }
+    func estimate(target:[Occupancy],changed:Set<Int>,after epoch:Double)->ClockPressEstimate? {
+        // A definite withdrawal invalidates the earlier placement at that point.
+        // Changes elsewhere do not erase an intermediate move during catch-up.
+        let contradicted=views.last {view in
+            changed.contains {p in target.indices.contains(p) && view.position.indices.contains(p) &&
+                view.position[p] != .uncertain && view.position[p] != target[p]}
+        }?.time ?? -Double.infinity
+        return views.first {view in
+            view.time>contradicted &&
+            view.estimate.time>=epoch && view.estimate.time>consumedUntil &&
+            ReviewBoardVerification.matches(view.position,target:target,requiredClear:changed)
+        }?.estimate
     }
     func firstMatch(target:[Occupancy],changed:Set<Int>,after epoch:Double)->Double? {
-        views.reversed().prefix {view in view.time>=epoch && ReviewBoardVerification.matches(view.position,target:target,requiredClear:changed)}.last?.time
+        estimate(target:target,changed:changed,after:epoch)?.time
     }
 }

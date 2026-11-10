@@ -3,9 +3,12 @@ from pathlib import Path
 
 DEPENDENCIES = {
     'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),
+    'Sources/CameraCapture.swift': ('Sources/CameraFrameTimestamp.swift',),
+    'Sources/BoardHandDetector.swift': ('Sources/HandMotionTiming.swift',),
+    'Sources/LocalClockEngine.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
     'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift',),
-    'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift'),
+    'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift', 'Sources/HandMotionTiming.swift'),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
     'Sources/PhysicalOnlineBoard.swift': (
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
