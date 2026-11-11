@@ -98,11 +98,14 @@ struct ClearBoardTiming {
         consumedUntil=max(consumedUntil,time);views.removeAll{$0.time<=consumedUntil}
     }
     mutating func observe(_ observation:BoardObservation,now:Double) {
-        guard observation.handObstructed == false,let stamp=observation.capturedAt,
+        guard let stamp=observation.capturedAt,
               stamp.isFinite,stamp<=now,now-stamp<1.5,!observation.lightingBlocked else {return}
-        guard views.last.map({stamp>$0.time}) ?? true else {return}
+        // Fresh frames establish camera continuity even while the hand detector
+        // is uncertain. They must not erase previously verified clock presses,
+        // but cannot supply a new press until visual clearance is known.
         if let lastActivity,stamp-lastActivity>1.5 {reset()}
-        lastActivity=stamp
+        lastActivity=max(lastActivity ?? stamp,stamp)
+        guard observation.handObstructed == false,views.last.map({stamp>$0.time}) ?? true else {return}
         views.removeAll {stamp-$0.time>120}
         let estimate=observation.clockPressEstimate.flatMap{$0.valid && $0.time<=stamp ? $0:nil}
             ?? ClockPressEstimate(time:stamp,method:.clearFrame)

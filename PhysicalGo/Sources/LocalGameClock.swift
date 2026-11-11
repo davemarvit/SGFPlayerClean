@@ -267,9 +267,9 @@ import Combine
         }
         save()
     }
-    /// A verified sequence can lack individual clock-press times. Keep live
-    /// timing moving, retain accrued totals and avoid inventing per-move bonuses.
-    /// The next ordinary move must follow this confirmed SGF position.
+    /// Replay a verified sequence only with complete clock-press evidence.
+    /// Missing boundaries require review: continuing would charge one player
+    /// for multiple turns and omit overtime resets or increments.
     func recordCatchUp(first:Int,last:Int,blackToPlay:Bool,at now:Double,estimates:[ClockPressEstimate?]=[]) {
         let diagnosticPrevious=engine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"recognition catch-up")}
@@ -294,13 +294,9 @@ import Combine
             pressEvidence += estimates.enumerated().map{.init(number:first+$0.offset,estimate:$0.element,applied:false)}
             if replayPresses(first:first,last:last,blackToPlay:blackToPlay,at:now,estimates:estimates) {return}
         }
-        engine.advance(to:now);engine.blackToPlay=blackToPlay;baseMove=last;turnBaseline=nil
-        timingNote="Moves \(first)–\(last) were confirmed together. Their individual clock presses and bonuses were not reconstructed. Live timing continues; adjust either time if needed."
-        ready(at:now) // Respects manual pauses, genuine timeouts and explicit review gates.
-        turnBaseline=running ? engine:nil
-        if !requiresReview {notice=running ? "\(blackToPlay ? "Black":"White") to play":"Clock paused"}
-        if running && audible {audio.moved(engine,settings:sounds)}
-        save()
+        baseMove=last
+        timingNote="Moves \(first)–\(last) are saved, but their individual clock presses could not all be verified. Displayed times need review."
+        recover(toBlack:blackToPlay,reason:"Clock timing could not be verified for the recovered moves. Check both clock times before resuming.",at:now)
     }
 
     /// Validate every press and replay into a copy before publishing any balance.

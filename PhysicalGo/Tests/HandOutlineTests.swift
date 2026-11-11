@@ -55,7 +55,38 @@ import Foundation
         check(abs(timing.estimate(firstClear:1.4,source:"test")!.time-1.3)<1e-6,"Fallback clock press should use the interval midpoint")
         let dark=HandOutlineFrame(width:n,cells:size,pixels:Array(repeating:.invalid,count:n*n))
         check(tracker.observe(dark,pose:clear,at:2.5,source:"different").obstructed==nil,"Darkness was accepted as visible clearance")
+        // A warm lighting change preserves board texture. Real fingertips in
+        // that same region must still obstruct it after pose recognition drops.
+        func textured(_ depth:Double?,shadow:Bool,edge:Int)->HandOutlineFrame {
+            var pixels=[HandOutlineFrame.Pixel]()
+            for row in 0..<n {for col in 0..<n {
+                let x=Double(col)/10-2,y=Double(row)/10-2
+                let d=[y+0.75,8.75-x,8.75-y,x+0.75][edge],lateral=edge%2==0 ? x:y
+                let light=Float(0.6+0.12*sin(x*5)+0.12*cos(y*6))
+                let region=(2...5).contains(lateral) && d<=4
+                if region,let depth,d<=depth {
+                    pixels.append(.init(red:0.12,green:-0.02,light:0.55))
+                } else if shadow && region {
+                    pixels.append(.init(red:0.12,green:-0.02,light:light*0.9+0.02))
+                } else {pixels.append(.init(red:0.10,green:0.02,light:light))}
+            }}
+            return .init(width:n,cells:size,pixels:pixels)
+        }
+        for edge in 0..<4 {
+            var tracker=HandOutlineTracker()
+            for t in [0.0,0.1,0.2] {_=tracker.observe(textured(nil,shadow:false,edge:edge),pose:clear,at:t,source:"test")}
+            for t in [0.3,0.4] {
+                check(tracker.observe(textured(4,shadow:false,edge:edge),pose:pose(edge:edge),at:t,source:"test").obstructed==true,"Texture filter removed a visible hand")
+            }
+            let fingers=tracker.observe(textured(0.5,shadow:true,edge:edge),pose:clear,at:0.5,source:"test")
+            check(fingers.obstructed==true && fingers.estimate==nil,"Lighting change hid remaining fingers")
+            let first=tracker.observe(textured(nil,shadow:true,edge:edge),pose:clear,at:0.6,source:"test")
+            check(first.obstructed==true && first.estimate==nil,"Texture filter bypassed two-frame clearance")
+            let done=tracker.observe(textured(nil,shadow:true,edge:edge),pose:clear,at:0.7,source:"test")
+            check(done.obstructed==false && done.estimate?.observedUpper==0.6,"Lighting change prolonged a completed withdrawal")
+        }
         print("PASS: \(checks) outline checks: four edges, lost poses, visual confirmation, original press/error, gaps, timestamp epochs and stationary motion")
         _=try HandOutlineRecordedTests.run()
+        _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockCatchUpLoss/Outline"))
     }
 }

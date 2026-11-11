@@ -3125,3 +3125,24 @@ Diagnostics settings remain unchanged, so enabled collection may create new clip
 lasting two seconds, recognition taking five seconds, an unrecorded-stones warning, or move-order review/recovery;
 online detection also triggers below 0.90 confidence or at a 0.24-grid-spacing assignment
 offset. This says nothing about the strategic quality of a move.
+
+## Clock catch-up and shadow regression (0.143)
+
+Fresh frames with unknown hand status now maintain camera continuity without
+creating clock presses. This preserves earlier verified presses while the hand
+detector reacquires the board. Genuine camera gaps and contradictory placements
+still invalidate stale evidence. When a confirmed sequence lacks usable presses,
+clocks stop for explicit time review instead of charging one player for several
+turns without period resets or increments.
+
+The outline tracker rejects a lighting-change component only when the pose detector
+reports no hand and strong background texture correspondence survives throughout
+it. Whole-component correlation, per-cell residuals and individual residuals protect
+against small remaining fingers being hidden by a large background match. Two clear
+views are still required, and the original first-clear timestamp is retained.
+
+The recorded Black65–67 incident is replayed by `--hand-clock-test` and
+`--hand-outline-test`, alongside older withdrawals, all four entry edges, hand-pose
+loss, actual camera gaps, missing presses and synthetic fingertips within changing
+light. This is regression evidence, not a guarantee of accuracy for every camera
+and lighting condition.

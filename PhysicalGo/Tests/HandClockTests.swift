@@ -25,9 +25,15 @@ import AppKit
             check(restored.saveError==nil && restored.moves.last?.estimate==press(108) && restored.pressEvidence.count==3,"Restart lost error bars or per-move evidence")
         }
         let partial=LocalGameClock();partial.audible=false;partial.configure(.init(kind:.fischer,mainSeconds:100,incrementSeconds:3),blackToPlay:true);partial.ready(at:100)
+        let partialFile=root.appendingPathComponent("missing-press.sgf");partial.bind(to:partialFile,signature:"missing")
         partial.recordCatchUp(first:1,last:3,blackToPlay:false,at:110,estimates:[press(102),nil,press(108)])
         check(partial.moves.isEmpty && partial.pressEvidence.count==3 && partial.pressEvidence.allSatisfy{!$0.applied},"Missing evidence partially replayed clocks or discarded known boundaries")
         check(partial.engine.black.remaining==90 && partial.engine.white.remaining==100,"Missing boundary invented thinking time or bonuses")
+        check(partial.requiresReview && !partial.running,"Missing clock evidence silently continued charging one player")
+        let frozen=partial.engine;partial.tick(at:200);partial.ready(at:200)
+        check(partial.engine==frozen && !partial.running,"Missing-evidence review resumed or lost further periods")
+        let restoredPartial=LocalGameClock();restoredPartial.audible=false;restoredPartial.restore(from:partialFile,signature:"missing",moveCount:3,blackToPlay:false)
+        check(restoredPartial.requiresReview && !restoredPartial.running && restoredPartial.pressEvidence.count==3,"Restart hid missing-evidence review or lost retained presses")
         let paused=LocalGameClock();paused.audible=false;paused.configure(.init(kind:.absolute,mainSeconds:100),blackToPlay:true);paused.ready(at:100);paused.pause(at:106)
         paused.recordCatchUp(first:1,last:3,blackToPlay:false,at:110,estimates:[press(101),press(102),press(103)])
         check(!paused.running && paused.engine.black.remaining==94 && paused.moves.isEmpty,"Catch-up rewound or restarted a manual pause")
@@ -74,6 +80,7 @@ import AppKit
         check(r.moveCount==3,"Recorder did not confirm retained three-move sequence")
         check(r.clock.moves.count==3 && abs(r.clock.moves[0].after.anchor!-first)<1e-6 && abs(r.clock.moves[1].after.anchor!-second)<1e-6,"Recorder lost presses across hand re-entry")
         r.pause()
+        checks += try ClockCatchUpIncidentTests.run()
         print("PASS: \(checks) clock catch-up checks: all timed modes, individual presses, increments, persistence, missing evidence, manual pause, timeout uncertainty and actual recorder hand re-entry")
     }
 }

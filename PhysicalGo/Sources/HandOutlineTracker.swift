@@ -111,7 +111,11 @@ struct HandOutlineTracker {
         let components=components(mask.closed,core:mask.core,frame:frame)
         let candidates=components.filter {c in
             let lateral=edge%2==0 ? abs(c.x-center.x):abs(c.y-center.y)
-            return lateral<3.5 && (c.minimum<0 || points.contains{p in hypot(p.x-c.x,p.y-c.y)<2})
+            guard lateral<3.5 && (c.minimum<0 || points.contains{p in hypot(p.x-c.x,p.y-c.y)<2}) else {return false}
+            // Moving light/shadow can have the learned hand color even after
+            // withdrawal. Reject it only when the underlying texture remains
+            // strongly visible throughout the component, with no detected hand.
+            return hand != false || !preservesBackground(c,frame:frame,background:background)
         }
         let component=candidates.min{hypot($0.x-center.x,$0.y-center.y)<hypot($1.x-center.x,$1.y-center.y)}
         if let component {
@@ -140,6 +144,33 @@ struct HandOutlineTracker {
     private func depth(x:Double,y:Double,cells:Int)->Double {
         let high=Double(cells)-0.25
         return [y+0.75,high-x,high-y,x+0.75][edge]
+    }
+    private func preservesBackground(_ component:Component,frame:HandOutlineFrame,background:HandOutlineFrame)->Bool {
+        guard component.indices.count>=100 else {return false}
+        let n=Double(component.indices.count)
+        var sx=0.0,sy=0.0,sxx=0.0,syy=0.0,sxy=0.0
+        for i in component.indices {
+            let x=Double(background.pixels[i].light),y=Double(frame.pixels[i].light)
+            sx+=x;sy+=y;sxx+=x*x;syy+=y*y;sxy+=x*y
+        }
+        let vx=sxx-sx*sx/n,vy=syy-sy*sy/n,cov=sxy-sx*sy/n
+        // Flat wood cannot prove clearance. Texture must survive a modest
+        // brightness/contrast change; a skin-colored region alone never does.
+        guard vx/n>0.0016,vy/n>0.0016,cov/sqrt(vx*vy)>0.98 else {return false}
+        let slope=cov/vx,offset=(sy-slope*sx)/n
+        guard (0.6...1.4).contains(slope) else {return false}
+        var tiles=[Int:(squared:Double,count:Int)]()
+        let tileWidth=(frame.width+9)/10
+        for i in component.indices {
+            let error=Double(frame.pixels[i].light)-slope*Double(background.pixels[i].light)-offset
+            // A small remaining fingertip must not disappear into a good
+            // whole-component average. Check individual residuals and cells.
+            guard abs(error)<=0.08 else {return false}
+            let key=(i/frame.width/10)*tileWidth+(i%frame.width/10)
+            let previous=tiles[key] ?? (0,0)
+            tiles[key]=(previous.squared+error*error,previous.count+1)
+        }
+        return tiles.values.allSatisfy{$0.count<12 || $0.squared/Double($0.count)<=0.0016}
     }
     private func foreground(_ frame:HandOutlineFrame,background:HandOutlineFrame,direction:(Double,Double,Double)?)->(closed:[Bool],core:[Bool]) {
         let raw=zip(frame.pixels,background.pixels).map {p,b->Bool in

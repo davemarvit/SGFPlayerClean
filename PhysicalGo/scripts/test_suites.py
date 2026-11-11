@@ -31,7 +31,7 @@ SUITES = {
     'adaptive-frame-rate-test': Suite('AdaptiveFrameRateTests', 'standalone', ('Tests/AdaptiveFrameRateTests.swift',), extra=('Sources/CameraProcessingCadence.swift',), optimized=False),
     'hand-outline-test': Suite('HandOutlineTests', 'standalone', ('Tests/HandOutlineTests.swift','Tests/HandOutlineRecordedTests.swift'), extra=('Sources/HandOutlineTracker.swift','Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'), optimized=True),
     'hand-motion-test': Suite('HandMotionTimingTests', 'standalone', ('Tests/HandMotionTimingTests.swift',), extra=('Sources/HandMotionTiming.swift',), optimized=False),
-    'hand-clock-test': Suite('HandClockTests', 'app', ('Tests/HandClockTests.swift',), optimized=False),
+    'hand-clock-test': Suite('HandClockTests', 'recorder', ('Tests/HandClockTests.swift','Tests/ClockCatchUpIncidentTests.swift'), optimized=False),
     'hand-lab-test': Suite('HandTimingLabTests', 'standalone', ('Tests/HandTimingLabTests.swift',), extra=('Tools/HandTimingLab/Capture.swift','Sources/CameraFrameTimestamp.swift'), optimized=False),
     'recovery-guidance-test': Suite('RecoveryGuidanceTests', 'app', ('Tests/RecoveryGuidanceTests.swift',), optimized=False),
     'archive-storage-test': Suite('ArchiveStorageTests', 'standalone', ('Tests/ArchiveStorageTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),

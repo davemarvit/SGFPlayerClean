@@ -4,8 +4,7 @@ enum HandOutlineRecordedTests {
     struct Frame:Decodable {let index:Int;let time:Double;let pose:HandMotionPose?;let source:String}
     struct Group:Decodable {let name:String;let indices:[Int];let lower:Double;let upper:Double}
     struct Manifest:Decodable {let version:Int;let width:Int;let cells:Int;let scale:Float;let frames:[Frame];let groups:[Group]}
-    static func run()throws->Int {
-        let folder=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/HandOutline",isDirectory:true)
+    static func run(folder:URL=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/HandOutline",isDirectory:true))throws->Int {
         let manifest=try JSONDecoder().decode(Manifest.self,from:Data(contentsOf:folder.appendingPathComponent("manifest.json")))
         precondition(manifest.version==1 && manifest.width==221 && manifest.cells==19)
         let process=Process(),pipe=Pipe()
@@ -37,6 +36,9 @@ enum HandOutlineRecordedTests {
                 let result=tracker.observe(frames[i]!,pose:observation.pose,at:observation.time,source:observation.source)
                 if result.poseLost,result.obstructed==true,(result.depth ?? 0)>0 {retainedVisibleLoss=true}
                 if let estimate=result.estimate {estimates.append(estimate)}
+                if group.name.hasPrefix("Black move 67"),observation.time<=group.lower,observation.time>=849482.79349 {
+                    precondition(result.obstructed==true && result.estimate==nil,"Visible hand cleared early in recorded Black67 incident");checks+=1
+                }
             }
             precondition(estimates.count==1,"\(group.name): expected one verified exit, got \(estimates.count)");checks+=1
             let e=estimates[0]
@@ -44,7 +46,7 @@ enum HandOutlineRecordedTests {
             precondition(e.time+e.estimatedError!>=group.lower && e.time-e.estimatedError!<=group.upper,"\(group.name): estimated band misses independent manual interval");checks+=1
             if group.name.hasPrefix("native") {precondition(retainedVisibleLoss,"\(group.name): visible fingers were lost with the pose");checks+=1}
         }
-        print("PASS: \(checks) recorded-outline checks across three captured withdrawals at native/5 fps sampling; pose loss retained and error bands checked against independent labels")
+        print("PASS: \(checks) recorded-outline checks in \(folder.lastPathComponent); visible fingers retained and error bands checked against independent labels")
         return checks
     }
 }
