@@ -12,6 +12,9 @@ import Foundation
     let target: [Occupancy]
     let source: [Occupancy]
     let changed: Set<Int>
+    /// Identify the placement in full known history, including retained moves.
+    /// The UI only offers history correction when this number is already saved.
+    var displacedMoveNumber: Int?
 
     func remaining(in readings: [Occupancy]?) -> Set<Int> {
         let values = readings?.count == target.count ? readings! : source
@@ -38,7 +41,14 @@ import Foundation
         } else if !removed.isEmpty, changed == removed {
             kind = .missing
         } else { return nil }
-        return Self(id: id, kind: kind, target: before, source: section.after, changed: changed)
+        var moveNumber: Int?
+        if case let .displaced(from, _, color) = kind {
+            moveNumber = context.moves.indices.reversed().first { i in
+                let move = context.moves[i]
+                return move.0 == color && move.1?.0 == from % history.size && move.1?.1 == from / history.size
+            }.map { $0 + 1 }
+        }
+        return Self(id: id, kind: kind, target: before, source: section.after, changed: changed, displacedMoveNumber: moveNumber)
     }
 }
 

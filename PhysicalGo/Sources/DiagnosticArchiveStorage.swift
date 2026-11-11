@@ -27,6 +27,58 @@ final class DiagnosticArchiveLock {
     let limit:Int64
     private(set) var rotatedCount=0
     init(roots:[URL],limit:Int64=defaultLimit) {self.roots=roots;self.limit=limit}
+    struct ClearResult:Sendable {
+        var removed=0,kept=0,active=0,unrecognized=0
+        var failures=[String]()
+        var message:String {
+            var text="Deleted \(removed) diagnostic camera archive(s)."
+            if kept>0 {text+=" Preserved \(kept) kept capture(s)."}
+            if active>0 {text+=" Preserved \(active) active capture(s)."}
+            if unrecognized>0 {text+=" Left \(unrecognized) unrecognized item(s) untouched."}
+            if !failures.isEmpty {text+=" Could not delete \(failures.count) item(s): "+failures.joined(separator:"; ")}
+            return text
+        }
+    }
+    /// Explicit user cleanup uses the same interprocess locks as rotation. Run
+    /// off the UI thread; never follow directory links or remove a live writer.
+    nonisolated static func clearInactive(roots:[URL])throws->ClearResult {
+        guard let first=roots.first else {return ClearResult()}
+        let fm=FileManager.default
+        if (try? first.resourceValues(forKeys:[.isSymbolicLinkKey]).isSymbolicLink)==true {
+            throw NSError(domain:"PhysicalGo.Diagnostics",code:4,userInfo:[NSLocalizedDescriptionKey:"Diagnostic archive folder is a symbolic link; no data was deleted."])
+        }
+        try fm.createDirectory(at:first,withIntermediateDirectories:true)
+        let lock=try DiagnosticArchiveLock(first.appendingPathComponent(".rotation.lock"))
+        defer {withExtendedLifetime(lock) {}}
+        var result=ClearResult()
+        for root in Set(roots) where fm.fileExists(atPath:root.path) {
+            guard try root.resourceValues(forKeys:[.isSymbolicLinkKey]).isSymbolicLink != true else {
+                result.unrecognized+=1;continue
+            }
+            for item in try fm.contentsOfDirectory(at:root,includingPropertiesForKeys:nil) {
+                if item.lastPathComponent==".rotation.lock" {continue}
+                do {
+                    let info=try item.resourceValues(forKeys:[.isDirectoryKey,.isSymbolicLinkKey])
+                    let manifestURL=item.appendingPathComponent("session.json")
+                    guard info.isDirectory==true,info.isSymbolicLink != true,item.lastPathComponent.hasPrefix("Diagnostic "),
+                          (try? manifestURL.resourceValues(forKeys:[.isSymbolicLinkKey]).isSymbolicLink) != true,
+                          let data=try? Data(contentsOf:manifestURL),
+                          let manifest=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any],
+                          manifest["schemaVersion"] as? Int==1,let date=manifest["startedAt"] as? Double,date.isFinite else {
+                        result.unrecognized+=1;continue
+                    }
+                    if fm.fileExists(atPath:item.appendingPathComponent("KEEP").path) {result.kept+=1;continue}
+                    let leaseFile=item.appendingPathComponent(".writer.lock")
+                    let legacyRecording = !fm.fileExists(atPath:leaseFile.path) && manifest["status"] as? String=="recording" && Date().timeIntervalSince1970-(manifest["updatedAt"] as? Double ?? date)<120
+                    guard !legacyRecording,let lease=try? DiagnosticArchiveLock(leaseFile) else {result.active+=1;continue}
+                    defer {withExtendedLifetime(lease) {}}
+                    try fm.removeItem(at:item)
+                    result.removed+=1
+                } catch {result.failures.append("\(item.lastPathComponent): \(error.localizedDescription)")}
+            }
+        }
+        return result
+    }
     private struct Archive {
         let url:URL,bytes:Int64,date:Double
         let lease:DiagnosticArchiveLock?

@@ -5,6 +5,8 @@ import ImageIO
 @main struct CaptureClockTests {
     @MainActor static func main() throws {
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
+        let uncertaintyChecks=try CaptureUncertaintyTests.run()
+        let captureSpeechChecks=try CaptureConflictGuidanceTests.run()
         var checks=0
         func check(_ value:Bool,_ reason:String) {checks += 1;precondition(value,reason)}
         func near(_ a:Double,_ b:Double)->Bool {abs(a-b)<0.00001}
@@ -256,6 +258,6 @@ import ImageIO
         check(window.attachedSheet==nil && model.recorder.activeReviewID==nil,"Review sheet did not dismiss cleanly")
         window.close()
         try runLocalClockTests()
-        print("PASS: \(checks) automatic capture and hand-clear timing checks")
+        print("PASS: \(checks + uncertaintyChecks + captureSpeechChecks) automatic capture and hand-clear timing checks")
     }
 }

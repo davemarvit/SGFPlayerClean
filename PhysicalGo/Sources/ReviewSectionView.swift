@@ -103,7 +103,8 @@ struct ReviewSectionView:View {
         }
         else if showsRestoration,let restoration {
             BoardRestorationReviewView(recorder:recorder,plan:restoration,orientation:orientation,onClose:close,
-                onSaved:completeReview,onActualMoves:{mode = .order;error=nil},onCheckPhoto:onCheckPhoto)
+                onSaved:completeReview,onActualMoves:{mode = .order;error=nil},onCheckPhoto:onCheckPhoto,
+                onCorrectMove:{number,point in savedCorrection=HistoricalMoveSelection(number:number,destination:point)})
         }
         else if let section {
             VStack(alignment:.leading,spacing:14) {
@@ -189,7 +190,7 @@ struct ReviewSectionView:View {
             },onHistorySaved:close)
         }
         .sheet(item:$savedCorrection) {selected in
-            HistoricalMoveCorrectionView(recorder:recorder,orientation:orientation,number:selected.number,onClose:{savedCorrection=nil},onSaved:close)
+            HistoricalMoveCorrectionView(recorder:recorder,orientation:orientation,number:selected.number,onClose:{savedCorrection=nil},initialDestination:selected.destination,onSaved:close)
         }
     }
     private var problem:some View {

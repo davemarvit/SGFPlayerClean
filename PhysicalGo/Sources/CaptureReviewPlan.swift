@@ -4,6 +4,7 @@ import Foundation
 /// history supplies turn/ko rules; every other observed point must match.
 @MainActor struct CaptureReviewPlan {
     let id: UUID
+    let sectionIDs: Set<UUID>
     let point: Int
     let move: DeferredMoveHistory.Move
     let captured: Set<Int>
@@ -21,7 +22,6 @@ import Foundation
 
     static func make(history: DeferredMoveHistory, id: UUID, context: SGFGame) -> Self? {
         guard let index = history.sections.firstIndex(where: { $0.id == id }),
-              index == history.sections.indices.last,
               !history.sections[index].committed, history.sections[index].moves == nil,
               history.size == context.boardSize else { return nil }
         let section = history.sections[index]
@@ -38,7 +38,21 @@ import Foundation
         guard !captured.isEmpty, before.indices.allSatisfy({ p in
             captured.contains(p) ? (section.after[p] == before[p] || section.after[p] == .empty) : section.after[p] == target[p]
         }) else { return nil }
-        return Self(id: id, point: point, move: .init(color: color, point: BoardPosition(point / history.size, point % history.size)),
-                    captured: captured, target: target, source: section.after)
+        // Removal may have been recorded as several reviews. Only a contiguous,
+        // unresolved tail of strictly decreasing prisoner sets belongs here.
+        // Any placement, replacement, reappearance, or already-reviewed section
+        // requires its own chronology and must not be silently consumed.
+        var previous = section.after
+        var ids: Set<UUID> = [id]
+        for later in history.sections.dropFirst(index + 1) {
+            guard !later.committed, later.moves == nil, later.before == previous,
+                  later.after.count == before.count else { return nil }
+            let changed = Set(before.indices.filter { previous[$0] != later.after[$0] })
+            guard !changed.isEmpty, changed.isSubset(of: captured),
+                  changed.allSatisfy({ previous[$0] == before[$0] && later.after[$0] == .empty }) else { return nil }
+            ids.insert(later.id); previous = later.after
+        }
+        return Self(id: id, sectionIDs: ids, point: point, move: .init(color: color, point: BoardPosition(point / history.size, point % history.size)),
+                    captured: captured, target: target, source: previous)
     }
 }

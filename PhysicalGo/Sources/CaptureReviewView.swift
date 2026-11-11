@@ -44,6 +44,9 @@ struct CaptureReviewView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("\(plan.move.color.rawValue.capitalized) captures at \(coordinate(plan.point))").font(.title3.bold())
                     Text("Keep the capturing stone at \(coordinate(plan.point)) in place.")
+                    if plan.sectionIDs.count>1 {
+                        Text("These \(plan.sectionIDs.count) reviews are parts of the same capture. Confirm once to resolve the move and all its removals.")
+                    }
                     if !remaining.isEmpty,verification != .waitingForCamera {
                         Text("Remove the remaining captured \(plan.move.color.opponent.rawValue) \(remaining.count == 1 ? "stone" : "stones") at \(remaining.sorted().map(coordinate).joined(separator: ", ")).")
                     }

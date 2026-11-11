@@ -20,6 +20,8 @@ import Foundation
         var requiredSeconds:[Double]
         var locked=Set<Int>()
         var placementConcerns=Set<Int>()
+        var locationChoices=[Int:Set<Int>]()
+        var playerConfirmed=Set<Int>()
         var firstSeen:Double { witnesses.first?.time ?? .infinity }
     }
     struct Confirmation {
@@ -75,13 +77,15 @@ import Foundation
             let requiredSeconds:[Double]
             let locked:Set<Int>
             let placementConcerns:Set<Int>
+            var locationChoices:[Int:Set<Int>]?=nil
+            var playerConfirmed:Set<Int>?=nil
         }
         let paths:[Path]
     }
     var checkpoint:Checkpoint {
         Checkpoint(paths:(retainedForResume()?.candidates ?? []).map {
             .init(moves:$0.moves,witnesses:$0.witnesses,requiredFrames:$0.requiredFrames,
-                  requiredSeconds:$0.requiredSeconds,locked:$0.locked,placementConcerns:$0.placementConcerns)
+                  requiredSeconds:$0.requiredSeconds,locked:$0.locked,placementConcerns:$0.placementConcerns,locationChoices:$0.locationChoices,playerConfirmed:$0.playerConfirmed)
         })
     }
     static func restore(_ checkpoint:Checkpoint,game:SGFGame,now:Double)->Self? {
@@ -93,7 +97,8 @@ import Foundation
             let count=path.moves.count
             guard (1...maximumMoves).contains(count),path.requiredFrames.count==count,path.requiredSeconds.count==count,
                   path.moves.allSatisfy({(0..<size*size).contains($0)}),
-                  path.locked.union(path.placementConcerns).allSatisfy({(0..<count).contains($0)}),
+                  path.locked.union(path.placementConcerns).union(path.playerConfirmed ?? []).allSatisfy({(0..<count).contains($0)}),
+                  (path.locationChoices ?? [:]).allSatisfy({(0..<count).contains($0.key) && $0.value.count<=9 && $0.value.allSatisfy{(0..<size*size).contains($0)}}),
                   path.requiredFrames.allSatisfy({(1...1000).contains($0)}),
                   path.requiredSeconds.allSatisfy({$0.isFinite && $0>=0 && $0<=60}),
                   !path.witnesses.isEmpty,path.witnesses.count<=maximumFrames+maximumMoves*2,
@@ -112,9 +117,34 @@ import Foundation
             }
             history.candidates.append(Candidate(moves:path.moves,boards:boards,witnesses:witnesses,
                 requiredFrames:path.requiredFrames,requiredSeconds:path.requiredSeconds,
-                locked:path.locked,placementConcerns:path.placementConcerns))
+                locked:path.locked,placementConcerns:path.placementConcerns,locationChoices:path.locationChoices ?? [:],playerConfirmed:path.playerConfirmed ?? []))
         }
         return history.retainedForResume()
+    }
+    func correcting(_ edits:[Int:Int],game:SGFGame)throws->Self {
+        guard !edits.isEmpty else {throw RecordingStore.Failure(message:"Choose a location to confirm.")}
+        var copy=self,paths=[Candidate]()
+        for original in candidates {
+            guard edits.keys.allSatisfy({original.moves.indices.contains($0)}),
+                  edits.values.allSatisfy({(0..<game.boardSize*game.boardSize).contains($0)}) else {continue}
+            var path=original
+            for (offset,point) in edits {
+                path.moves[offset]=point;path.playerConfirmed.insert(offset);path.locked.insert(offset)
+                path.locationChoices[offset,default:[]].formUnion([point,original.moves[offset]])
+            }
+            let player=SGFPlayer();player.load(game:game);player.seek(to:game.moves.count)
+            var boards=[BoardSnapshot]()
+            for point in path.moves {
+                guard player.tryPlayMove(color:player.turn,x:point%game.boardSize,y:point/game.boardSize)==nil else {break}
+                boards.append(player.board)
+            }
+            if boards.count==path.moves.count {path.boards=boards;paths.append(path)}
+        }
+        guard !paths.isEmpty else {throw RecordingStore.Failure(message:"These locations conflict with a later move. Adjust the affected placements before confirming.")}
+        var seen=Set<[Int]>()
+        copy.candidates=paths.filter{seen.insert($0.moves).inserted}
+        copy.revisionProposal=nil;copy.lastReconciliation=nil
+        return copy
     }
     mutating func interruptLocally() { revisionProposal=nil;freshAfter=inputTimes.last }
     mutating func noteFrame(now:Double)->Bool {
@@ -158,6 +188,8 @@ import Foundation
         for i in candidates.indices {
             candidates[i].locked=Set(candidates[i].locked.filter{$0>=count}.map{$0-count})
             candidates[i].placementConcerns=Set(candidates[i].placementConcerns.filter{$0>=count}.map{$0-count})
+            candidates[i].locationChoices=Dictionary(uniqueKeysWithValues:candidates[i].locationChoices.filter{$0.key>=count}.map{($0.key-count,$0.value)})
+            candidates[i].playerConfirmed=Set(candidates[i].playerConfirmed.filter{$0>=count}.map{$0-count})
             candidates[i].moves.removeFirst(count)
             candidates[i].boards.removeFirst(count)
             candidates[i].requiredFrames.removeFirst(count)
@@ -233,12 +265,13 @@ import Foundation
     var moveConfidence:[MoveConfidence] {
         guard let first=bestCandidate,let latest=inputTimes.last ?? candidates.flatMap({$0.witnesses}).map(\.time).max() else {return []}
         return (0..<pendingCount).map { index in
-            guard first.moves.indices.contains(index),candidates.allSatisfy({$0.moves.count>index && Array($0.moves.prefix(index+1))==Array(first.moves.prefix(index+1))}) else {
+            guard first.moves.indices.contains(index),candidates.allSatisfy({$0.moves.count>index && $0.moves[index]==first.moves[index]}) else {
                 let point=first.moves.indices.contains(index) ? first.moves[index] : nil
                 let alternatives=Set(candidates.compactMap{$0.moves.indices.contains(index) ? $0.moves[index] : nil}).subtracting(point.map{[$0]} ?? []).sorted()
-                return MoveConfidence(point:point,level:"low",clearSightings:0,requiredSightings:0,orderSupported:false,alternatives:alternatives)
+                return MoveConfidence(point:point,level:"low",clearSightings:0,requiredSightings:0,orderSupported:false,alternatives:alternatives,placementUncertain:candidates.contains{!($0.locationChoices[index] ?? []).isEmpty})
             }
             let point=first.moves[index],size=first.boards[index].size
+            if candidates.allSatisfy({$0.playerConfirmed.contains(index)}) {return MoveConfidence(point:point,level:"high",clearSightings:0,requiredSightings:0,orderSupported:true)}
             var fewest=Int.max,required=0,strong=true,repeated=true
             for candidate in candidates {
                 let color=candidate.boards[index].grid[point/size][point%size]
@@ -373,6 +406,19 @@ import Foundation
         reconcileAdjustment(readings:readings,game:game,base:base,now:now,observation:observation)
         let expected=states(base), size=game.boardSize
         let assignmentOffsets = observation.assignmentOffsets(confirmedBoard:expected)
+        let choices=observation.placementAlternatives(base:expected)
+        func candidateReadings(_ candidate:Candidate)->[Occupancy] {
+            var values=readings
+            guard let board=candidate.boards.last else {return values}
+            for (offset,locations) in candidate.locationChoices where candidate.moves.indices.contains(offset) {
+                let target=candidate.moves[offset]
+                guard let color=board.grid[target/size][target%size],
+                      let source=locations.first(where:{readings[$0].stone==color && (choices[$0]?.intersection(locations).count ?? 0)>1}),
+                      locations.filter({readings[$0].stone != nil}).count==1 else {continue}
+                values[source] = .empty;values[target]=color == .black ? .black:.white
+            }
+            return values
+        }
         let unknown=Set(readings.indices.filter{readings[$0] == .uncertain})
         // Even without a whole-board hypothesis, a previously seen stone under
         // uncertainty may precede today's visible additions. Never silently
@@ -425,9 +471,13 @@ import Foundation
             }
         }
         func witness(_ candidate:inout Candidate)->Witness {
+            let readings=candidateReadings(candidate)
+            let unknown=Set(readings.indices.filter{readings[$0] == .uncertain})
             var uncertain=Set<Int>()
             for (index,point) in candidate.moves.enumerated() where !candidate.locked.contains(index) {
+                if candidate.playerConfirmed.contains(index) {continue}
                 if let offset=assignmentOffsets[point],offset>=0.30 {candidate.placementConcerns.insert(index)}
+                if let locations=candidate.locationChoices[index],choices.values.contains(where:{$0.intersection(locations).count>1}) {uncertain.insert(point)}
                 // Once flagged, require an outline safely inside the cell before
                 // fresh sightings can settle the assignment. Absence of an
                 // outline and threshold jitter do not erase a placement concern.
@@ -490,6 +540,7 @@ import Foundation
             return nil
         }
         for source in candidates+prefixes+(localContinuation.map{[$0]} ?? [])+[root] {
+            let readings=candidateReadings(source)
             let previous=source.boards.last ?? base
             if !source.moves.isEmpty && matches(readings,previous,base:expected,moves:source.moves,allowOccluded:true) {
                 var candidate=source
@@ -560,6 +611,47 @@ import Foundation
             matched.append(candidate)
             if locallyAnchored && !anchored(source) {usedLocalEvidence=true}
         }
+        for candidate in matched {
+            for index in candidate.moves.indices where !candidate.locked.contains(index) && !candidate.playerConfirmed.contains(index) {
+                let point=candidate.moves[index]
+                guard let alternatives=choices[point],candidate.locationChoices[index]==nil else {continue}
+                for target in alternatives {
+                    var alternate=candidate;alternate.moves[index]=target
+                    let trial=SGFPlayer();trial.load(game:game);trial.seek(to:game.moves.count)
+                    var boards=[BoardSnapshot]()
+                    for move in alternate.moves {
+                        guard trial.tryPlayMove(color:trial.turn,x:move%size,y:move/size)==nil else {break}
+                        boards.append(trial.board)
+                    }
+                    guard boards.count==alternate.moves.count else {continue}
+                    alternate.boards=boards;alternate.locationChoices[index]=alternatives
+                    alternate.placementConcerns.insert(index)
+                    alternate.witnesses=alternate.witnesses.map {old in
+                        return Witness(time:old.time,depth:old.depth,unknown:old.unknown.subtracting([target]),
+                            clearSingle:false,complete:old.complete,placementUncertain:old.placementUncertain.union([target]))
+                    }
+                    matched.append(alternate)
+                }
+            }
+        }
+        // Repeated clear legal positions (including removals) eliminate old
+        // geometric alternatives. A single noisy frame cannot decide history.
+        for old in candidates where !old.locationChoices.isEmpty && !matched.contains(where:{$0.moves==old.moves}) {
+            let decisive=matched.contains {candidate in
+                let different=candidate.moves.indices.filter{old.moves.indices.contains($0) && old.moves[$0] != candidate.moves[$0]}
+                let views=candidate.witnesses.filter {view in
+                    view.complete && view.depth==candidate.moves.count && now-view.time<=0.65 && different.allSatisfy {index in
+                        let point=candidate.moves[index]
+                        // Captures can decide an old location, but earlier views
+                        // of the ambiguous stone cannot count as new evidence.
+                        return candidate.boards.last!.grid[point/size][point%size]==nil ||
+                            (!view.placementUncertain.contains(point) && !view.unknown.contains(point))
+                    }
+                }
+                return views.count>=3 && (views.last!.time-views.first!.time)>=0.4
+            }
+            if !decisive {matched.append(old)}
+        }
         // An earlier stone disappearing under uncertainty must not let a later
         // same-color stone replace it as the first move. Only confident contrary
         // evidence or a fully observed legal continuation can resolve that order.
@@ -568,7 +660,7 @@ import Foundation
             for i in candidate.moves.indices {
                 let point=candidate.moves[i]
                 let visible=candidate.witnesses.filter{$0.depth>i && !$0.unknown.contains(point)}
-                if readings[point] == .uncertain,
+                if candidate.locationChoices[i]==nil,readings[point] == .uncertain,
                    candidate.boards.last!.grid[point/size][point%size] != nil,
                    visible.count>=2,visible.last!.time-visible.first!.time>=0.15 {
                     protectedPrefixes.append(Array(candidate.moves.prefix(i+1)))
@@ -608,6 +700,8 @@ import Foundation
                 }
                 old.witnesses=witnesses.values.sorted{$0.time<$1.time}
                 old.locked.formUnion(candidate.locked);old.placementConcerns.formUnion(candidate.placementConcerns)
+                old.playerConfirmed.formUnion(candidate.playerConfirmed)
+                old.locationChoices.merge(candidate.locationChoices){$0.union($1)}
                 for i in old.moves.indices {
                     old.requiredFrames[i]=min(old.requiredFrames[i],candidate.requiredFrames[i])
                     old.requiredSeconds[i]=min(old.requiredSeconds[i],candidate.requiredSeconds[i])
@@ -616,7 +710,9 @@ import Foundation
             } else { merged[key]=candidate }
         }
         guard merged.count<=Self.maximumCandidates else {
-            expiredPoints.formUnion(merged.values.flatMap(\.moves));candidates=[];expiredChronology=true
+            // Retain the last complete set of hypotheses for direct correction.
+            // Exhausting the search budget must never erase timed history.
+            expiredPoints.formUnion(merged.values.flatMap(\.moves))
             return .blocked("Too many possible move sequences. Pause and review the missed moves.",settling:false)
         }
         if let localContinuation,matched.contains(where:{$0.moves==localContinuation.moves}) {usedLocalEvidence=true}
@@ -642,6 +738,9 @@ import Foundation
         return .tracking(pendingCount)
     }
     private func supported(_ candidate:Candidate,index:Int,base:BoardSnapshot)->Bool {
+        if candidate.playerConfirmed.contains(index) {
+            return candidate.witnesses.last.map{$0.complete && $0.time==inputTimes.last} ?? false
+        }
         if let freshAfter {
             guard candidate.witnesses.filter({$0.time>freshAfter}).count>=2 else { return false }
         }
@@ -649,7 +748,7 @@ import Foundation
         let capture=(index+1..<candidate.moves.count).first {
             candidate.boards[$0].grid[point/base.size][point%base.size] != color
         }
-        let visible=candidate.witnesses.filter { $0.depth>index && !$0.unknown.contains(point) && (candidate.locked.contains(index) || !$0.placementUncertain.contains(point)) && (capture == nil || $0.depth<=capture!) }
+        let visible=candidate.witnesses.filter { $0.depth>index && !$0.unknown.contains(point) && (capture != nil || candidate.locked.contains(index) || !$0.placementUncertain.contains(point)) && (capture == nil || $0.depth<=capture!) }
         guard let first=visible.first,let last=visible.last else { return false }
         if let capture {
             // A rapidly captured new stone must have been directly seen twice;

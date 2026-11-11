@@ -15,6 +15,7 @@ struct ExperimentView: View {
     @ObservedObject private var bridge:PhysicalOnlineBoard
     @State private var workspace=PlayWorkspace()
     @State private var showsInfo=false
+    @State private var advancedSettings=false
     @State private var gameOptions=false
     @State private var cameraOptions=false
     @State private var alignmentOptions=false
@@ -60,7 +61,14 @@ struct ExperimentView: View {
                 VStack(spacing:0) {
                     HStack {Text("Info & settings").font(.title2.bold());Spacer();Button("Done") {showsInfo=false}.keyboardShortcut(.cancelAction)}.padding(20)
                     Divider()
-                    ScrollView {GameInfoView(model:model,recorder:recorder).padding(20)}
+                    Picker("Settings page",selection:$advancedSettings) {
+                        Text("Game & clock").tag(false)
+                        Text("Advanced").tag(true)
+                    }.pickerStyle(.segmented).labelsHidden().padding([.horizontal,.top],20)
+                    ScrollView {
+                        if advancedSettings {DiagnosticControls(model:model,diagnostics:model.diagnostics).padding(20)}
+                        else {GameInfoView(model:model,recorder:recorder).padding(20)}
+                    }
                 }.frame(width:650,height:720)
             }
             .sheet(isPresented:Binding(get:{model.stoneCalibrationSession != nil},set:{if !$0 {model.closeStoneCalibration()}})) {StoneCalibrationView(model:model)}
@@ -187,7 +195,7 @@ struct ExperimentView: View {
                 } description:{Text("Set up the camera and game before recording moves.")}
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
             } else {
-                if model.playMode == .local {LocalClockHost(recorder:recorder,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
+                if model.playMode == .local {LocalClockHost(recorder:recorder,orientation:model.orientation,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
             }
@@ -299,10 +307,10 @@ struct ExperimentView: View {
             Divider()
             DiagnosticIndicator(diagnostics:model.diagnostics)
             MoveCaptureIndicator(capture:model.moveEvidenceCapture)
+            Button("Advanced settings…",systemImage:"gearshape") {advancedSettings=true;showsInfo=true}
             DisclosureGroup(isExpanded:$model.showDiagnostics) {
                 VStack(alignment:.leading,spacing:16) {
                     Text("Collection and display are independent. Closing this section keeps your collection choices in effect.").font(.callout).foregroundStyle(.secondary)
-                    DiagnosticControls(model:model,diagnostics:model.diagnostics)
                     DisclosureGroup("Live data · recognition, timing & tracking",isExpanded:$diagnosticData) {
                         VStack(alignment:.leading,spacing:16) {
                             MoveTimingPanel(mode:model.playMode,recorder:recorder,quarterTurns:model.viewQuarterTurns)
@@ -601,14 +609,16 @@ struct DetectedBoard: View {
 
 private struct LocalClockHost:View {
     @ObservedObject var recorder:GameRecorder
+    let orientation:BoardOrientation
     let onReview:(UUID)->Void
-    var body:some View {LocalClockVisibility(clock:recorder.clock,recorder:recorder,onReview:onReview)}
+    var body:some View {LocalClockVisibility(clock:recorder.clock,recorder:recorder,orientation:orientation,onReview:onReview)}
 }
 private struct LocalClockVisibility:View {
     @ObservedObject var clock:LocalGameClock
     @ObservedObject var recorder:GameRecorder
+    let orientation:BoardOrientation
     let onReview:(UUID)->Void
-    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,showsStatus:false,onReview:onReview)}}
+    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,showsStatus:false,onReview:onReview,orientation:orientation)}}
 }
 
 /// Always visible during alignment loss, including when diagnostics are hidden.

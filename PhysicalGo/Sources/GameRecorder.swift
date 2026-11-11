@@ -106,8 +106,12 @@ enum LocalGameSetup {
         return AccidentalStoneWithdrawal.make(history:reviewHistory,id:id,context:context.game)
     }
     func captureReviewPlan(_ id:UUID)->CaptureReviewPlan? {
-        guard let context=contextForReview(id),context.turnKnown else {return nil}
-        return CaptureReviewPlan.make(history:reviewHistory,id:id,context:context.game)
+        // Only the first unresolved section has a known legal turn/history.
+        guard let section=reviewHistory.sections.first(where:{!$0.committed && $0.moves == nil}),
+              let context=contextForReview(section.id),context.turnKnown,
+              let plan=CaptureReviewPlan.make(history:reviewHistory,id:section.id,context:context.game),
+              plan.sectionIDs.contains(id) else {return nil}
+        return plan
     }
     var pendingCaptureReview:CaptureReviewPlan? {
         guard let section=reviewHistory.sections.last,!section.committed else {return nil}
@@ -155,7 +159,7 @@ enum LocalGameSetup {
     }
     @discardableResult func confirmCaptureReview(_ id:UUID,now:Double=ProcessInfo.processInfo.systemUptime,checkedPhoto:CheckedReviewPhoto?=nil)->String? {
         guard state == .paused,!reviewing,!recoveryReadBlocked,
-              let plan=captureReviewPlan(id),let context=contextForReview(id) else {
+              let plan=captureReviewPlan(id),let context=contextForReview(plan.id) else {
             return "This position needs another review before the capture can be confirmed."
         }
         guard checkedPhoto.map({$0.verifies(id:id,target:plan.target,requiredClear:plan.captured.union([plan.point]),now:now)}) ?? captureRemovalVerified(plan,now:now) else {
@@ -163,7 +167,21 @@ enum LocalGameSetup {
         }
         var draft=MoveRecoveryDraft(game:context.game,observation:nil)
         if let error=draft.add(plan.move.point,checkCameraColor:false) {return error}
-        let error=resolveReview(id,draft:draft,overrideCamera:true,
+        if plan.sectionIDs.count>1 {
+            let previous=reviewHistory
+            for i in reviewHistory.sections.indices where plan.sectionIDs.contains(reviewHistory.sections[i].id) {
+                reviewHistory.sections[i].moves=reviewHistory.sections[i].id == plan.id ? [plan.move]:[]
+                reviewHistory.sections[i].resolvedAfter=plan.target
+                reviewHistory.sections[i].resolvedAt=Date().timeIntervalSince1970
+                reviewHistory.sections[i].recoverySource="Single legal capture and its later prisoner removals confirmed together; original camera snapshots preserved."
+            }
+            saveReviewHistory()
+            if let error=reviewSaveError {reviewHistory=previous;return error}
+            let error=finalizeReviews()
+            if error==nil {clock.queueResumeAnnouncement("Capture complete.")}
+            return error
+        }
+        let error=resolveReview(plan.id,draft:draft,overrideCamera:true,
             resolutionReason:checkedPhoto == nil ? "Single legal capture confirmed after fresh camera views verified removal of the captured stones." : "Player confirmed a single legal capture from a checked camera photograph. Photo labels do not override live recognition.")
         if error == nil {clock.queueResumeAnnouncement("Capture complete.")}
         return error
@@ -250,10 +268,10 @@ enum LocalGameSetup {
     private var recoveredReviewCommit=false
     var activeReviewID:UUID?
     var hasDeferredMoves:Bool {reviewHistory.active}
-    var hasUnfinishedReviews:Bool {automaticCapture != nil || hasDeferredMoves || reviewSaveError != nil || pendingSaveError != nil || recoveryReadBlocked}
-    var liveNextPlayer:Stone? {hasDeferredMoves ? reviewHistory.nextColor : nextPlayer}
+    var hasUnfinishedReviews:Bool {automaticCapture != nil || pendingMoveCount>0 || hasDeferredMoves || reviewSaveError != nil || pendingSaveError != nil || recoveryReadBlocked}
+    var liveNextPlayer:Stone? {hasDeferredMoves ? reviewHistory.nextColor : clock.provisionalNextPlayer ?? nextPlayer}
     var needsTurnConfirmation:Bool {hasDeferredMoves && liveNextPlayer == nil && state != .finished}
-    var canScorePosition:Bool {automaticCapture == nil && !recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
+    var canScorePosition:Bool {placementAmbiguities.isEmpty && automaticCapture == nil && !recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
     var scoringGame:SGFGame {
         guard let board=reviewHistory.latest else {return game}
         var live=DeferredMoveHistory.positionGame(board,size:game.boardSize,rules:game.info.rules,turn:liveNextPlayer ?? .black)
@@ -281,6 +299,9 @@ enum LocalGameSetup {
     }
     @Published private(set) var pendingMoveCount=0
     @Published private(set) var retainingTentativeMoves=false
+    var tentativeHistory:MoveObservationHistory {pausedTentativeHistory ?? observationHistory}
+    var onAmbiguity:(()->Void)?
+    private var announcedAmbiguities=Set<String>()
     var pendingConfidence:[MoveObservationHistory.MoveConfidence] {(pausedTentativeHistory ?? observationHistory).moveConfidence}
     /// Display proposal only; never used to confirm or export moves.
     var interpretedBoard:BoardSnapshot? {
@@ -352,7 +373,7 @@ enum LocalGameSetup {
         clock.configure(clockSettings,blackToPlay:fresh.initialPlayer != .white)
         reviewHistory=DeferredMoveHistory();reviewHistory.size=size;reviewSaveError=nil;unresolvedSince=nil;reviewLoadFailed=false;recoveredReviewCommit=false
         resetAdjustmentGuidance()
-        game=fresh; player.load(game:fresh); positions=[player.board]; reviewIndex=0; manualMoves=[]
+        game=fresh; player.load(game:fresh); positions=[player.board]; reviewIndex=0; manualMoves=[];announcedAmbiguities=[]
         autosaveURL=storage?.appendingPathComponent("Physical Go \(UUID().uuidString).sgf")
         recordingStore.bind(to: autosaveURL); pendingSaveError=nil
         awaitingFirstStart=startPaused;announceFirstStart=false
@@ -423,7 +444,8 @@ enum LocalGameSetup {
         clock.restore(from:url,signature:checkpointSignature,moveCount:moveCount,blackToPlay:nextPlayer == .black)
         try restoreChronology()
         if let source=clock.automaticCapturePosition {
-            if !hasDeferredMoves,let capture=AutomaticCapture.find(game:game,readings:source,minimum:2) {
+            if clock.provisionalCapturePaused {automaticCaptureStatus="Remove captured stones, then move hands clear. Provisional history and clocks are preserved."}
+            else if !hasDeferredMoves,let capture=AutomaticCapture.find(game:game,readings:source,minimum:2) {
                 automaticCapture=capture
                 automaticCaptureStatus="Capture removal was paused. Press Resume to continue checking it."
             } else {clock.releaseAutomaticCapture()}
@@ -470,6 +492,9 @@ enum LocalGameSetup {
             let saved=try recordingStore.loadPending(game:game,now:ProcessInfo.processInfo.systemUptime)
             awaitingFirstStart=saved.awaitingStart;pendingSaveError=nil
             if awaitingFirstStart {status="Game setup saved. Press Start when both players are ready."}
+            guard clock.provisionalMoves.count <= (saved.history?.pendingCount ?? 0) else {
+                throw RecordingStore.Failure(message:"The provisional clock presses have no matching retained moves. Keep the files and review this recording.")
+            }
             guard let retained=saved.history else {return}
             pausedTentativeHistory=retained;pendingMoveCount=retained.pendingCount
             status="Restored \(moveCount) saved and \(pendingMoveCount) pending moves. Red rings mark pending confirmation; Resume rechecks the physical board."
@@ -505,6 +530,7 @@ enum LocalGameSetup {
         // Restoration must validate sidecars before any checkpoint can replace them.
         defer {if checkpoint {checkpointPendingMoves()}}
         viewContinuity.reset();clearBoardTiming.reset();handMotionTiming.reset();captureCandidate=nil;captureClearViews=[];handOverBoard=false
+        clearCaptureConflictEvidence();provisionalTimingBlockedSince=nil;provisionalCaptureEvidence=nil
         reviewHistory.interrupt();unresolvedSince=nil
         reviewCameraWitnesses=[];reviewCameraPosition=nil;reviewCameraRevision += 1
         if reason.isEmpty {clock.pause("Recording paused")} else {clock.interrupt(reason)}
@@ -543,6 +569,7 @@ enum LocalGameSetup {
     }
     func resume() {
         guard !recoveryReadBlocked,state == .paused else { return }
+        if traceHandle==nil {beginTrace(append:true,createIfMissing:true)}
         reviewNotice=nil
         defer {checkpointPendingMoves()}
         if awaitingFirstStart {
@@ -651,15 +678,27 @@ enum LocalGameSetup {
         blockedSince=nil; blockedKind=nil
         return ready
     }
-    private func beginTrace(append:Bool=false) {
+    private func beginTrace(append:Bool=false,createIfMissing:Bool=false) {
         try? traceHandle?.close(); traceHandle=nil; diagnosticError=nil; observationNumber=0
         guard let url=autosaveURL?.deletingPathExtension().appendingPathExtension("observations.jsonl") else { return }
+        // Merely reopening an exported game must not recreate its deleted log.
+        // If play resumes, resume() starts a new recovery journal.
+        if append && !createIfMissing && !FileManager.default.fileExists(atPath:url.path) {return}
         do {
             if !append || !FileManager.default.fileExists(atPath:url.path) { try Data().write(to:url,options:.atomic) }
             traceHandle=try FileHandle(forWritingTo:url)
             if append { try traceHandle?.seekToEnd() }
         }
         catch { diagnosticError="Could not save recording diagnostics: \(error.localizedDescription)" }
+    }
+    /// Autosave and mid-game export must retain the evidence used by order
+    /// recovery. Only a successful export of this exact, finished game releases it.
+    @discardableResult func discardFinishedObservationLog(exportedSGF:String,keepDiagnostics:Bool)throws->Bool {
+        guard !keepDiagnostics,state == .finished,!hasUnfinishedReviews,!recoveryReadBlocked,
+              exportedSGF==sgf(),let url=autosaveURL?.deletingPathExtension().appendingPathExtension("observations.jsonl") else {return false}
+        try traceHandle?.close();traceHandle=nil
+        if FileManager.default.fileExists(atPath:url.path) {try FileManager.default.removeItem(at:url)}
+        return true
     }
     func logAutomaticClockPause(_ pause:LocalGameClock.AutomaticPause) {
         guard hasGame else {return}
@@ -672,6 +711,9 @@ enum LocalGameSetup {
     func logAutomaticClockResume() {
         guard hasGame else {return}
         trace(event:"clock automatically resumed",extra:["playerToPlay":clock.engine.blackToPlay ? "Black":"White"])
+    }
+    func logClockDiagnostic(_ details:[String:Any],now:Double) {
+        trace(event:details["event"] as? String ?? "clock diagnostic",now:now,extra:["periodChange":details])
     }
     func logSpeech(_ event:String,details:[String:Any]) {
         guard hasGame else {return}
@@ -808,10 +850,34 @@ enum LocalGameSetup {
 
     @Published private(set) var handOverBoard=false
     @Published private(set) var automaticCaptureStatus:String?
+    @Published private(set) var automaticCaptureConflictPoints=[Int]()
+    var onCaptureConflictChanged:((Bool)->Void)?
+    private var captureConflictMonitor=CaptureConflictMonitor()
+    private func clearCaptureConflictEvidence() {
+        captureConflictMonitor.interrupt()
+        if !automaticCaptureConflictPoints.isEmpty {
+            automaticCaptureConflictPoints=[];onCaptureConflictChanged?(false)
+        }
+    }
+    private func updateCaptureConflictEvidence(_ capture:AutomaticCapture,observation:BoardObservation,now:Double,readings:[Occupancy]?=nil) {
+        guard observation.handObstructed == false else {clearCaptureConflictEvidence();return}
+        let announce=captureConflictMonitor.update(capture.conflictingPoints(readings ?? observation.signature),now:now)
+        if automaticCaptureConflictPoints != captureConflictMonitor.points || announce {
+            automaticCaptureConflictPoints=captureConflictMonitor.points
+            if announce {trace(event:"capture conflict warning",now:now,extra:["points":automaticCaptureConflictPoints])}
+            onCaptureConflictChanged?(announce)
+        }
+    }
     private var automaticCapture:AutomaticCapture?
     private var captureReadings:[Occupancy]?
+    private var provisionalRemovalPlan:AutomaticCapture? {
+        guard clock.provisionalCapturePaused,let source=clock.automaticCapturePosition,
+              case .capture(let plan,_)=ProvisionalPlay.removal(history:tentativeHistory,game:game,readings:source,
+                minimum:clock.engine.settings.capturePauseMinimum,timedCount:clock.lastTimedMove-moveCount,includingCompleted:true) else {return nil}
+        return plan
+    }
     var automaticCaptureRemainingPoints:[Int]? {
-        guard let capture=automaticCapture else {return nil}
+        guard let capture=automaticCapture ?? provisionalRemovalPlan else {return nil}
         let readings=captureReadings?.count==capture.source.count ? captureReadings!:capture.source
         return capture.captured.filter{readings[$0] != .empty}.sorted()
     }
@@ -837,7 +903,8 @@ enum LocalGameSetup {
         // A fresh obstructed frame proves camera continuity, never stone placement.
         lastCameraTime=now
         clearBoardTiming.noteHand(at:now)
-        handOverBoard=true;captureClearViews=[]
+        handOverBoard=true;captureClearViews=[];provisionalTimingBlockedSince=nil
+        clearCaptureConflictEvidence()
         // Hand re-entry proves continuity, not a contradiction of a placement
         // already seen. Preserve the candidate, but require fresh final views.
         if let candidate=captureCandidate,now-candidate.first>120 {captureCandidate=nil}
@@ -860,12 +927,14 @@ enum LocalGameSetup {
         saveReviewHistory()
         if reviewSaveError != nil {reviewHistory=previous;return nil}
         automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[]
+        clearCaptureConflictEvidence()
         clock.releaseAutomaticCapture()
         clock.recover(toBlack:nextPlayer == .black,reason:"Automatic capture switched to manual review. Check both clock times before resuming.",at:now)
         status="Check the capture or its camera photo. Both clocks remain stopped."
         return section.id
     }
     private func resetAutomaticCapture() {
+        clearCaptureConflictEvidence()
         captureReadings=nil
         automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handMotionTiming.reset();handOverBoard=false
     }
@@ -876,7 +945,8 @@ enum LocalGameSetup {
         captureReadings=readings
         let stamp=observation.capturedAt.flatMap { $0.isFinite && $0<=now && now-$0<1.5 ? $0:nil } ?? now
         if let capture=automaticCapture {
-            let ready=observation.handObstructed == false && ReviewBoardVerification.matches(readings,target:capture.target,requiredClear:capture.captured.union([capture.point]))
+            updateCaptureConflictEvidence(capture,observation:observation,now:now)
+            let ready=observation.handObstructed == false && capture.matchesCompleted(readings)
             let cancelled=readings==capture.before
             if ready || cancelled {
                 if let last=captureClearViews.last,stamp<=last {return true}
@@ -887,6 +957,7 @@ enum LocalGameSetup {
                 captureClearViews.append(stamp)
                 if captureClearViews.count>=5,let first=captureClearViews.first,stamp-first>=0.8 {
                     automaticCapture=nil;automaticCaptureStatus=nil;captureClearViews=[];captureCandidate=nil
+                    clearCaptureConflictEvidence()
                     if cancelled {
                         clock.abandonAutomaticCapture(blackToPlay:nextPlayer == .black,at:now)
                         status="The expected capture was not completed. Check clock times before continuing."
@@ -901,7 +972,9 @@ enum LocalGameSetup {
                 }
             } else {captureClearViews=[]}
             let remaining=capture.captured.filter {readings[$0] != .empty}.count
-            automaticCaptureStatus=remaining>0
+            automaticCaptureStatus = !automaticCaptureConflictPoints.isEmpty
+                ? "Clocks remain paused. The camera and recorded board disagree. Compare the highlighted intersections before correcting anything."
+                : remaining>0
                 ? "Remove the remaining \(remaining) captured stones, then move hands clear. Both clocks stay stopped."
                 : "Captured points are empty. Keep hands clear while the complete position is verified."
             status=automaticCaptureStatus!;return true
@@ -927,7 +1000,7 @@ enum LocalGameSetup {
             guard stamp>candidate.last else {return true}
             captureCandidate=(plan,candidate.first,stamp,candidate.samples+1,candidate.completedViews)
         } else {captureCandidate=(plan,stamp,stamp,1,[])}
-        if readings==plan.target {
+        if plan.matchesCompleted(readings) {
             if let last=captureCandidate?.completedViews.last,stamp-last>0.5 {captureCandidate?.completedViews=[]}
             captureCandidate?.completedViews.append(stamp)
         } else {captureCandidate?.completedViews=[]}
@@ -936,6 +1009,7 @@ enum LocalGameSetup {
         }
         guard clock.beginAutomaticCapture(at:candidate.first,now:now,position:plan.source) else {captureCandidate=nil;return false}
         automaticCapture=plan;captureClearViews=candidate.completedViews;synchronized=false;boardReadyForPass=false
+        clearCaptureConflictEvidence()
         resetObservationHistory();resetPending()
         if !captureClearViews.isEmpty {pendingKey="capture cleared"}
         automaticCaptureStatus="Remove the captured stones, then move hands clear. Both clocks are stopped."
@@ -983,8 +1057,14 @@ enum LocalGameSetup {
         // failure sound. This runs even when global uncertainty blocks the move.
         defer {
             if state == .recording && !hasDeferredMoves {
+                let fresh=placementAmbiguities.filter{!announcedAmbiguities.contains("\(autosaveURL?.path ?? "local"):\($0.id)")}
+                if !fresh.isEmpty {
+                    announcedAmbiguities.formUnion(fresh.map{"\(autosaveURL?.path ?? "local"):\($0.id)"})
+                    onAmbiguity?();trace(event:"ambiguity tone",now:now,extra:["placements":fresh.compactMap(\.number)])
+                }
+                if onAmbiguity == nil {updatePlacementChime(observation,readings:readings,now:now)}
                 updateRecordingWarning(readings,now:now)
-                updatePlacementChime(observation, readings:readings, now:now)
+                // A new ambiguity gets one tone; revisiting the same stone does not repeat it.
             }
         }
         if state == .verifying {
@@ -1032,6 +1112,7 @@ enum LocalGameSetup {
             return
         }
         let expected=player.board.grid.flatMap { $0 }.map { $0 == .black ? Occupancy.black : $0 == .white ? .white : .empty }
+        if handleProvisionalCapture(observation,now:now) {return}
         if handleAutomaticCapture(observation,now:now) {return}
         guard observationHistory.noteFrame(now:now) else {return}
         let rawUnknown=Set(readings.indices.filter{readings[$0] == .uncertain})
@@ -1075,6 +1156,10 @@ enum LocalGameSetup {
             reject("A marked recorded stone disagreed with the camera. Waiting for consistent agreement at that intersection.",kind:.conflict)
             return
         }
+        if matchesRest && !clock.provisionalMoves.isEmpty {
+            clock.recover(toBlack:clock.engine.blackToPlay,reason:"A timed provisional move is no longer visible. Check the placement before continuing.",at:now)
+            reject("A timed provisional stone is missing. Review its location; clocks are paused.",kind:.conflict);return
+        }
         if matchesRest { resetObservationHistory();unresolvedSince=nil;reviewHistory.interrupt() }
         if !synchronized && matchesRest {
             if stableEvidence("sync",unknown:unknown,now:now) {
@@ -1101,14 +1186,17 @@ enum LocalGameSetup {
         case .tracking(let count):
             // One retained chronology remains useful while placement needs
             // clarity. Competing orders that cannot settle get a review section.
-            if observationHistory.tentativeSequences.count>1 {
+            if observationHistory.tentativeSequences.count>1 && observationHistory.candidates.allSatisfy({$0.locationChoices.isEmpty}) && clock.provisionalMoves.isEmpty {
                 if unresolvedSince == nil {unresolvedSince=now}
                 if now-(unresolvedSince ?? now)>12,retainDeferred(observation,now:now,allowStart:true) {return}
             } else {unresolvedSince=nil;reviewHistory.interrupt()}
             pendingMoveCount=count
+            recordProvisionalTurns(readings:readings,now:now)
             retainingTentativeMoves=observationHistory.awaitingClarity
             blockedSince=nil;blockedKind=nil
-            status=observationHistory.awaitingClarity
+            status = !clock.provisionalMoves.isEmpty
+                ? "Playing · \(placementAmbiguities.count) ambiguous placements retained for later review."
+                : observationHistory.awaitingClarity
                 ? "Retaining \(count) tentative moves. An earlier stone is unclear; later moves are still tracked. SGF waits for confirmation."
                 : "Tracking \(count) unconfirmed \(count == 1 ? "move" : "moves"). Earlier observations are retained while play continues."
         case .confirmed(let confirmation):
@@ -1129,14 +1217,102 @@ enum LocalGameSetup {
             }
         case .blocked(let message,let settling):
             if unresolvedSince == nil {unresolvedSince=now}
-            if ((!settling && additions>=3 && observationHistory.pendingCount==0) || now-(unresolvedSince ?? now)>12),retainDeferred(observation,now:now,allowStart:true) {return}
+            if !clock.provisionalMoves.isEmpty,now-(unresolvedSince ?? now)>2 {
+                clock.recover(toBlack:clock.engine.blackToPlay,reason:"The board changes do not establish a reliable next clock press. Review the highlighted placements.",at:now)
+            }
+            if clock.provisionalMoves.isEmpty,((!settling && additions>=3 && observationHistory.pendingCount==0) || now-(unresolvedSince ?? now)>12),retainDeferred(observation,now:now,allowStart:true) {return}
             pendingMoveCount=observationHistory.pendingCount
             reject(message,kind:settling ? .settling : .conflict)
         }
     }
+    func applyPendingPlacements(_ edits:[Int:Int],expected:MoveObservationHistory.Checkpoint)throws {
+        guard state == .paused,!hasDeferredMoves,!recoveryReadBlocked else {throw RecordingStore.Failure(message:"Pause play before confirming placements.")}
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        guard try encoder.encode(tentativeHistory.checkpoint)==encoder.encode(expected) else {throw RecordingStore.Failure(message:"The pending history changed. Reopen the placement review.")}
+        let revised=try tentativeHistory.correcting(edits,game:game)
+        try recordingStore.savePending(.init(version:1,signature:checkpointSignature,history:revised.checkpoint,awaitingFirstStart:awaitingFirstStart))
+        pausedTentativeHistory=revised;pendingMoveCount=revised.pendingCount
+        reviewNotice="Placements confirmed. Resume verifies the physical board; existing clock presses are preserved."
+        trace(event:"pending placements corrected",extra:["moves":edits.keys.sorted().map{moveCount+$0+1}])
+    }
+    private var provisionalTimingBlockedSince:Double?
+    private var provisionalCaptureEvidence:(point:Int,captured:Set<Int>,first:Double,last:Double,count:Int)?
+    private func handleProvisionalCapture(_ observation:BoardObservation,now:Double)->Bool {
+        guard observation.handObstructed == false,!hasDeferredMoves,!clock.provisionalMoves.isEmpty else {return false}
+        captureReadings=observation.signature
+        if let plan=provisionalRemovalPlan,let path=observationHistory.candidates.first {
+            updateCaptureConflictEvidence(plan,observation:observation,now:now,
+                readings:ProvisionalPlay.normalized(observation.signature,path:path,target:plan.before))
+        }
+        let stamp=observation.capturedAt.flatMap{$0.isFinite && $0<=now && now-$0<1.5 ? $0:nil} ?? now
+        if let evidence=provisionalCaptureEvidence,stamp-evidence.first>120 {provisionalCaptureEvidence=nil}
+        let result=ProvisionalPlay.removal(history:observationHistory,game:game,readings:observation.signature,
+            minimum:clock.engine.settings.capturePauseMinimum,timedCount:clock.lastTimedMove-moveCount,
+            includingCompleted:provisionalCaptureEvidence != nil || clock.provisionalCapturePaused)
+        switch result {
+        case .none:
+            provisionalCaptureEvidence=nil;return false
+        case .uncertain:
+            clock.recover(toBlack:clock.engine.blackToPlay,reason:"The ambiguous placement changes whether capture time should pause. Review its location before continuing.",at:now)
+            status="Capture timing depends on an ambiguous placement. Review the ambiguity; clocks are paused."
+            return true
+        case .capture(let plan,let completed):
+            if clock.provisionalCapturePaused {
+                automaticCaptureStatus=completed ? "Keep hands clear while removal is verified. Both clocks are stopped.":"Remove the remaining captured stones, then move hands clear. Both clocks are stopped."
+                return !completed
+            }
+            guard clock.canBeginAutomaticCapture,observation.readings[plan.point].confidence>=0.9,
+                  (observation.assignmentOffsets[plan.point] ?? 0)<0.24 else {return false}
+            if var evidence=provisionalCaptureEvidence,evidence.point==plan.point,evidence.captured==plan.captured {
+                guard stamp>evidence.last else {return true}
+                evidence.last=stamp;evidence.count+=1;provisionalCaptureEvidence=evidence
+            } else {provisionalCaptureEvidence=(plan.point,plan.captured,stamp,stamp,1)}
+            if let evidence=provisionalCaptureEvidence,evidence.count>=3,stamp-evidence.first>=0.4,
+               clock.beginAutomaticCapture(at:evidence.first,now:now,position:plan.source,provisional:true) {
+                automaticCaptureStatus="Remove captured stones, then move hands clear. Both clocks are stopped."
+                trace(event:"provisional capture removal started",now:now,extra:["captured":plan.captured.count])
+                return !completed
+            }
+            return true
+        }
+    }
+    private func recordProvisionalTurns(readings:[Occupancy],now:Double) {
+        guard !hasDeferredMoves,automaticCapture == nil,!recoveryReadBlocked,!clock.needsCorrection,!clock.awaitingTurn else {return}
+        let offset=max(0,clock.lastTimedMove-moveCount)
+        guard let turn=ProvisionalPlay.turn(history:observationHistory,game:game,base:player.board,offset:offset,now:now),
+              let estimate=clearBoardTiming.provisionalEstimate(target:turn.target,changed:turn.changed,locations:turn.locations,
+                color:turn.color,aliases:turn.aliases,after:timingEpoch) else {
+            // Reopening a retained position validates it without pressing again.
+            if offset>0,offset==observationHistory.pendingCount,
+               let last=ProvisionalPlay.turn(history:observationHistory,game:game,base:player.board,offset:offset-1,now:now),
+               clearBoardTiming.provisionalEstimate(target:last.target,changed:last.changed,locations:last.locations,color:last.color,aliases:last.aliases,after:timingEpoch) != nil {clock.ready(at:now)}
+            if clock.running,
+               (offset<observationHistory.pendingCount && !placementAmbiguities.isEmpty ||
+                !clock.provisionalMoves.isEmpty && ProvisionalPlay.hasDefiniteConflict(readings,history:observationHistory)) {
+                if provisionalTimingBlockedSince == nil {provisionalTimingBlockedSince=now}
+                if now-provisionalTimingBlockedSince!>2 {
+                    clock.recover(toBlack:clock.engine.blackToPlay,reason:"A placement is visible, but its turn timing is unclear. Review the placement and clocks.",at:now)
+                }
+            } else {provisionalTimingBlockedSince=nil}
+            return
+        }
+        provisionalTimingBlockedSince=nil
+        if clock.provisionalCapturePaused {
+            let views=observationHistory.candidates.first?.witnesses.filter{$0.depth==offset+1 && $0.complete && now-$0.time<=1.5} ?? []
+            guard views.count>=5,let first=views.first,let last=views.last,last.time-first.time>=0.8 else {return}
+        }
+        do {try savePendingCheckpoint()} catch {clock.pause("Pending moves need saving before the clock can switch",at:now);return}
+        let press=clock.provisionalCaptureStart ?? estimate
+        clock.recordMove(number:moveCount+offset+1,black:turn.color == .black,at:now,observedAt:press.time,estimate:press,provisional:true)
+        if clock.provisionalMoves.contains(where:{$0.number==moveCount+offset+1}) {
+            clearBoardTiming.consume(through:estimate.time)
+            if clock.provisionalCapturePaused {automaticCaptureStatus=nil;provisionalCaptureEvidence=nil;clearCaptureConflictEvidence();clock.finishAutomaticCapture(at:estimate.time,now:now)}
+            trace(event:"provisional clock press",now:now,extra:["number":moveCount+offset+1,"locations":turn.locations.sorted(),"pressTime":estimate.time])
+        }
+    }
     private func updatePlacementChime(_ observation: BoardObservation, readings: [Occupancy], now: Double) {
         guard let onPlacementChime else { return }
-        let flagged = pendingConfidence.enumerated().filter { $0.element.orderSupported && $0.element.placementUncertain }
+        let flagged = pendingConfidence.enumerated().filter { $0.element.placementUncertain || !$0.element.alternatives.isEmpty }
         guard !flagged.isEmpty,
               let currentBoard = observationHistory.bestCandidate?.boards.last else {
             placementChimes.interrupt()
@@ -1174,9 +1350,34 @@ enum LocalGameSetup {
                 guard seen.insert(point).inserted, let color=board.grid[point/game.boardSize][point%game.boardSize] else {continue}
                 if path.locked.contains(index) {
                     accounted[point] = color == .black ? .black : .white
-                } else if path.placementConcerns.contains(index), readings[point].stone == color || readings[point] == .uncertain {
+                } else if (path.placementConcerns.contains(index) || clock.provisionalMoves.contains(where:{$0.number==moveCount+index+1})), readings[point].stone == color || readings[point] == .uncertain {
                     knownPlacementWarnings.insert(point)
                 }
+            }
+        }
+        // A timed provisional turn has its own one-shot ambiguity cue. Do not
+        // call it an unrecorded-move failure merely because SGF is waiting.
+        // Account for exactly one visible stone; extra/wrong-coloured stones
+        // still reach the ordinary warning monitor.
+        for press in clock.provisionalMoves {
+            let offset=press.number-moveCount-1
+            let paths=observationHistory.candidates.filter{$0.moves.indices.contains(offset)}
+            let locations=paths.reduce(into:Set<Int>()) {points,path in
+                points.insert(path.moves[offset]);points.formUnion(path.locationChoices[offset] ?? [])
+            }
+            let color:Occupancy=press.black ? .black:.white
+            let visible=locations.filter{readings[$0].stone != nil}
+            guard visible.count==1,let point=visible.first,readings[point]==color,
+                  paths.contains(where: {path in
+                      guard let board=path.boards.last else {return false}
+                      return locations.contains{board.grid[$0/game.boardSize][$0%game.boardSize] == color.stone}
+                  }) else {continue}
+            accounted[point]=color
+            knownPlacementWarnings.formUnion(locations);trackedMoves.formUnion(locations)
+        }
+        if clock.provisionalCapturePaused,let source=clock.automaticCapturePosition {
+            for point in source.indices where source[point].stone != nil && readings[point]==source[point] {
+                accounted[point]=source[point]
             }
         }
         let signal=warningMonitor.update(readings:readings,accepted:accounted,now:now,blocked:needsAttention,
@@ -1244,6 +1445,10 @@ enum LocalGameSetup {
         }
         if let last=estimates.last ?? nil {clearBoardTiming.consume(through:last.time)}
         else {clearBoardTiming.consume(through:now)}
+        if clock.provisionalCapturePaused,pendingMoveCount==0 {
+            automaticCaptureStatus=nil;provisionalCaptureEvidence=nil
+            clock.finishAutomaticCapture(at:estimates.last.flatMap{$0?.time} ?? now,now:now)
+        }
         clock.ready(at:now) // May resume an automatic view hold; never a manual pause/review.
         persist()
         trace(event:indices.count==1 ? "accepted move" : indices.count==2 ? "accepted two-move catch-up" : "accepted observed sequence",now:now,extra:["moveTimings":timings])
@@ -1379,9 +1584,13 @@ enum LocalGameSetup {
         let sourceMoves=game.sourceTree?.mainLineNodes.filter{$0.props["B"] != nil || $0.props["W"] != nil} ?? []
         for (i,move) in game.moves.enumerated() {
             var node=[move.0 == .black ? "B" : "W":[move.1.map{SGFCoordinates.toSGF(x:$0.0,y:$0.1)} ?? ""]]
-            node.merge(clock.sgfMoveProperties(i+1)) {_,new in new}
             let tag=move.0 == .black ? "B":"W"
-            if sourceMoves.indices.contains(i),sourceMoves[i].props[tag]==node[tag] {node["C"]=sourceMoves[i].props["C"]}
+            if sourceMoves.indices.contains(i),sourceMoves[i].props[tag]==node[tag] {
+                // A restored clock may start after these moves. Keep their
+                // recorded times even when the current clock has no entries.
+                for property in ["C","BL","WL","OB","OW"] {node[property]=sourceMoves[i].props[property]}
+            }
+            node.merge(clock.sgfMoveProperties(i+1)) {_,new in new}
             if manualMoves.contains(i+1),node["C"]?.contains("Entered manually.") != true {node["C",default:[]].append("Entered manually.")}
             nodes.append(SGFNode(props:node))
         }
@@ -1397,7 +1606,8 @@ enum LocalGameSetup {
         }
         if let reason=HistoricalMoveCorrection.unavailableReason(self) {throw RecordingStore.Failure(message:reason)}
         if let error=saveSession() {throw RecordingStore.Failure(message:error)}
-        let file=plan.sourceURL.deletingLastPathComponent().appendingPathComponent("Physical Go corrected move \(plan.number) \(UUID().uuidString).sgf")
+        let label=plan.edits.count==1 ? "move \(plan.number)":"\(plan.edits.count) moves"
+        let file=plan.sourceURL.deletingLastPathComponent().appendingPathComponent("Physical Go corrected \(label) \(UUID().uuidString).sgf")
         let signature=RecordingIdentity.signature(for:plan.game)
         let store=RecordingStore();store.bind(to:file)
         do {
@@ -1414,8 +1624,8 @@ enum LocalGameSetup {
             throw error
         }
         try restoreSavedGame(from:file)
-        reviewNotice="Move \(plan.number) corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
-        trace(event:"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"point":plan.destination.row*game.boardSize+plan.destination.col,"discardedMoves":plan.discardedMoves])
+        reviewNotice="\(plan.edits.count==1 ? "Move \(plan.number)":"\(plan.edits.count) moves") corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
+        trace(event:"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"point":plan.destination.row*game.boardSize+plan.destination.col,"discardedMoves":plan.discardedMoves,"corrections":plan.edits.map{["move":$0.number,"point":$0.destination.row*game.boardSize+$0.destination.col]}])
     }
     private func persist(checkpoint:Bool=true) {
         guard let autosaveURL else { return }
@@ -1470,6 +1680,7 @@ extension GameRecorder {
         } catch {reviewLoadFailed=true;reviewSaveError="Could not restore review history: \(error.localizedDescription)";throw error}
     }
     @discardableResult private func retainDeferred(_ observation:BoardObservation,now:Double,allowStart:Bool)->Bool {
+        guard clock.provisionalMoves.isEmpty else {return false}
         let wasActive=hasDeferredMoves
         let proposals=observationHistory.tentativeSequences
         guard reviewHistory.observe(observation,base:player.board,game:game,signature:checkpointSignature,now:now,allowStart:allowStart) else {return false}

@@ -4,7 +4,7 @@ import Foundation
 /// an audible sentence finishes naturally. Explicit mute/stop still silences it.
 @MainActor final class RecoverySpeech {
     enum Topic:String {
-        case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning
+        case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning,captureConflict
         var isWarning:Bool {self != .clockResume && self != .viewRecovered}
     }
     private struct Prompt {

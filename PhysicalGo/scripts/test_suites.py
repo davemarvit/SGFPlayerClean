@@ -25,6 +25,9 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'diagnostic-cleanup-test': Suite('DiagnosticCleanupTests', 'recorder', ('Tests/DiagnosticCleanupTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),
+    'byoyomi-diagnostics-test': Suite('ByoyomiDiagnosticsTests', 'app', ('Tests/ByoyomiDiagnosticsTests.swift',), optimized=False),
+    'provisional-play-test': Suite('ProvisionalPlayTests', 'app', ('Tests/ProvisionalPlayTests.swift',), optimized=False),
     'adaptive-frame-rate-test': Suite('AdaptiveFrameRateTests', 'standalone', ('Tests/AdaptiveFrameRateTests.swift',), extra=('Sources/CameraProcessingCadence.swift',), optimized=False),
     'hand-outline-test': Suite('HandOutlineTests', 'standalone', ('Tests/HandOutlineTests.swift','Tests/HandOutlineRecordedTests.swift'), extra=('Sources/HandOutlineTracker.swift','Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'), optimized=True),
     'hand-motion-test': Suite('HandMotionTimingTests', 'standalone', ('Tests/HandMotionTimingTests.swift',), extra=('Sources/HandMotionTiming.swift',), optimized=False),
@@ -33,8 +36,8 @@ SUITES = {
     'recovery-guidance-test': Suite('RecoveryGuidanceTests', 'app', ('Tests/RecoveryGuidanceTests.swift',), optimized=False),
     'archive-storage-test': Suite('ArchiveStorageTests', 'standalone', ('Tests/ArchiveStorageTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),
     'archive-review-test': Suite('ArchiveReviewCorrectionTests', 'app', ('Tests/ArchiveReviewCorrectionTests.swift',), optimized=False),
-    'historical-correction-test': Suite('HistoricalCorrectionTests', 'app', ('Tests/HistoricalCorrectionTests.swift',), optimized=False),
-    'capture-clock-test': Suite('CaptureClockTests', 'app', ('Tests/CaptureClockTests.swift', 'Tests/LocalClockTests.swift'), optimized=False),
+    'historical-correction-test': Suite('HistoricalCorrectionTests', 'app', ('Tests/HistoricalCorrectionTests.swift', 'Tests/BatchCorrectionTests.swift'), optimized=False),
+    'capture-clock-test': Suite('CaptureClockTests', 'app', ('Tests/CaptureClockTests.swift', 'Tests/CaptureUncertaintyTests.swift', 'Tests/CaptureConflictGuidanceTests.swift', 'Tests/LocalClockTests.swift'), optimized=False),
     'recovery-lifecycle-test': Suite('RecoveryLifecycleTests', 'app', ('Tests/RecoveryLifecycleTests.swift',), optimized=False),
     'recovery-glare-test': Suite('RecoveryGlareTests', 'vision', ('Tests/RecoveryGlareTests.swift',)),
     'obstruction-feedback-test': Suite('ObstructionFeedbackTests', 'app', ('Tests/ObstructionFeedbackTests.swift', 'Tests/CoveredBorderTests.swift'), optimized=False),

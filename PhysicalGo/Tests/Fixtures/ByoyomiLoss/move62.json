@@ -1,0 +1,27 @@
+{
+  "move": 62,
+  "color": "White",
+  "turnStartedUptime": 846137.540335875,
+  "periodDeadlineUptime": 846152.540335875,
+  "estimatedHandClearUptime": 846153.1537004588,
+  "recordedAtUptime": 846154.7605249584,
+  "estimatedHandClearSecondsAfterDeadline": 0.613364583812654,
+  "recognitionDelayRemovedSeconds": 1.6068244995549321,
+  "lastHandInsideSecondsAfterDeadline": 0.513384792371653,
+  "firstClearSecondsAfterDeadline": 0.7133443753700703,
+  "clockPressEstimate": {
+    "fallbackReason": "Visual exit interval midpoint; insufficient withdrawal motion",
+    "estimatedError": 0.11997979149920866,
+    "time": 846153.1537004588,
+    "observedUpper": 846153.2536802504,
+    "observedLower": 846153.0537206674,
+    "method": "handBracket",
+    "timestampSource": "cameraPresentation",
+    "samples": 4
+  },
+  "periodsBeforeTurn": 2,
+  "periodsAfterMove": 1,
+  "pressApplied": true,
+  "imageEvidenceAvailableForMove": false,
+  "limitations": "No saved camera clip covers move 62. Logs establish the software decision, not independently verified physical hand clearance. No game or clock changes made during investigation."
+}

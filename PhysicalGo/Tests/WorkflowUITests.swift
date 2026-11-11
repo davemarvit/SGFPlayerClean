@@ -105,7 +105,7 @@ import SwiftUI
         check(model.recorder.sgf()==sgf && model.recorder.state == .paused,"Mode switch lost local game")
         model.playMode = .local
         let persistent=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,recordingStorage:nil,settings:settings,diagnosticRoot:root)
-        persistent.moveEvidenceCapture.enabled=false
+        persistent.diagnosticSettings.enabled=false
         persistent.diagnostics.limitGB=10
         persistent.showDiagnostics=true
         let restored=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,recordingStorage:nil,settings:settings,diagnosticRoot:root)

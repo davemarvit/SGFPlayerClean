@@ -15,6 +15,9 @@ import Foundation
             return "\(prefix) The game could not be saved or restored safely. Check the save error on screen before playing another move."
         }
         if let remaining=automaticCaptureRemainingPoints {
+            if !automaticCaptureConflictPoints.isEmpty {
+                return "Clocks remain paused. The camera and recorded board disagree at \(locations(automaticCaptureConflictPoints)). Compare those intersections with the interpretation board before correcting anything."
+            }
             return remaining.isEmpty
                 ? "\(prefix) Captured intersections look empty. Keep hands clear while the complete board is verified."
                 : "\(prefix) Finish removing the captured stones at \(locations(remaining)), then move your hands clear. The clocks restart after verification."
@@ -30,7 +33,7 @@ import Foundation
             let lead=clock.running ? "Move history needs review." : prefix
             let changed=section.before.indices.filter {section.before[$0] != section.after[$0]}
             if let restoration=boardRestorationPlan(section.id),case let .displaced(from,to,color)=restoration.kind {
-                return "\(lead) A \(color.rawValue) stone may have moved from \(locations([from])) to \(locations([to])). Check the physical stone against \(review). Restore it only if it was bumped."
+                return "\(lead) A \(color.rawValue) stone may have moved from \(locations([from])) to \(locations([to])). Open \(review). If the saved location is wrong, drag the saved stone to its intended intersection and confirm the correction. Restore it only if it was bumped."
             }
             switch ReviewChangeKind.classify(before:section.before,after:section.after) {
             case .missing:

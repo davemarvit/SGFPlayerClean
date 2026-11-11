@@ -28,6 +28,14 @@ import AVFoundation
         for player in ["Black","White"] {phrases += (1...10).map {"Corrected: \(player), \($0) \($0==1 ? "period":"periods") left"}}
         phrases += ["Clocks paused. Please check the screen."]
         phrases += ["Clocks resumed. Black to play.","Clocks resumed. White to play."]
+        // Match LocalGameClock's complete recovery announcement, including the
+        // prefix. Caching only "Clocks resumed" leaves these routine messages
+        // dependent on cold synthesis and its 1.5-second system-voice fallback.
+        for action in ["Capture complete.","Board position restored."] {
+            for player in ["Black","White"] {
+                phrases.append("\(action) Clocks resumed. \(player) to play.")
+            }
+        }
         let previous=(try? Data(contentsOf:output.appendingPathComponent("manifest.json")))
             .flatMap{try? JSONDecoder().decode([String:String].self,from:$0)} ?? [:]
         var manifest=[String:String]()

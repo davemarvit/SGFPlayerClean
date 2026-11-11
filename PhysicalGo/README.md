@@ -64,6 +64,63 @@ registry; its checks verify source existence, unique executables and coverage of
 every regression entry point. Keep recorded fixtures separate from generated
 test outputs.
 
+## Advanced diagnostics (0.141)
+
+Info & settings → Advanced provides an explicit Diagnostics mode switch. Panel
+visibility is independent of collection. New installations leave camera diagnostics
+off; an explicitly enabled older unusual-move preference is preserved. Disabling
+the mode stops image collection and clears the transient camera buffer. Ordinary
+SGF and compact clock history continue. Outside diagnostics mode, the detailed
+observation journal is deleted only after a finished game with all reviews resolved
+is successfully exported as SGF. Autosave and mid-game export retain recovery evidence.
+
+In diagnostics mode, a lost byoyomi period—including the last period expiring—
+triggers a camera clip independently of speech. The default is four seconds before
+and five seconds after the event, at up to five full-resolution images per second.
+Advanced settings offer 2/4/6 seconds before, 3/5/8 seconds after, and 2/5/10 fps.
+Actual coverage depends on camera delivery, a 256 MB ring buffer and writer limits;
+the archive records requested and available coverage. Pausing play preserves an
+active clip's post-roll. Camera stop or disabling diagnostics stops collection.
+
+Clips retain both clock states, period counts, available boundary timestamps,
+hand-clear estimates and later recognition decisions. A period restored by delayed
+recognition remains documented rather than deleting its evidence. Continuous
+capture is optional and must be started manually after launch. While it is active,
+period losses bookmark that recording instead of duplicating its images. All camera archives
+share the existing 10 GB rotation allowance; kept captures remain protected.
+
+Run `--byoyomi-diagnostics-test` for loss/refund/timeout detection, mode gating,
+settings persistence, actual move 62 timing replay and camera pre/post-roll checks.
+
+## Provisional placements and clock presses
+
+Local play separates a completed turn from its exact intersection. When the
+camera clearly sees one new stone of the expected colour after the hand clears,
+and every retained legal history agrees on the turn and capture consequences,
+the clock can switch while the location remains provisional. A short tone marks
+a new ambiguity. The counters below each clock count placements, not candidate
+intersections; clicking a counter opens the earliest historical position for
+that player, with Previous/Next navigation.
+
+Browsing does not pause. Choosing Correct placement or dragging the marked stone
+pauses recording and clocks. Multiple pending placements can be edited together;
+confirmation saves the revised legal history, and Resume checks the physical
+board. Later clear placements and legal captures can resolve earlier alternatives.
+Hand-covered points alone never establish a capture. Unresolved placements block
+final scoring and complete SGF export.
+
+Each provisional press is stored separately in the clock sidecar, with its
+original estimate and error information. Promoting moves into SGF transfers those
+presses without charging time or awarding increments again. Restart restores them
+paused. Contradictory turn evidence, capture-pause ambiguity, and timing intervals
+that overlap expiry require clock review. Candidate search is bounded; reaching
+its limit preserves prior hypotheses for correction rather than choosing a path.
+
+`--provisional-play-test` exercises alternative locations, later replies, capture
+resolution, capture pauses, persistence, direct corrections, and press promotion
+across all timed clock modes. The normal recorder, capture and clock regressions
+remain required for changes to these paths.
+
 ## App icon
 
 The app icon pairs a physical black Go stone with a pale wiremesh stone.
@@ -2938,3 +2995,133 @@ expiry, short periods, frame jitter, rate transitions and missed slots.
 `--capture-clock-test` covers repeated hand entry, a single initial glimpse,
 fully removed confirmation, reset conditions, expiry recovery and unchanged
 0.4-second capture / 0.8-second final-verification durations at 10 fps.
+
+## Capture uncertainty outside the removal area (0.135)
+
+A November 10 six-stone capture exposed a mismatch between tentative capture
+recognition and final board verification. Intermittent uncertainty away from the
+capture repeatedly discarded the tentative plan, so the move eventually saved
+without a capture-removal pause. Both stages now use the same bounded verification
+policy: the capturing stone and every prisoner intersection must be clear, while
+limited uncertainty at unchanged points does not erase the legal position.
+Definite extra, missing, moved or wrong-colored stones still reject the candidate.
+Uncertainty in the capture itself and broad loss of the board also reject it.
+Contradictions during an established hold prevent completion and keep clocks
+stopped until fresh consistent views arrive.
+
+Expected intermediate positions persisted for a pending hold use legal history
+at unchanged intersections. Camera observations are never overwritten and no
+persistent camera overrides are introduced. Reopening and manual-review handoff
+continue to work when the initial observation included unrelated uncertainty.
+
+`--capture-clock-test` includes `CaptureUncertaintyTests` and the 33 saved
+classifications in `Tests/Fixtures/CaptureUncertainty`. The old implementation
+fails the recorded replay because it never pauses. The regression checks the
+pause boundary, excluded removal time, opponent verification time, exactly one
+saved move and one completion announcement. Synthetic controls cover conflicts
+before and after a hold, unclear capture points, low confidence, broad obstruction,
+hand re-entry, uncertain final views, persistence and the manual-review escape.
+The fixture documents the journal's timing/confidence limitations; it is a
+recorder/clock replay, not a fresh image-recognition or interpolation benchmark.
+
+## Specific capture-conflict guidance (0.136)
+
+During an established capture-removal hold, a definite disagreement that remains
+visible for at least two seconds and three fresh observations gets its own spoken
+instruction. It names up to three intersections in the displayed orientation,
+states that clocks remain paused, and asks the player to compare the physical and
+interpretation boards before correcting anything. The status panel switches to
+"Check board before resuming" instead of continuing to request prisoner removal.
+Remaining prisoners in their original locations and unknown readings do not count
+as conflicts. Speech evidence never changes the capture verification rules.
+
+Each continuously visible conflict is announced once. Hand entry, uncertainty at
+that point, camera interruption, manual pause or correction clears stale speech
+evidence; another warning needs fresh sustained sightings. Unsaid queued warnings
+are discarded when obsolete. An audible sentence finishes naturally, with the
+capture-complete/clock-resume announcement queued after it. Explicit mute still
+stops speech. Ordinary recording warnings are suppressed while the specific
+capture-conflict guidance applies.
+
+`CaptureConflictGuidanceTests`, included in `--capture-clock-test`, exercises the
+real recorder/model callbacks with a controllable speech output. Coverage includes
+extra/missing/moved/wrong-colored stones, timing at 10 fps, stale/repeated frames,
+transient uncertainty, all board orientations, unchanged held clocks, no premature
+move saving, screen instructions, deduplication, queued cancellation, hand re-entry,
+natural warning completion, resume acknowledgement and mute.
+
+
+### Capture removals split across reviews
+
+A single legal capture can now be confirmed even when its prisoner removals were
+saved as successive review sections. Either review opens the same live capture
+check; one confirmation saves the capturing move and resolves removal-only
+sections without adding moves for the prisoners. Original snapshots remain in
+the audit history. Only a contiguous unresolved sequence of prisoner removals is
+combined: extra/missing unrelated stones, moved stones, changed colors,
+reappearing prisoners, broken continuity, and previously reviewed sections all
+retain normal review requirements. Fresh camera verification is still required;
+confirmation keeps clocks paused and queues the completion announcement for Resume.
+
+`Tests/Fixtures/SplitCapture` preserves the actual two-section E5 capture from
+2026-11-10. The physical-review regression checks both entry points, live conflicts,
+single-move saving, clock preservation, restart, duplicate confirmation, and
+conflicting later history. This is review recovery coverage, not a successful
+live test of automatic capture timing. The live test runner also timed out while
+reading a stale persisted clock snapshot before its start cue; future timing
+runs must wait on current app/journal state instead of that sidecar alone.
+
+
+### Routine recovery speech assets
+
+The Kokoro asset generator includes the full capture-completion and restored-board
+restart announcements for both Black and White. The live 0.137 test exposed that
+only the shorter “Clocks resumed” messages had been cached: the combined capture
+sentence hit the 1.5-second synthesis deadline and used the system voice. These
+four exact messages now have bundled audio and are decoded/cache-checked by
+`--voice-assets`. Uncommon messages retain the existing timely fallback.
+
+Live 0.137 validation confirmed that the two-part E5 capture can be resolved by
+one confirmation, preserving both snapshots and saving one move. Resume delivered
+the complete announcement, then the test harness paused the clocks. Automatic
+capture detection did not establish its hold in this run; the D5 placement warning
+and camera interruption are retained for investigation. This is a successful live
+recovery test, not evidence that automatic capture timing passed.
+
+
+### Drag and batch-correct saved moves
+
+The interpretation board and saved-position browser open a correction preview
+when a saved stone is dragged. Move ownership comes from the position being
+viewed, so an older stone is not confused with the latest move; captured stones
+can be edited by browsing to a position where they were still present. The
+preview stages multiple move locations, shows every edit, and replays the entire
+sequence after applying the complete batch. Conflicting edits remain editable;
+Save is disabled until the resulting game is legal. Original SGF timing
+properties and clock balances remain intact. Confirmation creates a corrected
+SGF copy and makes it the active game; the original stays available.
+
+The displaced-stone review also accepts dragging on its saved interpretation,
+with a coordinate-specific correction shortcut. It explains the distinction
+between correcting a wrong recorded location and restoring an accidentally
+bumped stone. When corrected history exactly explains an unresolved prefix of
+observed changes, those reviews resolve with zero additional moves and keep their
+original before/after evidence. Other board differences and later unresolved
+chronology still require review. Resume verifies the corrected physical position.
+
+`Tests/Fixtures/DisplacedMoveCorrection` preserves the demo where Black move 7
+was saved at B16 and physically moved to intended C16. Batch regression coverage
+includes this recovery, several older edits at once, temporarily conflicting
+individual edits that become legal as a batch, capture recomputation, original
+file preservation, clock invariance, restart, stale previews, and unrelated
+board-change rejection.
+
+In 0.142, **Clear diagnostic data…** asks for confirmation before deleting completed
+camera archives and their contained logs. It preserves active writers, captures marked
+KEEP, unrecognized files, saved games, game/clock history, calibration and photo samples.
+Cleanup uses the same interprocess locks as rotation and runs off the UI thread.
+Diagnostics settings remain unchanged, so enabled collection may create new clips.
+“Save uncertain or delayed moves” means recognition difficulty: local uncertainty
+lasting two seconds, recognition taking five seconds, an unrecorded-stones warning, or move-order review/recovery;
+online detection also triggers below 0.90 confidence or at a 0.24-grid-spacing assignment
+offset. This says nothing about the strategic quality of a move.

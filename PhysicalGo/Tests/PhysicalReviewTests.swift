@@ -138,6 +138,63 @@ import SwiftUI
         history.sections[0] = original; history.sections[0].after[314] = .white
         check(CaptureReviewPlan.make(history: history, id: id, context: prefix) == nil, "Wrong color was called a capture")
 
+        // Actual two-trip capture: both review entry points must open one live
+        // confirmation, without rewriting evidence or inventing removal moves.
+        let splitFixture = URL(fileURLWithPath: "PhysicalGo/Tests/Fixtures/SplitCapture")
+        let splitText = try String(contentsOf: splitFixture.appendingPathComponent("before.sgf"), encoding: .utf8)
+        let splitHistory = try JSONDecoder().decode(DeferredMoveHistory.self, from: Data(contentsOf: splitFixture.appendingPathComponent("reviews.json")))
+        func splitRecorder(_ history: DeferredMoveHistory) throws -> GameRecorder {
+            let file = root.appendingPathComponent(UUID().uuidString + ".sgf")
+            try splitText.write(to: file, atomically: true, encoding: .utf8)
+            try JSONEncoder().encode(history).write(to: file.deletingPathExtension().appendingPathExtension("reviews.json"))
+            let r = GameRecorder(storage: root); r.clock.audible = false
+            try r.restoreSavedGame(from: file); r.attachClock(.init())
+            return r
+        }
+        let split = try splitRecorder(splitHistory)
+        let firstID = splitHistory.sections[0].id, lastID = splitHistory.sections[1].id
+        check(split.captureReviewPlan(firstID) != nil, "First capture review lost confirmation after a later removal")
+        let splitPlan = split.captureReviewPlan(firstID)!
+        check(splitPlan.point == 80 && splitPlan.captured == [60,79] && splitPlan.sectionIDs == [firstID,lastID], "Split capture identified the wrong move or reviews")
+        check(split.captureReviewPlan(lastID)?.id == firstID && split.pendingCaptureReview?.id == firstID, "Removal review did not route to the same capture")
+        check(splitPlan.remaining(in: nil).isEmpty, "Latest saved removal still displayed a prisoner")
+        check(LocalPlayPresentation(recorder:split,clock:split.clock).correction?.id == firstID, "Main screen lost Finish capture for split review")
+        check(split.spokenRecoveryInstruction(orientation:.init(3)).contains("Confirm capture"), "Split capture speech incorrectly requested restoration or move order")
+        check(split.confirmCaptureReview(lastID,now:now) != nil, "Split capture bypassed fresh verification")
+        var splitConflict = splitPlan.target; splitConflict[180] = .empty; splitConflict[181] = .black
+        feed(split,splitConflict)
+        check(split.confirmCaptureReview(lastID,now:now) != nil, "Live bumped stone was hidden by split capture")
+        feed(split,splitPlan.target)
+        try render(split,lastID,"split-capture-ready",turns:3)
+        let splitBlack = split.clock.engine.black, splitWhite = split.clock.engine.white
+        check(split.confirmCaptureReview(lastID,now:now) == nil, "Complete split capture could not be confirmed from removal review")
+        check(split.moveCount == 16 && split.nextPlayer == .black && !split.hasDeferredMoves, "Split capture invented moves or left a gap")
+        check(split.reviewHistory.sections[0].moves?.count == 1 && split.reviewHistory.sections[1].moves == [], "Prisoner removal became a played move")
+        check(split.clock.engine.black == splitBlack && split.clock.engine.white == splitWhite && !split.clock.running, "Split recovery changed clock times or resumed play")
+        check(split.clock.pendingResumeAnnouncement == "Capture complete.", "Split recovery lost resume announcement")
+        for i in splitHistory.sections.indices {
+            check(split.reviewHistory.sections[i].before == splitHistory.sections[i].before && split.reviewHistory.sections[i].after == splitHistory.sections[i].after, "Split capture overwrote source snapshots")
+        }
+        check(split.confirmCaptureReview(firstID,now:now) != nil && split.moveCount == 16, "Repeated split confirmation duplicated move")
+        let splitReopened = GameRecorder(storage:root); splitReopened.clock.audible = false
+        try splitReopened.restoreSavedGame(from:split.autosaveURL!)
+        check(splitReopened.moveCount == 16 && !splitReopened.hasDeferredMoves, "Split capture did not survive restart")
+        check(DeferredMoveHistory.states(splitReopened.positions.last!) == splitPlan.target, "Split capture restored prisoners")
+        for kind in 0..<7 {
+            var bad = splitHistory
+            switch kind {
+            case 0: bad.sections[1].after[0] = .black // extra stone
+            case 1: bad.sections[1].after[180] = .empty // unrelated missing stone
+            case 2: bad.sections[1].after[180] = .white // wrong color
+            case 3: bad.sections[1].after[180] = .empty; bad.sections[1].after[181] = .black // bumped stone
+            case 4: bad.sections[1].after[79] = .black // removed prisoner reappears
+            case 5: bad.sections[1].moves = [] // do not overwrite explicit resolution
+            default: bad.sections[1].before[0] = .black // broken continuity
+            }
+            let r = try splitRecorder(bad)
+            check(r.captureReviewPlan(firstID) == nil && r.captureReviewPlan(lastID) == nil, "Split capture swallowed conflicting history \(kind)")
+        }
+
         let koText = "(;GM[1]FF[4]AP[PhysicalGo:0.121]SZ[9]RU[Japanese];B[ab];W[bb];B[ba];W[ac];B[cb];W[cc];B[ii];W[bd];B[hi];W[gi];B[bc])"
         let koGame = SGFGame.from(tree: try SGFParser.parse(text: koText))
         let koPlayer = SGFPlayer(); koPlayer.load(game: koGame); koPlayer.seek(to: koGame.moves.count)

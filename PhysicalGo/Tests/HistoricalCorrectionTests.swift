@@ -4,7 +4,7 @@ import SwiftUI
 @main struct HistoricalCorrectionTests {
     @MainActor static func main() throws {
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
-        var checks=0
+        var checks=try BatchCorrectionTests.run()
         func check(_ value:Bool,_ message:String) {checks+=1;precondition(value,message)}
         let root=FileManager.default.temporaryDirectory.appendingPathComponent("historical-correction-"+UUID().uuidString)
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)

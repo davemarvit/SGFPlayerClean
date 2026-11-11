@@ -72,7 +72,45 @@ enum PhysicalPlayMode: String, CaseIterable {
     func resizeText(_ delta:Double) { interfaceScale=min(1.5,max(0.9,((interfaceScale+delta)*100).rounded()/100)) }
     let scoring=PhysicalScoring()
     let onlineBoard = PhysicalOnlineBoard()
-    let moveEvidenceCapture = MoveEvidenceCapture()
+    let moveEvidenceCapture:MoveEvidenceCapture
+    @Published var diagnosticSettings=DiagnosticSettings() {
+        didSet {
+            guard diagnosticSettings.valid else {diagnosticSettings=oldValue;return}
+            configureDiagnosticCollection()
+            if persistViewSettings,let data=try? JSONEncoder().encode(diagnosticSettings) {settings.set(data,forKey:DiagnosticSettings.key)}
+        }
+    }
+    private func configureDiagnosticCollection() {
+        moveEvidenceCapture.configure(diagnosticSettings)
+        if !diagnosticSettings.enabled {diagnostics.stop(reason:"Diagnostics mode disabled")}
+    }
+    private func capturePeriodChange(_ change:ByoyomiPeriodChange) {
+        guard playMode == .local,diagnosticSettings.enabled,diagnosticSettings.byoyomiLosses else {return}
+        var details=(DiagnosticRecorder.value(change) as? [String:Any]) ?? [:]
+        details["event"]=change.lost ? "byoyomi period lost":"byoyomi period restored"
+        details["game"]=recorder.autosaveURL?.lastPathComponent ?? "unsaved local game"
+        details["player"]=change.black ? "Black":"White"
+        details["moveNumber"]=change.press.flatMap {estimate in
+            (recorder.clock.moves+recorder.clock.provisionalMoves).last{$0.estimate==estimate}?.number
+        } ?? recorder.clock.lastTimedMove+1
+        details["uptime"]=change.observedAt;details["viewQuarterTurns"]=viewQuarterTurns
+        for (key,plistKey) in [("appVersion","CFBundleShortVersionString"),("appBuild","CFBundleVersion"),("sourceHash","PhysicalGoSourceHash")] {
+            details[key]=Bundle.main.object(forInfoDictionaryKey:plistKey) ?? "development"
+        }
+        if change.lost {
+            if diagnostics.isCapturing {
+                // Continuous images already cover the event. Bookmark that
+                // archive instead of reserving a second writer's disk budget.
+                details["evidenceCaptureFolder"]=diagnostics.folder?.path
+                details["evidenceCaptureKind"]="continuous diagnostics"
+            } else {
+                details["evidenceCaptureFolder"]=moveEvidenceCapture.trigger(details,now:change.observedAt)
+                details["evidenceCaptureKind"]="event clip"
+            }
+        }
+        moveEvidenceCapture.annotate(["clockPeriodChange":details],now:change.observedAt)
+        recorder.logClockDiagnostic(details,now:change.observedAt)
+    }
     let boardCorrections = ManualBoardCorrections()
     @Published var stoneCalibrationSession: StoneCalibrationSession?
     @Published var savingStoneCalibration = false
@@ -407,11 +445,12 @@ enum PhysicalPlayMode: String, CaseIterable {
         let names = ["top-left", "top-right", "bottom-right", "bottom-left"]
         return corners.count < 4 ? "Hover to magnify · Click the \(names[corners.count]) corner intersection" : "Grid aligned"
     }
-    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, recoveryAudio:(any RecoverySpeechOutput)?=nil) {
+    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil) {
         self.settings=settings;discoversCameras=discoverCameras
         self.recoverySpeech=RecoverySpeech(audio:recoveryAudio)
         self.recorder = GameRecorder(storage:recordingStorage)
         self.diagnostics = DiagnosticRecorder(root:diagnosticRoot)
+        self.moveEvidenceCapture = MoveEvidenceCapture(root:moveEvidenceRoot)
         self.referenceArchive = referenceArchive
         automaticGridEnabled = automaticGridDetection
         persistViewSettings = restoreViewSettings
@@ -439,10 +478,11 @@ enum PhysicalPlayMode: String, CaseIterable {
         }.store(in:&clockSubscriptions)
         configurePlacementChime()
         onlineBoard.onEvidenceCapture = { [weak self] event in
-            self?.moveEvidenceCapture.trigger(event,now:event["uptime"] as? Double ?? ProcessInfo.processInfo.systemUptime)
+            guard let self,self.diagnosticSettings.enabled,self.diagnosticSettings.unusualMoves else {return nil}
+            return self.moveEvidenceCapture.trigger(event,now:event["uptime"] as? Double ?? ProcessInfo.processInfo.systemUptime)
         }
         recorder.onEvidenceCapture = { [weak self] event in
-            guard let self,self.playMode == .local else {return nil}
+            guard let self,self.playMode == .local,self.diagnosticSettings.enabled,self.diagnosticSettings.unusualMoves else {return nil}
             var details=event
             details["viewQuarterTurns"]=self.viewQuarterTurns
             for (key,plistKey) in [("appVersion","CFBundleShortVersionString"),("appBuild","CFBundleVersion"),("sourceHash","PhysicalGoSourceHash")] {
@@ -456,16 +496,12 @@ enum PhysicalPlayMode: String, CaseIterable {
             if let data=settings.data(forKey:"PhysicalGo.nextClock"),let config=try? JSONDecoder().decode(LocalClockSettings.self,from:data),config.validationError==nil {newGameClock=config}
         }
         if restoreViewSettings {
-            if settings.object(forKey:"PhysicalGo.captureUnusualMoves") != nil {
-                moveEvidenceCapture.enabled=settings.bool(forKey:"PhysicalGo.captureUnusualMoves")
-            }
+            diagnosticSettings=DiagnosticSettings.load(settings)
             let limit=settings.integer(forKey:"PhysicalGo.diagnosticLimitGB")
             if [1,5,10].contains(limit) {diagnostics.limitGB=limit}
         }
-        moveEvidenceCapture.$enabled.dropFirst().sink { [weak self] value in
-            guard let self,self.persistViewSettings else {return}
-            self.settings.set(value,forKey:"PhysicalGo.captureUnusualMoves")
-        }.store(in:&clockSubscriptions)
+        configureDiagnosticCollection()
+        recorder.clock.onByoyomiPeriodChange = { [weak self] change in self?.capturePeriodChange(change) }
         diagnostics.$limitGB.dropFirst().sink { [weak self] value in
             guard let self,self.persistViewSettings else {return}
             self.settings.set(value,forKey:"PhysicalGo.diagnosticLimitGB")
@@ -527,9 +563,29 @@ enum PhysicalPlayMode: String, CaseIterable {
             NSSound(named:"Pop")?.play()
         }
         recorder.onAttention = { [weak self] in self?.playRecordingWarning() }
+        recorder.onCaptureConflictChanged = { [weak self] announce in
+            guard let self else {return}
+            if self.recorder.automaticCaptureConflictPoints.isEmpty {
+                self.recoverySpeech.resolved(.captureConflict,reason:"capture conflict no longer visible")
+            } else if announce && self.recoverySpeechEnabled && self.recorder.clock.audible {
+                self.recoverySpeech.resolved(.recordingWarning,reason:"specific capture guidance available")
+                self.recoverySpeech.request(.captureConflict,text:self.spokenRecoveryInstruction,
+                    settings:self.recorder.clock.sounds,priority:true,refresh:{ [weak self] in
+                        guard let self,self.recoverySpeechEnabled,self.recorder.clock.audible,
+                              self.recorder.state == .recording,!self.recorder.handOverBoard,
+                              !self.recorder.automaticCaptureConflictPoints.isEmpty else {return nil}
+                        return self.spokenRecoveryInstruction
+                    })
+            }
+        }
         recorder.onReviewNeeded = { [weak self] in self?.playRecordingWarning() }
         recorder.onDiagnosticEvent = { [weak self] entry in
-            guard let self,self.diagnostics.isOpen else {return}
+            guard let self else {return}
+            let event=entry["event"] as? String ?? ""
+            if self.diagnosticSettings.enabled,(event.hasPrefix("accepted ") || event=="hand-clear clock boundary" || event=="provisional clock press" || event=="paused") {
+                self.moveEvidenceCapture.annotate(["recordingDecision":entry],now:entry["uptime"] as? Double ?? ProcessInfo.processInfo.systemUptime)
+            }
+            guard self.diagnostics.isOpen else {return}
             var details=entry;let sgf=self.recorder.sgf()
             if sgf != self.lastDiagnosticSGF {details["sgf"]=sgf;self.lastDiagnosticSGF=sgf}
             self.diagnostics.event("recorder",ticket:self.diagnosticDecisionTicket,details:["decision":details])
@@ -591,6 +647,7 @@ enum PhysicalPlayMode: String, CaseIterable {
          "editingCorrections":boardCorrections.isEditing]
     }
     func startDiagnostics() {
+        if !diagnosticSettings.enabled {diagnosticSettings.enabled=true}
         var context=diagnosticContext
         context["appVersion"]=Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development"
         context["appBuild"]=Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "development"
@@ -607,11 +664,16 @@ enum PhysicalPlayMode: String, CaseIterable {
         return diagnostics.capture(image,at:time,context:context,reference:referenceImage,anchor:trackingAnchor,anchorRevision:diagnosticAnchorRevision)
     }
     private func configurePlacementChime() {
+        recorder.onAmbiguity = { [weak self] in
+            guard let self,self.soundMode != .off else {return}
+            NSSound(named:"Glass")?.play()
+        }
         if soundMode == .adjustments {
             recorder.onPlacementChime = { _ in NSSound(named:"Glass")?.play() }
         } else { recorder.onPlacementChime = nil }
     }
     private func playRecordingWarning() {
+        guard recorder.automaticCaptureConflictPoints.isEmpty else {return}
         if soundMode == .all {
             NSSound(named:"Basso")?.play()
             recorder.logSpeech("warning sound requested",details:["sound":"Basso","channel":"recording"])
@@ -1369,7 +1431,10 @@ enum PhysicalPlayMode: String, CaseIterable {
         let mode=playMode
         guard mode == .online || recorder.hasGame else {return}
         if mode == .local && recorder.hasUnfinishedReviews {
-            exportStatus="Resolve the red review sections before exporting the complete SGF. Your later moves are preserved.";return
+            exportStatus=recorder.placementAmbiguities.isEmpty
+                ? "Resolve the remaining reviews before exporting the complete SGF. Your later moves are preserved."
+                : "Click the ambiguity counts below the clocks and confirm the remaining placements before exporting the complete SGF. Your moves are preserved."
+            return
         }
         exportingSGF=true;exportStatus = mode == .online ? "Fetching SGF from SGF Player…" : ""
         defer { exportingSGF=false }
@@ -1388,6 +1453,10 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard panel.runModal() == .OK,let url=panel.url else {exportStatus="";return}
             try data.write(to:url,options:.atomic)
             exportStatus="Saved \(url.lastPathComponent)"
+            if mode == .local,let exportedSGF=String(data:data,encoding:.utf8) {
+                do {try recorder.discardFinishedObservationLog(exportedSGF:exportedSGF,keepDiagnostics:diagnosticSettings.enabled)}
+                catch {exportStatus+=". The game is saved, but its recovery log could not be cleared: \(error.localizedDescription)"}
+            }
         } catch {exportStatus="Could not save SGF: \(error.localizedDescription)"}
     }
     func saveSample() {

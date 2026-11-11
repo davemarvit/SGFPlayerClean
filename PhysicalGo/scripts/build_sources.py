@@ -12,14 +12,16 @@ DEPENDENCIES = {
     'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
     'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift'),
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift', 'Sources/HandMotionTiming.swift'),
+    'Sources/MoveObservationHistory.swift': ('Sources/PlacementAlternatives.swift',),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
     'Sources/PhysicalOnlineBoard.swift': (
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
-        'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
+        'PlacementAmbiguity.swift', 'ProvisionalPlay.swift', 'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
         'AutomaticCapture.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
+    'Sources/LocalGameClock.swift': ('Sources/DiagnosticSettings.swift',),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),
     'Sources/PhysicalScoring.swift': tuple('../SGFPlayerClean/' + name for name in (
         'Models/AIModels.swift', 'Models/LocalScoring.swift', 'Services/KataGoEngine.swift',

@@ -24,9 +24,11 @@ import AVFoundation
         else if recorder.awaitingFirstStart && recorder.state == .paused {title="Ready to start"}
         else if recorder.state == .finished {title="Game finished"}
         else if recorder.state == .paused {title="Game paused"}
+        else if !recorder.automaticCaptureConflictPoints.isEmpty {title="Check board · clocks stopped"}
         else if recorder.automaticCaptureStatus != nil {title="Removing captured stones · clocks stopped"}
         else if automaticHold {title="Waiting for board · clocks stopped"}
         else if clock.enabled && !clock.running {title="Clocks paused"}
+        else if clock.running && !clock.provisionalMoves.isEmpty {title="Playing"}
         else if !recorder.synchronized {title="Checking board"}
         else {title="Playing"}
     }
@@ -53,7 +55,8 @@ import AVFoundation
             title="Check clock times";detail="\(clocks) The saved game is preserved."
             nextStep="Choose Review & resume to check both times before continuing."
         } else if let capture=recorder.automaticCaptureStatus {
-            title="Removing captured stones";detail="Both clocks stopped. The capture is being checked."
+            title=recorder.automaticCaptureConflictPoints.isEmpty ? "Removing captured stones":"Check board before resuming"
+            detail="Both clocks stopped. The capture is being checked."
             nextStep=recorder.state == .paused ? "Press Resume to continue checking the capture. Both clocks stay stopped until removal is verified.":capture
         } else if recorder.handOverBoard && recorder.state == .recording {
             title="Waiting for hands to clear";detail="\(clocks) The move will be confirmed after the board is clear."
@@ -72,6 +75,9 @@ import AVFoundation
                 : "\(turn) plays next. Press Resume when ready; the board is verified before play continues."
         } else if recorder.state == .idle {
             title="Camera preview";detail="No game is being recorded.";nextStep="Save a game setup to begin."
+        } else if clock.running && !clock.provisionalMoves.isEmpty && !recorder.needsAttention {
+            title="Playing";detail="Clock running. \(recorder.moveCount) moves saved."
+            nextStep="\(recorder.placementAmbiguities.count) ambiguous placements retained. Click an ambiguity count to review earlier positions."
         } else if !recorder.synchronized || recorder.needsAttention || recorder.pendingMoveCount>0 {
             title="Checking the board";detail="\(clocks) \(recorder.moveCount) moves saved."
             nextStep=recorder.status
@@ -179,6 +185,8 @@ struct LocalClockPanel:View {
     var large=false
     var showsStatus=true
     var onReview:(UUID)->Void = {_ in}
+    var orientation=BoardOrientation(0)
+    @State private var ambiguityColor:Stone?
     @State private var expanded=false
     @State private var correction=false
     @State private var resumeAfterReview=false
@@ -241,8 +249,11 @@ struct LocalClockPanel:View {
             .sheet(isPresented:$expanded) {
                 VStack {
                     HStack {Spacer();Button("Close large clock") {expanded=false}.keyboardShortcut(.cancelAction)}.padding([.top,.horizontal])
-                    LocalClockPanel(clock:clock,recorder:recorder,large:true,onReview:onReview)
+                    LocalClockPanel(clock:clock,recorder:recorder,large:true,onReview:onReview,orientation:orientation)
                 }.frame(minWidth:960,minHeight:540)
+            }
+            .sheet(isPresented:Binding(get:{ambiguityColor != nil},set:{if !$0 {ambiguityColor=nil}})) {
+                if let color=ambiguityColor {AmbiguityReviewView(recorder:recorder,orientation:orientation,color:color,onReview:onReview)}
             }
             .sheet(isPresented:$correction) {LocalClockCorrection(clock:clock,recorder:recorder,resumeAfterReview:resumeAfterReview)}
     }
@@ -317,6 +328,12 @@ struct LocalClockPanel:View {
         }.padding(large ? 24:20).frame(maxWidth:.infinity,alignment:.leading)
             .background(active ? (urgent ? Color.red:Color.accentColor).opacity(0.15):Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:12))
             .overlay(RoundedRectangle(cornerRadius:12).stroke(active ? (urgent ? Color.red:Color.accentColor):Color.clear,lineWidth:urgent ? 4:3))
+            let ambiguities=recorder.placementAmbiguities.filter{$0.color==(black ? .black:.white)}.count
+            Button("Ambiguities: \(ambiguities)") {ambiguityColor=black ? .black:.white}
+                .buttonStyle(.plain).font(.system(size:large ? 24:20,weight:.medium)).monospacedDigit()
+                .foregroundStyle(ambiguities==0 ? Color.secondary:Color.orange).disabled(ambiguities==0)
+                .accessibilityLabel("\(black ? "Black":"White") ambiguities: \(ambiguities)")
+                .help("Review this player’s unresolved stone placements, including earlier positions.")
             Text(countLabel).font(.system(size:large ? 24:20,weight:.medium)).monospacedDigit()
                 .foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.65)
                 .frame(maxWidth:.infinity)

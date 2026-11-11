@@ -102,7 +102,7 @@ import ImageIO
         // Exercise actual ExperimentModel routing and recorder correlation, without
         // opening a physical camera or changing the user's reference/settings.
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil,diagnosticRoot:root)
-        model.moveEvidenceCapture.enabled=false // This test owns only its isolated continuous-capture directory.
+        model.diagnosticSettings.unusualMoves=false;model.diagnosticSettings.byoyomiLosses=false // This test owns only continuous capture.
         model.soundMode = .off;model.tracksCameraMotion=false
         try model.openSample(from:fixture);settle(0.6)
         model.running=true;model.frozen=false;model.handleCameraStatus("Live · diagnostic test",state:.live)
