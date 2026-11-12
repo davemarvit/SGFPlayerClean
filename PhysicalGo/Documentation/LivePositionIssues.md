@@ -335,7 +335,8 @@ suite uses the configured real KataGo engine.
 These are synthetic, saved-observation, recorded-image, and native-host tests.
 They are **not actual live-camera validation**. The installed application is open
 with a recording; tests and builds use isolated state and leave that session and
-recording untouched. Installation and physical live-camera checks have not been done.
+recording untouched during implementation. Installation and launch were subsequently
+verified below; physical live-camera gameplay checks remain outstanding.
 
 `python3 PhysicalGo/build.py` succeeded. The app at
 `PhysicalGo/.build/Physical Go.app` verifies with `codesign --verify --deep --strict`
@@ -351,3 +352,52 @@ ruleset-specific timing choices remain a separate decision, as specified above.
 Final implementation commit: `d2d988191b95a4f2ab96c25d582a86aabf84ab08`.
 This documentation-only follow-up records the verified implementation commit;
 application and test sources are unchanged.
+
+
+## Installation and next tests (2026-11-11)
+
+At the user's request, installed the verified 0.157 / build 158 bundle at
+`/Users/Dave/Applications/Physical Go.app` and launched it with the current
+`Physical Go recovered pending sequence 20261111-211954.sgf` recording.
+Installed signature, executable bytes, and embedded source hash match the verified
+build. Native UI shows **89 saved / 0 pending**, the same per-player move counts,
+and **Review clock times · clocks stopped**. Camera startup reached **Live · Dave11
+Camera**. Camera availability is a launch smoke check, not gameplay validation.
+The SGF remains byte-for-byte identical to the preserved original; decoded clock,
+pending-history, and review sidecars also match, including clock balances and the
+existing timing-correction requirement. Play was not resumed.
+
+Recording backups and a verification manifest are under:
+`/Users/Dave/Library/Application Support/Physical Go/Backups/Install-0.157-20261111-231211`.
+The old signed bundle is retained under `.build/InstallBackups/`.
+
+### Finding during graceful shutdown
+
+The old 0.156 app's normal quit flushed all moves and clock state correctly, but
+its SGF export replaced the recovery provenance/root timing comments and added
+BL/WL/OB/OW timing annotations to moves 87–88 despite timing still needing review.
+All 89 moves and the entire clock sidecar were unchanged. Both before/after
+exports were retained; the original recovered SGF was restored before installing
+and reopening. This is an outstanding SGF serialization issue, not a verified fix
+in 0.157; its shutdown/export path has not been changed by this installation.
+
+### Prioritized acceptance tests
+
+Use a separate test recording or a copy of this recording. Keep the preserved
+89-move game out of destructive play/correction tests. For clock checks, record
+observed placement/removal boundaries independently and compare persisted events,
+turn transitions, balances, and increments—not only the displayed countdown.
+
+| Priority / test | Exercise | Expected result |
+| --- | --- | --- |
+| 1. Recovered-game save/quit/reopen | On an isolated copy, save and quit with pending timing review; reopen twice. Compare all SGF properties and sidecars, including comments and moves 87–89. | Move history, recovery provenance, unknown timing, balances, and review requirement survive. No unreviewed times are exported as established facts. The installation finding above currently needs a regression/fix. |
+| 2. Review while moves arrive | In a timed 9×9 game, open a placement or chronology review, play the next legal move, cancel, then try accepting an older proposal. Also browse Saved moves during play. | Tracking and clocks continue; one press/increment per move; browsing stays on its selected position; stale acceptance refreshes/rejects without altering history or pausing. |
+| 3. Disagreement and acknowledgment | Briefly cover a recorded stone, then clearly remove/displace it. Inspect the absent intersection, acknowledge the recorded position, clear the view, and change the evidence again. | Brief obstruction has no actionable marker; persistent absence has a useful route. Acknowledgment changes no SGF or clock data, recognition follow-up is scoped, and changed evidence is not permanently masked. |
+| 4. Capture policy matrix | Test Off and thresholds 2/3/5, one below and at each threshold. Remove prisoners in several trips; open/close progress; obscure a remaining point; make the following move. | One capture identity and accurate remaining-removal guidance. Below threshold, no removal hold. Qualifying removal time is uncharged; only fresh complete evidence resumes the next turn; each move receives at most one increment. |
+| 5. Rapid play near expiry | Play rapid alternating moves with one uncertain location, first with retained timing and then with an intentionally unobserved interval. Resolve locations later. | Retained turns preserve their boundaries; a static later board cannot invent presses. Unaccounted timing triggers review rather than a false automatic loss. Earlier pending moves survive recovery. |
+| 6. Outage, explicit pause, restart | Interrupt the camera during ordinary play and during a capture. Repeat after manually pausing; restart with pending locations or a capture hold. | Saved/pending history survives. Blind time is not charged without evidence, manual pauses persist, stale images cannot finish removal, and recovery does not loop or resume without its prerequisites. |
+
+The automated 83-suite run already covers fixture/synthetic versions of most of
+these behaviors. These next tests target real camera/hand timing and native user
+interaction, plus the newly observed shutdown metadata regression. They have not
+been performed on a physical game in this installation session.
