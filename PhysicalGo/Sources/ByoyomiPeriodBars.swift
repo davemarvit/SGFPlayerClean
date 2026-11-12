@@ -38,18 +38,23 @@ struct ByoyomiPeriodBars:View {
             for (index,fraction) in progress.fractions.enumerated() {
                 let current=side.overtime && index==progress.fractions.count-1
                 let emphasized=current && active
-                let color:Color=emphasized ? (side.remaining<=10 ? .red:.accentColor):.primary
+                let color:Color=fraction<0.2 ? .red:fraction<0.5 ? .yellow:.green
                 let rect=CGRect(x:CGFloat(index%progress.columns)*(width+gap),y:CGFloat(index/progress.columns)*(height+gap),
-                                width:min(width,max(1.6,width*CGFloat(fraction))),height:height)
-                let path=RoundedRectangle(cornerRadius:min(3,rect.width/2)).path(in:rect.insetBy(dx:0.8,dy:0.8))
-                context.fill(path,with:.color(color.opacity(emphasized ? 0.28:side.overtime ? 0.10:0.05)))
-                context.stroke(path,with:.color(color.opacity(emphasized ? 1:side.overtime ? 0.70:0.35)),lineWidth:1.6)
+                                width:width,height:height)
+                let track=rect.insetBy(dx:0.8,dy:0.8)
+                let path=RoundedRectangle(cornerRadius:3).path(in:track)
+                context.fill(path,with:.color(.primary.opacity(0.05)))
+                var fillContext=context
+                fillContext.clip(to:path)
+                fillContext.fill(Path(CGRect(x:track.minX,y:track.minY,width:track.width*CGFloat(fraction),height:track.height)),
+                                 with:.color(color.opacity(emphasized ? 0.95:0.7)))
+                context.stroke(path,with:.color(.primary.opacity(emphasized ? 0.85:0.55)),lineWidth:1.6)
             }
         }
         .frame(height:CGFloat(progress.rows)*height+CGFloat(progress.rows-1)*gap)
         .accessibilityElement(children:.ignore)
         .accessibilityLabel("Byoyomi periods")
         .accessibilityValue(description)
-        .help("The last visible bar is the current period. It shrinks with the clock, refills after an on-time move, and disappears when exhausted. Earlier bars are unused periods.")
+        .help("The last visible bar is the current period. Its fill shrinks inside a fixed outline: green at 50% or more, yellow below 50%, and red below 20%. It refills after an on-time move; the whole bar disappears when the period is lost. Earlier bars are unused periods.")
     }
 }

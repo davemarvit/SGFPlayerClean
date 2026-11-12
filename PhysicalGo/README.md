@@ -92,12 +92,25 @@ share the existing 10 GB rotation allowance; kept captures remain protected.
 Run `--byoyomi-diagnostics-test` for loss/refund/timeout detection, mode gating,
 settings persistence, actual move 62 timing replay and camera pre/post-roll checks.
 
+## G18 recognition and rapid-play recovery (0.147)
+
+A covered white stone could be rejected exactly at the allowed 0.28-cell outline
+displacement: subtracting column 17 from 17.28 produced a value slightly greater
+than 0.28. The comparison now allows floating-point rounding at the same bound;
+outline quality, separation, grid coverage and color checks are unchanged.
+`--g18-rapid-play-test` checks seven recorded photographs, including the empty
+G18 control, then replays the rapid G18 / J19 capture / G17 sequence with only
+G18's documented classification corrected. A single complete, legal suggested
+review order is now shown as a draft for explicit confirmation.
+
 ## Provisional placements and clock presses
 
 Local play separates a completed turn from its exact intersection. When the
-camera clearly sees one new stone of the expected colour after the hand clears,
-and every retained legal history agrees on the turn and capture consequences,
-the clock can switch while the location remains provisional. A short tone marks
+camera repeatedly sees one new stone of the expected colour after the hand clears,
+the clock switches using the first retained clear sighting. From 0.146, this
+timing path is independent of legal placement candidates: unrelated ambiguous
+intersections or a spurious candidate cannot keep charging the previous player.
+The expected colour follows alternating clock presses. A short tone marks
 a new ambiguity. The counters below each clock count placements, not candidate
 intersections; clicking a counter opens the earliest historical position for
 that player, with Previous/Next navigation.
@@ -110,11 +123,63 @@ Hand-covered points alone never establish a capture. Unresolved placements block
 final scoring and complete SGF export.
 
 Each provisional press is stored separately in the clock sidecar, with its
-original estimate and error information. Promoting moves into SGF transfers those
+original estimate, error information, and observed location alternatives. These
+alternatives identify the physical stone without committing an SGF intersection.
+Promoting moves into SGF transfers those
 presses without charging time or awarding increments again. Restart restores them
 paused. Contradictory turn evidence, capture-pause ambiguity, and timing intervals
 that overlap expiry require clock review. Candidate search is bounded; reaching
 its limit preserves prior hypotheses for correction rather than choosing a path.
+
+A pending on-time sighting prevents the timer from declaring a loss while visual
+confirmation is still outstanding. If several new turns first appear in the
+same clear view, alternation can identify their colours but cannot reconstruct
+their individual clock times. Both clocks stop for timing review without
+inventing increments or silently charging one player for the missing turns.
+`--placement-timing-test` replays the recorded White72 incident, including the
+spurious Black166 candidate, and checks the near-expiry confirmation race.
+
+From 0.150, entering clock review also protects a pending on-time sighting before
+advancing the clock. Black87 exposed a second route to false expiry: placement
+review ran after the deadline, ahead of the timer callback, and charged the
+original player through recognition delay. The regression uses the incident's
+timestamps, preserves the 2.04-second balance before the unresolved press, keeps
+review required, and verifies that definitely late placements still expire.
+
+From 0.152, camera-backed clocks track the latest usable observation. If analysis
+falls more than 1.5 seconds behind, the clock pauses at that observation instead
+of charging the blind interval. Explicit camera interruptions use the same
+protection immediately. The timer checks freshness before declaring expiry;
+a fresh view beyond the deadline still permits a real timeout. Fresh board
+verification remains required after a hold, and manual pauses and the explicit
+continue-through-interruptions preference are preserved. `--processing-gap-test`
+replays the 2.45-second resume stall, both callback orders, short delays, a real
+timeout, camera failure near expiry and verification before resuming.
+
+Diagnostic archive allocation, directory scanning and rotation now run on the
+writer queue before its queued frames and events. Startup failures are reported
+asynchronously without touching game/clock state. Pending writes remain bounded;
+Stop and application exit drain initialization and accepted writes in order.
+Only the diagnostic event journal batches disk synchronization (at most once per
+second, plus completion); game and clock persistence are unchanged.
+`--async-diagnostics-test` holds the archive allocator busy while proving the
+main thread can continue, then checks queued frame/event ordering and failures.
+
+The outline fitter skips candidates whose maximum possible score cannot exceed
+the best fit. Search order, thresholds and current-frame evidence remain the
+same. Seven G18RapidPlay photos (three runs each) measured median full detection
+at 218 ms before and 137 ms after, with identical serialized readings, confidence
+values, centers, radii and fit scores. Busy camera-frame counters publish at most
+once per second; successful analyzed views still update immediately. Diagnostic
+context is constructed only for samples that will actually enter the buffer.
+
+From 0.151, confirming clock times also acknowledges the retained pending turns.
+Those turns remain separate from accepted SGF placements and carry an explicit
+review marker, not fabricated camera timestamps. Fresh views verify the pending
+position before clocks resume. The same stones cannot reopen the timing review,
+and accepting their locations later cannot award a second overtime reset.
+`--clock-review-test` replays the actual 86-move/two-pending-turn resume loop and
+checks preservation of agreed balances and the boundary across relaunch.
 
 `--provisional-play-test` exercises alternative locations, later replies, capture
 resolution, capture pauses, persistence, direct corrections, and press promotion
@@ -426,13 +491,15 @@ spoken notice draws attention to the screen, respects recovery-voice settings, a
 is limited to once per ten seconds. Manual pauses remain manual through subsequent
 camera interruptions. The recording journal includes the pause cause and timestamp.
 
-## Byoyomi period bars (0.107)
+## Byoyomi period bars (0.144)
 
 Both clock sizes show one bar for each remaining byoyomi period. The last visible
-bar shrinks with the current period; an on-time move refills it, and exhausting a
-period removes it. Recognition-time corrections restore bars from the same clock
+bar's fill shrinks inside a fixed outline with the current period; an on-time move
+refills it, and exhausting a period removes both fill and outline. Fill is green
+at 50% or more remaining, yellow below 50%, and red below 20%, based on the configured
+period duration. Recognition-time corrections restore bars from the same clock
 state used for the digits and voice. Fixed slots prevent the surviving bars from
-growing or moving when one disappears. Main-time bars are muted reserves; pausing
+growing or moving when one disappears. Main-time bars are full green reserves; pausing
 freezes them. The final bar disappears at timeout. VoiceOver describes the remaining
 period count and current allowance, and larger configured counts wrap into fixed rows.
 
@@ -653,6 +720,11 @@ camera/lighting adjustments when a button alone cannot resolve the problem.
 ## Run
 
 Open `/Users/Dave/Applications/Physical Go.app` after the first installation.
+Normal launches reopen the last explicitly used local recording before starting
+the camera, with clocks paused. Saved stones are available immediately for grid
+recovery; Resume still requires live board verification. Online mode and sample
+launches do not automatically restore a local game. The app remembers a recording
+path rather than selecting whichever SGF or diagnostic log was modified last.
 To rebuild and launch from source, double-click `Run Physical Go.command` in this folder,
 or run `python3 PhysicalGo/build.py` from the repository root. The build uses Xcode's
 Swift compiler, requires macOS 14 or later, and creates `.build/Physical Go.app`.
@@ -750,7 +822,15 @@ through camera interruptions; passes are explicit controls.
 A stalled or interrupted stream triggers up to two automatic reconnections. The app waits
 for actual frames before saying Live, allows eight seconds for startup, and detects five
 seconds without fresh frames during capture. After retries are exhausted, use **Restart
-camera**. A frame counter helps distinguish a static board from a frozen preview.
+camera**. Image-content checks also detect severe whole-frame blur sustained for at least
+0.8 seconds and repeated original-pixel fingerprints for at least 1.5 seconds.
+The detector samples sensor noise, so an unmoving live board is not classified
+as frozen just because its stones stay still. Blurred placeholders are withheld
+from recognition. Reconnects use the selected camera and the same two-attempt
+budget; unusable frames cannot replenish it. Automatic clock protection remains
+in effect during recovery, followed by fresh-board verification. A brief outage
+still cannot establish the timing of a move made out of view. `--camera-test`
+includes the recorded blurred phone image and sharp board/reference controls.
 Camera restarts preserve the paired empty reference and calibration and validate a fresh
 frame before detection resumes. Frozen samples remain available for saving. A different
 camera, image size or full-view recalibration invalidates active reference reuse. Stop

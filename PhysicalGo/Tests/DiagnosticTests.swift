@@ -87,6 +87,7 @@ import ImageIO
         check(try json(slow.folder!.appendingPathComponent("session.json"))["status"] as? String == "failed","Overload manifest falsely claimed success")
         let broken=DiagnosticRecorder(root:root)
         try broken.start(context:[:],reserveBytes:0)
+        wait({FileManager.default.fileExists(atPath:broken.folder!.appendingPathComponent("session.json").path)})
         try FileManager.default.removeItem(at:broken.folder!.appendingPathComponent("frames"))
         _=broken.capture(empty,at:1,context:[:],reference:nil,anchor:nil,anchorRevision:0)
         wait({broken.state == .failed})

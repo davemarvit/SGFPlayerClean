@@ -97,6 +97,10 @@ enum StoneGeometry {
             if contextual && (abs(shape.rx-expectedRadius)>0.041 || abs(dx)>5 || abs(dy)>5) {continue}
             let x=origin+dx,y=origin+dy
             var inside=sum(shape.disk,x,y,prefix)/shape.disk.count
+            // Ring penalties are nonnegative. This candidate cannot beat the
+            // current fit even with a perfect ring; retain the original tie order.
+            // Contextual fits first need their visible-body adjustment below.
+            if !contextual && inside<=bestScore {continue}
             let area=shape.outer.count-shape.inner.count
             var ringVotes=sum(shape.outer,x,y,prefix)-sum(shape.inner,x,y,prefix),visible=area
             if contextual {
@@ -107,7 +111,7 @@ enum StoneGeometry {
                 // The equivalent visible radius is fullRadius * sqrt(body/fullArea).
                 guard hidden>=shape.disk.count*0.02,body>=shape.disk.count*0.65 else {continue}
                 inside=(sum(shape.disk,x,y,prefix)-sum(shape.disk,x,y,maskedVotes))/body
-                guard inside>=0.92 else {continue}
+                guard inside>=0.92,inside>bestScore else {continue}
                 visible -= sum(shape.outer,x,y,maskedCount)-sum(shape.inner,x,y,maskedCount)
                 guard visible>=area*0.50 else {continue}
                 ringVotes -= sum(shape.outer,x,y,maskedVotes)-sum(shape.inner,x,y,maskedVotes)
@@ -170,7 +174,10 @@ enum StoneGeometry {
             } else {contextual=nil}
             guard let shape=separate ?? contextual,
                 shape.contains(.init(x:Double(reading.col),y:Double(reading.row))),
-                max(abs(shape.center.x-Double(reading.col)),abs(shape.center.y-Double(reading.row)))<=0.28 else {continue}
+                // Centers are sampled in 0.04-cell steps. Subtraction at a
+                // distant column can represent the allowed 0.28 step as
+                // 0.280000000000001; acceptance must not depend on board location.
+                max(abs(shape.center.x-Double(reading.col)),abs(shape.center.y-Double(reading.row)))<=0.28+1e-9 else {continue}
             candidates.append((color,shape))
         }
         return candidates.count==1 ? candidates[0]:nil

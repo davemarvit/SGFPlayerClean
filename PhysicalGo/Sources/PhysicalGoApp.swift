@@ -17,6 +17,8 @@ import SwiftUI
                 try model.recorder.restoreSavedGame(from:URL(fileURLWithPath:arguments[index+1]))
                 if model.size != model.recorder.game.boardSize { model.size=model.recorder.game.boardSize;model.boardSizeChanged() }
             } catch { model.message="Could not restore recording: \(error.localizedDescription)" }
+        } else if startsCamera {
+            model.restoreLastLocalGame()
         }
         _model = StateObject(wrappedValue:model)
     }

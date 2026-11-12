@@ -36,6 +36,7 @@ import CoreGraphics
     private var lastSample = -Double.infinity
     private var deadline:Double?,maximumEnd:Double?
     private var subscription:AnyCancellable?
+    private var stateSubscriptions=Set<AnyCancellable>()
     private var activeGame:String?
     private(set) var droppedSamples=0
     var bufferedFrames:Int {frames.count}
@@ -47,8 +48,11 @@ import CoreGraphics
             ? DiagnosticArchiveStorage.shared:DiagnosticArchiveStorage(roots:[root],limit:byteLimit)
         recorder=DiagnosticRecorder(root:root,maximumPendingFrames:64,archiveStorage:archiveStorage)
         subscription=recorder.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        recorder.$state.filter{$0 == .failed}.sink { [weak self] _ in
+            self?.storageBlocked=true
+        }.store(in:&stateSubscriptions)
     }
-    func offer(_ image:CGImage,at now:Double,online:Bool,context:[String:Any],reference:CGImage?,
+    func offer(_ image:CGImage,at now:Double,online:Bool,context:@autoclosure ()->[String:Any],reference:CGImage?,
                anchor:AutoGridDetector.TrackingAnchor?,anchorRevision:Int) {
         guard enabled else {stop(reason:"Camera buffering disabled");return}
         expire(now:now)
@@ -56,7 +60,7 @@ import CoreGraphics
         guard online || recorder.isCapturing else {stop(reason:"Camera buffering paused");return}
         guard now-lastSample+1e-7>=1/Double(framesPerSecond) else {return}
         lastSample=now
-        let frame=Frame(image:image,time:now,context:context,reference:reference,anchor:anchor,anchorRevision:anchorRevision)
+        let frame=Frame(image:image,time:now,context:context(),reference:reference,anchor:anchor,anchorRevision:anchorRevision)
         frames.removeAll{now-$0.time>Double(beforeSeconds)}
         guard frame.bytes<=memoryLimit else {droppedSamples += 1;return}
         frames.append(frame)

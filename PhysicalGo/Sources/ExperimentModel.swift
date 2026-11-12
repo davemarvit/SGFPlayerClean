@@ -241,7 +241,10 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published var cameraStatus = "Choose a camera, or open a photo to begin."
     @Published var running = false
     @Published var cameraState: CameraState = .failed
-    @Published var frameCount = 0
+    // Busy camera frames need not rebuild the entire SwiftUI board. Publish the
+    // counter at most once per second; analyzed views still publish immediately.
+    var frameCount = 0
+    private var lastCounterPublication = -Double.infinity
     @Published var frozen = false
     @Published var image: CGImage?
     @Published var size = 19
@@ -455,6 +458,10 @@ enum PhysicalPlayMode: String, CaseIterable {
         automaticGridEnabled = automaticGridDetection
         persistViewSettings = restoreViewSettings
         correctionSubscription=boardCorrections.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
+        recorder.$autosaveURL.compactMap {$0}.sink { [weak self] url in
+            guard let self,self.persistViewSettings else {return}
+            LastLocalGame(settings:self.settings).remember(url)
+        }.store(in:&clockSubscriptions)
         if restoreViewSettings {
             if settings.object(forKey:"PhysicalGo.recoverySpeech") != nil {recoverySpeechEnabled=settings.bool(forKey:"PhysicalGo.recoverySpeech")}
             preferredCameraID=settings.string(forKey:"PhysicalGo.lastCameraID")
@@ -628,6 +635,15 @@ enum PhysicalPlayMode: String, CaseIterable {
         } catch { message = "Could not restore reference: \(error.localizedDescription)" }
 
     }
+    /// Restore history before opening the camera so reacquisition can use its stones.
+    /// The recorder restores clocks paused and still requires fresh board verification.
+    func restoreLastLocalGame() {
+        guard playMode == .local,!recorder.hasGame,let url=LastLocalGame(settings:settings).url else {return}
+        do {
+            try recorder.restoreSavedGame(from:url)
+            if size != recorder.game.boardSize {size=recorder.game.boardSize;boardSizeChanged()}
+        } catch {message="Could not reopen the last local game: \(error.localizedDescription)"}
+    }
     var diagnosticRecorderState:[String:Any] {
         ["state":String(describing:recorder.state),"moveCount":recorder.moveCount,"status":recorder.status,
          "nextPlayer":recorder.nextPlayer.rawValue,"needsAttention":recorder.needsAttention,
@@ -724,7 +740,10 @@ enum PhysicalPlayMode: String, CaseIterable {
             needsFreshReference = true
             if !frozen { pauseForFreshFrame() }
         }
-        if state == .failed { acceptsFrames = false }
+        // Failure ends this stream, not the user's camera request. Keep callbacks
+        // enabled so a selected-device reconnect or system wake can recover it.
+        // Explicit Stop clears acceptsFrames and rejects later callbacks.
+
     }
     private func pauseForFreshFrame() {
         observation = nil; labels = [:]; stable = false; stability.reset(); emptyBoardVerifier.reset()
@@ -1062,6 +1081,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     func receiveCameraFrame(_ image:CGImage,capturedAt:Double,frameTimestamp:CameraFrameTimestamp?=nil) {
         frameCount += 1
+        if capturedAt-lastCounterPublication>=1 {lastCounterPublication=capturedAt;objectWillChange.send()}
         moveEvidenceCapture.offer(image,at:capturedAt,online:onlineBoard.enabled || (playMode == .local && recorder.state == .recording),context:diagnosticContext,
                                   reference:referenceImage,anchor:trackingAnchor,anchorRevision:diagnosticAnchorRevision)
         if frozen {
@@ -1196,7 +1216,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             } else {handEstimate=nil}
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView,analysis.handObstructed == true {
-                self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime)
+                self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime,capturedAt:captureUptime)
                 self.image=target;self.observation=nil;self.trackedBoardObservation=nil
                 self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
                 diagnosticOutcome="hand over board; waiting for clear frame"

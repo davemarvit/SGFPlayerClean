@@ -15,6 +15,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private var deliveryPending=false
     private var lastPTS: CMTime?
     private var health = CameraHealth()
+    private var feedHealth = CameraFeedHealth()
     private var timer: DispatchSourceTimer?
     private var deviceID = ""
     private var deviceName = "Camera"
@@ -153,7 +154,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 connection.automaticallyAdjustsVideoMirroring = false; connection.isVideoMirrored = false
             }
             captureSession.commitConfiguration()
-            cadence=CameraProcessingCadence();lastPTS = nil;waitingForFirstFrame = true
+            cadence=CameraProcessingCadence();feedHealth=CameraFeedHealth();lastPTS = nil;waitingForFirstFrame = true
             status("Waiting for frames · \(deviceName)", state: .starting)
             captureSession.startRunning()
             // Live is reported only from a successfully converted, advancing camera frame.
@@ -167,7 +168,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         switch health.check(now: ProcessInfo.processInfo.systemUptime, force: force) {
         case .none: return
         case .failed:
-            fail("Camera stopped delivering frames. Close other camera apps, then choose Restart camera.")
+            fail("Camera could not recover a usable live image. Check the phone or cable, then choose Restart camera.")
         case .restart(let attempt):
             endSession(); retryPending = true
             status("\(reason). Reconnecting (\(attempt)/2)…", state: .recovering)
@@ -206,6 +207,10 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         guard let image = context.createCGImage(ci, from: ci.extent, format: .BGRA8,
             colorSpace: CGColorSpaceCreateDeviceRGB(), deferred: false) else { return }
         if pts.isValid && !pts.isIndefinite { lastPTS = pts }
+        guard let sample=CameraFeedHealth.Sample.measure(image) else {return}
+        let assessment=feedHealth.observe(sample,at:now)
+        if let reason=assessment.reconnectReason {recover(reason:reason,force:true);return}
+        guard assessment.usable else {return}
         health.receivedFrame(now: now)
         if waitingForFirstFrame { waitingForFirstFrame = false; status("Live · \(deviceName)", state: .live) }
         let token = queueRequest,expectedStream=stream

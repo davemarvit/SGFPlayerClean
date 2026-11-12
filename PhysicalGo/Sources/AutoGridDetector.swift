@@ -19,7 +19,7 @@ enum AutoGridDetector {
     private static let expansion = 0.04
     private static let imageContext = CIContext(options: [.cacheIntermediates: false])
 
-    static func detect(image: CGImage, size: Int, candidates:((Result)->Void)?=nil) throws -> Result? {
+    static func detect(image: CGImage, size: Int, candidates:((Result)->Void)?=nil,knownPosition:Bool=false) throws -> Result? {
         guard [9,13,19].contains(size), let frame = GrayFrame(image: image, includeColor:false) else { return nil }
         // Thin grid lines and a textured background can hide the board outline from
         // Vision, even in a clear view. Search progressively smoother proposals;
@@ -51,7 +51,7 @@ enum AutoGridDetector {
                     ImagePoint(x: Double($0.x), y: 1-Double($0.y))
                 }
                 guard let proposal = BoardCalibration(size: size, corners: corners),
-                      let result = fit(frame: frame, proposal: proposal) else { continue }
+                      let result = fit(frame: frame, proposal: proposal,knownPosition:knownPosition) else { continue }
                 results.append(result);candidates?(result)
             }
             if let best = results.max(by: { $0.quality < $1.quality }) { return best }
@@ -217,11 +217,11 @@ enum AutoGridDetector {
                 let n=Double(size-1)
                 let corners=[(0.0,0.0),(n,0),(n,n),(0,n)].map {previous.point(col:$0.0+dx,row:$0.1+dy)}
                 guard let proposal=BoardCalibration(size:size,corners:corners) else {projectedOutside=true;continue}
-                if let fitted=fit(frame:frame,proposal:proposal) {add(fitted)}
+                if let fitted=fit(frame:frame,proposal:proposal,knownPosition:true) {add(fitted)}
             }
         }
         // A global rectangle search handles larger shifts, scale, perspective and roll.
-        if let found=try detect(image:image,size:size,candidates:{add($0)}) {add(found)}
+        if let found=try detect(image:image,size:size,candidates:{add($0)},knownPosition:true) {add(found)}
         var ranked=[(Result,LandmarkEvidence)]()
         for candidate in candidates {
             for turns in 0..<4 {
@@ -401,7 +401,7 @@ enum AutoGridDetector {
         return proposal.point(col: (x/Double(side-1)*(1+2*expansion)-expansion)*scale,
                               row: (y/Double(side-1)*(1+2*expansion)-expansion)*scale)
     }
-    private static func fit(frame: GrayFrame, proposal: BoardCalibration) -> Result? {
+    private static func fit(frame: GrayFrame, proposal: BoardCalibration,knownPosition:Bool=false) -> Result? {
         var rectified = [Double](repeating: 1, count: side*side)
         for y in 0..<side { for x in 0..<side {
             rectified[y*side+x] = sample(frame, sourcePoint(proposal,x:Double(x),y:Double(y))) ?? 1
@@ -412,7 +412,7 @@ enum AutoGridDetector {
             for j in margin..<(side-margin) { columns[i] += rectified[j*side+i]; rows[i] += rectified[i*side+j] }
             columns[i] /= Double(side-2*margin); rows[i] /= Double(side-2*margin)
         }
-        let xFits = fitAxis(columns,count:proposal.size), yFits = fitAxis(rows,count:proposal.size)
+        let xFits = fitAxis(columns,count:proposal.size,knownPosition:knownPosition), yFits = fitAxis(rows,count:proposal.size,knownPosition:knownPosition)
         var results = [Result]()
         for xFit in xFits { for yFit in yFits {
             if let result = fitGrid(frame:frame,proposal:proposal,rectified:rectified,xFit:xFit,yFit:yFit) { results.append(result) }
@@ -467,7 +467,7 @@ enum AutoGridDetector {
     private static func median(_ values:[Double]) -> Double {
         let values = values.sorted(); return values.isEmpty ? 0 : values[values.count/2]
     }
-    private static func fitAxis(_ profile:[Double],count:Int) -> [AxisFit] {
+    private static func fitAxis(_ profile:[Double],count:Int,knownPosition:Bool=false) -> [AxisFit] {
         var ridge = [Double](repeating:0,count:side)
         for i in 5..<(side-5) { ridge[i] = (profile[i-4]+profile[i+4])*0.5-profile[i] }
         let cutoff = max(0.015,(ridge.max() ?? 0)*0.10)
@@ -496,7 +496,10 @@ enum AutoGridDetector {
                 guard matches.count == count, Set(matches).count == count else { continue }
                 // Reject a wrong board size fitting every second line of a larger grid.
                 let unused = peaks.filter { $0>=first && $0<=last && !matches.contains($0) }
-                guard unused.count <= max(1,count/8) else { continue }
+                // Occupied boards also have peaks from stone rims and shadows.
+                // Recovery verifies intersection identity against saved stones;
+                // ordinary grid discovery retains the strict extra-line check.
+                guard knownPosition || unused.count <= max(1,count/8) else { continue }
                 let errors = matches.enumerated().map { abs(Double($0.element)-(Double(first)+Double($0.offset)*pitch))/pitch }
                 guard errors.max() ?? 1 < 0.16 else { continue }
                 let strength = matches.map { ridge[$0] }.reduce(0,+)/Double(count)

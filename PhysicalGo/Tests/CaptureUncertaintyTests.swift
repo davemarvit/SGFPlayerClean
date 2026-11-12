@@ -117,6 +117,18 @@ enum CaptureUncertaintyTests {
         let low=try make();feed(low,uncertain,count:4,confidence:0.8)
         check(!low.clock.automaticCapturePaused,"Low-confidence capturing stone paused clocks");low.pause()
 
+        // A capture candidate whose board still needs checking must not lose
+        // on time while an unrelated extra stone invalidates its capture plan.
+        let nearExpiry=try make()
+        var white=nearExpiry.clock.engine.white;white.remaining=0.3
+        check(nearExpiry.clock.correct(black:nearExpiry.clock.engine.black,white:white,blackToPlay:false,moveCount:fixture.baseMove,at:now),"Near-expiry capture setup failed")
+        nearExpiry.clock.resume(at:now)
+        feed(nearExpiry,uncertain)
+        feed(nearExpiry,conflicts.first{$0.0=="extra stone"}!.1)
+        check(nearExpiry.clock.requiresReview && !nearExpiry.clock.running,"Conflicting capture ran through the deadline")
+        check(nearExpiry.clock.engine.expiredBlack==nil && nearExpiry.clock.engine.white.remaining>0,"Capture ambiguity turned a possible on-time press into a loss")
+        nearExpiry.pause()
+
         // Established holds also reject conflicts and unclear capture points;
         // they may resume only after fresh, consistent completed-board views.
         for (name,values) in conflicts {

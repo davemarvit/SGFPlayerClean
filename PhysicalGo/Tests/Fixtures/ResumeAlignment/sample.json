@@ -1,0 +1,91 @@
+{
+  "alignmentNeedsRecovery" : true,
+  "automaticReference" : false,
+  "boardSize" : 19,
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.30377851526620225,
+        "y" : 0.10211750775523307
+      },
+      {
+        "x" : 0.7932291552927875,
+        "y" : 0.12486436703414494
+      },
+      {
+        "x" : 0.8017244938424133,
+        "y" : 0.9716919656967874
+      },
+      {
+        "x" : 0.26739030054395674,
+        "y" : 0.932578425188174
+      }
+    ],
+    "h" : [
+      0.4771884035906636,
+      -0.058783022260560674,
+      0.30377851526620225,
+      0.020816627162784936,
+      0.7523544404815046,
+      0.10211750775523307,
+      -0.015458630528268347,
+      -0.08375325317618855
+    ],
+    "size" : 19
+  },
+  "cameraID" : "D4FA0B7E-BD26-4EF3-8843-5D4100000001",
+  "detectionMode" : "emptyReference",
+  "displayQuarterTurns" : 3,
+  "height" : 1080,
+  "manualLabels" : {
+
+  },
+  "name" : "Board 1 · even light",
+  "note" : "Experimental observations, not verified moves. Row 0 is top; column 0 is left. Manual label keys are row*boardSize+column. Confidence is a heuristic, not a probability.",
+  "perspectiveCorrectedView" : true,
+  "readings" : [
+
+  ],
+  "recordedMoveCount" : 0,
+  "recordingStatus" : "Start with an empty board. Black plays first.",
+  "rectifiedLongAxisRows" : false,
+  "referenceCalibration" : {
+    "corners" : [
+      {
+        "x" : 0.3042331616786385,
+        "y" : 0.10377472169490426
+      },
+      {
+        "x" : 0.79377833940557,
+        "y" : 0.1257327980339443
+      },
+      {
+        "x" : 0.8017328951736833,
+        "y" : 0.9707459528374709
+      },
+      {
+        "x" : 0.2685148705172147,
+        "y" : 0.9326891561615598
+      }
+    ],
+    "h" : [
+      0.4773423803466772,
+      -0.057649232610328366,
+      0.3042331616786385,
+      0.02002517922873388,
+      0.7527370844584146,
+      0.10377472169490426,
+      -0.015373054131701824,
+      -0.08167496052140814
+    ],
+    "size" : 19
+  },
+  "savedAt" : "2026-11-11T22:45:33Z",
+  "schemaVersion" : 3,
+  "source" : "Dave11 Camera",
+  "stoneFootprints" : [
+
+  ],
+  "threshold" : 0.13,
+  "width" : 1920
+}

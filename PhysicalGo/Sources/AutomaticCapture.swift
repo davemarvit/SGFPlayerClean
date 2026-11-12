@@ -84,7 +84,7 @@ struct CaptureConflictMonitor {
 /// Bounded, chronological evidence survives hand re-entry and recognition lag.
 /// Camera interruption, pause or calibration changes still invalidate the epoch.
 struct ClearBoardTiming {
-    private struct View {let time:Double;let position:[Occupancy];let confidence:[Double];let estimate:ClockPressEstimate}
+    private struct View {let time:Double;let position:[Occupancy];let confidence:[Double];let estimate:ClockPressEstimate;let aliases:[Int:Set<Int>]}
     private var views=[View]()
     private var consumedUntil = -Double.infinity
     private var lastActivity:Double?
@@ -109,7 +109,8 @@ struct ClearBoardTiming {
         views.removeAll {stamp-$0.time>120}
         let estimate=observation.clockPressEstimate.flatMap{$0.valid && $0.time<=stamp ? $0:nil}
             ?? ClockPressEstimate(time:stamp,method:.clearFrame)
-        views.append(.init(time:stamp,position:observation.signature,confidence:observation.readings.map(\.confidence),estimate:estimate))
+        views.append(.init(time:stamp,position:observation.signature,confidence:observation.readings.map(\.confidence),estimate:estimate,
+                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count))))
         if views.count>1000 {views.removeFirst(views.count-1000)}
     }
     func estimate(target:[Occupancy],changed:Set<Int>,after epoch:Double)->ClockPressEstimate? {
@@ -151,5 +152,54 @@ struct ClearBoardTiming {
     }
     func firstMatch(target:[Occupancy],changed:Set<Int>,after epoch:Double)->Double? {
         estimate(target:target,changed:changed,after:epoch)?.time
+    }
+
+    struct ObservedTurn {
+        let color:Stone
+        let locations:Set<Int>
+        let estimate:ClockPressEstimate
+    }
+    func pendingTurn(base:[Occupancy],excluding:Set<Int>,color:Stone,after epoch:Double)->ClockPressEstimate? {
+        guard let newest=views.last,newest.position.count==base.count else {return nil}
+        let points=base.indices.filter{base[$0] == .empty && !excluding.contains($0) && newest.position[$0].stone==color && newest.confidence[$0]>=0.9}
+        return views.first {view in
+            view.estimate.time>=epoch && view.estimate.time>consumedUntil && points.contains {p in
+                view.position[p].stone==color && view.confidence[p]>=0.9 &&
+                    !views.contains{$0.time>view.time && $0.position[p] != .uncertain && $0.position[p].stone != color}
+            }
+        }?.estimate
+    }
+    /// Physical turn evidence is local. An unrelated uncertain intersection or
+    /// an incorrect candidate path must not make the player keep paying time.
+    /// Colours alternate; the SGF resolver alone decides legal intersections.
+    func observedTurns(base:[Occupancy],excluding:Set<Int>,after epoch:Double)->[ObservedTurn] {
+        guard let newest=views.last,newest.position.count==base.count else {return []}
+        var groups=[Set<Int>]()
+        for p in base.indices where base[p] == .empty && newest.position[p].stone != nil && !excluding.contains(p) {
+            var group:Set<Int>=[p]
+            for view in views {
+                for locations in view.aliases.values where locations.contains(p) {group.formUnion(locations)}
+            }
+            group=group.filter{base.indices.contains($0) && base[$0] == .empty}
+            guard group.isDisjoint(with:excluding),group.allSatisfy({base.indices.contains($0) && base[$0] == .empty}) else {continue}
+            if let i=groups.firstIndex(where:{!$0.isDisjoint(with:group)}) {groups[i].formUnion(group)} else {groups.append(group)}
+        }
+        return groups.compactMap {locations in
+            let present=locations.filter{newest.position[$0].stone != nil}
+            guard present.count==1,let point=present.first,let color=newest.position[point].stone else {return nil}
+            // Withdrawal or a contradictory colour starts a new observation.
+            let contradicted=views.last {view in
+                locations.allSatisfy{view.position[$0] == .empty} ||
+                    locations.contains{view.position[$0].stone==color.opponent}
+            }?.time ?? -.infinity
+            let eligible=views.filter {view in
+                guard view.time>contradicted,view.estimate.time>=epoch,view.estimate.time>consumedUntil else {return false}
+                let occupied=locations.filter{view.position[$0].stone != nil}
+                return occupied.count==1 && occupied.contains{view.position[$0].stone==color && view.confidence[$0]>=0.9}
+            }
+            guard let first=eligible.first,let last=eligible.last,eligible.count>=2,last.time-first.time>=0.2,
+                  newest.time-last.time<=0.75 else {return nil}
+            return ObservedTurn(color:color,locations:locations,estimate:first.estimate)
+        }.sorted{$0.estimate.time<$1.estimate.time}
     }
 }

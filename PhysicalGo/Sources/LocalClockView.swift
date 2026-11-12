@@ -216,7 +216,11 @@ struct LocalClockPanel:View {
                 side(black:true)
                 side(black:false)
             }
-            transport
+            HStack(alignment:.center,spacing:16) {
+                sideSummary(black:true)
+                transport.fixedSize(horizontal:true,vertical:false)
+                sideSummary(black:false)
+            }
             if showsStatus,recorder.needsTurnConfirmation,presentation.correction==nil {LiveTurnPrompt(recorder:recorder)}
             if showsStatus,let estimate=clock.latestPressEstimate {
                 DisclosureGroup("Last virtual clock press") {
@@ -303,12 +307,7 @@ struct LocalClockPanel:View {
         let active = !recorder.needsTurnConfirmation && clock.engine.blackToPlay==black
         let urgent=active && state.remaining<=10
         let player=black ? recorder.game.info.playerBlack:recorder.game.info.playerWhite
-        let count=recorder.recordedMoveCount(for:black ? .black:.white)
-        let countLabel=recorder.moveCountsNeedReview
-            ? "\(count) recorded \(count==1 ? "move":"moves") · review pending"
-            : "\(count) \(count==1 ? "move":"moves") played"
-        return VStack(spacing:8) {
-        VStack(alignment:.leading,spacing:12) {
+        return VStack(alignment:.leading,spacing:12) {
             HStack {
                 Circle().fill(black ? Color.black:Color.white).overlay(Circle().stroke(.gray,lineWidth:1)).frame(width:22,height:22)
                 Text((black ? "Black":"White")+(player.map{ $0.isEmpty ? "":" · "+$0 } ?? "")).font(.system(size:large ? 28:22,weight:.semibold)).lineLimit(1).minimumScaleFactor(0.7)
@@ -328,6 +327,13 @@ struct LocalClockPanel:View {
         }.padding(large ? 24:20).frame(maxWidth:.infinity,alignment:.leading)
             .background(active ? (urgent ? Color.red:Color.accentColor).opacity(0.15):Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:12))
             .overlay(RoundedRectangle(cornerRadius:12).stroke(active ? (urgent ? Color.red:Color.accentColor):Color.clear,lineWidth:urgent ? 4:3))
+    }
+    private func sideSummary(black:Bool)->some View {
+        let count=recorder.recordedMoveCount(for:black ? .black:.white)
+        let countLabel=recorder.moveCountsNeedReview
+            ? "\(count) recorded \(count==1 ? "move":"moves") · review pending"
+            : "\(count) \(count==1 ? "move":"moves") played"
+        return VStack(spacing:8) {
             let ambiguities=recorder.placementAmbiguities.filter{$0.color==(black ? .black:.white)}.count
             Button("Ambiguities: \(ambiguities)") {ambiguityColor=black ? .black:.white}
                 .buttonStyle(.plain).font(.system(size:large ? 24:20,weight:.medium)).monospacedDigit()
@@ -372,6 +378,9 @@ struct LocalClockCorrection:View {
             Text("Check both times and overtime allowances. Keep them unchanged if both players agree, or edit them below. The next player follows the live board.")
             if resumeAfterReview {Text("Confirming resumes recording. The clock waits for the physical board to be verified.").font(.callout)}
             else {Text("Clocks stay paused after saving.").font(.callout)}
+            if !recorder.hasDeferredMoves,recorder.pendingMoveCount>0 {
+                Text("These times include the \(recorder.pendingMoveCount) pending moves already on the board. Their placements can be reviewed separately.").font(.callout)
+            }
             if recorder.hasDeferredMoves {
                 Picker("Next player",selection:$selectedTurn) {
                     Text("Black").tag(Stone.black);Text("White").tag(Stone.white)

@@ -40,8 +40,20 @@ struct ReviewSectionView:View {
         var proposal=MoveRecoveryDraft(game:selectedContext,observation:observation)
         _firstColor=State(initialValue:proposal.nextPlayer)
         for move in section.moves ?? [] {_=proposal.add(move.point,checkCameraColor:false)}
+        var hasProposal=section.moves != nil
+        if section.moves==nil,section.suggestedOrders?.count==1,let order=section.suggestedOrders?.first {
+            var suggested=MoveRecoveryDraft(game:selectedContext,observation:observation)
+            let legal=order.allSatisfy {move in
+                move.color==suggested.nextPlayer && suggested.add(move.point,checkCameraColor:false)==nil
+            }
+            // Offer a complete checked proposal without marking it resolved.
+            // Saving still requires the player's explicit review action.
+            if legal,DeferredMoveHistory.states(suggested.board)==section.after {
+                proposal=suggested;hasProposal=true
+            }
+        }
         _draft=State(initialValue:proposal)
-        _mode=State(initialValue:section.moves == nil ? .choose:.order)
+        _mode=State(initialValue:hasProposal ? .order:.choose)
     }
     private var section:DeferredMoveHistory.Section? {recorder.reviewHistory.sections.first{$0.id==id}}
     private var restoration:BoardRestorationPlan? {recorder.boardRestorationPlan(id)}

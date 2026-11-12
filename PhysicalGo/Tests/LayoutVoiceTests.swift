@@ -103,16 +103,19 @@ import SwiftUI
         check(clocks.clock.correct(black:black,white:white,blackToPlay:false,moveCount:0),"Could not render sketch example")
         _=try render(LocalClockPanel(clock:clocks.clock,recorder:clocks,large:false),"byoyomi-clock",width:1000,height:680)
         _=try render(LocalClockPanel(clock:clocks.clock,recorder:clocks,large:true),"byoyomi-large-clock",width:1200,height:850)
-        let examples:[LocalClockEngine.Side]=[white,.init(remaining:15,overtime:true,periods:2,stones:25),.init(remaining:7.5,overtime:true,periods:2,stones:25),expired]
+        let examples:[LocalClockEngine.Side]=[15,10,6,2].map {
+            .init(remaining:$0,overtime:true,periods:2,stones:25)
+        } + [.init(remaining:15,overtime:true,periods:1,stones:25),expired]
+        let sketchSettings=LocalClockSettings(kind:.byoyomi,mainSeconds:0,periodSeconds:15,periods:2)
         let stages=VStack(alignment:.leading,spacing:28) {
             ForEach(examples.indices,id:\.self) {i in
                 VStack(alignment:.leading,spacing:10) {
-                    Text(["3 periods · 3 seconds left","Period exhausted · 2 periods remain","2 periods · halfway through this period","Time expired"][i]).font(.headline)
-                    ByoyomiPeriodBars(settings:byo,side:examples[i],active:true,large:true)
+                    Text(["Two full periods","Current period · 67% remaining","Current period · 40% remaining","Current period · 13% remaining","Period lost · final period remains","Time expired"][i]).font(.headline)
+                    ByoyomiPeriodBars(settings:sketchSettings,side:examples[i],active:true,large:true)
                 }
             }
         }.padding(28)
-        _=try render(stages,"byoyomi-stages",width:600,height:440)
+        _=try render(stages,"byoyomi-stages",width:600,height:580)
         check(model.recorder.sgf()==original && model.recorder.state == .paused,"UI tests modified the game")
         print("PASS: \(checks) layout, offline voice resources and game-preservation checks")
     }

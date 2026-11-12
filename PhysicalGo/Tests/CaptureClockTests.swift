@@ -114,15 +114,16 @@ import ImageIO
             check(reset.clock.engine.black.remaining<start.black.remaining,"\(interruption) invented clock time")
             reset.pause()
         }
-        // A provisional timeout during hidden removal may be corrected only
-        // from evidence before expiry, never from a post-expiry placement.
+        // An on-time sighting must freeze for review before hidden removal can
+        // produce even a provisional loss. Later confirmation preserves that
+        // explicit review; a first post-expiry sighting cannot revive the clock.
         let late=try make(mainSeconds:2)
         let lateStart=late.clock.engine.anchor!
         let onTime=feed(late,incomplete,count:1)
         _=feed(late,incomplete,count:12,hand:true);late.clock.tick(at:now)
-        check(late.clock.engine.expiredBlack==true,"Fixture did not reach provisional expiry")
+        check(late.clock.requiresReview && !late.clock.running && late.clock.engine.expiredBlack==nil,"Pending on-time capture was shown as a loss")
         _=feed(late,plan.target,count:5)
-        check(late.moveCount==46 && late.clock.running && late.clock.engine.expiredBlack==nil,"Pre-expiry capture could not correct delayed recognition")
+        check(late.moveCount==46 && !late.clock.running && late.clock.requiresReview && late.clock.engine.expiredBlack==nil,"Capture confirmation lost the move or bypassed timing review")
         check(near(late.clock.engine.black.remaining,2-(onTime-lateStart)),"Expiry recovery used an invented pause boundary")
         late.pause()
         let tooLate=try make(mainSeconds:2)

@@ -56,17 +56,13 @@ enum CaptureFolders {
         let id=UUID(),formatter=DateFormatter();formatter.dateFormat="yyyy-MM-dd HH-mm-ss"
         let url=root.appendingPathComponent("Diagnostic \(formatter.string(from:Date())) \(id.uuidString.prefix(8))",isDirectory:true)
         let requested=byteLimit ?? min(Int64(limitGB)*1_000_000_000,DiagnosticArchiveStorage.defaultLimit-DiagnosticArchiveStorage.metadataAllowance)
-        let writer:DiagnosticWriter
-        if let archiveStorage {
-            let result:Result<DiagnosticWriter,Error>=try archiveStorage.allocate(payload:requested,minimumPayload:byteLimit==nil ? 64_000_000:nil) {limit,removed in
-                Result {
-                    var details=context;details["archiveByteLimit"]=archiveStorage.limit;details["rotatedArchives"]=removed
-                    details["retentionPolicy"]="Oldest unpinned, inactive camera archives rotate automatically. KEEP files preserve selected archives."
-                    return try DiagnosticWriter(folder:url,limit:limit,reserve:reserveBytes,context:details)
-                }
-            }
-            writer=try result.get()
-        } else {writer=try DiagnosticWriter(folder:url,limit:requested,reserve:reserveBytes,context:context)}
+        // Cheap validation stays synchronous; directory scans, rotation and
+        // opening the archive run before writes on the writer's serial queue.
+        if let archiveStorage,requested<=0 || requested+DiagnosticArchiveStorage.metadataAllowance>archiveStorage.limit {
+            throw NSError(domain:"PhysicalGo.Diagnostics",code:2,userInfo:[NSLocalizedDescriptionKey:"Diagnostic storage allowance is too small for this capture."])
+        }
+        let writer=DiagnosticWriter(folder:url,limit:requested,reserve:reserveBytes,context:context,
+            archiveStorage:archiveStorage,minimumPayload:byteLimit==nil ? 64_000_000:nil)
         worker=writer;sessionID=id;folder=url;nextFrame=0;nextOperation=0;nextAsset=0;pendingWrites=0
         operations=[:];finishing=false;endReason="Stopped by user";lastReference=nil;referencePath=nil;lastAnchorRevision=nil;anchorPath=nil;anchorInfo=nil
         savedFrames=0;savedBytes=0;state = .capturing;status="Saving diagnostic frames · game recording is separate."
@@ -173,14 +169,30 @@ private final class DiagnosticWriter {
     enum Asset {case png(String,CGImage),bytes(String,Data)}
     let folder:URL
     private let queue=DispatchQueue(label:"PhysicalGo.diagnostic-writer",qos:.utility)
-    private let limit:Int64,reserve:Int64
+    private var limit:Int64
+    private let reserve:Int64
     private var lease:DiagnosticArchiveLock?
     private var handle:FileHandle?
     private var bytes:Int64=0,frames=0,closed=false
     private var context:[String:Any]
+    private var lastSync=0.0
     var onFailure:((String)->Void)?
-    init(folder:URL,limit:Int64,reserve:Int64,context:[String:Any]) throws {
+    init(folder:URL,limit:Int64,reserve:Int64,context:[String:Any],archiveStorage:DiagnosticArchiveStorage?,minimumPayload:Int64?) {
         self.folder=folder;self.limit=limit;self.reserve=reserve;self.context=context
+        queue.async {
+            do {
+                if let archiveStorage {
+                    try archiveStorage.allocate(payload:limit,minimumPayload:minimumPayload) { granted,removed in
+                        self.limit=granted
+                        self.context["archiveByteLimit"]=archiveStorage.limit;self.context["rotatedArchives"]=removed
+                        self.context["retentionPolicy"]="Oldest unpinned, inactive camera archives rotate automatically. KEEP files preserve selected archives."
+                        return Result {try self.open()}
+                    }.get()
+                } else {try self.open()}
+            } catch {self.abort(error)}
+        }
+    }
+    private func open() throws {
         try FileManager.default.createDirectory(at:folder.appendingPathComponent("frames"),withIntermediateDirectories:true)
         try FileManager.default.createDirectory(at:folder.appendingPathComponent("assets"),withIntermediateDirectories:true)
         lease=try DiagnosticArchiveLock(folder.appendingPathComponent(".writer.lock"))
@@ -216,7 +228,8 @@ private final class DiagnosticWriter {
         var data=try JSONSerialization.data(withJSONObject:entry,options:.sortedKeys);data.append(10)
         if enforceLimit {try checkSpace(data.count)}
         try handle?.write(contentsOf:data);bytes += Int64(data.count)
-        try handle?.synchronize()
+        let now=ProcessInfo.processInfo.systemUptime
+        if now-lastSync>=1 {try handle?.synchronize();lastSync=now}
     }
     private func save(_ data:Data,path:String)throws {
         try checkSpace(data.count);try data.write(to:folder.appendingPathComponent(path),options:.atomic);bytes += Int64(data.count)
@@ -259,7 +272,7 @@ private final class DiagnosticWriter {
         guard !closed else {return}
         do {
             try append(["event":"capture ended","reason":reason,"time":Date().timeIntervalSince1970],enforceLimit:false)
-            try manifest(status:status,reason:reason);try handle?.close();handle=nil;closed=true;lease=nil
+            try manifest(status:status,reason:reason);try handle?.synchronize();try handle?.close();handle=nil;closed=true;lease=nil
         }catch {abort(error)}
     }
     func finish(reason:String,status:String="complete",completion:@escaping()->Void) {

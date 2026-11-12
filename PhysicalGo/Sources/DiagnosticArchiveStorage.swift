@@ -20,12 +20,14 @@ final class DiagnosticArchiveLock {
 /// One budget for automatic evidence and continuous diagnostic camera captures.
 /// Only recognized archive directories are eligible; recordings and photo labels
 /// live elsewhere. KEEP files pin important captures without changing their data.
-@MainActor final class DiagnosticArchiveStorage {
+final class DiagnosticArchiveStorage {
     nonisolated static let defaultLimit:Int64=10_000_000_000
     nonisolated static let metadataAllowance:Int64=1_000_000
     let roots:[URL]
     let limit:Int64
-    private(set) var rotatedCount=0
+    private let allocationLock=NSLock()
+    private var rotations=0
+    var rotatedCount:Int {allocationLock.lock();defer {allocationLock.unlock()};return rotations}
     init(roots:[URL],limit:Int64=defaultLimit) {self.roots=roots;self.limit=limit}
     struct ClearResult:Sendable {
         var removed=0,kept=0,active=0,unrecognized=0
@@ -93,6 +95,7 @@ final class DiagnosticArchiveLock {
     /// Keep this lock through writer creation: its manifest reserves its maximum
     /// size before a second process can start a competing capture.
     func allocate<T>(payload:Int64,minimumPayload:Int64?=nil,create:(Int64,Int)->T)throws->T {
+        allocationLock.lock();defer {allocationLock.unlock()}
         var required=payload+Self.metadataAllowance
         guard payload>0,required<=limit else {
             throw NSError(domain:"PhysicalGo.Diagnostics",code:2,userInfo:[NSLocalizedDescriptionKey:"Diagnostic storage allowance is too small for this capture."])
@@ -139,7 +142,7 @@ final class DiagnosticArchiveLock {
         for archive in eligible where used+required>limit {
             try fm.removeItem(at:archive.url);used-=archive.bytes;removed+=1
         }
-        rotatedCount+=removed
+        rotations+=removed
         return create(granted,removed)
     }
 }

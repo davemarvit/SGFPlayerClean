@@ -194,15 +194,21 @@ struct ExperimentView: View {
                     Label("Ready for a game?",systemImage:"circle.grid.3x3")
                 } description:{Text("Set up the camera and game before recording moves.")}
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
+            } else if model.playMode == .local {
+                LocalClockHost(recorder:recorder,orientation:model.orientation,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})
+                PlaySessionControls(model:model,recorder:recorder)
+                HStack(alignment:.top,spacing:20) {
+                    RecordingView(model:model,recorder:recorder,showsRecordingControls:false)
+                        .frame(maxWidth:.infinity,alignment:.topLeading)
+                    GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
+                        .frame(width:300,alignment:.topLeading)
+                }
             } else {
-                if model.playMode == .local {LocalClockHost(recorder:recorder,orientation:model.orientation,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})}
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
+                PhysicalOnlineBoardView(bridge:bridge).frame(maxWidth:600).frame(maxWidth:.infinity)
+                RecordingView(model:model,recorder:recorder,showsRecordingControls:false)
             }
-            if model.playMode == .online {PhysicalOnlineBoardView(bridge:bridge).frame(maxWidth:600).frame(maxWidth:.infinity)}
-            // Keep one stable panel in play. Its tabs are the user's explicit
-            // choice; alignment/lighting warnings never insert a second feed.
-            RecordingView(model:model,recorder:recorder,showsRecordingControls:false)
             HStack {
                 Text(model.running ? "Camera active · recognition continues with views hidden":"Camera stopped").font(.caption).foregroundStyle(.secondary)
                 Spacer()
@@ -232,17 +238,7 @@ struct ExperimentView: View {
     private var cameraDetails:some View {
         VStack(alignment:.leading,spacing:12) {
             DisclosureGroup("Camera source & controls",isExpanded:$cameraOptions) {
-                VStack(alignment:.leading,spacing:10) {
-                    Picker("Camera",selection:$model.cameraID) {
-                        if model.cameras.isEmpty {Text("No camera found").tag("")}
-                        ForEach(model.cameras) {Text($0.name).tag($0.id)}
-                    }.disabled(model.running)
-                    HStack {
-                        Button("Refresh list") {model.refreshCameras()}
-                        Button(model.running ? "Stop camera":"Start camera") {model.running ? model.stop():model.start()}.disabled(!model.running && model.cameraID.isEmpty)
-                        Button("Restart camera") {model.start()}.disabled(model.cameraID.isEmpty)
-                    }
-                }.padding(.top,10)
+                CameraControlsView(model:model).padding(.top,10)
             }.actionAttention(!model.running && model.cameraID.isEmpty && !cameraOptions ? .required:.none)
             DisclosureGroup("Grid, orientation & reference",isExpanded:$alignmentOptions) {
                 VStack(alignment:.leading,spacing:10) {
@@ -674,5 +670,49 @@ private struct BoardRecoveryBanner:View {
             .overlay(RoundedRectangle(cornerRadius:12).stroke(Color.orange,lineWidth:2))
             .accessibilityElement(children:.contain)
             .accessibilityLabel("Board recovery. Please pause play.")
+    }
+}
+
+/// The same camera controls remain available in Setup and beneath the playing board.
+struct CameraControlsView:View {
+    @ObservedObject var model:ExperimentModel
+    var body:some View {
+        VStack(alignment:.leading,spacing:8) {
+            ViewThatFits(in:.horizontal) {
+                HStack(spacing:12) {cameraPicker;buttons}
+                VStack(alignment:.leading,spacing:8) {cameraPicker;buttons}
+            }
+            Label(model.frozen ? "Frozen camera frame":model.cameraStatus,
+                  systemImage:model.running && !model.frozen ? "video.fill":"video.slash")
+                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+            if model.detectingGrid {
+                Label("Checking the grid; stones can stay on the board.",systemImage:"viewfinder")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+        }
+    }
+    private var cameraPicker:some View {
+        Picker("Camera",selection:$model.cameraID) {
+            if model.cameras.isEmpty {Text("No camera found").tag("")}
+            ForEach(model.cameras) {Text($0.name).tag($0.id)}
+        }.frame(minWidth:180,maxWidth:300).disabled(model.running)
+            .help(model.running ? "Stop the camera to select another camera.":"Select the camera looking at your board.")
+    }
+    private var buttons:some View {
+        HStack(spacing:8) {
+            Button("Refresh list",systemImage:"arrow.clockwise") {model.refreshCameras()}
+                .labelStyle(.iconOnly).disabled(model.running)
+                .help("Refresh available cameras after stopping the camera.")
+            Button(model.running ? "Stop camera":"Start camera") {model.running ? model.stop():model.start()}
+                .disabled(!model.running && model.cameraID.isEmpty)
+            Button("Restart camera") {model.start()}.disabled(model.cameraID.isEmpty)
+                .help("Reconnect the selected camera and verify the board. The recorded game is preserved.")
+            if model.frozen && model.running {
+                Button("Resume camera") {model.toggleFreeze()}
+            }
+            Button("Reestablish grid") {model.detectGrid(reportCheck:true)}
+                .disabled(model.image == nil || model.detectingGrid || model.frozen || !model.running || model.cameraState != .live)
+                .help("Find the grid using the saved position and visible stones. Clocks stop during checking; the recorded game is preserved.")
+        }.fixedSize(horizontal:true,vertical:false)
     }
 }

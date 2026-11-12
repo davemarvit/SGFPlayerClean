@@ -8,6 +8,10 @@ import Combine
         var before:LocalClockEngine
         var after:LocalClockEngine
         var estimate:ClockPressEstimate?=nil
+        /// Physical identity evidence, independent of the eventual SGF point.
+        var observedLocations:[Int]?=nil
+        /// Agreed balances cover this turn; no camera timestamp or increment was invented.
+        var reviewed:Bool?=nil
     }
     struct AutomaticPause:Codable,Equatable {
         let reason:String
@@ -88,6 +92,33 @@ import Combine
     private var lastSaved=0.0
     // Start of the current uninterrupted turn, used only after a move is verified.
     private var turnBaseline:LocalClockEngine?
+    /// A fresh possible press prevents the timer racing visual confirmation.
+    /// It cannot award an increment or decide a move; ambiguous expiry is reviewed.
+    var pendingTurnEvidence:ClockPressEstimate?
+    // Enabled by real camera observations, not by stand-alone/manual clocks.
+    private var lastObservationAt:Double?
+    private(set) var observationGapHeld=false
+    func noteCameraObservation(at stamp:Double,now:Double) {
+        guard stamp.isFinite,now.isFinite,stamp<=now,now-stamp<1.5,
+              lastObservationAt.map({stamp>$0}) ?? true else {return}
+        _=protectObservationGap(at:now)
+        lastObservationAt=stamp
+    }
+    func takeObservationGapHold()->Bool {
+        let held=observationGapHeld;observationGapHeld=false;return held
+    }
+    /// Stop at the last verified observation, never charge an unseen interval.
+    /// The timer also calls this, so callback ordering cannot decide a timeout.
+    @discardableResult private func protectObservationGap(at now:Double,interruption:String?=nil)->Bool {
+        guard pauseOnInterruption,running,let last=lastObservationAt,
+              interruption != nil ? now>last:now-last>1.5,
+              let baseline=turnBaseline,let start=baseline.anchor else {return false}
+        let stopAt=max(start,min(last,pendingTurnEvidence?.earliestPlausibleTime ?? last))
+        engine=baseline
+        pause("Clock paused · "+(interruption ?? "Board processing fell behind. Checking a fresh view before continuing."),at:stopAt,manual:false)
+        observationGapHeld=true
+        return true
+    }
     deinit {timer?.invalidate()}
     var enabled:Bool {engine.enabled}
     var running:Bool {engine.running}
@@ -102,7 +133,8 @@ import Combine
         liveReviewActive=false;awaitingTurn=false;timingNote=nil;liveEvents=[]
         pendingResumeAnnouncement=nil;pressEvidence=[];provisionalMoves=[];lastPeriodNotices=[]
         clearAutomaticPause()
-        file=nil;signature="";saveError=nil;turnBaseline=nil
+        file=nil;signature="";saveError=nil;turnBaseline=nil;pendingTurnEvidence=nil
+        lastObservationAt=nil;observationGapHeld=false
     }
     func bind(to sgf:URL?,signature:String) {
         file=sgf?.deletingPathExtension().appendingPathExtension("clock.json");self.signature=signature
@@ -110,6 +142,9 @@ import Combine
     }
     func ready(at now:Double) {
         guard enabled,!running,!automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
+        pendingTurnEvidence=nil
+        if let lastObservationAt {self.lastObservationAt=max(lastObservationAt,now)}
+        observationGapHeld=false
         engine.resume(at:now);clearAutomaticPause();turnBaseline=engine;notice="\(engine.blackToPlay ? "Black":"White") to play"
         let announcement=pendingResumeAnnouncement;pendingResumeAnnouncement=nil
         if announcement == nil && audible {audio.beganTurn(engine,settings:sounds)}
@@ -162,6 +197,7 @@ import Combine
         let diagnosticPrevious=engine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"pause")}
         guard enabled else {return}
+        pendingTurnEvidence=nil
         let wasRunning=running
         engine.pause(at:now);turnBaseline=nil
         // Later camera interruptions must not revoke an explicit user pause.
@@ -177,6 +213,7 @@ import Combine
     }
     func interrupt(_ reason:String,at now:Double=ProcessInfo.processInfo.systemUptime) {
         if awaitingTurn {return}
+        if protectObservationGap(at:now,interruption:reason) {return}
         if pauseOnInterruption {pause("Clock paused · "+reason,at:now,manual:false)}
         else if enabled {notice="Clock still running · "+reason}
     }
@@ -192,6 +229,21 @@ import Combine
         let diagnosticPrevious=engine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"timer")}
         guard running else {return}
+        if protectObservationGap(at:now) {return}
+        if pauseOnInterruption,let last=lastObservationAt,last<now {
+            var trial=engine;trial.advance(to:now)
+            var observed=engine;observed.advance(to:last)
+            // Await a fresh observation before declaring an expiry beyond the
+            // latest evidence. A continued stall takes the protective hold above.
+            if trial.expiredBlack != nil && observed.expiredBlack==nil {return}
+        }
+        if let evidence=pendingTurnEvidence,evidence.valid,let start=turnBaseline?.anchor,evidence.time>=start {
+            var trial=engine;trial.advance(to:now)
+            if trial.expiredBlack != nil {
+                holdForTimingReview(evidence,at:now,reason:"A possible on-time move is still being verified. Check the turn and clocks; no timeout is inferred.")
+                return
+            }
+        }
         let previous=engine
         engine.advance(to:now)
         if audible {audio.update(previous:previous,current:engine,settings:sounds)}
@@ -200,13 +252,16 @@ import Combine
             timer?.invalidate();timer=nil;save();onTimeout?()
         } else if now-lastSaved>=1 {lastSaved=now;save()}
     }
-    func recordMove(number:Int,black:Bool,at now:Double,observedAt:Double?=nil,manualCorrection:Bool=false,estimate:ClockPressEstimate?=nil,provisional:Bool=false) {
+    func recordMove(number:Int,black:Bool,at now:Double,observedAt:Double?=nil,manualCorrection:Bool=false,estimate:ClockPressEstimate?=nil,provisional:Bool=false,observedLocations:[Int]?=nil) {
         let diagnosticPrevious=engine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"move recognition",press:estimate)}
         guard enabled else {return}
         if !provisional,let i=provisionalMoves.firstIndex(where:{$0.number==number}) {
             guard provisionalMoves[i].black==black else {recover(toBlack:!black,reason:"The corrected move color conflicts with its observed clock press. Review the clocks.",at:now);return}
             let press=provisionalMoves.remove(at:i);moves.append(press);moves.sort{$0.number<$1.number}
+            // Agreed balances are a correction boundary, not an undoable
+            // measured press. Earlier thinking time cannot be reconstructed.
+            if press.reviewed == true {baseMove=max(baseMove,number)}
             if let estimate=press.estimate {pressEvidence.removeAll{$0.number==number};pressEvidence.append(.init(number:number,estimate:estimate,applied:true))}
             if provisionalMoves.isEmpty {liveReviewActive=false}
             save();return
@@ -240,7 +295,7 @@ import Combine
                 var latest=baseline;latest.advance(to:upper)
                 if earliest.expiredBlack==nil && latest.expiredBlack != nil {
                     if provisional {liveReviewActive=true} else {baseMove=number}
-                    recover(toBlack:!black,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.",at:now)
+                    holdForTimingReview(estimate,at:now,toBlack:!black,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.")
                     return
                 }
             }
@@ -249,9 +304,10 @@ import Combine
         engine.advance(to:boundary)
         let before=engine
         if engine.move(black:black,at:boundary) {
+            pendingTurnEvidence=nil
             let pressed=engine
             turnBaseline=engine.running ? engine:nil
-            let press=Move(number:number,black:black,before:before,after:pressed,estimate:estimate)
+            let press=Move(number:number,black:black,before:before,after:pressed,estimate:estimate,observedLocations:observedLocations)
             if provisional {provisionalMoves.append(press);liveReviewActive=true}
             else {moves.append(press)}
             if let i=pressEvidence.firstIndex(where:{$0.number==number}) {pressEvidence[i].applied = abs(boundary-(estimate?.time ?? boundary))<1e-8}
@@ -316,7 +372,11 @@ import Combine
                 var point=trial;point.advance(to:max(previous,estimate.earliestPlausibleTime))
                 if point.expiredBlack==nil && latest.expiredBlack != nil {
                     baseMove=last
-                    recover(toBlack:blackToPlay,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.",at:now)
+                    // No partial replay has been published. Freeze at the
+                    // first known press instead of expiring the original side
+                    // while the later turn's boundary still needs review.
+                    holdForTimingReview(estimates.compactMap{$0}.first!,at:now,toBlack:blackToPlay,
+                        reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.")
                     return true
                 }
             }
@@ -341,8 +401,29 @@ import Combine
     }
     func recover(toBlack:Bool,reason:String,at now:Double) {
         guard enabled else {return}
+        // Review may run before the timer's next callback. Protect the same
+        // pending press here, before pause() advances the clock to review time.
+        // holdForTimingReview clears the evidence before calling back here.
+        if let evidence=pendingTurnEvidence {
+            holdForTimingReview(evidence,at:now,toBlack:toBlack,reason:reason)
+            return
+        }
         pause(reason,at:now,manual:false)
         manuallyPaused=true;engine.blackToPlay=toBlack;needsCorrection=true;save()
+    }
+    /// Stop at the earliest retained possible press, before recognition delay
+    /// can erase a period or declare a loss. Balances explicitly require review.
+    func holdForTimingReview(_ evidence:ClockPressEstimate,at now:Double,toBlack:Bool?=nil,reason:String) {
+        guard enabled else {return}
+        var stopAt=now
+        if let baseline=turnBaseline,let start=baseline.anchor,evidence.valid,
+           evidence.time>=start,evidence.earliestPlausibleTime<=now {
+            engine=baseline
+            stopAt=max(start,evidence.earliestPlausibleTime)
+        }
+        pendingTurnEvidence=nil
+        timingNote=reason
+        recover(toBlack:toBlack ?? engine.blackToPlay,reason:reason,at:stopAt)
     }
     /// Historical gaps do not replay clock presses. Preserve accrued time and
     /// continue the known live turn, without inventing increments or overtime resets.
@@ -381,7 +462,7 @@ import Combine
                 var lowerClock=baseline;lowerClock.advance(to:max(start,estimate.earliestPlausibleTime))
                 var upperClock=baseline;upperClock.advance(to:upper)
                 if lowerClock.expiredBlack==nil && upperClock.expiredBlack != nil {
-                    recover(toBlack:!black,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.",at:now)
+                    holdForTimingReview(estimate,at:now,toBlack:!black,reason:"Hand-clear uncertainty overlaps time expiry. Review both clocks before continuing.")
                     return
                 }
             }
@@ -402,6 +483,9 @@ import Combine
     /// once. Resolving chronology never charges time or awards an increment.
     func finalizeLiveHistory(mapping:[UUID:Int],moveCount:Int,blackToPlay:Bool) {
         guard enabled else {return}
+        for press in provisionalMoves.filter({$0.number<=moveCount}) {
+            recordMove(number:press.number,black:press.black,at:ProcessInfo.processInfo.systemUptime)
+        }
         for press in liveEvents {
             if let number=mapping[press.id],!moves.contains(where:{$0.number==number}) {
                 moves.append(.init(number:number,black:press.black,before:press.before,after:press.after,estimate:press.estimate))
@@ -412,7 +496,7 @@ import Combine
             }
         }
         moves.sort{$0.number<$1.number};baseMove=moveCount
-        engine.blackToPlay=blackToPlay;liveReviewActive=false;awaitingTurn=false
+        engine.blackToPlay=provisionalMoves.last.map{!$0.black} ?? blackToPlay;liveReviewActive = !provisionalMoves.isEmpty;awaitingTurn=false
         save()
     }
     func canCorrect(black:LocalClockEngine.Side,white:LocalClockEngine.Side)->Bool {enabled && valid(black) && valid(white)}
@@ -424,6 +508,20 @@ import Combine
         needsCorrection=false;manuallyPaused=true;baseMove=moveCount
         notice="Clocks corrected · paused. Resume when both players are ready.";save()
         return true
+    }
+    /// Preserve the timing boundary independently of unresolved SGF locations.
+    func acknowledgePendingTurns(_ locations:[Set<Int>],firstBlack:Bool,moveCount:Int) {
+        guard !requiresReview,!running else {return}
+        for (offset,points) in locations.enumerated() {
+            let number=moveCount+offset+1
+            guard !provisionalMoves.contains(where:{$0.number==number}) else {continue}
+            provisionalMoves.append(.init(number:number,black:offset%2==0 ? firstBlack:!firstBlack,
+                before:engine,after:engine,observedLocations:points.sorted(),reviewed:true))
+        }
+        provisionalMoves.sort{$0.number<$1.number}
+        liveReviewActive = !provisionalMoves.isEmpty
+        if !locations.isEmpty {timingNote="Agreed clock balances include the pending moves. Their placements remain under review; no historical clock presses were inferred."}
+        save()
     }
     private func valid(_ side:LocalClockEngine.Side)->Bool {
         side.remaining.isFinite && (0.001...604800).contains(side.remaining) &&
@@ -465,7 +563,7 @@ import Combine
             }
             let provisional=data.provisionalMoves ?? []
             guard provisional.enumerated().allSatisfy({offset,press in
-                press.number==moveCount+offset+1 && (press.estimate?.valid ?? false) &&
+                press.number==moveCount+offset+1 && ((press.estimate?.valid ?? false) || (press.reviewed == true && press.observedLocations?.isEmpty == false)) &&
                 press.black==(offset%2==0 ? blackToPlay:!blackToPlay)
             }) else {throw RecordingStore.Failure(message:"Provisional clock presses do not match this game.")}
             engine=data.engine;engine.restoredPaused();moves=data.moves;provisionalMoves=provisional;baseMove=data.baseMove;pressEvidence=data.pressEvidence ?? []

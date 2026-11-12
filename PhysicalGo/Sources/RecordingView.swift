@@ -238,6 +238,8 @@ struct RecordingView: View {
                     }
                 }
                 if model.showDiagnostics {DetectionTuningView(model:model,recorder:recorder)}
+                Divider()
+                CameraControlsView(model:model)
             }.frame(maxWidth:.infinity,alignment:.leading).padding(4)
         }
     }

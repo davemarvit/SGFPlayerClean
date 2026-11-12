@@ -25,6 +25,12 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'processing-gap-test': Suite('ProcessingGapTests', 'recorder', ('Tests/ProcessingGapTests.swift',), optimized=False),
+    'async-diagnostics-test': Suite('AsyncDiagnosticsTests', 'app', ('Tests/AsyncDiagnosticsTests.swift',), optimized=False),
+    'g18-rapid-play-test': Suite('G18RapidPlayTests', 'recorder', ('Tests/G18RapidPlayTests.swift',), optimized=False),
+    'placement-timing-test': Suite('PlacementTimingTests', 'recorder', ('Tests/PlacementTimingTests.swift',), optimized=False),
+    'resume-alignment-test': Suite('ResumeAlignmentTests', 'vision', ('Tests/ResumeAlignmentTests.swift',), extra=('Sources/AutoGridDetector.swift',)),
+    'session-resume-test': Suite('SessionResumeTests', 'app', ('Tests/SessionResumeTests.swift',), optimized=False),
     'diagnostic-cleanup-test': Suite('DiagnosticCleanupTests', 'recorder', ('Tests/DiagnosticCleanupTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),
     'byoyomi-diagnostics-test': Suite('ByoyomiDiagnosticsTests', 'app', ('Tests/ByoyomiDiagnosticsTests.swift',), optimized=False),
     'provisional-play-test': Suite('ProvisionalPlayTests', 'app', ('Tests/ProvisionalPlayTests.swift',), optimized=False),
@@ -98,6 +104,6 @@ SUITES = {
     'covered-border-test': Suite('CoveredBorderTests', 'vision', ('Tests/CoveredBorderTests.swift', 'Tests/CoveredBorderTestMain.swift'), extra=('../SGFPlayerClean/Models/SGFPlayerEngine.swift', 'Sources/AutoGridDetector.swift')),
     'bump-test': Suite('BumpTests', 'vision', ('Tests/BumpTests.swift',), extra=('Sources/AutoGridDetector.swift', 'Sources/BoardRecoveryPrompt.swift')),
     'grid-test': Suite('AutoGridTests', 'vision', ('Tests/AutoGridTests.swift',), extra=('Sources/AutoGridDetector.swift',)),
-    'camera-test': Suite('CameraHealthTests', 'standalone', ('Tests/CameraHealthTests.swift',), extra=('Sources/CameraHealth.swift',)),
+    'camera-test': Suite('CameraHealthTests', 'standalone', ('Tests/CameraHealthTests.swift',), extra=('Sources/CameraHealth.swift','Sources/CameraFeedHealth.swift')),
     'test': Suite('PhysicalGoTests', 'vision', ('Tests/RectificationTests.swift', 'Tests/PlacementTests.swift', 'Tests/VisionTests.swift'), extra=('Sources/BoardOrientation.swift', 'Sources/BoardRectifier.swift')),
 }

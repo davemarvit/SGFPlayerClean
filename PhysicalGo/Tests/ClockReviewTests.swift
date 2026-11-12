@@ -59,6 +59,61 @@ import SwiftUI
         check(recorder.confirmClockReview(black:black,white:white,resume:false) && recorder.state == .paused && !recorder.clock.running,"Save-only review resumed play")
         recorder.finish()
         check(!recorder.confirmClockReview(black:black,white:white,resume:true),"Review reopened finished game")
+        // Real 86-move game: both pending turns reappeared on every resume,
+        // immediately reopening the review the players had just confirmed.
+        let incidentRoot=root.appendingPathComponent("incident")
+        try FileManager.default.createDirectory(at:incidentRoot,withIntermediateDirectories:true)
+        let fixtures=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockResumeLoop")
+        for name in ["game.sgf","game.clock.json","game.pending.json","game.reviews.json"] {
+            try FileManager.default.copyItem(at:fixtures.appendingPathComponent(name),to:incidentRoot.appendingPathComponent(name))
+        }
+        let incident=GameRecorder(storage:incidentRoot);incident.clock.audible=false
+        try incident.restoreSavedGame(from:incidentRoot.appendingPathComponent("game.sgf"))
+        check(incident.moveCount==86 && incident.pendingMoveCount==2 && incident.clock.requiresReview,"Resume-loop fixture lost its pending turns")
+        let beforeSGF=incident.sgf(),agreedBlack=incident.clock.engine.black,agreedWhite=incident.clock.engine.white
+        let target=DeferredMoveHistory.states(incident.tentativeHistory.candidates.max(by:{$0.moves.count<$1.moves.count})!.boards.last!)
+        check(incident.confirmClockReview(black:agreedBlack,white:agreedWhite,resume:true),"Pending clock review was rejected")
+        check(incident.clock.provisionalMoves.count==2 && incident.clock.provisionalMoves.allSatisfy{$0.reviewed == true && $0.estimate==nil},"Agreed boundary was lost or manufactured press timestamps")
+        check(incident.clock.engine.black==agreedBlack && incident.clock.engine.white==agreedWhite && !incident.clock.running,"Review changed agreed balances or skipped verification")
+        check(incident.sgf()==beforeSGF,"Clock review accepted unverified SGF moves")
+        var stamp=ProcessInfo.processInfo.systemUptime
+        for _ in 0..<8 {
+            stamp+=0.21
+            incident.consume(.init(readings:target.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:1,delta:0)},size:19,capturedAt:stamp,handObstructed:false),now:stamp)
+        }
+        check(!incident.clock.requiresReview && incident.clock.running,"Same pending stones reopened the timing review or never resumed")
+        check(incident.clock.engine.blackToPlay && incident.clock.lastTimedMove==88,"Confirmed pending turns selected the wrong live player")
+        check(incident.clock.engine.white==agreedWhite,"Verification awarded an overtime reset")
+        incident.pause()
+        let reopened=GameRecorder(storage:incidentRoot);reopened.clock.audible=false
+        try reopened.restoreSavedGame(from:incident.autosaveURL!)
+        check(reopened.clock.saveError==nil && !reopened.clock.requiresReview && reopened.clock.lastTimedMove==88,"Restart lost the acknowledged timing boundary")
+        // A genuinely new move after the acknowledged position still switches
+        // once, even while the old placements have not reached SGF.
+        var freshBlack=agreedBlack;freshBlack.remaining=15
+        check(incident.confirmClockReview(black:freshBlack,white:agreedWhite,resume:true),"A second explicit balance correction failed")
+        stamp=ProcessInfo.processInfo.systemUptime
+        func feedIncident(_ values:[Occupancy],_ count:Int) {
+            for _ in 0..<count {
+                stamp+=0.21
+                incident.consume(.init(readings:values.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:1,delta:0)},size:19,capturedAt:stamp,handObstructed:false),now:stamp)
+            }
+        }
+        feedIncident(target,8)
+        var nextTarget=target;nextTarget[0] = .black
+        check(target[0] == .empty,"Test next move was occupied")
+        feedIncident(nextTarget,6)
+        check(!incident.clock.requiresReview && incident.clock.lastTimedMove==89 && !incident.clock.engine.blackToPlay,"Acknowledged history swallowed or duplicated the next live turn")
+        incident.pause()
+        let acknowledged=LocalGameClock();acknowledged.audible=false
+        acknowledged.configure(.init(kind:.byoyomi,mainSeconds:0,periodSeconds:15,periods:1),blackToPlay:true)
+        let balances=acknowledged.engine
+        check(acknowledged.correct(black:balances.black,white:balances.white,blackToPlay:true,moveCount:0,at:100),"Agreement rejected")
+        acknowledged.acknowledgePendingTurns([[10],[20]],firstBlack:true,moveCount:0)
+        acknowledged.recordCatchUp(first:1,last:2,blackToPlay:true,at:100)
+        check(acknowledged.baseMove==2 && acknowledged.engine.black==balances.black,"Saving agreed placements changed time or lost correction boundary")
+        acknowledged.undo(to:1,blackToPlay:false,at:100)
+        check(acknowledged.requiresReview && acknowledged.engine.black==balances.black && acknowledged.engine.white==balances.white,"Undo invented thinking times for acknowledged turns")
         print("PASS: \(checks) clock-review checks plus native review action and sheet renders")
     }
 }
