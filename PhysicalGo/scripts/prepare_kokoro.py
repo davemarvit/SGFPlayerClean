@@ -17,6 +17,14 @@ for p in (models/'voices').iterdir():
     if p.name!='af_heart.bin':p.unlink()
 bundle=root/'Resources/KokoroResources.bundle';bundle.mkdir(parents=True,exist_ok=True)
 for p in (root/'Vendor/KokoroCoreML/Sources/Resources').iterdir():shutil.copy2(p,bundle/p.name)
+# Application vocabulary augments the pinned upstream dictionary. Unknown words
+# otherwise fall back to letter names (not a neural pronunciation guess).
+overrides=json.loads((root/'Resources/KokoroPronunciations.json').read_text())
+if not all(isinstance(word,str) and isinstance(phonemes,str) and phonemes for word,phonemes in overrides.items()):
+    raise ValueError('Invalid Kokoro pronunciation override')
+gold=bundle/'us_gold.json'
+lexicon=json.loads(gold.read_text());lexicon.update(overrides)
+gold.write_text(json.dumps(lexicon,ensure_ascii=False,indent=2)+'\n')
 (bundle/'Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'com.davemarvit.PhysicalGo.KokoroResources','CFBundleName':'KokoroResources','CFBundlePackageType':'BNDL'}))
 shutil.copy2(root/'Vendor/KokoroCoreML/LICENSE',models/'LICENSE')
 shutil.copy2(root/'Vendor/KokoroCoreML/provenance.json',models/'provenance.json')

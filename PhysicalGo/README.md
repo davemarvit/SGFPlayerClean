@@ -278,6 +278,11 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.159, application-specific Kokoro pronunciations augment the pinned
+lexicon through `Resources/KokoroPronunciations.json`. The recovery messages
+pronounce “verified” as a word; synthesis tests check its phonemes and regenerate
+the short cached clips so an older spelled-out recording cannot persist.
+
 From 0.158, verified restoration stops obsolete recording-warning speech and
 acknowledges an audible warning once with “Board position verified.” If clocks
 are paused, it explicitly says they remain paused. This also works when an

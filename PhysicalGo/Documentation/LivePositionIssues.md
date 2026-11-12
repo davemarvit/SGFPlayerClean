@@ -455,4 +455,43 @@ UI remains paused with one saved move. Source hash:
 The signature and installed executable match the verified build. Recording and
 prior-app backups are retained; the recording backup is
 `~/Library/Application Support/Physical Go/Backups/Install-0.158-20261111-234747`.
-The physical-board retest of the speech fix is still pending.
+The user repeated the physical removal/restoration test on 0.158: the warning
+stopped and the recovery message played. Every journaled clock state from initial
+resume verification until the user's explicit Pause remained running; there was
+no automatic hold or automatic restart during removal/restoration. The only
+failure was pronunciation: Kokoro spelled “verified” letter by letter.
+
+
+### Pronunciation follow-up: 0.159 / build 160
+
+The pinned lexicons contain “verify” but not “verified”; the offline G2P fallback
+therefore emitted letter names. `Resources/KokoroPronunciations.json` now supplies
+the application's pronunciation override. Resource preparation layers it onto the
+bundled dictionary while keeping the upstream vendor files unchanged. Both short
+recovery clips are regenerated, with tests checking the actual synthesis phonemes
+rather than only nonempty audio. The user listened to both regenerated clips and
+confirmed that “verified” now sounds correct.
+
+Validation passed: 317 speech/asset checks, seven Python build checks, 44 recovery-
+guidance checks and 38 layout/offline-voice checks. No clock or recorder Swift code
+changed in this follow-up. The optimized signed build was installed and launched;
+its signature, executable, dictionary, and two corrected clips match the verified
+build. The independently resolved 134-file source hash remains
+`2deef37585103d18cdee32c270215023d8b83607a687908b6a96b2cfe6bcb6e8`.
+Native UI confirms one saved move, White next, camera live, and both clocks paused
+at 5:00. Complete clock, pending, and review sidecars survived unchanged. Normal
+shutdown added only an accurate SGF root comment about the explicit clock
+correction after move 1; the saved move and its timing annotation are unchanged.
+Before/after snapshots and the previous app are retained; recording backup:
+`~/Library/Application Support/Physical Go/Backups/Install-0.159-20261112-000449`.
+The original 89-move recording remains byte-for-byte unchanged.
+
+Before continuing the guided tests, both test-game balances were explicitly
+adjusted to **5:00**, retaining White to play, the single saved Black center move,
+and the paused state. This is a deliberate test allowance, not a refund inferred
+from the removal interval; the before-adjustment state is retained in the guided
+session artifacts. The original 89-move recording remains separate.
+
+Next guided physical test: resume, browse **Saved moves**, place White at a corner
+star point, return to **Live position**, verify two saved moves and Black running,
+then pause. Baseline saved; awaiting user observation.

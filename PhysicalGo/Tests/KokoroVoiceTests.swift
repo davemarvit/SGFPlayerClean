@@ -36,17 +36,26 @@ import AVFoundation
                 phrases.append("\(action) Clocks resumed. \(player) to play.")
             }
         }
-        phrases += ["Board position verified.","Board position verified. Clocks remain paused."]
+        let verifiedPrompts=["Board position verified.","Board position verified. Clocks remain paused."]
+        phrases += verifiedPrompts
+        let verifiedPhonemes="vˈɛɹəfˌId"
+        let pronunciation=EnglishG2P(british:false)
+        for text in ["verified","Verified"] {
+            check(pronunciation.phonemize(text:text).0==verifiedPhonemes,"Verified fell back to spelling instead of its spoken pronunciation")
+        }
         let previous=(try? Data(contentsOf:output.appendingPathComponent("manifest.json")))
             .flatMap{try? JSONDecoder().decode([String:String].self,from:$0)} ?? [:]
         var manifest=[String:String]()
         let start=Date()
         for (index,text) in phrases.enumerated() {
             let data:Data
-            if let name=previous[text],let cached=try? Data(contentsOf:output.appendingPathComponent(name)) {
+            // Regenerate these short clips so the same-text cache cannot retain
+            // the letter-spelled pronunciation from an earlier lexicon.
+            if !verifiedPrompts.contains(text),let name=previous[text],let cached=try? Data(contentsOf:output.appendingPathComponent(name)) {
                 data=cached
             } else {
                 let result=try engine.synthesize(text:text,voice:"af_heart",speed:1.12)
+                if verifiedPrompts.contains(text) {check(result.phonemes.contains(verifiedPhonemes),"Recovery audio used the wrong verified pronunciation")}
                 check(!result.samples.isEmpty && result.samples.allSatisfy(\.isFinite),"Invalid audio: \(text)")
                 check(result.samples.contains{abs($0)>0.01},"Silent audio: \(text)")
                 data=try KokoroSpeech.wav(result.samples)
