@@ -543,10 +543,40 @@ saved moves, Black next, and both clocks paused. SGF, the complete clock sidecar
 and pending sidecar are unchanged; the review retains its original identity,
 before/after snapshots, and evidence folder, marked resolved with zero moves.
 The separate 89-move recording remains byte-for-byte unchanged. This verifies the
-actual failed saved review against the live board; the complete warning-to-recovery
-speech sequence still awaits the next user retest.
+actual failed saved review against the live board; the subsequent full physical
+retest is recorded below.
 
-Next guided test: repeat the center Black removal for **20 seconds**, manually
-pause while it is absent, then restore it and wait five seconds. Check marker
-clearing, the paused recovery acknowledgment, two saved moves, and stopped clocks.
-Baseline saved; awaiting user result.
+The user repeated the **20-second** center Black removal, manually paused while
+it was absent, then restored it: **PASS**. The ring cleared, “Board position
+verified. Clocks remain paused” played correctly, both clocks stayed stopped, and
+two saved moves remained. Saved SGF and timed-move events match the pretest
+baseline; the second missing-only review resolved with zero moves, Black next,
+and no timing correction required. The complete physical speech/restoration
+sequence is now verified on 0.160.
+
+Paused camera restart **passed**: the user left both stones untouched and clicked
+**Restart camera**. Camera returned Live, two saved moves and Black next remained,
+both clocks stayed stopped at unchanged times, and no orange ring appeared. Saved
+SGF and the entire clock sidecar match the pretest baseline exactly.
+
+Running camera restart **passed**: the user reports Black resumed automatically,
+with no speech. Journal confirms a **1.434-second** automatic hold, with Black’s
+balance identical at automatic pause and resume; no camera-hold time was charged.
+SGF and timed-move events remain unchanged, with no duplicate increment or timing
+review. The user subsequently paused.
+
+Silence follows the current paired-announcement policy: the automatic-pause
+warning is delayed one second and was canceled before actual playback when the
+board recovered. A resume announcement is owed only if pause/alignment/lighting
+guidance was audible. This quick restart produced neither audible warning nor
+resume speech; it is not a speech failure. A longer interruption with an audible
+warning and paired recovery announcement still needs a physical test.
+
+Next guided test: **Stop camera** while Black’s clock is running, leaving both
+stones untouched and without manually pausing. Wait for audible pause guidance
+(up to 15 seconds), then **Start camera**. Expect both clocks held during the
+interruption, automatic Black restart after fresh verification, and “Clocks
+resumed. Black to play” if pause guidance was audible. Manually pause after five
+seconds of resumed play. If still stopped ten seconds after Live returns, leave
+it stopped and report the status. Two-move/clock/review baseline saved; awaiting
+user result. This tests an explicit camera stop/start, not a physical disconnect.
