@@ -348,4 +348,6 @@ or signing errors occurred.
 Remaining policy decisions: none introduced by this implementation. Any new
 ruleset-specific timing choices remain a separate decision, as specified above.
 
-Final implementation commit: recorded in the documentation follow-up after committing these verified sources.
+Final implementation commit: `d2d988191b95a4f2ab96c25d582a86aabf84ab08`.
+This documentation-only follow-up records the verified implementation commit;
+application and test sources are unchanged.
