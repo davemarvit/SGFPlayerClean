@@ -630,3 +630,97 @@ and unknown timing across save/quit/reopen, using an isolated copy of the origin
 89-move record. That is separate from the 18 remaining physical-board scenarios.
 Suggested first morning test: recorded-position acknowledgment, with a baseline
 snapshot and explicit no-change checks for SGF and clocks.
+
+
+### Morning continuation: changed lighting preflight
+
+User resumed the walkthrough with the three stones still in place, game paused,
+and possibly changed lighting. Saved SGF and complete clock sidecar match the
+previous night's snapshot exactly. Native UI reports camera stopped with “Camera
+could not recover a usable live image”; the displayed saved position and old
+observations cannot establish current lighting or recognition quality.
+
+First action: keep stones untouched and clocks paused, click **Restart camera**,
+wait for **Live** and five seconds of clear view, and report any lighting/alignment
+warning or marked intersection. Await fresh evidence before continuing the planned
+recorded-position acknowledgment test. This is a setup preflight, not an additional
+passed acceptance scenario; count remains 9 passed / 18 remaining.
+
+
+Morning preflight **passed**: user reports Live, three saved moves, White next,
+clocks stopped, and no rings or lighting warnings. SGF and the entire clock
+sidecar match the preflight baseline. Fresh observations identify all three
+recorded stones; there is limited uncertainty at empty intersections, so this
+is not a claim of perfect recognition across the entire board.
+
+Next acceptance scenario, acknowledgment part A: keep game paused, lift center
+Black, wait for its orange ring, click the marked intersection on Live position,
+and choose **Recorded position is correct**. Leave the physical stone absent and
+the panel open to inspect the result. Expect confirmation without any saved-move,
+turn, or clock change; the unresolved physical absence may remain marked. If the
+button is unavailable, inspect the actual panel before taking a different action.
+Baseline saved; awaiting user result. Restoration, open-panel stale-action checks,
+and changed evidence after acknowledgment will follow before counting this
+scenario as passed.
+
+
+Acknowledgment part A **passed**: user screenshot shows “Check recognition” and
+“Recorded position confirmed. No moves or clock balances changed,” with the
+acknowledgment button disabled. Saved SGF, complete clock JSON, and review JSON
+match the baseline exactly. The center stone remains physically absent; this
+partial result does not complete the acknowledgment/changed-evidence scenario.
+Screenshot retained in `.build/GuidedTests/step-14-acknowledgment.png`.
+
+Part B: leave the recognition panel open and game paused, restore Black at center,
+and clear hands for five seconds. Expect the panel to report the issue resolved
+or position changed and disable the old correction action. The panel's static
+highlight is not itself the live-issue marker; assess its state text and actions.
+Baseline saved; awaiting user observation before closing the panel or testing
+fresh disagreement again.
+
+
+Part B functional behavior **passed**, but presentation **failed** user review:
+the correction actions disabled and resolution text appeared, yet the panel still
+said “Check the current disagreement” and kept an orange ring at K10. SGF and the
+complete clock sidecar remain unchanged. User requested a large **RESOLVED** label
+at the top and explicitly required that the board not move during the transition.
+Screenshot: `.build/GuidedTests/step-15-resolved-presentation-failure.png`.
+
+### Resolved-panel presentation: 0.161 / build 162
+
+The panel distinguishes an active disagreement, acknowledged recognition check,
+verified resolution, and changed/stale evidence. Only verified agreement after
+the recorder clears its marker produces **RESOLVED**; stale or newly contradictory
+evidence instead shows **POSITION CHANGED**. Resolved/stale selections have no
+orange highlight or enabled correction/acknowledgment action. The earlier camera
+report is labeled as an original report rather than a current observation.
+
+All heading and explanation variants reserve identical layout space; only the
+current content is visible and accessible. Acknowledgment details occupy that
+same explanation area. The result row reserves space before acknowledgment too,
+keeping board dimensions and sheet position stable across the normal transition.
+Native screenshot regression checks board pixel bounds and window bounds across
+active, acknowledged, resolved, and changed states, as well as ring removal and
+preservation of the explicit pause. **65 live-issue checks and 38 layout/offline-
+voice checks passed**, along with seven Python build checks. In the native panel
+snapshots, board bounds remain `(20, 146, 440, 440)` and window bounds are identical
+in all four states. The resolved snapshot has zero orange-ring pixels. The new
+screenshot detector initially assumed an overly narrow RGB range for macOS system
+orange; it was calibrated against the rendered native color before rerunning both
+suites successfully. These are focused UI regressions, not a new full-suite run.
+Optimized **0.161 / build 162** was signed, independently source-hash checked,
+installed, and launched. Source hash (134 resolved files):
+`4b76007e598d52f2e148ea215cee7d1a608834bda947c87b4d8cffe547289ca1`.
+Installed executable and signature match the verified build. The open old panel
+was closed to allow normal app shutdown; no force termination was used.
+SGF, complete clock, pending, and review sidecars survived shutdown and reopening
+unchanged. Native UI confirms three saved moves, White next, paused clocks
+(Black 3:48, White 4:59 displayed), camera Live, and no attention points.
+Recording backup: `~/Library/Application Support/Physical Go/Backups/Install-0.161-20261112-121000`.
+
+Next physical retest: while paused, remove center Black, open its marker,
+acknowledge the recorded position, then restore it with the panel still open.
+Expect prominent **RESOLVED**, no orange ring, disabled obsolete actions, and
+no board shift or resize. Baseline saved; awaiting user feedback. The changed-
+evidence follow-up remains outstanding before counting the acceptance scenario
+as complete.

@@ -2,6 +2,27 @@ import SwiftUI
 
 struct LiveIssueSelection:Identifiable {let id=UUID();let point:Int;let position:String;var observed:Occupancy?=nil}
 
+enum LiveIssueReviewStatus:CaseIterable {
+    case disagreement,acknowledged,resolved,changed
+    var title:String {
+        switch self {
+        case .disagreement:return "Check the current disagreement"
+        case .acknowledged:return "Check recognition"
+        case .resolved:return "RESOLVED"
+        case .changed:return "POSITION CHANGED"
+        }
+    }
+    var message:String {
+        switch self {
+        case .disagreement:return "The camera and retained position disagree here. A covered, moved, or removed stone can explain this; it does not establish an incorrect saved move."
+        case .acknowledged:return "You confirmed the recorded position. Clear hands, glare, and obstructions so recognition can check again."
+        case .resolved:return "The camera now agrees with the recorded stone at this intersection. No correction is needed."
+        case .changed:return "New evidence or a changed game position has made this review out of date. Close it and check Live position."
+        }
+    }
+    var actionable:Bool {self == .disagreement || self == .acknowledged}
+}
+
 /// Inspection never takes ownership of the recording or the clock lifecycle.
 struct LiveIssueReviewView:View {
     @ObservedObject var recorder:GameRecorder
@@ -10,28 +31,51 @@ struct LiveIssueReviewView:View {
     let onCorrect:(Int)->Void
     let onClose:()->Void
     @State private var result:String?
-    private var current:Bool {
-        selection.position==recorder.issuePositionSignature && recorder.adjustmentIssues[selection.point] != nil &&
-            (selection.observed.map{$0==recorder.discrepancyObservation(at:selection.point)} ?? true)
+    var status:LiveIssueReviewStatus {
+        guard selection.position==recorder.issuePositionSignature,
+              (0..<recorder.game.boardSize*recorder.game.boardSize).contains(selection.point) else {return .changed}
+        let observed=recorder.discrepancyObservation(at:selection.point)
+        if recorder.adjustmentIssues[selection.point] != nil {
+            guard selection.observed.map({$0==observed}) ?? true else {return .changed}
+            return acknowledged ? .acknowledged:.disagreement
+        }
+        // A changed or unavailable view is not a successful resolution. The
+        // recorder clears a marker only after repeated fresh agreement.
+        if let stone=recorder.positions.last?.grid[selection.point/recorder.game.boardSize][selection.point%recorder.game.boardSize],
+           observed?.stone==stone {return .resolved}
+        return .changed
     }
+    private var current:Bool {status.actionable}
     private var acknowledged:Bool {recorder.positionAcknowledgments[selection.point] != nil}
     var body:some View {
         VStack(alignment:.leading,spacing:16) {
-            Text(acknowledged ? "Check recognition":"Check the current disagreement").font(.title2.bold())
-            Text(current ? "The camera and retained position disagree here. A covered, moved, or removed stone can explain this; it does not establish an incorrect saved move.":"This issue resolved or the position changed while the review was open. Return to the live position for current actions.")
+            // All variants participate in layout. Only the current one is
+            // visible/accessibility-readable, so the board never shifts when
+            // the title or explanation changes, including acknowledgment.
+            ZStack(alignment:.leading) {
+                ForEach(LiveIssueReviewStatus.allCases,id:\.self) {value in
+                    Text(value.title).font(value == .resolved ? .largeTitle.bold():.title2.bold())
+                        .foregroundStyle(value == .resolved ? Color.green:Color.primary)
+                        .opacity(status==value ? 1:0).accessibilityHidden(status != value)
+                }
+            }.frame(maxWidth:.infinity,alignment:.leading)
+            ZStack(alignment:.topLeading) {
+                ForEach(LiveIssueReviewStatus.allCases,id:\.self) {value in
+                    Text(value.message).frame(maxWidth:.infinity,alignment:.leading)
+                        .opacity(status==value ? 1:0).accessibilityHidden(status != value)
+                }
+            }.fixedSize(horizontal:false,vertical:true)
             if let observed=selection.observed,(0..<recorder.game.boardSize*recorder.game.boardSize).contains(selection.point) {
                 let point=selection.point,size=recorder.game.boardSize
                 let coordinate=BoardCoordinates.name(point:point,size:size,orientation:orientation)
-                Text("Camera reported \(observed.rawValue) at \(coordinate); the saved position records \(recorder.positions.last?.grid[point/size][point%size]?.rawValue ?? "empty").").font(.callout)
+                Text("Original camera report: \(observed.rawValue) at \(coordinate); saved position: \(recorder.positions.last?.grid[point/size][point%size]?.rawValue ?? "empty").").font(.callout)
             }
             RecordedBoard(recorder:recorder,orientation:orientation,boardOverride:recorder.positions.last,
-                highlightedPoints:[selection.point],highlightColor:.orange,showsLastMoveMarker:false,onPoint:{_ in})
+                highlightedPoints:current ? [selection.point]:[],highlightColor:.orange,showsLastMoveMarker:false,onPoint:{_ in})
                 .frame(width:440,height:440)
-            if acknowledged {
-                Text("You confirmed the recorded position. Clear hands, glare, and obstructions so recognition can check again. If a physical correction interrupts play, use Pause before moving stones.")
-            }
             Text("Inspection keeps tracking active and preserves any existing clock hold.").font(.callout)
-            if let result {Text(result)}
+            Text(result ?? "Recorded position confirmed. No moves or clock balances changed.")
+                .opacity(result == nil ? 0:1).accessibilityHidden(result == nil)
             HStack {
                 Button("Close",action:onClose).keyboardShortcut(.cancelAction)
                 Spacer()

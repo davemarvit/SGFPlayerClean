@@ -278,6 +278,11 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.161, resolved disagreement panels show a prominent **RESOLVED** heading
+and remove the orange marker. Changed evidence is labeled separately. Heading
+and explanation variants reserve the same space so the board and sheet stay
+in place through acknowledgment and resolution.
+
 From 0.160, a lone missing-stone review closes automatically after fresh, clear
 views verify the complete saved position again, including while manually paused.
 Its original camera evidence remains in the resolved review; moves and clocks

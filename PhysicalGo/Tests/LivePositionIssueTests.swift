@@ -77,19 +77,49 @@ import SwiftUI
         let state=r.state,paused=r.clock.engine
         let selection=LiveIssueSelection(point:10,position:r.issuePositionSignature,observed:r.discrepancyObservation(at:10))
         let output=try TestArtifacts.directory("live-position-issues")
-        let host=NSHostingView(rootView:LiveIssueReviewView(recorder:r,selection:selection,orientation:.init(0),onCorrect:{_ in},onClose:{}).background(Color(nsColor:.windowBackgroundColor)))
+        let review=LiveIssueReviewView(recorder:r,selection:selection,orientation:.init(0),onCorrect:{_ in},onClose:{})
+        let host=NSHostingView(rootView:review.background(Color(nsColor:.windowBackgroundColor)))
         let window=NSWindow(contentRect:NSRect(x:0,y:0,width:590,height:760),styleMask:[.titled],backing:.buffered,defer:false)
         window.appearance=NSAppearance(named:.darkAqua);host.appearance=window.appearance
         window.contentView=host;window.orderFront(nil)
-        RunLoop.main.run(until:Date().addingTimeInterval(0.15));host.layoutSubtreeIfNeeded()
-        let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
-        host.cacheDisplay(in:host.bounds,to:bitmap)
-        try bitmap.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent("disagreement.png"))
-        window.orderOut(nil)
+        func snapshot(_ name:String)throws->(board:NSRect,window:NSRect,orange:Int) {
+            RunLoop.main.run(until:Date().addingTimeInterval(0.2));host.layoutSubtreeIfNeeded()
+            let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
+            host.cacheDisplay(in:host.bounds,to:bitmap)
+            try bitmap.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent(name+".png"))
+            var minX=bitmap.pixelsWide,minY=bitmap.pixelsHigh,maxX=0,maxY=0,orange=0
+            for y in 0..<bitmap.pixelsHigh {for x in 0..<bitmap.pixelsWide {
+                guard let color=bitmap.colorAt(x:x,y:y)?.usingColorSpace(.sRGB) else {continue}
+                let red=color.redComponent,green=color.greenComponent,blue=color.blueComponent
+                if red>0.45 && green>0.30 && blue<0.65 && red>green && green>blue {
+                    minX=min(minX,x);minY=min(minY,y);maxX=max(maxX,x);maxY=max(maxY,y)
+                }
+                // Native system orange varies with the display color profile;
+                // distinguish it from the tan board without assuming pure RGB.
+                if red>0.85 && green>0.4 && green<0.8 && blue<0.35 {orange += 1}
+            }}
+            return (NSRect(x:minX,y:minY,width:maxX-minX+1,height:maxY-minY+1),window.frame,orange)
+        }
+        let activeImage=try snapshot("disagreement")
+        print("Active panel: \(review.status), board \(activeImage.board), orange pixels \(activeImage.orange)")
+        check(review.status == .disagreement && activeImage.orange>0 && activeImage.board.width>400,"Active issue lost its heading or orange marker")
+        check(r.acknowledgeRecordedPosition(point:10,position:selection.position,observed:selection.observed)==nil,"Native acknowledgment fixture failed")
+        let acknowledgedImage=try snapshot("acknowledged")
+        check(review.status == .acknowledged && acknowledgedImage.board==activeImage.board && acknowledgedImage.window==activeImage.window,"Acknowledgment shifted the board or sheet")
+        feed(r,stable,count:3)
+        check(review.status != .resolved,"A few agreement frames falsely displayed RESOLVED")
+        feed(r,stable)
+        let resolvedImage=try snapshot("resolved")
+        check(review.status == .resolved && review.status.title=="RESOLVED" && !review.status.actionable && resolvedImage.orange==0,"Resolved panel retained its warning title, orange ring, or actions")
+        check(resolvedImage.board==activeImage.board && resolvedImage.window==activeImage.window,"Resolving the issue moved or resized the board/sheet")
         check(r.state==state && r.clock.engine==paused,"Native inspection changed an explicit pause")
         let beforeAcknowledgment=r.sgf()
         var changedObservation=absent;changedObservation[10] = .white
         feed(r,changedObservation)
+        let changedImage=try snapshot("changed")
+        check(review.status == .changed && !review.status.actionable,"New contradictory evidence was labeled RESOLVED")
+        check(changedImage.board==activeImage.board && changedImage.window==activeImage.window,"Changed evidence shifted the board or sheet")
+        window.orderOut(nil)
         check(r.acknowledgeRecordedPosition(point:10,position:selection.position,observed:selection.observed) != nil,"Changed camera evidence accepted an obsolete acknowledgment")
         check(r.sgf()==beforeAcknowledgment,"Stale acknowledgment rewrote the record")
         try r.flushStorage()
