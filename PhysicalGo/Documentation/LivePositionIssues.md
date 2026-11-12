@@ -820,3 +820,106 @@ Live, 3 saved, White next, manually paused, Black 3:48 / White 4:59; selected
 Live feed for the user's check. Awaiting a 15-second physical observation of
 whether perspective stays flattened; a checking label may still appear because
 this release does not relax alignment checks. Panel retest remains pending.
+
+
+### 0.162 physical result and position-informed glare follow-up
+
+User confirms all text/boxes stable and image remains flattened: perspective
+switching retest **PASS**. A few amber circles still flicker within the shiny patch.
+This is not a pass for glare recognition or the still-pending resolved-panel test.
+A fresh 60-second log sample contained 248 observations, all three known stones
+correct throughout, no extra detected stones, no persistent adjustment markers,
+and no logged alignment rejection in that window. Empty index 109 was uncertain
+in 247 observations; 147, 148, 167, 186, 204, and 166 were intermittently uncertain.
+SGF and complete clock JSON still match the overnight baseline. Evidence:
+`.build/GuidedTests/stable-perspective-glare.json`.
+
+User explicitly points out that known stone locations and number played should
+inform glare thresholding. Confirmed implementation gap: saved positions inform
+alignment and established-stone tracking, but reference-backed local brightness
+classification does not receive the expected position or temporal confidence.
+Expected occupied count must come from the reconstructed position (accounting
+for captures and passes), and should guide the lighting model without imposing a
+maximum number of visible stones while a new move is being made.
+
+Saved current real image/reference/calibration at ignored sample folder
+`Captures/Samples/Glare known three stones 20261112`; viewed the image and resumed
+the camera after Save sample froze it. Offline replay: original-reference detector
+has one uncertain empty point (109), all three stones confidence 1; local appearance
+has 35 uncertain empty points but all three stones correct. The two methods do
+not fail at identical points. No threshold/baseline changes installed yet.
+
+Next requested diagnostic capture: with the game still paused and original three
+stones untouched, place one extra White on an empty intersection within the
+shiny patch, clear hands, and leave it for capture. This will supply a real new-
+stone counterexample under the same lighting before tuning expected-position
+background estimation. Capture that view, then ask the user to remove only the
+extra White and capture restoration. Saved game must remain at three moves.
+This diagnostic detour does not add an acceptance-plan pass.
+
+
+Extra White diagnostic captured after user confirmed placement and cleared hand:
+`Captures/Samples/Glare extra white 20261112` (ignored local artifact). Inspected
+photo confirms the added White within the reflection, with original three intact.
+Raw reference-backed reading at canonical index 185 changed from empty to White
+(confidence score 0.8214). Original Black 60/180 and White 300 remain correct at
+confidence 1. Empty indices 109, 147, and 167 remain uncertain in this sample.
+Native UI correctly reports 3 saved / 0 pending / 1 detected outside saved history;
+SGF bytes and complete clock JSON still match the overnight baseline. Camera
+resumed after sample capture. Thirty-second observation tail saved at
+`.build/GuidedTests/glare-extra-white-evidence.json`.
+
+This supplies a real positive stone example under the glare, rather than an
+edited or synthetic image. Position-informed thresholding must preserve this
+new White despite the saved position containing only three stones. No detector
+changes installed. Next: remove only the temporary White, leave the original
+three in place, remain paused, then capture the restored empty intersection.
+
+
+Restoration captured at `Captures/Samples/Glare restored three stones 20261112`:
+actual extra White removed, original three intact. Raw index 185 returned to
+empty (score 0.9643); only empty index 54 uncertain in that snapshot. SGF and
+complete clock JSON unchanged, camera explicitly resumed after capture. Added
+real three-image fixture `Tests/Fixtures/KnownPositionGlare` with original empty
+reference and per-frame calibrations. The recorded sequence is empty → White →
+empty at 185; repeated frames in temporal unit tests use synthetic timestamps,
+not a claimed physical video test.
+
+### Position-informed local lighting baseline (0.163, under validation)
+
+Added `KnownEmptyLighting` on the camera analysis queue. Expected occupancy is
+reconstructed from the saved position; known occupied stones must agree in color
+and confidence. Eight independent empty readings (score at least 0.8) over at
+least 1.4 seconds can establish a local baseline at a saved-empty intersection.
+The baseline stores sixteen brightness/chromaticity patches plus the intersection
+center; bounded noise tolerance can resolve a later *uncertain* classification
+when current pixels still match. Explicit Black/White readings always pass through
+and invalidate that intersection's empty baseline. The saved stone count is never
+a cap on visible stones. This learns from raw observations only; a resolved output
+cannot refresh its own baseline. Independent confirmation expires after 30 seconds.
+
+Invalid alignment, hands, manual corrections, camera gaps, changed game/position,
+and substantial grid displacement invalidate baselines. Occupied disagreements
+also clear learned background. Original reference/camera images remain intact;
+diagnostics retain unadapted readings and the list of prior-resolved points.
+No deployment yet. Targeted replay plus existing lighting, glare, stone tracking,
+recovery lifecycle, and native grid/UI suites are being checked. Residual glare
+that never supplies enough independent empty evidence will remain uncertain.
+
+
+0.163 validation complete: **6/6 targeted Swift suites passed**: 22 new local-
+baseline checks, 86 lighting checks, 82 established-stone checks, 16 recovery
+lifecycle checks, 1,377 native grid/UI checks, and existing recorded-glare suite
+(real Empty→White→Empty plus six synthetic photographed-stone transfers). All
+7 Python build checks passed. The new suite verifies expiry without self-training,
+small central occlusion, weak White evidence, missing known Black, context and
+position changes, stale/invalid frames, duplicate timestamps, and shifted grid.
+
+Installed **0.163 / build 164**, independently verified 135-source hash and strict/
+deep Developer ID signature. Source hash `00625f3b01548100fea7e02bd1b01ce341b6d433c47be7c6502189fa3b68f4fa`.
+Backup: `/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.163-20261112-145044`. Normal quit and relaunch preserved exact SGF plus semantic
+clock, pending, and reviews JSON. Original 89-move recording remains unchanged.
+Live feed selected; original three-stone test game remains manually paused.
+Await user 20-second hands-clear observation of glare rings. This is a conservative
+baseline for recurring uncertain empty readings, not a claim that all glare is
+resolved. Original resolved-panel acceptance retest remains pending.

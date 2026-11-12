@@ -278,6 +278,13 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.163, repeated independent empty readings at saved-empty intersections
+learn temporary local lighting baselines. An uncertain reading can remain empty
+when brightness, color, and the center still match. Detected stones take
+precedence; baselines expire and reset on conflicting known stones, camera gaps,
+obstructions, position/context changes, and grid displacement. Original reference
+images remain unchanged.
+
 From 0.162, the flattened camera view retains its display geometry during
 alignment checks and grid searches, with an in-place checking label. Unverified
 frames still cannot supply stone observations or moves. The raw perspective

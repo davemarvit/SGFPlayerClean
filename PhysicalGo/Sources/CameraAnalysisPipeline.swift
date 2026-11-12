@@ -28,6 +28,7 @@ final class CameraAnalysisPipeline {
         var checkHands=false
         var handTracking=HandOutlineTracker()
         var handTimestampSource="callback"
+        var emptyLighting=KnownEmptyLighting()
     }
     struct Output {
         let handPose:HandMotionPose?
@@ -45,6 +46,8 @@ final class CameraAnalysisPipeline {
         let applyAspect: Bool
         let geometry: BoardRectifiedGeometry?
         let corrected: CGImage?
+        let emptyLighting:KnownEmptyLighting
+        let rawResult:BoardObservation?
     }
     private let queue = DispatchQueue(label: "PhysicalGo.detection", qos: .userInitiated)
     func submit(_ input: Input, completion: @escaping @MainActor (Output) -> Void) {
@@ -90,7 +93,7 @@ final class CameraAnalysisPipeline {
                 pose:handPose,at:trackingTime,source:input.handTimestampSource)
         } else {handTracking.reset();handOutline=nil}
         let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size)
-        let result:BoardObservation? = exposureFailure
+        var result:BoardObservation? = exposureFailure
             ? BoardObservation(readings:(0..<calibration.size*calibration.size).map {
                 .init(row:$0/calibration.size,col:$0%calibration.size,occupancy:.uncertain,confidence:0,delta:0)
             },size:calibration.size,notice:"The board is too dark or overexposed to read.",lightingBlocked:true)
@@ -103,6 +106,13 @@ final class CameraAnalysisPipeline {
                 return BoardAppearanceDetector.detect(frame:frame,calibration:current,threshold:threshold)
             }
         }
+        let rawResult=result
+        var emptyLighting=input.emptyLighting
+        if let raw=result,let frame,let aligned {
+            result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,
+                context:trackingContext,now:trackingTime,
+                valid:trackingFresh && handObstructed != true && trackingManualPoints.isEmpty)
+        } else {emptyLighting.reset()}
         var tracker=trackingState
         let trackedObservation:BoardObservation?
         if var raw=result {
@@ -123,6 +133,6 @@ final class CameraAnalysisPipeline {
         // recognition or recording from an unverified frame (both remain nil).
         let geometry = straighten ? BoardRectifiedGeometry(calibration:aligned ?? calibration,longAxisRows:displayRows) : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
-        return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
+        return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected,emptyLighting:emptyLighting,rawResult:rawResult)
     }
 }

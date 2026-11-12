@@ -403,10 +403,12 @@ enum PhysicalPlayMode: String, CaseIterable {
 
     private let cameraAnalysis = CameraAnalysisPipeline()
     private var handOutlineTracking=HandOutlineTracker()
+    private var emptyLighting=KnownEmptyLighting()
     private var processingBusy = false
     @Published private(set) var lastVerifiedLiveFrameAt:Double?
     private var revision = 0 {didSet {
         handOutlineTracking.reset()
+        emptyLighting.reset()
         lastVerifiedLiveFrameAt=nil
         trackedBoardObservation=nil;establishedStones.reset();stoneTrackingReport = .init()
     }}
@@ -1182,7 +1184,8 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingManualPoints:trackingManualPoints,
             trackingFresh:trackingFresh,
             trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil,
-            handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback")) { [weak self] analysis in
+            handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
+            emptyLighting:emptyLighting)) { [weak self] analysis in
             let frame=analysis.frame
             let exposureFailure=analysis.exposureFailure
             let alignmentReport=analysis.alignmentReport
@@ -1221,6 +1224,8 @@ enum PhysicalPlayMode: String, CaseIterable {
                     "lightingRecovery":self.lightingNeedsRecovery,"exposureFailure":exposureFailure,
                     "lightingField":DiagnosticRecorder.value(result?.lightingField),
                     "stoneTracking":DiagnosticRecorder.value(trackingResult.report),
+                    "knownEmptyLighting":DiagnosticRecorder.value(analysis.emptyLighting.report),
+                    "unadaptedReadings":DiagnosticRecorder.value(analysis.rawResult?.readings),
                     "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point}),
                     "frameDecoded":frame != nil,"checkAlignment":checkAlignment,"recorderUptime":recorderTime ?? NSNull() as Any,
                     "recorder":self.diagnosticRecorderState])
@@ -1233,6 +1238,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             if freshView,let captureUptime,ProcessInfo.processInfo.systemUptime-captureUptime>1.5 {
                 diagnosticOutcome="stale analysis frame discarded";return
             }
+            if self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected {
+                self.emptyLighting=analysis.emptyLighting
+            } else {self.emptyLighting.reset()}
             defer {
                 self.boardViewFeedback.observe(clear:aligned != nil && analysis.handObstructed != true && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
                     fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,

@@ -11,7 +11,7 @@ DEPENDENCIES = {
     'Sources/BoardHandDetector.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/LocalClockEngine.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
-    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift'),
+    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift','Sources/KnownEmptyLighting.swift'),
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift', 'Sources/HandMotionTiming.swift'),
     'Sources/MoveObservationHistory.swift': ('Sources/PlacementAlternatives.swift',),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
