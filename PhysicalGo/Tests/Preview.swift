@@ -300,7 +300,7 @@ import ImageIO
               !FileManager.default.fileExists(atPath:recovered.appendingPathComponent("position.sgf").path) else { fatalError("Recovered sample omitted its reference geometry or exported uncertain stones") }
         model.receive(blank); settle()
         guard model.alignmentNeedsRecovery && model.observation==nil && !model.stable,
-              model.rectifiedImage==nil && model.referenceImage===originalReference else { fatalError("Obscured grid did not pause recognition safely") }
+              model.rectifiedImage != nil && model.referenceImage===originalReference else { fatalError("Obscured grid did not pause recognition while preserving presentation") }
         model.captureReference()
         guard model.referenceImage===originalReference else { fatalError("Paused tracking replaced the empty reference") }
         try screenshot("camera-bump-paused")
@@ -398,7 +398,7 @@ import ImageIO
         for _ in 0..<3 { model.receive(blank); settle() }
         awaitGrid(model); settle()
         guard model.alignmentNeedsRecovery, model.recoverySearchAttempts == 1,
-              model.observation == nil, model.rectifiedImage == nil else { fatalError("First broad recovery attempt was not visible/safe") }
+              model.observation == nil, model.rectifiedImage != nil else { fatalError("First broad recovery attempt lost presentation or accepted unverified evidence") }
         for expectedAttempt in 2...3 {
             RunLoop.main.run(until:Date().addingTimeInterval(2.1))
             model.analyze(); settle()

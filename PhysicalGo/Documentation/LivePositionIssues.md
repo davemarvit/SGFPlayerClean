@@ -724,3 +724,99 @@ Expect prominent **RESOLVED**, no orange ring, disabled obsolete actions, and
 no board shift or resize. Baseline saved; awaiting user feedback. The changed-
 evidence follow-up remains outstanding before counting the acceptance scenario
 as complete.
+
+
+0.161 physical panel retest **not run yet**: user reports changed lighting and
+flickering circles while **Live feed** is selected. Recent observations alternate
+between known/uncertain readings for center Black and White, with additional
+uncertain empty intersections; alignment checks report insufficient support on
+some outer rails. No persistent live adjustment points are recorded and the
+global `lightingBlocked` flag is false. These facts do not establish that lighting
+is the sole cause; the user inspecting the live image also suspects lighting.
+Saved SGF and the complete clock sidecar still match the pretest baseline.
+Diagnostic tail retained in `.build/GuidedTests/lighting-flicker-evidence.json`.
+
+Next recovery step: keep game paused and camera/board/stones fixed; make lighting
+even, reducing bright reflections or deep shadows (shade direct sunlight if
+present), clear hands, and observe for ten seconds. Await steady detection before
+resuming the panel retest. No grid, reference, or detector thresholds changed.
+
+
+### Occupied-board lighting baseline investigation
+
+User adjusted lighting but still sees flickering; requested refreshing the baseline
+using the three known stones or confidence across time. Captured a diagnostic
+sample at `Captures/Samples/Lighting refresh 3 stones 20261112` (ignored local
+artifact). The image visibly contains all three stones and uneven reflection.
+Offline comparison using the captured calibrations: existing empty-reference
+comparison correctly classified all 361 intersections; appearance-only detection
+classified all three stones correctly but left 24 empty intersections uncertain.
+This single image does not establish behavior across changing frames.
+
+Used **Reestablish grid** to refresh geometry/tracking from the occupied view while
+preserving the original empty-board reference. Saving a sample freezes the view;
+explicitly resumed the camera afterward. Native UI confirms Live, 3 saved moves,
+White next, manually paused. A subsequent 30-second window contained 90 processed
+observations: 88 exact full-board matches; two had only empty intersection index
+167 uncertain. All three occupied intersections matched throughout. No persistent
+adjustment points or lighting blocks appeared. SGF bytes and complete clock JSON
+remain identical to the overnight baseline. Evidence saved at
+`.build/GuidedTests/lighting-after-grid-refresh.json`.
+
+This is a tracking refresh, **not a newly implemented adaptive lighting baseline**.
+Remaining flicker is not declared fixed. A future occupied-board lighting refresh
+should learn exposed wood from multiple independently confident frames, exclude
+stones/obstructions/uncertain regions, retain the original empty reference, and
+use known stones as validation rather than overwrite contradictory observations.
+Temporal confidence must not teach a removed stone, hand, or newly placed stone
+into the baseline. Validate with changed-light replay sequences, removal and new
+placement after refresh, moving shadows/occlusion, and geometry shifts. Live feed
+currently draws per-observation uncertainty directly; it can flicker without a
+persistent recording issue. Physical resolved-panel retest remains not run.
+
+
+### Live feed switches between flattened and raw perspective
+
+User clarified the flicker is the entire board alternating between the flattened
+grid view and the unflattened camera image. The earlier 88/90 observation summary
+counted emitted board observations, not rejected alignment frames, and therefore
+did not establish display stability. Alignment logs confirm intermittent rejects:
+all three known stones match, profile error about 0.016 (limit 0.04), but one outer
+rail has only 1–2 matches (minimum 3). The display pipeline returned no rectified
+image for any rejected alignment; ExperimentModel then replaced the flattened
+view with raw pixels. Full-grid search also cleared the displayed transform.
+
+0.162 implementation under test: preserve the last established transform for
+presentation of current camera pixels when alignment is unverified, and retain
+presentation during full-grid search. An overlay says “Checking grid alignment ·
+recognition paused” without changing the camera canvas layout. Recognition
+markers remain hidden and unverified frames supply no observations/moves. No
+alignment thresholds or stone evidence requirements are relaxed. This addresses
+the perspective jump; intermittent alignment rejection remains a separate issue.
+
+Regression coverage being run: alternate clear real photos and obscured frames,
+assert stable display geometry, current rather than stale pixels, absent
+recognition on rejected frames, unchanged SGF and clock engine, retained display
+through failed full-grid search, recovery, and explicit raw-view toggle. Existing
+occupied-board alignment and recovery lifecycle/guidance suites also run.
+Physical panel retest remains pending; no additional physical scenario credited.
+
+
+0.162 targeted validation passed: 1,377 grid/UI checks (including the new
+alternating rejected/accepted-frame and failed-search regression), 18 occupied-
+board recovery checks, 58 recovery guidance checks, 16 recovery lifecycle checks,
+and all 7 Python build-registry tests. Native `GridResetUI/alignment-checking.png`
+visually inspected: flattened current pixels with checking label and no recognition
+markers. Production build/install pending; physical result remains unverified.
+
+
+Installed and launched **0.162 / build 163** after optimized build, independent
+134-source hash check, and strict/deep Developer ID signature verification.
+Source hash `5cbce794193e72d2bdd1f693c263ec4a77ad2ad1c97688b74a0e54cf4cf6f9a8`.
+Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.162-20261112-132604`.
+Normal quit and relaunch preserved SGF bytes and complete clock, pending, and
+review JSON. Original 89-move game also remains unchanged. Native UI: camera
+Live, 3 saved, White next, manually paused, Black 3:48 / White 4:59; selected
+Live feed for the user's check. Awaiting a 15-second physical observation of
+whether perspective stays flattened; a checking label may still appear because
+this release does not relax alignment checks. Panel retest remains pending.

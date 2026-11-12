@@ -498,6 +498,14 @@ struct CameraCanvas: View {
                     if model.selectingCorners, let pointer, rect.contains(pointer) {
                         drawMagnifier(in:context,at:pointer,bounds:geometry.size,drawImage:drawImage)
                     }
+                }.overlay(alignment:.bottom) {
+                    if model.alignmentNeedsRecovery || model.detectingGrid {
+                        Text("Checking grid alignment · recognition paused")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.white).padding(8)
+                            .background(.black.opacity(0.8),in:RoundedRectangle(cornerRadius:8))
+                            .padding(8).allowsHitTesting(false)
+                    }
                 }.contentShape(Rectangle())
                     .onContinuousHover { phase in
                         switch phase {

@@ -947,7 +947,8 @@ enum PhysicalPlayMode: String, CaseIterable {
         revision += 1; stable = false; stability.reset(); emptyBoardVerifier.reset()
         if calibration != nil || !recoveryExpected.isEmpty {
             alignmentNeedsRecovery = true; observation = nil
-            rectifiedImage = nil; rectifiedGeometry = nil
+            // Retain presentation during the search; the recovery label and
+            // hidden recognition overlays distinguish it from a verified grid.
         }
         automaticGridArmed = false; gridGeneration += 1
         let token = gridGeneration, boardSize = size

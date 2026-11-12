@@ -278,6 +278,11 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.162, the flattened camera view retains its display geometry during
+alignment checks and grid searches, with an in-place checking label. Unverified
+frames still cannot supply stone observations or moves. The raw perspective
+remains available through the explicit straighten-board setting.
+
 From 0.161, resolved disagreement panels show a prominent **RESOLVED** heading
 and remove the orange marker. Changed evidence is labeled separately. Heading
 and explanation variants reserve the same space so the board and sheet stay

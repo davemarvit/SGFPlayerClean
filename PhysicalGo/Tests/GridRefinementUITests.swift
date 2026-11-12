@@ -131,6 +131,43 @@ import ImageIO
             while model.orientation.turns != turn {model.rotateView()}
             try snapshot(CameraCanvas(model:model),"camera-rotation-\(turn)",NSSize(width:1000,height:900))
         }
+        // Alternate a real, aligned photo with unreadable current pixels. A
+        // rejected frame must not flip the display to raw perspective, freeze
+        // the previous photo, or become evidence for the saved game.
+        let clearPhoto=model.image!,displayGeometry=model.rectifiedGeometry!
+        let displaySize=model.rectifiedImage!.width
+        let context=CGContext(data:nil,width:clearPhoto.width,height:clearPhoto.height,
+            bitsPerComponent:8,bytesPerRow:clearPhoto.width,space:CGColorSpaceCreateDeviceGray(),bitmapInfo:0)!
+        context.setFillColor(gray:0.5,alpha:1)
+        context.fill(CGRect(x:0,y:0,width:clearPhoto.width,height:clearPhoto.height))
+        let obscured=context.makeImage()!
+        let clockBefore=try encoder.encode(model.recorder.clock.engine)
+        for cycle in 0..<3 {
+            model.receive(obscured)
+            wait {model.image === obscured && model.alignmentNeedsRecovery}
+            check(model.rectifiedImage?.width==displaySize && model.rectifiedGeometry?.calibration==displayGeometry.calibration,
+                  "Rejected alignment changed the displayed board geometry")
+            check(model.observation==nil && model.trackedBoardObservation==nil && !model.stable,
+                  "Display transform authorized recognition from an unverified frame")
+            let displayed=GrayFrame(image:model.rectifiedImage!)!
+            check(abs(displayed.sample(.init(x:0.5,y:0.5))!-0.5)<0.03,
+                  "Rejected alignment left old camera pixels on screen")
+            let clockAfter=try encoder.encode(model.recorder.clock.engine)
+            check(model.recorder.sgf()==sgf && clockAfter==clockBefore,
+                  "Presentation recovery changed moves or clock balances")
+            if cycle==0 {
+                try snapshot(CameraCanvas(model:model),"alignment-checking",NSSize(width:1000,height:900))
+                model.detectGrid()
+                check(model.rectifiedImage != nil && model.rectifiedGeometry?.calibration==displayGeometry.calibration,
+                      "Starting a full grid search switched to raw perspective")
+                wait {!model.detectingGrid}
+                check(model.alignmentNeedsRecovery && model.observation==nil && model.rectifiedImage != nil,
+                      "Failed grid search lost presentation or accepted evidence")
+            }
+            model.receive(clearPhoto)
+            wait {model.image === clearPhoto && !model.alignmentNeedsRecovery && model.observation != nil}
+            check(model.rectifiedImage?.width==displaySize,"Recovered view changed size")
+        }
         model.straightenBoard=false;model.perspectiveViewChanged()
         wait {model.rectifiedImage==nil}
         try snapshot(CameraCanvas(model:model),"camera-perspective",NSSize(width:1000,height:900))

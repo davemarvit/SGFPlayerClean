@@ -118,7 +118,10 @@ final class CameraAnalysisPipeline {
         // Changing an established stone-based choice needs agreement on a second check.
         let applyAspect=stoneAspect.map { previousStoneCount==0 || $0.longAxisRows==longAxisRows || pendingAxis==$0.longAxisRows } ?? false
         let displayRows=applyAspect ? stoneAspect!.longAxisRows : longAxisRows
-        let geometry = straighten ? aligned.map { BoardRectifiedGeometry(calibration:$0,longAxisRows:displayRows) } : nil
+        // Presentation can keep the last established transform while alignment
+        // is checked. This renders the CURRENT pixels; it does not authorize
+        // recognition or recording from an unverified frame (both remain nil).
+        let geometry = straighten ? BoardRectifiedGeometry(calibration:aligned ?? calibration,longAxisRows:displayRows) : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
         return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected)
     }
