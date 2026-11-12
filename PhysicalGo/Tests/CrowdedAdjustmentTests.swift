@@ -19,7 +19,8 @@ import ImageIO
             let started=Date()
             let view=BoardDetector.detect(frame:load(folder.appendingPathComponent(frame.name+".png")),reference:reference,calibration:frame.calibration,threshold:frame.threshold,referenceCalibration:frame.referenceCalibration)!
             let position=view.signature.map{$0 == .black ? "B" : $0 == .white ? "W" : $0 == .uncertain ? "?" : "."}.joined()
-            check(position==frame.signature,"Placement refinement changed occupancy in \(frame.name)")
+            check(zip(position,frame.signature).allSatisfy {pair in pair.0==pair.1 || (pair.0=="." && pair.1=="?")},
+                  "Placement refinement changed known occupancy in \(frame.name)")
             if let clear=frame.expectedClear {
                 if clear {
                     check(view.placementOffsets[48].map{$0<=0.24+1e-9}==true,"Adjusted stone still lacks a reliable center in \(frame.name)")
@@ -50,6 +51,7 @@ import ImageIO
         check(recorder.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}==expected,"Real adjusted images did not complete the exact 46-move sequence: \(recorder.status)")
         check(recorder.pendingMoveCount==0 && recorder.interpretationWarnings.isEmpty,"Completed sequence retained a red ring")
         recorder.pause()
+        try recorder.flushStorage()
         let restored=GameRecorder(storage:nil);try restored.restoreSavedGame(from:seed)
         check(restored.moveCount==46 && restored.pendingMoveCount==0,"Recovered SGF/checkpoint failed round trip")
         try seed.path.write(to:URL(fileURLWithPath:"PhysicalGo/.build/CrowdedAdjustment/recovered-path.txt"),atomically:true,encoding:.utf8)

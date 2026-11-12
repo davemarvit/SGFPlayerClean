@@ -55,6 +55,16 @@ import Foundation
         let (missing,missingBase)=mature()
         var absent=missingBase;absent[old[0]] = .empty;absent[340] = .black;feed(missing,absent,12)
         check(missing.moveCount==20,"Definite disappearance of an old stone was ignored")
+        absent[341] = .white;feed(missing,absent,2)
+        absent[322] = .black;feed(missing,absent,8)
+        check(missing.moveCount==20 && missing.pendingConfidence.compactMap(\.point)==[340,341,322],"A recorded-stone disagreement lost later visible chronology or allowed SGF confirmation")
+        absent[old[0]]=missingBase[old[0]];feed(missing,absent,10)
+        check(missing.moveCount==23 && missing.pendingMoveCount==0 && missing.game.moves.suffix(3).compactMap{$0.1.map{$0.1*19+$0.0}}==[340,341,322],"Restoring the recorded stone failed to confirm the retained legal sequence")
+        let (lost,lostBase)=mature()
+        var broadLoss=lostBase
+        for point in old.prefix(3) {broadLoss[point] = .empty}
+        broadLoss[340] = .black;feed(lost,broadLoss,12)
+        check(lost.moveCount==20 && lost.pendingMoveCount==0,"Broad disappearance was treated as a local retained identity")
         let (covered,coveredBase)=mature()
         var hidden=coveredBase;for point in old {hidden[point] = .uncertain};hidden[340] = .black;feed(covered,hidden,12)
         check(covered.moveCount==21,"Unreadable older identities blocked a directly observed move")

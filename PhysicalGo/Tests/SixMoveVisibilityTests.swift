@@ -49,6 +49,9 @@ import SwiftUI
         check(!recorder.canPass,"Pass could discard the pending sequence")
         try recorder.savePendingCheckpoint()
         let saved=recorder.autosaveURL!
+        // Preserve this six-move snapshot before another recorder legitimately
+        // advances the same file. Independent stores must not race that path.
+        let pendingCopy=try Data(contentsOf:saved.deletingPathExtension().appendingPathExtension("pending.json"))
         try saved.path.write(to:root.appendingPathComponent("restorable-path.txt"),atomically:true,encoding:.utf8)
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil)
         try model.recorder.restoreSavedGame(from:saved)
@@ -103,25 +106,33 @@ import SwiftUI
         for _ in 0..<7 {time += 0.21;model.recorder.consume(adjusted,now:time)}
         check(model.recorder.moveCount==6,"Restored pending moves skipped fresh confirmation")
         time += 0.21;model.recorder.consume(adjusted,now:time)
+        check(model.recorder.moveCount==6 && model.recorder.pendingMoveCount==7,"Centering silently erased the still-obscured alternative")
+        // The original final reading at neighboring 286 is uncertain. Simulate
+        // exposing that vacated point as well; centering alone cannot rule out
+        // a second hidden body. This is an explicit synthetic clarity control.
+        check(adjusted.signature[286] == .uncertain,"Fixture no longer exercises an obscured alternative")
+        var clearReadings=adjusted.readings
+        clearReadings[286] = .init(row:286/19,col:286%19,occupancy:.empty,confidence:1,delta:0)
+        adjusted=BoardObservation(readings:clearReadings,size:19,footprints:adjusted.footprints,placementFits:adjusted.placementFits)
+        for _ in 0..<8 {time += 0.21;model.recorder.consume(adjusted,now:time)}
         check(model.recorder.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}==expected,"Centering move 7 did not save the exact 13 moves: \(model.recorder.status)")
         check(model.recorder.pendingMoveCount==0 && model.recorder.interpretationWarnings.isEmpty,"Resolved rings did not clear")
         for _ in 0..<8 {time += 0.21;model.recorder.consume(last!,now:time)}
         check(model.recorder.moveCount==13 && model.recorder.interpretationWarnings.isEmpty,"Later displacement reopened a locked move")
         model.recorder.pause()
+        try model.recorder.flushStorage()
         let completed=GameRecorder(storage:nil);try completed.restoreSavedGame(from:saved)
         check(completed.moveCount==13 && completed.pendingMoveCount==0,"Completed SGF retained obsolete checkpoint")
         // Leave a separate six-saved/seven-pending copy for the user's app update.
         let recovery=output.appendingPathComponent("Recovered test.sgf")
         try recorder.sgf().write(to:recovery,atomically:true,encoding:.utf8)
-        let checkpoint=recorder.autosaveURL!.deletingPathExtension().appendingPathExtension("pending.json")
-        try recorder.savePendingCheckpoint()
-        try Data(contentsOf:checkpoint).write(to:recovery.deletingPathExtension().appendingPathExtension("pending.json"))
+        try pendingCopy.write(to:recovery.deletingPathExtension().appendingPathExtension("pending.json"))
         try recovery.path.write(to:root.appendingPathComponent("restorable-path.txt"),atomically:true,encoding:.utf8)
         let restored=GameRecorder(storage:nil);try restored.restoreSavedGame(from:recovery)
         check(restored.moveCount==6 && restored.pendingMoveCount==7 && restored.interpretationWarnings==[287],"Final recovery copy is not intact")
         let bad=output.appendingPathComponent("Mismatched.sgf")
         try completed.sgf().write(to:bad,atomically:true,encoding:.utf8)
-        try Data(contentsOf:checkpoint).write(to:bad.deletingPathExtension().appendingPathExtension("pending.json"))
+        try pendingCopy.write(to:bad.deletingPathExtension().appendingPathExtension("pending.json"))
         do {try GameRecorder(storage:nil).restoreSavedGame(from:bad);check(false,"Mismatched checkpoint accepted")} catch {check(true,"Mismatch rejected")}
         window.orderOut(nil)
         print("PASS: \(checks) actual six-move session checks: 13 interpreted, red-ringed move 7, six saved, native rendering, paused camera startup/review, checkpoint validation, fresh confirmation and exact catch-up after simulated centering.")

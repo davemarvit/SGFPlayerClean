@@ -7,9 +7,11 @@ import ImageIO
         let name:String;let calibration:BoardCalibration;let referenceCalibration:BoardCalibration
         let threshold:Double;let expectedClear:Bool?;let signature:String;let time:Double?
     }
+    struct PhotoLabels:Decodable {let empty:[Int];let occluded:[Int]}
     @MainActor static func main()throws {
         setbuf(stdout,nil)
         let folder=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment")
+        let labels=try JSONDecoder().decode([String:PhotoLabels].self,from:Data(contentsOf:folder.appendingPathComponent("photo-labels.json")))
         let frames=try JSONDecoder().decode([Frame].self,from:Data(contentsOf:folder.appendingPathComponent("metadata.json")))
         func load(_ url:URL)->GrayFrame {GrayFrame(image:CGImageSourceCreateImageAtIndex(CGImageSourceCreateWithURL(url as CFURL,nil)!,0,nil)!)!}
         let reference=load(folder.appendingPathComponent("reference.png"))
@@ -19,7 +21,16 @@ import ImageIO
             let started=Date()
             let view=BoardDetector.detect(frame:load(folder.appendingPathComponent(frame.name+".png")),reference:reference,calibration:frame.calibration,threshold:frame.threshold,referenceCalibration:frame.referenceCalibration)!
             let position=view.signature.map{$0 == .black ? "B" : $0 == .white ? "W" : $0 == .uncertain ? "?" : "."}.joined()
-            check(position==frame.signature,"Placement refinement changed occupancy in \(frame.name)")
+            // Historical signatures include false whites on wood and fingers.
+            // Separate photo labels forbid fabricated stones on those points. A
+            // conservative unknown remains valid under the small-cover guard.
+            let labeled=labels[frame.name]
+            let old=Array(frame.signature),current=Array(position)
+            for i in current.indices {
+                if labeled?.empty.contains(i) == true {check(current[i]=="." || current[i]=="?","Photographed empty point \(i) became occupied in \(frame.name)")}
+                else if labeled?.occluded.contains(i) == true {check(current[i]=="?","Hand-covered point \(i) was assigned in \(frame.name)")}
+                else {check(current[i]==old[i] || (current[i]=="." && old[i]=="?"),"Known occupancy changed at \(i) in \(frame.name)")}
+            }
             if let clear=frame.expectedClear {
                 if clear {
                     check(view.placementOffsets[39].map{$0<=0.24+1e-9}==true,"Adjusted stone still lacks a reliable center in \(frame.name)")
@@ -51,6 +62,7 @@ import ImageIO
         check(recorder.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}==expected,"Real adjusted images did not complete the exact 36-move sequence: \(recorder.status)")
         check(recorder.pendingMoveCount==0 && recorder.interpretationWarnings.isEmpty,"Completed sequence retained a red ring")
         recorder.pause()
+        try recorder.flushStorage()
         let restored=GameRecorder(storage:nil);try restored.restoreSavedGame(from:seed)
         check(restored.moveCount==36 && restored.pendingMoveCount==0,"Recovered SGF/checkpoint failed round trip")
         try seed.path.write(to:URL(fileURLWithPath:"PhysicalGo/.build/C3Placement/recovered-path.txt"),atomically:true,encoding:.utf8)

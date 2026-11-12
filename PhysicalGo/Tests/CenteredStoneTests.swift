@@ -25,8 +25,14 @@ import ImageIO
             let observation=BoardDetector.detect(frame:pixels(folder.appendingPathComponent("frame.png")),reference:pixels(folder.appendingPathComponent("empty-reference.png")),calibration:m.calibration,threshold:m.threshold,referenceCalibration:m.referenceCalibration)!
             let changed=Set(observation.readings.indices.filter{observation.readings[$0].occupancy != m.readings[$0].occupancy})
             check(observation.signature[24] == .white,"Shaded white stone is still missing in \(name)")
-            check(changed.isSubset(of:[24]),"Other intersections changed in \(name): \(changed)")
-            if name=="166" {check(changed.isEmpty,"Successful control changed")}
+            // Saved classifications are historical output, not labels for empty
+            // wood. Permit formerly uncertain wood to become positively empty,
+            // while preserving every known stone and forbidding new stones.
+            check(observation.readings.indices.allSatisfy {i in
+                i==24 || observation.signature[i]==m.readings[i].occupancy ||
+                    (m.readings[i].occupancy == .uncertain && observation.signature[i] == .empty)
+            },"Known occupancy changed in \(name): \(changed)")
+            if name=="166" {check(m.readings[24].occupancy == .white,"Successful control no longer contains the White stone")}
             else {check(m.readings[24].occupancy == .empty,"Failing sample no longer exercises false emptiness")}
             if name=="245" {original=BoardObservation(readings:m.readings,size:19);corrected=observation}
             print("Frame \(name): white stone 24 recognized; changed points \(changed.sorted())")
@@ -45,11 +51,18 @@ import ImageIO
         try model.recorder.restoreSavedGame(from:stalled)
         check(model.recorder.moveCount==65 && model.recorder.pendingMoveCount==4,"Wrong stalled game")
         check(model.recorder.pendingConfidence.allSatisfy{!$0.placementUncertain},"This case should not claim bad placement")
+        var verificationTime=ProcessInfo.processInfo.systemUptime
+        func verify(_ observation:BoardObservation) {
+            for _ in 0..<10 {verificationTime += 0.21;model.recorder.consume(observation,now:verificationTime)}
+        }
+        verify(original!)
         let oldMessage=RecordingClarity.explanation(recorder:model.recorder,observation:original,orientation:BoardOrientation(3))!
-        check(oldMessage.contains("previously recorded B6"),"Warning did not identify the old stone in view coordinates: \(oldMessage)")
-        check(oldMessage.contains("do not indicate off-center"),"Pending status still implies placement fault")
+        check(model.recorder.adjustmentIssues[24] != nil && oldMessage.contains("Recorded stones are retained"),"Persistent disagreement did not mark the recorded stone: \(oldMessage)")
+        check(!model.recorder.adjustmentIssues.values.contains(.placement),"Pending confirmation incorrectly became a placement warning")
+        verify(corrected!)
         let fixedMessage=RecordingClarity.explanation(recorder:model.recorder,observation:corrected,orientation:BoardOrientation(3))!
-        check(fixedMessage.contains("No placement warning"),"Centered pending moves incorrectly request adjustment: \(fixedMessage)")
+        check(model.recorder.adjustmentIssues[24]==nil && !model.recorder.adjustmentIssues.values.contains(.placement),"Centered pending moves incorrectly request adjustment: \(fixedMessage)")
+        check(model.recorder.positions.last!.grid[1][10] != nil && corrected!.assignmentOffsets[29]!>=0.30 && model.recorder.adjustmentIssues[29]==nil,"An unchanged recorded stone was asked to center itself again")
         check(!fixedMessage.contains("B6"),"Resolved camera disagreement remains displayed")
 
         // Keep a real spatial warning distinct from a pending confirmation.
@@ -63,7 +76,7 @@ import ImageIO
         }
         feed(5);values[10] = .black
         feed(8,[StoneFootprint(row:1,col:1,center:.init(x:1.36,y:1),radiusCol:0.42,radiusRow:0.42,quality:1)])
-        check(RecordingClarity.explanation(recorder:placement,observation:nil,orientation:BoardOrientation(0))?.contains("Placement unclear at B8")==true,"Genuine displacement lost its actionable message")
+        check(placement.adjustmentIssues[10] == .placement && RecordingClarity.explanation(recorder:placement,observation:nil,orientation:BoardOrientation(0))?.contains("intersection is ambiguous")==true,"Genuine displacement lost its actionable message")
 
         let window=NSWindow(contentRect:NSRect(x:0,y:0,width:1500,height:1150),styleMask:[.titled],backing:.buffered,defer:false)
         window.appearance=NSAppearance(named:.darkAqua)
@@ -73,8 +86,8 @@ import ImageIO
             let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!;host.cacheDisplay(in:host.bounds,to:bitmap)
             try bitmap.representation(using:.png,properties:[:])!.write(to:root.appendingPathComponent(name+".png"))
         }
-        model.observation=original;try snapshot("clarity-before")
-        model.observation=corrected;try snapshot("clarity-corrected")
+        verify(original!);model.observation=original;try snapshot("clarity-before")
+        verify(corrected!);model.observation=corrected;try snapshot("clarity-corrected")
         try model.openSample(from:fixture.appendingPathComponent("final"));waitForView()
         let recovered=output.appendingPathComponent("Recovered test.sgf")
         try FileManager.default.copyItem(at:fixture.appendingPathComponent("recovered.sgf"),to:recovered)

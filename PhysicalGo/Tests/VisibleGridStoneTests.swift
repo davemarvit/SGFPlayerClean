@@ -26,12 +26,16 @@ import ImageIO
                 let grid=BoardCalibration(size:19,corners:sample.calibration.corners.map{.init(x:$0.x+dx/1919,y:$0.y+dy/1079)})!
                 let result=BoardDetector.detect(frame:GrayFrame(image:adjusted)!,reference:reference,calibration:grid,threshold:sample.threshold,referenceCalibration:sample.reference_calibration)!
                 for p in [304,323] {precondition(result.readings[p].occupancy.stone==nil,"Visible grid still called a stone at \(p), brightness \(brightness), offset \(dx),\(dy)")}
-                for (p,color) in [(5,Occupancy.white),(59,.black),(79,.black)] {
+                // The White body near point 5 is visibly outside the top grid
+                // line. Keep that placement uncertain, never positively empty.
+                // Points 25 and 62 are photographed Whites on the grid.
+                precondition(result.readings[5].occupancy == .uncertain,"Outside-edge White was assigned to an intersection or erased")
+                for (p,color) in [(25,Occupancy.white),(62,.white),(59,.black),(79,.black)] {
                     precondition(result.readings[p].occupancy==color,"Lost labeled real stone at \(p)")
                 }
                 cases += 1
             }}
         }
-        print("PASS: both historical false positives suppressed across \(cases) brightness/alignment variants; labeled black and white stones retained.")
+        print("PASS: both historical false positives suppressed across \(cases) brightness/alignment variants; on-grid black and white stones retained and outside-edge placement withheld.")
     }
 }

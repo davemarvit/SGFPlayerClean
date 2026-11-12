@@ -208,13 +208,21 @@ enum BoardAppearanceDetector {
             }
         }
         let center=bodyCenter ?? ImagePoint(x:Double(col),y:Double(row))
-        var body=[Double]()
-        for dx in [-0.18,0.18] {for dy in [-0.18,0.18] {
-            if let level=frame.patchMean(calibration.point(col:center.x+dx,row:center.y+dy)) {body.append(level)}
-        }}
         // A displaced dark stone can expose the cross at the nominal point.
         // Check its proposed body as well; exposed rails beside it are not empty.
-        guard !levels.isEmpty,body.count==4,median(body)>=median(levels)*0.75 else {return nil}
+        // Check the inner body separately: a small opaque cover can darken both
+        // rails while leaving all four outer diagonal samples on exposed wood.
+        guard !levels.isEmpty else {return nil}
+        let minimumBody=median(levels)*0.75
+        let nominal=ImagePoint(x:Double(col),y:Double(row))
+        let centers=(center.x==nominal.x && center.y==nominal.y) ? [nominal]:[nominal,center]
+        for bodyCenter in centers {for radius in [0.12,0.18] {
+            var body=[Double]()
+            for dx in [-radius,radius] {for dy in [-radius,radius] {
+                if let level=frame.patchMean(calibration.point(col:bodyCenter.x+dx,row:bodyCenter.y+dy)) {body.append(level)}
+            }}
+            guard body.count==4,body.filter({$0>=minimumBody}).count>=3 else {return nil}
+        }}
         var matches=0
         for dx in [-0.18,0.18] {for dy in [-0.18,0.18] {
             if let color=frame.patchColor(calibration.point(col:Double(col)+dx,row:Double(row)+dy)),

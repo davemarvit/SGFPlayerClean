@@ -46,11 +46,15 @@ import ImageIO
             }
         }
         recorder.pause()
-        let pending=[51,53,70,111,66,230,250,192,231,212,154,194,213,294,214,263,317,262,282,186]
-        check(recorder.moveCount==10 && recorder.pendingMoveCount==20,"Actual pre-search session changed: \(recorder.status)")
-        check(recorder.pendingConfidence.compactMap(\.point)==pending,"Actual chronology reordered")
-        check(recorder.interpretationWarnings.contains(51),"Off-center move 11 must retain its ring")
-        try recorder.savePendingCheckpoint()
+        let expected=[300,60,307,269,268,249,287,73,71,52,51,53,70,111,66,230,250,192,231,212,154,194,213,294,214,263,317,262,282,186]
+        // Legacy classifications repeatedly call White 230 empty after Black
+        // 250 appears. Preserve that contradiction for review, not invented
+        // chronology. The first 15 moves have independently sufficient evidence.
+        check(recorder.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}==Array(expected.prefix(15)),"Accepted prefix changed")
+        check(recorder.hasDeferredMoves && recorder.reviewHistory.unresolved==4 && recorder.reviewHistory.retainedMoveCount==7,"Legacy contradictory readings lost review evidence")
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        let originalReviews=try encoder.encode(recorder.reviewHistory)
+        try recorder.flushStorage()
         let saved=recorder.autosaveURL!
         let archive=ReferenceArchive(url:output.appendingPathComponent("reference.plist"))
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:archive,recordingStorage:nil)
@@ -62,18 +66,16 @@ import ImageIO
         model.detectGrid()
         wait {!model.detectingGrid && model.observation != nil && !model.alignmentNeedsRecovery}
         check(model.calibration != nil,"Actual grid search failed")
-        check(model.recorder.pendingConfidence.compactMap(\.point)==pending,"Grid callback erased or reordered pending history")
-        check(model.recorder.interpretedBoard?.stones.count==30,"Main interpretation lost physical moves")
-        check(model.recorder.interpretationWarnings.contains(51),"Grid callback lost red warnings")
+        check(try encoder.encode(model.recorder.reviewHistory)==originalReviews,"Grid callback erased or reordered review history")
         check(model.recorder.sgf()==sgf,"Grid callback changed confirmed SGF")
         check(model.hasReference && model.referenceCalibration==oldReference,"Grid callback lost or relabeled reference pixels")
         let persisted=try archive.load()!
         check(persisted.enabled && persisted.referenceCalibration==oldReference && persisted.calibration==model.calibration,"Reference archive was disabled or mispaired")
-        print("Grid refinement retained 10 saved + 20 pending; reference preserved; warnings \(model.recorder.interpretationWarnings.sorted())")
+        print("Grid refinement retained 15 saved, four review sections and seven ordered later moves; reference preserved")
         // The final captured frames contain a further black move at 43. Replay
         // twelve distinct actual frames with the preserved reference, not a
         // repeated photograph or simulated stone adjustment.
-        let expectedPending=pending+[43]
+        let expectedFinal=expected+[43]
         let reference=GrayFrame(image:persisted.image)!
         model.recorder.resume()
         var time=ProcessInfo.processInfo.systemUptime
@@ -85,13 +87,17 @@ import ImageIO
             time += 0.21;model.recorder.consume(view,now:time)
         }
         model.recorder.pause()
-        check(model.recorder.moveCount==10 && model.recorder.pendingMoveCount==21,"Fresh reference-backed views lost chronology: \(model.recorder.status)")
-        check(model.recorder.pendingConfidence.compactMap(\.point)==expectedPending,"Fresh frames reordered the moves")
-        check(model.recorder.interpretationWarnings.contains(51),"An off-center stone locked without centering")
-        try model.recorder.savePendingCheckpoint()
+        check(model.recorder.sgf()==sgf,"Fresh photos silently rewrote unresolved chronology")
+        let interpreted=model.recorder.interpretedBoard!
+        check(interpreted.stones.count==31 && expectedFinal.enumerated().allSatisfy { index,point in
+            interpreted.grid[point/19][point%19] == (index.isMultiple(of:2) ? Stone.black:Stone.white)
+        },"Fresh reference-backed photos failed to preserve all 31 physical stones")
+        check(model.recorder.reviewHistory.sections.prefix(recorder.reviewHistory.sections.count).map(\.id)==recorder.reviewHistory.sections.map(\.id),"Fresh frames discarded earlier review evidence")
+        let finalReviews=try encoder.encode(model.recorder.reviewHistory)
+        try model.recorder.flushStorage()
         let copy=output.appendingPathComponent("Recovered test.sgf")
         try model.recorder.sgf().write(to:copy,atomically:true,encoding:.utf8)
-        try Data(contentsOf:saved.deletingPathExtension().appendingPathExtension("pending.json")).write(to:copy.deletingPathExtension().appendingPathExtension("pending.json"))
+        try Data(contentsOf:saved.deletingPathExtension().appendingPathExtension("reviews.json")).write(to:copy.deletingPathExtension().appendingPathExtension("reviews.json"))
         try copy.path.write(to:root.appendingPathComponent("recovered-path.txt"),atomically:true,encoding:.utf8)
         try JSONEncoder().encode(model.calibration).write(to:root.appendingPathComponent("refined-calibration.json"))
         // Labels must read in screen order for every supported size and rotation.
@@ -129,13 +135,13 @@ import ImageIO
         wait {model.rectifiedImage==nil}
         try snapshot(CameraCanvas(model:model),"camera-perspective",NSSize(width:1000,height:900))
         model.prepareCameraStart()
-        check(model.recorder.pendingMoveCount==21,"Camera startup lost pending history")
+        check(try encoder.encode(model.recorder.reviewHistory)==finalReviews,"Camera startup lost review history")
         model.size=13;model.boardSizeChanged()
         check(model.recorder.pendingMoveCount==0,"Different board size retained incompatible pending history")
         let restored=GameRecorder(storage:nil);try restored.restoreSavedGame(from:copy)
-        check(restored.moveCount==10 && restored.pendingMoveCount==21,"Recovery checkpoint is incomplete")
-        check(restored.pendingConfidence.compactMap(\.point)==expectedPending,"Recovery lost exact move order")
+        check(restored.moveCount==15 && restored.hasDeferredMoves,"Recovery checkpoint is incomplete")
+        check(try encoder.encode(restored.reviewHistory)==finalReviews,"Recovery lost review evidence or ordered later moves")
         window.orderOut(nil)
-        print("PASS: \(checks) grid/UI checks: actual 31-move session, real grid callback, preserved reference and warnings, rotated coordinates and native previews.")
+        print("PASS: \(checks) grid/UI checks: actual 31-move session, real grid callback, preserved reference and review evidence, rotated coordinates and native previews.")
     }
 }

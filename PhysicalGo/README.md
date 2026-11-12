@@ -184,16 +184,45 @@ The six Python build-registry checks pass. Tests that reopen or deliberately dam
 files now wait at explicit durability boundaries. Diagnostic tests wait for writer
 completion instead of assuming that a fixed 0.4-second delay is sufficient.
 
-Eight suites still fail, and each failure also reproduces at the pre-refactor
+At that checkpoint eight suites failed, and each failure also reproduced at the pre-refactor
 checkpoint `a310de3`: `visible-grid-stone-test`, `touching-shadow-test`,
 `crowded-white-test`, `centered-stone-test`, `capture-continuation-test`,
 `grid-ui-test`, `crowded-adjustment-test`, and `visibility-test`. These assertions
-remain enabled. This is not an all-green release gate; further architecture work
-is held pending their repair. In the capture replay, all 13 later moves are retained
+remained enabled. Further architecture work was held pending their repair. In the capture replay, all 13 later moves are retained
 but the recorded observation calls an existing White stone at point 24 empty,
 contradicting the legal final position. The touching-shadow failure calls a small
 opaque cover empty; the visible-grid case withholds a labeled White stone. The
 other failures concern historical classification or pending-placement expectations.
+
+Regression repair follow-up (0.154): a retained off-center stone no longer
+becomes a second move when outline quality falls below the alternative-location
+threshold. Current raw placement selects the displayed candidate; all legal
+alternatives still participate in confirmation and survive checkpoint restoration.
+Two visible bodies remain separate. A small local disappearance of an unchanged
+recorded stone now permits retaining later chronology, but blocks SGF acceptance
+until the original board agrees again. Broad disappearances remain blocked.
+Accepted stones do not get fresh centering requests from an offset alone.
+
+The exposed-wood test now checks inner and outer samples at both the nominal grid
+point and proposed body center, preventing a small dark cover from being declared
+empty. Historical signature tests permit uncertain-to-empty improvements, with
+separate photographed negative labels for known false whites. The outside-edge
+White in the visible-grid fixture remains unassigned; on-grid Whites are checked
+separately. The capture fixture's raw missing-stone contradiction must retain the
+13 later moves, then verify the exact 64-move result from the final real photo.
+Repeating that photo tests confirmation behavior, not independent image accuracy.
+
+The grid-reset fixture now preserves its supported 15-move prefix and all review
+evidence through recovery, and verifies the final 31-stone colored position from
+12 real photos. It no longer requires silently reversing an observed out-of-turn
+sequence. Original images, raw observations and historical provenance are retained.
+
+Validation for 0.154: all 82 registered Swift suites pass against the same
+optimized app module (81 in the full run, followed by the corrected visibility
+fixture test). All six Python build checks pass. The visibility test separately
+requires the neighboring alternative to become positively empty after simulated
+centering; an unreadable alternative remains pending. Its restoration checks use
+an immutable saved checkpoint instead of racing two stores against one file.
 
 From 0.152, camera-backed clocks track the latest usable observation. If analysis
 falls more than 1.5 seconds behind, the clock pauses at that observation instead

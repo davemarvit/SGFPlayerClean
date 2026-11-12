@@ -207,8 +207,10 @@ enum LocalGameSetup {
         let before=states(base),expected=states(after),readings=observation.signature
         var issues=BoardAdjustmentMonitor.evidence(readings:readings,base:before,after:expected)
         let offsets=observation.assignmentOffsets(confirmedBoard:before)
-        // Only positive placement evidence asks the player to center a stone.
-        for p in expected.indices where expected[p].stone != nil {
+        // Placement is an assignment question for a new stone. A recorded stone
+        // keeps its known intersection; visible contradictions and captures
+        // above still need attention.
+        for p in expected.indices where expected[p].stone != nil && before[p] != expected[p] {
             if let offset=offsets[p],offset>=0.30 {issues[p] = .placement}
         }
         for evidence in pendingConfidence where evidence.placementUncertain {

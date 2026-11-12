@@ -1,0 +1,38 @@
+{
+  "frame-950": {
+    "empty": [
+      324,
+      325,
+      327,
+      344
+    ],
+    "occluded": [
+      95,
+      134
+    ]
+  },
+  "frame-1381": {
+    "empty": [
+      231
+    ],
+    "occluded": []
+  },
+  "frame-1386": {
+    "empty": [
+      212
+    ],
+    "occluded": []
+  },
+  "frame-1387": {
+    "empty": [
+      306
+    ],
+    "occluded": []
+  },
+  "frame-1391": {
+    "empty": [
+      306
+    ],
+    "occluded": []
+  }
+}

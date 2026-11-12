@@ -22,6 +22,9 @@ import Foundation
         var placementConcerns=Set<Int>()
         var locationChoices=[Int:Set<Int>]()
         var playerConfirmed=Set<Int>()
+        // Display preference only. All legal alternatives still participate in
+        // confirmation; prefer the directly observed location over a remap.
+        var locationRemapCount=0
         var firstSeen:Double { witnesses.first?.time ?? .infinity }
     }
     struct Confirmation {
@@ -79,13 +82,14 @@ import Foundation
             let placementConcerns:Set<Int>
             var locationChoices:[Int:Set<Int>]?=nil
             var playerConfirmed:Set<Int>?=nil
+            var locationRemapCount:Int?=nil
         }
         let paths:[Path]
     }
     var checkpoint:Checkpoint {
         Checkpoint(paths:(retainedForResume()?.candidates ?? []).map {
             .init(moves:$0.moves,witnesses:$0.witnesses,requiredFrames:$0.requiredFrames,
-                  requiredSeconds:$0.requiredSeconds,locked:$0.locked,placementConcerns:$0.placementConcerns,locationChoices:$0.locationChoices,playerConfirmed:$0.playerConfirmed)
+                  requiredSeconds:$0.requiredSeconds,locked:$0.locked,placementConcerns:$0.placementConcerns,locationChoices:$0.locationChoices,playerConfirmed:$0.playerConfirmed,locationRemapCount:$0.locationRemapCount)
         })
     }
     static func restore(_ checkpoint:Checkpoint,game:SGFGame,now:Double)->Self? {
@@ -99,6 +103,7 @@ import Foundation
                   path.moves.allSatisfy({(0..<size*size).contains($0)}),
                   path.locked.union(path.placementConcerns).union(path.playerConfirmed ?? []).allSatisfy({(0..<count).contains($0)}),
                   (path.locationChoices ?? [:]).allSatisfy({(0..<count).contains($0.key) && $0.value.count<=9 && $0.value.allSatisfy{(0..<size*size).contains($0)}}),
+                  (0...count).contains(path.locationRemapCount ?? 0),
                   path.requiredFrames.allSatisfy({(1...1000).contains($0)}),
                   path.requiredSeconds.allSatisfy({$0.isFinite && $0>=0 && $0<=60}),
                   !path.witnesses.isEmpty,path.witnesses.count<=maximumFrames+maximumMoves*2,
@@ -117,7 +122,7 @@ import Foundation
             }
             history.candidates.append(Candidate(moves:path.moves,boards:boards,witnesses:witnesses,
                 requiredFrames:path.requiredFrames,requiredSeconds:path.requiredSeconds,
-                locked:path.locked,placementConcerns:path.placementConcerns,locationChoices:path.locationChoices ?? [:],playerConfirmed:path.playerConfirmed ?? []))
+                locked:path.locked,placementConcerns:path.placementConcerns,locationChoices:path.locationChoices ?? [:],playerConfirmed:path.playerConfirmed ?? [],locationRemapCount:path.locationRemapCount ?? 0))
         }
         return history.retainedForResume()
     }
@@ -214,11 +219,22 @@ import Foundation
             readings[$0] == .uncertain && base[$0].stone != nil && after[$0]==base[$0]
         })
     }
+    private static func unchangedDisappearances(_ readings:[Occupancy],base:[Occupancy],after:[Occupancy],moves:[Int])->Set<Int> {
+        let changed=Set(moves)
+        return Set(readings.indices.filter {
+            readings[$0] == .empty && base[$0].stone != nil && after[$0]==base[$0] && !changed.contains($0)
+        })
+    }
     private func matches(_ readings:[Occupancy],_ board:BoardSnapshot,base:[Occupancy],moves:[Int],allowOccluded:Bool=false)->Bool {
         let after=states(board), changed=Set(moves)
         let retained=Self.confirmedOcclusions(readings,base:base,after:after).subtracting(changed)
+        // A small local contradiction must not erase the chronology of later
+        // visible moves. Retain hypotheses only; complete witnesses and SGF
+        // confirmation still require the recorded stones to agree. A broad
+        // disappearance remains a gap, not permission to infer new history.
+        let missing=allowOccluded ? Self.unchangedDisappearances(readings,base:base,after:after,moves:moves):[]
         return readings.indices.allSatisfy {
-            readings[$0] == after[$0] || (readings[$0] == .uncertain && (allowOccluded || retained.contains($0) || (base[$0] == .empty && after[$0] == .empty && !changed.contains($0))))
+            readings[$0] == after[$0] || (missing.count<=2 && missing.contains($0)) || (readings[$0] == .uncertain && (allowOccluded || retained.contains($0) || (base[$0] == .empty && after[$0] == .empty && !changed.contains($0))))
         }
     }
     private func anchored(_ candidate:Candidate)->Bool {
@@ -256,6 +272,7 @@ import Foundation
         candidates.sorted { a,b in
             let at=a.witnesses.last?.time ?? 0,bt=b.witnesses.last?.time ?? 0
             if at != bt {return at>bt}
+            if a.locationRemapCount != b.locationRemapCount {return a.locationRemapCount<b.locationRemapCount}
             let av=a.witnesses.filter(\.complete).count,bv=b.witnesses.filter(\.complete).count
             if av != bv {return av>bv}
             if a.moves.count != b.moves.count {return a.moves.count>b.moves.count}
@@ -413,8 +430,15 @@ import Foundation
             for (offset,locations) in candidate.locationChoices where candidate.moves.indices.contains(offset) {
                 let target=candidate.moves[offset]
                 guard let color=board.grid[target/size][target%size],
-                      let source=locations.first(where:{readings[$0].stone==color && (choices[$0]?.intersection(locations).count ?? 0)>1}),
+                      let source=locations.first(where:{readings[$0].stone==color}),
                       locations.filter({readings[$0].stone != nil}).count==1 else {continue}
+                // Geometry quality can jitter below the alternative-location threshold.
+                // One visible body still represents the same retained move; do
+                // not count it again after an intervening opponent move.
+                // Positive centered evidence at the other point may resolve the
+                // alternative, and two visible bodies are never merged above.
+                if source != target, readings[target] == .empty,
+                   let offset=assignmentOffsets[source],offset<=0.24 {continue}
                 values[source] = .empty;values[target]=color == .black ? .black:.white
             }
             return values
@@ -471,7 +495,9 @@ import Foundation
             }
         }
         func witness(_ candidate:inout Candidate)->Witness {
+            let raw=readings
             let readings=candidateReadings(candidate)
+            candidate.locationRemapCount=candidate.moves.filter{readings[$0].stone != nil && readings[$0] != raw[$0]}.count
             let unknown=Set(readings.indices.filter{readings[$0] == .uncertain})
             var uncertain=Set<Int>()
             for (index,point) in candidate.moves.enumerated() where !candidate.locked.contains(index) {
@@ -625,6 +651,8 @@ import Foundation
                     }
                     guard boards.count==alternate.moves.count else {continue}
                     alternate.boards=boards;alternate.locationChoices[index]=alternatives
+                    let mapped=candidateReadings(alternate)
+                    alternate.locationRemapCount=alternate.moves.filter{mapped[$0].stone != nil && mapped[$0] != readings[$0]}.count
                     alternate.placementConcerns.insert(index)
                     alternate.witnesses=alternate.witnesses.map {old in
                         return Witness(time:old.time,depth:old.depth,unknown:old.unknown.subtracting([target]),
@@ -698,6 +726,7 @@ import Foundation
                         witnesses[witness.time]=combined
                     } else if witness.depth>(witnesses[witness.time]?.depth ?? 0) {witnesses[witness.time]=witness}
                 }
+                if (candidate.witnesses.last?.time ?? 0)>=(old.witnesses.last?.time ?? 0) {old.locationRemapCount=candidate.locationRemapCount}
                 old.witnesses=witnesses.values.sorted{$0.time<$1.time}
                 old.locked.formUnion(candidate.locked);old.placementConcerns.formUnion(candidate.placementConcerns)
                 old.playerConfirmed.formUnion(candidate.playerConfirmed)
@@ -727,6 +756,9 @@ import Foundation
         guard let first=candidates.first else {
             return .blocked("Too many intersections remain uncertain during these moves. Keep hands out of view.",settling:true)
         }
+        guard !candidates.contains(where:{
+            !Self.unchangedDisappearances(readings,base:expected,after:states($0.boards.last!),moves:$0.moves).isEmpty
+        }) else {return .tracking(pendingCount)}
         var confirmed=0
         for i in first.moves.indices {
             guard candidates.allSatisfy({$0.moves.count>i && $0.moves[i]==first.moves[i] && supported($0,index:i,base:base)}) else { break }

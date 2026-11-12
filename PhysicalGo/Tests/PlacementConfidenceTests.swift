@@ -81,6 +81,35 @@ import Foundation
         branchColors[30] = .black;branch(1);branchColors[30] = .uncertain
         branchColors[40] = .black;branch(3);branchColors[50] = .white;branch(5)
         check(branched.pendingConfidence.compactMap(\.point)==[10,20,40,50],"One-frame extra stone displaced the true later sequence behind an ambiguous placement")
+        // The same displaced body must survive outline-quality jitter without
+        // becoming a second Black move after White replies.
+        let jitter=GameRecorder(storage:nil)
+        var jitterColors=Array(repeating:Occupancy.empty,count:81),quality=0.9,offset=0.36
+        func jitterFeed(_ count:Int) {for _ in 0..<count {
+            time += 0.21
+            let shapes=jitterColors.indices.filter{jitterColors[$0].stone != nil}.map { p in
+                StoneFootprint(row:p/9,col:p%9,center:.init(x:Double(p%9),y:Double(p/9)+(p==10 ? offset:0)),
+                               radiusCol:0.48,radiusRow:0.49,quality:p==10 ? quality:0.99)
+            }
+            jitter.consume(BoardObservation(readings:jitterColors.enumerated().map{
+                .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)
+            },size:9,footprints:shapes),now:time)
+        }}
+        jitter.start(size:9);jitterFeed(5)
+        jitterColors[10] = .black;jitterColors[19] = .uncertain;jitterFeed(3)
+        jitterColors[60] = .white;jitterFeed(3)
+        quality=0.85;jitterFeed(4)
+        quality=0.90;jitterFeed(3)
+        jitterColors[70] = .black;jitterFeed(3)
+        jitterColors[50] = .white;jitterFeed(3)
+        check(jitter.tentativeHistory.tentativeSequences.allSatisfy{$0.count<=4},"One displaced body was counted twice after quality jitter")
+        check(jitter.pendingMoveCount==4,"Geometry jitter lost subsequent alternating turns")
+        offset=0;quality=0.99;jitterColors[19] = .empty;jitterFeed(12)
+        check(jitter.game.moves.compactMap{$0.1.map{$0.1*9+$0.0}}==[10,60,70,50],"Centered evidence failed to settle the exact jittered chronology")
+        // A second actual Black at the neighboring alternative is a distinct
+        // body, and must remain recordable after an intervening White move.
+        jitterColors[19] = .black;jitterFeed(8)
+        check(jitter.game.moves.last?.1.map{$0.1*9+$0.0}==19 && jitter.moveCount==5,"Two visible neighboring bodies were merged")
         print("PASS: \(checks) placement-confidence checks: persistent spatial ambiguity, later moves, hysteresis, missing outlines, tidying, pause/resume, and confirmed identity.")
         return checks
     }

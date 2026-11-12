@@ -47,6 +47,21 @@ import SwiftUI
                 if recorder.moveCount != previous {print("Frame \(entry.frame!): \(recorder.moveCount) saved, \(recorder.pendingMoveCount) pending");previous=recorder.moveCount}
             }
         }
+        // The old detector called the already recorded White stone at 24 empty.
+        // Preserve the exact later chronology without accepting that contradiction.
+        check(recorder.moveCount==51 && recorder.pendingMoveCount==13,"Old contradictory observations lost the retained capture sequence")
+        check(recorder.pendingConfidence.compactMap(\.point)==Array(expected.dropFirst(51)),"Retained capture order changed")
+        let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil)
+        try model.openSample(from:fixture)
+        let deadline=Date().addingTimeInterval(40)
+        while model.observation==nil && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.05))}
+        check(model.observation != nil,"Final photo analysis timed out")
+        check(model.observation!.signature[24] == .white,"Final photograph still loses the recorded White stone")
+        recorder.resume()
+        let verifiedAt=ProcessInfo.processInfo.systemUptime
+        // One actual photo tests classification. Repeated observations simulate
+        // its stable confirmation interval; they are not independent photo cases.
+        for step in 0..<12 {recorder.consume(model.observation!,now:verifiedAt+Double(step)*0.21)}
         check(recorder.moveCount==64 && recorder.pendingMoveCount==0,"Actual capture session did not finish: \(recorder.status)")
         check(recorder.interpretationWarnings.isEmpty,"Recovered game retained stale red rings")
         check(recorder.positions[52].grid[2][7] == .white && recorder.positions[53].grid[2][7]==nil,"First capture did not preserve before/after boards")
@@ -73,11 +88,6 @@ import SwiftUI
         values[20]="B";feed(values,8)
         check(small.moveCount==3 && small.game.moves.compactMap{$0.1.map{$0.1*9+$0.0}}==[0,10,20],"Broad hand corruption blocked locally witnessed continuation")
 
-        let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:nil)
-        try model.openSample(from:fixture)
-        let deadline=Date().addingTimeInterval(40)
-        while model.observation==nil && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.05))}
-        check(model.observation != nil,"Final photo analysis timed out")
         let stalled=output.appendingPathComponent("Stalled comparison.sgf")
         try FileManager.default.copyItem(at:fixture.appendingPathComponent("stalled.sgf"),to:stalled)
         try FileManager.default.copyItem(at:fixture.appendingPathComponent("stalled.pending.json"),to:stalled.deletingPathExtension().appendingPathExtension("pending.json"))
