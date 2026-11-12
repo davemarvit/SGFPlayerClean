@@ -86,6 +86,53 @@ import SwiftUI
         }
         check(recoveredBoards[0]==recoveredBoards[1],"Two legal orders should explain the same current board")
 
+        // A paused camera-only detection is actionable even when neither player
+        // has a placement ambiguity. It must enter game recovery, not photo labels.
+        let ghosts=recorder()
+        var ghostColors=Array(repeating:Occupancy.empty,count:81)
+        ghostColors[10] = .black;ghostColors[20] = .white
+        let ghostView=BoardObservation(readings:ghostColors.enumerated().map{
+            .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)
+        },size:9)
+        var tick=ProcessInfo.processInfo.systemUptime
+        for _ in 0..<8 {tick+=0.21;ghosts.consume(ghostView,now:tick)}
+        check(ghosts.placementAmbiguities.isEmpty && ghosts.adjustmentIssues.keys.sorted()==[10,20],"Zero-ambiguity camera-only scenario did not reproduce")
+        check(RecordingClarity.action(at:10,recorder:ghosts) == .missedMoves(point:10) && RecordingClarity.action(at:20,recorder:ghosts) == .missedMoves(point:20),"Ghost click opened labels or an unrelated placement editor")
+        check(RecordingClarity.explanation(recorder:ghosts,observation:ghostView,orientation:.init(0))?.contains("translucent")==true,"Camera-only explanation still claims placement ambiguity")
+        let retained=GameRecorder(storage:root);retained.clock.audible=false
+        retained.start(size:9,now:tick,clockSettings:.init())
+        var colors=Array(repeating:Occupancy.empty,count:81)
+        func feedRetained(_ count:Int) {for _ in 0..<count {
+            tick+=0.21
+            retained.consume(BoardObservation(readings:colors.enumerated().map{
+                .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)
+            },size:9,footprints:colors[10] == .black ? [.init(row:1,col:1,center:.init(x:1,y:1.36),radiusCol:0.46,radiusRow:0.46,quality:0.90)]:[]),now:tick)
+        }}
+        feedRetained(6)
+        colors[10] = .black;feedRetained(3)
+        colors[20] = .white;feedRetained(8)
+        colors[30] = .black;feedRetained(8)
+        retained.pause()
+        check(retained.pendingConfidence.compactMap(\.point)==[10,20,30],"Retained chronology setup failed")
+        check(RecordingClarity.action(at:10,recorder:retained) == .pendingPlacement(number:1),"Pending placement did not route to location confirmation")
+        check(retained.clock.correct(black:retained.clock.engine.black,white:retained.clock.engine.white,blackToPlay:false,moveCount:0,at:tick),"Clock review setup failed")
+        retained.clock.acknowledgePendingTurns([[10],[20],[30]],firstBlack:true,moveCount:0)
+        check(retained.clock.provisionalMoves.count==3,"Reviewed pending clock turns were not retained")
+        let pendingSGF=retained.sgf(),pendingClock=retained.clock.engine
+        var seeded=MoveRecoveryDraft(recorder:retained,observation:nil)
+        check(seeded.moves==[BoardPosition(1,1),BoardPosition(2,2),BoardPosition(3,3)] && seeded.retainedMoveCount==3,"Recovery forgot earlier retained moves")
+        var dropping=seeded;dropping.clear();_=dropping.add(BoardPosition(3,3))
+        check(retained.approveRecovery(dropping)?.contains("discard or reorder") == true,"Approving the latest stone silently discarded its earlier pending moves")
+        check(retained.sgf()==pendingSGF && retained.pendingMoveCount==3 && retained.clock.engine.black==pendingClock.black && retained.clock.engine.white==pendingClock.white,"Rejected recovery changed history or clocks")
+        check(seeded.add(BoardPosition(4,4))==nil && retained.approveRecovery(seeded)==nil,"Safe continuation could not be approved")
+        check(retained.game.moves.compactMap{$0.1.map{$0.1*9+$0.0}}==[10,20,30,40] && retained.pendingMoveCount==0,"Recovery reordered retained moves")
+        check(retained.clock.requiresReview && !retained.clock.running && retained.clock.engine.black==pendingClock.black && retained.clock.engine.white==pendingClock.white,"Recovery invented clock timing")
+        check(retained.clock.provisionalMoves.isEmpty && retained.clock.moves.map(\.number)==[1,2,3],"Existing provisional clock turns were dropped or left attached to old move numbers")
+        try retained.flushStorage()
+        let roundTrip=GameRecorder(storage:nil);try roundTrip.restoreSavedGame(from:retained.autosaveURL!)
+        check(roundTrip.moveCount==4 && roundTrip.clock.saveError==nil && roundTrip.clock.requiresReview && roundTrip.clock.engine.black==pendingClock.black && roundTrip.clock.engine.white==pendingClock.white,"Approved recovery and existing clock events failed to reopen together")
+        check(RecordingClarity.action(at:10,recorder:retained) == .recordedPlacement(number:1),"Saved placement did not route to historical correction")
+
         let output=try TestArtifacts.directory("physical-move-recovery")
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         let ui=GameRecorder(storage:root);ui.clock.audible=false;ui.start(size:19);ui.pause();var proposed=MoveRecoveryDraft(recorder:ui,observation:nil)

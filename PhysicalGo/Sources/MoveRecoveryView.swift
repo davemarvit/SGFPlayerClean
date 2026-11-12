@@ -26,7 +26,10 @@ struct MoveRecoveryView:View {
             ScrollView {
                 VStack(alignment:.leading,spacing:10) {
                     Text("Order missed moves").font(.title2.bold())
-                    Text("Clock and recording are paused. Click the stones in the order they were played. For a captured stone, click its former intersection.")
+                    Text("Clock and recording are paused. Click the missing stones in the order they were played, then choose Accept below. For a captured stone, click its former intersection.")
+                    if draft.retainedMoveCount>0 {
+                        Text("\(draft.retainedMoveCount) previously tracked moves were preselected. Keep their numbered order before adding later moves.").font(.callout)
+                    }
                     Text("Selection \(draft.moves.count+1) · \(draft.nextPlayer.rawValue.capitalized) next")
                         .font(.title3.bold())
                     HStack {
@@ -65,7 +68,7 @@ struct MoveRecoveryView:View {
             HStack {
                 Button("Cancel") {dismiss()}.keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(recorder.clock.enabled ? "Approve \(draft.moves.count) & review clocks…":"Approve \(draft.moves.count) & continue") {
+                Button(recorder.clock.enabled ? "Accept \(draft.moves.count) moves & review clocks…":"Accept \(draft.moves.count) moves") {
                     error=recorder.approveRecovery(draft)
                     guard error == nil else {return}
                     approved=true;onApproved();dismiss()
@@ -74,7 +77,7 @@ struct MoveRecoveryView:View {
         }.padding(20).frame(width:580,height:780)
             .onAppear {
                 guard !initialized else {return};initialized=true
-                if let initialSelection {select(initialSelection)}
+                if let initialSelection,!draft.moves.contains(initialSelection) {select(initialSelection)}
             }
     }
 }

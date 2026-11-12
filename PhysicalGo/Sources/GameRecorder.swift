@@ -25,8 +25,17 @@ enum LocalGameSetup {
     let observation:BoardObservation?
     let snapshotHeldAt=Date().timeIntervalSince1970
     private(set) var moves:[BoardPosition?]=[]
+    private(set) var retainedMoveCount=0
     init(recorder:GameRecorder,observation:BoardObservation?) {
         baseRecord=recorder.sgf();baseGame=recorder.game;self.observation=observation
+        // Preserve observed chronology when the remaining candidates differ only
+        // in how much of the same sequence they have witnessed. Never choose
+        // between genuinely competing locations or orders on the user's behalf.
+        let paths=recorder.tentativeHistory.tentativeSequences
+        if let longest=paths.max(by:{$0.count<$1.count}),paths.allSatisfy({longest.starts(with:$0)}) {
+            moves=longest.map{BoardPosition($0/baseGame.boardSize,$0%baseGame.boardSize)}
+            retainedMoveCount=moves.count
+        }
     }
     var trial:SGFPlayer {
         let player=SGFPlayer();player.load(game:baseGame);player.seek(to:baseGame.moves.count)
@@ -1625,6 +1634,13 @@ enum LocalGameSetup {
         guard (canEdit || (allowDeferred && [.paused,.finished].contains(state) && !reviewing)) else {return "Pause recording and return to the latest move before approving."}
         guard draft.baseRecord==sgf() else {return "The saved game changed. Cancel and start the sequence again."}
         guard !draft.moves.isEmpty else {return "Select at least one missed move."}
+        if !allowDeferred,pendingMoveCount>0 {
+            let proposed=draft.moves.map{$0.map{$0.row*game.boardSize+$0.col}}
+            let paths=tentativeHistory.tentativeSequences.filter{$0.count==pendingMoveCount}
+            guard paths.contains(where:{path in proposed.count>=path.count && zip(proposed,path).allSatisfy{$0.0==$0.1}}) else {
+                return "This would discard or reorder pending moves. Keep the retained sequence first; use Confirm stone locations to correct its placements."
+            }
+        }
         let trial=SGFPlayer();trial.load(game:game);trial.seek(to:moveCount)
         var updated=game,boards=[BoardSnapshot]()
         for (offset,point) in draft.moves.enumerated() {
@@ -1647,7 +1663,12 @@ enum LocalGameSetup {
         player.load(game:game);player.seek(to:moveCount)
         resetObservationHistory();resetWarningMonitor();resetPending();clearBlock()
         synchronized=false;boardReadyForPass=false;timingNeedsFreshEpoch=true
-        if !allowDeferred {clock.recover(toBlack:nextPlayer == .black,reason:"Missed moves entered manually. Check both clocks before resuming.",at:ProcessInfo.processInfo.systemUptime)}
+        if !allowDeferred {
+            // Attach existing timed turns to the approved moves without charging
+            // again. Unknown extra turns still require explicit clock review.
+            clock.finalizeLiveHistory(mapping:[:],moveCount:moveCount,blackToPlay:nextPlayer == .black)
+            clock.recover(toBlack:nextPlayer == .black,reason:"Missed moves entered manually. Check both clocks before resuming.",at:ProcessInfo.processInfo.systemUptime)
+        }
         checkpointPendingMoves()
         status="Saved \(draft.moves.count) recovered moves. Check the board before resuming."
         let selected=game.moves.suffix(draft.moves.count).enumerated().map { offset,move -> [String:Any] in

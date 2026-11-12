@@ -155,6 +155,7 @@ import SwiftUI
         let firstID = splitHistory.sections[0].id, lastID = splitHistory.sections[1].id
         check(split.captureReviewPlan(firstID) != nil, "First capture review lost confirmation after a later removal")
         let splitPlan = split.captureReviewPlan(firstID)!
+        check(RecordingClarity.action(at:60,recorder:split) == .review(firstID) && RecordingClarity.action(at:80,recorder:split) == .review(firstID),"Capture markers lost their dedicated review route")
         check(splitPlan.point == 80 && splitPlan.captured == [60,79] && splitPlan.sectionIDs == [firstID,lastID], "Split capture identified the wrong move or reviews")
         check(split.captureReviewPlan(lastID)?.id == firstID && split.pendingCaptureReview?.id == firstID, "Removal review did not route to the same capture")
         check(splitPlan.remaining(in: nil).isEmpty, "Latest saved removal still displayed a prisoner")
@@ -207,6 +208,7 @@ import SwiftUI
         var bumped = base; bumped[40] = .empty; bumped[41] = .black
         let restore = try make(simple, after: bumped), restoreID = restore.reviewHistory.sections[0].id
         let restoration = restore.boardRestorationPlan(restoreID)!
+        check(RecordingClarity.action(at:40,recorder:restore) == .review(restoreID) && RecordingClarity.action(at:41,recorder:restore) == .review(restoreID),"Moved-stone markers lost their restoration review route")
         check(restoration.kind == .displaced(from: 40, to: 41, color: .black), "Neighbor displacement was not identified")
         check(restore.captureReviewPlan(restoreID) == nil, "Moved stone became a capture")
         try render(restore, restoreID, "bumped-stone", turns: 1)

@@ -4,10 +4,13 @@ struct BoardCorrectionEditor: View {
     @ObservedObject var model: ExperimentModel
     @ObservedObject var corrections: ManualBoardCorrections
     @State private var selection: Int?
+    private var verifiesReview:Bool {model.photoReviewAction != nil || model.photoReviewGuidance != nil}
     var body: some View {
         VStack(alignment:.leading,spacing:14) {
-            Text("Check the board photo").font(.title2.bold())
-            Text("Move detection is paused while you check this photo. Select an intersection and label what is there. Labels apply only to this photograph.")
+            Text(verifiesReview ? "Check the board photo":"Inspect camera photo").font(.title2.bold())
+            Text(verifiesReview
+                ? "Move detection is paused. Check the photo and choose what is present. Use the confirmation action below when the photo verifies this review."
+                : "This tool annotates a photograph for recognition testing; it does not change the game. To correct the game, close this window and click a marked stone in Live position.")
             if let snapshot=model.correctionSnapshot {
                 HStack(alignment:.top,spacing:18) {
                     CorrectionBoard(snapshot:snapshot,values:corrections.displayedValues,selection:$selection,
@@ -56,7 +59,7 @@ struct BoardCorrectionEditor: View {
                 Spacer()
                 if model.savingCorrections {ProgressView().controlSize(.small); Text("Saving images…")}
                 Button("Cancel") {model.cancelBoardCorrection()}.keyboardShortcut(.cancelAction).disabled(model.savingCorrections)
-                Button("Save photo labels") {model.finishBoardCorrection()}
+                Button("Save annotations for testing") {model.finishBoardCorrection()}
                     .keyboardShortcut(.defaultAction).disabled(model.savingCorrections)
             }
         }.padding(22).frame(width:850)

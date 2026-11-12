@@ -28,6 +28,19 @@ struct RecordingView: View {
     private func openReview(_ id:UUID) {
         model.reviewPresentation.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
     }
+    private func reviewMarkedStone(_ point:Int) {
+        switch RecordingClarity.action(at:point,recorder:recorder) {
+        case .review(let id):openReview(id)
+        case .pendingPlacement(let number):
+            recorder.pause();recorder.returnToLatest()
+            pendingPlacement = .init(number:number)
+        case .missedMoves(let index):beginRecovery(at:BoardPosition(index/recorder.game.boardSize,index%recorder.game.boardSize))
+        case .recordedPlacement(let number):
+            recorder.pause();recorder.returnToLatest()
+            if let reason=HistoricalMoveCorrection.unavailableReason(recorder) {correctionError=reason}
+            else {correctionSelection = .init(number:number)}
+        }
+    }
     private func beginRecovery(at point:BoardPosition?=nil) {
         if recorder.hasDeferredMoves,let section=recorder.reviewHistory.reviews.first(where:{$0.moves==nil}) ?? recorder.reviewHistory.reviews.last {openReview(section.id);return}
         recoveryFirstPoint=point
@@ -188,9 +201,7 @@ struct RecordingView: View {
                                       onDrag:beginCorrection) {point in
                             if display == .live {
                                 let index=point.row*recorder.game.boardSize+point.col
-                                if let capture=recorder.pendingCaptureReview,capture.captured.contains(index) {openReview(capture.id)}
-                                else if let restoration=recorder.pendingBoardRestoration,restoration.changed.contains(index) {openReview(restoration.id)}
-                                else if checkPoints.contains(index) {model.beginBoardCorrection(at:index)}
+                                if checkPoints.contains(index) || recorder.interpretationWarnings.contains(index) {reviewMarkedStone(index)}
                                 else {beginRecovery(at:point)}
                             } else {manualPoint=point}
                         }
@@ -246,7 +257,7 @@ struct RecordingView: View {
     private var liveBoardActions:some View {
         VStack(alignment:.leading,spacing:10) {
             if let explanation=RecordingClarity.explanation(recorder:recorder,observation:model.visibleObservation,orientation:model.orientation) {
-                Text(explanation).font(.system(size:12*model.interfaceScale)).foregroundStyle(.orange)
+                Text(explanation).font(.system(size:14*model.interfaceScale)).foregroundStyle(.orange)
             }
             if let capture=recorder.pendingCaptureReview {
                 Button("Finish capture…",systemImage:"checkmark.circle") {openReview(capture.id)}
@@ -256,10 +267,9 @@ struct RecordingView: View {
                     .buttonStyle(.borderedProminent).tint(.orange)
             } else {
             if !checkPoints.isEmpty {
-                Button("Check highlighted intersections…",systemImage:"viewfinder") {model.beginBoardCorrection(at:checkPoints.sorted().first)}
+                Button("Review highlighted stones…",systemImage:"checkmark.circle") {if let point=checkPoints.sorted().first {reviewMarkedStone(point)}}
                     .buttonStyle(.borderedProminent).tint(.orange)
-                    .disabled(model.image == nil || model.calibration == nil || model.alignmentNeedsRecovery)
-                Text("Click an orange ring to inspect its camera photo and confirm Black, White, or Empty. Center a marked stone only if its intersection is ambiguous; otherwise confirm what is there.")
+                Text("Click a marked stone to address its issue: confirm a location, review missing moves, or check a capture or recorded placement.")
                     .font(.callout)
             }
             Button("Order missed moves…",systemImage:"list.number") {beginRecovery()}

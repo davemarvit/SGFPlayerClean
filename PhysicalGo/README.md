@@ -248,6 +248,29 @@ build checks passed. The production app was built, signed and verified with a
 source hash matching these sources. Live phone reconnection still needs hands-on
 validation; recorded and synthetic camera tests do not establish that behavior.
 
+From 0.156, marked Live position stones and **Review highlighted stones** use
+the same issue-based routing: capture/restoration or deferred-history reviews,
+pending-location confirmation, recorded-placement correction, or missed-move
+recovery. Camera-only translucent stones can legitimately coexist with zero
+placement ambiguities; their task is to establish history, not confirm a retained
+location. The frozen photo annotation tool is explicitly labeled for recognition
+testing; existing capture/restoration photo confirmations remain available.
+
+Missed-move recovery preselects retained chronology when all candidates agree on
+one sequence (including shorter prefixes). Approval cannot silently discard or
+reorder that pending sequence. Existing provisional clock events are attached to
+the accepted moves without charging again; missing timing still requires review.
+Tests cover zero-ambiguity markers, per-issue routes, preservation of three pending
+moves, rejected partial replacement, clock-event retention and reopening.
+
+Validation for 0.156: all 82 registered Swift suites pass (81 in the full run,
+then the mixed-warning fixture after replacing its obsolete wording assertion
+with a specific move-46 click-routing check). All six Python build checks pass.
+The signed native app's source hash matches the tested production sources.
+The affected test recording was recovered separately as 89 legal moves, keeping
+the first 86 unchanged and retaining clock balances paused for review; its
+original recording and evidence remain intact.
+
 From 0.152, camera-backed clocks track the latest usable observation. If analysis
 falls more than 1.5 seconds behind, the clock pauses at that observation instead
 of charging the blind interval. Explicit camera interruptions use the same
