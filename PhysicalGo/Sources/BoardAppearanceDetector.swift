@@ -10,6 +10,31 @@ enum BoardAppearanceDetector {
     private static func median(_ values:[Double])->Double {
         let sorted=values.sorted(); return sorted.isEmpty ? 0 : sorted[sorted.count/2]
     }
+    /// Independent current-image evidence for learning a known-empty point.
+    /// Neighboring wood supplies a local illumination/color plane. Both printed
+    /// axes must remain visible; a saved label alone supplies no pixel evidence.
+    static func emptyConfidence(frame:GrayFrame,calibration:BoardCalibration,point:Int,
+                                threshold:Double,occupied:Set<Int>)->Double? {
+        let n=calibration.size,r=point/n,c=point%n
+        guard (0..<n*n).contains(point),!occupied.contains(point) else {return nil}
+        var neighbors=[Neighbor](),wider=[Wood]()
+        for y in max(0,r-3)..<min(n-1,r+3) {for x in max(0,c-3)..<min(n-1,c+3) {
+            // Confirmed/detected stones can shade the four adjacent cell centers.
+            guard ![y*n+x,y*n+x+1,(y+1)*n+x,(y+1)*n+x+1].contains(where:occupied.contains) else {continue}
+            let p=calibration.point(col:Double(x)+0.5,row:Double(y)+0.5)
+            guard let level=frame.patchMean(p),let color=frame.patchColor(p) else {continue}
+            let wood=Wood(level:level,color:color);wider.append(wood)
+            if y>=r-2,y<r+2,x>=c-2,x<c+2 {
+                neighbors.append(.init(x:Double(x)+0.5-Double(c),y:Double(y)+0.5-Double(r),wood:wood))
+            }
+        }}
+        guard let wood=localWood(neighbors),wood.color != nil,!wider.isEmpty else {return nil}
+        let candidate=classify(frame:frame,calibration:calibration,col:Double(c),row:Double(r),
+            wood:wood,blackWoodLevel:min(wood.level,median(wider.map(\.level))),threshold:threshold)
+        let cross=gridEvidence(frame:frame,calibration:calibration,col:Double(c),row:Double(r))
+        guard candidate.state == .empty,candidate.confidence>=0.75,cross.crossVisible else {return nil}
+        return candidate.confidence
+    }
     static func detect(frame:GrayFrame,calibration:BoardCalibration,threshold:Double, changedLighting:Bool = false)->BoardObservation {
         let n=calibration.size
         var gaps=[Wood?](repeating:nil,count:(n-1)*(n-1))

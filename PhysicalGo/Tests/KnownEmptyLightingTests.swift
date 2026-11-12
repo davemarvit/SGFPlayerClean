@@ -83,8 +83,14 @@ import CoreGraphics
         let cover=GrayFrame(image:canvas.makeImage()!)!
         now+=0.21
         let covered=tracker.observe(changed(raw[2],185,.uncertain),frame:cover,calibration:cases[2].calibration,
-            expected:position,context:"game",now:now,valid:true)
+            expected:position,context:"game",now:now,valid:true,appearanceThreshold:0.13)
         check(covered.signature[185] == .uncertain,"Small central obstruction was hidden by empty prior")
+        for _ in 0..<10 {
+            now+=0.21
+            let held=tracker.observe(changed(raw[2],185,.uncertain),frame:cover,calibration:cases[2].calibration,
+                expected:position,context:"game",now:now,valid:true,appearanceThreshold:0.13)
+            check(held.signature[185] == .uncertain,"Appearance-only relearning hid a persistent central obstruction")
+        }
         tracker.reset();train(2)
         var expired=raw[0]
         for _ in 0..<150 {expired=observe(0)}
@@ -97,6 +103,20 @@ import CoreGraphics
         tracker.reset();train(2)
         position[109] = .white
         check(observe(0).signature[109] == .uncertain,"Expected-position change retained an old empty prior")
+        // Independently enumerated occupied fixture also includes the grained
+        // White at 311, which older captured raw readings had missed.
+        struct Occupied:Decodable {let calibration:BoardCalibration;let threshold:Double}
+        let occupiedRoot=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/OccupiedTracking")
+        let occupiedMeta=try JSONDecoder().decode(Occupied.self,from:Data(contentsOf:occupiedRoot.appendingPathComponent("sample.json")))
+        let occupiedSource=CGImageSourceCreateWithURL(occupiedRoot.appendingPathComponent("frame.png") as CFURL,nil)!
+        let occupiedFrame=GrayFrame(image:CGImageSourceCreateImageAtIndex(occupiedSource,0,nil)!)!
+        let stones:Set<Int>=[60,174,244,263,264,282,283,287,288,289,291,300,301,306,307,309,311,313,319,320,329]
+        for p in stones {
+            check(BoardAppearanceDetector.emptyConfidence(frame:occupiedFrame,calibration:occupiedMeta.calibration,
+                point:p,threshold:occupiedMeta.threshold,occupied:stones.subtracting([p])) == nil,
+                "Current-image wood evidence accepted an actual stone, including grained White")
+        }
+        _ = try ResidualGlareTests.run()
         print("PASS: \(checks) known-empty lighting checks; real glare reduction and White placement/removal, weak new stone, missing Black, invalid frames, context, gaps and duplicate timestamps")
     }
 }

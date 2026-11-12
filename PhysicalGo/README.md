@@ -278,6 +278,11 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.164, known-empty lighting baselines can also learn from repeated current-
+image evidence: nearby wood establishes local brightness and color, and both
+printed grid axes must remain visible. This helps when changed glare makes the
+old reference uncertain. Detected stones still take precedence.
+
 From 0.163, repeated independent empty readings at saved-empty intersections
 learn temporary local lighting baselines. An uncertain reading can remain empty
 when brightness, color, and the center still match. Detected stones take

@@ -923,3 +923,75 @@ Live feed selected; original three-stone test game remains manually paused.
 Await user 20-second hands-clear observation of glare rings. This is a conservative
 baseline for recurring uncertain empty readings, not a claim that all glare is
 resolved. Original resolved-panel acceptance retest remains pending.
+
+
+### Residual glare at O14, P14 and C17 (0.163 physical follow-up)
+
+User reports stable amber O14, intermittent P14, occasional C17. Captured a real
+19-second/82-analysis diagnostic sequence while paused, at
+`Captures/Diagnostics/Diagnostic 2026-11-12 14-53-36 1A1F48B6`. Capture is pinned.
+Temporarily protected all 180 existing unpinned archives against rotation, selected
+1 GB allowance (813 MB available granted), stopped after 312 MB, restored the
+original 10 GB setting and all previous pin states; **zero archives rotated**.
+Camera/game remained live/paused; original three stones untouched.
+
+With display rotation 3, O14/P14/C17 are canonical indices 260/279/54. All 82
+frames retain the three stones correctly. Learned empty count ranges 276–299.
+O14 is uncertain in all 82 raw frames and thus never seeds a reference-based
+baseline. P14 is empty in 64/82 frames at score 0.75, below the 0.8 learning gate;
+18 remain uncertain. C17 has 31 raw uncertainties, 11 resolved by baseline,
+20 remaining. G16 (129) has 71 raw uncertainties, all resolved. This establishes
+partial benefit, not completion of the glare fix.
+
+User asks whether thresholds should adapt to lighting across different board
+regions, and whether discontinuities/edge detection can help. Current local-
+appearance replay on sampled frames sees O14 as empty at 0.75, P14 at 0.875, C17
+at 1.0. These use a local wood brightness/color plane plus printed-line contrast;
+the stale-reference branch is the source of these remaining disagreements.
+Existing detection also checks radial stone boundaries and grid coverage. A
+stone-like boundary alone is insufficient because reflections can have edges;
+combine shape, grid occlusion, current wood appearance, and saved-position context.
+
+Under test: allow repeated independent current-image empty evidence (local wood
+plane plus both visible grid axes) to establish a saved-empty baseline when the
+reference comparison is uncertain or weak. Explicit stone readings still win.
+A pixel change challenging an existing baseline blocks appearance-only relearning
+until an independent reference-empty reading clears the challenge. Actual temporal
+fixture `Tests/Fixtures/ResidualGlare` contains 16 distinct captured frames with
+original capture timestamps and unadapted readings. Regression also challenges
+all three reported points with synthetic photographed Black/White transfers.
+No new deployment yet. Original resolved-panel retest remains pending.
+
+
+The user further asks about edge/discontinuity evidence. The current-image path
+uses local contrast across the two grid axes, together with a fitted nearby wood
+brightness/color plane. It leaves existing radial-rim and grid-coverage stone
+checks intact. No global brightness threshold was loosened. This is an additional
+independent evidence source, requiring the same eight fresh frames / 1.4 seconds
+and saved-position validation; it does not relabel an uncertain point from the
+saved position alone.
+
+Full 82-distinct-frame replay passed: the final six frames have zero uncertainties
+at O14/P14/C17 (raw counts 6/2/3). 237 residual-glare checks passed, including new
+photographed Black/White transfers at each of the three points, both after
+learning and at cold start. 32 baseline-policy checks passed, including ten
+repeated central-obstruction frames with the appearance path enabled. Synthetic
+transfers are separately labeled and are not physical placements. The compact
+16-frame committed fixture is also being run with broader regressions. Preparing
+0.164/build165; no installation yet.
+
+
+0.164 verification: **6/6 targeted suites passed**, including 171 checks on the
+compact real residual-glare sequence and synthetic cold/warm new-stone challenges,
+53 known-empty checks (including all 21 occupied-fixture stones and grained White),
+86 lighting, 82 stone-tracking, 16 recovery-lifecycle, 1,377 grid/UI, and recorded
+recovery-glare tests. All 7 Python build checks pass. Full 82-frame local replay
+also passed earlier (237 sequence checks). No entire-suite rerun is claimed.
+
+Installed **0.164 / build 165**, verified optimized build, strict/deep Developer
+ID signature, and independent 135-source hash `378467addc6dcfee7e8498112deab588352066d9b6e160c0c7ce2688a720b8bd`.
+Backup: `/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.164-20261112-151227`. Exact SGF and complete clock/pending/review JSON match
+before/after quit and relaunch; original 89-move recording unchanged. Live feed
+selected for a 20-second hands-clear O14/P14/C17 retest; game remains paused with
+3 saved moves, White next. Await physical result. Original resolved-panel
+acceptance test and the remaining acceptance matrix are still pending.

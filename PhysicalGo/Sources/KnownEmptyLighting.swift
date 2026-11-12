@@ -3,7 +3,7 @@ import Foundation
 /// A short-lived local lighting baseline, learned only from independent empty
 /// readings at saved-empty intersections. Never learns from its own output.
 struct KnownEmptyLighting {
-    struct Report:Codable {var learned=0;var resolved=[Int]()}
+    struct Report:Codable {var learned=0;var resolved=[Int]();var appearanceConfirmed=[Int]()}
     private struct Patch {
         let levels:[Double]
         let colors:[BoardChroma]
@@ -24,6 +24,7 @@ struct KnownEmptyLighting {
         var tolerance:Double {max(0.022,min(0.025,noise*2+0.005))}
     }
     private var entries=[Int:Entry]()
+    private var challenged=Set<Int>()
     private var context=""
     private var expected=[Occupancy]()
     private var lastTime:Double?
@@ -42,7 +43,8 @@ struct KnownEmptyLighting {
         return Patch(levels:levels,colors:colors,center:center)
     }
     mutating func observe(_ raw:BoardObservation,frame:GrayFrame,calibration:BoardCalibration,
-                          expected position:[Occupancy],context identity:String,now:Double,valid:Bool)->BoardObservation {
+                          expected position:[Occupancy],context identity:String,now:Double,valid:Bool,
+                          appearanceThreshold:Double?=nil)->BoardObservation {
         report=Report()
         guard valid,now.isFinite,!raw.lightingBlocked,raw.size==calibration.size,
               position.count==raw.size*raw.size,raw.readings.count==position.count,
@@ -67,12 +69,21 @@ struct KnownEmptyLighting {
             (raw.readings[$0].occupancy==position[$0] && raw.readings[$0].confidence>=0.9)})
         else {entries.removeAll();return raw}
         entries=entries.filter {now-$0.value.last<=30}
+        let occupied=Set(position.indices.filter {position[$0].stone != nil || raw.readings[$0].occupancy.stone != nil})
         var readings=raw.readings
         for p in position.indices where position[p] == .empty {
             let reading=raw.readings[p]
             guard !raw.manualPoints.contains(p),reading.occupancy.stone==nil,
                   let current=patch(frame,calibration,p) else {entries[p]=nil;continue}
-            if reading.occupancy == .empty && reading.confidence>=0.8 {
+            let referenceEmpty=reading.occupancy == .empty && reading.confidence>=0.8
+            if referenceEmpty {challenged.remove(p)}
+            let appearanceEmpty:Bool
+            if !referenceEmpty,!challenged.contains(p),let threshold=appearanceThreshold,
+               BoardAppearanceDetector.emptyConfidence(frame:frame,calibration:calibration,point:p,
+                   threshold:threshold,occupied:occupied) != nil {
+                appearanceEmpty=true;report.appearanceConfirmed.append(p)
+            } else {appearanceEmpty=false}
+            if referenceEmpty || appearanceEmpty {
                 if var entry=entries[p] {
                     let difference=current.distance(to:entry.patch)
                     if difference.level<=0.025 && difference.color<=0.012 && difference.center<=0.04 {
@@ -81,14 +92,16 @@ struct KnownEmptyLighting {
                         // Keep the independently observed anchor fixed; gradual
                         // changes must not teach an approaching object as wood.
                         entries[p]=entry
-                    } else {entries[p]=Entry(patch:current,first:now,last:now)}
+                    } else if referenceEmpty {entries[p]=Entry(patch:current,first:now,last:now)}
+                    else {entries[p]=nil;challenged.insert(p)}
                 } else {entries[p]=Entry(patch:current,first:now,last:now)}
-            } else if reading.occupancy == .uncertain,let entry=entries[p],entry.ready {
+            }
+            if reading.occupancy == .uncertain,let entry=entries[p],entry.ready {
                 let difference=current.distance(to:entry.patch)
                 if difference.level<=entry.tolerance && difference.color<=0.012 && difference.center<=0.04 {
                     readings[p] = .init(row:reading.row,col:reading.col,occupancy:.empty,confidence:0.85,delta:reading.delta)
                     report.resolved.append(p)
-                } else {entries[p]=nil}
+                } else {entries[p]=nil;challenged.insert(p)}
             }
         }
         report.learned=entries.values.filter(\.ready).count

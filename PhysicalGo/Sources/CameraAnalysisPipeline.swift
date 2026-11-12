@@ -111,7 +111,8 @@ final class CameraAnalysisPipeline {
         if let raw=result,let frame,let aligned {
             result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,
                 context:trackingContext,now:trackingTime,
-                valid:trackingFresh && handObstructed != true && trackingManualPoints.isEmpty)
+                valid:trackingFresh && handObstructed != true && trackingManualPoints.isEmpty,
+                appearanceThreshold:threshold)
         } else {emptyLighting.reset()}
         var tracker=trackingState
         let trackedObservation:BoardObservation?
