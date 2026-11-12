@@ -1081,6 +1081,13 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     func receiveCameraFrame(_ image:CGImage,capturedAt:Double,frameTimestamp:CameraFrameTimestamp?=nil) {
         frameCount += 1
+        // Reject old buffers before image conversion, grid recovery or optional
+        // capture storage. Analysis also rechecks freshness after its worker ends.
+        let arrival=ProcessInfo.processInfo.systemUptime
+        guard capturedAt.isFinite,arrival-capturedAt<=1.5 else {
+            diagnostics.event("frame skipped",details:["reason":"Stale camera frame","captureUptime":capturedAt.isFinite ? capturedAt:NSNull() as Any,"arrivalUptime":arrival])
+            return
+        }
         if capturedAt-lastCounterPublication>=1 {lastCounterPublication=capturedAt;objectWillChange.send()}
         moveEvidenceCapture.offer(image,at:capturedAt,online:onlineBoard.enabled || (playMode == .local && recorder.state == .recording),context:diagnosticContext,
                                   reference:referenceImage,anchor:trackingAnchor,anchorRevision:diagnosticAnchorRevision)

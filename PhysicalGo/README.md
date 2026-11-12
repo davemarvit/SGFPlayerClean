@@ -224,6 +224,30 @@ requires the neighboring alternative to become positively empty after simulated
 centering; an unreadable alternative remains pending. Its restoration checks use
 an immutable saved checkpoint instead of racing two stores against one file.
 
+From 0.155, valid camera presentation timestamps keep their original age even
+when delivery is delayed by more than 1.5 seconds. Previously that delay switched
+to callback time, making an old frame appear fresh. Invalid/missing clock data
+still uses the explicit callback fallback. Camera delivery rejects already-stale
+buffers before grid changes or analysis; the post-analysis freshness check remains.
+Native CoreMedia sample tests cover both sides of the old cutoff through a
+one-hour delay, alongside existing timestamp journaling and missing-clock tests.
+
+Diagnostic event, operation and automatic-clip annotation payloads are constructed
+only after the relevant session/buffer guards pass. Disabled diagnostics, stale
+callbacks and duplicate completions no longer serialize unused board snapshots.
+Active diagnostics still capture their immutable values on the main actor and
+write them on their existing worker. Regression counters verify zero evaluation
+when skipped, exactly one when accepted, and archived payload preservation.
+A focused 1,000-call disabled-operation probe went from 1,000 serialized 361-point
+payloads (about 0.97 seconds on the development Mac) to zero payloads. This measures
+removed diagnostic work, not an overall camera frame-rate improvement.
+Validation for 0.155: all 82 registered Swift suites passed in one full run,
+including the 60-check diagnostics suite, 31 storage/flow checks, native CoreMedia
+sample journaling, real KataGo integration and native UI rendering. All six Python
+build checks passed. The production app was built, signed and verified with a
+source hash matching these sources. Live phone reconnection still needs hands-on
+validation; recorded and synthetic camera tests do not establish that behavior.
+
 From 0.152, camera-backed clocks track the latest usable observation. If analysis
 falls more than 1.5 seconds behind, the clock pauses at that observation instead
 of charging the blind interval. Explicit camera interruptions use the same

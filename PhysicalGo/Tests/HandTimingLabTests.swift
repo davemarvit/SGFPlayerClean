@@ -28,6 +28,20 @@ import ImageIO
             else {capture.captureOutput(output,didOutput:sample!,from:connection)}
             Thread.sleep(forTimeInterval:1/30)
         }
+        // Actual CoreMedia buffers straddling the former 1.5-second cutoff.
+        // Valid old timestamps must not turn into fresh callback timestamps.
+        for age in [0.2,1.49,1.51,3.0,30.0,3600.0] {
+            let host=CMClockGetHostTimeClock()
+            var timing=CMSampleTimingInfo(duration:CMTime(value:1,timescale:30),
+                presentationTimeStamp:CMTimeSubtract(CMClockGetTime(host),CMTime(seconds:age,preferredTimescale:1000000)),decodeTimeStamp:.invalid)
+            var sample:CMSampleBuffer?
+            precondition(CMSampleBufferCreateReadyWithImageBuffer(allocator:kCFAllocatorDefault,imageBuffer:buffer,formatDescription:format!,sampleTiming:&timing,sampleBufferOut:&sample)==noErr)
+            let arrival=ProcessInfo.processInfo.systemUptime
+            let stamp=CameraFrameTimestamp.make(sample!,clock:host,arrival:arrival)
+            precondition(stamp.source=="cameraPresentation" && abs(arrival-stamp.capturedAt-age)<0.05,"Old camera time was relabeled fresh")
+            let fallback=CameraFrameTimestamp.make(sample!,clock:nil,arrival:arrival)
+            precondition(fallback.source=="callback" && fallback.capturedAt==arrival,"Missing-clock fallback changed")
+        }
         capture.finishSyntheticTest()
         let lines=try String(contentsOf:folder.appendingPathComponent("frames.jsonl")).split(separator:"\n")
         let frames=try lines.map{try JSONDecoder().decode(LabFrame.self,from:Data($0.utf8))}

@@ -11,6 +11,10 @@ import ImageIO
         bitmap.setFillColor(CGColor(gray:0,alpha:1));bitmap.fill(CGRect(x:23,y:31,width:7,height:9))
         let image=bitmap.makeImage()!
         let capture=MoveEvidenceCapture(root:root.appendingPathComponent("normal"),scheduleDeadlines:false)
+        var annotationBuilds=0
+        func annotation()->[String:Any] {annotationBuilds += 1;return ["lazyAnnotation":annotationBuilds]}
+        capture.annotate(annotation(),now:0)
+        precondition(annotationBuilds==0,"Empty capture ring built an annotation")
         func offer(_ time:Double) {
             capture.offer(image,at:time,online:true,context:["viewQuarterTurns":3,"testFrameTime":time],
                 reference:image,anchor:nil,anchorRevision:1)
@@ -24,6 +28,8 @@ import ImageIO
         for i in 0...9 {offer(Double(i)*0.5)}
         precondition(capture.bufferedFrames==9)
         precondition(!FileManager.default.fileExists(atPath:capture.root.path),"Untriggered ring wrote images to disk")
+        capture.annotate(annotation(),now:4.5)
+        precondition(annotationBuilds==1,"Buffered annotation was omitted or built twice")
         capture.annotate(["captureUptime":4.5,"alignment":["rejectionReason":"test failure"]],now:4.5)
         let event:[String:Any]=["event":"uncertain_move","game":42,"attempt":"a","point":10,"uptime":4.5]
         let first=capture.trigger(event,now:4.5)!
@@ -53,6 +59,8 @@ import ImageIO
         for i in 0...10 {tiny.offer(image,at:Double(i),online:true,context:[:],reference:nil,anchor:nil,anchorRevision:0)}
         precondition(tiny.bufferedFrames==2 && tiny.bufferedImageBytes<=image.bytesPerRow*image.height*2)
         tiny.enabled=false
+        tiny.annotate(annotation(),now:12)
+        precondition(annotationBuilds==1,"Disabled capture built an annotation")
         precondition(tiny.bufferedFrames==0 && tiny.trigger(event,now:10)==nil)
         let full=MoveEvidenceCapture(root:root.appendingPathComponent("full"),byteLimit:100,scheduleDeadlines:false)
         full.offer(image,at:0,online:true,context:[:],reference:nil,anchor:nil,anchorRevision:0)

@@ -28,19 +28,30 @@ import ImageIO
         let cal=try JSONDecoder().decode(Meta.self,from:Data(contentsOf:fixture.appendingPathComponent("sample.json"))).calibration
         let gray=GrayFrame(image:empty)!,anchor=AutoGridDetector.TrackingAnchor(calibration:cal,fittedGrid:cal,frame:gray)
         let recorder=DiagnosticRecorder(root:root)
+        var payloads=0
+        func payload()->[String:Any] {payloads += 1;return ["payload":payloads]}
+        recorder.event("off",details:payload())
+        check(recorder.begin("off",ticket:nil,details:payload())==nil,"Off recorder started work")
+        recorder.end(nil,outcome:"off",details:payload())
+        check(payloads==0,"Disabled diagnostics built payloads")
         check(recorder.capture(empty,at:1,context:[:],reference:nil,anchor:nil,anchorRevision:0)==nil && !FileManager.default.fileExists(atPath:root.path),"Diagnostics wrote files while off")
         try recorder.start(context:["test":"lossless, assets, events and lifecycle"],reserveBytes:0)
         let first=recorder.capture(empty,at:10,context:["calibration":DiagnosticRecorder.value(cal)],reference:empty,anchor:anchor,anchorRevision:1)!
-        let op=recorder.begin("analysis",ticket:first)!
+        let op=recorder.begin("analysis",ticket:first,details:payload())!
+        recorder.event("lazy payload",ticket:first,details:payload())
+        check(payloads==2,"Enabled diagnostic payloads were omitted or evaluated twice")
         recorder.event("recorder",ticket:first,details:["decision":["moveCount":0,"status":"Checking empty board"]])
         let second=recorder.capture(occupied,at:10.2,context:[:],reference:empty,anchor:anchor,anchorRevision:1)!
         recorder.event("frame skipped",ticket:second,details:["reason":"Analysis busy"])
         _=recorder.capture(occupied,at:10.4,context:[:],reference:occupied,anchor:anchor,anchorRevision:2)
         recorder.stop()
         check(recorder.state == .finishing && !recorder.canStart,"Stop did not await in-flight analysis")
-        recorder.end(op,outcome:"grid alignment rejected",details:["readings":NSNull()])
+        recorder.end(op,outcome:"grid alignment rejected",details:payload())
+        recorder.end(op,outcome:"duplicate",details:payload())
+        check(payloads==3,"Duplicate completion rebuilt diagnostics or active completion was lost")
         wait({recorder.canStart})
         let folder=recorder.folder!,events=try entries(folder),frames=events.filter{$0["event"] as? String == "frame"}
+        check(events.contains{$0["event"] as? String == "lazy payload" && $0["payload"] as? Int==2} && events.contains{$0["outcome"] as? String == "grid alignment rejected" && $0["payload"] as? Int==3},"Enabled lazy payloads were not preserved in the archive")
         check(frames.count==3 && recorder.savedFrames==3,"Diagnostic frames silently disappeared")
         check(events.contains{$0["outcome"] as? String == "grid alignment rejected"},"Rejected analysis result missing after Stop")
         check(events.contains{$0["event"] as? String == "frame skipped" && $0["frameID"] as? Int==second.frame},"Skipped camera frame lost its reason/ID")
@@ -61,8 +72,9 @@ import ImageIO
         check(try Data(contentsOf:folder.appendingPathComponent(savedAnchor["pixels"] as! String))==Data(gray.pixels),"Tracking anchor pixels changed")
         try recorder.start(context:[:],reserveBytes:0)
         check(recorder.folder != folder,"New diagnostic run overwrote the old one")
-        check(recorder.begin("old callback",ticket:first)==nil,"Old session ticket attached to new session")
-        recorder.event("old event",ticket:first)
+        check(recorder.begin("old callback",ticket:first,details:payload())==nil,"Old session ticket attached to new session")
+        recorder.event("old event",ticket:first,details:payload())
+        check(payloads==3,"Stale diagnostic session built payloads")
         recorder.closeForExit()
         check(!(try entries(recorder.folder!)).contains{$0["event"] as? String == "old event"},"Old callback contaminated a new session")
         check(FileManager.default.fileExists(atPath:folder.appendingPathComponent("frames/000001.png").path),"Completed diagnostics were deleted")
@@ -107,6 +119,10 @@ import ImageIO
         model.soundMode = .off;model.tracksCameraMotion=false
         try model.openSample(from:fixture);settle(0.6)
         model.running=true;model.frozen=false;model.handleCameraStatus("Live · diagnostic test",state:.live)
+        let beforeCalibration=model.calibration,beforeWidth=model.image?.width
+        let stalePixels=CGContext(data:nil,width:16,height:16,bitsPerComponent:8,bytesPerRow:64,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!.makeImage()!
+        model.receiveCameraFrame(stalePixels,capturedAt:ProcessInfo.processInfo.systemUptime-3)
+        check(model.calibration==beforeCalibration && model.image?.width==beforeWidth,"Stale camera buffer reset the grid or replaced live pixels")
         model.startDiagnostics()
         for _ in 0..<6 {model.receive(empty);settle(0.3)}
         check(model.canStartNewRecording,"Diagnostic mode interfered with empty-board readiness")

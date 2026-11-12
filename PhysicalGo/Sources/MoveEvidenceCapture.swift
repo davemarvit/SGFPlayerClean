@@ -67,8 +67,9 @@ import CoreGraphics
         while bufferedImageBytes>memoryLimit || frames.count>beforeSeconds*framesPerSecond+1 {frames.removeFirst();droppedSamples += 1}
         if recorder.isCapturing {save(frame)}
     }
-    func annotate(_ details:[String:Any],now:Double=ProcessInfo.processInfo.systemUptime) {
+    func annotate(_ details:@autoclosure ()->[String:Any],now:Double=ProcessInfo.processInfo.systemUptime) {
         guard enabled,!frames.isEmpty else {return}
+        let details=details()
         events.append((now,details));events.removeAll{now-$0.time>Double(beforeSeconds)}
         if events.count>64 {events.removeFirst(events.count-64)}
         if recorder.isCapturing {recorder.event("automatic analysis",details:details)}

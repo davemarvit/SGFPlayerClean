@@ -109,25 +109,25 @@ enum CaptureFolders {
         }
         return ticket
     }
-    func event(_ name:String,ticket:Ticket?=nil,details:[String:Any]=[:]) {
+    func event(_ name:String,ticket:Ticket?=nil,details:@autoclosure ()->[String:Any]=[:]) {
         guard isOpen,let worker,ticket.map({$0.session==sessionID}) ?? true else {return}
-        var entry=details;entry["event"]=name;entry["time"]=Date().timeIntervalSince1970
+        var entry=details();entry["event"]=name;entry["time"]=Date().timeIntervalSince1970
         entry["uptime"]=ProcessInfo.processInfo.systemUptime
         if let ticket {entry["frameID"]=ticket.frame}
         worker.event(entry)
     }
-    func begin(_ kind:String,ticket:Ticket?,details:[String:Any]=[:])->Operation? {
+    func begin(_ kind:String,ticket:Ticket?,details:@autoclosure ()->[String:Any]=[:])->Operation? {
         guard isCapturing,ticket.map({$0.session==sessionID}) ?? true else {return nil}
         nextOperation += 1
         let operation=Operation(session:sessionID,id:nextOperation,frame:ticket?.frame)
         operations[operation.id]=operation
-        var entry=details;entry["operationID"]=operation.id;entry["kind"]=kind
+        var entry=details();entry["operationID"]=operation.id;entry["kind"]=kind
         event("operation started",ticket:ticket,details:entry)
         return operation
     }
-    func end(_ operation:Operation?,outcome:String,details:[String:Any]=[:]) {
+    func end(_ operation:Operation?,outcome:String,details:@autoclosure ()->[String:Any]=[:]) {
         guard let operation,operation.session==sessionID,operations.removeValue(forKey:operation.id) != nil else {return}
-        var entry=details;entry["operationID"]=operation.id;entry["outcome"]=outcome
+        var entry=details();entry["operationID"]=operation.id;entry["outcome"]=outcome
         event("operation finished",ticket:operation.frame.map{Ticket(session:sessionID,frame:$0)},details:entry)
         finishIfReady()
     }
