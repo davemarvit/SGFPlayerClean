@@ -278,6 +278,11 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.160, a lone missing-stone review closes automatically after fresh, clear
+views verify the complete saved position again, including while manually paused.
+Its original camera evidence remains in the resolved review; moves and clocks
+are unchanged. Reviews with later moves or proposed sequences still require review.
+
 From 0.159, application-specific Kokoro pronunciations augment the pinned
 lexicon through `Resources/KokoroPronunciations.json`. The recovery messages
 pronounce “verified” as a word; synthesis tests check its phonemes and regenerate

@@ -154,6 +154,43 @@ enum LocalGameSetup {
     func boardRestorationVerified(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->Bool {
         boardRestorationVerificationStatus(plan,now:now) == .ready
     }
+    /// A lone missing-only review can close without editing history when fresh
+    /// views show the complete saved position again. Preserve its camera evidence
+    /// as a resolved zero-move section; never run the clock-changing approval path.
+    private func reconcileRestoredMissingStones(_ observation:BoardObservation,now:Double) {
+        guard [.paused,.recording].contains(state),!reviewing,!observation.lightingBlocked,
+              observation.handObstructed == false,
+              !clock.requiresReview,!clock.liveReviewActive,clock.liveEvents.isEmpty,
+              clock.provisionalMoves.isEmpty,pendingMoveCount==0,automaticCapture==nil,
+              saveError==nil,pendingSaveError==nil,reviewSaveError==nil,clock.saveError==nil,
+              !reviewHistory.endRequested,reviewHistory.scoredPosition==nil,
+              reviewHistory.anchorSignature==checkpointSignature,reviewHistory.baseMove==moveCount,
+              reviewHistory.sections.filter({!$0.committed}).count==1,
+              let plan=pendingBoardRestoration,case .missing=plan.kind,
+              let index=reviewHistory.sections.firstIndex(where:{$0.id==plan.id}),
+              (reviewHistory.sections[index].suggestedOrders ?? []).allSatisfy({$0.isEmpty}),
+              reviewHistory.nextColor==nextPlayer,
+              !clock.enabled || clock.engine.blackToPlay==(nextPlayer == .black),
+              observation.signature==plan.target,
+              let last=reviewCameraWitnesses.last else {return}
+        // Require exact, independent, continuous views, including unaffected
+        // intersections. Partial uncertainty must not erase an unresolved review.
+        let matching=reviewCameraWitnesses.reversed().prefix{$0.position==plan.target}
+        guard matching.count>=5,last.time-(matching.last?.time ?? last.time)>=0.8 else {return}
+        reviewHistory.sections[index].moves=[]
+        reviewHistory.sections[index].resolvedAfter=plan.target
+        reviewHistory.sections[index].resolvedAt=Date().timeIntervalSince1970
+        reviewHistory.sections[index].recoverySource="Fresh clear camera views verified the complete saved position after missing stones returned. No move or clock change."
+        reviewHistory.sections[index].savedStart=moveCount
+        reviewHistory.sections[index].committed=true
+        reviewHistory.anchorSignature=nil;reviewHistory.baseMove=nil;reviewHistory.turnOverride=nil
+        reviewHistory.interrupt()
+        saveReviewHistory()
+        resetObservationHistory();resetWarningMonitor();clearBlock();resetPending()
+        pausedProblem=nil;resolveAdjustmentGuidance(plan.changed)
+        status=state == .paused ? "Board position verified. Clocks remain paused." : "Recording · \(nextPlayer.rawValue.capitalized) to play."
+        trace(event:"missing-stone review automatically resolved",now:now,extra:["reviewID":plan.id.uuidString])
+    }
     func boardRestorationVerificationStatus(_ plan:BoardRestorationPlan,now:Double=ProcessInfo.processInfo.systemUptime)->ReviewBoardVerification.Status {
         reviewVerificationStatus(target:plan.target,requiredClear:plan.changed,now:now)
     }
@@ -1175,12 +1212,13 @@ enum LocalGameSetup {
         }
         if observation.handObstructed == true {noteHandObstruction(now:now,capturedAt:observation.capturedAt);onObservationProcessed?(observation,now);return}
         handOverBoard=false
+        noteReviewCamera(observation,now:now)
+        reconcileRestoredMissingStones(observation,now:now)
         // Let this fresh frame clear a resolved contradiction before deciding
         // whether the same frame confirms a move. Each timestamp is counted once.
         updateAdjustmentGuidance(observation,now:now)
         defer {
             checkpointPendingMoves()
-            noteReviewCamera(observation,now:now)
             onObservationProcessed?(observation,now)
             if hasGame { trace(event:"observation",observation:observation,now:now) }
         }

@@ -194,6 +194,86 @@ import AppKit
         check(liveVoice.phrases.last=="Board position verified. Clocks remain paused." && live.clock.engine==pausedClock && live.state == .paused,"Paused restoration lost its acknowledgment or resumed/changed clocks")
         liveVoice.finish()
 
+        // Physical walkthrough regression: the absence lasts long enough to
+        // become a durable review before the player pauses and restores it.
+        let longVoice=GuidanceVoice()
+        let longModel=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,
+            referenceArchive:nil,recordingStorage:root,diagnosticRoot:root.appendingPathComponent("long-missing-diagnostics"),recoveryAudio:longVoice)
+        longModel.moveEvidenceCapture.enabled=false;longModel.soundMode = .off
+        longModel.handleCameraStatus("Live",state:.live)
+        let long=longModel.recorder;long.clock.sounds.volume=0;long.clock.sounds.moveBeep=false
+        var longNow=ProcessInfo.processInfo.systemUptime
+        long.start(size:9,now:longNow,clockSettings:.init(kind:.fischer,mainSeconds:300,incrementSeconds:2,maximumSeconds:600))
+        var twoStones=Array(repeating:Occupancy.empty,count:81)
+        func longObservation(_ values:[Occupancy],hand:Bool=false)->BoardObservation {
+            .init(readings:values.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,capturedAt:longNow,handObstructed:hand)
+        }
+        func feedLong(_ values:[Occupancy],count:Int=8,hand:Bool=false) {
+            for _ in 0..<count {longNow += 0.21;long.consume(longObservation(values,hand:hand),now:longNow)}
+        }
+        feedLong(twoStones);twoStones[40] = .black;feedLong(twoStones);twoStones[60] = .white;feedLong(twoStones)
+        let longSGF=long.sgf(),longPresses=try pressEncoder.encode(long.clock.moves)
+        var absent=twoStones;absent[40] = .empty
+        feedLong(absent,count:80)
+        check(long.hasDeferredMoves && long.reviewHistory.unresolved==1 && long.pendingBoardRestoration != nil,"Long missing-stone fixture did not cross the review escalation")
+        let missingSection=long.reviewHistory.sections.last!
+        longVoice.start();long.pause()
+        let longClock=long.clock.engine
+        let missingHistory=long.reviewHistory
+        feedLong(twoStones,count:3)
+        let duplicate=longObservation(twoStones)
+        for _ in 0..<10 {long.consume(duplicate,now:longNow)}
+        check(long.hasDeferredMoves,"Duplicate restoration frames resolved a review")
+        feedLong(twoStones,count:1,hand:true);feedLong(twoStones,count:3)
+        check(long.hasDeferredMoves,"Restoration carried confirmation across an obstructing hand")
+        var unclear=twoStones;unclear[0] = .uncertain
+        feedLong(unclear,count:8)
+        check(long.hasDeferredMoves,"Partial uncertainty erased a durable missing-stone review")
+        feedLong(twoStones,count:12)
+        check(!long.hasDeferredMoves && long.adjustmentIssues.isEmpty,"Fresh paused restoration left the durable missing-stone marker")
+        let restoredPresses=try pressEncoder.encode(long.clock.moves)
+        check(long.state == .paused && long.clock.engine==longClock && long.sgf()==longSGF && restoredPresses==longPresses,"Automatic restoration changed clocks or saved history")
+        let resolvedSection=long.reviewHistory.sections.last!
+        check(resolvedSection.id==missingSection.id && resolvedSection.before==missingSection.before && resolvedSection.after==missingSection.after && resolvedSection.moves==[] && resolvedSection.committed,"Automatic restoration discarded original review evidence")
+        check(longVoice.phrases.last=="Board position verified. Clocks remain paused.","Long paused restoration failed to acknowledge recovery")
+        try long.flushStorage()
+        let reopened=GameRecorder(storage:root)
+        try reopened.restoreSavedGame(from:long.autosaveURL!)
+        check(!reopened.hasDeferredMoves && reopened.moveCount==2 && reopened.clock.engine==longClock,"Resolved missing-stone review did not survive reopening")
+
+        func savedMissingFixture(_ history:DeferredMoveHistory)throws->GameRecorder {
+            let url=root.appendingPathComponent(UUID().uuidString+".sgf")
+            try Data(longSGF.utf8).write(to:url)
+            try JSONEncoder().encode(history).write(to:url.deletingPathExtension().appendingPathExtension("reviews.json"))
+            let fixture=GameRecorder(storage:root);fixture.clock.audible=false
+            try fixture.restoreSavedGame(from:url)
+            return fixture
+        }
+        func feedFixture(_ fixture:GameRecorder) {
+            for _ in 0..<12 {longNow += 0.21;fixture.consume(longObservation(twoStones),now:longNow)}
+        }
+        let restoredMissing=try savedMissingFixture(missingHistory)
+        feedFixture(restoredMissing)
+        check(!restoredMissing.hasDeferredMoves && restoredMissing.state == .paused,"A reloaded missing-only review did not reconcile from fresh views")
+        var laterHistory=missingHistory
+        var laterBoard=absent;laterBoard[0] = .black
+        laterHistory.sections.append(.init(before:absent,after:laterBoard,moves:[.init(color:.black,point:BoardPosition(0,0))],reason:"Later move",firstSeen:longNow,confirmedAt:longNow,liveNext:.white))
+        let laterFixture=try savedMissingFixture(laterHistory)
+        feedFixture(laterFixture)
+        check(laterFixture.hasDeferredMoves && laterFixture.reviewHistory.retainedMoveCount==1,"Restoration erased a later retained move")
+        var proposedHistory=missingHistory
+        proposedHistory.sections[proposedHistory.sections.count-1].suggestedOrders=[[.init(color:.black,point:BoardPosition(0,0))]]
+        let proposedFixture=try savedMissingFixture(proposedHistory)
+        feedFixture(proposedFixture)
+        check(proposedFixture.hasDeferredMoves,"Restoration erased an unresolved proposed sequence")
+
+        longVoice.finish();long.resume();feedLong(twoStones)
+        feedLong(absent,count:80)
+        check(long.hasDeferredMoves && long.clock.running,"Running restoration fixture did not retain its review and clock")
+        feedLong(twoStones,count:12)
+        let runningPresses=try pressEncoder.encode(long.clock.moves)
+        check(!long.hasDeferredMoves && long.clock.running && long.clock.engine.blackToPlay && long.sgf()==longSGF && runningPresses==longPresses,"Running restoration paused play or invented a replacement move")
+
         // Actual muted audio, including the event journal, must reach natural
         // completion after cancellation rather than merely passing a fake test.
         let audio=LocalClockAudio(),actual=RecoverySpeech(audio:audio)

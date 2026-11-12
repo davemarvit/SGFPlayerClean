@@ -492,6 +492,61 @@ and the paused state. This is a deliberate test allowance, not a refund inferred
 from the removal interval; the before-adjustment state is retained in the guided
 session artifacts. The original 89-move recording remains separate.
 
-Next guided physical test: resume, browse **Saved moves**, place White at a corner
-star point, return to **Live position**, verify two saved moves and Black running,
-then pause. Baseline saved; awaiting user observation.
+Guided Saved moves test **passed**: the user observed two saved moves and Black’s
+clock running, then manually paused. Saved state confirms `W[pp]`, exactly one
+additional timed move and one 30-second increment, Black next, no pending or
+provisional moves, and no timing correction required. This checks continued play
+while viewing Saved moves; historical cursor pinning and stale proposal acceptance
+remain untested on the physical board.
+
+Next guided test: resume, remove the center Black stone until warning speech
+starts, manually pause while it is absent, then restore it. Expect two saved moves,
+Black next, the missing-stone marker cleared, and “Board position verified. Clocks
+remain paused.” Both clocks must remain stopped. **Failed:** the orange ring stayed and no
+recovery acknowledgment played after restoration. The journal confirms fresh
+exact agreement with the two-stone saved board and stopped clocks. Before Pause,
+the prolonged absence crossed the 12-second escalation and created a missing-only
+review. That saved review still interpreted the center as empty after restoration;
+the short-removal regression never crossed this path. Failure artifacts are
+preserved in `.build/GuidedTests/step-07-failure`.
+
+### Prolonged missing-stone restoration: 0.160 / build 161
+
+A single unresolved missing-only review now reconciles automatically after at
+least five independent exact views spanning 0.8 seconds show the entire saved
+position again. The same path runs during recording and explicit pause, before
+restoration could be mistaken for a new deferred move. It preserves the original
+review identity, before/after camera snapshots, and evidence folder as a resolved
+zero-move section. It does not call the explicit history-approval/clock-finalization
+path, rewrite SGF, add an increment, or release a manual pause.
+
+The guard excludes later retained sections, proposed move sequences, uncertain
+views, hand obstruction, turn disagreement, provisional/live clock events, timing
+review, capture holds, finished/scored games, and persistence errors.
+
+The expanded recovery-guidance suite passed **58 checks**, including the actual
+long-absence escalation with two stones, manual pause, repeated frames, hand
+re-entry, uncertainty, evidence preservation, save/reopen, running restoration,
+and refusal to erase later moves or proposals. Seven Python build checks passed.
+The seven related suites also passed: live-position issues, review queue, recovery
+lifecycle, capture clocks, workflow UI, session resume, and storage flow. These
+eight focused suites used the debug shared runtime; they are not a new full
+83-suite run. The optimized signed build was verified and installed as **0.160 /
+build 161**. Independently computed source hash (134 files):
+`8a72ba6a440199ceaddad7d6f5baac4c407c3d440b3a673d2f53d6ae46a7ac90`.
+Installed executable and signature match the verified build. Backup:
+`~/Library/Application Support/Physical Go/Backups/Install-0.160-20261112-002043`.
+
+On launch, fresh live camera views of the user’s restored two-stone board resolved
+the existing review automatically. Native UI reports zero attention points, two
+saved moves, Black next, and both clocks paused. SGF, the complete clock sidecar,
+and pending sidecar are unchanged; the review retains its original identity,
+before/after snapshots, and evidence folder, marked resolved with zero moves.
+The separate 89-move recording remains byte-for-byte unchanged. This verifies the
+actual failed saved review against the live board; the complete warning-to-recovery
+speech sequence still awaits the next user retest.
+
+Next guided test: repeat the center Black removal for **20 seconds**, manually
+pause while it is absent, then restore it and wait five seconds. Check marker
+clearing, the paused recovery acknowledgment, two saved moves, and stopped clocks.
+Baseline saved; awaiting user result.
