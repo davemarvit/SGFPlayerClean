@@ -311,6 +311,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         }
     }
     private let recoverySpeech:RecoverySpeech
+    private lazy var recordingWarningFeedback=RecordingWarningFeedback(speech:recoverySpeech)
     private lazy var boardViewFeedback=BoardViewRecoveryFeedback(speech:recoverySpeech)
     private var boardAlignmentGate=BoardAlignmentGate()
     private lazy var clockPauseAnnouncements=ClockPauseAnnouncements(speech:recoverySpeech)
@@ -585,6 +586,12 @@ enum PhysicalPlayMode: String, CaseIterable {
                     })
             }
         }
+        recorder.onObservationProcessed = { [weak self] observation,now in
+            self?.updateRecordingWarningFeedback(observation,now:now)
+        }
+        recorder.$autosaveURL.removeDuplicates().dropFirst().sink { [weak self] url in
+            self?.recordingWarningFeedback.reset(session:url?.path)
+        }.store(in:&clockSubscriptions)
         recorder.onReviewNeeded = { [weak self] in self?.playRecordingWarning() }
         recorder.onDiagnosticEvent = { [weak self] entry in
             guard let self else {return}
@@ -688,6 +695,21 @@ enum PhysicalPlayMode: String, CaseIterable {
             recorder.onPlacementChime = { _ in NSSound(named:"Glass")?.play() }
         } else { recorder.onPlacementChime = nil }
     }
+    private func updateRecordingWarningFeedback(_ observation:BoardObservation,now:Double) {
+        let stamp=observation.capturedAt ?? now
+        let expected=recorder.interpretedBoard.map{DeferredMoveHistory.states($0)}
+        let agrees = cameraState == .live && !frozen && !alignmentNeedsRecovery &&
+            !observation.lightingBlocked && observation.handObstructed == false &&
+            observation.size==recorder.game.boardSize && expected==observation.signature
+        let resolved = recorder.adjustmentIssues.isEmpty && !recorder.hasDeferredMoves &&
+            recorder.pendingMoveCount==0 && (recorder.state == .paused || !recorder.needsAttention) &&
+            !recorder.clock.requiresReview && recorder.saveError==nil && recorder.pendingSaveError==nil &&
+            recorder.reviewSaveError==nil && recorder.clock.saveError==nil && !recorder.recoveryReadBlocked
+        recordingWarningFeedback.observe(session:recorder.autosaveURL?.path,agrees:agrees,resolved:resolved,
+            fresh:stamp.isFinite && stamp<=now && now-stamp<1.5,now:stamp,
+            enabled:recoverySpeechEnabled && recorder.clock.audible,
+            clocksEnabled:recorder.clock.enabled,clockRunning:recorder.clock.running,settings:recorder.clock.sounds)
+    }
     private func playRecordingWarning() {
         guard recorder.automaticCaptureConflictPoints.isEmpty else {return}
         if soundMode == .all {
@@ -695,6 +717,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             recorder.logSpeech("warning sound requested",details:["sound":"Basso","channel":"recording"])
         }
         if recoverySpeechEnabled && recorder.clock.audible {
+            recordingWarningFeedback.began(session:recorder.autosaveURL?.path)
             recoverySpeech.request(.recordingWarning,text:spokenRecoveryInstruction,settings:recorder.clock.sounds,refresh:{ [weak self] in
                 guard let self,self.recoverySpeechEnabled,self.recorder.clock.audible,
                       self.recorder.needsAttention || self.recorder.hasDeferredMoves else {return nil}

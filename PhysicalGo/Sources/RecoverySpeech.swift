@@ -1,11 +1,12 @@
 import Foundation
 
 /// One voice for camera/lighting guidance. Recovery cancels unsaid instructions;
-/// an audible sentence finishes naturally. Explicit mute/stop still silences it.
+/// an audible sentence normally finishes naturally. Verified resolution can
+/// explicitly interrupt obsolete instructions; mute/stop always silences them.
 @MainActor final class RecoverySpeech {
     enum Topic:String {
-        case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning,captureConflict
-        var isWarning:Bool {self != .clockResume && self != .viewRecovered}
+        case alignment,lighting,clockPause,clockResume,viewRecovered,recordingWarning,recordingRecovered,captureConflict
+        var isWarning:Bool {self != .clockResume && self != .viewRecovered && self != .recordingRecovered}
     }
     private struct Prompt {
         let topic:Topic;let text:String;let settings:LocalClockSounds
@@ -55,14 +56,14 @@ import Foundation
     func forgetAnnouncement(_ topic:Topic) {heard.remove(topic)}
     /// Drop unsaid messages when state reverses. Once audible, finish the
     /// sentence; the current-state follow-up is queued by the caller.
-    func cancel(_ topic:Topic,reason:String) {
+    func cancel(_ topic:Topic,reason:String,interruptAudible:Bool=false) {
         heard.remove(topic)
-        resolved(topic,reason:reason)
+        resolved(topic,reason:reason,interruptAudible:interruptAudible)
     }
-    func resolved(_ topic:Topic,reason:String="condition recovered") {
+    func resolved(_ topic:Topic,reason:String="condition recovered",interruptAudible:Bool=false) {
         queued.removeAll{$0.topic==topic}
         guard active==topic else {return}
-        if !audio.hasStartedSpeech {
+        if interruptAudible || !audio.hasStartedSpeech {
             audio.stop(reason:reason);active=nil;activeText=nil;advance()
         } else if !activeResolved {
             activeResolved=true
@@ -132,5 +133,61 @@ import Foundation
         }
         speech.forgetAnnouncement(.clockPause)
         speech.forgetAnnouncement(.alignment);speech.forgetAnnouncement(.lighting)
+    }
+}
+
+
+/// A board discrepancy that was audible needs an audible end, even when no move
+/// was accepted and no clock resumed. Evidence never changes the game or clocks.
+@MainActor final class RecordingWarningFeedback {
+    private let speech:RecoverySpeech
+    private var session:String?
+    private var pending=false
+    private var warningBaseline=0
+    private var last:Double?
+    private var clearSince:Double?
+    private var clearFrames=0
+    private var currentMessage:String?
+    init(speech:RecoverySpeech) {self.speech=speech}
+    func reset(session:String?) {
+        self.session=session;pending=false;last=nil;clearSince=nil;clearFrames=0;currentMessage=nil
+        warningBaseline=speech.startCount(.recordingWarning)
+        speech.cancel(.recordingWarning,reason:"recording session changed",interruptAudible:true)
+        speech.cancel(.recordingRecovered,reason:"recording session changed",interruptAudible:true)
+    }
+    func began(session:String?) {
+        if self.session != session {reset(session:session)}
+        if !pending {warningBaseline=speech.startCount(.recordingWarning)}
+        pending=true;clearSince=nil;clearFrames=0;currentMessage=nil
+        speech.cancel(.recordingRecovered,reason:"recording needs attention again",interruptAudible:true)
+    }
+    func observe(session:String?,agrees:Bool,resolved:Bool,fresh:Bool,now:Double,
+                 enabled:Bool,clocksEnabled:Bool,clockRunning:Bool,settings:LocalClockSounds) {
+        if self.session != session {reset(session:session);return}
+        guard enabled else {
+            pending=false;clearSince=nil;clearFrames=0;currentMessage=nil
+            speech.cancel(.recordingRecovered,reason:"recovery speech disabled",interruptAudible:true)
+            return
+        }
+        guard fresh,now.isFinite,last.map({now>$0}) ?? true else {return}
+        if let last,now-last>1.5 {clearSince=nil;clearFrames=0}
+        last=now
+        currentMessage=agrees && resolved ? (clocksEnabled && !clockRunning
+            ? "Board position verified. Clocks remain paused." : "Board position verified."):nil
+        if !agrees {
+            clearSince=nil;clearFrames=0
+            speech.cancel(.recordingRecovered,reason:"board disagreement returned",interruptAudible:true)
+            return
+        }
+        guard pending else {return}
+        if clearSince==nil {clearSince=now}
+        clearFrames += 1
+        guard resolved,clearFrames>=5,now-clearSince!>=0.8 else {return}
+        let heard=speech.startCount(.recordingWarning)>warningBaseline
+        pending=false;clearSince=nil;clearFrames=0
+        speech.resolved(.recordingWarning,reason:"board position verified",interruptAudible:true)
+        speech.forgetAnnouncement(.recordingWarning)
+        guard heard else {return}
+        speech.request(.recordingRecovered,text:currentMessage!,settings:settings,refresh:{ [weak self] in self?.currentMessage })
     }
 }

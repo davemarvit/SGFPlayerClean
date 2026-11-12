@@ -36,6 +36,7 @@ import AVFoundation
                 phrases.append("\(action) Clocks resumed. \(player) to play.")
             }
         }
+        phrases += ["Board position verified.","Board position verified. Clocks remain paused."]
         let previous=(try? Data(contentsOf:output.appendingPathComponent("manifest.json")))
             .flatMap{try? JSONDecoder().decode([String:String].self,from:$0)} ?? [:]
         var manifest=[String:String]()

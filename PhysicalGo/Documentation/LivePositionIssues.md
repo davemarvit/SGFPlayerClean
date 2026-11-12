@@ -401,3 +401,58 @@ The automated 83-suite run already covers fixture/synthetic versions of most of
 these behaviors. These next tests target real camera/hand timing and native user
 interaction, plus the newly observed shutdown metadata regression. They have not
 been performed on a physical game in this installation session.
+
+
+## Guided physical-board run and speech correction (2026-11-11)
+
+The user began a separate 19×19 test recording,
+`Physical Go B6933674-65CD-48ED-AF06-FE53CFD44B73.sgf`. Its actual saved setup is
+Fischer **1 minute + 30 seconds**, not the initially proposed 5 minutes + 2 seconds:
+the attempted accessibility text-field edits had not committed to the setup model.
+The actual settings were checked in the clock sidecar before interpreting results.
+The earlier 89-move recording and its recovery provenance remain preserved.
+
+Observed on the physical board, with user reports checked against the saved state:
+
+- One Black stone at the center saved as `B[jj]`; White's clock began. There is
+  exactly one timed move and one 30-second Fischer increment.
+- A brief hand obstruction left one saved move, White's turn, and no lingering
+  marker. SGF and timed-move events remained unchanged.
+- Removing the center stone produced an orange ring; replacing it cleared the
+  ring. One saved move and White's turn remained. SGF and clock events did not
+  change, and no timing correction was required.
+- **Speech failed:** the user heard obsolete instructions continue after the
+  marker cleared, without a recovery acknowledgment. The journal confirms a
+  7.7-second warning that finished after the discrepancy was gone. This particular
+  warning used the system fallback; the walkthrough instructions used Kokoro.
+
+The walkthrough paused on the one-move test game for the 0.158 / build 159 fix. Verified recovery now has an explicit speech lifecycle: fresh agreement
+cancels pending or audible obsolete recording instructions; an episode whose
+warning was heard gets one **Board position verified** acknowledgment. If clocks
+are paused, it says **Clocks remain paused**. It neither changes nor resumes clocks.
+Silent episodes, duplicate/stale observations, unresolved issues, mute, renewed
+disagreements, and session changes must not produce stale recovery announcements.
+Both acknowledgment phrases are bundled in Kokoro.
+
+0.158 validation passed: seven Python build checks; 313 voice-asset checks (147
+cached phrases plus uncached synthesis); and the five relevant regression suites
+(`live-position-issues-test`, `recovery-guidance-test`, `obstruction-feedback-test`,
+`workflow-ui-test`, `clock-feedback-test`). The expanded recovery-guidance suite
+passed 44 checks, including the exact model/recorder removal-and-return sequence,
+no extra move or clock event, paused restoration, stale/duplicate/unclear evidence,
+unheard/muted/queued prompts, session changes, and interruption of real muted
+audio. The first attempt found a test-only compilation error comparing non-Equatable
+clock events; the test now compares their complete sorted-key encoded data and
+passes. These five suites used the debug shared runtime; the installed release
+was compiled optimized and separately signed and verified. This is focused
+regression coverage for the speech fix, not a new full 83-suite run.
+
+Installed and launched **0.158 / build 159** with the same one-move test recording.
+SGF, complete clock state, and pending history remained unchanged after reopening;
+shutdown also created an empty review sidecar, containing no reviews. The native
+UI remains paused with one saved move. Source hash:
+`2deef37585103d18cdee32c270215023d8b83607a687908b6a96b2cfe6bcb6e8`.
+The signature and installed executable match the verified build. Recording and
+prior-app backups are retained; the recording backup is
+`~/Library/Application Support/Physical Go/Backups/Install-0.158-20261111-234747`.
+The physical-board retest of the speech fix is still pending.

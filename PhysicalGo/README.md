@@ -278,6 +278,13 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.158, verified restoration stops obsolete recording-warning speech and
+acknowledges an audible warning once with “Board position verified.” If clocks
+are paused, it explicitly says they remain paused. This also works when an
+existing stone is restored without recording another move. Fresh evidence,
+remaining issues, mute, and session changes guard the acknowledgment; clock
+accounting is unchanged. Both recovery messages are bundled in Kokoro.
+
 From 0.157, one typed issue policy drives Live position markers and click routes.
 A saved-stone disagreement opens evidence inspection with **Recorded position is
 correct**; this acknowledgment changes neither SGF nor clock accounting. A

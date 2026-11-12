@@ -300,6 +300,7 @@ enum LocalGameSetup {
     @Published private(set) var awaitingFirstStart=false
     private var announceFirstStart=false
     var onMoveAccepted:((Int,Stone)->Void)?
+    var onObservationProcessed:((BoardObservation,Double)->Void)?
     var onAttention:(()->Void)?
     var onReviewNeeded:(()->Void)?
     var onPlacementChime: (([PlacementChimeMonitor.Issue]) -> Void)? {
@@ -1172,7 +1173,7 @@ enum LocalGameSetup {
                   lastConsumedCaptureTime.map({stamp>$0}) ?? true else {return}
             lastConsumedCaptureTime=stamp
         }
-        if observation.handObstructed == true {noteHandObstruction(now:now,capturedAt:observation.capturedAt);return}
+        if observation.handObstructed == true {noteHandObstruction(now:now,capturedAt:observation.capturedAt);onObservationProcessed?(observation,now);return}
         handOverBoard=false
         // Let this fresh frame clear a resolved contradiction before deciding
         // whether the same frame confirms a move. Each timestamp is counted once.
@@ -1180,6 +1181,7 @@ enum LocalGameSetup {
         defer {
             checkpointPendingMoves()
             noteReviewCamera(observation,now:now)
+            onObservationProcessed?(observation,now)
             if hasGame { trace(event:"observation",observation:observation,now:now) }
         }
         if timingNeedsFreshEpoch {timingEpoch=now;timingNeedsFreshEpoch=false}
