@@ -569,14 +569,64 @@ Silence follows the current paired-announcement policy: the automatic-pause
 warning is delayed one second and was canceled before actual playback when the
 board recovered. A resume announcement is owed only if pause/alignment/lighting
 guidance was audible. This quick restart produced neither audible warning nor
-resume speech; it is not a speech failure. A longer interruption with an audible
-warning and paired recovery announcement still needs a physical test.
+resume speech; it is not a speech failure. The longer audible-interruption check
+is recorded below.
 
-Next guided test: **Stop camera** while Black’s clock is running, leaving both
-stones untouched and without manually pausing. Wait for audible pause guidance
-(up to 15 seconds), then **Start camera**. Expect both clocks held during the
-interruption, automatic Black restart after fresh verification, and “Clocks
-resumed. Black to play” if pause guidance was audible. Manually pause after five
-seconds of resumed play. If still stopped ten seconds after Live returns, leave
-it stopped and report the status. Two-move/clock/review baseline saved; awaiting
-user result. This tests an explicit camera stop/start, not a physical disconnect.
+Longer camera stop/start **passed**: the user heard the pause warning, then
+“Clocks resumed. Black to play” after starting the camera. Black resumed
+automatically; the user manually paused with two saved moves. The journal records
+both utterances starting and finishing, and a **16.744-second** automatic hold
+with identical Black balances at pause and resume. SGF and timed moves are
+unchanged, with no timing correction. This checks explicit camera stop/start;
+physical disconnect and reconnect remain untested.
+
+Historical-position browsing **passed**: the user stepped back to move 1, placed
+Black at a vacant corner star point, and saw the history display stay on move 1
+while the third move was saved and White’s clock started. Live position showed
+all three stones; the user paused. Saved `B[dd]`, exactly one new timed move and
+one 30-second increment, White next, no provisional moves or timing review.
+
+
+### Overnight handoff and remaining acceptance work (2026-11-12)
+
+Paused at the user's request; no next test started. Installed 0.160 / build 161.
+Current test recording has `B[jj];W[pp];B[dd]`, White next, clocks stopped:
+Black 227.714432 seconds, White 298.658434 seconds. The native display rounds up
+these values. Preserve this game; compare the physical board with Live position
+before continuing. An overnight copy of SGF/clock/pending/review files is in
+`.build/GuidedTests/overnight-after-step-12`; session details are in
+`.build/GuidedTests/session.json`. The original 89-move recording remains separate.
+
+For a concrete working count, the live acceptance matrix now has **9 distinct
+passed scenarios and 18 remaining**, approximately **one-third complete**.
+Setup, repeated attempts, and retests after fixes are not separate passed scenarios.
+This is a planning breakdown, not an earlier fixed test count; discovered defects
+may add retests. The 83-suite automated baseline and subsequent focused suites
+are separate from this manual acceptance count.
+
+Passed scenarios: normal move/turn/increment; brief hand obstruction; running
+missing-stone restoration/speech; recording while viewing Saved moves; prolonged
+removal restored during manual pause; paused camera restart; running quick camera
+restart; longer camera stop/start with paired speech; historical cursor stays put
+while a new move arrives.
+
+Remaining physical scenarios:
+
+- Reviews and discrepancies (4): placement review while a move arrives/cancel;
+  chronology review with stale acceptance; recorded-position acknowledgment and
+  changed evidence; nudge/displacement and restoration.
+- Capture policy (7): Off with multiple prisoners; threshold 2 with 1 and 2
+  prisoners; threshold 3 with 2 and 3; threshold 5 with 4 and 5. Include removal
+  in trips, opening/closing progress, an obscured remaining point, and the next
+  move in these scenarios.
+- Rapid play near expiry (2): retained turn timing with uncertain locations;
+  intentionally unobserved interval requiring timing review.
+- Outage/restart variants (5): outage during capture; outage during manually
+  paused capture; app reopen with pending locations; app reopen with a capture
+  hold; physical camera disconnect/reconnect.
+
+One additional agent-led regression/fix remains for recovered-game SGF metadata
+and unknown timing across save/quit/reopen, using an isolated copy of the original
+89-move record. That is separate from the 18 remaining physical-board scenarios.
+Suggested first morning test: recorded-position acknowledgment, with a baseline
+snapshot and explicit no-change checks for SGF and clocks.
