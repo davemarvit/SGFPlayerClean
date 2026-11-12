@@ -39,7 +39,7 @@ if args.all_tests or len(selected) > 1:
             failures.append('build registry')
     for name in selected:
         print(f'\nRunning --{name}', flush=True)
-        result = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--' + name, *(['--debug-tests'] if args.debug_tests else [])])
+        result = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--' + name, *(['--debug-tests'] if args.debug_tests else [])], env={**os.environ, 'PHYSICAL_GO_SHARED_REGRESSIONS': '1'})
         if result.returncode:
             failures.append(name)
     print(f'\n{total - len(failures)}/{total} suites passed', flush=True)
@@ -80,7 +80,7 @@ else:
     (app / 'Contents/Resources').mkdir(exist_ok=True)
     executable = app / 'Contents/MacOS/PhysicalGo'
     sources = shared + [root.parent / 'SGFPlayerClean/Models/SGFPlayerEngine.swift'] + sorted((root / 'Sources').glob('*.swift'))
-    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.156', CFBundleVersion='157', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
+    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.157', CFBundleVersion='158', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
     (app / 'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 sources = resolve_sources(root, sources)
 if executable.name == 'PhysicalGo':
@@ -104,7 +104,12 @@ if root/'Sources/KokoroSpeech.swift' in sources:
             raise SystemExit('Generate bundled countdowns first: python3 PhysicalGo/build.py --voice-assets')
         plist['PhysicalGoSourceHash']=hashlib.sha256(b''.join(p.read_bytes() for p in sources)).hexdigest()
         (app/'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
-subprocess.run(['xcrun','swiftc','-swift-version','5','-D','PHYSICAL_GO','-Onone' if selected_suite and (args.debug_tests or not selected_suite.optimized) else '-O','-target',subprocess.check_output(['uname','-m'],text=True).strip()+'-apple-macosx14.0', *map(str,sources), '-o',str(executable)],check=True)
+target = subprocess.check_output(['uname','-m'],text=True).strip()+'-apple-macosx14.0'
+if selected_suite and os.environ.get('PHYSICAL_GO_SHARED_REGRESSIONS') == '1':
+    from scripts.shared_regressions import compile_suite
+    compile_suite(root, selected_suite, sources, executable, target, debug=args.debug_tests)
+else:
+    subprocess.run(['xcrun','swiftc','-swift-version','5','-D','PHYSICAL_GO','-Onone' if selected_suite and (args.debug_tests or not selected_suite.optimized) else '-O','-target',target, *map(str,sources), '-o',str(executable)],check=True)
 if args.voice_assets:
     subprocess.run([str(executable),str(root/"Resources/Kokoro")],check=True,cwd=root.parent)
     raise SystemExit(0)

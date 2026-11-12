@@ -60,7 +60,7 @@ import SwiftUI
 
         var now=ProcessInfo.processInfo.systemUptime+10
         func observation(_ board:BoardSnapshot)->BoardObservation {
-            BoardObservation(readings:DeferredMoveHistory.states(board).enumerated().map{.init(row:$0.offset/board.size,col:$0.offset%board.size,occupancy:$0.element,confidence:1,delta:0)},size:board.size)
+            BoardObservation(readings:DeferredMoveHistory.states(board).enumerated().map{.init(row:$0.offset/board.size,col:$0.offset%board.size,occupancy:$0.element,confidence:1,delta:0)},size:board.size,capturedAt:now,handObstructed:false)
         }
         func feed(_ r:GameRecorder,_ board:BoardSnapshot) {for _ in 0..<7 {now += 0.21;r.consume(observation(board),now:now)}}
         func gap(_ rules:String="Japanese")->(GameRecorder,SGFPlayer,[BoardPosition]) {
@@ -71,7 +71,11 @@ import SwiftUI
             for p in order {check(actual.tryPlayMove(color:actual.turn,x:p.col,y:p.row)==nil,"Bad gap fixture")}
             feed(r,actual.board)
             check(r.hasDeferredMoves && r.moveCount==0 && r.liveNextPlayer == .white,"Gap lost the live position or next player")
-            check(r.clock.running && r.state == .recording,"Order-only gap interrupted play")
+            check(r.clock.requiresReview && !r.clock.running && r.state == .recording,"Missing timing was inferred from static alternation")
+            r.pause()
+            check(r.confirmClockReview(black:r.clock.engine.black,white:r.clock.engine.white,resume:true),"Gap timing confirmation failed")
+            feed(r,actual.board)
+            check(r.clock.running,"Agreed timing did not permit play with unresolved locations")
             return (r,actual,order)
         }
         let (r,actual,order)=gap()
@@ -99,10 +103,17 @@ import SwiftUI
         // A stable, contradictory change cannot name a next player reliably.
         var changed=DeferredMoveHistory.states(actual.board);changed[0] = .empty
         feed(restored,DeferredMoveHistory.board(changed,size:9))
-        check(restored.needsTurnConfirmation && restored.clock.awaitingTurn && restored.state == .recording,"Unknown live turn did not leave recording active")
+        check(!restored.needsTurnConfirmation && restored.clock.running && restored.liveNextPlayer == .black,"Physical removal incorrectly changed the established turn")
+        changed[1] = .white
+        feed(restored,DeferredMoveHistory.board(changed,size:9))
+        check(restored.needsTurnConfirmation && restored.clock.requiresReview && !restored.clock.running,"Contradictory history did not hold for timing review")
         try await render(LiveTurnPrompt(recorder:restored).padding(),"turn-prompt",width:650,height:200)
         restored.confirmLiveTurn(.black,at:now)
-        check(restored.clock.running && restored.liveNextPlayer == .black,"Quick turn confirmation waited for historical review")
+        check(!restored.clock.running && restored.clock.requiresReview && restored.liveNextPlayer == .black,"Turn confirmation silently repaired unaccounted timing")
+        restored.pause()
+        check(restored.confirmClockReview(black:restored.clock.engine.black,white:restored.clock.engine.white,resume:true),"Contradictory-view clock confirmation failed")
+        feed(restored,DeferredMoveHistory.board(changed,size:9))
+        check(restored.clock.running,"Confirmed timing failed to resume after fresh verification")
         restored.pause()
         let confirmedRestart=GameRecorder(storage:folder);confirmedRestart.clock.audible=false
         try restored.flushStorage()

@@ -26,7 +26,7 @@ struct MoveRecoveryView:View {
             ScrollView {
                 VStack(alignment:.leading,spacing:10) {
                     Text("Order missed moves").font(.title2.bold())
-                    Text("Clock and recording are paused. Click the missing stones in the order they were played, then choose Accept below. For a captured stone, click its former intersection.")
+                    Text("Tracking continues during inspection; accepting a correction pauses play. Click the missing stones in the order they were played, then choose Accept below. For a captured stone, click its former intersection.")
                     if draft.retainedMoveCount>0 {
                         Text("\(draft.retainedMoveCount) previously tracked moves were preselected. Keep their numbered order before adding later moves.").font(.callout)
                     }
@@ -68,7 +68,7 @@ struct MoveRecoveryView:View {
             HStack {
                 Button("Cancel") {dismiss()}.keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(recorder.clock.enabled ? "Accept \(draft.moves.count) moves & review clocks…":"Accept \(draft.moves.count) moves") {
+                Button("Accept \(draft.moves.count) moves and pause") {
                     error=recorder.approveRecovery(draft)
                     guard error == nil else {return}
                     approved=true;onApproved();dismiss()

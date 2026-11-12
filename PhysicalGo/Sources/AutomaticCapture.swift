@@ -38,7 +38,7 @@ import Foundation
         ReviewBoardVerification.matches(readings,target:target,requiredClear:captured.union([point]))
     }
     static func find(game:SGFGame,readings:[Occupancy],minimum:Int,includingCompleted:Bool=false)->Self? {
-        guard minimum>=2,readings.count==game.boardSize*game.boardSize else {return nil}
+        guard minimum>=1,readings.count==game.boardSize*game.boardSize else {return nil}
         let trial=SGFPlayer();trial.load(game:game);trial.seek(to:game.moves.count)
         let before=DeferredMoveHistory.states(trial.board)
         let added=before.indices.filter {before[$0] == .empty && readings[$0].stone != nil}

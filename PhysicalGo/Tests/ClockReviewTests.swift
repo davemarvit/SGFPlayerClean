@@ -93,7 +93,7 @@ import SwiftUI
         // once, even while the old placements have not reached SGF.
         var freshBlack=agreedBlack;freshBlack.remaining=15
         check(incident.confirmClockReview(black:freshBlack,white:agreedWhite,resume:true),"A second explicit balance correction failed")
-        stamp=ProcessInfo.processInfo.systemUptime
+        stamp=max(stamp,ProcessInfo.processInfo.systemUptime)
         func feedIncident(_ values:[Occupancy],_ count:Int) {
             for _ in 0..<count {
                 stamp+=0.21

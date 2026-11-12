@@ -2,10 +2,9 @@
 
 Date: 2026-11-11 (America/Los_Angeles)
 
-Status: agreed behavioral direction, with implementation and acceptance criteria
-below. This document records the discussion; it does not imply that the full
-policy is already implemented. Capture timing uses the existing configurable
-policy until a different policy is explicitly chosen.
+Status: all four batches completed in 0.157 / build 158. Full regression and
+signed-build verification passed. Capture timing retains its configurable policy. See the
+implementation and validation record below for coverage and limitations.
 
 ## Purpose and scope
 
@@ -148,7 +147,7 @@ manual recovery, protection against silently discarding that chronology, retaine
 provisional clock events, capture holds, freshness safeguards, and automatic
 camera recovery. Existing functionality still needs assessment against this spec.
 
-Known gaps from source inspection:
+Gaps identified at baseline (addressed by batches 1–2 below):
 
 - `Sources/RecordingClarity.swift` routes an established-stone discrepancy to a
   historical-placement editor; it has no dedicated current-issue acknowledgment
@@ -226,12 +225,127 @@ user requested a committed/pushed baseline before large changes. Do not silently
 change capture policy, remove timing safeguards to keep clocks running, or claim
 live-camera validation from fixture tests.
 
-## Suggested opening message for a new conversation
+## Implementation and validation record (2026-11-11)
 
-> Continue Physical Go in `/Users/Dave/SGFPlayerClean`. Read
-> `PhysicalGo/Documentation/LivePositionIssues.md` and implement its batches,
-> starting with shared issue decisions and marking. Preserve the configured
-> capture-pause policy and separate placement uncertainty from turn timing.
-> Inspect current Git state first; commit and push a baseline before major changes.
-> Run focused tests for each batch and the full regression suite before installing.
-> Update the specification with progress and any remaining decisions.
+Baseline was clean at `bf2c763d39be8400216d37d58b454aed2b2973ef`, already pushed
+and matching `origin/codex/physical-go-maintainability` before implementation.
+Verified release: **0.157 / build 158**.
+
+### Batch 1 — Shared issue decisions and marking
+
+`LivePositionIssue` separates evidence, affected intersections, reconciliation,
+actions, and hold reasons. `RecordingClarity` uses those decisions for markers,
+board clicks, and the highlighted-intersection action. Capture and sequence
+issues claim their intersections before generic disagreements; global holds do
+not mark arbitrary stones. Red pending-location rings remain distinct from orange
+discrepancy rings, and use actionable shared issues rather than raw low confidence.
+
+Fresh capture timestamps gate discrepancy debounce and review witnesses; repeated,
+stale, future, or out-of-order frames cannot count as independent observations.
+Fresh agreement clears resolved markers. Unknown readings alone cannot prove a
+missing stone restored. Accepted recovery clears its obsolete affected markers.
+
+### Batch 2 — Live inspection and explicit correction
+
+Established-stone disagreements open a dedicated evidence inspector. **Recorded
+position is correct** acknowledges the current position, point, and observed
+reading without modifying SGF, move colors, turn events, or clock balances.
+Persistent disagreement becomes a recognition task. New position/evidence or a
+view interruption expires the acknowledgment. Duplicate confirmation is harmless;
+changed or resolved issues reject stale confirmation.
+
+Pending-location, chronology, saved-position browsing, and historical-correction
+previews keep tracking active. Revision-aware proposals reject obsolete acceptance
+and offer refresh/reopening. Actual changes validate source history and legality
+before explicitly holding play. Canceling inspection neither pauses nor resumes.
+Photo annotations remain separate from explicit game confirmation.
+
+Capture inspection shows the capturing point, captured intersections, and remaining
+removals. It preserves an existing automatic hold; converting that hold to manual
+recovery remains a separate action. Off/below-threshold captures also have removal
+guidance and shared click routes, without creating a clock hold.
+
+### Batch 3 — Timing and capture integration
+
+The audit found that the old deferred-history fallback could keep clocks running
+from static alternation without individual completion times. It now holds at the
+last supported established-board observation and requires timing review. Delayed
+recognition near expiry cannot manufacture an automatic loss. No missing presses
+or increments are invented. A known physical restoration/removal is not a turn.
+Fully retained timed moves can be assigned to SGF exactly once without demanding
+a new clock correction; existing correction requirements remain in force.
+
+The Off / 2 / 3 / 5 settings and completion contract remain unchanged. With Off or
+a below-threshold capture, the first supported clear placement establishes the
+next turn while physical removal continues. For qualifying holds, the capturing
+player is charged through the supported placement boundary, neither player pays
+the verified removal interval, and the following player is charged from the first
+supported completed-removal view. Each move receives one applicable increment.
+Partial removals retain one capture identity. Obscuration, contradictions, hidden
+starts, interruption, explicit pause, and restart retain the existing safeguards.
+
+### Batch 4 — Verification and handoff
+
+The authoritative registry now contains **83 Swift suites** plus **seven Python
+build checks**. Aggregate commands use the tracked, content-addressed
+`scripts/shared_regressions.py` compiler and run native executables serially;
+the former `.build/StorageFlow/regressions.py` scratch script is not required.
+The shared runtime cache includes production source bytes, compiler version,
+architecture, and optimization mode. Individual suites still support standalone
+compilation.
+
+The first full run passed 80/83 Swift suites and all Python checks. Its failures
+identified an obsolete archived move-39 no-hold expectation, backward synthetic
+capture timestamps after resume, and a real red placement-ring rendering regression.
+The tests now require a supported timing hold instead of invented timestamps,
+keep timestamps monotonic, and verify the restored red ring. All five targeted
+reruns passed: issue/timing, workflow UI, clock review, marker visibility, and
+capture clocks. The final focused run passed 57 issue/timing checks, 417 capture
+checks, and the 75-check local-clock suite. Capture-progress views for Off and
+two-or-more settings and the dedicated disagreement inspector were visually
+inspected. The repeat full registry run passed **84/84 aggregate entries**:
+**all 83 Swift suites and all seven Python checks**. `git diff --check` is clean.
+
+Final validation commands, run from `/Users/Dave/SGFPlayerClean`:
+
+| Command | Result |
+| --- | --- |
+| `python3 PhysicalGo/Tests/test_build.py` | 7/7 passed |
+| `python3 PhysicalGo/build.py --list-tests` | 83 registered Swift suites |
+| `python3 PhysicalGo/build.py --all-tests` | 84/84 aggregate entries passed |
+| `python3 PhysicalGo/build.py` | Signed 0.157 / build 158 produced |
+| `codesign --verify --deep --strict 'PhysicalGo/.build/Physical Go.app'` | Passed |
+| Independent hash over resolved build sources | Matches bundle source hash |
+
+Local verification logs are `/tmp/physical-go-final-all-tests.log`,
+`/tmp/physical-go-signed-build.log`, and `/tmp/physical-go-build-verification.txt`.
+They are session artifacts, not required repository dependencies. Native images
+include `.build/TestArtifacts/live-position-issues/disagreement.png`,
+`capture-0.png`, and `capture-2.png`; the review queue and correction suites also
+rendered their native views.
+
+Coverage includes all ten policy cases and mixed issues; delayed/obscured views;
+acknowledgment scope and automatic clearing; live moves during review and stale
+acceptance; retained pending-prefix recovery; rapid G18 play; near-expiry timing;
+manual pause, storage failure, persistence/restart; and each capture threshold at
+and below its limit with exact balances and following-turn checks. Native review
+windows and sheets are exercised and rendered in isolated recordings. The scoring
+suite uses the configured real KataGo engine.
+
+These are synthetic, saved-observation, recorded-image, and native-host tests.
+They are **not actual live-camera validation**. The installed application is open
+with a recording; tests and builds use isolated state and leave that session and
+recording untouched. Installation and physical live-camera checks have not been done.
+
+`python3 PhysicalGo/build.py` succeeded. The app at
+`PhysicalGo/.build/Physical Go.app` verifies with `codesign --verify --deep --strict`
+and its existing Developer ID identity (team `4H3MZNGDCC`). An independent SHA-256
+calculation over all 134 resolved build sources matches `PhysicalGoSourceHash`:
+`aab177e1fd843f87b358329169fc173584f96057ce3c39d87611e7b655496f7e`.
+The build emitted the existing vendored Kokoro optional-coercion warning; no build
+or signing errors occurred.
+
+Remaining policy decisions: none introduced by this implementation. Any new
+ruleset-specific timing choices remain a separate decision, as specified above.
+
+Final implementation commit: recorded in the documentation follow-up after committing these verified sources.

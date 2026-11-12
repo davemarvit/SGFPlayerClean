@@ -17,7 +17,6 @@ struct AmbiguityReviewView:View {
         guard let item=selected else {return}
         if let review=item.reviewID {dismiss();onReview(review);return}
         guard let number=item.number else {return}
-        recorder.pause()
         if number<=recorder.moveCount {saved = .init(number:number,destination:destination)}
         else {pending = .init(number:number,destination:destination)}
     }
@@ -39,7 +38,7 @@ struct AmbiguityReviewView:View {
                     highlightColor:.orange,showsLastMoveMarker:false,onDrag:{from,to in
                         if item.points.contains(from.row*recorder.game.boardSize+from.col) {edit(to)}
                     },onPoint:{_ in}).frame(width:500,height:500)
-                Text("This is the historical position, even if the stone was captured later. Browsing does not stop the clocks. Drag the marked stone or choose Correct placement to pause and edit.").font(.callout)
+                Text("This is the historical position, even if the stone was captured later. Browsing does not stop the clocks. Drag the marked stone or choose Correct placement to preview a correction.").font(.callout)
                 Button("Correct placement…") {edit()}
             } else {Text("No unresolved placements for this player.")}
             HStack {Spacer();Button("Return to play") {dismiss()}.keyboardShortcut(.cancelAction)}
@@ -58,6 +57,7 @@ struct PendingPlacementReviewView:View {
     let number:Int
     var initialDestination:BoardPosition?=nil
     let onClose:()->Void
+    @State private var revision:ReviewRevision?
     @State private var history:MoveObservationHistory?
     @State private var selected=0
     @State private var edits=[Int:Int]()
@@ -71,7 +71,7 @@ struct PendingPlacementReviewView:View {
     var body:some View {
         VStack(alignment:.leading,spacing:12) {
             Text("Confirm stone locations").font(.title2.bold())
-            Text("Clocks are paused. Click the intended intersection or drag a stone. You can confirm several placements together.")
+            Text("Tracking continues while you inspect. Click the intended intersection or drag a stone. You can confirm several placements together.")
             if let path,!path.moves.isEmpty {
                 Stepper("Position after move \(recorder.moveCount+selected+1)",value:$selected,in:0...max(0,path.moves.count-1))
                 RecordedBoard(recorder:recorder,orientation:orientation,allowsLiveSelection:true,boardOverride:path.boards[min(selected,path.boards.count-1)],
@@ -88,19 +88,23 @@ struct PendingPlacementReviewView:View {
                 if draft==nil {Text("The proposed locations conflict. Adjust the affected moves before confirming.").foregroundStyle(.orange)}
                 Button("Confirm this displayed location") {edits[selected]=path.moves[selected]}
             }
+            if revision?.matches(recorder)==false {
+                Text("Play advanced or this placement resolved. Refresh before confirming.").foregroundStyle(.orange)
+                Button("Refresh placements") {history=recorder.tentativeHistory;revision=ReviewRevision(recorder);edits=[:];selected=0}
+            }
             if let error {Text(error).foregroundStyle(.red)}
-            Text("Confirmation preserves recorded clock presses. Return to play and Resume when the physical stones are at their intended intersections.").font(.caption)
+            Text("Confirmation pauses play and preserves recorded clock presses. Return to play and Resume when the physical stones are at their intended intersections.").font(.caption)
             HStack {
                 Button("Cancel",action:onClose).keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Confirm \(edits.count) placements") {
-                    guard let history else {return}
-                    do {try recorder.applyPendingPlacements(edits,expected:history.checkpoint);onClose()} catch {self.error=error.localizedDescription}
-                }.disabled(edits.isEmpty || draft==nil).keyboardShortcut(.defaultAction)
+                    guard let history,revision?.matches(recorder)==true else {error="Play advanced. Refresh the review before confirming.";return}
+                    do {try recorder.applyPendingPlacements(edits,expected:history.checkpoint,revision:revision);onClose()} catch {self.error=error.localizedDescription}
+                }.disabled(edits.isEmpty || draft==nil || revision?.matches(recorder) != true).keyboardShortcut(.defaultAction)
             }
         }.padding(20).frame(width:600)
         .onAppear {
-            recorder.pause();history=recorder.tentativeHistory
+            history=recorder.tentativeHistory;revision=ReviewRevision(recorder)
             selected=max(0,min(number-recorder.moveCount-1,(history?.pendingCount ?? 1)-1))
             if let initialDestination {choose(initialDestination)}
         }

@@ -48,7 +48,14 @@ import Foundation
             var view=observation(cells);view.lightingBlocked=f.lightingBlocked
             r.consume(view,now:time)
         }
-        check(pauses==0 && r.clock.running,"Actual move \(move) still caused an unnecessary pause (\(pauses))")
+        if move==37 {
+            check(pauses==0 && r.clock.running,"A partial view stopped the independently recovered move")
+        } else {
+            // These archived occupancy snapshots contain separate appearances,
+            // but no retained clock presses or hand-clear completion metadata.
+            check(pauses==1 && r.clock.requiresReview && !r.clock.running,"Missing timing was silently inferred from the retained positions")
+            check(r.clock.moves.isEmpty && r.clock.provisionalMoves.isEmpty,"The incomplete evidence invented individual presses or increments")
+        }
         if move==37 {
             check(r.moveCount>=38,"Retained views failed to recover next move")
             let saved=r.game.moves[37],expected=originalGame.moves[37]

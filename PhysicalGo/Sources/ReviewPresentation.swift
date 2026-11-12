@@ -14,7 +14,7 @@ import SwiftUI
         // Do not discard an unfinished selection when another review is selected.
         guard session==nil,recorder.contextForReview(id) != nil else {return}
         recorder.activeReviewID=id
-        recorder.pause();recorder.returnToLatest();recorder.clock.pause("Reviewing a section · clocks paused")
+        recorder.returnToLatest()
         session=Session(id:id,recorder:recorder,orientation:orientation,onCheckPhoto:onCheckPhoto)
     }
     func close() {

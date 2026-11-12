@@ -26,6 +26,9 @@ struct BoardAdjustmentMonitor {
         }
         return result
     }
+    mutating func resolve(_ points:Set<Int>) {
+        for point in points {visible.removeValue(forKey:point);pending.removeValue(forKey:point);clearing.removeValue(forKey:point)}
+    }
     mutating func update(issues:[Int:Kind],clear:Set<Int>,now:Double) {
         guard now.isFinite,lastTime.map({now>$0}) ?? true else {return}
         if let lastTime,now-lastTime>1 {pending=[:];clearing=[:]}

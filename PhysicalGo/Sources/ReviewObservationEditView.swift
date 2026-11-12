@@ -20,7 +20,7 @@ struct ReviewObservationEditView:View {
                     boardOverride:DeferredMoveHistory.board(edit.corrected,size:recorder.game.boardSize),
                     highlightedPoints:[edit.to.row*recorder.game.boardSize+edit.to.col],showsLastMoveMarker:false,onPoint:{_ in})
                     .frame(width:500,height:500)
-                Text("The original camera interpretation is kept. After saving, review the remaining changes and their move order. Clocks stay paused.").font(.callout).foregroundStyle(.secondary)
+                Text("The original camera interpretation is kept. After saving, review the remaining changes and their move order. Confirmation pauses play.").font(.callout).foregroundStyle(.secondary)
                 if let error {Text(error).foregroundStyle(.red)}
                 HStack {
                     Button("Cancel",action:onClose).keyboardShortcut(.cancelAction)

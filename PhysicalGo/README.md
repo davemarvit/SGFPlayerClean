@@ -121,8 +121,9 @@ a new ambiguity. The counters below each clock count placements, not candidate
 intersections; clicking a counter opens the earliest historical position for
 that player, with Previous/Next navigation.
 
-Browsing does not pause. Choosing Correct placement or dragging the marked stone
-pauses recording and clocks. Multiple pending placements can be edited together;
+Browsing, choosing Correct placement, and dragging a stone into a correction
+preview keep recording and clocks active. Explicitly accepting a correction pauses
+play after its source revision and legality have been checked. Multiple pending placements can be edited together;
 confirmation saves the revised legal history, and Resume checks the physical
 board. Later clear placements and legal captures can resolve earlier alternatives.
 Hand-covered points alone never establish a capture. Unresolved placements block
@@ -276,6 +277,34 @@ The signed native app's source hash matches the tested production sources.
 The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
+
+From 0.157, one typed issue policy drives Live position markers and click routes.
+A saved-stone disagreement opens evidence inspection with **Recorded position is
+correct**; this acknowledgment changes neither SGF nor clock accounting. A
+persistent disagreement after acknowledgment becomes a recognition task, scoped
+to the current position and view. Unknown or repeated images cannot clear a real
+absence. Accepted recovery clears its obsolete markers.
+
+Inspection stays live, including saved-position browsing, pending placements,
+chronology, and historical correction previews. Stale proposals require refresh
+or reopening. Accepting a mutation explicitly holds play; cancellation does not
+change clocks. Capture progress can be inspected without converting its automatic
+hold into manual recovery. The separate manual-recovery action still requires
+clock review. Removal guidance also remains available below the configured
+threshold, without creating a hold. Off / 2 / 3 / 5 capture thresholds remain unchanged.
+
+Static alternation without individual timestamps now requires timing review at a
+supported boundary. Fully retained timed turns can be assigned to SGF without a
+new clock review or duplicate increments. A known physical disappearance alone
+keeps the established turn. Aggregate regression commands compile one testable
+production runtime from the authoritative source registry and run native suites
+serially; the old local scratch runner is no longer needed.
+
+Validation for 0.157: all 83 registered Swift suites and seven Python build checks
+pass. Native issue/review views were inspected; the Developer ID signed build's
+source hash matches all 134 resolved production sources. Tests used isolated
+synthetic/recorded fixtures, including real KataGo integration, not a live camera.
+The existing installed app and its open recording were left untouched.
 
 From 0.152, camera-backed clocks track the latest usable observation. If analysis
 falls more than 1.5 seconds behind, the clock pauses at that observation instead

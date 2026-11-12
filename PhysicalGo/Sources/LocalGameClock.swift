@@ -105,6 +105,8 @@ import Combine
     /// A fresh possible press prevents the timer racing visual confirmation.
     /// It cannot award an increment or decide a move; ambiguous expiry is reviewed.
     var pendingTurnEvidence:ClockPressEstimate?
+    /// Start of an observed interval containing unaccounted turns, not a press.
+    var pendingUnaccountedInterval:Double?
     // Enabled by real camera observations, not by stand-alone/manual clocks.
     private var lastObservationAt:Double?
     private(set) var observationGapHeld=false
@@ -211,7 +213,7 @@ import Combine
         let diagnosticPrevious=engine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"pause")}
         guard enabled else {return}
-        pendingTurnEvidence=nil
+        pendingTurnEvidence=nil;pendingUnaccountedInterval=nil
         let wasRunning=running
         engine.pause(at:now);turnBaseline=nil
         // Later camera interruptions must not revoke an explicit user pause.
@@ -250,6 +252,13 @@ import Combine
             // Await a fresh observation before declaring an expiry beyond the
             // latest evidence. A continued stall takes the protective hold above.
             if trial.expiredBlack != nil && observed.expiredBlack==nil {return}
+        }
+        if let boundary=pendingUnaccountedInterval {
+            var trial=engine;trial.advance(to:now)
+            if trial.expiredBlack != nil {
+                holdForUnobservedTurns(lastReliableAt:boundary,next:nil,at:now)
+                return
+            }
         }
         if let evidence=pendingTurnEvidence,evidence.valid,let start=turnBaseline?.anchor,evidence.time>=start {
             var trial=engine;trial.advance(to:now)
@@ -413,6 +422,21 @@ import Combine
         if audible {audio.moved(engine,settings:sounds,previous:displayed)}
         if running {armTimer()};save();return true
     }
+    /// A static later board cannot establish intervening presses. Stop at the
+    /// last supported view of the established position, not at recognition time.
+    func holdForUnobservedTurns(lastReliableAt:Double?,next:Stone?,at now:Double) {
+        guard enabled else {return}
+        guard !needsCorrection else {return}
+        var boundary=now
+        if let baseline=turnBaseline,let start=baseline.anchor {
+            engine=baseline
+            boundary=max(start,min(now,lastReliableAt ?? start))
+        }
+        pendingTurnEvidence=nil;pendingUnaccountedInterval=nil
+        recover(toBlack:next.map{$0 == .black} ?? engine.blackToPlay,
+            reason:"Moves appeared without individual timing evidence. Review the clocks; no missing presses or increments were invented.",at:boundary)
+        awaitingTurn=next==nil;save()
+    }
     func recover(toBlack:Bool,reason:String,at now:Double) {
         guard enabled else {return}
         // Review may run before the timer's next callback. Protect the same
@@ -446,7 +470,7 @@ import Combine
         defer {reportPeriodChanges(from:diagnosticPrevious,at:now,cause:"live turn")}
         guard enabled else {return}
         liveReviewActive=true
-        timingNote="Earlier clock presses were not all observed. Continue playing; adjust times if needed. Reviewing move order will not change the clocks."
+        timingNote="The current turn is retained independently of unresolved move locations. Reviewing history does not press the clock."
         engine.advance(to:now);turnBaseline=nil
         guard let color else {
             awaitingTurn=true;pause("Whose turn is it? Choose Black or White to continue the clock.",at:now,manual:false);return

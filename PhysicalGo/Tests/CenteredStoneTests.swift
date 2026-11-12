@@ -58,7 +58,7 @@ import ImageIO
         verify(original!)
         let oldMessage=RecordingClarity.explanation(recorder:model.recorder,observation:original,orientation:BoardOrientation(3))!
         check(model.recorder.adjustmentIssues[24] != nil && oldMessage.contains("marked stone"),"Persistent disagreement did not mark the recorded stone: \(oldMessage)")
-        check(RecordingClarity.action(at:24,recorder:model.recorder) == .recordedPlacement(number:46),"Mixed missing-move and recorded-stone warnings routed the recorded White stone to the wrong action")
+        check(RecordingClarity.action(at:24,recorder:model.recorder) == .discrepancy(point:24),"Mixed missing-move and recorded-stone warnings routed the recorded White stone to the wrong action")
         check(!model.recorder.adjustmentIssues.values.contains(.placement),"Pending confirmation incorrectly became a placement warning")
         verify(corrected!)
         let fixedMessage=RecordingClarity.explanation(recorder:model.recorder,observation:corrected,orientation:BoardOrientation(3))!

@@ -10,6 +10,8 @@ struct BoardRestorationReviewView: View {
     var onCheckPhoto:(()->Void)?=nil
     var onCorrectMove:((Int,BoardPosition)->Void)?=nil
     @State private var error: String?
+    @State private var revision:ReviewRevision?
+    private var current:Bool {revision?.matches(recorder)==true}
 
     private var verification: ReviewBoardVerification.Status { recorder.boardRestorationVerificationStatus(plan) }
     private var ready: Bool { verification == .ready }
@@ -23,7 +25,7 @@ struct BoardRestorationReviewView: View {
             HStack {
                 Text(ready ? "Recorded position restored" : "Check stone location").font(.title2.bold())
                 Spacer()
-                Label("Clocks paused", systemImage: "pause.circle").foregroundStyle(.secondary)
+                Label(recorder.clock.running ? "Clocks running":"Clocks held", systemImage:recorder.clock.running ? "clock":"pause.circle").foregroundStyle(.secondary)
             }
             HStack(alignment: .top, spacing: 22) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -50,6 +52,13 @@ struct BoardRestorationReviewView: View {
                         Text("Recorded stones are missing").font(.title3.bold())
                         Text("If they were removed accidentally, put the stones back at \(plan.changed.sorted().map(coordinate).joined(separator: ", ")), matching the board shown here.")
                     }
+                    Button("Recorded position is correct") {
+                        guard current,let point=plan.changed.first(where:{plan.target[$0].stone != nil}) else {return}
+                        error=recorder.acknowledgeRecordedPosition(point:point,position:recorder.issuePositionSignature)
+                            ?? "Recorded position confirmed. Clear the view for recognition to check again; no move or clock balance changed."
+                    }.disabled(!current || plan.changed.contains(where:{recorder.positionAcknowledgments[$0] != nil}))
+                    Button("Pause for physical restoration") {recorder.holdForReviewMutation();revision=ReviewRevision(recorder)}
+                        .disabled(recorder.state == .paused || !current)
                     Text(ready ? "Fresh camera views match the saved position. Confirm to clear this review."
                          : verification.guidance(coordinate: coordinate))
                     Text("Restoration adds no moves and leaves clock times unchanged.").font(.callout).foregroundStyle(.secondary)
@@ -58,15 +67,18 @@ struct BoardRestorationReviewView: View {
                 }.frame(width: 300, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             }
             if let onCheckPhoto {Button("Check camera photo…",action:onCheckPhoto).disabled(verification == .waitingForCamera)}
+            if !current {Text("This review changed or resolved. Close and reopen it for current actions.").foregroundStyle(.orange)}
             Divider()
             HStack {
                 Button("Cancel", action: onClose).keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Confirm restored position") {
+                    guard current else {return}
                     error = recorder.confirmBoardRestoration(plan.id)
                     if error == nil { onSaved() }
-                }.buttonStyle(.borderedProminent).disabled(!ready)
+                }.buttonStyle(.borderedProminent).disabled(!ready || !current)
             }
         }.padding(20).frame(minWidth: 882, minHeight: 670)
+            .onAppear {if revision==nil {revision=ReviewRevision(recorder)}}
     }
 }

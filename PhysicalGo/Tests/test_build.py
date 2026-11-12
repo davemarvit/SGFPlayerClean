@@ -35,8 +35,10 @@ class BuildTests(unittest.TestCase):
 
     def invoke(self, arguments, failed_flag=None):
         calls = []
+        self.environments = []
         def run(command, **kwargs):
             calls.append(command)
+            self.environments.append(kwargs.get("env", {}))
             return subprocess.CompletedProcess(command, 1 if failed_flag in command else 0)
         output = io.StringIO()
         with patch.object(sys, 'argv', [str(ROOT / 'build.py'), *arguments]), \
@@ -60,6 +62,12 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(len(SUITES) + 1, len(calls))
         self.assertEqual(str(ROOT / 'Tests/test_build.py'), calls[0][1])
         self.assertEqual({'--' + name for name in SUITES}, {call[2] for call in calls[1:]})
+
+    def test_aggregate_uses_tracked_shared_runtime(self):
+        code, calls, _ = self.invoke(['--all-tests'])
+        self.assertEqual(0, code)
+        self.assertTrue(all(env.get('PHYSICAL_GO_SHARED_REGRESSIONS') == '1'
+                            for env in self.environments[1:]))
 
     def test_invalid_tool_combinations_do_not_build(self):
         for arguments in [ ['--test', '--preview'], ['--test', '--camera-test', '--saved-observations'] ]:

@@ -10,6 +10,7 @@ struct ReviewSectionView:View {
     private let initialWithdrawal:AccidentalStoneWithdrawal?
     let onClose:(()->Void)?
     let onCheckPhoto:(()->Void)?
+    @State private var revision:ReviewRevision
     @State private var draft:MoveRecoveryDraft
     @State private var firstColor:Stone
     @State private var mode=Mode.choose
@@ -27,6 +28,7 @@ struct ReviewSectionView:View {
     @State private var hasEditedObservation=false
     @Environment(\.dismiss) private var dismiss
     init(recorder:GameRecorder,id:UUID,orientation:BoardOrientation,onClose:(()->Void)?=nil,onCheckPhoto:(()->Void)?=nil) {
+        _revision=State(initialValue:ReviewRevision(recorder))
         self.recorder=recorder;self.id=id;self.orientation=orientation;self.onClose=onClose;self.onCheckPhoto=onCheckPhoto
         let section=recorder.reviewHistory.sections.first{$0.id==id}!
         let source=recorder.contextForReview(id)!
@@ -55,6 +57,7 @@ struct ReviewSectionView:View {
         _draft=State(initialValue:proposal)
         _mode=State(initialValue:hasProposal ? .order:.choose)
     }
+    private var current:Bool {revision.matches(recorder)}
     private var section:DeferredMoveHistory.Section? {recorder.reviewHistory.sections.first{$0.id==id}}
     private var restoration:BoardRestorationPlan? {recorder.boardRestorationPlan(id)}
     private var showsRestoration:Bool {
@@ -104,6 +107,7 @@ struct ReviewSectionView:View {
         if colorOverride != nil {error="\(draft.nextPlayer.rawValue.capitalized) was next. Choose that color’s stone, or undo the accidental stones if the wrong color was played."}
     }
     private func saveCleanup() {
+        guard current else {error="This review changed. Close and reopen it before confirming.";return}
         error=recorder.withdrawAccidentalMoves(id,removedByPlayer:true)
         if error==nil {completeReview()}
     }
@@ -123,7 +127,7 @@ struct ReviewSectionView:View {
                 HStack {
                     Text("Review \(section.reviewNumber ?? 0)").font(.title2.bold())
                     Spacer()
-                    Label("Clocks paused",systemImage:"pause.circle").foregroundStyle(.secondary)
+                    Label(recorder.clock.running ? "Clocks running":"Clocks held",systemImage:recorder.clock.running ? "clock":"pause.circle").foregroundStyle(.secondary)
                 }
                 HStack(alignment:.top,spacing:22) {
                     VStack(alignment:.leading,spacing:8) {
@@ -152,11 +156,14 @@ struct ReviewSectionView:View {
                                 problem
                                 if mode == .cleanup {cleanupInstructions}
                                 else if mode == .order {orderingInstructions}
-                                else {choices}
+                                else {choices.disabled(!current)}
                                 if let error {Text(error).foregroundStyle(.red).fixedSize(horizontal:false,vertical:true)}
                             }
                         }.frame(maxWidth:.infinity,alignment:.leading).padding(.trailing,4)
                     }.frame(width:300)
+                }
+                if !current {
+                    Text(section.moves != nil ? "This issue resolved while inspection was open. Close to return to play.":"Play advanced or this review changed. Close and reopen it to refresh the proposal.").foregroundStyle(.orange)
                 }
                 Divider()
                 HStack {
@@ -164,12 +171,13 @@ struct ReviewSectionView:View {
                     if mode != .choose && !section.committed {Button("Choose another solution") {mode = .choose;error=nil}}
                     Spacer()
                     if !section.committed && (mode == .cleanup || (mode == .choose && cleanupReady)) {
-                        Button("Confirm cleanup") {saveCleanup()}.buttonStyle(.borderedProminent).disabled(!cleanupReady)
+                        Button("Confirm cleanup") {saveCleanup()}.buttonStyle(.borderedProminent).disabled(!cleanupReady || !current)
                     } else if mode == .order && !section.committed {
                         Button("Save reviewed moves") {
-                            error=recorder.resolveReview(id,draft:draft,overrideCamera:overrideCamera)
+                            guard current else {error="This review changed. Close and reopen it before confirming.";return}
+                            error=recorder.resolveReview(id,draft:draft,overrideCamera:overrideCamera,revision:revision)
                             if error==nil {completeReview()}
-                        }.buttonStyle(.borderedProminent).disabled(!differences.isEmpty && !overrideCamera)
+                        }.buttonStyle(.borderedProminent).disabled(!current || (!differences.isEmpty && !overrideCamera))
                     }
                 }
             }.padding(20).frame(minWidth:882,minHeight:670)
@@ -196,7 +204,7 @@ struct ReviewSectionView:View {
             ReviewObservationEditView(recorder:recorder,edit:edit,orientation:orientation,onClose:{observationEdit=nil},onSaved:{
                 if let section=self.section {
                     let observation=BoardObservation(readings:section.after.enumerated().map{.init(row:$0.offset/recorder.game.boardSize,col:$0.offset%recorder.game.boardSize,occupancy:$0.element,confidence:1,delta:0)},size:recorder.game.boardSize)
-                    editedWithdrawal=recorder.accidentalWithdrawalPlan(id);hasEditedObservation=true
+                    revision=ReviewRevision(recorder);editedWithdrawal=recorder.accidentalWithdrawalPlan(id);hasEditedObservation=true
                     draft=MoveRecoveryDraft(game:context,observation:observation);mode = .choose;error=nil;recoveredOrders=[];recoveryMessage=nil;turnConflict=nil;overrideCamera=false;colorOverride=nil
                 }
             },onHistorySaved:close)
@@ -229,12 +237,12 @@ struct ReviewSectionView:View {
                     keptMovesDescription(plan)
                     Text("Click Confirm cleanup to remove the accidental placements and their removal from the game record.")
                 } else {
-                    Button("Undo accidental stones") {mode = .cleanup;error=nil}.buttonStyle(.borderedProminent)
+                    Button("Pause and undo accidental stones") {recorder.holdForReviewMutation();revision=ReviewRevision(recorder);mode = .cleanup;error=nil}.buttonStyle(.borderedProminent)
                     Text("Use this if the wrong color or extra stones were played. The next step shows exactly what to remove.").font(.callout)
                 }
             }
             if restoration != nil {
-                Button("Restore accidentally removed stones") {mode = .restore;error=nil}
+                Button("Pause and restore accidentally removed stones") {recorder.holdForReviewMutation();revision=ReviewRevision(recorder);mode = .restore;error=nil}
                 Text("Use this only if the stones were moved or removed accidentally.").font(.callout).foregroundStyle(.secondary)
             }
             Button(changeKind.reviewAction) {mode = .order;error=nil}

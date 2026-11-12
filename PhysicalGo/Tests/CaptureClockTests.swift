@@ -226,6 +226,72 @@ import ImageIO
             let candidate=AutomaticCapture.find(game:game,readings:seen,minimum:2)
             check((candidate != nil)==(stones==2),"Two-stone default has the wrong boundary")
         }
+        // Exercise every configured boundary through recorder + clock, including
+        // completion and the following move; these are synthetic legal positions.
+        for minimum in [0,2,3,5] {
+            for stones in Set([max(1,minimum-1),max(2,minimum)]).sorted() {
+                let blacks=[BoardPosition(1,0)] + (1...stones).flatMap{[BoardPosition(0,$0),BoardPosition(2,$0)]}
+                let whites=(1...stones).map{BoardPosition(1,$0)} + (0...stones).map{BoardPosition(8,$0)}
+                let sequence=zip(blacks,whites).map {black,white in
+                    ";B[\(SGFCoordinates.toSGF(x:black.col,y:black.row))];W[\(SGFCoordinates.toSGF(x:white.col,y:white.row))]"
+                }.joined()
+                let file=root.appendingPathComponent("threshold-\(minimum)-\(stones).sgf")
+                try "(;FF[4]GM[1]AP[PhysicalGo:test]SZ[9]RU[Japanese]\(sequence))".write(to:file,atomically:true,encoding:.utf8)
+                let boundary=GameRecorder(storage:root);boundary.clock.audible=false
+                try boundary.restoreSavedGame(from:file)
+                boundary.attachClock(.init(kind:.fischer,mainSeconds:100,incrementSeconds:2,maximumSeconds:200,automaticCaptureMinimum:minimum))
+                let prefix=boundary.moveCount
+                boundary.resume();_=feed(boundary,DeferredMoveHistory.states(boundary.positions.last!))
+                var seen=DeferredMoveHistory.states(boundary.positions.last!);seen[9+stones+1] = .black
+                let trial=SGFPlayer();trial.load(game:boundary.game);trial.seek(to:boundary.moveCount)
+                check(trial.tryPlayMove(color:.black,x:stones+1,y:1)==nil,"Threshold fixture illegal")
+                let target=DeferredMoveHistory.states(trial.board)
+                let prisoners=Set((1...stones).map{9+$0})
+                let qualifying=minimum>0 && stones>=minimum
+                let initialClock=boundary.clock.engine
+                let placed=feed(boundary,seen,count:4)
+                check(boundary.clock.automaticCapturePaused==qualifying,"Capture threshold \(minimum) misclassified \(stones) stones")
+                if !qualifying {check(boundary.clock.running && !boundary.clock.requiresReview,"A below-threshold removal introduced a hold")}
+                let issue=RecordingClarity.issues(recorder:boundary).first{$0.kind == .capture}
+                check(issue != nil && issue?.hold==(qualifying ? .capture:nil),"Removal guidance was missing or changed clock policy")
+                if (minimum==0 || minimum==2) && stones==2 {
+                    let clockBeforeInspection=boundary.clock.engine
+                    let host=NSHostingView(rootView:AutomaticCaptureInspection(recorder:boundary,orientation:.init(0),onReview:{}).background(Color(nsColor:.windowBackgroundColor)))
+                    let preview=NSWindow(contentRect:NSRect(x:0,y:0,width:540,height:340),styleMask:[.titled],backing:.buffered,defer:false)
+                    preview.appearance=NSAppearance(named:.darkAqua);host.appearance=preview.appearance
+                    preview.contentView=host;preview.orderFront(nil)
+                    RunLoop.main.run(until:Date().addingTimeInterval(0.15));host.layoutSubtreeIfNeeded()
+                    let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
+                    host.cacheDisplay(in:host.bounds,to:bitmap)
+                    let output=try TestArtifacts.directory("live-position-issues")
+                    try bitmap.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent("capture-\(minimum).png"))
+                    preview.orderOut(nil)
+                    check(boundary.clock.engine==clockBeforeInspection,"Native capture inspection changed timing")
+                }
+                let identity=issue!.id
+                let inspectionClock=boundary.clock.engine
+                let action:RecordingClarity.Action=qualifying ? .automaticCapture:.captureProgress
+                check(prisoners.union([9+stones+1]).allSatisfy{RecordingClarity.action(at:$0,recorder:boundary)==action},"Capture inspection changed route across its intersections")
+                if stones>1 {
+                    var partial=seen;partial[prisoners.sorted().first!] = .empty
+                    _=feed(boundary,partial,count:4)
+                    check(RecordingClarity.issues(recorder:boundary).first{$0.kind == .capture}?.id==identity,"Partial removal split capture identity")
+                    check(boundary.captureProgressRemaining?.count==stones-1,"Capture inspector did not report remaining removals")
+                    if qualifying {check(boundary.clock.engine.black==inspectionClock.black && boundary.clock.engine.white==inspectionClock.white,"Partial removal charged time")}
+                }
+                let completed=feed(boundary,target,count:10)
+                boundary.clock.tick(at:now)
+                check(boundary.moveCount==prefix+1 && boundary.clock.moves.count==1 && boundary.clock.provisionalMoves.isEmpty,"Capture completion duplicated or lost its timed turn")
+                let firstClock=boundary.clock.moves[0]
+                check(near(firstClock.after.black.remaining,initialClock.black.remaining-(placed-initialClock.anchor!)+2),"Capture charged removal time or duplicated its increment")
+                let nextBoundary=qualifying ? completed:placed
+                check(near(boundary.clock.engine.white.remaining,initialClock.white.remaining-(now-nextBoundary)),"Capture policy changed the following player's completion boundary")
+                var following=target;following[80] = .white
+                _=feed(boundary,following,count:10)
+                check(boundary.moveCount==prefix+2 && boundary.clock.moves.count==2 && boundary.clock.moves[0].after==firstClock.after,"Following move changed the capture clock event")
+                boundary.pause()
+            }
+        }
         // Real images exercise the detector independently of simulated timing signals.
         struct CameraFixture:Decodable {let calibration:BoardCalibration}
         let handRoot=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/CoveredBorder")

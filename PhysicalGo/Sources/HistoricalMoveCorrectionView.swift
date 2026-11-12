@@ -11,6 +11,7 @@ struct HistoricalMoveCorrectionView:View {
     var initialDestination:BoardPosition?=nil
     var reviewEdit:ReviewObservationEdit?=nil
     var onSaved:(()->Void)?=nil
+    @State private var revision:ReviewRevision?
     @State private var selectedNumber=0
     @State private var destinations=[Int:BoardPosition]()
     @State private var coordinateText=""
@@ -88,7 +89,11 @@ struct HistoricalMoveCorrectionView:View {
                 Text(error.localizedDescription).foregroundStyle(.orange)
                 Text("The board shows the original position while the edits conflict. You can still browse and stage more corrections.").font(.caption)
             }
-            Text("Confirm saves all corrections to a new SGF and preserves the original. Keep the physical stones at their intended intersections. Clocks stay paused; Resume checks the corrected board before play continues.").font(.callout).foregroundStyle(.secondary)
+            Text("Confirm saves all corrections to a new SGF and preserves the original. Keep the physical stones at their intended intersections. Confirmation pauses play; Resume checks the corrected board before play continues.").font(.callout).foregroundStyle(.secondary)
+            if revision?.matches(recorder)==false {
+                Text("Play advanced. Refresh the preview and check its effect on later moves before confirming.").foregroundStyle(.orange)
+                Button("Refresh preview") {revision=ReviewRevision(recorder)}
+            }
             if let saveError {Text(saveError).foregroundStyle(.red)}
         }.padding(20)
         }
@@ -97,12 +102,13 @@ struct HistoricalMoveCorrectionView:View {
                 Button("Cancel",action:onClose).keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(edits.count==1 ? "Yes, correct move":"Confirm \(edits.count) corrections") {
-                    guard let plan else {return}
+                    guard let plan,revision?.matches(recorder)==true else {return}
                     do {try recorder.applyHistoricalCorrection(plan);onSaved?();onClose()} catch {saveError=error.localizedDescription}
-                }.disabled(plan==nil).keyboardShortcut(.defaultAction)
+                }.disabled(plan==nil || revision?.matches(recorder) != true).keyboardShortcut(.defaultAction)
             }.padding(20)
         }.frame(width:620,height:850)
         .onAppear {
+            if revision==nil {revision=ReviewRevision(recorder)}
             if selectedNumber==0 {selectedNumber=number;if let initialDestination {select(initialDestination)}}
         }
         .onChange(of:selectedNumber) {_,_ in coordinateText=(destinations[activeNumber] ?? original(activeNumber)).map(coordinate) ?? ""}

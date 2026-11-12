@@ -18,6 +18,10 @@ struct RecordingView: View {
     @State private var showRecoveryClockReview=false
     @State private var undoPlan:UndoMovePlan?
     @State private var correctionSelection:HistoricalMoveSelection?
+    @State private var issueSelection:LiveIssueSelection?
+    @State private var correctionAfterIssue:Int?
+    @State private var inspectCapture=false
+    @State private var convertCaptureAfterDismiss=false
     @State private var pendingPlacement:PendingPlacementSelection?
     @State private var correctionError:String?
     @State private var observationEdit:ReviewObservationEdit?
@@ -31,12 +35,16 @@ struct RecordingView: View {
     private func reviewMarkedStone(_ point:Int) {
         switch RecordingClarity.action(at:point,recorder:recorder) {
         case .review(let id):openReview(id)
+        case .discrepancy(let point),.recognition(let point):
+            issueSelection = .init(point:point,position:recorder.issuePositionSignature,observed:recorder.discrepancyObservation(at:point))
+        case .automaticCapture,.captureProgress:inspectCapture=true
+        case .recoverView:break
         case .pendingPlacement(let number):
-            recorder.pause();recorder.returnToLatest()
+            recorder.returnToLatest()
             pendingPlacement = .init(number:number)
         case .missedMoves(let index):beginRecovery(at:BoardPosition(index/recorder.game.boardSize,index%recorder.game.boardSize))
         case .recordedPlacement(let number):
-            recorder.pause();recorder.returnToLatest()
+            recorder.returnToLatest()
             if let reason=HistoricalMoveCorrection.unavailableReason(recorder) {correctionError=reason}
             else {correctionSelection = .init(number:number)}
         }
@@ -44,7 +52,7 @@ struct RecordingView: View {
     private func beginRecovery(at point:BoardPosition?=nil) {
         if recorder.hasDeferredMoves,let section=recorder.reviewHistory.reviews.first(where:{$0.moves==nil}) ?? recorder.reviewHistory.reviews.last {openReview(section.id);return}
         recoveryFirstPoint=point
-        recorder.pause();recorder.returnToLatest();recorder.clock.pause("Ordering missed moves · clock and recording paused")
+        recorder.returnToLatest()
         recovery=MoveRecoveryDraft(recorder:recorder,observation:model.visibleObservation)
     }
     private func beginCorrection(from:BoardPosition,to:BoardPosition) {
@@ -54,7 +62,7 @@ struct RecordingView: View {
         let shown=display == .saved ? recorder.reviewedBoard:recorder.interpretedBoard
         let color=shown?.grid[from.row][from.col]
         guard color != nil else {return}
-        recorder.pause();correctionError=nil
+        correctionError=nil
         if recorder.positions[through].grid[from.row][from.col]==color,
            let number=HistoricalMoveCorrection.moveNumber(at:from,through:through,game:recorder.game,positions:recorder.positions) {
             if let reason=HistoricalMoveCorrection.unavailableReason(recorder) {correctionError=reason;return}
@@ -79,10 +87,10 @@ struct RecordingView: View {
         }
         .onChange(of:model.showDiagnostics) {_,visible in if !visible && display == .inspect {display = .live}}
         .onChange(of:display) {_,view in
-            if view == .saved {recorder.pause()}
-            else if view == .live && recorder.reviewing {recorder.returnToLatest()}
+            if view == .saved {recorder.browse(recorder.moveCount)}
+            else if view == .live {recorder.returnToLatest()}
         }
-        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewPresentation.close();undoPlan=nil;correctionSelection=nil}
+        .onChange(of:recorder.autosaveURL) {_,_ in display = .live;model.reviewPresentation.close();undoPlan=nil;correctionSelection=nil;correctionAfterIssue=nil;issueSelection=nil;pendingPlacement=nil;recovery=nil;observationEdit=nil;convertCaptureAfterDismiss=false;inspectCapture=false}
         .onChange(of:recorder.state) {_,state in
             if state == .verifying || (state == .recording && display == .saved) {display = .live}
         }
@@ -91,8 +99,8 @@ struct RecordingView: View {
         }) {draft in
             MoveRecoveryView(recorder:recorder,orientation:model.orientation,draft:draft,initialSelection:recoveryFirstPoint) {
                 if recorder.state == .finished {return}
-                if recorder.clock.enabled {reviewRecoveryClocks=true}
-                else {recorder.resume()}
+                if recorder.clock.requiresReview {reviewRecoveryClocks=true}
+                else if !recorder.clock.enabled {recorder.resume()}
             }
         }
         .sheet(isPresented:$showRecoveryClockReview) {LocalClockCorrection(clock:recorder.clock,recorder:recorder,resumeAfterReview:true)}
@@ -105,6 +113,19 @@ struct RecordingView: View {
         .sheet(item:$pendingPlacement) {item in
             PendingPlacementReviewView(recorder:recorder,orientation:model.orientation,number:item.number,initialDestination:item.destination,onClose:{pendingPlacement=nil})
         }
+        .sheet(item:$issueSelection,onDismiss:{
+            if let number=correctionAfterIssue {correctionAfterIssue=nil;correctionSelection = .init(number:number)}
+        }) {selection in
+            LiveIssueReviewView(recorder:recorder,selection:selection,orientation:model.orientation,onCorrect:{number in
+                correctionAfterIssue=number;issueSelection=nil
+            },onClose:{issueSelection=nil})
+        }
+        .sheet(isPresented:$inspectCapture,onDismiss:{
+            if convertCaptureAfterDismiss {
+                convertCaptureAfterDismiss=false
+                if let id=recorder.prepareAutomaticCaptureReview() {openReview(id)}
+            }
+        }) {AutomaticCaptureInspection(recorder:recorder,orientation:model.orientation,onReview:{convertCaptureAfterDismiss=true})}
         .sheet(item:$observationEdit) {edit in
             ReviewObservationEditView(recorder:recorder,edit:edit,orientation:model.orientation,onClose:{observationEdit=nil},onSaved:{},onHistorySaved:{observationEdit=nil})
         }
@@ -201,7 +222,7 @@ struct RecordingView: View {
                                       onDrag:beginCorrection) {point in
                             if display == .live {
                                 let index=point.row*recorder.game.boardSize+point.col
-                                if checkPoints.contains(index) || recorder.interpretationWarnings.contains(index) {reviewMarkedStone(index)}
+                                if checkPoints.contains(index) {reviewMarkedStone(index)}
                                 else {beginRecovery(at:point)}
                             } else {manualPoint=point}
                         }
@@ -294,7 +315,7 @@ struct RecordingView: View {
             HStack {
                 Text(reviewLabel).font(.system(size:13*model.interfaceScale).monospacedDigit())
                 Spacer()
-                Button("Correct move…") {recorder.pause();correctionSelection=HistoricalMoveSelection(number:recorder.reviewIndex)}
+                Button("Correct move…") {correctionSelection=HistoricalMoveSelection(number:recorder.reviewIndex)}
                     .disabled(recorder.reviewIndex==0 || HistoricalMoveCorrection.unavailableReason(recorder) != nil || onlineBoard.enabled)
                     .help(HistoricalMoveCorrection.unavailableReason(recorder) ?? "Correct the saved intersection and check subsequent moves")
             }
@@ -305,7 +326,7 @@ struct RecordingView: View {
                 navigation("Latest move",icon:"forward.end.fill",target:recorder.moveCount).disabled(recorder.reviewIndex==recorder.moveCount)
                 Spacer()
                 Text("Go to move")
-                TextField("Move number",value:Binding(get:{recorder.reviewIndex},set:{recorder.seek($0)}),format:.number)
+                TextField("Move number",value:Binding(get:{recorder.reviewIndex},set:{recorder.browse($0)}),format:.number)
                     .frame(width:50).accessibilityLabel("Go to saved move")
                 Text("/ \(recorder.moveCount)").monospacedDigit()
             }
@@ -332,7 +353,7 @@ struct RecordingView: View {
         }
     }
     private func navigation(_ label:String,icon:String,target:Int)->some View {
-        Button {display = .saved;recorder.seek(target)} label:{Image(systemName:icon)}.help(label).accessibilityLabel(label)
+        Button {display = .saved;recorder.browse(target)} label:{Image(systemName:icon)}.help(label).accessibilityLabel(label)
     }
     private var reviewLabel:String {
         guard recorder.reviewIndex>0 else {return recorder.moveCount==0 ? "No moves recorded yet" : "Starting position · 0 of \(recorder.moveCount)"}
@@ -384,13 +405,10 @@ struct RecordedBoard: View {
                 let stars=n==19 ? [3,9,15].flatMap{r in [3,9,15].map{BoardPosition(r,$0)}} : [BoardPosition(near,near),BoardPosition(near,far),BoardPosition(far,near),BoardPosition(far,far),BoardPosition(n/2,n/2)]
                 for star in stars { let p=point(star); context.fill(Path(ellipseIn:CGRect(x:p.x-2,y:p.y-2,width:4,height:4)),with:.color(.black)) }
                 let board=boardOverride ?? (showsLivePosition ? recorder.interpretedBoard : recorder.reviewedBoard)
-                let rings=showsLivePosition && boardOverride == nil ? recorder.interpretationWarnings : []
+                let rings=showsLivePosition && boardOverride==nil ? Set(RecordingClarity.issues(recorder:recorder).filter{$0.kind == .placement}.flatMap(\.markers)):Set<Int>()
                 for (position,color) in board?.stones ?? [:] {
                     let p=point(position),r=pitch*0.44
                     context.fill(Path(ellipseIn:CGRect(x:p.x-r,y:p.y-r,width:2*r,height:2*r)),with:.color(color == .black ? .black : .white))
-                    if rings.contains(position.row*boardSize+position.col) {
-                        context.stroke(Path(ellipseIn:CGRect(x:p.x-r-2,y:p.y-r-2,width:2*r+4,height:2*r+4)),with:.color(.red),lineWidth:2.8)
-                    }
                 }
                 if showsLivePosition {
                     for mark in InterpretationDetectionMarks.make(board:board,observation:observation,size:boardSize) where recorder.adjustmentIssues[mark.point] != nil {
@@ -412,7 +430,7 @@ struct RecordedBoard: View {
                         let p=point(BoardPosition(index/boardSize,index%boardSize)),r=pitch*0.50
                         let ring=Path(ellipseIn:CGRect(x:p.x-r,y:p.y-r,width:2*r,height:2*r))
                         context.stroke(ring,with:.color(.black.opacity(0.8)),lineWidth:5)
-                        context.stroke(ring,with:.color(.orange),lineWidth:3.5)
+                        context.stroke(ring,with:.color(rings.contains(index) ? .red:.orange),lineWidth:3.5)
                     }
                 }
                 let marker=showsLivePosition ? recorder.lastInterpretedPoint : (recorder.reviewIndex>0 ? recorder.game.moves[recorder.reviewIndex-1].1.map{$0.1*boardSize+$0.0} : nil)
@@ -443,7 +461,7 @@ struct RecordedBoard: View {
                     let col=Int((p.x*Double(boardSize-1)).rounded()),row=Int((p.y*Double(boardSize-1)).rounded())
                     let board=boardOverride ?? (showsLivePosition ? recorder.interpretedBoard:recorder.reviewedBoard)
                     guard (0..<boardSize).contains(row),(0..<boardSize).contains(col),board?.grid[row][col] != nil else {return}
-                    draggedFrom=BoardPosition(row,col);recorder.pause()
+                    draggedFrom=BoardPosition(row,col)
                 }
                 draggedLocation=drag.location
             }.onEnded {drag in
@@ -464,7 +482,7 @@ struct RecordedBoard: View {
                 if !allowsLiveSelection && recorder.reviewedBoard?.grid[row][col] != nil {return}
                 onPoint(BoardPosition(row,col))
             }))
-        }.accessibilityLabel(showsLivePosition ? "Live interpretation: \(recorder.moveCount) saved, \(recorder.pendingMoveCount) pending, \(recorder.interpretationWarnings.count) stones need attention" : "Recorded game at move \(recorder.reviewIndex) of \(recorder.moveCount)")
+        }.accessibilityLabel(showsLivePosition ? "Live interpretation: \(recorder.moveCount) saved, \(recorder.pendingMoveCount) pending, \(RecordingClarity.checkPoints(recorder:recorder,observation:observation).count) intersections need attention" : "Recorded game at move \(recorder.reviewIndex) of \(recorder.moveCount)")
     }
 }
 
@@ -624,6 +642,8 @@ private struct RecordingStateLabel:View {
 
 /// Keep camera activity visually distinct from saving moves, including before a game starts.
 struct RecordingStatusBanner: View {
+    @State private var inspectCapture=false
+    @State private var convertCaptureAfterDismiss=false
     @ObservedObject var model:ExperimentModel
     @ObservedObject var recorder:GameRecorder
     @ObservedObject private var clock:LocalGameClock
@@ -661,11 +681,15 @@ struct RecordingStatusBanner: View {
                 HandicapSetupBoard(size:recorder.game.boardSize,handicap:recorder.game.handicap,orientation:model.orientation).frame(width:260,height:260)
             }
             if recorder.automaticCaptureStatus != nil {
-                Button("Review capture…") {
-                    if let id=recorder.prepareAutomaticCaptureReview() {
-                        model.reviewPresentation.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
-                    }
-                }
+                Button("Capture progress…") {inspectCapture=true}
+                    .sheet(isPresented:$inspectCapture,onDismiss:{
+                        if convertCaptureAfterDismiss {
+                            convertCaptureAfterDismiss=false
+                            if let id=recorder.prepareAutomaticCaptureReview() {
+                                model.reviewPresentation.open(recorder:recorder,id:id,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})
+                            }
+                        }
+                    }) {AutomaticCaptureInspection(recorder:recorder,orientation:model.orientation,onReview:{convertCaptureAfterDismiss=true})}
             }
             if recorder.needsAttention && recorder.state == .recording {
                 Button("Pause and inspect board",systemImage:"pause.circle.fill") {recorder.pause()}

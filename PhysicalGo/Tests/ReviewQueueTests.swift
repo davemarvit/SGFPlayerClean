@@ -14,7 +14,7 @@ import SwiftUI
         func view(_ board:BoardSnapshot)->BoardObservation {
             BoardObservation(readings:DeferredMoveHistory.states(board).enumerated().map{p,v in
                 .init(row:p/board.size,col:p%board.size,occupancy:v,confidence:1,delta:0)
-            },size:board.size)
+            },size:board.size,capturedAt:time,handObstructed:false)
         }
         func feed(_ r:GameRecorder,_ board:BoardSnapshot,frames:Int=7) {
             for _ in 0..<frames {time += 0.21;r.consume(view(board),now:time)}
@@ -56,12 +56,25 @@ import SwiftUI
                     [BoardPosition(1,7),BoardPosition(1,6),BoardPosition(1,5)],
                     [BoardPosition(7,1),BoardPosition(6,1),BoardPosition(5,1)]]
         let later=[BoardPosition(1,0),BoardPosition(4,4),BoardPosition(3,3)]
+        let liveInspection=ReviewPresentation()
         for i in 0..<3 {
             play(actual,orders[i]);feed(r,actual.board)
             check(r.reviewHistory.reviews.count==i+1,"Missing review section \(i+1): \(r.status)")
             check(r.moveCount==1 && r.hasDeferredMoves,"Gap leaked into accepted SGF")
             check(r.lastInterpretedPoint==nil,"Unknown order marked an invented last move")
+            check(r.clock.requiresReview && !r.clock.running,"Unobserved turns did not require timing review")
+            r.pause()
+            check(r.confirmClockReview(black:r.clock.engine.black,white:r.clock.engine.white,resume:true),"Explicit gap timing confirmation failed")
+            feed(r,actual.board)
+            let inspectionClock=r.clock.engine
+            liveInspection.open(recorder:r,id:r.reviewHistory.reviews[i].id,orientation:.init(0))
+            check(r.state == .recording && r.clock.engine==inspectionClock,"Opening chronology inspection paused or changed clocks")
+            let inspectedRevision=ReviewRevision(r)
             play(actual,[later[i]]);feed(r,actual.board)
+            check(!inspectedRevision.matches(r),"Later live move did not invalidate the old proposal")
+            let closingClock=r.clock.engine
+            liveInspection.close()
+            check(r.state == .recording && r.clock.engine==closingClock,"Canceling inspection paused or resumed clocks")
             check(r.reviewHistory.retainedMoveCount==i+1,"Later ordered move was lost")
             check(r.lastInterpretedPoint==later[i].row*9+later[i].col,"Latest observed move marker remained on the saved prefix")
             check(r.tentativeNextPlayer==actual.turn,"Pass control named the saved prefix's player instead of the observed next player")
