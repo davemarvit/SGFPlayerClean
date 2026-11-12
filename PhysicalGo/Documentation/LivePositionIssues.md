@@ -1,0 +1,237 @@
+# Live position issues, reviews, and clocks
+
+Date: 2026-11-11 (America/Los_Angeles)
+
+Status: agreed behavioral direction, with implementation and acceptance criteria
+below. This document records the discussion; it does not imply that the full
+policy is already implemented. Capture timing uses the existing configurable
+policy until a different policy is explicitly chosen.
+
+## Purpose and scope
+
+Resolve discrepancies automatically whenever the evidence supports doing so.
+Mark an intersection on **Live position** only when a player has a useful action
+or decision to make. Clicking that marker opens the action appropriate to its
+issue. A marker, placement ambiguity, or open review is not itself a reason to
+stop clocks.
+
+This specification governs local physical play. Online play must respect the
+server's authoritative moves and clocks; local capture holds cannot stop a server
+clock. Do not change online behavior as a side effect of this work.
+
+## Terms
+
+- **Image observation:** what our software interprets from a particular camera
+  image, including uncertainty and the image's actual capture time. The camera
+  supplies images; it does not decide what moves occurred.
+- **Established position:** the accepted game history, plus clearly distinguished
+  retained pending moves. A later image disagreement does not erase that history.
+- **Turn evidence:** evidence that a player completed a move, its timing boundary,
+  and which player follows. This may be established before the exact intersection.
+- **Issue:** an unresolved discrepancy or task. It can be under automatic
+  reconciliation, require player action, or require a timing hold. These are
+  separate properties, not equivalent states.
+- **Marker:** an actionable indication on an intersection. An absent stone can
+  require marking its expected intersection. Multiple intersections can refer to
+  one issue. The ordinary last-move indicator is not an issue marker.
+
+## Numbered cases
+
+Keep these case numbers stable in future discussion and tests. Case 2 is an
+initial disagreement, not a diagnosis; cases 3, 4, 8, or 9 may explain it.
+
+| # | Case | Automatic reconciliation first | When to mark | Click action | Clock policy |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Brief obstruction or detection flicker | Retain the established position; use subsequent clear observations. | No actionable marker for a transient discrepancy. A persistent unresolved discrepancy becomes case 2. | None while automatic reconciliation suffices. | Continue through ordinary hand movement and flicker. Apply case 10 only if reliable turn tracking is lost. |
+| 2 | Image disagrees with established position | Compare observations with accepted and pending history, legal captures, observed movement, and subsequent images. Clear the discrepancy when a consistent explanation is established. | Only if disagreement remains unresolved and player input would help. | Explain the specific disagreement; offer confirmation that the recorded position is correct, or identify a physical change. Do not assume the record needs editing. | Continue while new moves and turns remain reliably observable. Pause only for the independent reasons below. |
+| 3 | Stone nudged between intersections | Retain identity and intended location when supported by history and movement. Do not count repositioning as another move. | When centering is needed for reliable tracking or intended placement remains uncertain. | Show where to center the stone, or confirm its intended intersection. | Continue if timing is reliable; centering an existing stone does not switch clocks. |
+| 4 | Stone accidentally moved or removed | Identify the recorded location and exclude supported legal captures; use movement evidence where available. | When persistent displacement or absence needs restoration or explanation. | Guide restoration or let the player explain a different event. | Usually continue. A physical correction that interrupts play, or loss of reliable turn tracking, requires an explicit hold. |
+| 5 | New move has uncertain location | Use successive images, geometry, legal play, and later moves to resolve placement. Preserve established turn evidence independently. | When multiple plausible locations remain and player input is needed. | Select and confirm the intended intersection. | Switch clocks at the established completion boundary without waiting for location resolution. Preserve applicable capture policy. |
+| 6 | Missed move | Recover automatically when retained evidence uniquely establishes the legal move/sequence; retain uncertainty otherwise. A static board and alternation alone do not prove individual timestamps. | When history recovery needs confirmation or missing information. | Review the proposed recovery and confirm or correct it. Preserve earlier pending moves. | Continue if timing and turns were retained; hold for timing review if they cannot be accounted for. Never invent missed time boundaries or increments. |
+| 7 | Uncertain move order | Reconcile observed events, alternation, captures, and legal sequences. Distinguish assigning locations to known timed turns from uncertainty about the turns themselves. | When multiple plausible sequences remain. Group the affected intersections into one issue. | Resolve the sequence while preserving established history and turn evidence. | Location/order assignment can remain unresolved while clocks run. Uncertain current turn or unaccounted timing requires a hold. |
+| 8 | Possibly incorrect recorded move | Check history and observations; dismiss the suspicion when the record is supported. A single image disagreement is not proof of a bad move. | When a genuine unresolved question about accepted history needs review. | Review evidence first. Preview an actual correction and its effect on later moves before explicit acceptance. | Inspection alone does not pause. A correction that interrupts play or invalidates current timing/turn state requires a hold. |
+| 9 | Incomplete or uncertain capture | Compute legal capture/removal obligations and track physical removal across fresh images. Keep one capture identity through partial removals. | When removal or clarification is needed; transient expected removal can use capture progress guidance instead of a new ambiguity. | Show the capturing move, captured intersections, and remaining removals; verify completion or clarify a different event. | Follow the configured capture policy described below. A qualifying incomplete multi-stone capture can already have both clocks stopped before any click. |
+| 10 | Camera, alignment, or processing outage | Recover/reconnect and reconcile retained timestamped evidence. Preserve accepted history and pending events. | Use a global status/action rather than marking arbitrary stones. Mark specific intersections only if a separate local issue remains. | Retry/reestablish the view or review timing, according to the actual problem. | Continue only while timing remains trustworthy/recoverable. Hold at a supported boundary when reliable turn tracking is lost; do not charge a blind interval. |
+
+## Reconciliation and marking requirements
+
+1. History constrains interpretation; it does not prove a stone is still physically
+   present. A brief unsupported disappearance is not a capture, but persistent
+   clear absence must not be suppressed merely because the record contains a stone.
+2. Reconcile before asking for intervention. Use independent fresh observations;
+   repeated processing of one image is not additional temporal evidence.
+3. Do not force a diagnosis. A missing stone may be obscured, moved, removed, or
+   captured. If unresolved, present that uncertainty rather than opening a record
+   editor as though a correction were established.
+4. Every issue marker must have a reason and a useful action. Resolve overlapping
+   explanations into a shared issue; do not create duplicate reviews. Clicking any
+   intersection in a capture or sequence opens the same relevant issue.
+5. The highlighted-intersection button and board clicks use the same policy.
+   Placement-ambiguity counters need not count every issue, but the UI must not
+   imply that zero placement ambiguities means no other action is needed.
+6. Clear a marker when evidence or an accepted action resolves its issue. Opening,
+   closing, or canceling a review does not itself resolve it. If the underlying
+   issue resolves automatically while its review is open, show that outcome and
+   disable obsolete actions.
+7. **Recorded position is correct** acknowledges the current discrepancy without
+   rewriting SGF, adding a move, changing colors, switching clocks, or changing
+   balances. Retain the evidence and re-evaluate recognition. Scope confirmation
+   to the issue and position; it must not permanently mask later displacement,
+   capture, a new stone, or a changed view. Persistent tracking failure becomes an
+   appropriate recognition-recovery task rather than a repeated identical prompt.
+8. Photograph annotations for recognition testing remain separate from game
+   correction. A game action has a clearly named confirmation and reports its
+   result. Saving a testing label must not pretend to accept a game correction.
+
+## Clocks and capture policy
+
+Keep three facts separate: established turn/timing, established placement/history,
+and physical board readiness. Uncertainty in one does not automatically invalidate
+the others. Applying retained timing to finalized moves must happen exactly once,
+without charging again or granting duplicate increments/byoyomi resets.
+
+Legitimate holds include unreliable turn/timing evidence, a qualifying configured
+capture hold, an explicit user pause, a physical correction that interrupts play,
+and existing integrity protections such as failed persistence. Merely marking a
+stone, opening a review, or encountering unresolved placement is not a hold reason.
+
+Opening a review must allow tracking to continue if clocks continue. Do not simply
+remove pause calls while leaving detection frozen or edits tied to a stale game.
+Use revision-aware proposals: revalidate or refresh them if play advances. An
+actual mutation that requires stopped play must explicitly enter a hold before
+application. Canceling inspection must not pause or resume the game as a side effect.
+
+Preserve existing local **Automatically pause for captures** choices: Off, two or
+more (default), three or more, five or more. This is a clock policy separate from
+the scoring-rule selection. Do not infer a new policy from a ruleset's name.
+This spec does not assert what any named tournament regulations currently require.
+
+For a capture qualifying under the configured policy:
+
+- Establish a legal capture and a supported start boundary before entering a
+  removal hold. Expected partial removals are progress within that capture.
+- Neither player is charged for the verified held removal interval. Completion
+  and the following turn use the configured completion boundary, with retained
+  timing and no duplicate clock switch.
+- Verify all required removals and the resulting position using fresh evidence.
+  Unknown, obscured, stale, or contradictory observations do not prove completion.
+- A click may open a capture already on hold; opening it must not add another hold,
+  clear the original reason, or independently authorize resumption.
+- Preserve explicit pauses and unresolved timing-review requirements. Camera loss
+  during removal invalidates freshness, not saved history or the capture identity.
+- If capture start/removal was hidden, do not invent or refund an unobserved
+  interval. If evidence contradicts the presumed capture, require timing review
+  where its earlier hold affected accounting.
+
+With capture pausing off or below the threshold, do not introduce a removal hold
+just because several images show an incomplete capture. Preserve the existing
+move-completion contract; do not silently choose placement-time versus completed-
+removal timing in this refactor. Audit that contract and document tests before
+changing it. Any additional ruleset-specific options are a separate decision.
+
+For outages, retain the existing freshness protection while improving recovery.
+The baseline has a 1.5-second processing/observation-gap safeguard; that is an
+implementation threshold, not a guarantee that every shorter outage is safe.
+Timing uncertainty crossing expiry requires review, not an automatic loss caused
+by delayed placement confirmation. Show the current hold reason and resume
+prerequisite, preserve manual pauses, and avoid pause/resume loops.
+
+## Baseline audit and remaining work
+
+Baseline: Physical Go **0.156 / build 157**, commit `9926f42aa4afb824e7e1564b7c25e50047cc101a`,
+branch `codex/physical-go-maintainability`. Repository on the development Mac:
+`/Users/Dave/SGFPlayerClean`; app sources are in `PhysicalGo/`.
+`/Users/Dave/Documents/SGF PLayer` is not this repository.
+
+Already present: issue-specific click routing, retained pending chronology during
+manual recovery, protection against silently discarding that chronology, retained
+provisional clock events, capture holds, freshness safeguards, and automatic
+camera recovery. Existing functionality still needs assessment against this spec.
+
+Known gaps from source inspection:
+
+- `Sources/RecordingClarity.swift` routes an established-stone discrepancy to a
+  historical-placement editor; it has no dedicated current-issue acknowledgment
+  that the recorded position is correct.
+- `Sources/RecordingView.swift` pauses for pending-placement and recorded-placement
+  review and missed-move recovery. Review presentation/editors also assume paused
+  work in several paths. Opening must be separated from applying changes.
+- Marking, interpretation warnings, capture progress, and review state are spread
+  across several components; a shared issue decision should drive their behavior.
+  Do not assume the whole marking policy already matches the table.
+
+Relevant sources: `RecordingClarity.swift`, `RecordingView.swift`,
+`BoardAdjustmentMonitor.swift`, `InterpretationDetectionMarks.swift`,
+`ReviewPresentation.swift`, `GameRecorder.swift`, `MoveObservationHistory.swift`,
+`AutomaticCapture.swift`, `CaptureReviewPlan.swift`, `CaptureReviewView.swift`,
+`LocalGameClock.swift`, `LocalClockEngine.swift`, and `CameraAnalysisPipeline.swift`
+(all under `PhysicalGo/Sources`).
+
+A prior manual recovery discarded two pending moves and saved only the third.
+That regression was fixed in 0.156. The affected test game was recovered separately
+to 89 legal moves with its original preserved and clocks left paused. Do not use
+that old test state as an assumed current game or alter a user's live game as part
+of implementing this spec.
+
+## Implementation batches and acceptance
+
+Implement in reviewable batches, retaining working behavior and testing each:
+
+1. **Shared issue decisions and marking.** Model evidence, affected intersections,
+   automatic reconciliation, user action, and independent hold reason. Test all
+   ten cases, mixed cases, issue identity, delayed/obscured images, and automatic
+   clearing. In particular, neither retain a false marker nor hide a real removal.
+2. **Issue-specific review without automatic pausing.** Add the record-correct
+   acknowledgment and separate viewing from mutation. Test live moves arriving
+   during review, stale acceptance, cancellation, duplicate confirmation, and
+   issue resolution while open. Test button and board routes, absent-stone markers,
+   and zero placement counters with another actionable issue.
+3. **Timing and capture integration.** Preserve established timing during placement
+   and chronology review. Test rapid alternating moves, missing timing, delayed
+   recognition near expiry, explicit pauses, persistence, and restart. For captures
+   test Off and each threshold (below/at threshold), partial multi-stone removals,
+   completion, contradictory evidence, hidden start, camera loss, cancellation,
+   restart, and following moves. Verify balances and turn transitions exactly once.
+4. **Full verification and handoff.** Run all registered regression suites and
+   Python build checks; inspect native UI flows. Build and verify the signed app
+   and source hash before installation. Report fixture/synthetic coverage separately
+   from actual live-camera testing. Update this document with implemented batches,
+   remaining decisions, validation, and the final commit.
+
+Use existing fixtures for the lost pending sequence, rapid play/G18, near-expiry
+placement, captures, and resume loops. Add focused tests of behavior, not snapshots
+of implementation details. Keep illegal-history, stale-write, and storage-failure
+guards. If a shared policy is extracted, keep it independent of presentation and
+diagnostic strings, without a wholesale rewrite of the recorder.
+
+Run from `/Users/Dave/SGFPlayerClean`:
+
+```sh
+python3 PhysicalGo/Tests/test_build.py
+python3 PhysicalGo/build.py --list-tests
+python3 PhysicalGo/build.py --all-tests
+python3 PhysicalGo/build.py
+```
+
+`PhysicalGo/scripts/test_suites.py` is the authoritative registry. Native UI tests
+need a macOS GUI session; scoring integration needs the configured KataGo. The
+0.156 baseline passed all 82 Swift suites (81 in the full run, then an updated
+wording/routing test) and six Python checks. This documentation change does not
+constitute a new application regression run. The `.build/StorageFlow/regressions.py`
+shared-module runner used previously is a local scratch tool, not a tracked
+dependency required to continue in another checkout.
+
+Before implementation, inspect current Git state and preserve existing work; the
+user requested a committed/pushed baseline before large changes. Do not silently
+change capture policy, remove timing safeguards to keep clocks running, or claim
+live-camera validation from fixture tests.
+
+## Suggested opening message for a new conversation
+
+> Continue Physical Go in `/Users/Dave/SGFPlayerClean`. Read
+> `PhysicalGo/Documentation/LivePositionIssues.md` and implement its batches,
+> starting with shared issue decisions and marking. Preserve the configured
+> capture-pause policy and separate placement uncertainty from turn timing.
+> Inspect current Git state first; commit and push a baseline before major changes.
+> Run focused tests for each batch and the full regression suite before installing.
+> Update the specification with progress and any remaining decisions.

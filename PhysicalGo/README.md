@@ -8,6 +8,12 @@ Do not rely on it as your only tournament game record yet.
 
 ## Structure and maintenance
 
+The agreed next behavior for automatic reconciliation, actionable board markers,
+issue-specific review, and clock/capture holds is documented in
+[Live position issues, reviews, and clocks](Documentation/LivePositionIssues.md).
+It includes the numbered cases, current implementation gaps, acceptance criteria,
+and a handoff prompt for continuing development in a new conversation.
+
 The pre-maintenance snapshot is Git tag `baseline/physical-go-0.120` (commit
 `22f3c7d`). It includes the shared application sources, assets and regression
 fixtures. Raw camera captures, build products and scratch investigations are
