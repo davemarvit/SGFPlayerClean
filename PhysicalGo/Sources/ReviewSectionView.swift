@@ -367,6 +367,7 @@ struct SavedReviewNotice:View {
         self.recorder=recorder;self.onClose=onClose
         _clock=ObservedObject(wrappedValue:recorder.clock)
     }
+    @State private var reviewClocks=false
     private var shouldClose:Bool {recorder.state != .paused || clock.running}
     var body:some View {
         VStack(alignment:.leading,spacing:18) {
@@ -382,10 +383,11 @@ struct SavedReviewNotice:View {
                 Button("Keep paused",action:onClose)
                 Spacer()
                 Button("Resume clock and recording",systemImage:"play.fill") {
-                    clock.requestResume();recorder.resume();onClose()
+                    if recorder.resume() == .clockReview {reviewClocks=true} else {onClose()}
                 }.buttonStyle(.borderedProminent).controlSize(.large)
             }
         }.padding(24).frame(minWidth:600,minHeight:240)
+            .sheet(isPresented:$reviewClocks) {LocalClockCorrection(clock:clock,recorder:recorder,resumeAfterReview:true)}
             .onChange(of:shouldClose,initial:true) {_,close in if close {onClose()}}
     }
 }

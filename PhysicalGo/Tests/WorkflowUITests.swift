@@ -135,6 +135,7 @@ import SwiftUI
     check(cancelled.state == .finished && !cancelled.awaitingFirstStart,"Ending unused setup left a stale Start state")
     let savedBlack=recorder.clock.engine.black
     let restored=GameRecorder(storage:nil);restored.clock.audible=false
+    try recorder.flushStorage()
     try restored.restoreSavedGame(from:recorder.autosaveURL!)
     check(restored.awaitingFirstStart && restored.state == .paused && !restored.clock.running,"Ready setup failed to survive restart")
     recorder.resume()
@@ -382,7 +383,7 @@ import SwiftUI
     model.recorder.resume();model.recorder.clock.requestResume()
     model.recorder.suspendVision("Grid alignment lost",preserveOrder:true)
     let held=LocalPlayPresentation(recorder:model.recorder,clock:model.recorder.clock)
-    check(held.automaticHold && held.title=="Waiting for board · clocks stopped","Automatic hold still presents Playing")
+    check(held.automaticHold && held.title=="Checking board · clocks stopped","Automatic hold still presents Playing")
     model.recorder.pause()
     let paused=LocalPlayPresentation(recorder:model.recorder,clock:model.recorder.clock)
     check(!paused.automaticHold && paused.title=="Game paused","Keep paused failed to leave automatic-resume state")
@@ -394,7 +395,11 @@ import SwiftUI
     let now=ProcessInfo.processInfo.systemUptime,observation=model.observation!
     for step in 0..<15 {model.recorder.consume(observation,now:now+Double(step)*0.21)}
     check(model.recorder.moveCount==109 && !model.recorder.hasDeferredMoves,"The two missed moves did not recover as a unique legal sequence")
-    check(model.recorder.clock.running,"Clock did not resume after the board and missed moves were verified")
+    check(!model.recorder.clock.running && model.recorder.clock.requiresReview,"Missed moves with unknown press times silently resumed the clock")
+    model.recorder.pause() // Same transition as opening the clock-review sheet.
+    check(model.recorder.confirmClockReview(black:model.recorder.clock.engine.black,white:model.recorder.clock.engine.white,resume:true),"Agreed clock correction failed")
+    for step in 15..<25 {model.recorder.consume(observation,now:now+Double(step)*0.21)}
+    check(model.recorder.clock.running,"Agreed clocks did not resume after fresh board verification")
     model.recorder.pause()
     print("PASS: \(checks) crowded restart, wrong-offset/rotation rejection, saved game preservation and clock-hold presentation checks")
 }
@@ -484,12 +489,14 @@ import SwiftUI
     check(clock.automaticPause==pause,"Pressing Resume cleared the cause before verification")
     let url=root.appendingPathComponent("game.sgf")
     clock.bind(to:url,signature:"pause-test")
+    try clock.flushStorage()
     let restored=LocalGameClock();restored.audible=false
     restored.restore(from:url,signature:"pause-test",moveCount:0,blackToPlay:true)
     check(restored.automaticPause==pause && !restored.running,"Restart lost the pause cause")
     check(restored.engine.black.remaining==remaining,"Restart changed paused time")
     restored.interrupt("Another camera check",at:base+6);restored.ready(at:base+6)
     check(!restored.running,"A camera check resumed a restored paused clock")
+    try restored.flushStorage()
     clock.ready(at:base+6)
     check(clock.running && clock.automaticPause==nil && cleared==1,"Actual verified resume failed to clear the cause")
     clock.pause(at:base+7)
@@ -501,6 +508,7 @@ import SwiftUI
     check(events.count==2 && clock.automaticPause?.reason=="Camera stopped","A later interruption did not get its own cause")
     clock.finish(at:base+11)
     check(clock.automaticPause==nil && !clock.running,"Finished game kept an obsolete hold")
+    try clock.flushStorage()
     // Backward compatibility with clock files written before pause metadata existed.
     var legacy=try JSONSerialization.jsonObject(with:Data(contentsOf:url.deletingPathExtension().appendingPathExtension("clock.json"))) as! [String:Any]
     legacy.removeValue(forKey:"automaticPause")

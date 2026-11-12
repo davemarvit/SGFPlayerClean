@@ -75,6 +75,16 @@ import Combine
     var onResumeAnnouncement:((String)->Void)?
     private(set) var pendingResumeAnnouncement:String?
     private let audio=LocalClockAudio()
+    let storageWriter: RecordingStorage
+    init(storageWriter: RecordingStorage = RecordingStorage()) {
+        self.storageWriter=storageWriter
+        storageWriter.onFailure = { [weak self] failure in
+            guard let self else {return}
+            self.saveError=failure.message
+            if self.running {self.pause("Saving needs attention · clocks paused")}
+        }
+    }
+    func flushStorage() throws { try storageWriter.flush() }
     var onSpeechEvent:SpeechEventHandler? {didSet {audio.onSpeechEvent=onSpeechEvent}}
     private var timer:Timer?
     private var manuallyPaused=false
@@ -141,7 +151,7 @@ import Combine
         save()
     }
     func ready(at now:Double) {
-        guard enabled,!running,!automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
+        guard storageWriter.error==nil,enabled,!running,!automaticCapturePaused,!manuallyPaused,!needsCorrection,!awaitingTurn,engine.expiredBlack==nil else {return}
         pendingTurnEvidence=nil
         if let lastObservationAt {self.lastObservationAt=max(lastObservationAt,now)}
         observationGapHeld=false
@@ -188,7 +198,11 @@ import Combine
         guard enabled,!running else {return}
         pendingResumeAnnouncement=message;save()
     }
-    func requestResume() {manuallyPaused=false}
+    func requestResume() {
+        guard !requiresReview else {return}
+        manuallyPaused=false
+        if enabled,!running {notice="Checking board · clocks stopped"}
+    }
     func resume(at now:Double=ProcessInfo.processInfo.systemUptime) {
         guard !needsCorrection else {return}
         manuallyPaused=false;ready(at:now)
@@ -546,9 +560,9 @@ import Combine
     func restore(from sgf:URL,signature:String,moveCount:Int,blackToPlay:Bool) {
         configure(.init(kind:.none),blackToPlay:blackToPlay)
         let url=sgf.deletingPathExtension().appendingPathExtension("clock.json")
-        guard FileManager.default.fileExists(atPath:url.path) else {return}
+        guard storageWriter.perform({FileManager.default.fileExists(atPath:url.path)}) else {return}
         do {
-            let data=try JSONDecoder().decode(Saved.self,from:Data(contentsOf:url))
+            let data=try storageWriter.perform {try JSONDecoder().decode(Saved.self,from:Data(contentsOf:url))}
             guard data.version==1,data.signature==signature,data.engine.settings.validationError==nil,
                   data.baseMove<=moveCount,data.moves.count<=moveCount,
                   data.engine.blackToPlay==blackToPlay || data.engine.expiredBlack != nil || data.liveReviewActive == true else {
@@ -586,7 +600,7 @@ import Combine
             baseMove:min(baseMove,moveCount),needsCorrection:needsCorrection || discardedMoves>0,
             liveEvents:discardedMoves>0 ? []:liveEvents,liveReviewActive:hasReviews,awaitingTurn:hasReviews,
             timingNote:discardedMoves>0 ? "Later moves set aside. Check both clock times.":timingNote,pressEvidence:pressEvidence.filter{$0.number<=moveCount})
-        try JSONEncoder().encode(saved).write(to:url.deletingPathExtension().appendingPathExtension("clock.json"),options:.atomic)
+        try storageWriter.perform {try JSONEncoder().encode(saved).write(to:url.deletingPathExtension().appendingPathExtension("clock.json"),options:.atomic)}
     }
     func sgfMoveProperties(_ number:Int)->[String:[String]] {
         guard let move=moves.first(where:{$0.number==number}) else {return [:]}
@@ -609,7 +623,8 @@ import Combine
             let saved=Saved(signature:signature,engine:engine,moves:moves,baseMove:baseMove,needsCorrection:needsCorrection,
                             liveEvents:liveEvents,liveReviewActive:liveReviewActive,awaitingTurn:awaitingTurn,timingNote:timingNote,automaticPause:automaticPause,
                             resumeAnnouncement:pendingResumeAnnouncement,capturePosition:automaticCapturePosition,pressEvidence:pressEvidence,provisionalMoves:provisionalMoves,provisionalCaptureStart:provisionalCaptureStart)
-            try JSONEncoder().encode(saved).write(to:file,options:.atomic);saveError=nil
+            try storageWriter.submit("clock",component:.clock,coalescingKey:file.path) {try JSONEncoder().encode(saved).write(to:file,options:.atomic)}
+            saveError=nil
         } catch {saveError="Could not save clock: \(error.localizedDescription)"}
     }
 }

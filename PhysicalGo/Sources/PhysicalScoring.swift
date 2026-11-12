@@ -281,6 +281,7 @@ import Combine
         guard recorder.saveError==nil else {error=recorder.saveError;return}
         recorder.noteScoredPosition(session.board)
         if let failure=recorder.reviewSaveError {error=failure;return}
+        do {try recorder.flushStorage()} catch {self.error=error.localizedDescription;return}
         if let url=recorder.autosaveURL {
             let report:[String:Any]=["move":sourceMoves,"result":info.result!,"rules":info.rules ?? "","komi":info.komi ?? "",
                 "blackTotal":result.black.total,"whiteTotal":result.white.total,"aiVisits":visits,
@@ -292,7 +293,7 @@ import Combine
                 "reviewsOutstanding":recorder.reviewHistory.unresolved,"prisonersConfirmed":prisonersConfirmed,
                 "capturesByBlack":session.capturesByBlack,"capturesByWhite":session.capturesByWhite,
                 "confirmedAt":Date().timeIntervalSince1970]
-            do {try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]).write(to:url.deletingPathExtension().appendingPathExtension("score.json"),options:.atomic)}
+            do {try recorder.storageWriter.perform {try JSONSerialization.data(withJSONObject:report,options:[.sortedKeys]).write(to:url.deletingPathExtension().appendingPathExtension("score.json"),options:.atomic)}}
             catch {self.error="Result saved in SGF, but scoring details could not be saved: \(error.localizedDescription)"}
         }
         accepted=true

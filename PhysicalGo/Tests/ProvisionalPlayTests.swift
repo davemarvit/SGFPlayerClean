@@ -47,6 +47,7 @@ import SwiftUI
         check(r.clock.engine.black.remaining<firstBlack.remaining,"Black clock failed to run after White")
         let saved=r.autosaveURL!
         r.pause()
+        try r.flushStorage()
         let paused=r.clock.engine
         let reopened=GameRecorder(storage:root);reopened.clock.audible=false;try reopened.restoreSavedGame(from:saved)
         check(reopened.clock.saveError==nil && reopened.clock.provisionalMoves.count==2,"Restart lost provisional presses")
@@ -70,6 +71,7 @@ import SwiftUI
         check(r.clock.moves[0].estimate==firstPress,"Recognition catch-up replaced the first turn's timestamp")
         check(r.clock.moves[0].after.black==firstBlack,"Finalization awarded another increment")
         r.pause()
+        try r.flushStorage()
         let complete=GameRecorder(storage:root);complete.clock.audible=false;try complete.restoreSavedGame(from:saved)
         check(complete.moveCount==2 && complete.clock.saveError==nil,"Finalized game failed restart")
         // A capture is evidence about an earlier location, not an invented move.
@@ -117,6 +119,7 @@ import SwiftUI
         let held=hold.clock.engine
         holdFeed(8,hand:true)
         check(hold.clock.engine.black==held.black && hold.clock.engine.white==held.white,"Removal time charged while location remained provisional")
+        try hold.flushStorage()
         let resumeHold=GameRecorder(storage:root);resumeHold.clock.audible=false;try resumeHold.restoreSavedGame(from:captureFile)
         check(resumeHold.clock.provisionalCapturePaused && resumeHold.clock.provisionalMoves.count==1 && resumeHold.pendingMoveCount==1,"Restart lost a provisional capture pause")
         hboard[11] = .empty
@@ -155,6 +158,7 @@ import SwiftUI
         let expiryFile=root.appendingPathComponent("expiry.sgf");expiry.bind(to:expiryFile,signature:"expiry");expiry.ready(at:100)
         expiry.recordMove(number:1,black:true,at:111,observedAt:109.9,estimate:.init(time:109.9,method:.handMotion,observedLower:109.8,observedUpper:110.2),provisional:true)
         check(expiry.needsCorrection && !expiry.running && expiry.provisionalMoves.isEmpty,"Uncertain provisional expiry was silently decided")
+        try expiry.flushStorage()
         let expiryRestored=LocalGameClock();expiryRestored.audible=false;expiryRestored.restore(from:expiryFile,signature:"expiry",moveCount:0,blackToPlay:true)
         check(expiryRestored.saveError==nil && expiryRestored.needsCorrection,"Provisional expiry made saved clocks unreadable")
         // Render the live, clickable per-player counters and historical browser.

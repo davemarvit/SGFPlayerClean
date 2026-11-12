@@ -80,6 +80,7 @@ import SwiftUI
         check(r.resolveReview(reviews[2].id,draft:proposal(r,reviews[2],orders[2]),overrideCamera:false)==nil,"Out-of-order review failed")
         check(r.reviewHistory.unresolved==2 && r.sgf()==before,"Partial review changed accepted prefix")
         let restored=GameRecorder(storage:root);restored.clock.audible=false
+        try r.flushStorage()
         try restored.restoreSavedGame(from:file)
         check(restored.reviewHistory.reviews.count==3 && restored.reviewHistory.unresolved==2 && restored.reviewHistory.retainedMoveCount==6,"Review queue failed restart")
         check(restored.reviewHistory.reviews[2].moves != nil && restored.state == .paused,"Resolved review failed restart")
@@ -108,6 +109,7 @@ import SwiftUI
         restored.seek(0)
         check(restored.recordedMoveCount(for:.black)==7 && restored.recordedMoveCount(for:.white)==6,"Browsing changed clock move counts")
         restored.returnToLatest()
+        try restored.flushStorage()
         let again=GameRecorder(storage:root);again.clock.audible=false;try again.restoreSavedGame(from:file)
         check(again.moveCount==13 && again.reviewHistory.reviews.count==3 && !again.hasDeferredMoves,"Finalized queue failed restart")
         check(again.finalizeReviews() != nil && again.moveCount==13,"Finalization duplicated moves")
@@ -147,6 +149,7 @@ import SwiftUI
         let unsavedActual=SGFPlayer();unsavedActual.load(game:unsaved.game);unsavedActual.seek(to:1)
         unsaved.resume();feed(unsaved,unsavedActual.board);play(unsavedActual,orders[0]);feed(unsaved,unsavedActual.board);unsaved.pause()
         let unsavedSection=unsaved.reviewHistory.reviews[0]
+        try unsaved.flushStorage()
         let blockedFile=unsaved.autosaveURL!.deletingPathExtension().appendingPathExtension("reviews.json")
         try FileManager.default.removeItem(at:blockedFile)
         try FileManager.default.createDirectory(at:blockedFile,withIntermediateDirectories:false)
@@ -165,6 +168,8 @@ import SwiftUI
         try JSONSerialization.data(withJSONObject:stalePending).write(to:file.deletingPathExtension().appendingPathExtension("pending.json"),options:.atomic)
         let reconciled=GameRecorder(storage:root);reconciled.clock.audible=false;try reconciled.restoreSavedGame(from:file)
         check(reconciled.moveCount==13 && !reconciled.hasDeferredMoves,"Interrupted finalization duplicated/blocked the saved suffix")
+
+        try reconciled.flushStorage()
 
         // Corrupt recovery metadata must block final export without being overwritten.
         let corrupt=file.deletingPathExtension().appendingPathExtension("reviews.json")

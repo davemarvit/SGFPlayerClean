@@ -146,6 +146,55 @@ original player through recognition delay. The regression uses the incident's
 timestamps, preserves the 2.04-second balance before the unresolved press, keeps
 review required, and verifies that definitely late placements still expire.
 
+From 0.153, live game, pending-history, review and clock snapshots use one ordered
+background writer. JSON encoding and disk writes no longer run in camera or clock
+callbacks. The first storage failure stops dependent writes and pauses play with a
+Retry saving action. The critical queue is bounded; overload is a visible storage
+failure, not silently discarded game data. Consecutive snapshots of the same file
+coalesce to the newest complete state, without crossing dependent-write boundaries.
+Retrying writes the current in-memory
+session again before allowing Resume. Explicit shutdown, session replacement and
+paused edits still wait for durability; ordinary observations and timer ticks do not.
+This preserves the existing file formats; it does not add a multi-file crash transaction.
+
+Observation journals have a separate bounded background queue so optional diagnostics
+cannot delay game persistence. Under sustained disk pressure, diagnostic rows can be
+omitted. Game moves and clock snapshots are never handled as optional diagnostics.
+
+Every recording Resume command now passes through GameRecorder: timing review is
+checked first, manual pause is released once, and fresh board verification is required
+before clocks start. The UI derives Playing, Checking, Paused, Clock review, Capture
+removal and Storage blocked from one shared flow definition. Confirm times & resume
+enters Checking directly, without a second Resume. Pause checking cancels automatic
+resumption. An unresolved placement alone does not require clock review.
+
+Clock confirmation is durably saved before the sheet closes. Storage failures remain
+visible inside the sheet with Retry saving. A pre-correction board seen during fresh
+verification cannot become a new timed move. Historical move-order reviews also no
+longer block scoring a stable physical position; unsettled placements and provisional
+clock moves still do, and territory scoring still requires prisoner confirmation.
+
+Run `python3 build.py --storage-flow-test --persistence-test --clock-review-test`
+for blocked-disk responsiveness, failure/retry, ordered durability, restore, manual
+pause, camera recovery and clock-review regressions.
+
+Validation checkpoint for 0.153: all 82 registered Swift suites compiled against
+one optimized app module; 74 pass, including the new 31-check storage/flow suite.
+The six Python build-registry checks pass. Tests that reopen or deliberately damage
+files now wait at explicit durability boundaries. Diagnostic tests wait for writer
+completion instead of assuming that a fixed 0.4-second delay is sufficient.
+
+Eight suites still fail, and each failure also reproduces at the pre-refactor
+checkpoint `a310de3`: `visible-grid-stone-test`, `touching-shadow-test`,
+`crowded-white-test`, `centered-stone-test`, `capture-continuation-test`,
+`grid-ui-test`, `crowded-adjustment-test`, and `visibility-test`. These assertions
+remain enabled. This is not an all-green release gate; further architecture work
+is held pending their repair. In the capture replay, all 13 later moves are retained
+but the recorded observation calls an existing White stone at point 24 empty,
+contradicting the legal final position. The touching-shadow failure calls a small
+opaque cover empty; the visible-grid case withholds a labeled White stone. The
+other failures concern historical classification or pending-placement expectations.
+
 From 0.152, camera-backed clocks track the latest usable observation. If analysis
 falls more than 1.5 seconds behind, the clock pauses at that observation instead
 of charging the blind interval. Explicit camera interruptions use the same

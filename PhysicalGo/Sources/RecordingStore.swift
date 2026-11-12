@@ -17,7 +17,10 @@ import Foundation
     }
     private(set) var url: URL?
     private var failedReads: [Sidecar: String] = [:]
-    private var lastPendingData: Data?
+    private final class Cache { var lastPendingData: Data? }
+    private var cache = Cache()
+    let writer: RecordingStorage
+    init(writer: RecordingStorage = RecordingStorage()) { self.writer = writer }
     private var savedSignature: String?
     var isReadBlocked: Bool { !failedReads.isEmpty }
 
@@ -25,7 +28,7 @@ import Foundation
         self.savedSignature = savedSignature
         self.url = url
         failedReads = [:]
-        lastPendingData = nil
+        cache = Cache()
     }
     private func sidecar(_ kind: Sidecar) -> URL? {
         url?.deletingPathExtension().appendingPathExtension(kind.rawValue)
@@ -38,48 +41,60 @@ import Foundation
     func canCheckpoint(signature: String) -> Bool {
         url == nil || savedSignature == signature
     }
-    func saveGame(_ text: String, signature: String) throws {
+    func saveGame(_ text: String, signature: String, wait: Bool = true) throws {
         try requireWritable()
         guard let url else { return }
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try text.write(to: url, atomically: true, encoding: .utf8)
+        try writer.submit("game") {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+        if wait { try writer.flush() }
+        // Admission is ordered with dependent sidecars. A disk failure stops the
+        // entire writer until retry; no sidecar can pass a failed game revision.
         savedSignature = signature
     }
     func preserveBeforeUndo(_ text: String) throws {
         try requireWritable()
         guard let url else { return }
-        let backup=url.deletingPathExtension().appendingPathExtension("before-undo-\(UUID().uuidString)")
-        try text.write(to:backup.appendingPathExtension("sgf"),atomically:true,encoding:.utf8)
-        for suffix in ["clock.json","reviews.json","pending.json"] {
-            let source=url.deletingPathExtension().appendingPathExtension(suffix)
-            if FileManager.default.fileExists(atPath:source.path) {
-                try FileManager.default.copyItem(at:source,to:backup.appendingPathExtension(suffix))
+        try writer.flush()
+        try writer.perform {
+            let backup=url.deletingPathExtension().appendingPathExtension("before-undo-\(UUID().uuidString)")
+            try text.write(to:backup.appendingPathExtension("sgf"),atomically:true,encoding:.utf8)
+            for suffix in ["clock.json","reviews.json","pending.json"] {
+                let source=url.deletingPathExtension().appendingPathExtension(suffix)
+                if FileManager.default.fileExists(atPath:source.path) {
+                    try FileManager.default.copyItem(at:source,to:backup.appendingPathExtension(suffix))
+                }
             }
         }
     }
-    func savePending(_ checkpoint: PendingCheckpoint) throws {
+    func savePending(_ checkpoint: PendingCheckpoint, wait: Bool = true) throws {
         try requireWritable()
         guard let file = sidecar(.pending) else { return }
         guard canCheckpoint(signature: checkpoint.signature) else {
             throw Failure(message: "Save the accepted game before checkpointing its pending history.")
         }
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        let data = try encoder.encode(checkpoint)
-        // Repeated paused observations need not rewrite an identical checkpoint.
-        if data == lastPendingData, (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true { return }
-        try data.write(to: file, options: .atomic)
-        lastPendingData = data
+        let cache = cache
+        try writer.submit("pending moves",component:.pending,coalescingKey:file.path) {
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
+            let data = try encoder.encode(checkpoint)
+            if data == cache.lastPendingData,
+               (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true { return }
+            try data.write(to: file, options: .atomic)
+            cache.lastPendingData = data
+        }
+        if wait { try writer.flush() }
     }
-    func saveReviews(_ history: DeferredMoveHistory) throws {
+    func saveReviews(_ history: DeferredMoveHistory, wait: Bool = true) throws {
         try requireWritable()
         guard let file = sidecar(.reviews) else { return }
-        try JSONEncoder().encode(history).write(to: file, options: .atomic)
+        try writer.submit("review history",component:.reviews,coalescingKey:file.path) { try JSONEncoder().encode(history).write(to: file, options: .atomic) }
+        if wait { try writer.flush() }
     }
     func loadPending(game: SGFGame, now: Double) throws -> (awaitingStart: Bool, history: MoveObservationHistory?) {
         try read(.pending) { file in
             guard let file else { return (false, nil) }
-            let saved = try JSONDecoder().decode(PendingCheckpoint.self, from: Data(contentsOf: file))
+            let saved = try writer.perform { try JSONDecoder().decode(PendingCheckpoint.self, from: Data(contentsOf: file)) }
             guard saved.version == 1, saved.signature == RecordingIdentity.signature(for: game) else {
                 throw Failure(message: "The pending-move checkpoint does not match this SGF. The original checkpoint has been preserved.")
             }
@@ -97,13 +112,14 @@ import Foundation
                 var history = DeferredMoveHistory(); history.size = game.boardSize
                 return .init(history: history, recoveredCommit: false)
             }
-            let history = try JSONDecoder().decode(DeferredMoveHistory.self, from: Data(contentsOf: file))
+            let history = try writer.perform { try JSONDecoder().decode(DeferredMoveHistory.self, from: Data(contentsOf: file)) }
             return try ReviewHistoryCoordinator.restore(history, game: game)
         }
     }
     private func read<Value>(_ kind: Sidecar, decode: (URL?) throws -> Value) throws -> Value {
         do {
-            let file = sidecar(kind).flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+            let url = sidecar(kind)
+            let file = writer.perform { url.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil } }
             let result = try decode(file)
             failedReads.removeValue(forKey: kind)
             return result

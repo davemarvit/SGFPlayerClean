@@ -60,6 +60,7 @@ import ImageIO
         check(near(r.clock.engine.white.remaining,stopped.white.remaining-(now-clear)),"Opponent was not charged verification delay from clear frame")
         check(speech==["Capture complete. Clocks resumed. White to play."],"Actual resume announcement missing or duplicated")
         r.pause()
+        try r.flushStorage()
         let restored=GameRecorder(storage:root);restored.clock.audible=false;try restored.restoreSavedGame(from:r.autosaveURL!)
         check(restored.moveCount==46 && !restored.clock.running,"Restart changed accepted move or resumed clocks")
         // One clear glimpse per removal trip must retain the original boundary.
@@ -151,6 +152,7 @@ import ImageIO
         let pending=try make();_=feed(pending,incomplete,count:3)
         check(pending.hasUnfinishedReviews && !pending.canScorePosition && !pending.canEdit,"Capture hold allowed export/scoring or history edits")
         let beforeRestart=pending.clock.engine
+        try pending.flushStorage()
         let resumed=GameRecorder(storage:root);resumed.clock.audible=false;try resumed.restoreSavedGame(from:pending.autosaveURL!)
         check(resumed.automaticCaptureStatus != nil && resumed.clock.automaticCapturePaused && !resumed.clock.running,"Restart lost the pending capture hold")
         check(resumed.clock.engine.black==beforeRestart.black && resumed.clock.engine.white==beforeRestart.white,"Restart charged removal time")
@@ -165,6 +167,7 @@ import ImageIO
         check(!fallback.clock.automaticCapturePaused && !fallback.clock.running && fallback.clock.requiresReview,"Manual capture handoff lost the timing review gate")
         _=feed(fallback,plan.target,count:5)
         check(fallback.confirmCaptureReview(reviewID!,now:now)==nil && fallback.moveCount==46,"Explicit capture fallback could not save")
+        try fallback.flushStorage()
         let fallbackRestart=GameRecorder(storage:root);fallbackRestart.clock.audible=false;try fallbackRestart.restoreSavedGame(from:fallback.autosaveURL!)
         check(fallbackRestart.automaticCaptureStatus==nil && !fallbackRestart.clock.running,"Finished fallback restored an obsolete automatic hold")
         let ending=try make();_=feed(ending,incomplete,count:3);ending.finish()

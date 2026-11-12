@@ -20,7 +20,7 @@ import AppKit
             check(c.moves.map{$0.after.anchor!}==[102,105,108] && c.pressEvidence.allSatisfy(\.applied),"Press timestamps or applied status lost")
             let once=c.engine;c.recordCatchUp(first:1,last:3,blackToPlay:false,at:111,estimates:[press(102),press(105),press(108)])
             check(c.engine==once,"Duplicate catch-up charged clocks again")
-            c.pause(at:110)
+            c.pause(at:110);try c.flushStorage()
             let restored=LocalGameClock();restored.audible=false;restored.restore(from:file,signature:kind.rawValue,moveCount:3,blackToPlay:false)
             check(restored.saveError==nil && restored.moves.last?.estimate==press(108) && restored.pressEvidence.count==3,"Restart lost error bars or per-move evidence")
         }
@@ -32,6 +32,7 @@ import AppKit
         check(partial.requiresReview && !partial.running,"Missing clock evidence silently continued charging one player")
         let frozen=partial.engine;partial.tick(at:200);partial.ready(at:200)
         check(partial.engine==frozen && !partial.running,"Missing-evidence review resumed or lost further periods")
+        try partial.flushStorage()
         let restoredPartial=LocalGameClock();restoredPartial.audible=false;restoredPartial.restore(from:partialFile,signature:"missing",moveCount:3,blackToPlay:false)
         check(restoredPartial.requiresReview && !restoredPartial.running && restoredPartial.pressEvidence.count==3,"Restart hid missing-evidence review or lost retained presses")
         let paused=LocalGameClock();paused.audible=false;paused.configure(.init(kind:.absolute,mainSeconds:100),blackToPlay:true);paused.ready(at:100);paused.pause(at:106)

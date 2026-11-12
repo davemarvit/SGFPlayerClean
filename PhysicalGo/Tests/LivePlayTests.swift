@@ -77,6 +77,7 @@ import SwiftUI
         let (r,actual,order)=gap()
         r.pause()
         let oddRestart=GameRecorder(storage:folder);oddRestart.clock.audible=false
+        try r.flushStorage()
         try oddRestart.restoreSavedGame(from:r.autosaveURL!)
         check(oddRestart.nextPlayer == .black && oddRestart.liveNextPlayer == .white && !oddRestart.clock.engine.blackToPlay && oddRestart.clock.saveError==nil,"Live turn could not differ from the SGF turn after restart")
         r.resume();feed(r,actual.board)
@@ -89,6 +90,7 @@ import SwiftUI
         let scorePlayer=SGFPlayer();scorePlayer.load(game:r.scoringGame)
         check(scorePlayer.board==actual.board && scorePlayer.getCurrentAIPayload().initial.count==4,"Scoring payload omitted unsaved live stones")
         r.pause();let times=(r.clock.engine.black,r.clock.engine.white)
+        try r.flushStorage()
         let restored=GameRecorder(storage:folder);restored.clock.audible=false;try restored.restoreSavedGame(from:r.autosaveURL!)
         check(restored.clock.saveError==nil && restored.clock.engine.black==times.0 && restored.clock.engine.white==times.1,"Live clocks failed restart against the shorter SGF")
         check(restored.hasDeferredMoves && !restored.clock.running && restored.clock.liveEvents.count==1,"Restart discarded live presses or automatically resumed")
@@ -103,6 +105,7 @@ import SwiftUI
         check(restored.clock.running && restored.liveNextPlayer == .black,"Quick turn confirmation waited for historical review")
         restored.pause()
         let confirmedRestart=GameRecorder(storage:folder);confirmedRestart.clock.audible=false
+        try restored.flushStorage()
         try confirmedRestart.restoreSavedGame(from:restored.autosaveURL!)
         check(confirmedRestart.liveNextPlayer == .black && !confirmedRestart.clock.awaitingTurn,"Confirmed live turn failed restart")
 
@@ -110,6 +113,7 @@ import SwiftUI
         r.finish()
         check(r.state == .finished && r.hasUnfinishedReviews && r.canScorePosition && !r.clock.running,"Ending play blocked scoring or discarded reviews")
         let endedRestart=GameRecorder(storage:folder);endedRestart.clock.audible=false
+        try r.flushStorage()
         try endedRestart.restoreSavedGame(from:r.autosaveURL!)
         check(endedRestart.state == .finished && endedRestart.canScorePosition && endedRestart.hasUnfinishedReviews,"Ended game lost independent scoring/review state on restart")
         let scoring=PhysicalScoring();scoring.open(recorder:r,analyzeImmediately:false)

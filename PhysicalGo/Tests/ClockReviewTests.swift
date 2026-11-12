@@ -53,6 +53,7 @@ import SwiftUI
         let restored=LocalGameClock();restored.audible=false
         // Read the actual checkpoint signature, then exercise persisted review.
         let file=recorder.autosaveURL!,clockFile=file.deletingPathExtension().appendingPathExtension("clock.json")
+        try recorder.flushStorage()
         let data=try JSONSerialization.jsonObject(with:Data(contentsOf:clockFile)) as! [String:Any]
         restored.restore(from:file,signature:data["signature"] as! String,moveCount:0,blackToPlay:true)
         check(restored.requiresReview && restored.notice.contains("Review & resume"),"Restored review gave misleading resume instructions")
@@ -84,7 +85,7 @@ import SwiftUI
         check(!incident.clock.requiresReview && incident.clock.running,"Same pending stones reopened the timing review or never resumed")
         check(incident.clock.engine.blackToPlay && incident.clock.lastTimedMove==88,"Confirmed pending turns selected the wrong live player")
         check(incident.clock.engine.white==agreedWhite,"Verification awarded an overtime reset")
-        incident.pause()
+        incident.pause();try incident.flushStorage()
         let reopened=GameRecorder(storage:incidentRoot);reopened.clock.audible=false
         try reopened.restoreSavedGame(from:incident.autosaveURL!)
         check(reopened.clock.saveError==nil && !reopened.clock.requiresReview && reopened.clock.lastTimedMove==88,"Restart lost the acknowledged timing boundary")
@@ -104,7 +105,7 @@ import SwiftUI
         check(target[0] == .empty,"Test next move was occupied")
         feedIncident(nextTarget,6)
         check(!incident.clock.requiresReview && incident.clock.lastTimedMove==89 && !incident.clock.engine.blackToPlay,"Acknowledged history swallowed or duplicated the next live turn")
-        incident.pause()
+        incident.pause();try incident.flushStorage()
         let acknowledged=LocalGameClock();acknowledged.audible=false
         acknowledged.configure(.init(kind:.byoyomi,mainSeconds:0,periodSeconds:15,periods:1),blackToPlay:true)
         let balances=acknowledged.engine

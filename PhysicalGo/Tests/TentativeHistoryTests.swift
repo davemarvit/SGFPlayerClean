@@ -34,6 +34,7 @@ import Foundation
         check(recorder.retainingTentativeMoves && recorder.tentativeNextPlayer == .black,"Tentative activity/turn indicator follows the confirmed prefix instead of the retained game")
         check(recorder.status.contains("tentative") && recorder.status.contains("SGF waits"),"UI did not distinguish retained moves from confirmed SGF")
         let journal=recorder.autosaveURL!.deletingPathExtension().appendingPathExtension("observations.jsonl")
+        recorder.flushDiagnostics()
         let rows=try String(contentsOf:journal,encoding:.utf8).split(separator:"\n").map {
             try JSONSerialization.jsonObject(with:Data($0.utf8)) as! [String:Any]
         }
@@ -41,6 +42,7 @@ import Foundation
         check((last["tentativeSequences"] as? [[Int]])==[order],"Local journal did not preserve the tentative move order")
         check(Array(last["position"] as! String)[10]=="?","Internal format lost the uncertain intersection")
         check((last["bufferedFrames"] as! Int)<=64 && (last["retainedWitnesses"] as! Int)<=84,"Compact history grew with every old frame")
+        try recorder.flushStorage()
         check(try SGFGame.from(tree:SGFParser.parse(text:String(contentsOf:recorder.autosaveURL!,encoding:.utf8))).moves.isEmpty,"Unconfirmed moves leaked into autosaved SGF")
         feed(recorder,clear,4)
         check(recorder.moveCount==0,"An old ordering witness counted as fresh confirmation")
@@ -48,6 +50,7 @@ import Foundation
         check(recorder.game.moves.compactMap{$0.1.map{$0.1*9+$0.0}}==order,"Tidying the stone did not complete the exact retained sequence")
         check(recorder.lastInterpretedPoint==order.last,"Last-move marker disappeared when tentative moves became confirmed")
         check(recorder.pendingMoveCount==0 && recorder.localEvidenceRunCount==0,"Resolved history was not cleared from memory")
+        try recorder.flushStorage()
         check(try SGFGame.from(tree:SGFParser.parse(text:String(contentsOf:recorder.autosaveURL!,encoding:.utf8))).moves.count==10,"Resolved moves did not reach autosaved SGF")
         for index in 0...10 {recorder.seek(index);check(recorder.reviewedBoard==recorder.positions[index],"Tentative recovery lost review position \(index)")}
 

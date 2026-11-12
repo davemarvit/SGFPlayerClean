@@ -1471,7 +1471,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             panel.allowedContentTypes=[UTType(filenameExtension:"sgf") ?? .plainText]
             panel.nameFieldStringValue=filename
             guard panel.runModal() == .OK,let url=panel.url else {exportStatus="";return}
-            try data.write(to:url,options:.atomic)
+            try await Task.detached(priority:.utility) {try data.write(to:url,options:.atomic)}.value
             exportStatus="Saved \(url.lastPathComponent)"
             if mode == .local,let exportedSGF=String(data:data,encoding:.utf8) {
                 do {try recorder.discardFinishedObservationLog(exportedSGF:exportedSGF,keepDiagnostics:diagnosticSettings.enabled)}

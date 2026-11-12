@@ -51,9 +51,11 @@ import AppKit
         let recorder=GameRecorder(storage:root.appendingPathComponent("games"));recorder.clock.audible=false
         recorder.start(size:9,startPaused:true)
         let game=recorder.autosaveURL!,journal=game.deletingPathExtension().appendingPathExtension("observations.jsonl")
+        try recorder.flushStorage();recorder.flushDiagnostics()
         check(fm.fileExists(atPath:journal.path),"Unfinished game lacks recovery evidence")
         check(try !recorder.discardFinishedObservationLog(exportedSGF:recorder.sgf(),keepDiagnostics:false),"Mid-game export cleared recovery evidence")
         recorder.finish()
+        try recorder.flushStorage();recorder.flushDiagnostics()
         let saved=recorder.sgf(),clock=recorder.clock.engine
         check(try !recorder.discardFinishedObservationLog(exportedSGF:saved,keepDiagnostics:true) && fm.fileExists(atPath:journal.path),"Diagnostics mode discarded development evidence")
         check(try !recorder.discardFinishedObservationLog(exportedSGF:"stale export",keepDiagnostics:false) && fm.fileExists(atPath:journal.path),"Stale export cleared current evidence")
@@ -65,7 +67,7 @@ import AppKit
         let restored=GameRecorder(storage:root.appendingPathComponent("games"));restored.clock.audible=false
         try restored.restoreSavedGame(from:game)
         check(!fm.fileExists(atPath:journal.path),"Opening an exported game recreated diagnostic data")
-        restored.resume()
+        restored.resume();restored.flushDiagnostics()
         check(fm.fileExists(atPath:journal.path),"Resuming play did not restart recovery evidence")
         print("PASS: \(checks) diagnostic cleanup checks")
     }

@@ -17,6 +17,7 @@ import SwiftUI
         model.recorder.start(size:19,now:0)
         model.recorder.pause()
         model.recorder.manualMove(at:BoardPosition(3,3))
+        try model.recorder.flushStorage()
         let localSGF=model.recorder.sgf(),url=model.recorder.autosaveURL!
         precondition(model.recorder.moveCount==1 && FileManager.default.fileExists(atPath:url.path))
         let game=SGFGame.from(tree:try SGFParser.parse(text:String(contentsOf:url,encoding:.utf8)))
@@ -31,6 +32,7 @@ import SwiftUI
         precondition(model.onlineBoard.enabled && model.recorder.sgf()==localSGF)
         model.playMode = .local
         precondition(!model.onlineBoard.enabled && model.recorder.state == .paused && model.recorder.sgf()==localSGF)
+        try model.recorder.flushStorage()
         let storedSGF=try String(contentsOf:url,encoding:.utf8)
         precondition(storedSGF==localSGF)
         // Deliver a local observation without touching the online bridge or needing OGS.

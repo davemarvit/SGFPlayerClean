@@ -52,8 +52,10 @@ import Foundation
         colors[30] = .black; feed(pending, colors, 2)
         check(pending.moveCount == 0 && pending.pendingMoveCount == 3, "Expected three pending moves")
         let file = pending.autosaveURL!
+        try pending.flushStorage()
         check(try reopen(file).pendingMoveCount == 3, "Live pending chronology was not checkpointed")
         pending.suspendVision("Camera stopped. The recorded game is preserved.", preserveOrder: true)
+        try pending.flushStorage()
         check(try reopen(file).pendingMoveCount == 3, "Camera stop discarded durable pending chronology")
         check(pending.flushForExit(), "Shutdown flush unexpectedly failed")
         let restored = try reopen(file)
@@ -68,7 +70,8 @@ import Foundation
         restored.start(size: 13)
         check(restored.autosaveURL == file && restored.pendingMoveCount == 3,
               "Starting another game discarded pending history after a failed save")
-        let otherFile = fresh().autosaveURL!
+        let other = fresh();try other.flushStorage()
+        let otherFile = other.autosaveURL!
         do { try restored.restoreSavedGame(from: otherFile); check(false, "Opening another game discarded unsaved history") } catch {}
         check(restored.autosaveURL == file && restored.pendingMoveCount == 3,
               "Failed session switch replaced the current recording")

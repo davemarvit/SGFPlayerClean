@@ -67,11 +67,12 @@ enum LocalGameSetup {
     @Published private(set) var saveError: String?
     @Published private(set) var autosaveURL: URL?
     private let storage: URL?
-    private let recordingStore = RecordingStore()
+    private let recordingStore: RecordingStore
+    let storageWriter: RecordingStorage
     @Published private(set) var pendingSaveError: String?
     var recoveryReadBlocked: Bool { recordingStore.isReadBlocked }
     private let player = SGFPlayer()
-    let clock=LocalGameClock()
+    let clock: LocalGameClock
     @Published private(set) var synchronized = false
     @Published private(set) var verificationFrames = 0
     private var emptyViewSize = 0
@@ -246,7 +247,7 @@ enum LocalGameSetup {
     private var viewContinuity=CameraViewContinuity()
     private var blockedSince:Double?
     private var pendingUnknownCounts = [Int:Int]()
-    private var traceHandle:FileHandle?
+    private var journal: RecordingJournal?
     private var observationNumber=0
     private var unclearLimit:Int { max(2,Int(Double(game.boardSize*game.boardSize)*0.05)) }
 
@@ -274,7 +275,10 @@ enum LocalGameSetup {
         return clock.provisionalNextPlayer ?? (hasDeferredMoves ? reviewHistory.nextColor : nextPlayer)
     }
     var needsTurnConfirmation:Bool {hasDeferredMoves && liveNextPlayer == nil && state != .finished}
-    var canScorePosition:Bool {placementAmbiguities.isEmpty && clock.provisionalMoves.isEmpty && automaticCapture == nil && !recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
+    // Review sections retain a stable physical board even when its historical
+    // move order is unknown. Only unsettled current placements block scoring;
+    // territory scoring separately requires agreement on prisoner totals.
+    var canScorePosition:Bool {placementAmbiguities.allSatisfy({$0.reviewID != nil}) && clock.provisionalMoves.isEmpty && automaticCapture == nil && !recoveryReadBlocked && hasGame && !awaitingFirstStart && state != .verifying && !reviewing && !reviewLoadFailed && (hasDeferredMoves || pendingMoveCount==0)}
     var scoringGame:SGFGame {
         guard let board=reviewHistory.latest else {return game}
         var live=DeferredMoveHistory.positionGame(board,size:game.boardSize,rules:game.info.rules,turn:liveNextPlayer ?? .black)
@@ -355,7 +359,26 @@ enum LocalGameSetup {
         FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
             .appendingPathComponent("Physical Go/Recordings",isDirectory:true)
     }
-    init(storage:URL? = GameRecorder.recordingsDirectory) { self.storage = storage }
+    init(storage:URL? = GameRecorder.recordingsDirectory, storageWriter:RecordingStorage = RecordingStorage()) {
+        self.storage = storage; self.storageWriter = storageWriter
+        recordingStore = RecordingStore(writer:storageWriter)
+        clock = LocalGameClock(storageWriter:storageWriter)
+        storageWriter.onFailure = { [weak self] failure in self?.storageFailed(failure) }
+    }
+    private func storageFailed(_ failure:RecordingStorage.Failure) {
+        if state == .recording || state == .verifying {pause()}
+        saveError=failure.message
+        if failure.component == .pending {pendingSaveError=failure.message}
+        if failure.component == .reviews {reviewSaveError=failure.message}
+        status="Saving needs attention. Play is paused; retry saving before resuming."
+    }
+    /// Explicit read/export/edit boundary. Live processing only enqueues snapshots.
+    func flushStorage() throws {
+        do {try storageWriter.flush()}
+        catch {storageFailed(storageWriter.currentFailure ?? .init(message:error.localizedDescription));throw error}
+    }
+    func flushDiagnostics() {journal?.flush()}
+
 
     func hasVerifiedEmptyBoard(size:Int,now:Double = ProcessInfo.processInfo.systemUptime)->Bool {
         emptyViewVerified && emptyViewSize==size && emptyViewLast.map {now >= $0 && now-$0<=1} == true
@@ -408,7 +431,7 @@ enum LocalGameSetup {
     }
     /// Restore accepted history for review/update without deriving moves from a photo.
     func restoreSavedGame(from url:URL)throws {
-        let tree=try SGFParser.parse(text:String(contentsOf:url,encoding:.utf8))
+        let tree=try SGFParser.parse(text:storageWriter.perform {try String(contentsOf:url,encoding:.utf8)})
         let loaded=SGFGame.from(tree:tree)
         guard tree.branches.count==1,tree.mainLineNodes.first?.props["AP"]?.first?.hasPrefix("PhysicalGo:")==true,
               [9,13,19].contains(loaded.boardSize),loaded.analysisSettings.playRules != nil,
@@ -473,11 +496,11 @@ enum LocalGameSetup {
     private var checkpointSignature:String {RecordingIdentity.signature(for:game)}
     private func signature(for game:SGFGame)->String {RecordingIdentity.signature(for:game)}
     /// A separate internal file; pending moves never enter SGF prematurely.
-    func savePendingCheckpoint()throws {
+    func savePendingCheckpoint(wait:Bool=true)throws {
         let history=pausedTentativeHistory ?? observationHistory
         do {
             try recordingStore.savePending(.init(version:1,signature:checkpointSignature,
-                history:history.checkpoint,awaitingFirstStart:awaitingFirstStart))
+                history:history.checkpoint,awaitingFirstStart:awaitingFirstStart),wait:wait)
             pendingSaveError=nil
         } catch {
             pendingSaveError="Could not save pending moves: \(error.localizedDescription). Keep the app open and retry saving."
@@ -486,7 +509,7 @@ enum LocalGameSetup {
     }
     private func checkpointPendingMoves() {
         guard hasGame,!recoveryReadBlocked,saveError==nil,recordingStore.canCheckpoint(signature:checkpointSignature) else {return}
-        do {try savePendingCheckpoint()}
+        do {try savePendingCheckpoint(wait:false)}
         catch { /* savePendingCheckpoint publishes the error for retry. */ }
     }
     private func restorePendingCheckpoint()throws {
@@ -520,11 +543,16 @@ enum LocalGameSetup {
     }
     /// Use one save boundary for shutdown, session replacement and retries.
     private func saveSession()->String? {
+        // These are explicit leave/retry boundaries. Stop play before waiting for
+        // durability; normal frame and timer callbacks never drain the writer.
+        pause()
+        storageWriter.retry()
+        saveError=nil;pendingSaveError=nil;reviewSaveError=nil
         persist()
-        if !reviewHistory.sections.isEmpty {saveReviewHistory()}
+        saveReviewHistory()
         checkpointPendingMoves()
-        // A failed clock load leaves the clock disabled and its file untouched.
-        // Only an enabled clock can have unsaved changes that block leaving.
+        do {try flushStorage()} catch {return error.localizedDescription}
+        journal?.flush()
         return saveError ?? pendingSaveError ?? reviewSaveError ?? (clock.enabled ? clock.saveError:nil)
     }
     private func resetPending() { pendingKey=""; pendingCount=0; pendingSince=0; pendingUnknownCounts=[:] }
@@ -564,37 +592,45 @@ enum LocalGameSetup {
     }
     func pause() {
         defer {checkpointPendingMoves()}
-        guard state == .recording || state == .verifying else { return }
+        guard state == .recording || state == .verifying else {
+            if state == .paused {clock.pause("Clock and recording paused")}
+            return
+        }
         let retained=observationHistory.retainedForResume()
         let problem=needsAttention ? status:nil
-        state = .paused; resetWarningMonitor(); suspendVision("",preserveOrder:true);clock.pause("Clock and recording paused")
+        state = .paused; resetWarningMonitor(); suspendVision("",preserveOrder:true)
         pausedProblem=problem
         pausedTentativeHistory=retained;pendingMoveCount=retained?.pendingCount ?? 0
         status=awaitingFirstStart ? "Game setup saved. Press Start when both players are ready." : retained == nil ? "Paused. Review the moves, or correct a missed move at the latest position."
             : "Paused. \(pendingMoveCount) tentative moves are retained; Resume will recheck the physical board."
         trace(event:"paused")
     }
-    func resume() {
-        guard !recoveryReadBlocked,state == .paused else { return }
-        if traceHandle==nil {beginTrace(append:true,createIfMissing:true)}
+    enum ResumeOutcome { case checking, clockReview, unavailable }
+    /// The only recording resume command. All callers get the same review gate,
+    /// manual-pause release and fresh-board verification; none starts a clock here.
+    @discardableResult func resume()->ResumeOutcome {
+        guard !recoveryReadBlocked,storageWriter.error==nil,saveError==nil,pendingSaveError==nil,reviewSaveError==nil,
+              state == .paused else {return .unavailable}
+        guard !clock.requiresReview else {return .clockReview}
+        if journal==nil {beginTrace(append:true,createIfMissing:true)}
+        else {journal?.ensureOpen { [weak self] message in self?.diagnosticError=message }}
         reviewNotice=nil
         defer {checkpointPendingMoves()}
-        if awaitingFirstStart {
-            announceFirstStart=true;clock.requestResume()
-        }
-        pausedProblem=nil
+        clock.requestResume()
+        if awaitingFirstStart {announceFirstStart=true}
+        pausedProblem=nil;reviewIndex=moveCount
         if hasDeferredMoves {
-            state = .recording;suspendVision("Recording later moves; earlier sections still need review.")
-            clock.requestResume()
-            status="Recording later moves · \(reviewHistory.unresolved) sections can be reviewed after play."
-            trace(event:"resumed after review gap");return
+            state = .recording;suspendVision("Checking the live board before continuing; earlier placements remain under review.")
+            status="Checking the live board · clocks stopped. Earlier review sections can be resolved after play."
+            trace(event:"resumed after review gap");return .checking
         }
         let retained=pausedTentativeHistory
-        resetWarningMonitor();reviewIndex=moveCount
+        resetWarningMonitor()
         state = retained != nil ? .recording : positions.count == 1 && moveCount == 0 ? .verifying : .recording
         suspendVision("Checking that the physical board matches the recorded position before continuing.",preserveOrder:retained != nil)
         if let retained {observationHistory=retained;pendingMoveCount=retained.pendingCount}
         trace(event:"resumed")
+        return .checking
     }
     /// Explicit player confirmation clears the timing-review gate. Recording
     /// resumes through normal board verification; this does not start a clock
@@ -609,12 +645,13 @@ enum LocalGameSetup {
             }
         }
         let pendingNext=count%2==0 ? nextPlayer:nextPlayer.opponent
-        guard !recoveryReadBlocked,state == .paused,locations.allSatisfy({!$0.isEmpty}),
+        guard !recoveryReadBlocked,storageWriter.error==nil,saveError==nil,pendingSaveError==nil,reviewSaveError==nil,state == .paused,locations.allSatisfy({!$0.isEmpty}),
               let next=hasDeferredMoves ? (turn ?? liveNextPlayer):pendingNext,
               clock.correct(black:black,white:white,blackToPlay:next == .black,moveCount:moveCount) else {return false}
         if !hasDeferredMoves {clock.acknowledgePendingTurns(locations,firstBlack:nextPlayer == .black,moveCount:moveCount)}
         if hasDeferredMoves {reviewHistory.turnOverride=next;saveReviewHistory();clock.followLiveTurn(next,at:ProcessInfo.processInfo.systemUptime)}
-        if resume {clock.requestResume();self.resume()}
+        do {try flushStorage()} catch {return false}
+        if resume {self.resume()}
         return true
     }
     func confirmLiveTurn(_ color:Stone,at now:Double=ProcessInfo.processInfo.systemUptime) {
@@ -697,25 +734,19 @@ enum LocalGameSetup {
         return ready
     }
     private func beginTrace(append:Bool=false,createIfMissing:Bool=false) {
-        try? traceHandle?.close(); traceHandle=nil; diagnosticError=nil; observationNumber=0
-        guard let url=autosaveURL?.deletingPathExtension().appendingPathExtension("observations.jsonl") else { return }
-        // Merely reopening an exported game must not recreate its deleted log.
-        // If play resumes, resume() starts a new recovery journal.
-        if append && !createIfMissing && !FileManager.default.fileExists(atPath:url.path) {return}
-        do {
-            if !append || !FileManager.default.fileExists(atPath:url.path) { try Data().write(to:url,options:.atomic) }
-            traceHandle=try FileHandle(forWritingTo:url)
-            if append { try traceHandle?.seekToEnd() }
+        journal?.close();journal=nil;diagnosticError=nil;observationNumber=0
+        guard let url=autosaveURL?.deletingPathExtension().appendingPathExtension("observations.jsonl") else {return}
+        journal=RecordingJournal(url:url,append:append,createIfMissing:createIfMissing) { [weak self] message in
+            guard self?.journal?.url==url else {return}
+            self?.diagnosticError="Could not save recording diagnostics: \(message)"
         }
-        catch { diagnosticError="Could not save recording diagnostics: \(error.localizedDescription)" }
     }
-    /// Autosave and mid-game export must retain the evidence used by order
-    /// recovery. Only a successful export of this exact, finished game releases it.
+    /// Only a successful export of this exact, finished game releases diagnostics.
     @discardableResult func discardFinishedObservationLog(exportedSGF:String,keepDiagnostics:Bool)throws->Bool {
         guard !keepDiagnostics,state == .finished,!hasUnfinishedReviews,!recoveryReadBlocked,
               exportedSGF==sgf(),let url=autosaveURL?.deletingPathExtension().appendingPathExtension("observations.jsonl") else {return false}
-        try traceHandle?.close();traceHandle=nil
-        if FileManager.default.fileExists(atPath:url.path) {try FileManager.default.removeItem(at:url)}
+        if let journal {try journal.discard();self.journal=nil}
+        else {try storageWriter.perform {if FileManager.default.fileExists(atPath:url.path) {try FileManager.default.removeItem(at:url)}}}
         return true
     }
     func logAutomaticClockPause(_ pause:LocalGameClock.AutomaticPause) {
@@ -803,11 +834,11 @@ enum LocalGameSetup {
             entry["moveReviews"]=[review]
         }
         onDiagnosticEvent?(entry)
-        guard let traceHandle else {return}
-        do {
-            var data=try JSONSerialization.data(withJSONObject:entry,options:[.sortedKeys]); data.append(10)
-            try traceHandle.write(contentsOf:data)
-        } catch { diagnosticError="Could not save recording diagnostics: \(error.localizedDescription)" }
+        let url=journal?.url
+        journal?.append(entry) { [weak self] message in
+            guard self?.journal?.url==url else {return}
+            self?.diagnosticError="Could not save recording diagnostics: \(message)"
+        }
     }
 
     private func observeEmptyView(_ observation:BoardObservation, now:Double) {
@@ -1279,7 +1310,10 @@ enum LocalGameSetup {
     private var captureTimingUnresolved=false
     private var hasIndependentTurnTiming:Bool {clock.provisionalMoves.contains{$0.observedLocations != nil}}
     private func recordObservedTurns(base:[Occupancy],readings:[Occupancy],now:Double) {
-        guard clock.enabled,!clock.needsCorrection,!clock.awaitingTurn,!clock.automaticCapturePaused,
+        // A resume/checking frame may show a stone being restored to its recorded
+        // intersection. Only an uninterrupted turn can supply a new clock press.
+        // Retained pending turns are revalidated separately below.
+        guard clock.canBeginAutomaticCapture,!clock.needsCorrection,!clock.awaitingTurn,!clock.automaticCapturePaused,
               automaticCapture==nil,!captureTimingUnresolved,!recoveryReadBlocked else {return}
         var excluded=Set<Int>()
         for press in clock.provisionalMoves {
@@ -1307,7 +1341,7 @@ enum LocalGameSetup {
             clock.holdForTimingReview(first.estimate,at:now,reason:"Several turns appeared between clear views. Their individual clock times need review; no timeout is inferred.")
             return
         }
-        do {try savePendingCheckpoint()} catch {clock.pause("Turn evidence needs saving before the clock can switch",at:now);return}
+        do {try savePendingCheckpoint(wait:false)} catch {clock.pause("Turn evidence needs saving before the clock can switch",at:now);return}
         let number=clock.lastTimedMove+1
         clock.recordMove(number:number,black:color == .black,at:now,observedAt:first.estimate.time,
                          estimate:first.estimate,provisional:true,observedLocations:first.locations.sorted())
@@ -1397,7 +1431,7 @@ enum LocalGameSetup {
             let views=observationHistory.candidates.first?.witnesses.filter{$0.depth==offset+1 && $0.complete && now-$0.time<=1.5} ?? []
             guard views.count>=5,let first=views.first,let last=views.last,last.time-first.time>=0.8 else {return}
         }
-        do {try savePendingCheckpoint()} catch {clock.pause("Pending moves need saving before the clock can switch",at:now);return}
+        do {try savePendingCheckpoint(wait:false)} catch {clock.pause("Pending moves need saving before the clock can switch",at:now);return}
         let press=clock.provisionalCaptureStart ?? estimate
         clock.recordMove(number:moveCount+offset+1,black:turn.color == .black,at:now,observedAt:press.time,estimate:press,provisional:true)
         if clock.provisionalMoves.contains(where:{$0.number==moveCount+offset+1}) {
@@ -1603,7 +1637,7 @@ enum LocalGameSetup {
         let first=moveCount+1
         game=updated;positions.append(contentsOf:boards);reviewIndex=moveCount
         manualMoves.formUnion(manualMoveNumbers ?? Set(first...moveCount))
-        persist(checkpoint:false)
+        persist(checkpoint:false,wait:true)
         if let error=saveError {
             game=oldGame;positions=oldPositions;manualMoves=oldManual;reviewIndex=oldIndex
             return error
@@ -1628,6 +1662,7 @@ enum LocalGameSetup {
         if let clip=onEvidenceCapture?(evidence) {evidence["evidenceCapture"]=clip}
         trace(event:"manual sequence approved",extra:evidence)
         if trial.lastTwoMovesWerePasses {finish()}
+        do {try flushStorage()} catch {return error.localizedDescription}
         return nil
     }
     @discardableResult func undo(expectedSignature:String?=nil)->String? {
@@ -1655,6 +1690,7 @@ enum LocalGameSetup {
         status="Last move undone. Restore the physical board to this position, then Resume recording."; persist()
         if !reviewHistory.sections.isEmpty {saveReviewHistory()}
         trace(event:"undo")
+        do {try flushStorage()} catch {return error.localizedDescription}
         return saveError ?? pendingSaveError ?? reviewSaveError ?? clock.saveError
     }
     func attachClock(_ settings:LocalClockSettings) {
@@ -1714,8 +1750,10 @@ enum LocalGameSetup {
             // Publish the SGF last: an incomplete copy cannot appear as a game.
             try store.saveGame(plan.text,signature:signature)
         } catch {
-            for suffix in ["sgf","reviews.json","clock.json"] {
-                try? FileManager.default.removeItem(at:file.deletingPathExtension().appendingPathExtension(suffix))
+            storageWriter.perform {
+                for suffix in ["sgf","reviews.json","clock.json"] {
+                    try? FileManager.default.removeItem(at:file.deletingPathExtension().appendingPathExtension(suffix))
+                }
             }
             throw error
         }
@@ -1723,10 +1761,10 @@ enum LocalGameSetup {
         reviewNotice="\(plan.edits.count==1 ? "Move \(plan.number)":"\(plan.edits.count) moves") corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
         trace(event:"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"point":plan.destination.row*game.boardSize+plan.destination.col,"discardedMoves":plan.discardedMoves,"corrections":plan.edits.map{["move":$0.number,"point":$0.destination.row*game.boardSize+$0.destination.col]}])
     }
-    private func persist(checkpoint:Bool=true) {
+    private func persist(checkpoint:Bool=true,wait:Bool=false) {
         guard let autosaveURL else { return }
         do {
-            try recordingStore.saveGame(sgf(),signature:checkpointSignature); saveError=nil
+            try recordingStore.saveGame(sgf(),signature:checkpointSignature,wait:wait); saveError=nil
             clock.bind(to:autosaveURL,signature:checkpointSignature)
             if checkpoint {checkpointPendingMoves()}
         } catch { saveError="Game is in memory but autosave failed: \(error.localizedDescription)" }
@@ -1744,6 +1782,8 @@ extension GameRecorder {
         guard changed.validate(size:game.boardSize,signature:checkpointSignature) else {
             throw RecordingStore.Failure(message:"The corrected review could not be validated.")
         }
+        // Retrying this explicit edit first repairs any failed queued session save.
+        if storageWriter.error != nil,let error=saveSession() {throw RecordingStore.Failure(message:error)}
         // Persist before publishing; a failed write leaves the visible draft and
         // accepted game untouched. Original evidence is stored in the sidecar.
         try recordingStore.saveReviews(changed)
@@ -1752,8 +1792,8 @@ extension GameRecorder {
         reviewNotice="Detected stone corrected. Check the remaining review changes before continuing."
         trace(event:"review observation corrected",extra:["reviewID":edit.reviewID.uuidString,"from":edit.from.row*game.boardSize+edit.from.col,"to":edit.to.row*game.boardSize+edit.to.col])
     }
-    private func saveReviewHistory() {
-        do {try recordingStore.saveReviews(reviewHistory);reviewSaveError=nil}
+    private func saveReviewHistory(wait:Bool=false) {
+        do {try recordingStore.saveReviews(reviewHistory,wait:wait);reviewSaveError=nil}
         catch {reviewSaveError="Review history could not be saved: \(error.localizedDescription). Keep the app open and retry saving."}
     }
     func retryReviewSave() {
@@ -1761,7 +1801,7 @@ extension GameRecorder {
             do {
                 try restoreChronology()
             } catch { /* The corresponding load error remains visible; no writes. */ }
-        } else {saveReviewHistory()}
+        } else {retryRecordingSave()}
     }
     private func restoreReviewHistory()throws {
         do {
@@ -1901,7 +1941,7 @@ extension GameRecorder {
             reviewHistory.sections[i].resolvedAt=Date().timeIntervalSince1970
             reviewHistory.sections[i].recoverySource="Player removed accidental out-of-turn stones; related removals resolved together and later legal moves preserved."
         }
-        saveReviewHistory()
+        saveReviewHistory(wait:true)
         if let error=reviewSaveError {reviewHistory=previous;return error}
         trace(event:"accidental stones withdrawn",extra:["reviewIDs":plan.sectionIDs.map(\.uuidString),
             "removedPoints":plan.removedPoints.sorted(),"keptLaterMoves":plan.keptMoves.count])
@@ -1930,7 +1970,7 @@ extension GameRecorder {
         reviewHistory.sections[index].recoverySource=resolutionReason
         reviewHistory.sections[index].resolvedAfter=after
         reviewHistory.sections[index].resolvedAt=Date().timeIntervalSince1970
-        saveReviewHistory()
+        saveReviewHistory(wait:true)
         if let reviewSaveError {return reviewSaveError}
         trace(event:"review section resolved",extra:["review":reviewHistory.sections[index].reviewNumber ?? 0,"approvalSeconds":ProcessInfo.processInfo.systemUptime-approvalStarted,"selectedMoves":moves.map{["color":$0.color.rawValue,"point":$0.point.map{$0.row*game.boardSize+$0.col} as Any? ?? NSNull()]}])
         if reviewHistory.unresolved==0 {return finalizeReviews()}
@@ -1951,14 +1991,14 @@ extension GameRecorder {
                 let error=trial.tryPlayMove(color:move.color,x:move.point?.col ?? -1,y:move.point?.row ?? -1)
                 if let error {
                     let reason="The complete sequence needs another look here: \(error.rawValue)"
-                    reviewHistory.requireReview(at:i,reason:reason);saveReviewHistory();return reason
+                    reviewHistory.requireReview(at:i,reason:reason);saveReviewHistory(wait:true);return reason
                 }
                 _=draft.add(move.point,checkCameraColor:false);number += 1
                 if (section.reviewNumber != nil && section.recoverySource==nil) || section.manual == true {manual.insert(number)}
             }
             if DeferredMoveHistory.states(trial.board) != (section.resolvedAfter ?? section.after) {
                 let reason="Earlier corrections change the position here. Review this section against the corrected history."
-                reviewHistory.requireReview(at:i,reason:reason);saveReviewHistory();return reason
+                reviewHistory.requireReview(at:i,reason:reason);saveReviewHistory(wait:true);return reason
             }
         }
         // A false camera event may be resolved as no moves at all.
@@ -1976,11 +2016,12 @@ extension GameRecorder {
         let ending=reviewHistory.endRequested || player.lastTwoMovesWerePasses
         reviewHistory.anchorSignature=nil;reviewHistory.baseMove=nil;reviewHistory.endRequested=false;reviewHistory.turnOverride=nil
         persist()
-        saveReviewHistory();resetObservationHistory();resetWarningMonitor()
+        saveReviewHistory(wait:true);resetObservationHistory();resetWarningMonitor()
         status="All reviews resolved. \(moveCount) moves saved; SGF is ready to export."
         trace(event:"review queue finalized",extra:["reviewHistory":((try? JSONSerialization.jsonObject(with:JSONEncoder().encode(reviewHistory))) ?? NSNull())])
         if ending {finish()}
         if scoreChanged {status="Reviews resolved. The corrected board differs from the scored board; score the game again before saving the result."}
+        do {try flushStorage()} catch {return error.localizedDescription}
         if reviewSaveError==nil && saveError==nil {reviewNotice=scoreChanged ? status:"Review saved. All reviews resolved · \(moveCount) moves saved."}
         return reviewSaveError
     }

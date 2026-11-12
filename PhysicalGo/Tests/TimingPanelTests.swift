@@ -76,6 +76,7 @@ import SwiftUI
         precondition(saved.info.playerBlack=="Dave" && saved.info.playerWhite=="相手" && saved.info.komi=="7.5" && saved.info.event==info.event && saved.info.date=="2026-11-06" && saved.info.result=="B+R")
         let count=recorder.moveCount,url=recorder.autosaveURL!
         recorder.finish();precondition(recorder.state == .finished && recorder.moveCount==count && recorder.autosaveURL==url)
+        try recorder.flushStorage();recorder.flushDiagnostics()
         let restored=GameRecorder(storage:nil);try restored.restoreSavedGame(from:url)
         precondition(restored.game.info.playerWhite=="相手" && restored.moveCount==1)
         reports=try reader.refresh()

@@ -67,6 +67,7 @@ import Foundation
     check(clock.engine.black.remaining==55 && !clock.engine.blackToPlay,"Controller move switch")
     clock.recordMove(number:1,black:true,at:12)
     check(clock.engine.black.remaining==55 && clock.moves.count==1,"Duplicate increment")
+    try clock.flushStorage()
     let restored=LocalGameClock();restored.audible=false
     restored.restore(from:url,signature:"move1",moveCount:1,blackToPlay:false)
     check(restored.enabled && !restored.running && restored.engine.black.remaining==55,"Restore lost clocks or resumed them")
@@ -78,7 +79,7 @@ import Foundation
     clock.correct(black:corrected,white:clock.engine.white,blackToPlay:false,moveCount:3,at:14)
     clock.resume(at:15);clock.recordMove(number:4,black:false,at:16)
     check(clock.running && clock.engine.blackToPlay && !clock.needsCorrection,"Correction did not restore clock sequence")
-    clock.pause(at:16)
+    clock.pause(at:16);try clock.flushStorage()
     let bad=LocalGameClock();bad.audible=false;bad.restore(from:url,signature:"wrong game",moveCount:1,blackToPlay:false)
     check(!bad.enabled && bad.saveError != nil,"Mismatched saved clocks accepted")
     let lag=LocalGameClock();lag.audible=false
@@ -117,6 +118,7 @@ import Foundation
     recorder.pause();check(!recorder.clock.running,"Recording pause did not pause clock")
     recorder.pass();check(recorder.moveCount==2 && !recorder.clock.engine.blackToPlay,"Pass did not switch clock")
     recorder.pass();check(recorder.state == .finished && !recorder.clock.running,"Two passes did not stop clock")
+    try recorder.flushStorage()
     let reread=GameRecorder(storage:nil);reread.clock.audible=false;try reread.restoreSavedGame(from:recorder.autosaveURL!)
     check(reread.clock.enabled && !reread.clock.running && reread.moveCount==3,"Recorder restore lost clock")
     print("PASS: \(count) local-clock checks: six modes, exact boundaries, overtime, increments, duplicate presses, frequency independence, pause, handicap, recognition, pass, undo, correction, persistence and SGF")

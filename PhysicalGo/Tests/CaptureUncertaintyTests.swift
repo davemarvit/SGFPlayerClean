@@ -145,6 +145,7 @@ enum CaptureUncertaintyTests {
         // Persist/reopen and manual-review escape use the expected intermediate
         // position, while camera readings remain uncertain and require freshness.
         let pending=try make();feed(pending,uncertain,count:3)
+        try pending.flushStorage()
         let reopened=GameRecorder(storage:root);reopened.clock.audible=false;try reopened.restoreSavedGame(from:pending.autosaveURL!)
         check(reopened.clock.automaticCapturePaused && reopened.automaticCaptureStatus != nil && !reopened.clock.running,"Uncertainty broke restoration of a capture hold")
         check(reopened.prepareAutomaticCaptureReview() != nil && reopened.pendingCaptureReview != nil,"Uncertainty broke the manual capture-review escape")

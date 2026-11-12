@@ -145,6 +145,7 @@ import Foundation
         defer { try? FileManager.default.removeItem(at:dir) }
         let saved=GameRecorder(storage:dir); saved.start(size:9); feed(saved,empty); feed(saved,first)
         let url=saved.autosaveURL!; saved.seek(0)
+        try saved.flushStorage()
         check(try SGFGame.from(tree:SGFParser.parse(text:String(contentsOf:url,encoding:.utf8))).moves.count==1,"Autosave missing move")
         check(try SGFGame.from(tree:SGFParser.parse(text:saved.sgf())).moves.count==1,"Review cursor truncated export")
         saved.undo(); check(try FileManager.default.contentsOfDirectory(atPath:dir.path).filter{$0.hasSuffix(".sgf")}.count==2,"Undo failed to preserve backup")
@@ -264,6 +265,7 @@ import Foundation
         check(pair.moveCount==2 && pair.nextPlayer == .black && pairCallbacks==[1,2],"Unique pair did not commit in turn order")
         check(pair.positions[1].grid[7][7] == .black && pair.positions[1].grid[0][2]==nil,"Pair lost the intermediate board")
         check(pair.positions[2].grid[0][2] == .white,"Pair lost White's move")
+        try pair.flushStorage()
         check(try SGFGame.from(tree:SGFParser.parse(text:String(contentsOf:pair.autosaveURL!,encoding:.utf8))).moves.count==2,"Pair autosave incomplete")
         pair.seek(1); check(pair.reviewedBoard==pair.positions[1],"Cannot review individual recovered moves")
         pair.resume(); feed(pair,pair.positions.last!)

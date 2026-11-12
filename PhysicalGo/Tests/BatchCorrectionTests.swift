@@ -29,6 +29,7 @@ import SwiftUI
         check(r.autosaveURL != original && r.moveCount==4 && r.nextPlayer == .black,"Batch save lost history or turn")
         check(r.clock.engine.black==balances.black && r.clock.engine.white==balances.white && !r.clock.running,"Batch changed clock balances")
         check(try String(contentsOf:original,encoding:.utf8)==originalText,"Batch modified original SGF")
+        try r.flushStorage()
         let reopened=GameRecorder(storage:root);reopened.clock.audible=false;try reopened.restoreSavedGame(from:r.autosaveURL!)
         check(reopened.sgf().contains("BL[90]") && reopened.sgf().contains("WL[91]"),"Restart/autosave discarded historical clock annotations")
         check(reopened.game.moves[0].1?.0==1 && reopened.game.moves[1].1?.0==0 && reopened.moveCount==4,"Batch SGF failed restart")
@@ -73,12 +74,13 @@ import SwiftUI
         func feed(_ values:[Occupancy],count:Int) {
             for _ in 0..<count {time+=0.21;demo.consume(.init(readings:values.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:1,delta:0)},size:19,capturedAt:time,handObstructed:false),now:time)}
         }
-        demo.clock.requestResume();demo.resume()
+        check(demo.resume() == .checking,"Corrected board did not enter verification")
         feed(history.sections[0].before,count:6)
         check(!demo.clock.running,"Old wrong board restarted corrected game's clock")
         feed(history.sections[0].after,count:10)
         check(demo.clock.running && demo.synchronized && demo.moveCount==7,"Corrected physical location could not resume normally")
         demo.pause()
+        try demo.flushStorage()
         let demoReloaded=GameRecorder(storage:root);demoReloaded.clock.audible=false;try demoReloaded.restoreSavedGame(from:demo.autosaveURL!)
         check(!demoReloaded.hasDeferredMoves && demoReloaded.game.moves[6].1?.1==2,"Corrected demo did not restore")
         var conflicting=history;conflicting.sections[0].after[0] = .white

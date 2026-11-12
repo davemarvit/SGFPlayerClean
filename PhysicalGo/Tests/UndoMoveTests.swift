@@ -76,6 +76,7 @@ import SwiftUI
         check(r.clock.engine.black==black && r.clock.engine.white==white,"Unknown press history invented clock time")
         check(session.confirm(r,now:now) != nil && r.moveCount==45,"Repeated confirmation undid another move")
         check(try FileManager.default.contentsOfDirectory(atPath:root.path).contains{$0.contains("before-undo")},"Undo lost original SGF backup")
+        try r.flushStorage()
         let reopened=GameRecorder(storage:root);reopened.clock.audible=false;try reopened.restoreSavedGame(from:r.autosaveURL!)
         check(reopened.moveCount==45 && reopened.nextPlayer == .black,"Undo failed restart")
         reopened.pass()
@@ -90,6 +91,7 @@ import SwiftUI
         failure.attachClock(.init(kind:.absolute,mainSeconds:300));failure.manualMove(at:BoardPosition(16,10))
         let failureSession=UndoMoveSession(plan:UndoMovePlan(recorder:failure)!)
         for _ in 0..<5 {now += 0.21;failureSession.observe(observation(target),now:now)}
+        try failure.flushStorage()
         let clockFile=failureFile.deletingPathExtension().appendingPathExtension("clock.json")
         try FileManager.default.removeItem(at:clockFile)
         try FileManager.default.createDirectory(at:clockFile,withIntermediateDirectories:false)

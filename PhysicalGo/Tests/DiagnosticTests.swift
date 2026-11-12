@@ -119,11 +119,13 @@ import ImageIO
         for _ in 0..<7 {model.receive(one);settle(0.3)}
         check(model.recorder.moveCount==1 && model.recorder.game.moves.first?.1?.0==15 && model.recorder.game.moves.first?.1?.1==15,"Diagnostic mode prevented the centered test move being recorded at its intended intersection")
         model.recorder.pause();let paused=model.diagnostics.savedFrames
-        model.receive(one);settle(0.4)
+        model.receive(one)
+        wait({model.diagnostics.savedFrames>paused || model.diagnostics.state == .failed})
         check(model.diagnostics.savedFrames>paused && model.recorder.moveCount==1,"Pausing the game stopped diagnostics or changed accepted history")
         model.frozen=true
         let frozenBefore=model.diagnostics.savedFrames
-        model.receiveCameraFrame(one,capturedAt:ProcessInfo.processInfo.systemUptime);settle(0.4)
+        model.receiveCameraFrame(one,capturedAt:ProcessInfo.processInfo.systemUptime)
+        wait({model.diagnostics.savedFrames>frozenBefore || model.diagnostics.state == .failed})
         check(model.diagnostics.savedFrames>frozenBefore && model.recorder.moveCount==1,"Frozen camera input was not saved independently of detection")
         model.frozen=false
         model.handleCameraStatus("Live · diagnostic camera event",state:.live)

@@ -15,6 +15,7 @@ import SwiftUI
             r.clock.pause();return r
         }
         let r=recorder(timed:true),original=r.sgf()
+        try r.flushStorage()
         let file=r.autosaveURL!,originalBytes=try Data(contentsOf:file)
         let observed=BoardObservation(readings:(0..<81).map {i in
             .init(row:i/9,col:i%9,occupancy:i==10 ? .white:.empty,confidence:1,delta:0)
@@ -53,6 +54,7 @@ import SwiftUI
         check(staleRecorder.approveRecovery(stale) != nil && staleRecorder.moveCount==1,"Stale draft overwrote game")
         // Persist failure must leave in-memory moves untouched as well.
         let failure=recorder();var failing=MoveRecoveryDraft(recorder:failure,observation:nil);_=failing.add(BoardPosition(4,4))
+        try failure.flushStorage()
         let failureURL=failure.autosaveURL!;try FileManager.default.removeItem(at:failureURL)
         try FileManager.default.createDirectory(at:failureURL,withIntermediateDirectories:false)
         check(failure.approveRecovery(failing) != nil && failure.moveCount==0 && failure.nextPlayer == .black,"Save failure partially applied sequence")

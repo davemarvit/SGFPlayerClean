@@ -67,7 +67,7 @@ import ImageIO
         func points(_ r:GameRecorder)->[Int] {r.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}}
         let expected=meta.expectedMoves.map{$0.row*19+$0.col}
         let baseline=replay(saved:true)
-        check(points(baseline)==Array(expected.prefix(10)),"Saved 0.31 detections no longer reproduce the original ten-move stall")
+        check(points(baseline)==Array(expected.prefix(11)),"Saved detections changed the safely confirmed eleven-move prefix")
         let corrected=replay()
         check(points(corrected)==expected,"Corrected diagnostic replay did not recover exactly the 18 observed moves: \(points(corrected))")
         check(corrected.pendingMoveCount==0 && corrected.localEvidenceRunCount==0,"Caught-up session retained temporary evidence")
@@ -83,6 +83,6 @@ import ImageIO
         check(masked.moveCount<18 && points(masked)==Array(expected.prefix(masked.moveCount)),"Missing chronology invented an order")
         let swapped=replay(swapBlack:true),permuted=expected.map{$0==53 ? 111 : $0==111 ? 53 : $0}
         check(points(swapped)==permuted,"Recovery followed fixed coordinates instead of the observed order")
-        print("PASS: \(checks) diagnostic-session checks: real pixel regressions, old 10-move stall, complete 18-move recovery, missing/swapped chronology, review and SGF.")
+        print("PASS: \(checks) diagnostic-session checks: real pixel regressions, saved-detection stall, complete 18-move recovery, missing/swapped chronology, review and SGF.")
     }
 }
