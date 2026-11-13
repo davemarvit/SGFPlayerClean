@@ -1411,3 +1411,11 @@ but capture-specific removal guidance needs review; do not claim all UX passed.
 Following White move remains to verify continuation before counting this original
 matrix scenario complete (still13/27 fully completed). White A4 can serve as that
 follow-up and begin a later two-prisoner setup; do not move stones until guided.
+
+Next guided continuation check: nine-move SGF and complete paused clock JSON
+still match the post-capture snapshot. Resume, place White A4 adjacent to White
+A3, clear hands until10 saved/Black running, then Pause. Keep A1 empty and all
+other stones unchanged. Verify one White increment, no repeated increment for
+Black's previous capture, and no stale capture hold/review. This completes the
+clock/continuation part of the single-prisoner scenario if successful and starts
+the physical setup for a two-prisoner capture; guidance finding remains separate.
