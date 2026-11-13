@@ -1172,3 +1172,169 @@ Next guided step: stay paused, slide Black halfway K10 toward L10, clear hands
 five seconds; expect orange K10 marker and centering explanation. Click the marker
 and leave the stone off-center/panel open for inspection before restoration.
 Acceptance count remains ten passed / seventeen remaining until this retest.
+
+0.165 physical centering prompt **PASS**: user screenshot shows “Check stone
+centering,” the conditional explanation for a bumped stone, original camera
+report uncertain at K10, and the saved Black K10 highlighted in orange. Native
+UI and storage checks confirm three saved, White next, manually paused, with
+exact SGF and semantic clock/pending/review JSON unchanged from the post-nudge
+baseline. Screenshot retained at `.build/GuidedTests/nudge-0165-physical-centering.png`.
+Next restore Black K10 with this panel open, without acknowledging or previewing
+a correction; expect RESOLVED, no orange ring, stable board position and size,
+and unchanged paused game. Final restoration still pending before counting the
+nudge/displacement scenario complete.
+
+0.165 final nudge restoration **PASS**: user reports RESOLVED, orange ring gone,
+board unchanged in position/size, original Black centered K10, three saved,
+White next and both clocks paused. Native UI confirms RESOLVED and zero attention
+points; exact SGF and full semantic clock/pending/review JSON match the post-nudge
+pause baseline. Combined nudge/displacement scenario complete, including earlier
+running-clock/no-extra-move check and the new physical centering-guidance retest.
+Original acceptance matrix now **11/27 passed, 16 remaining (about 41%)**;
+two review scenarios remain, plus seven capture, two rapid-timing, five outage.
+
+Next: saved-placement correction preview while a new move arrives, then cancel.
+Close resolved panel, select Saved moves (move3), Resume clock and recording,
+open Correct move… without changing/confirming the preview, then place White at
+D16 (canonical72; expected fourth SGF move W[pd]) with the preview still open.
+Clear hands five seconds, Cancel the preview, then Pause. Expect four saved
+moves, Black next, White-to-Black clock transition with one White increment;
+preview/cancel itself must neither pause tracking nor alter the first three moves.
+The preview should report that play advanced. This tests the saved-placement
+preview route; chronology/stale-acceptance testing remains separate.
+
+Saved-placement preview / move-arrival / cancel **PASS**: user reports four saved
+moves while Saved moves initially showed three stones; Live position showed all
+four. Switching views subsequently showed D16 in both. Saved browsing retains
+its selected historical move; selecting Saved moves again explicitly selects the
+latest move. Thus the reported transition is consistent with move3 remaining
+selected during recording and move4 being selected on returning. User did not
+observe “Play advanced”; that text belongs inside the open correction preview,
+not the main board. Its physical visibility is unverified, not claimed passed.
+
+Native UI confirms four saved, Black next, manual pause. SGF is precisely the
+original B[jj];W[pp];B[dd] plus W[pd]. Earlier timed moves are unchanged; move4
+has one applied camera hand-bracket boundary and exactly one 30-second White
+increment (238.586720791→268.586720791). Black ran 10.060562916 seconds after
+the move before manual pause; balance217.653869209. No timing correction or
+provisional move remains. Matrix: **12/27 passed, 15 remaining (about 44%)**.
+
+Next scenario is chronology review with stale acceptance. Select Live position,
+Resume, open Order missed moves…, and select Black passed inside that draft only.
+Then physically play Black Q4 (canonical288; expected fifth move B[dp]) and clear
+hands five seconds, leaving the draft panel open without pressing Accept yet.
+Verify the live fifth move independently before testing stale acceptance. The
+draft pass must never become a recorded pass. This stage leaves clocks running;
+inspect promptly, then test rejection and Cancel/Pause in the next guided stage.
+
+Chronology preflight interrupted **before draft or fifth move**: user selected
+Live position and Resume, but saw checking/clocks stopped. Native UI showed the
+camera stopped with “Camera could not recover a usable live image. Check the
+phone or cable, then choose Restart camera.” Last camera observations were from
+the earlier pause; Resume correctly withheld clocks without fresh verification.
+No particular phone/cable failure cause is established. Agent pressed Pause board
+checking to cancel automatic-resume intent, then Restart camera. Camera returned
+Live; fresh observations see exactly four stones (60B,72W,180B,300W). Exact SGF
+and semantic clock/pending/review JSON match the pre-chronology snapshot, balances
+Black217.653869209 / White268.586720791, manually paused. This is setup recovery,
+not an extra acceptance pass. Next leave stones untouched, Resume, check Black
+countdown, then Pause again before continuing the chronology scenario. Usability
+observation: generic checking status did not convey the stopped-camera reason
+clearly to the user; the concrete error was in the Camera section.
+
+Resume preflight after camera restart **PASS**: user confirms Black countdown
+started, then manually paused again with all four stones untouched and four saved.
+Native UI and storage check confirm paused/Black next; SGF, earlier timed moves
+and press evidence unchanged. Only Black elapsed time changed during this explicit
+running interval. Updated baseline: `.build/GuidedTests/before-chronology-after-camera-0165`.
+Return to the pending chronology test: Resume from Live position, open Order
+missed moves, stage Black passed in the draft, then physically play Black Q4.
+Leave the panel open without accepting so the actual fifth move can be verified
+before testing stale-proposal rejection. No new matrix pass is counted for setup.
+
+Chronology draft/new-move stage: user staged Black passed, physically played Black
+Q4 and left draft open without accepting. Storage independently confirms fifth
+move B[dp], prior four timed moves unchanged, one Black increment
+(196.158551416→226.158551416), White running and no timing correction. User reports
+White countdown updates in several-second jumps. Journal observations continue
+around 0.2-second intervals and persisted elapsed-time accounting is consistent
+so far; display responsiveness remains an open finding. Native AX inspection was
+slow with this panel open. Next promptly click Accept 1 moves and pause on the
+old draft, expect “The saved game changed. Cancel and start the sequence again.”
+Then note the message, Cancel, and Pause. Verify five moves/no recorded pass before
+counting stale rejection passed; inspect display timing separately after pausing.
+
+Chronology/stale acceptance **PASS**: user received the exact saved-game-changed
+rejection, then Cancel/Pause; five saved moves, White next, clocks stopped. Storage
+confirms no recorded pass, old four timed moves unchanged, fifth B[dp] and exactly
+one Black increment. Paused balances Black226.158551416 / White67.544576042;
+White elapsed201.042144749 seconds since the fifth-move boundary while the draft
+and rejection test were in progress. Updated preservation snapshot:
+`.build/GuidedTests/after-chronology-paused-0165`. Matrix **13/27 passed, 14 remain**
+(seven capture, two rapid timing, five outage variants). Do not resume further
+tests yet: investigate reported several-second clock-display jumps with the draft
+open, using paused profiling and an isolated timer test if needed. All five stones
+remain in place. The display finding is separate from the passed stale guard.
+
+Clock-jump investigation: 461 retained running observations include 116 changes
+in displayed engine balance; some changes are separated by 2–6.61 seconds, with
+corresponding elapsed deductions (largest sampled debit6.779 seconds). This is
+not evidence of free or double-charged time. Paused main-thread samples with
+panel closed/open show substantial SwiftUI layout work; no causal explanation
+has been established. Samples: `/tmp/physical-go-paused-main-sample.txt` and
+`/tmp/physical-go-paused-draft-sample.txt`. Reopened an empty Order missed moves
+panel while paused for profiling; no draft selections/acceptance. SGF and all
+sidecars remain identical to post-chronology baseline. Asked whether jumps were
+seen with Physical Go frontmost or another app active; response pending.
+
+Next short diagnostic: Cancel that empty panel, keep Physical Go frontmost,
+Resume for ten seconds with all five stones untouched, observe White countdown,
+then Pause before returning to chat. White has67.544576 seconds at this baseline;
+avoid another extended running inspection. Compare ordinary foreground countdown
+before attributing the jumps to modal review, background scheduling, or rendering.
+No source change or new build has been made for this finding.
+
+Foreground countdown diagnostic: user confirms individual seconds appear unevenly
+even with Physical Go frontmost (5…4…3,2…1). Five moves unchanged, White next,
+manually paused; balances Black226.158551416 / White51.871717375. Snapshot:
+`.build/GuidedTests/after-foreground-paused-0165`. No further real-game clock time
+is used for software diagnosis. Original acceptance count remains13/27.
+
+Isolated native UI probe (five synthetic stones, private storage/defaults, camera
+discovery disabled) exercises main board and move-order sheet with5Hz fresh
+observations. Existing clock callback p95 gaps0.154/0.158 seconds versus a direct
+main-queue DispatchSource timer0.105/0.105 seconds; large multi-second jumps did
+not reproduce. This supports trying direct dispatch delivery, not a complete
+root-cause claim. Candidate0.166 replaces the common-run-loop Timer plus Task hop
+with a100ms main-queue timer (5ms leeway), retaining monotonic elapsed accounting
+and all hold/expiry guards. Adds actual-scheduler regression for cancellation,
+resume, configure, delayed-callback accounting, expiry and camera-gap protection.
+Verification/install/physical retest pending.
+
+0.166 targeted verification **PASS**: six suites,885 checks (actual scheduler14,
+live issues65, processing gaps24, recovery guidance58, capture uncertainty113,
+capture conflicts103, local arithmetic75, capture policies417, recovery lifecycle16),
+plus7 Python registry/build checks. Native isolated UI probe after change:120 clock
+publications in each12-second main-board/sheet interval; p95 gaps0.152/0.156s,
+max0.156/0.159s. Actual clock p95 is similar to the original probe, despite the
+dummy direct-dispatch timer being steadier; this does not establish that the
+physical display defect is fixed. No multi-second stall reproduced in either
+isolated run. Logs `/tmp/physical-go-0166-tests.log` and
+`/tmp/physical-go-0166-cadence.log`. Optimized signed build underway; physical
+countdown comparison remains required.
+
+0.166/build167 optimized Developer-ID-signed build **installed and launched**.
+Source hash `64189058182306bf6ae000d8052c9c2e251f5f14585d1da38d8f6f6ee806b5d7`,
+135 resolved sources; strict/deep signature and installed executable/assets verified.
+Backup: `/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.166-20261112-194829`.
+Exact active SGF and complete semantic clock/pending/review JSON match before quit,
+after quit and after relaunch. Original89-move SGF remains unchanged. Native UI:
+camera Live, Live position, five saved, zero pending/outside/attention, White next,
+manually paused. Balances remain Black226.158551416 / White51.871717375 seconds.
+Known existing vendored Kokoro Lexicon optional-coercion compiler warning remains.
+
+Next single physical check: keep Physical Go frontmost and all five stones
+untouched; with camera Live, Resume for about eight seconds, then Pause before
+returning to chat. Report evenly spaced seconds versus bunching/jumps. Kokoro
+guide prepared. This is a diagnostic retest, not another original-matrix pass;
+13/27 passed,14 remaining. Do not claim the display defect resolved until observed.

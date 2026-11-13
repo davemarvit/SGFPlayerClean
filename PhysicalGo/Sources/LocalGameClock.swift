@@ -86,7 +86,7 @@ import Combine
     }
     func flushStorage() throws { try storageWriter.flush() }
     var onSpeechEvent:SpeechEventHandler? {didSet {audio.onSpeechEvent=onSpeechEvent}}
-    private var timer:Timer?
+    private var timer:DispatchSourceTimer?
     private var manuallyPaused=false
     @Published private(set) var automaticCapturePaused=false
     private(set) var automaticCapturePosition:[Occupancy]?
@@ -131,13 +131,13 @@ import Combine
         observationGapHeld=true
         return true
     }
-    deinit {timer?.invalidate()}
+    deinit {timer?.cancel()}
     var enabled:Bool {engine.enabled}
     var running:Bool {engine.running}
     var requiresReview:Bool {needsCorrection || engine.expiredBlack != nil}
     func configure(_ settings:LocalClockSettings,blackToPlay:Bool,baseMove:Int=0) {
         guard settings.validationError==nil else {return}
-        timer?.invalidate();timer=nil;audio.stop(reason:"clock configured")
+        timer?.cancel();timer=nil;audio.stop(reason:"clock configured")
         audio.resetAnnouncements()
         engine=LocalClockEngine(settings:settings,blackToPlay:blackToPlay);moves=[];self.baseMove=baseMove
         automaticCapturePaused=false;automaticCapturePosition=nil;provisionalCaptureStart=nil
@@ -179,7 +179,7 @@ import Combine
         guard paused.expiredBlack==nil else {return false}
         engine=paused
         automaticCapturePaused=true;automaticCapturePosition=position;provisionalCaptureStart=provisional ? .init(time:observed,method:.clearFrame):nil;turnBaseline=nil
-        timer?.invalidate();timer=nil;audio.stop(reason:"Removing captured stones")
+        timer?.cancel();timer=nil;audio.stop(reason:"Removing captured stones")
         notice="Both clocks paused while captured stones are removed.";save()
         return true
     }
@@ -224,7 +224,7 @@ import Combine
             automaticPause=AutomaticPause(reason:reason.hasPrefix(prefix) ? String(reason.dropFirst(prefix.count)):reason,recordedAt:Date())
         }
         notice=engine.expiredBlack.map {"\($0 ? "Black":"White") time expired. Review and enter the agreed result in Info."} ?? reason
-        audio.stop(reason:reason);timer?.invalidate();timer=nil;save()
+        audio.stop(reason:reason);timer?.cancel();timer=nil;save()
         if beganAutomaticPause,let automaticPause {onAutomaticPause?(automaticPause)}
     }
     func interrupt(_ reason:String,at now:Double=ProcessInfo.processInfo.systemUptime) {
@@ -272,7 +272,7 @@ import Combine
         if audible {audio.update(previous:previous,current:engine,settings:sounds)}
         if engine.expiredBlack != nil {
             notice="\(engine.expiredBlack == true ? "Black":"White") time expired. Review and enter the agreed result in Info."
-            timer?.invalidate();timer=nil;save();onTimeout?()
+            timer?.cancel();timer=nil;save();onTimeout?()
         } else if now-lastSaved>=1 {lastSaved=now;save()}
     }
     func recordMove(number:Int,black:Bool,at now:Double,observedAt:Double?=nil,manualCorrection:Bool=false,estimate:ClockPressEstimate?=nil,provisional:Bool=false,observedLocations:[Int]?=nil) {
@@ -636,10 +636,16 @@ import Combine
     func testSound() {if audible {audio.say("Ten. Nine. Three periods left.",settings:sounds,announcement:true)}}
     private func armTimer() {
         guard timer==nil else {return}
-        let timer=Timer(timeInterval:0.1,repeats:true) { [weak self] _ in
-            Task { @MainActor in self?.tick(at:ProcessInfo.processInfo.systemUptime) }
+        // A run-loop timer plus an unstructured Task can defer countdown
+        // updates during native view work. Deliver directly on the main queue.
+        // Missed callbacks coalesce: charge monotonic elapsed time, never the
+        // number of callbacks, and preserve every existing hold/expiry guard.
+        let timer=DispatchSource.makeTimerSource(queue:.main)
+        timer.schedule(deadline:.now()+0.1,repeating:.milliseconds(100),leeway:.milliseconds(5))
+        timer.setEventHandler { [weak self] in
+            MainActor.assumeIsolated {self?.tick(at:ProcessInfo.processInfo.systemUptime)}
         }
-        self.timer=timer;RunLoop.main.add(timer,forMode:.common)
+        self.timer=timer;timer.resume()
     }
     private func save() {
         guard enabled,let file,!signature.isEmpty else {return}
