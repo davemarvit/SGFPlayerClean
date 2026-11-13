@@ -194,6 +194,7 @@ struct LocalClockPanel:View {
     var showsStatus=true
     var onReview:(UUID)->Void = {_ in}
     var orientation=BoardOrientation(0)
+    @AppStorage("PhysicalGo.clockSidesSwitched") private var sidesSwitched=false
     @State private var ambiguityColor:Stone?
     @State private var expanded=false
     @State private var correction=false
@@ -209,25 +210,24 @@ struct LocalClockPanel:View {
                 Text(clock.engine.settings.kind.label).font(large ? .title:.headline)
                 Text(clock.engine.settings.summary).font(.callout).foregroundStyle(.secondary)
                 Spacer()
-                if !large {
-                    Menu("Clock options") {
-                        Button("Large clock") {expanded=true}
-                        Button("Adjust clocks…") {review(resume:false)}.disabled(recorder.state == .finished)
-                    }.fixedSize()
-                }
+                Menu("Clock options") {
+                    Button("Switch sides",systemImage:"arrow.left.arrow.right") {sidesSwitched.toggle()}
+                        .help("Swap the left and right clock displays to match where the players sit.")
+                    if !large {Button("Large clock") {expanded=true}}
+                    Button("Adjust clocks…") {review(resume:false)}.disabled(recorder.state == .finished)
+                }.fixedSize()
                 if large {
                     Button("\((recorder.liveNextPlayer ?? recorder.nextPlayer).rawValue.capitalized) pass") {recorder.pass()}.disabled(!recorder.canPass)
                 }
-                if large {Button("Adjust clocks…") {review(resume:false)}.disabled(recorder.state == .finished)}
             }
             HStack(spacing:16) {
-                side(black:true)
-                side(black:false)
+                side(black:!sidesSwitched)
+                side(black:sidesSwitched)
             }
             HStack(alignment:.center,spacing:16) {
-                sideSummary(black:true)
+                sideSummary(black:!sidesSwitched)
                 transport.fixedSize(horizontal:true,vertical:false)
-                sideSummary(black:false)
+                sideSummary(black:sidesSwitched)
             }
             if showsStatus,recorder.needsTurnConfirmation,presentation.correction==nil {LiveTurnPrompt(recorder:recorder)}
             if showsStatus,let estimate=clock.latestPressEstimate {

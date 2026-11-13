@@ -801,8 +801,10 @@ or the camera. Local/online mode changes remain separate and pause the local gam
   insert another camera view or change the selected tab. Camera setup stays in Setup.
   The online board stays visible to show the opponent’s marked move.
 - **Info & settings** opens a sheet for game metadata, clock configuration, feedback,
-  recovery speech and analysis settings. **Clock options** contains large-clock and
-  adjustment commands. Timed games use the clock’s pause/resume action, with a separate
+  recovery speech and analysis settings. **Clock options → Switch sides** swaps the
+  clock displays and their move/ambiguity counts to match the players’ seats. The
+  choice is remembered and shared with the large clock. The menu also contains
+  large-clock and adjustment commands. Timed games use the clock’s pause/resume action, with a separate
   recording resume only when the clock was deliberately left running while recording paused.
 - **Diagnostics** is a disclosure independent of collection. Continuous camera images
   and automatic unusual-move clips have separate controls. Live recognition, timing and

@@ -6,13 +6,14 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: user is comparing FULL HD WEB CAM against Dave11 using
-installed0.172/build173. Camera Live,21saved, White next, clocks manually paused;
-stones unchanged. Static check:100frames/20.2s, all16stones correctly located,
-zero false extras,0–6 uncertain empty points. Paused WhiteC19 placement/removal
-check pending. Original camera reference/settings backed up. Staged0.173/build174
-is verified but not installed; original67-second hand delay remains unresolved.
-Physical matrix15/27; camera comparison does not advance it.
+Latest follow-up: user deferred the FULL HD WEB CAM placement/removal check
+and requested Clock options → Switch sides. Implemented persistent left/right
+clock and summary ordering, shared with the large clock.0.174/build175 is verified,
+installed and launched; includes the previously verified0.173 diagnostic changes.
+Current recording:21saved, White next, manually paused with unchanged balances.
+Webcam static check passed100frames/20.2s: all16stones correctly located, zero
+false extras,0–6 uncertain empty points. Dynamic check pending. Original67-second
+hand delay remains unresolved. Physical matrix15/27; no increment for this work.
 
 ## Purpose and scope
 
@@ -2260,3 +2261,35 @@ Bounded1GB capture stopped at its limit; restored10GB setting. Next quick test:
 whilepaused placeWhiteC19, clearhand3seconds (expect1detected outside history),
 removeit and clearhand3seconds (expect0).21saved and stopped clocks throughout.
 Do not save a move or resume clocks for this camera comparison.
+
+Static capture archived intact under `.build/GuidedTests/new-webcam-comparison`
+to preserve it outside managed rotation. Started a fresh continuous capture
+`Diagnostic 2026-11-13 12-07-19 68E45BAB` (KEEP) for the paused C19
+placement/removal check. Live position selected; user guidance issued.
+Dynamic result pending; no acceptance-matrix increment.
+
+### 2026-11-13 — Clock display sides
+
+User deferred the webcam placement/removal test and requested Switch sides in
+Clock options. Added a persistent presentation preference that swaps the clock
+cards and their corresponding move/ambiguity summaries together. Normal and
+large clocks share it; Switch sides is available in both menus. Player colors,
+turn, clock balances, game history and board orientation are untouched.
+Version0.174/build175 includes the previously verified0.173 diagnostic changes.
+Build/verification pending; native interaction is currently unavailable while
+the Mac is locked. The webcam dynamic capture stopped at its storage limit;
+footage remains retained and the C19 test remains pending.
+
+Verification complete: production build and strict signature/source-hash checks
+passed; existing workflow UI suite passed (including75local-clock checks,
+29workflow/native-render/preservation checks and its board-recovery/speech suites),
+and7build-registry tests passed. Installed and launched0.174/build175. Source hash:
+`8c25cc9d6f4519944a216110bea3ff477f95f82e57a24f0236f2760a7fc1d17e`.
+Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.174-20261113-122658`.
+After launch, current SGF is byte-identical and clock/pending/review JSON matches
+before-quit data; the previous89-move recording is also unchanged.21saved, White
+next, manually paused: Black382.62714116240386s, White54.89570887829177s.
+Direct interaction with Switch sides remains to be checked when the Mac is
+unlocked; the existing suite does not exercise the new menu command. Expected:
+White and its counts move left, Black and its counts right; a second invocation
+restores the arrangement, and large clock/relaunch retain the preference.
