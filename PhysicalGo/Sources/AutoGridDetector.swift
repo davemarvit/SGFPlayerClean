@@ -278,6 +278,27 @@ enum AutoGridDetector {
             if landmarks.supported,landmarks.matched>=6,landmarks.fraction>=0.85,
                let support=knownGridSupport(frame:frame,calibration:previous,expected:expected,allowSingleCoveredBorder:true) {
                 details["knownGridSupport"]=support
+                // Landmark/segment searches tolerate a few pixels of offset.
+                // That proves board identity, but retaining those offsets can
+                // make thin rails in glare look covered to the stone detector.
+                // When all four outer rails are visible, fit their actual pixels
+                // and reverify the result before retaining the coarse alignment.
+                // A sleeve-covered edge still uses the stationary-grid fallback.
+                if let refined=refineKnownGrid(frame:frame,calibration:previous,expected:expected),
+                   let refinedSupport=knownGridSupport(frame:frame,calibration:refined,expected:expected),
+                   refinedSupport>=support*0.97 {
+                    let verified=landmarkEvidence(frame:frame,size:previous.size,expected:expected) {refined.point(col:$0,row:$1)}
+                    let pixels=zip(previous.corners,refined.corners).map {
+                        hypot(($0.x-$1.x)*Double(frame.width-1),($0.y-$1.y)*Double(frame.height-1))
+                    }.max() ?? 0
+                    let jitterTolerance=max(0.75,Double(min(frame.width,frame.height))/540)
+                    details["knownGridRefinementPixels"]=pixels
+                    details["knownGridRefinedSupport"]=refinedSupport
+                    if verified.supported,verified.matched>=6,verified.fraction>=0.85,pixels>=jitterTolerance {
+                        details["outcome"]="known grid refined from exposed outer rails"
+                        return refined
+                    }
+                }
                 details["outcome"]="existing grid supported by known stones and exposed lines"
                 return previous
             }

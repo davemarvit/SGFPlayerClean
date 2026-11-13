@@ -6,6 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
+Latest follow-up: 0.167 / build168 installed for glare-related grid-alignment
+recovery; 1,449 targeted checks passed. Live confirmation awaits Mac unlock.
+Physical acceptance testing is deferred at14/27, with13 moves preserved and
+both clocks paused. See the investigation/install record at the end.
+
 ## Purpose and scope
 
 Resolve discrepancies automatically whenever the evidence supports doing so.
@@ -1518,3 +1523,61 @@ Superseding next step: keep lighting, stones and camera unchanged and game pause
 to retain this reproducible failure for recognition/recovery diagnosis. Do not
 require the user to change the lamp or place Q10 yet. No source changes or new
 build;13 saved and test count14/27 remain.
+
+User explicitly deferred physical acceptance testing to prioritize investigating
+and resolving glare recovery. Preserve13 moves, White next and manual pause;
+no user lighting/camera/stone adjustments requested. Investigation now probes
+line sampling and local-baseline learning with the retained23-frame restart clip.
+Initial experiment:3×3 square averaging substantially attenuates thin rails in
+the reflective area; averaging along the rail recovers contrast at unchanged
+0.045 line threshold. Candidate fallback is limited to independent appearance
+evidence used by the temporally verified known-empty learner. Original detector
+and game/clock acceptance thresholds remain unchanged. Candidate is provisional:
+full sequence and new-stone/obstruction checks are required before installation.
+
+Investigation isolated a more direct cause: the retained grid passed coarse known-
+stone/exposed-segment checks while remaining several pixels displaced from the
+actual thin rails. Calling the existing outer-rail refinement on the same saved
+image changes31 raw uncertainties to0, without altering illumination, reference
+or occupancy thresholds. The provisional line-sampling changes were discarded.
+The known-stone tracking fallback now attempts that tightly bounded four-rail
+refinement, then requires independent stone matches and line support before
+accepting it. A covered border still retains the original stationary fallback.
+
+New regression fixture preserves12 distinct unedited frames from the23-frame
+incident, with original timestamps/reference/anchor and image hashes. Initial
+replay reduces32–40 raw uncertainties to1 on the first frame and0 on every
+subsequent frame, retaining all12 stones and inventing none. Blank-view rejection
+and repeated-frame calibration stability are checked. Broader alignment, covered-
+border and recording/clock regressions are running before installation0.167.
+No assertion is made about why the camera stopped or what physically displaced
+the image; saved labels validate neither blank pixels nor an imagined stone.
+
+Validation before installation: new optimized glare-grid suite64 checks; nine
+related suites all passed (known-empty53 + residual-glare171; live issues65;
+occupied resume18; capture uncertainty113 + conflict guidance103 + local clocks75
++ capture timing417; recovery lifecycle16; established tracking82; covered
+border40; camera bump161; grid detection71). Total1,449 checks, plus7 Python
+build-registry tests. Regression logs: `/tmp/physical-go-0167-glare-test.log` and
+`/tmp/physical-go-0167-regressions.log`. Unchanged detector tests include real
+White placement/removal and explicitly synthetic new-stone challenges against
+learned empty points. Covered-border test retains exactly the prior calibration;
+wrong colors, shifted intersections, two covered borders and blank images remain
+rejected. Camera/clock lifecycle tests preserve manual pause and game history.
+
+Installed and launched signed **0.167 / build168**. Strict deep signature
+verification passed; installed executable/Info.plist/voice assets match the build.
+Source hash185ffee3a210ef5e7449788ba25b36f7a6936d3099bd4d81f1096de26cb5bbbb
+(135 source files). Backup:
+`/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.167-20261112-215043`.
+Normal quit and postlaunch comparisons preserve exact SGF and semantic clock,
+pending and review JSON. Original89-move record also unchanged. Current13 moves,
+White next, manual pause, Black310.826737934 / White114.902653024.
+
+**Live confirmation remains pending:** the Mac session is locked
+(`CGSSessionScreenIsLocked=true`); the launched app restored the game but has no
+fresh postlaunch camera observations. Do not count the restored-game journal
+entry's zero uncertainty as recognition evidence. No attempt to unlock the Mac
+or advance play. On return, check Live with the same stones/lighting and clocks
+paused. Physical acceptance tests remain deferred at14/27; next play, once the
+user chooses to resume testing, is White Q10 in the two-prisoner threshold2 setup.

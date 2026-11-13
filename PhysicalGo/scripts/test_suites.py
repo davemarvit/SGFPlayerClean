@@ -25,6 +25,7 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'glare-grid-recovery-test': Suite('GlareGridRecoveryTests', 'vision', ('Tests/GlareGridRecoveryTests.swift',), extra=('Sources/AutoGridDetector.swift','Sources/KnownEmptyLighting.swift')),
     'clock-scheduler-test': Suite('ClockSchedulerTests', 'app', ('Tests/ClockSchedulerTests.swift',), optimized=False),
     'nudged-stone-guidance-test': Suite('NudgedStoneGuidanceTests', 'app', ('Tests/NudgedStoneGuidanceTests.swift',), optimized=False),
     'known-empty-lighting-test': Suite('KnownEmptyLightingTests', 'vision', ('Tests/KnownEmptyLightingTests.swift','Tests/ResidualGlareTests.swift'), extra=('Sources/KnownEmptyLighting.swift',), optimized=False),
