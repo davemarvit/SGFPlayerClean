@@ -1371,3 +1371,17 @@ Black246.451423500 / White66.361338792 seconds. Snapshot
 `.build/GuidedTests/after-capture-setup-b1-0166`. Next final setup move only:
 Resume, place White A3 leaving A2 empty, clear hand until8 saved/Black running,
 then Pause. Do not remove stones or play the capturing Black A2 yet.
+
+Single-prisoner capture setup, step3 **verified**: user confirms8 saved, Black
+started, manually paused, White A3 and empty A2. Storage confirms eighth W[ca],
+prior seven timed moves unchanged and one30-second White increment; no correction.
+Balances Black244.044331584 / White92.869749583 seconds. Snapshot
+`.build/GuidedTests/before-single-capture-0166`. Capture threshold remains2.
+
+Next perform the below-threshold capture: Resume, play Black A2 and clear hands,
+leaving captured White A1 physically in place for about five seconds. Observe
+whether White starts and keeps counting (expected; no automatic removal hold).
+Then remove only White A1, clear hands for five seconds and manually Pause before
+reporting. Expect9 saved, White next, eight physical stones, exactly one Black
+increment and unchanged prior timed moves. Do not wait in chat with clocks running.
+Physical result pending; matrix13/27 until capture and follow-up verified.
