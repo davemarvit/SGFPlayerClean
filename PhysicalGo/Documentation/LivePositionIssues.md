@@ -6,11 +6,10 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.171/build172 installed with the A18 false-hand fix. Targeted
-regressions and signed-source verification passed. Matrix15/27 complete,12 remaining.
-19saved,White next,both clocks paused;WhiteA18 remains physical and unsaved.
-After unlock, fresh camera verification passed; live A18 retry is in progress.
-BlackA17 remains empty for the capture test.
+Latest follow-up:0.171/build172 installed; A18 false-hand retry passed by user
+report and recording/clock journal. Matrix15/27 complete,12 remaining.20saved,
+Black next,both clocks paused. Ready for BlackA17 capture ofWhiteA18/A19;
+leave the two Whites until capture-hold behavior is checked.
 
 ## Purpose and scope
 
@@ -1936,3 +1935,28 @@ Started bounded5GB continuous diagnostics for the retry:
 and restore10GB limit. Kokoro retry instructions played: while paused remove
 only WhiteA18; wait for marker to disappear; Resume,replace WhiteA18,clear hands;
 expect20saved and Black clock running,then Pause. LeaveA17empty. Matrix15/27.
+
+### 2026-11-13 — Live A18 retry passed
+
+User: “all worked well.” SGF now has20moves,WhiteA18 (`W[ra]`) saved. First19
+clock moves are unchanged. White received exactly one30second increment:
+37.949604253s→67.949604253s. Black clock started,then user manually paused
+at358.030700538s;White67.949604253s,Black next,no active capture.
+Journal: hand began1794559617.019742,cleared1794559619.968922;move20
+accepted1794559620.815379;manual Pause1794559627.311493. Clock press used
+the supported clear-frame boundary1022837.374010,not invented hand-motion timing.
+
+The bounded continuous capture reached its5GB limit at1794559493.273619,
+before this retry; do not claim the retry's hand sequence was filmed. The normal
+observation/hand/clock journal and user report support the result. Capture kept;
+continuous recording off and original10GB limit restored. Snapshot:
+`.build/GuidedTests/after-a18-retry-0171-20-paused`.
+
+The fix is location-independent, not keyed toA18 or this recording. Its white
+stone exclusion intentionally requires strong current white-shape/core evidence;
+black-stone exclusions remain unimplemented. Board-corner bounds and the strict
+rim-texture test apply generally. It does not guarantee every hand/lighting
+condition is solved. Setup complete; next actual test is BlackA17 capturing
+WhiteA18/A19 with both prisoners left in place to inspect the automatic hold,
+initialKokorovoice and hold label before manual-pause/camera-interruption steps.
+Physical matrix remains15/27; this was a fix retest/setup move.
