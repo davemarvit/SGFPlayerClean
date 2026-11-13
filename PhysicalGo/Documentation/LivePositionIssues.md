@@ -12,7 +12,8 @@ clock and summary ordering, shared with the large clock.0.174/build175 is verifi
 installed and launched; includes the previously verified0.173 diagnostic changes.
 Current recording:21saved, White next, manually paused with unchanged balances.
 Webcam static check passed100frames/20.2s: all16stones correctly located, zero
-false extras,0–6 uncertain empty points. Dynamic check pending. Original67-second
+false extras,0–6 uncertain empty points. User reports prompt WhiteC19 placement
+and removal recognition: basic webcam check passed. Original67-second
 hand delay remains unresolved. Physical matrix15/27; no increment for this work.
 
 ## Purpose and scope
@@ -2293,3 +2294,14 @@ Direct interaction with Switch sides remains to be checked when the Mac is
 unlocked; the existing suite does not exercise the new menu command. Expected:
 White and its counts move left, Black and its counts right; a second invocation
 restores the arrangement, and large clock/relaunch retain the preference.
+
+### 2026-11-13 — FULL HD WEB CAM placement/removal passed
+
+User completed the paused White C19 placement/removal check and reported:
+“Both changes appeared promptly.” Together with the earlier static recognition
+check, this passes the requested basic webcam trial. Dynamic timing is a user
+observation, not a measured frame latency; the earlier continuous capture had
+already stopped. This does not establish equal performance under all lighting,
+resolve the original67-second stall, or advance the27-scenario acceptance matrix.
+The webcam can remain selected for subsequent testing. Clock-side menu interaction
+remains a separate pending check.
