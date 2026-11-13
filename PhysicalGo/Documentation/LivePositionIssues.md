@@ -1437,3 +1437,12 @@ setup placements one at a time with pauses. Immediate next step only: Resume,
 place Black B3 beside White A3, clear hands until11 saved/White running, Pause.
 Keep all stones in place; no capture yet. Qualifying capture will later test
 automatic hold, partial removals and fresh completion separately.
+
+Two-prisoner threshold2 setup, Black B3 **verified**: user confirms11 saved,
+White started and manual pause, stones unchanged. Storage confirms eleventh
+B[cb], previous ten timed moves unchanged, one30-second Black increment,
+White next, no pending sequence/timing correction. Paused balances
+Black286.193785600 / White91.117743483. Snapshot
+`.build/GuidedTests/after-two-capture-setup-b3-0166`. Next step only: Resume,
+place White D10 away from the corner group, clear hands until12 saved/Black
+running, then Pause. Keep all existing stones in place. Matrix remains14/27.
