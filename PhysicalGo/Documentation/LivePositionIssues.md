@@ -7,8 +7,8 @@ signed-build verification passed. Capture timing retains its configurable policy
 implementation and validation record below for coverage and limitations.
 
 Latest follow-up:0.169/build170 installed. Two-prisoner threshold2 capture and
-following move passed. Matrix15/27 complete,12 remaining.17 saved,White next,
-both clocks paused. Next setup is White A19 for a manually paused capture across
+following move passed. Matrix15/27 complete,12 remaining.18 saved,Black next,
+both clocks paused. Next setup batch is Black B19 then White A18 for a manually paused capture across
 a camera interruption; voice/hold-label acceptance will accompany that capture.
 
 ## Purpose and scope
@@ -1775,3 +1775,22 @@ Black346.941236996 / White154.577450004. Snapshot
 `.build/GuidedTests/after-paused-capture-setup-b18-0169`. Next only White A19
 at upper-left corner: Resume,place,clearhand,wait18saved/Blackrunning,Pause.
 Otherstones unchanged;matrix15/27.
+
+Paused-capture outage setup, White A19 **verified**: user reports done/allfine.
+18thW[sa],previous17timingsunchanged,oneWhite30s increment,Blacknext,manualpause.
+Balances Black341.138407080 / White179.370137295. Snapshot:
+`.build/GuidedTests/after-paused-capture-setup-a19-0169`.
+
+**Pacing preference updated:** user explicitly wants all tests retained but
+routine setup batched to avoid unnecessary pauses/chat turns. From now on group
+several ordinary legal alternating setup placements into one Resume cycle.
+Clear hands and wait for each saved count/next-player clock before the next
+placement;Pause only at the batch end. Keep behavior-specific checkpoints
+(capture onset,partial removal,manualpause,camera interruption,fresh completion)
+separate where needed to establish causality. This changes pacing,not coverage.
+
+Current objective: manually paused two-prisoner capture survives camera
+interruption/restart without clocks resuming; also check0.169holdlabel and first
+Kokoro instruction. Next remaining setup batch: Resume,B B19→19saved/White
+running,W A18→20saved/Blackrunning,Pause. Leave A17 empty; the following B A17
+is the capture under test. Matrix15/27 unchanged.
