@@ -6,10 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.169/build170 installed. Two-prisoner threshold2 capture and
-following move passed. Matrix15/27 complete,12 remaining.18 saved,Black next,
-both clocks paused. Next setup batch is Black B19 then White A18 for a manually paused capture across
-a camera interruption; voice/hold-label acceptance will accompany that capture.
+Latest follow-up:0.170/build171 installed (camera-preview fix). Two-prisoner threshold2 capture and
+following move passed. Matrix15/27 complete,12 remaining.19 saved,White next,
+both clocks paused. White A18 is physically present but unsaved after a reported
+recognition/preview stall. Preview fix verified and installed; awaiting the live
+A18 retry before completing capture setup. Black A17 remains empty.
 
 ## Purpose and scope
 
@@ -1794,3 +1795,48 @@ interruption/restart without clocks resuming; also check0.169holdlabel and first
 Kokoro instruction. Next remaining setup batch: Resume,B B19→19saved/White
 running,W A18→20saved/Blackrunning,Pause. Leave A17 empty; the following B A17
 is the capture under test. Matrix15/27 unchanged.
+
+### 2026-11-12 — A18 recognition/preview stall during capture setup
+
+Black B19 saved as move19. White A18 did not register; the user reported that
+waving a hand refreshed the live camera picture and made the stone appear.
+The user paused. Saved history remains19,White next; Black365.874617037s,
+White123.836699629s, no active capture. White A18 is unsaved on the physical board.
+Do not infer or rewrite its missing completion time.
+
+A continuous diagnostic replay while paused captured removal/replacement of A18:
+222 observations delivered and19 frames gated by hand detection. A18 changed
+White→empty→White; the user confirmed the translucent live-position marker
+disappeared/reappeared. The long original stall was not reproduced. The original
+journal has a roughly49s observation gap ending around manual Pause/hand-wave;
+without original camera frames it cannot distinguish a latched hand gate from
+a source-camera stall. Capture: `Captures/Diagnostics/Diagnostic 2026-11-12 23-41-07 827B3979`,
+kept from rotation. Capture stopped at its1GB bound; original10GB setting restored.
+
+Confirmed code defect: hand-gated analysis updated raw pixels but returned before
+updating the flattened preview; marginal alignment retry also retained old pixels.
+0.170 moves preview publication after revision/freshness checks and before recognition
+gates, clears stale overlays for those gated frames, and preserves recording/clock
+safety checks. Adds hand start/clear transitions to the normal journal and hand
+evidence to continuous diagnostics. This fixes a demonstrated stale-preview path;
+it does not yet establish the cause of the original long registration stall.
+
+Validation passed:11 real-photo preview checks and60 diagnostic integration
+checks against the optimized runtime; clock catch-up59 plus7 recorded incident
+checks; capture suites113/103/75/417; recovery lifecycle16;7Python registry tests.
+The initial debug image runs failed their real-time readiness/freshness checks;
+optimized runs passed. The new preview suite defaults to optimized compilation.
+It verifies current flattened hand pixels, no stale overlays, unchanged paused
+history/clocks, explicit Freeze, stale-buffer rejection and clear-board recovery.
+
+Installed signed0.170/build171, source hash
+`361aa18470cd502371cc4d10b8e07bc39287b3da57ba08a8ce7eb3401f0f6903`
+(135sources). Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.170-20261112-235517`.
+Postlaunch SGF is byte-identical; clock/pending/review JSON are semantically identical.
+Original89-move recording verified unchanged. Camera Live;19saved,White next,
+both clocks paused; WhiteA18 recognized as one stone outside saved history.
+
+Next physical checkpoint: while paused remove only unsaved WhiteA18; wait for
+its marker to disappear, Resume, replace WhiteA18 and clear hands. Expect20saved
+and Black clock running, then Pause. Leave BlackA17 empty for the capture test.
+Physical matrix remains15/27; original long-stall cause remains unconfirmed.

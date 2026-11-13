@@ -1080,7 +1080,10 @@ enum LocalGameSetup {
         }
         return estimate
     }
-    func noteHandClear() {handOverBoard=false}
+    func noteHandClear() {
+        if handOverBoard {trace(event:"hand obstruction cleared")}
+        handOverBoard=false
+    }
     func noteHandObstruction(now:Double = ProcessInfo.processInfo.systemUptime,capturedAt:Double?=nil) {
         clock.noteCameraObservation(at:capturedAt ?? now,now:now)
         if clock.takeObservationGapHold() {
@@ -1093,6 +1096,7 @@ enum LocalGameSetup {
         // A fresh obstructed frame proves camera continuity, never stone placement.
         lastCameraTime=now
         clearBoardTiming.noteHand(at:now)
+        if !handOverBoard {trace(event:"hand obstruction began",now:now,extra:["captureUptime":capturedAt ?? now])}
         handOverBoard=true;captureClearViews=[];provisionalTimingBlockedSince=nil
         clearCaptureConflictEvidence()
         // Hand re-entry proves continuity, not a contradiction of a placement

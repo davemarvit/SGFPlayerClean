@@ -1227,6 +1227,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                         "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point})])
                 }
                 self.diagnostics.end(diagnosticOperation,outcome:diagnosticOutcome,details:[
+                    "handPose":DiagnosticRecorder.value(analysis.handPose),"handOutline":DiagnosticRecorder.value(analysis.handOutline),
                     "alignment":alignmentReport,
                     "calibration":DiagnosticRecorder.value(aligned),"readings":DiagnosticRecorder.value(result?.readings),
                     "footprints":DiagnosticRecorder.value(result?.footprints),"placementFits":DiagnosticRecorder.value(result?.placementFits),"notice":result?.notice ?? NSNull() as Any,
@@ -1248,6 +1249,12 @@ enum PhysicalPlayMode: String, CaseIterable {
             if freshView,let captureUptime,ProcessInfo.processInfo.systemUptime-captureUptime>1.5 {
                 diagnosticOutcome="stale analysis frame discarded";return
             }
+            // Recognition gates must not freeze the camera preview. The worker
+            // rectifies current pixels using the retained grid even when a hand
+            // or a marginal alignment prevents accepting a board observation.
+            self.image=target
+            self.rectifiedGeometry=corrected == nil ? nil : geometry
+            self.rectifiedImage=corrected
             if self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected {
                 self.emptyLighting=analysis.emptyLighting
             } else {self.emptyLighting.reset()}
@@ -1266,7 +1273,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView,analysis.handObstructed == true {
                 self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime,capturedAt:captureUptime)
-                self.image=target;self.observation=nil;self.trackedBoardObservation=nil
+                self.observation=nil;self.trackedBoardObservation=nil
                 self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
                 diagnosticOutcome="hand over board; waiting for clear frame"
                 return
@@ -1282,8 +1289,9 @@ enum PhysicalPlayMode: String, CaseIterable {
                 if !hold {
                     diagnosticOutcome="marginal alignment; awaiting another fresh check"
                     self.onlineBoard.recordCameraWait("Grid alignment being rechecked",details:alignmentReport)
-                    // Keep the last verified interpretation. No move is accepted
-                    // or evidence accumulated from this unaligned frame.
+                    // Retain recorder evidence, but don't put old recognition
+                    // overlays on the new pixels. This frame adds no move evidence.
+                    self.observation=nil;self.trackedBoardObservation=nil
                     return
                 }
             } else if supplied != nil || exposureFailure {
@@ -1304,7 +1312,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                 result=self.applyLightingRecovery(raw,fresh:supplied != nil && self.running && self.cameraState == .live && !self.frozen,
                     now:captureUptime ?? ProcessInfo.processInfo.systemUptime)
             }
-            self.image = target; self.observation = result
+            self.observation = result
             self.trackedBoardObservation=trackingCurrent && result?.lightingBlocked == false ? trackedObservation:result
             if checkStoneAspect {
                 self.pendingStoneAxis=stoneAspect?.longAxisRows
@@ -1314,8 +1322,6 @@ enum PhysicalPlayMode: String, CaseIterable {
                     self.orientBoardForPlayer()
                 }
             }
-            self.rectifiedGeometry = corrected == nil ? nil : geometry
-            self.rectifiedImage = corrected
             if exposureFailure,let result {
                 diagnosticOutcome="unreadable exposure"
                 self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
