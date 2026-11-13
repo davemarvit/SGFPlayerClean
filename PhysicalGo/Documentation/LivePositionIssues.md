@@ -9,8 +9,8 @@ implementation and validation record below for coverage and limitations.
 Latest follow-up: 0.168 / build169 installed with interruption-tolerant lighting
 baselines and the 0.167 grid-alignment fix. Eight targeted suites passed for
 0.168; live glare recovery confirmed after unlock.
-Guided physical testing resumes at14/27, with13 moves preserved and
-both clocks paused before the next White Q10 setup move. See the investigation/install record at the end.
+Guided physical testing resumes at14/27, with14 moves preserved and
+both clocks paused before Black A5 tests the two-prisoner automatic hold. See the investigation/install record at the end.
 
 ## Purpose and scope
 
@@ -1639,3 +1639,13 @@ User requests resuming capture testing. Guide final setup move only: Resume,
 White Q10, clear hands, wait14 saved and Black's clock running, Pause. Leave all
 stones in place. Then separately guide Black A5 and the expected automatic hold
 for two captured Whites A3/A4. No new scenario counted yet:14/27.
+
+Two-prisoner threshold2 setup, White Q10 **verified** in0.168: user reports
+everything worked. Storage confirms move14 W[jp], previous13 timed moves
+unchanged, one30-second White increment and Black next. Both clocks manually
+paused: Black303.972568413 / White140.844613878. Snapshot:
+`.build/GuidedTests/after-two-capture-setup-q10-0168`. Threshold remains2.
+Next capture step only: Resume, Black A5, leave captured White A3/A4 physically
+on the board and clear hands. Expect both clocks to stop automatically for
+removal; report the hold/message before removing either prisoner. If either
+clock still runs after5s, manually Pause and report. Matrix remains14/27.
