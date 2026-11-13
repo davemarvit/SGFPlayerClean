@@ -1067,6 +1067,11 @@ enum LocalGameSetup {
         let readings=captureReadings?.count==capture.source.count ? captureReadings!:capture.source
         return capture.captured.filter{readings[$0] != .empty}.sorted()
     }
+    var automaticCaptureHasUncertainPoints:Bool {
+        guard let capture=automaticCapture ?? provisionalRemovalPlan,let readings=captureReadings,
+              readings.count==capture.source.count else {return false}
+        return capture.captured.contains{readings[$0] == .uncertain}
+    }
     private var captureCandidate:(plan:AutomaticCapture,first:Double,last:Double,samples:Int,completedViews:[Double])?
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
@@ -1144,6 +1149,8 @@ enum LocalGameSetup {
         let remaining=capture.captured.filter{readings[$0] != .empty}.count
         automaticCaptureStatus = !automaticCaptureConflictPoints.isEmpty
             ? "Clocks remain paused. The camera and recorded board disagree. Compare the highlighted intersections before correcting anything."
+            : automaticCaptureHasUncertainPoints
+            ? "Some captured intersections are unclear. If the stones are already removed, keep hands clear while the camera checks. Both clocks remain paused. Press Resume to continue checking."
             : remaining>0
             ? "Remove the remaining \(remaining) captured \(remaining == 1 ? "stone" : "stones"), then move hands clear. Both clocks remain paused. Press Resume to continue checking."
             : "Captured points appear empty. Press Resume to verify the complete position. Both clocks remain paused."
@@ -1184,8 +1191,10 @@ enum LocalGameSetup {
             let remaining=capture.captured.filter {readings[$0] != .empty}.count
             automaticCaptureStatus = !automaticCaptureConflictPoints.isEmpty
                 ? "Clocks remain paused. The camera and recorded board disagree. Compare the highlighted intersections before correcting anything."
+                : automaticCaptureHasUncertainPoints
+                ? "Some captured intersections are unclear. If the stones are already removed, keep hands clear while the camera checks. Both clocks stay stopped."
                 : remaining>0
-                ? "Remove the remaining \(remaining) captured stones, then move hands clear. Both clocks stay stopped."
+                ? "Remove the remaining \(remaining) captured \(remaining == 1 ? "stone" : "stones"), then move hands clear. Both clocks stay stopped."
                 : "Captured points are empty. Keep hands clear while the complete position is verified."
             status=automaticCaptureStatus!;return true
         }

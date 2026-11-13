@@ -155,6 +155,8 @@ import ImageIO
         var hiddenPrisoner=plan.target;hiddenPrisoner[312] = .uncertain
         _=feed(manual,hiddenPrisoner,count:2)
         check(manual.automaticCaptureRemainingPoints == [312],"Uncertain prisoner was treated as removed while paused")
+        check(manual.automaticCaptureStatus?.contains("unclear") == true && manual.spokenRecoveryInstruction().contains("unclear"),"Uncertain captured point was described as a stone still needing removal")
+        check(!manual.spokenRecoveryInstruction().contains("Finish removing") && manual.spokenRecoveryInstruction().contains("Press Resume"),"Uncertain capture speech demanded removal or lost manual pause")
         _=feed(manual,plan.target,count:10)
         manual.clock.requestResume();manual.resume();_=feed(manual,plan.target,count:4)
         check(manual.moveCount==45 && !manual.clock.running,"Resume reused paused observations as completion proof")

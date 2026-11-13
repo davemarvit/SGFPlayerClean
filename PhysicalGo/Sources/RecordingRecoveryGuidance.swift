@@ -18,6 +18,10 @@ import Foundation
             if !automaticCaptureConflictPoints.isEmpty {
                 return "Clocks remain paused. The camera and recorded board disagree at \(locations(automaticCaptureConflictPoints)). Compare those intersections with the interpretation board before correcting anything."
             }
+            if automaticCaptureHasUncertainPoints {
+                let next=state == .paused ? " Press Resume when ready to verify the complete board." : ""
+                return "Clocks remain paused. Some captured intersections are unclear. If the stones are already removed, keep your hands clear while the camera checks.\(next)"
+            }
             if state == .paused {
                 let action=remaining.isEmpty ? "Captured intersections look empty."
                     : "Finish removing the captured stones at \(locations(remaining)), then move your hands clear."

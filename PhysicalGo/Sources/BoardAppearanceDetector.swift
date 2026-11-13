@@ -87,6 +87,15 @@ enum BoardAppearanceDetector {
             } }
         }
         var readings=initial.contains{$0.occupancy.stone != nil} ? classifyPoints(clean,prior:initial) : initial
+        // Beside an edge cluster, excluding stone-shaded cell centers can
+        // leave too few samples for a wood plane. An independently visible
+        // cross and wood-colored interior can still establish emptiness.
+        // Never replace a detected stone or infer emptiness from game history.
+        for (index,reading) in readings.enumerated() where reading.occupancy == .uncertain {
+            if let confidence=exposedWoodConfidence(frame:frame,calibration:calibration,col:reading.col,row:reading.row) {
+                readings[index] = .init(row:reading.row,col:reading.col,occupancy:.empty,confidence:confidence,delta:reading.delta)
+            }
+        }
         if changedLighting {
             for (index,reading) in readings.enumerated() where reading.occupancy != .empty {
                 let cross=gridEvidence(frame:frame,calibration:calibration,col:Double(reading.col),row:Double(reading.row),relativeContrast:true)

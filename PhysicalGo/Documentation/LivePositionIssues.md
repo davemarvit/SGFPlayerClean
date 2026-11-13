@@ -6,15 +6,15 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: user deferred the FULL HD WEB CAM placement/removal check
-and requested Clock options → Switch sides. Implemented persistent left/right
-clock and summary ordering, shared with the large clock.0.174/build175 is verified,
-installed and launched; includes the previously verified0.173 diagnostic changes.
-Current recording:21saved, White next, manually paused with unchanged balances.
-Webcam static check passed100frames/20.2s: all16stones correctly located, zero
-false extras,0–6 uncertain empty points. User reports prompt WhiteC19 placement
-and removal recognition: basic webcam check passed. Original67-second
-hand delay remains unresolved. Physical matrix15/27; no increment for this work.
+Latest follow-up: FULL HD WEB CAM passed the basic trial, then exposed empty
+corner uncertainty during the camera-interrupted T3 capture. User removed White
+T1/T2;26saved, BlackT3 physically present, WhiteR3 not played. Game manually
+paused by agent; both clock balances and pending capture preserved.0.175/build176
+fixes uncertain corner readings using independent visible-grid/wood evidence and
+corrects misleading removal guidance. Targeted regressions and actual-session
+replay passed; installed and live clear evidence verified, user retry pending.
+Physical matrix15/27; this capture
+is not yet a clean pass. Earlier67-second hand-gate stall remains unresolved.
 
 ## Purpose and scope
 
@@ -2305,3 +2305,135 @@ already stopped. This does not establish equal performance under all lighting,
 resolve the original67-second stall, or advance the27-scenario acceptance matrix.
 The webcam can remain selected for subsequent testing. Clock-side menu interaction
 remains a separate pending check.
+
+### 2026-11-13 — Evidence-based camera comparison
+
+Compared first raw PNG and first100recorder observations in the retained webcam
+static capture and Dave11 successful A19 replay. Both inputs1920×1080, both
+windows retained all16saved stones with0falseextras. Webcam recorder window:
+20.55s,0–7question-mark intersections; Dave11:25.90s,0question marks. These are
+separate earlier/later scenes, not a controlled camera benchmark. The webcam
+recorder window differs from the earlier100-analysis-frame0–6uncertainty sample.
+
+Visible raw-image differences: Dave11 sample has crisper grid/wood detail and
+warmer rendering, with a pronounced reflection on the right half; webcam sample
+is softer/cooler with much more even board illumination. Lighting and camera
+angle differ, so neither glare nor sharpness differences isolate hardware quality.
+Grid edge lengths imply roughly40–49pixels/intersection for webcam and45–52for
+Dave11 in these placements. Both have adequate spatial detail for the verified
+stone recognition. Observation intervals include app processing and cannot be
+reported as camera frame rate or movement latency. Earlier67-second stall is
+not established as a camera fault. Basic webcam trial passes; no overall winner
+established. Continue with the USB webcam for broader capture/lighting trials.
+
+### 2026-11-13 — Resume physical tests with FULL HD WEB CAM
+
+User chose to retain the USB webcam and continue. Storage confirms21saved,
+White next, no clock anchor and no pending capture. Next checkpoint completes
+the previously deferred following move: Live position → Resume; wait for White
+clock, play White C19, clear hand, expect22saved/Black running, then Pause and
+leave C19 in place. If resume or recognition stalls, pause and report banner.
+This is continuation after the earlier capture, not a replay/pass of its delayed
+removal. Result pending; acceptance matrix remains15/27.
+
+### 2026-11-13 — Following move passed; next capture setup
+
+User reports C19 continuation all okay. Saved SGF ends W[sc],22timed moves,
+Black next, no clock anchor/capturePosition; balances Black378.22664855851326,
+White81.76870206533931. This completes the deferred following move but does not
+turn the earlier67-second capture-removal stall into a clean pass. Matrix15/27.
+
+Next distinct scenario: camera stop/start during automatic capture hold without
+manual pause. Keep threshold2. Batched setup from22: BlackS1, WhiteT1, BlackS2,
+WhiteT2; allow each move to save/switch clocks, then Pause at26, Black next.
+Do not place BlackT3 yet. Replayed actual SGF with independent liberty checks:
+all four setup moves legal/no captures; subsequent BlackT3 captures exactly
+WhiteT1/T2. User setup result pending.
+
+Setup verified:26saved ending B[ar] W[as] B[br] W[bs], Black next, no pending
+capture or clock anchor; Black421.56691599835176s/White132.6516899173148s.
+Next grouped checkpoint: Resume, BlackT3, leave WhiteT1/T2 physically present;
+confirm automatic stone-removal hold. Without manual Pause, Stop camera for5s,
+Start camera, wait for Live. Expect26saved and both clocks held throughout;
+prisoners remain. If a clock runs unexpectedly after hold, Pause/report.
+Capture/removal and outage result pending; no matrix increment.
+
+User reports automatic capture hold and Stop/Start camera all okay. Storage
+confirms26timed moves, pending capturePosition and no clock anchor; held balances
+Black415.3372931232443s/White132.6516899173148s. Journal retains these balances
+in capture hold after setup/resume. Next combined completion: remove WhiteT1/T2
+together, clear hand; expect27saved and White running. Play WhiteR3, clear hand;
+expect28saved/Black running, then Pause. R3 is clear with open adjacent points.
+Leave all other stones in place. Full scenario pending until completion verified.
+
+### 2026-11-13 — USB webcam corner capture removal uncertainty
+
+User confirms both WhiteT1/T2 physically removed; instructions flicker between
+one/two prisoners. Journal shows fresh frames T1uncertain,T2empty/uncertain,
+T3Black, with occasional both-empty frames; not a hand gate. Camera photo confirms
+empty corner/grid and hand outline says clear. Both clocks held at unchanged
+Black415.3372931232443/White132.6516899173148;26saved,capturepending.
+Agent manually paused to prevent unexpected resumption while diagnosing.
+WhiteR3 has NOT been played. No capture scenario marked passed.
+
+Saved full recording snapshot and retained diagnostic in
+`.build/GuidedTests/t1-t2-removal-uncertain-0174` (capture13-44-55 B1E65557).
+Original automatic clips were storage-blocked; moved the earlier stopped webcam
+capture intact outside managed rotation to make room, then recorded this state.
+Continuous capture ultimately stopped at its storage limit; retained with KEEP.
+Two unmodified frames committed as WebcamCornerRemoval regression fixtures.
+
+Offline replay confirms visible cross and exposed wood can independently prove
+emptiness where a local wood plane is unavailable/unstable beside an edge cluster.
+Added fallback for uncertain readings only, using existing exposedWoodConfidence
+checks; no history-imputed emptiness or changed capture completion thresholds.
+Also distinguish uncertain captured points from definitely present prisoners in
+status and speech.209appearance/empty-board checks pass including actual corner
+frames; broader lighting/capture tests pending. Live app not yet replaced.
+
+Broader checks passed:171residual-glare +90known-empty-lighting,
+113capture-uncertainty +103capture-conflict guidance +75local-clock +429capture/
+hand-clear timing;7build-registry checks. New uncertain-prisoner status/speech
+checks preserve the manual Resume requirement. Additional pipeline checks/build
+in progress.
+
+Exact-session offline replay (100 archived frames): original readings show both
+captured points empty in9frames, new detector in68; no detected stones erased or
+invented. First five clear views spanning0.8s available at1.06067s. Reopening an
+isolated copy of the actual26-move capture preserves both balances and the hold;
+ten paused observations do not advance it. After explicit Resume, original
+readings remain stuck26; new readings complete27 at1.06067s, White runs, Black
+445.3372931232443 (exactly one30s increment). Original files untouched by replay.
+Logs: `/tmp/physical-go-0175-corner-replay.log`, harnesses `/tmp/ReplayCorner.swift`
+and `/tmp/ReplayCornerCapture.swift`. These compare the same post-removal saved
+images; they do not measure the unrecorded physical withdrawal instant.
+
+Final targeted pipeline checks passed:73synthetic +21general +6clock-loss
++21A18 +19A19 hand-outline checks,11camera-preview checks and86lighting checks.
+Prepared a guarded0.175 installer that requires this exact26-move pending capture
+and its held balances. Unlike the earlier21-move installer, it explicitly expects
+and preserves the capture source. Existing capture-reopen tests and isolated
+actual-session replay verify retention and manual Resume semantics.
+
+Installed0.175/build176; strict signature/source-hash checks passed. Source hash:
+`c5d2bc2597036b2fe5146b2942494464ea372b51449bbf0d65ba55662aa3e2bf` (135sources).
+Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.175-20261113-135756`.
+After launch, SGF byte-identical; clock/pending/review sidecars semantically exact;
+previous89-move record unchanged.26saved,pendingcapture,manuallypaused,exactheld
+balances retained. FULL HD WEB CAM returned Live automatically.
+
+Initial postlaunch readings were still intermittently uncertain (first45views:
+14bothclear; later231views longestclear run4), so no premature user retry issued.
+Captured194freshframes in13-59-37 A03A09AC, then stopped capture explicitly and
+archived under the same retained diagnostic folder. No camera reset or manual
+recalibration applied. New-frame replay matches logged classifications exactly
+for30frames (including checks with PNG/sRGB/DeviceRGB interpretation); alignment
+remains supported. Later100live observations over25.107s:65bothclear,longest11
+consecutive clear, BlackT3 retained. Enough fresh evidence for the unchanged
+completion rule, though not every individual reading is certain. The cause of
+the weaker initial window is not established; do not claim exposure settling as
+proven. Capture/clock state remains unchanged while manually paused.
+
+User retry: Resume with WhiteT1/T2 absent and BlackT3 present; expect27saved and
+White running. Then WhiteR3, wait28saved/Blackrunning,Pause. If it struggles again,
+Pause/report and retain evidence. Physical scenario still pending,15/27 unchanged.

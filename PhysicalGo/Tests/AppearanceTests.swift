@@ -45,6 +45,23 @@ import ImageIO
                 print(name,filename,Dictionary(uniqueKeysWithValues:Occupancy.allCases.map { state in (state.rawValue,result.signature.filter{$0==state}.count) }))
             }
         }
+        // Real USB-webcam corner removal: neighboring black stones leave too
+        // few usable gap samples, although both printed axes are exposed.
+        struct CornerFrame:Decodable {
+            let image:String;let calibration:BoardCalibration;let threshold:Double
+            let savedReadings:[IntersectionReading]
+        }
+        let cornerFolder=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/WebcamCornerRemoval")
+        let cornerFrames=try JSONDecoder().decode([CornerFrame].self,from:Data(contentsOf:cornerFolder.appendingPathComponent("manifest.json")))
+        for fixture in cornerFrames {
+            let source=CGImageSourceCreateWithURL(cornerFolder.appendingPathComponent(fixture.image) as CFURL,nil)!
+            let frame=GrayFrame(image:CGImageSourceCreateImageAtIndex(source,0,nil)!)!
+            let result=BoardAppearanceDetector.detect(frame:frame,calibration:fixture.calibration,threshold:fixture.threshold)
+            for point in [342,343] {check(result.readings[point].occupancy == .empty,"Removed corner prisoner still uncertain in \(fixture.image): \(point)")}
+            let stones=fixture.savedReadings.filter{$0.occupancy.stone != nil}
+            for stone in stones {check(result.readings[stone.row*19+stone.col].occupancy==stone.occupancy,"Corner fallback erased a real stone")}
+            check(result.snapshot.stones.count==stones.count,"Corner fallback invented a stone")
+        }
         let cal=BoardCalibration(size:9,corners:[.init(x:0.1,y:0.1),.init(x:0.9,y:0.1),.init(x:0.9,y:0.9),.init(x:0.1,y:0.9)])!
         func synthetic(stone:UInt8?=nil,grid:Bool=true)->GrayFrame {
             let side=720
