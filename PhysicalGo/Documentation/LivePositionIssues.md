@@ -7,8 +7,8 @@ signed-build verification passed. Capture timing retains its configurable policy
 implementation and validation record below for coverage and limitations.
 
 Latest follow-up:0.169/build170 installed. Two-prisoner threshold2 capture and
-following move passed. Matrix15/27 complete,12 remaining.16 saved,Black next,
-both clocks paused. Next setup is Black B18 for a manually paused capture across
+following move passed. Matrix15/27 complete,12 remaining.17 saved,White next,
+both clocks paused. Next setup is White A19 for a manually paused capture across
 a camera interruption; voice/hold-label acceptance will accompany that capture.
 
 ## Purpose and scope
@@ -1767,3 +1767,11 @@ running,Pause. At the later capture check new feedback,remaining-point obstructi
 manualpause then camera interruption/restart; verify pause retained. No new moves
 or settings changed by agent. Other threshold settings are next-game settings
 in the current UI; retain this game for outage checks before changing policies.
+
+Paused-capture outage setup, Black B18 **verified**: user reports expected
+behavior; storage confirms17thB[rb],previous16timingsunchanged,oneBlack30s
+increment,White next,manualpause,no capturehold/timingreview. Balances
+Black346.941236996 / White154.577450004. Snapshot
+`.build/GuidedTests/after-paused-capture-setup-b18-0169`. Next only White A19
+at upper-left corner: Resume,place,clearhand,wait18saved/Blackrunning,Pause.
+Otherstones unchanged;matrix15/27.
