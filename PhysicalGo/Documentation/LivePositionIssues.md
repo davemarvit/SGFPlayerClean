@@ -9,8 +9,8 @@ implementation and validation record below for coverage and limitations.
 Latest follow-up:0.171/build172 installed with the A18 false-hand fix. Targeted
 regressions and signed-source verification passed. Matrix15/27 complete,12 remaining.
 19saved,White next,both clocks paused;WhiteA18 remains physical and unsaved.
-Mac locked at postlaunch check: fresh camera verification and live A18 retry
-await unlock. BlackA17 remains empty for the capture test.
+After unlock, fresh camera verification passed; live A18 retry is in progress.
+BlackA17 remains empty for the capture test.
 
 ## Purpose and scope
 
@@ -1921,3 +1921,18 @@ Mac is locked, so fresh postlaunch camera verification has NOT passed yet.
 Ask user to unlock with stones unchanged; then verify Live/paused state before
 retrying A18. Spoken retry instructions are prepared but not played while locked.
 Keep physical matrix15/27 until the actual capture cases pass.
+
+### 2026-11-13 — Fresh-camera verification after unlock
+
+Camera startup had exhausted recovery while locked; started Dave11 Camera again
+without resuming play. Camera Live,19saved,White next,both clocks stopped at
+Black365.874617037s/White42.846810545s. After initial recognition settled,62 fresh
+observations in15seconds exactly matched the saved board plus unsaved WhiteA18;
+no unknown points in that sample and no waiting-for-hands banner. This verifies
+the fresh paused view, not yet the A18 placement/clock transition.
+
+Started bounded5GB continuous diagnostics for the retry:
+`Diagnostic 2026-11-13 00-39-38 8B04A502`. Next result: stop capture,keep evidence,
+and restore10GB limit. Kokoro retry instructions played: while paused remove
+only WhiteA18; wait for marker to disappear; Resume,replace WhiteA18,clear hands;
+expect20saved and Black clock running,then Pause. LeaveA17empty. Matrix15/27.
