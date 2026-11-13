@@ -1493,3 +1493,28 @@ frame. Probe `/tmp/GlareReturnProbe.swift`; no thresholds or source code changed
 Next physical recovery step: keep clocks paused, stones and camera fixed, redirect
 the light causing the reflection, clear hands five seconds and report whether
 circles settle. Recheck before continuing White Q10. Matrix unchanged14/27.
+
+Clarification after user challenged the lighting workaround: **a room-lighting
+change is not established, and changing the lamp is not a demonstrated necessity**.
+The previous recommendation was a practical workaround, not a proven cause/fix.
+Journal shows zero unreadable points through20:49:53.614 PST, then a1324.437-second
+(22m04s) gap in observations; first returning observation21:11:58.051 has19.
+Camera restart events occur at21:11:55. The long observation gap/restart discards
+temporary KnownEmptyLighting state (gap>1.5s clears entries; revision resets it).
+This establishes a recovery transition; it does not prove why camera input ceased.
+
+Same current detector, threshold0.13, same camera ID/resolution/mode and byte-identical
+empty-reference PNG (SHA256 c9cb45072f150d090327593b7d969774033df8992cc530e4d8c00552d6f83192):
+earlier restored0.164 sample yields0 raw uncertain points; current sample31.
+Calibration swap diagnostic: old image with new calibration yields2 raw/1 after
+cold local learning; new image with old calibration yields23 raw/19 after learning.
+Thus calibration contributes, but the changed image still fails with the older
+calibration; this is not simply a disabled fix or lost learned baseline. These
+are offline single-frame comparisons with synthetic repeat timestamps, not live
+acceptance tests. Exposure, focus, subtle alignment, and physical illumination
+have not been isolated. Probe `/tmp/GlareCalibrationProbe.swift`.
+
+Superseding next step: keep lighting, stones and camera unchanged and game paused
+to retain this reproducible failure for recognition/recovery diagnosis. Do not
+require the user to change the lamp or place Q10 yet. No source changes or new
+build;13 saved and test count14/27 remain.
