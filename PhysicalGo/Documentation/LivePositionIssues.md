@@ -1363,3 +1363,11 @@ correction. Paused balances Black221.767975333 / White68.380774833 seconds.
 Snapshot `.build/GuidedTests/after-capture-setup-a1-0166`. Next step only: Resume,
 place Black B1 beside White A1, clear hands until7 saved/White running, then Pause.
 Leave White A1 in place; no capture yet. Matrix remains13/27, setup in progress.
+
+Single-prisoner capture setup, step2 **verified**: user reports done; storage
+confirms seventh B[ab] (Black B1), prior six timed moves unchanged, one30-second
+Black increment, White next, paused, no timing correction. Balances
+Black246.451423500 / White66.361338792 seconds. Snapshot
+`.build/GuidedTests/after-capture-setup-b1-0166`. Next final setup move only:
+Resume, place White A3 leaving A2 empty, clear hand until8 saved/Black running,
+then Pause. Do not remove stones or play the capturing Black A2 yet.
