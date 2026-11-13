@@ -2120,3 +2120,12 @@ paused. Do not classify delayed completion as a clean test pass; matrix15/27.
 Started bounded5GB continuous replay `Diagnostic 2026-11-13 01-36-54 3830D2E0` (KEEP).
 Next requested: keep paused, replace only White A19, clear hand5seconds and
 leave it in place for baseline verification before removal; do not play C19.
+
+A19 replay baseline verified: user replaced White A19; continuous capture
+frames702–707 have reliable no-hand pose, clear visual reference, and
+BlackA17/emptyA18/WhiteA19 with confidence1.0, delivered to the paused recorder.
+21 saved, exact paused Black382.627141162s/White54.895708878s unchanged.
+Next: while paused remove onlyWhiteA19, cover its intersection with the hand
+for5seconds, then withdraw completely and leave the scene untouched. Report
+whether the detected extra stone clears promptly or remains stuck; no camera
+restart/hand wave, noC19. Continuous capture remains active.
