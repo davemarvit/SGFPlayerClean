@@ -150,5 +150,6 @@ import Foundation
         _=try HandOutlineRecordedTests.run()
         _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockCatchUpLoss/Outline"))
         _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/A18HandOutline"))
+        _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/A19RemovalHandOutline"))
     }
 }

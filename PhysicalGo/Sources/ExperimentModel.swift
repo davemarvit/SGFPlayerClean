@@ -1265,6 +1265,18 @@ enum PhysicalPlayMode: String, CaseIterable {
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
             }
             let handEstimate:ClockPressEstimate?
+            if freshView,self.playMode == .local,self.recorder.state == .recording,
+               self.diagnosticSettings.enabled,self.diagnosticSettings.unusualMoves {
+                self.moveEvidenceCapture.observeHandClearance(obstructed:analysis.handObstructed,
+                    poseObstructed:analysis.handPose?.obstructed(size:self.size),at:alignmentTime,
+                    context:["game":self.recorder.autosaveURL?.lastPathComponent ?? "local",
+                        "moveCount":self.recorder.moveCount,"viewQuarterTurns":self.viewQuarterTurns,
+                        "handPose":DiagnosticRecorder.value(analysis.handPose),
+                        "handOutline":DiagnosticRecorder.value(analysis.handOutline),
+                        "appVersion":Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") ?? "development",
+                        "appBuild":Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") ?? "development",
+                        "sourceHash":Bundle.main.object(forInfoDictionaryKey:"PhysicalGoSourceHash") ?? "development"])
+            }
             if freshView,self.playMode == .local {
                 let valid = !exposureFailure && (aligned != nil || analysis.handObstructed == true && !self.alignmentNeedsRecovery)
                 handEstimate=self.recorder.observeHandMotion(valid && analysis.handOutline != nil ? analysis.handPose:nil,

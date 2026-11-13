@@ -6,13 +6,14 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: stopped testing for bed at user's request (2026-11-13).
-0.172/build173; 21 saved, White next, both clocks manually paused. Black A17
-present; White A18/A19 absent; C19 not played. A19 diagnostic replay cleared
-promptly and correctly did not restart manually paused clocks. Original67-second
-hand-gate stall remains unresolved; matrix15/27. Camera stopped before the
-announced lighting change. Morning: start camera with stones untouched and
-verify lighting/grid/current position while paused before any Resume.
+Latest follow-up: overnight investigation complete; 0.173/build174 signed,
+tested and staged (not installed). It adds bounded diagnostic clips for a stuck
+hand gate and recovery, plus a recorded A19 removal regression. The original
+67-second interval's visual cause remains unproven because footage is missing;
+recognition thresholds and timing rules are unchanged. Installed0.172 remains
+at21 saved, White next, manually paused, camera stopped. A17Black, A18/A19empty,
+C19not played. Morning: install staged build with preservation checks, then
+verify the new lighting/current board while paused before Resume. Matrix15/27.
 
 ## Purpose and scope
 
@@ -2156,3 +2157,84 @@ Morning preflight: start camera, keep paused, establish fresh agreement with the
 Resume before that check. C19 following move remains pending; original hand
 stall is still open and full capture-interruption scenario is not a clean pass.
 Physical matrix remains15/27.
+
+### 2026-11-13 — Overnight investigation of the67-second hand gate
+
+User explicitly requested offline overnight investigation after stopping live
+tests. Keep installed0.172, camera stopped, recording paused; do not restart
+camera or play test speech while the user sleeps/changes lighting.
+
+Confirmed boundary: the recorder receives no observations while the hand gate
+is true. The67.007493s interval is not a configured capture or reminder delay;
+normal complete-position verification then took about1.24s. The original
+interval has no camera footage, so residual foreground/shadow, erroneous pose,
+or stale camera imagery cannot be distinguished from those logs. The original
+reopening also has no recorded hand-motion estimate. Do not claim a root-cause
+fix or relax recognition thresholds based on that missing evidence.
+
+Extracted58 sampled frames980–1055 of the successful A19 removal into
+`Tests/Fixtures/A19RemovalHandOutline`, including original poses/timestamps and
+manual last-visible-hand/clear PNGs. Current tracker blocks the visible hand at
+1034 and verifies exit at1037;19 new recorded-outline assertions pass alongside
+73 synthetic,21 general photo,6 clock-loss and21 A18 photo assertions.
+A separate offline fault-injection experiment replaces all poses after entry
+with no-hand results; it still retains visible fingers and clears by1041
+(~0.8s later), not67s. This altered-input experiment is not footage of the failure.
+
+Found a diagnostic coverage gap: hand-gated frames return before move-event
+triggers, so the prior unrecorded-stone clip ended before removal and no new
+clip covered the stall. Added opt-in unusual-move evidence for three seconds
+of outline obstruction with a reliably clear pose, plus a separate recovery
+clip. Each episode emits at most one onset and one recovery event, using the
+existing bounded PNG buffer/storage policy. Any continuous hand gate also
+triggers after15seconds, even with unavailable/present pose data, to retain
+possible stale imagery or false poses. These are recording triggers only, not
+clearance timeouts. Unknown pose/gate, repeated frames,
+actual visible poses, interruptions, disabled diagnostics and stop/reset are
+handled without declaring physical clearance. No changes to hand thresholds,
+move acceptance, capture completion or clock timing. Final tests/build passed;
+see verification below.
+
+The measured67.007493seconds includes the user's intentional hand cover. Without
+images of withdrawal, the exact post-withdrawal delay is unknown. The successful
+replay has a hand-bracket estimate; the original reopening has no recorded hand
+estimate. That difference is consistent with weak tracking or reinitialization,
+but does not establish which happened. No67-second release timer exists in the
+hand/capture path; do not label a hypothesized visual cause as confirmed.
+
+Prepared guarded installer `.build/GuidedTests/install-0173.py` for the next
+attended session. It requires the current21-move paused recording with no pending
+capture and exact overnight balances, verifies the signed build/source hash,
+backs up all sidecars and preserves the prior recording. Do not run overnight:
+launching the replacement app could start the camera under changed lighting.
+
+### Overnight verification and handoff — 0.173/build174 staged
+
+Final production source hash:
+`e7d549b04e805a802a72d12f96c2b167bb09eedf6605faf6d044f3894ea3068d`
+(135 sources). Strict code-signature verification and source-hash comparison
+passed for `.build/Physical Go.app`. Build manifest:
+`.build/GuidedTests/0173-staged-build.json`.
+
+Validation passed on final diagnostic code: automatic evidence capture tests
+(including three-second disagreement, fifteen-second visible/unknown-pose gates,
+67-second bounded onset/recovery, original camera timestamps, duplicate/unknown
+frames, interruptions, disabled collection, and existing archive constraints),
+11 camera-preview checks, and capture/clock suites (427 capture/timing +113
+uncertainty +103 conflict guidance +75 local-clock checks). Outline suites pass
+73 synthetic +21 general recorded +6 clock-loss +21 A18 +19 new A19 checks.
+Build-registry tests:7 passed. An initial archive test counted `.rotation.lock`
+as a capture; the assertion was corrected to count actual event directories.
+
+The live app was not replaced or restarted. Current SGF is byte-identical to the
+overnight snapshot, and clock/pending/review JSON matches semantically. All21
+moves and exact balances are preserved. No camera start or spoken walkthrough
+was issued overnight. The separate89-move recording is unchanged as well.
+
+The new evidence policy is not a verified fix for the original visual stall.
+It records early blocked frames and the reopening rather than depending on a
+move being accepted. Camera/space/writer limits still apply; trigger metadata
+is explicitly not ground truth. The recorded successful replay and the separate
+pose-loss perturbation must not be mislabeled as a reproduction of the failure.
+Morning: use the guarded installer, check the changed lighting while paused,
+and continue diagnosis if the gate stalls again. Do not increment15/27 yet.

@@ -5,6 +5,36 @@ import CoreGraphics
 /// A bounded, transient camera ring. Selected diagnostic events persist short clips.
 /// Reuses the lossless, asynchronous diagnostic writer and its failure reporting.
 @MainActor final class MoveEvidenceCapture:ObservableObject {
+    /// Evidence collection only. This never clears a hand, accepts a move, or
+    /// changes a clock. A missing pose alone is not proof of physical clearance.
+    struct HandClearanceEvidence {
+        enum Event:String {case stalled="hand clearance stalled",recovered="hand clearance recovered"}
+        private var lastTime:Double?
+        private var blockedSince:Double?
+        private var poseClearSince:Double?
+        private var reported=false
+        mutating func reset() {self=Self()}
+        mutating func observe(obstructed:Bool?,poseObstructed:Bool?,at time:Double)->Event? {
+            guard time.isFinite,lastTime.map({time>$0}) ?? true else {return nil}
+            if let lastTime,time-lastTime>1.5 {reset()}
+            lastTime=time
+            if obstructed==false {
+                let recovery=reported;blockedSince=nil;poseClearSince=nil;reported=false
+                return recovery ? .recovered:nil
+            }
+            guard obstructed==true else {blockedSince=nil;poseClearSince=nil;return nil}
+            if blockedSince==nil {blockedSince=time}
+            if poseObstructed==false {
+                if poseClearSince==nil {poseClearSince=time}
+            } else {poseClearSince=nil}
+            // Also retain a long block when pose recognition stays unavailable
+            // or reports a hand. Frozen imagery/false poses need evidence too.
+            let disagreed=poseClearSince.map{time-$0>=3} ?? false
+            guard !reported,disagreed || time-blockedSince!>=15 else {return nil}
+            reported=true;return .stalled
+        }
+    }
+    private var handClearanceEvidence=HandClearanceEvidence()
     nonisolated static var directory:URL {
         FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
             .appendingPathComponent("Physical Go/Move Evidence",isDirectory:true)
@@ -74,6 +104,17 @@ import CoreGraphics
         if events.count>64 {events.removeFirst(events.count-64)}
         if recorder.isCapturing {recorder.event("automatic analysis",details:details)}
     }
+    func observeHandClearance(obstructed:Bool?,poseObstructed:Bool?,at time:Double,
+                              context:@autoclosure ()->[String:Any]) {
+        guard enabled else {handClearanceEvidence.reset();return}
+        guard let event=handClearanceEvidence.observe(obstructed:obstructed,poseObstructed:poseObstructed,at:time) else {return}
+        var details=context()
+        details["reason"]=event.rawValue;details["uptime"]=time;details["captureUptime"]=time
+        details["labelsAreGroundTruth"]=false
+        // The two bounded clips retain the early disagreement and its later
+        // resolution even when no board observation reaches the game recorder.
+        _=trigger(details,now:time)
+    }
     /// Returns the archive path for correlation in the persistent timing journal.
     /// Overlapping triggers share a clip, capped at 12 seconds after its first trigger.
     func trigger(_ event:[String:Any],now:Double)->String? {
@@ -133,8 +174,10 @@ import CoreGraphics
     func stop(reason:String) {
         if recorder.isCapturing {recorder.stop(reason:reason)}
         deadline=nil;maximumEnd=nil;activeGame=nil;frames=[];events=[];lastSample = -Double.infinity
+        handClearanceEvidence.reset()
     }
     func closeForExit() {
         recorder.closeForExit();frames=[];events=[];deadline=nil;maximumEnd=nil
+        handClearanceEvidence.reset()
     }
 }

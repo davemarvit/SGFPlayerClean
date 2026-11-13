@@ -105,6 +105,56 @@ import ImageIO
         let captured=try entries(archived)
         precondition(captured.contains{$0["event"] as? String=="frame"})
         precondition(captured.filter{$0["event"] as? String=="move evidence trigger"}.count==2)
+        // A hand gate can return before the recorder sees any board frames.
+        // Capture the early disagreement and recovery without recording the
+        // entire minute, relaxing clearance, or requiring a saved-move event.
+        var handMonitor=MoveEvidenceCapture.HandClearanceEvidence()
+        for i in 0...8 {precondition(handMonitor.observe(obstructed:true,poseObstructed:true,at:Double(i))==nil)}
+        for i in 9...11 {precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:Double(i))==nil)}
+        precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:12) == .stalled)
+        precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:12)==nil,"Duplicate frame retriggered evidence")
+        precondition(handMonitor.observe(obstructed:nil,poseObstructed:false,at:13)==nil,"Unknown gate fabricated recovery")
+        precondition(handMonitor.observe(obstructed:false,poseObstructed:false,at:14) == .recovered)
+        precondition(handMonitor.observe(obstructed:false,poseObstructed:false,at:15)==nil)
+        handMonitor.reset()
+        for i in 0...2 {precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:Double(i))==nil)}
+        precondition(handMonitor.observe(obstructed:true,poseObstructed:nil,at:3)==nil)
+        for i in 4...6 {precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:Double(i))==nil)}
+        precondition(handMonitor.observe(obstructed:true,poseObstructed:false,at:7) == .stalled)
+        precondition(handMonitor.observe(obstructed:false,poseObstructed:false,at:10)==nil,"Camera gap fabricated a continuous hand exit")
+        for pose:Bool? in [true,nil] {
+            handMonitor.reset()
+            for i in 0..<15 {precondition(handMonitor.observe(obstructed:true,poseObstructed:pose,at:Double(i))==nil)}
+            precondition(handMonitor.observe(obstructed:true,poseObstructed:pose,at:15) == .stalled,"Long blockage with visible/unknown pose escaped evidence collection")
+            for i in 16...67 {precondition(handMonitor.observe(obstructed:true,poseObstructed:pose,at:Double(i))==nil)}
+            precondition(handMonitor.observe(obstructed:false,poseObstructed:false,at:68) == .recovered)
+        }
+        let handClips=MoveEvidenceCapture(root:root.appendingPathComponent("hand-stall"),scheduleDeadlines:false)
+        var handContexts=0
+        func handContext()->[String:Any] {handContexts+=1;return ["game":"hand-test","moveCount":20]}
+        for tick in 0...134 {
+            let time=Double(tick)*0.5
+            handClips.offer(image,at:time,online:true,context:["testFrameTime":time],reference:nil,anchor:nil,anchorRevision:0)
+            handClips.observeHandClearance(obstructed:tick<134,poseObstructed:tick<4,at:time,context:handContext())
+            settle()
+        }
+        handClips.closeForExit()
+        let folders=try FileManager.default.contentsOfDirectory(at:handClips.root,includingPropertiesForKeys:nil)
+            .filter{FileManager.default.fileExists(atPath:$0.appendingPathComponent("events.jsonl").path)}
+        precondition(folders.count==2 && handContexts==2,"One prolonged hand stall should save only onset/recovery clips")
+        var reasons=[String]()
+        for folder in folders {
+            let rows=try entries(folder),triggers=rows.filter{$0["event"] as? String=="move evidence trigger"}
+            precondition(triggers.count==1 && triggers[0]["labelsAreGroundTruth"] as? Bool==false)
+            reasons.append(triggers[0]["reason"] as! String)
+            precondition([5.0,67.0].contains(triggers[0]["captureUptime"] as! Double),"Writer time replaced original hand-frame time")
+            precondition(rows.filter{$0["event"] as? String=="frame"}.count<=20,"Stall capture exceeded bounded window")
+        }
+        precondition(Set(reasons)==["hand clearance stalled","hand clearance recovered"])
+        handClips.enabled=false
+        for i in 140...150 {handClips.observeHandClearance(obstructed:true,poseObstructed:false,at:Double(i),context:handContext())}
+        precondition(handContexts==2,"Disabled diagnostics collected hand evidence")
+        print("PASS: prolonged hand gate records two bounded clips without board observations; duplicate/unknown/visible-hand/gap/disabled cases covered.")
         print("PASS: transient pre-buffer, post-roll, rate/memory/storage limits, overlapping triggers, bounded duration, full-resolution lossless frames, orientation/context, and orderly shutdown.")
         print("PASS: accepted 0.85 move dispatch through the real bridge automatically creates and links an evidence archive; no live server used.")
     }
