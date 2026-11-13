@@ -43,6 +43,10 @@ enum PhysicalPlayMode: String, CaseIterable {
         "\(revision)/\(playMode.rawValue)/\(viewQuarterTurns)/" +
         (playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
     }
+    private var lightingContext:String {
+        "\(lightingRevision)/\(cameraID)/\(playMode.rawValue)/\(viewQuarterTurns)/" +
+        (playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
+    }
     @Published private(set) var latestAlignmentReport = "No camera analysis yet."
     @Published private(set) var exportingSGF = false
     @Published private(set) var exportStatus = ""
@@ -408,10 +412,15 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published private(set) var lastVerifiedLiveFrameAt:Double?
     private var revision = 0 {didSet {
         handOutlineTracking.reset()
-        emptyLighting.reset()
         lastVerifiedLiveFrameAt=nil
         trackedBoardObservation=nil;establishedStones.reset();stoneTrackingReport = .init()
     }}
+    private var lightingRevision=0
+    private func invalidateAnalysis(preservingLighting:Bool=false) {
+        revision += 1
+        if preservingLighting {emptyLighting.suspend()}
+        else {lightingRevision += 1;emptyLighting.reset()}
+    }
     private var gridGeneration = 0
     private var automaticGridArmed = true
     private var manualCornerMode = false
@@ -754,7 +763,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             recoverySpeech.finishCurrent(reason:"camera stream interrupted")
             recorder.suspendVision("Camera interrupted. Recording waits for the board to match the accepted position.",preserveOrder:true)
             emptyBoardVerifier.reset()
-            stable = false; stability.reset(); revision += 1
+            stable = false; stability.reset(); invalidateAnalysis(preservingLighting:true)
             if detectingGrid {
                 cancelGridDetection()
                 automaticGridArmed = automaticGridEnabled && calibration == nil && corners.isEmpty
@@ -773,7 +782,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     private func pauseForFreshFrame() {
         observation = nil; labels = [:]; stable = false; stability.reset(); emptyBoardVerifier.reset()
         rectifiedImage = nil; rectifiedGeometry = nil
-        revision += 1; needsFreshReference = false; awaitingReferenceFrame = true
+        invalidateAnalysis(preservingLighting:true); needsFreshReference = false; awaitingReferenceFrame = true
         if hasReference { referenceStatus = "Reference preserved. Waiting to check a fresh camera frame." }
         message = "Waiting for a fresh camera frame to verify grid alignment."
     }
@@ -889,12 +898,12 @@ enum PhysicalPlayMode: String, CaseIterable {
         acceptsFrames = false; running = false; cameraState = .failed; camera.stop()
         emptyBoardVerifier.reset()
         cameraStatus = "Camera stopped"; stable = false; stability.reset()
-        revision += 1; cancelGridDetection(); automaticGridArmed = false
+        invalidateAnalysis(preservingLighting:true); cancelGridDetection(); automaticGridArmed = false
     }
     func toggleFreeze() {
         boardViewFeedback.reset()
         recorder.suspendVision("Frozen or resumed camera. Checking the accepted position before recording continues.",preserveOrder:true)
-        frozen.toggle(); emptyBoardVerifier.reset(); revision += 1; labels = [:]; stability.reset(); stable = false
+        frozen.toggle(); emptyBoardVerifier.reset(); invalidateAnalysis(preservingLighting:true); labels = [:]; stability.reset(); stable = false
         if frozen { recoverySpeech.finishCurrent(reason:"camera frozen");cancelGridDetection(); automaticGridArmed = false }
         else if calibration == nil && corners.isEmpty && !manualCornerMode && automaticGridEnabled {
             automaticGridArmed = true; nextAutomaticGridAttempt = 0
@@ -919,7 +928,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         nextAutomaticGridAttempt = 0
         resetRecoverySearch()
         gridStatus = automaticGridArmed ? "Waiting for a clear camera view…" : "Choose Detect grid, or click four corner intersections clockwise from top-left."
-        revision += 1; corners = []; calibration = nil
+        invalidateAnalysis(); corners = []; calibration = nil
         alignmentNeedsRecovery=false; alignmentRecoveries=0; trackingAnchor=nil; automaticReferenceAllowed=true
         rectifiedImage = nil; rectifiedGeometry = nil
         reference = nil; referenceCalibration = nil; referenceImage = nil; automaticReference=false; emptyBoardVerifier.reset(); hasReference = false
@@ -946,7 +955,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         if !recovering { resetRecoverySearch() }
         else { recoverySearchAttempts += 1 }
         // Invalidate analysis already in flight so an old alignment cannot overwrite this search.
-        revision += 1; stable = false; stability.reset(); emptyBoardVerifier.reset()
+        invalidateAnalysis(); stable = false; stability.reset(); emptyBoardVerifier.reset()
         if calibration != nil || !recoveryExpected.isEmpty {
             alignmentNeedsRecovery = true; observation = nil
             // Retain presentation during the search; the recovery label and
@@ -1065,7 +1074,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         if persistViewSettings {
             settings.set(straightenBoard,forKey:"PhysicalGo.straightenBoard")
         }
-        revision += 1; rectifiedImage = nil; rectifiedGeometry = nil
+        invalidateAnalysis(); rectifiedImage = nil; rectifiedGeometry = nil
         analyze()
     }
     func undoCorner() {
@@ -1079,7 +1088,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         resetRecoverySearch()
         corners.removeLast(); calibration = nil; trackingAnchor=nil; alignmentNeedsRecovery=false; reference = nil; referenceCalibration = nil; referenceImage = nil; automaticReference=false; emptyBoardVerifier.reset()
         rectifiedImage = nil; rectifiedGeometry = nil
-        hasReference = false; observation = nil; labels = [:]; stable = false; stability.reset(); revision += 1
+        hasReference = false; observation = nil; labels = [:]; stable = false; stability.reset(); invalidateAnalysis()
     }
     private func setTrackingAnchor() {
         guard let image,let calibration,let frame=GrayFrame(image:image,includeColor:false) else { trackingAnchor=nil; return }
@@ -1089,7 +1098,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         guard !awaitingReferenceFrame, !alignmentNeedsRecovery, (!running || cameraState == .live), calibration != nil, let image, let gray = GrayFrame(image: image) else { return }
         recorder.suspendVision("Reference changed. Checking the accepted position before recording continues.")
         automaticReference=false; emptyBoardVerifier.reset()
-        revision += 1; reference = gray; referenceCalibration = calibration; referenceImage = image; hasReference = true
+        invalidateAnalysis(); reference = gray; referenceCalibration = calibration; referenceImage = image; hasReference = true
         setTrackingAnchor(); bindReferenceCamera(); persistReference()
         startupReferenceCaptured=true
         labels = [:]; stability.reset(); stable = false
@@ -1101,7 +1110,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         disableSavedReference(); referenceStatus = ""
         reference=nil; referenceImage=nil; referenceCalibration=nil; hasReference=false
         automaticReference=false; automaticReferenceAllowed=false; emptyBoardVerifier.reset()
-        revision += 1; stability.reset(); stable=false
+        invalidateAnalysis(); stability.reset(); stable=false
         message="Detecting without an empty-board reference."
         analyze()
     }
@@ -1160,6 +1169,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         let checkAlignment = tracksCameraMotion && (supplied != nil || alignmentNeedsRecovery)
         let newObservation = supplied != nil || observation == nil
         let trackingState=establishedStones,trackingExpected=stoneTrackingExpected,trackingContext=stoneTrackingContext
+        let lightingContext=self.lightingContext
         let trackingManualPoints=Set(boardCorrections.values.keys)
         let trackingFresh=supplied != nil && running && cameraState == .live && !frozen &&
             stoneCalibrationSession == nil && !boardCorrections.isEditing && !lightingNeedsRecovery
@@ -1185,7 +1195,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingFresh:trackingFresh,
             trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
-            emptyLighting:emptyLighting)) { [weak self] analysis in
+            emptyLighting:emptyLighting,lightingContext:lightingContext)) { [weak self] analysis in
             let frame=analysis.frame
             let exposureFailure=analysis.exposureFailure
             let alignmentReport=analysis.alignmentReport
@@ -1384,7 +1394,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         }
     }
 
-    func thresholdChanged() { recorder.suspendVision("Detection settings changed. Checking the accepted position."); emptyBoardVerifier.reset(); revision += 1; stability.reset(); stable = false; analyze() }
+    func thresholdChanged() { recorder.suspendVision("Detection settings changed. Checking the accepted position."); emptyBoardVerifier.reset(); invalidateAnalysis(); stability.reset(); stable = false; analyze() }
     func label(_ index: Int) {
         guard frozen || !running, let observation else { message = "Freeze the frame before labeling."; return }
         labels[index] = (labels[index] ?? observation.readings[index].occupancy).next

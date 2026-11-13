@@ -1,6 +1,6 @@
 import Foundation
 
-/// A short-lived local lighting baseline, learned only from independent empty
+/// A local lighting baseline, learned only from independent empty
 /// readings at saved-empty intersections. Never learns from its own output.
 struct KnownEmptyLighting {
     struct Report:Codable {var learned=0;var resolved=[Int]();var appearanceConfirmed=[Int]()}
@@ -20,7 +20,11 @@ struct KnownEmptyLighting {
         var last:Double
         var count=1
         var noise=0.0
-        var ready:Bool {count>=8 && last-first>=1.4}
+        var revalidating=false
+        var confirmationFirst:Double?
+        var confirmations=0
+        var trained:Bool {count>=8 && last-first>=1.4}
+        var ready:Bool {trained && !revalidating}
         var tolerance:Double {max(0.022,min(0.025,noise*2+0.005))}
     }
     private var entries=[Int:Entry]()
@@ -28,9 +32,23 @@ struct KnownEmptyLighting {
     private var context=""
     private var expected=[Occupancy]()
     private var lastTime:Double?
+    private var suspended=false
     private var previousCalibration:BoardCalibration?
     private(set) var report=Report()
     mutating func reset() {self=Self()}
+    /// Keep established evidence dormant, never partially learned runs. No
+    /// interrupted time counts toward training, expiry, or fresh confirmation.
+    mutating func suspend() {
+        report=Report()
+        guard !suspended else {return}
+        suspended=true
+        entries=entries.filter {$0.value.trained}
+        for p in Array(entries.keys) {
+            entries[p]?.revalidating=true
+            entries[p]?.confirmationFirst=nil
+            entries[p]?.confirmations=0
+        }
+    }
     private func patch(_ frame:GrayFrame,_ calibration:BoardCalibration,_ point:Int)->Patch? {
         var levels=[Double](),colors=[BoardChroma]()
         for y in [-0.3,-0.18,0.18,0.3] {for x in [-0.3,-0.18,0.18,0.3] {
@@ -46,15 +64,24 @@ struct KnownEmptyLighting {
                           expected position:[Occupancy],context identity:String,now:Double,valid:Bool,
                           appearanceThreshold:Double?=nil)->BoardObservation {
         report=Report()
-        guard valid,now.isFinite,!raw.lightingBlocked,raw.size==calibration.size,
+        guard now.isFinite,raw.size==calibration.size,
               position.count==raw.size*raw.size,raw.readings.count==position.count,
               raw.readings.enumerated().allSatisfy({$0.element.row==$0.offset/raw.size && $0.element.col==$0.offset%raw.size})
         else {reset();return raw}
         if context != identity || expected != position {reset();context=identity;expected=position}
+        guard valid,!raw.lightingBlocked else {suspend();return raw}
         if let lastTime {
             guard now>lastTime else {return raw}
-            if now-lastTime>1.5 {entries.removeAll()}
+            if now-lastTime>1.5 {suspend()}
+            if suspended {
+                // Preserve each baseline's observed age across the interruption.
+                for p in Array(entries.keys) {
+                    entries[p]?.first += now-lastTime
+                    entries[p]?.last += now-lastTime
+                }
+            }
         }
+        suspended=false
         if let previousCalibration {
             let shift=zip(previousCalibration.corners,calibration.corners).contains {old,new in
                 guard let a=calibration.gridPoint(for:old),let b=calibration.gridPoint(for:new) else {return true}
@@ -76,6 +103,18 @@ struct KnownEmptyLighting {
             guard !raw.manualPoints.contains(p),reading.occupancy.stone==nil,
                   let current=patch(frame,calibration,p) else {entries[p]=nil;continue}
             let referenceEmpty=reading.occupancy == .empty && reading.confidence>=0.8
+            if var entry=entries[p],entry.revalidating {
+                let difference=current.distance(to:entry.patch)
+                if difference.level<=entry.tolerance && difference.color<=0.012 && difference.center<=0.04 {
+                    if entry.confirmationFirst==nil {entry.confirmationFirst=now}
+                    entry.confirmations+=1
+                    if entry.confirmations>=3,now-entry.confirmationFirst!>=0.4 {entry.revalidating=false}
+                    entries[p]=entry
+                } else {
+                    entries[p]=nil
+                    if !referenceEmpty {challenged.insert(p)}
+                }
+            }
             if referenceEmpty {challenged.remove(p)}
             let appearanceEmpty:Bool
             if !referenceEmpty,!challenged.contains(p),let threshold=appearanceThreshold,

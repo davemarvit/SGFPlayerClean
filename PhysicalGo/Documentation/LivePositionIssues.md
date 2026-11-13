@@ -6,8 +6,9 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: 0.167 / build168 installed for glare-related grid-alignment
-recovery; 1,449 targeted checks passed. Live confirmation awaits Mac unlock.
+Latest follow-up: 0.168 / build169 installed with interruption-tolerant lighting
+baselines and the 0.167 grid-alignment fix. Eight targeted suites passed for
+0.168; live confirmation awaits Mac unlock.
 Physical acceptance testing is deferred at14/27, with13 moves preserved and
 both clocks paused. See the investigation/install record at the end.
 
@@ -1581,3 +1582,45 @@ entry's zero uncertainty as recognition evidence. No attempt to unlock the Mac
 or advance play. On return, check Live with the same stones/lighting and clocks
 paused. Physical acceptance tests remain deferred at14/27; next play, once the
 user chooses to resume testing, is White Q10 in the two-prisoner threshold2 setup.
+
+Follow-up: user correctly noted that interrupted input need not imply changed
+lighting. Previously both a>1.5s observation gap and every analysis revision
+erased the local lighting learner. Implementing dormant retention within the
+running app: preserve fully trained entries through camera stop/restart, freeze,
+invalid frames and gaps; discard incomplete training. Require3 distinct fresh
+matching observations over>=0.4s before resolving uncertainty again. Keep the
+original patch fixed and preserve its prior observed age: downtime neither
+matures training nor renews the30s independent-evidence expiry.
+
+Separate lighting identity from transient analysis revision. Camera/game/view
+identity, detection/reference changes, meaningful grid shifts and contradictory
+known stones still invalidate old evidence. Current pixels must match level,
+color and center tolerances; new stones remain visible. This is session memory,
+not persisted across quitting the app. Tests in progress for2s/22min/8h gaps,
+partial learning, duplicate timestamps, freeze/alignment loss, changed pixels and
+added/removed stones. Physical test sequence remains deferred.
+
+Baseline policy checks90 and residual-glare checks171 passed, including retained
+evidence after2s/22min/8h synthetic gaps,3-frame revalidation, duplicate timestamp
+rejection, incomplete training discarded, no expiry renewal, actual fourth White
+and removed Black, and a weak newly placed White that must remain uncertain.
+Pipeline integration15 checks passed for no alignment/no result, freeze,
+independent analysis revisions, restored baseline and camera/reference/game
+identity isolation. Gap durations in these policy tests use repeated real
+photographs with synthetic timestamps, not newly captured long-duration footage.
+
+**0.168 / build169 installed and launched**, with strict deep signature and
+installed-binary/resource verification. Eight targeted suites passed: baseline90
++ residual171, pipeline15, glare-grid64, processing-gap24, recovery lifecycle16,
+recovery guidance58, capture uncertainty113 + conflicts103 + local clocks75 +
+capture timing417, plus native reference-feedback/layout checks. Seven Python
+build-registry tests passed. Logs: `/tmp/physical-go-0168-lighting.log`,
+`/tmp/physical-go-0168-regressions.log`, `/tmp/physical-go-0168-lifecycle.log`.
+
+Source hashcc80d04cc3ca2ec25e3185f63d35ad9890b6d0f18b65dbbaec5b98d04a265637
+(135 source files). Backup:
+`/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.168-20261112-220118`.
+Postlaunch exact SGF and semantic clock/pending/review JSON equal preinstall
+state; original89-move recording unchanged. Still13 saved, White next, manually
+paused, Black310.826737934 / White114.902653024. Mac remains locked, so fresh
+live confirmation is pending. No physical test advancement; count14/27 unchanged.

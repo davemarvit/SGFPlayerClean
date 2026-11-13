@@ -29,6 +29,7 @@ final class CameraAnalysisPipeline {
         var handTracking=HandOutlineTracker()
         var handTimestampSource="callback"
         var emptyLighting=KnownEmptyLighting()
+        var lightingContext:String?
     }
     struct Output {
         let handPose:HandMotionPose?
@@ -110,10 +111,10 @@ final class CameraAnalysisPipeline {
         var emptyLighting=input.emptyLighting
         if let raw=result,let frame,let aligned {
             result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,
-                context:trackingContext,now:trackingTime,
+                context:input.lightingContext ?? trackingContext,now:trackingTime,
                 valid:trackingFresh && handObstructed != true && trackingManualPoints.isEmpty,
                 appearanceThreshold:threshold)
-        } else {emptyLighting.reset()}
+        } else {emptyLighting.suspend()}
         var tracker=trackingState
         let trackedObservation:BoardObservation?
         if var raw=result {

@@ -60,11 +60,42 @@ import CoreGraphics
         check(observe(0).signature[109] == .uncertain,"Contradictory known stones did not invalidate learned baseline")
         tracker.reset();train(2)
         check(observe(0,valid:false).signature[109] == .uncertain,"Unaligned, hand-obstructed or frozen frame used baseline")
-        check(observe(0).signature[109] == .uncertain,"Invalid frame left old baseline active")
+        check(observe(0).signature[109] == .uncertain,"Invalid frame bypassed fresh revalidation")
+        check(observe(0).signature[109] == .uncertain,"Two frames completed revalidation too early")
+        check(observe(0).signature[109] == .empty,"Matching fresh frames did not restore suspended baseline")
         tracker.reset();train(2)
         check(observe(0,context:"another game").signature[109] == .uncertain,"Baseline leaked between games")
-        tracker.reset();train(2);now+=2
-        check(observe(0).signature[109] == .uncertain,"Camera gap kept a stale baseline")
+        for gap in [2.0,1320.0,28800.0] {
+            tracker.reset();train(2);now+=gap
+            check(observe(0).signature[109] == .uncertain,"First returning frame trusted a dormant baseline")
+            let duplicate=tracker.observe(raw[0],frame:frames[0],calibration:cases[0].calibration,
+                expected:position,context:"game",now:now,valid:true)
+            check(duplicate.signature[109] == .uncertain,"Duplicate frame revalidated suspended baseline")
+            check(observe(0).signature[109] == .uncertain,"Two frames completed revalidation too early")
+            check(observe(0).signature[109] == .empty,"Unchanged lighting baseline was erased by interruption")
+        }
+        tracker.reset()
+        for _ in 0..<4 {_=observe(2)}
+        now+=22*60
+        for _ in 0..<5 {check(observe(0).signature[109] == .uncertain,"Gap matured a partially learned baseline")}
+        tracker.reset();train(2);tracker.suspend();tracker.suspend();now+=22*60
+        for _ in 0..<12 {
+            check(observe(1,override:changed(raw[1],185,.uncertain)).signature[185] == .uncertain,
+                  "Retained baseline erased a White placed during the interruption")
+        }
+        tracker.reset();train(2);now+=22*60
+        check(observe(1).signature[185] == .white,"Returning fourth stone was limited by saved stone count")
+        tracker.reset();train(2);now+=22*60
+        check(observe(0,override:missing).signature[180] == .empty,"Returning missing stone was hidden")
+        for _ in 0..<4 {check(observe(0).signature[109] == .uncertain,"Changed position reused the dormant baseline")}
+        // Suspension does not renew an entry that already spent most of its
+        // thirty observed seconds resolving uncertainty without independent proof.
+        tracker.reset();train(2)
+        for _ in 0..<130 {_=observe(0)}
+        now+=22*60
+        var aged=raw[0]
+        for _ in 0..<20 {aged=observe(0)}
+        check(aged.signature[109] == .uncertain,"Interruption renewed an almost-expired baseline")
         tracker.reset();train(2)
         let duplicate=tracker.observe(raw[0],frame:frames[0],calibration:cases[0].calibration,
             expected:position,context:"game",now:now,valid:true)
