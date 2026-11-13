@@ -8,9 +8,9 @@ implementation and validation record below for coverage and limitations.
 
 Latest follow-up: 0.168 / build169 installed with interruption-tolerant lighting
 baselines and the 0.167 grid-alignment fix. Eight targeted suites passed for
-0.168; live confirmation awaits Mac unlock.
-Physical acceptance testing is deferred at14/27, with13 moves preserved and
-both clocks paused. See the investigation/install record at the end.
+0.168; live glare recovery confirmed after unlock.
+Guided physical testing resumes at14/27, with13 moves preserved and
+both clocks paused before the next White Q10 setup move. See the investigation/install record at the end.
 
 ## Purpose and scope
 
@@ -1624,3 +1624,18 @@ Postlaunch exact SGF and semantic clock/pending/review JSON equal preinstall
 state; original89-move recording unchanged. Still13 saved, White next, manually
 paused, Black310.826737934 / White114.902653024. Mac remains locked, so fresh
 live confirmation is pending. No physical test advancement; count14/27 unchanged.
+
+Live confirmation after unlock,0.168: user reports unchanged stones/lighting and
+paused clocks. Native UI says Live · Dave11 Camera,13 saved,0 pending,0 outside
+saved history. After initial return settled,367 consecutive fresh observations
+over89.198s match the exact12 remaining stones, with0 uncertain intersections,
+0 extra detections and no lighting block. Both clocks stayed stopped. ExactSGF
+and semantic clock/pending/reviews still equal paused B4 baseline. Evidence:
+`.build/GuidedTests/glare-cleared-live-0168`. This validates live glare recovery;
+it does not separately prove warm-baseline retention, since the app was restarted
+for installation. The physical reflection itself need not have disappeared.
+
+User requests resuming capture testing. Guide final setup move only: Resume,
+White Q10, clear hands, wait14 saved and Black's clock running, Pause. Leave all
+stones in place. Then separately guide Black A5 and the expected automatic hold
+for two captured Whites A3/A4. No new scenario counted yet:14/27.
