@@ -6,11 +6,13 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: 0.172/build173. A19 removal hit a 67-second hand-gate stall,
-then recovered without an agent camera reset or recognition change. Capture
-completed as move21; White next, both clocks now manually paused. Black A17
-present, White A18/A19 absent; C19 not played. This is not a clean pass; matrix
-15/27. Preserve the scene while preparing a diagnostic replay.
+Latest follow-up: stopped testing for bed at user's request (2026-11-13).
+0.172/build173; 21 saved, White next, both clocks manually paused. Black A17
+present; White A18/A19 absent; C19 not played. A19 diagnostic replay cleared
+promptly and correctly did not restart manually paused clocks. Original67-second
+hand-gate stall remains unresolved; matrix15/27. Camera stopped before the
+announced lighting change. Morning: start camera with stones untouched and
+verify lighting/grid/current position while paused before any Resume.
 
 ## Purpose and scope
 
@@ -2129,3 +2131,28 @@ Next: while paused remove onlyWhiteA19, cover its intersection with the hand
 for5seconds, then withdraw completely and leave the scene untouched. Report
 whether the detected extra stone clears promptly or remains stuck; no camera
 restart/hand wave, noC19. Continuous capture remains active.
+
+### 2026-11-13 — Prompt replay removal; overnight checkpoint
+
+User reports A19 disappeared promptly, but clocks did not restart. This is the
+correct manual-pause behavior for the diagnostic replay; it does not reproduce
+or fix the earlier67-second stall. Capture frame1001 begins the removal hand
+at1794562815.059659; frame1037 verifies visible exit at1794562822.248986 after
+the instructed5-second cover. Subsequent readings are BlackA17/emptyA18/emptyA19,
+all confidence1.0. 21 saved, no additional move or increment; exact paused
+balances Black382.62714116240386s/White54.89570887829177s unchanged.
+
+Continuous capture stopped at its storage limit after recording the replay.
+KEEP retained; moved intact to
+`.build/GuidedTests/PreservedDiagnostics/Diagnostic 2026-11-13 01-36-54 3830D2E0`.
+Restored original10GB continuous limit. No threshold/code changes this turn.
+
+User is going to bed and will change lighting shortly. Camera stopped while
+leaving the app/game manually paused; no quit or recording replacement.
+Snapshot: `.build/GuidedTests/overnight-2026-11-13-21-paused`.
+Leave every physical stone unchanged: A17Black, A18/A19empty, C19empty.
+Morning preflight: start camera, keep paused, establish fresh agreement with the
+21-move position under the new lighting and check alignment/warnings. Do not
+Resume before that check. C19 following move remains pending; original hand
+stall is still open and full capture-interruption scenario is not a clean pass.
+Physical matrix remains15/27.
