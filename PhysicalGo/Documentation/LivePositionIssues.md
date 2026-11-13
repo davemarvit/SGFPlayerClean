@@ -1695,3 +1695,20 @@ physical capture completes and the user pauses, preserving the current hold in
 running0.168. Prepared installer requires15 saved moves, stopped clocks and no
 capturePosition. Changes are ready for review; first live guidance/hold-label
 acceptance in0.169 remains pending installation and a later capture.
+
+Two-prisoner partial removal **verified, opposite order is valid**: user removed
+White A4 rather than A3 and restarted the camera because the live feed was not
+up. Fresh post-restart observations show A3 White, A4 empty, A5 Black. Native UI
+says Live and1 prisoner remaining. Both clocks remain stopped with exactly the
+held balances Black299.965191162 / White140.844613878; still14 saved, no clock
+review requirement. Snapshot `.build/GuidedTests/two-capture-a4-removed-0168`.
+This also demonstrates the hold survived the reported camera restart; no cause
+for the absent feed is established. Matrix remains14/27 until completion.
+
+User questioned translucent Black A5 with orange ring. Existing rendering shows
+an observed stone outside saved history translucent while the capture awaits
+completion; capture action markers include its point. Fresh reading is definite
+Black at A5, not uncertain. Explain pending capture rather than wrong placement;
+do not ask user to move A5 or replace removed A4. Next inspect step: click A5's
+orange ring, leave Capture progress open and White A3 in place; verify remaining
+removal and stopped clocks.0.169 remains built/verified but not installed.
