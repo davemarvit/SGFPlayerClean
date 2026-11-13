@@ -6,11 +6,10 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: 0.168 / build169 installed with interruption-tolerant lighting
-baselines and the 0.167 grid-alignment fix. Eight targeted suites passed for
-0.168; live glare recovery confirmed after unlock.
-Guided physical testing resumes at14/27, with14 moves preserved and
-both clocks paused before Black A5 tests the two-prisoner automatic hold. See the investigation/install record at the end.
+Latest follow-up:0.169 / build170 installed with capture-hold control and Kokoro
+guidance fixes. The two-prisoner capture completed successfully;15 moves saved,
+White next,both clocks paused. Following-move check remains before counting this
+full scenario complete (matrix14/27). See the latest validation record below.
 
 ## Purpose and scope
 
@@ -1725,3 +1724,28 @@ now; countdown settings remain untouched. **Restore this toggle to true after
 this capture completes and user pauses, before installing0.169.**
 Next step: remove remaining White A3, clear hand, wait15 saved and White clock
 running, then Pause. Await user completion; no scenario completion claimed yet.
+
+Two-prisoner threshold2 **capture completion verified**: user reports15 saved
+and White clock starting after roughly1–2s. Journal measures1.581859s from first
+final-empty observation to first White-running observation. Saved15th moveB[ea]
+(A5) captures A3/A4; all14 prior timed moves unchanged. Black received exactly
+one30-second increment (299.965191162→329.965191162); White was not charged
+during removal. User then manually paused: White132.810077879. CapturePosition
+cleared, no timing-review requirement. Snapshot:
+`.build/GuidedTests/after-two-capture-complete-0169`. Following-move confirmation
+still required before increasing the full-scenario count; remains14/27.
+
+Temporary recovery speech mute restored totrue through native Info settings,
+then signed0.169/build170 installed and launched. Backup:
+`/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.169-20261112-230113`.
+Strict deep signature checks and installed asset/source identity passed.
+Source hash5160d3c9e61ac429922e9a4870c1c544d79db9f18d2dcf9ed26254b9936d9563
+(135 sources). Normal-quit/postlaunch comparisons preserve exactSGF and semantic
+clock/pending/reviews; original89-move recording unchanged. Fresh postlaunch
+observations match all12 remaining stones,0 uncertainty/extra stones,15saved,
+clocks stopped. First live0.169 capture voice/hold-label retest awaits a later
+capture; do not claim it from this completed0.168 capture.
+
+Next one-step continuation test: Resume, place White D12 (empty, away from the
+corner capture), clear hand, wait16saved andBlackclockrunning,thenPause. All
+otherstones unchanged. Check oneWhiteincrement and no duplicateBlack increment.
