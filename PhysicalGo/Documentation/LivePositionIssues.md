@@ -6,11 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.171/build172 installed. BlackA17 capture onset passed:
-both clocks held automatically,correct hold label,first reminderKokoro (delayed).
-20saved;A17 provisional,A18/A19 still present. Next: manually Pause checking,
-Stop/Start camera,verify manual pause and pending capture survive. Matrix15/27,
-12remaining until full capture-interruption scenario completes.
+Latest follow-up:0.171/build172 installed. A17 capture manually paused,then
+camera stopped/restarted: manual pause and pending capture survived,balances
+unchanged.20saved;A17 provisional,A18/A19 present. Next: while paused remove
+onlyWhiteA18 and inspect capture progress (remainingA19). Matrix15/27 until
+full capture-interruption scenario completes.
 
 ## Purpose and scope
 
@@ -1992,3 +1992,18 @@ unchanged,click hold transport to Pause automatic checking (button becomesResume
 Stopcamera,wait5seconds,Startcamera. Expect20saved,pending capture,unchanged
 clock balances and neither clock running. Do not remove either White yet.
 Full scenario remains pending;matrix15/27.
+
+### 2026-11-13 — Manual pause survives capture camera interruption
+
+User confirms transport still saysResume and orange box saysRemoving captured
+stones afterStop/Start camera. Agent verifies cameraLive,freshA17/A18/A19=BWW,
+recorder statepaused,20saved,capturePosition retained,engineanchor absent and
+exactly unchanged Black352.627141162s/White67.949604253s. The capture box is
+expected pending-work guidance; Resume reflects the independent manual pause.
+Manual-pause event1794560636.450916. Snapshot:
+`.build/GuidedTests/a17-capture-manual-pause-camera-restart-0171`.
+
+Next checkpoint: staypaused,remove onlyWhiteA18,leaveWhiteA19 and all other
+stones,clearhand,openCaptureprogress. Expect onlyA19 still to verifyempty,
+20saved and both clocks stopped. Leavepanelopen. Remaining-point obstruction
+and final completion/following move are still pending;matrix15/27.
