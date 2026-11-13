@@ -10,6 +10,13 @@ struct StoneFootprint: Codable {
     }
 }
 
+/// A visible disk whose intersection is unresolved. This is warning evidence,
+/// never an occupancy label or permission to change a recorded move.
+struct StoneCenteringEvidence: Codable {
+    let color:Occupancy
+    let shape:StoneFootprint
+}
+
 /// Reference-backed geometry refinement. Accepted stones seed outline fits;
 /// only independently contradicted occupancy hypotheses can resolve uncertainty.
 enum StoneGeometry {
@@ -43,7 +50,7 @@ enum StoneGeometry {
     private static func fit(_ reading:IntersectionReading,frame:GrayFrame,reference:GrayFrame,
                             calibration:BoardCalibration,referenceCalibration:BoardCalibration,
                             correction:Double,colorShift:BoardChroma,masking:[StoneFootprint]=[],minimumQuality:Double=0.78,
-                            occlusion:[ColoredNeighbor]=[])->StoneFootprint? {
+                            occlusion:[ColoredNeighbor]=[],searchSteps:Int=11)->StoneFootprint? {
         // An occlusion fit keeps the expected FULL stone size. Only the minimum
         // visible body shrinks, by the union of independently observed neighbors.
         // This avoids accepting a small shadow as an unusually small stone.
@@ -93,7 +100,7 @@ enum StoneGeometry {
         // masks and the stricter body/visible-ring checks below. Keep a sentinel
         // radius beyond the accepted range so unbounded dark regions still fail.
         let maximumRadius = masking.isEmpty ? 0.54 : 0.60
-        for shape in shapes where shape.rx <= maximumRadius { for dy in -11...11 { for dx in -11...11 {
+        for shape in shapes where shape.rx <= maximumRadius { for dy in -searchSteps...searchSteps { for dx in -searchSteps...searchSteps {
             if contextual && (abs(shape.rx-expectedRadius)>0.041 || abs(dx)>5 || abs(dy)>5) {continue}
             let x=origin+dx,y=origin+dy
             var inside=sum(shape.disk,x,y,prefix)/shape.disk.count
@@ -133,6 +140,19 @@ enum StoneGeometry {
         } } }
         guard let best,best.quality>=minimumQuality,best.radiusCol>0.32,best.radiusCol<maximumRadius else { return nil }
         return best
+    }
+    /// Two intersections can claim one halfway-positioned stone. Preserve that
+    /// ambiguity, but retain its independently bounded outline for guidance.
+    static func centeringEvidence(_ reading:IntersectionReading,frame:GrayFrame,reference:GrayFrame,
+                                  calibration:BoardCalibration,referenceCalibration:BoardCalibration,
+                                  correction:Double,colorShift:BoardChroma?)->StoneCenteringEvidence? {
+        guard reading.occupancy.stone != nil,reading.confidence>=0.9,let colorShift,
+              let shape=fit(reading,frame:frame,reference:reference,calibration:calibration,
+                referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift,
+                minimumQuality:0.94,searchSteps:14),
+              (0.36...0.52).contains(shape.radiusCol),
+              max(abs(shape.center.x-Double(reading.col)),abs(shape.center.y-Double(reading.row)))>=0.30 else {return nil}
+        return .init(color:reading.occupancy,shape:shape)
     }
     /// Called only after both reference grid rails have positively disappeared.
     /// Missing ink establishes a contradiction, not a stone color. A compact

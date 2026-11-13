@@ -51,6 +51,8 @@ import Foundation
         if clock.awaitingTurn {return "\(prefix) The next player is uncertain. Choose Black or White on screen to continue the clock."}
         if handOverBoard {return "\(prefix) Move your hands out of the board view and wait for verification. Keep the camera in place."}
         let placements=adjustmentIssues.filter{$0.value == .placement}.map(\.key)
+        let centering=adjustmentIssues.filter{$0.value == .centering}.map(\.key)
+        if !centering.isEmpty {return "\(prefix) Check stone centering near \(locations(centering)). If a stone was bumped, center it on its recorded intersection; otherwise check the saved location before moving it."}
         if !placements.isEmpty {return "\(prefix) Check that stones at \(locations(placements)) are centered on their intended intersections, then move your hands clear."}
         let conflicts=adjustmentIssues.filter{$0.value == .conflict}.map(\.key)
         if !conflicts.isEmpty {return "\(prefix) The camera and recorded board disagree at \(locations(conflicts)). Compare those intersections with the interpretation board before correcting anything."}

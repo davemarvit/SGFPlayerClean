@@ -110,6 +110,6 @@ struct KnownEmptyLighting {
             lightingBlocked:raw.lightingBlocked,lightingAdjusted:raw.lightingAdjusted,lightingField:raw.lightingField,
             footprints:raw.footprints,placementFits:raw.placementFits,manualPoints:raw.manualPoints,
             trackedAssignments:raw.trackedAssignments,capturedAt:raw.capturedAt,
-            handObstructed:raw.handObstructed,clockPressEstimate:raw.clockPressEstimate)
+            handObstructed:raw.handObstructed,clockPressEstimate:raw.clockPressEstimate,centeringEvidence:raw.centeringEvidence)
     }
 }

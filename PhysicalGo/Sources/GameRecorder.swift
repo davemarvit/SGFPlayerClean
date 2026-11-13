@@ -313,6 +313,10 @@ enum LocalGameSetup {
             ack.position==issuePositionSignature && (readings[point]==ack.observed || readings[point] == .uncertain) && readings[point] != before[point]
         }
         var issues=BoardAdjustmentMonitor.evidence(readings:readings,base:before,after:expected)
+        for point in observation.centeringPoints(confirmedBoard:before)
+            where before[point]==expected[point] && issues[point]==nil {
+            issues[point] = .centering
+        }
         let offsets=observation.assignmentOffsets(confirmedBoard:before)
         // Placement is an assignment question for a new stone. A recorded stone
         // keeps its known intersection; visible contradictions and captures
@@ -906,6 +910,9 @@ enum LocalGameSetup {
                 }.map{["point":$0.row*observation.size+$0.col,"occupancy":$0.occupancy.rawValue,"confidence":$0.confidence] as [String:Any]}
             }
             entry["trackedAssignments"]=Dictionary(uniqueKeysWithValues:observation.trackedAssignments.map{(String($0.key),$0.value)})
+            if !observation.centeringEvidence.isEmpty,
+               let data=try? JSONEncoder().encode(observation.centeringEvidence),
+               let value=try? JSONSerialization.jsonObject(with:data) {entry["centeringEvidence"]=value}
             entry["position"]=observation.signature.map { $0 == .black ? "B" : $0 == .white ? "W" : $0 == .empty ? "." : "?" }.joined()
         }
         entry.merge(extra) {_,new in new}

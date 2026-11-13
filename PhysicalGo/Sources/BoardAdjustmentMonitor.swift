@@ -4,7 +4,7 @@ import Foundation
 /// about an unchanged recorded stone is neither a contradiction nor a request
 /// to move it. A displayed marker clears only after repeated agreement.
 struct BoardAdjustmentMonitor {
-    enum Kind:String,Equatable {case placement,capture,conflict,newMove}
+    enum Kind:String,Equatable {case placement,capture,conflict,newMove,centering}
     private struct Run {var kind:Kind;var first:Double;var last:Double;var frames:Int}
     private struct ClearRun {var first:Double;var last:Double;var frames:Int}
     private var pending:[Int:Run]=[:]

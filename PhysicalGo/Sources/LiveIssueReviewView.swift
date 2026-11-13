@@ -3,10 +3,11 @@ import SwiftUI
 struct LiveIssueSelection:Identifiable {let id=UUID();let point:Int;let position:String;var observed:Occupancy?=nil}
 
 enum LiveIssueReviewStatus:CaseIterable {
-    case disagreement,acknowledged,resolved,changed
+    case disagreement,centering,acknowledged,resolved,changed
     var title:String {
         switch self {
         case .disagreement:return "Check the current disagreement"
+        case .centering:return "Check stone centering"
         case .acknowledged:return "Check recognition"
         case .resolved:return "RESOLVED"
         case .changed:return "POSITION CHANGED"
@@ -15,12 +16,13 @@ enum LiveIssueReviewStatus:CaseIterable {
     var message:String {
         switch self {
         case .disagreement:return "The camera and retained position disagree here. A covered, moved, or removed stone can explain this; it does not establish an incorrect saved move."
+        case .centering:return "The camera sees a stone between intersections near this recorded point. If it was bumped, center it on the recorded intersection. Review a correction only if the saved location is wrong."
         case .acknowledged:return "You confirmed the recorded position. Clear hands, glare, and obstructions so recognition can check again."
         case .resolved:return "The camera now agrees with the recorded stone at this intersection. No correction is needed."
         case .changed:return "New evidence or a changed game position has made this review out of date. Close it and check Live position."
         }
     }
-    var actionable:Bool {self == .disagreement || self == .acknowledged}
+    var actionable:Bool {self == .disagreement || self == .centering || self == .acknowledged}
 }
 
 /// Inspection never takes ownership of the recording or the clock lifecycle.
@@ -37,7 +39,7 @@ struct LiveIssueReviewView:View {
         let observed=recorder.discrepancyObservation(at:selection.point)
         if recorder.adjustmentIssues[selection.point] != nil {
             guard selection.observed.map({$0==observed}) ?? true else {return .changed}
-            return acknowledged ? .acknowledged:.disagreement
+            return acknowledged ? .acknowledged:recorder.adjustmentIssues[selection.point] == .centering ? .centering:.disagreement
         }
         // A changed or unavailable view is not a successful resolution. The
         // recorder clears a marker only after repeated fresh agreement.

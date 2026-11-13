@@ -40,7 +40,7 @@ import Foundation
             let saved=HistoricalMoveCorrection.moveNumber(at:position,through:recorder.moveCount,game:recorder.game,positions:recorder.positions) != nil
             if !saved {missing.insert(point);continue}
             let acknowledged=recorder.positionAcknowledgments[point] != nil
-            result.append(.init(id:"discrepancy:\(point)",kind:.disagreement,points:[point],
+            result.append(.init(id:"discrepancy:\(point)",kind:recorder.adjustmentIssues[point] == .centering ? .nudged:.disagreement,points:[point],
                 action:acknowledged ? .recognition(point:point):.discrepancy(point:point)))
         }
         if let first=missing.min() {
@@ -96,6 +96,11 @@ import Foundation
         }
         if issues.values.contains(.placement) {
             return "A stone’s intersection is ambiguous at the marked locations. Center the marked stones on their intended intersections. Click a marked stone to confirm its intended location."
+        }
+        let centering=issues.filter{$0.value == .centering}.map(\.key).sorted()
+        if !centering.isEmpty {
+            let points=centering.map{BoardCoordinates.name(point:$0,size:recorder.game.boardSize,orientation:orientation)}.joined(separator:", ")
+            return "Check stone centering near \(points). If a stone was bumped, center it on its recorded intersection. Click its orange ring to inspect; the saved moves and turn are unchanged."
         }
         if issues.values.contains(.capture) {
             return "A capture needs checking at the orange rings. Remove captured stones and keep the capturing stone in place."

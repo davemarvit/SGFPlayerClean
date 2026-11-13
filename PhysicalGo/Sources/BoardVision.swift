@@ -198,6 +198,31 @@ struct BoardObservation {
     var capturedAt:Double?=nil
     var handObstructed:Bool?=nil
     var clockPressEstimate:ClockPressEstimate?=nil
+    var centeringEvidence:[StoneCenteringEvidence]=[]
+    func centeringPoints(confirmedBoard:[Occupancy])->Set<Int> {
+        guard !lightingBlocked,handObstructed != true,manualPoints.isEmpty,
+              size>0,readings.count==size*size,confirmedBoard.count==readings.count else {return []}
+        var candidates=[Int:[ImagePoint]]()
+        for evidence in centeringEvidence {
+            let shape=evidence.shape
+            guard shape.quality>=0.94,shape.center.x.isFinite,shape.center.y.isFinite,
+                  (0.36...0.52).contains(shape.radiusCol),(0.33...0.56).contains(shape.radiusRow),
+                  (0..<size).contains(shape.row),(0..<size).contains(shape.col),
+                  readings[shape.row*size+shape.col].occupancy == .uncertain else {continue}
+            // A crowded pair cannot assign one outline to either recorded stone.
+            let nearby=confirmedBoard.indices.filter {p in
+                confirmedBoard[p].stone != nil && hypot(shape.center.x-Double(p%size),shape.center.y-Double(p/size))<=0.75
+            }
+            guard nearby.count==1,let point=nearby.first,confirmedBoard[point]==evidence.color,
+                  readings[point].occupancy == .uncertain,
+                  hypot(shape.center.x-Double(point%size),shape.center.y-Double(point/size))<=0.65,
+                  max(abs(shape.center.x-Double(point%size)),abs(shape.center.y-Double(point/size)))>=0.30 else {continue}
+            candidates[point,default:[]].append(shape.center)
+        }
+        return Set(candidates.compactMap {point,centers in
+            centers.allSatisfy {hypot($0.x-centers[0].x,$0.y-centers[0].y)<0.18} ? point:nil
+        })
+    }
     /// Positive geometric evidence about displacement, in grid-spacing units.
     /// Missing/weak outlines are not evidence that a placement is centered.
     var placementOffsets:[Int:Double] { offsets(forAssignment: false) }
@@ -575,6 +600,7 @@ enum BoardDetector {
         var centers = [ImagePoint]() // Sample centers in grid coordinates for ownership checks.
         var geometryBlocked=Set<Int>()
         var liveWood=[Int:Double]()
+        var stoneCandidates=[Int:IntersectionReading]()
         var independentAppearance:BoardObservation?
         for row in 0..<calibration.size { for col in 0..<calibration.size {
             // Estimate illumination from nearby cell centers, not from the stone.
@@ -640,6 +666,9 @@ enum BoardDetector {
                 candidate.occupancy = .empty;candidate.confidence=confidence
                 liveWood[row*calibration.size+col]=confidence
                 geometryBlocked.insert(row*calibration.size+col)
+            }
+            if candidate.occupancy.stone != nil,candidate.confidence>=0.9 {
+                stoneCandidates[row*calibration.size+col] = .init(row:row,col:col,occupancy:candidate.occupancy,confidence:candidate.confidence,delta:candidate.delta)
             }
             if candidate.occupancy.stone != nil,
                gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
@@ -740,9 +769,23 @@ enum BoardDetector {
             let reading=resolved[index]
             resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.empty,confidence:confidence,delta:reading.delta)
         }
+        let centeringCandidates=stoneCandidates.keys.filter { index in
+            resolved[index].occupancy == .uncertain &&
+            stoneCandidates.contains { other,reading in
+                other != index && reading.occupancy==stoneCandidates[index]!.occupancy &&
+                abs(other/calibration.size-index/calibration.size)+abs(other%calibration.size-index%calibration.size)==1 &&
+                resolved[other].occupancy == .uncertain
+            }
+        }.sorted()
+        let centeringEvidence=centeringCandidates.compactMap { index in
+            StoneGeometry.centeringEvidence(stoneCandidates[index]!,frame:frame,reference:reference,
+                calibration:calibration,referenceCalibration:referenceCalibration,
+                correction:globalCorrection,colorShift:globalColorCorrection)
+        }
         let validShape:(StoneFootprint)->Bool = {liveWood[$0.row*calibration.size+$0.col] == nil}
         return BoardObservation(readings: resolved, size: calibration.size,
-            footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape))
+            footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape),
+            centeringEvidence:centeringEvidence)
     }
 
     /// Bright or shaded wood is not a stone merely because its brightness

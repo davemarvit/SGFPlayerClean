@@ -995,3 +995,180 @@ before/after quit and relaunch; original 89-move recording unchanged. Live feed
 selected for a 20-second hands-clear O14/P14/C17 retest; game remains paused with
 3 saved moves, White next. Await physical result. Original resolved-panel
 acceptance test and the remaining acceptance matrix are still pending.
+
+
+### 0.164 live observation: remaining brief shadow-boundary uncertainty
+
+User reports the three stones look correct, with no amber circles on them. Brief
+flickers near B18 initially cleared; subsequent reports include B17, G17, F17,
+C17 and D17, all appearing briefly and disappearing. User observes these at
+higher-contrast shadow boundaries. Do **not** mark glare recognition completely
+resolved. First checked 30-second window: 123 emitted observations, all three
+stones correct, no persistent adjustment points; C17 uncertain in five frames and
+D17 in one. SGF bytes and entire clock sidecar remain at the overnight baseline.
+Evidence: `.build/GuidedTests/glare-0164-settled.json`; subsequent shadow-edge tail:
+`.build/GuidedTests/glare-0164-shadow-edge.json`.
+
+A shadow edge can also supply a discontinuity; stone recognition must combine
+boundary shape, interior color/appearance, grid coverage, and temporal evidence.
+An uncertain frame should not become a stone merely to eliminate an amber marker.
+Current remaining issue is brief empty-point uncertainty, pending further physical
+challenge of the new learned background. Next guided step: while paused, place a
+temporary White at O14 (canonical260), leave the original three untouched, clear
+hands, and leave it for capture. Expect White recognition and one detected outside
+saved history, with three saved moves and unchanged clocks. Then capture and
+remove only the temporary White. Original resolved-panel retest still pending.
+
+Follow-up 60-second window: 250 observations; transient uncertainty at F17 (8),
+C17 (15), D17 (9), G19/B19/H16 (one each). Zero extra stone observations, zero
+known-stone mismatches, zero persistent adjustment frames. SGF and clock JSON
+unchanged. This supports the brief-uncertainty classification for this window,
+without claiming every future shadow is harmless.
+
+### 0.164 physical new-White challenge at O14
+
+User placed a temporary White at O14, cleared hands, and reported one detected
+outside saved history, three saved moves, both clocks paused. Saved actual sample
+`Captures/Samples/Glare O14 White 0164 20261112`: O14 (canonical260) reads White
+with heuristic confidence 1.0; all three original stones also read correctly at
+1.0. Photo confirms four physical stones. One other point, D17 (73), is uncertain
+in this sample; this does not establish complete shadow-flicker resolution.
+The learned-background change did not hide the real added White in this test.
+Exact SGF and full semantic clock, pending and review JSON remain equal to the
+overnight three-move baseline. Resumed camera after the sample capture; game stays
+manually paused. Next step: remove only temporary White O14, leave the original
+three untouched, clear hands, and verify return to zero detected outside history.
+Restoration remains pending; original acceptance counts are unchanged.
+
+O14 restoration **PASS**: user removed the temporary White and reports zero
+detected outside saved history. Native UI confirms Live, three saved, zero pending,
+zero outside, White next, manually paused. Actual sample
+`Captures/Samples/Glare O14 restored 0164 20261112` reads O14 empty at heuristic
+confidence 0.80645, all original stones correct at 1.0, and no uncertain points
+in this captured frame. Exact SGF and full semantic clock/pending/review JSON
+still match the overnight baseline. Camera resumed after capture. This completes
+the physical new-White placement/removal challenge, not the broader shadow-flicker
+investigation. Original acceptance counts remain nine passed / eighteen remaining.
+Return next to the deferred resolved-panel retest: while paused, lift center Black
+K10, open its orange marker in Live position, acknowledge recorded position as
+correct, and leave the panel open for restoration on the following guided step.
+
+0.164 resolved-panel retest, acknowledgment stage **PASS**: user removed center
+Black K10, opened its orange ring, chose “Recorded position is correct,” and left
+the stone off with the panel open. Native UI confirms “Check recognition” and
+“Recorded position confirmed. No moves or clock balances changed.” Three saved,
+White next, manually paused; exact SGF and semantic clock/pending/review JSON
+match the baseline. Next: restore K10 while leaving the panel open, clear hands,
+and check large RESOLVED heading, orange highlight removal, unchanged board size
+and position, and clocks remaining paused. Restoration result is pending.
+
+Resolved-panel restoration **PASS** on 0.164: user confirms prominent RESOLVED,
+orange ring gone, board unchanged in position and size, three saved moves, both
+clocks paused; panel left open. Native UI independently confirms RESOLVED, camera
+agreement at K10, zero attention points, White next, and manual pause. Exact SGF
+and full semantic clock/pending/review JSON remain unchanged. The presentation
+defect is physically verified fixed. Next, with the same panel open and clocks
+paused, replace center Black K10 temporarily with a spare White and clear hands.
+Expect POSITION CHANGED rather than RESOLVED, obsolete acknowledgment/correction
+actions disabled, stable board geometry, and no saved-move or clock changes.
+This checks changed evidence after acknowledgment; result remains pending before
+counting the combined acceptance scenario complete (still nine / twenty-seven).
+
+Changed-evidence stage **PASS**: with temporary White physically at K10 and the
+same panel open, user reports POSITION CHANGED, disabled actions, stable board
+geometry, three saved moves and paused clocks. Native UI confirms POSITION
+CHANGED and identifies the diagram as “Recorded game at move 3 of 3”; exact SGF
+and full semantic clock/pending/review JSON are unchanged. User notes the diagram
+still shows Black K10. This is expected for the saved-position diagram, but the
+distinction from the current camera observation needed explanation during testing.
+Next restore original Black K10, removing only the temporary White; keep panel
+open and clocks paused. Expect RESOLVED again with no orange ring, geometry or
+recording changes. Final restoration pending before closing this scenario.
+Recent observation journal independently reads White at canonical180 (K10), with
+adjustment point180 present, confirming the camera sees the changed color while
+the diagram preserves saved Black.
+
+Final restoration **PASS**: user restored original Black K10 and reports RESOLVED,
+no orange ring, three saved moves and paused clocks, panel still open. Native UI
+confirms resolution and zero attention points. Exact SGF and full semantic
+clock/pending/review JSON remain identical to the overnight baseline. The combined
+recorded-position acknowledgment / changed-evidence acceptance scenario is now
+complete, including the physical resolved-panel layout retest. Updated original
+matrix: **10 of 27 passed, 17 remaining (about 37%)**; three review/discrepancy
+scenarios remain. Lighting diagnostics are not counted as additional matrix passes.
+
+Next scenario: nudge/displacement and restoration. Close the panel, resume play
+(White to play), slide the existing center Black halfway from K10 toward L10,
+clear hands for five seconds, then manually pause and leave Black off-center.
+Expected: no additional saved move or increment, no turn switch, White clock
+continues until the explicit pause; record any centering/ambiguity guidance.
+Unlike the previous paused checks, White's balance should decrease by actual
+running time. Await observation before restoration and before counting a pass.
+
+Nudge stage: **history/timing PASS, centering guidance unresolved**. User slid
+Black halfway K10–L10; three saved moves remained, White clock ran until manual
+pause. No orange marker appeared in Live position, while Live feed shows amber
+circles at both K10 and L10. Recent observations read both canonical180/199 as
+uncertain, with no adjustment points. Exact SGF is unchanged; the sole semantic
+clock-sidecar change is White remaining time, down 17.603399625 seconds to
+281.055034459. No move, press evidence, increment or turn change occurred.
+Saved actual off-center sample `Captures/Samples/Nudge K10 toward L10 0164 20261112`
+for investigation; resumed camera afterward. Lack of actionable centering guidance
+is an open finding, not a complete scenario pass. Next restore Black to K10 while
+paused, clear hands, verify the two local amber circles clear and three saved /
+White next / paused clocks remain. Post-nudge preservation baseline is
+`.build/GuidedTests/after-nudge-paused-0164`. Count stays ten passed / seventeen
+remaining until restoration and the guidance finding are addressed.
+
+Restoration **PASS**: user centered Black K10 again; both local amber circles
+cleared, three saved moves, White next, clocks paused. Exact SGF and semantic
+clock/pending/review JSON match the post-nudge pause baseline. Remaining finding:
+uncertain observations at an established stone deliberately do not create an
+action marker, and the halfway stone has no accepted occupancy/outline at either
+intersection. Investigating warning-only bounded-outline evidence for a disputed
+disk, without assigning occupancy, changing history, or treating glare/unknown
+pixels alone as a displacement. Game remains paused with original three restored.
+
+Preparing 0.165/build166: preserve warning-only geometry for two adjacent uncertain
+intersections with strong same-color candidate pixels and a bounded outline
+(quality ≥0.94, normal stone radius). The real image yields one Black disk centered
+at canonical (8.92,9.52), quality 0.9874. Both occupancy readings stay uncertain.
+A centering marker requires exactly one nearby recorded stone of the same color,
+no hand/manual override/lighting failure, and the existing fresh-frame debounce.
+It cannot create a stone, a move, an increment or a clock hold. The issue opens
+“Check stone centering,” gives the saved coordinate and preserves the correction
+route if the record is wrong. Real fixture `Tests/Fixtures/HalfwayNudge` retains
+the off-center photo plus an earlier centered photo; repeated test feeds are
+explicitly synthetic timestamps, not a claimed video sequence. Tests and signed
+production build are running; no new installation or physical pass yet.
+
+New nudge suite **61 checks passed**: real off-center/centered photos; all 16 real
+glare frames produce no displaced-disk evidence; no advice from uncertainty alone,
+hands, manual labels, lighting failure, empty history, wrong color or ambiguous
+recorded neighbors. Synthetic timestamp feeds verify fresh-frame debounce,
+running and paused guidance/clearing, unchanged SGF/turn/increment/clock state,
+and the native K10 centering review. Native panel screenshot inspected at
+`.build/TestArtifacts/nudged-stone-guidance/centering.png`. Seven Python build
+checks pass. Related regressions and optimized signed build remain in progress.
+
+0.165 verification complete: **9/9 targeted suites passed**, comprising the new
+61-check nudge suite and eight related suites: live-position issues (65), known-
+empty/residual glare (53+171), recovery guidance (58), capture-clock (417 plus
+113 uncertainty, 103 conflict and 75 clock checks), established tracking (82),
+lighting (86), crowded placement (63, including 24 real consecutive frames), and
+displaced neighbors (27 lighting/alignment cases). Seven Python build checks pass.
+No full-suite rerun is claimed. Native centering panel and stable-layout regression
+passed; physical centering-prompt retest remains pending.
+
+Installed and launched **0.165 / build166**, optimized Developer ID signed build;
+strict/deep signature and independent 135-source hash verified:
+`a77f3f6e3a81bf6972b87a6c4290cdcb5e54687f6e9ef087b4f991796144e764`.
+Backup: `/Users/dave/Library/Application Support/Physical Go/Backups/Install-0.165-20261112-161910`.
+Exact SGF and semantic clock/pending/review JSON match before quit, after quit and
+after relaunch. Original 89-move SGF remains unchanged. Native UI confirms camera
+Live, Live position selected, three saved, zero pending/outside/attention points,
+White next, manually paused (Black 227.714432125, White 281.055034459 seconds).
+Next guided step: stay paused, slide Black halfway K10 toward L10, clear hands
+five seconds; expect orange K10 marker and centering explanation. Click the marker
+and leave the stone off-center/panel open for inspection before restoration.
+Acceptance count remains ten passed / seventeen remaining until this retest.

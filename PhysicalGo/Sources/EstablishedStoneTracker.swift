@@ -168,7 +168,7 @@ struct EstablishedStoneTracker {
         guard !remapped.isEmpty else {return raw}
         var interpreted=BoardObservation(readings:readings,size:raw.size,notice:raw.notice,lightingBlocked:raw.lightingBlocked,
             lightingAdjusted:raw.lightingAdjusted,lightingField:raw.lightingField,footprints:raw.footprints,
-            placementFits:raw.placementFits,manualPoints:raw.manualPoints)
+            placementFits:raw.placementFits,manualPoints:raw.manualPoints,centeringEvidence:raw.centeringEvidence)
         interpreted.trackedAssignments=remapped
         return interpreted
     }

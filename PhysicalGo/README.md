@@ -278,6 +278,12 @@ The affected test recording was recovered separately as 89 legal moves, keeping
 the first 86 unchanged and retaining clock balances paused for review; its
 original recording and evidence remain intact.
 
+From 0.165, a strongly bounded stone outline shared by two uncertain adjacent
+intersections can request centering at a uniquely nearby recorded stone. Fresh
+repeated evidence is required; unknown pixels alone, glare, hands, and ambiguous
+recorded neighbors cannot establish this warning. The prompt preserves the saved
+stone, move count, turn and clock policy, and clears after verified centering.
+
 From 0.164, known-empty lighting baselines can also learn from repeated current-
 image evidence: nearby wood establishes local brightness and color, and both
 printed grid axes must remain visible. This helps when changed glare makes the
