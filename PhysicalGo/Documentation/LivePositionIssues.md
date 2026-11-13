@@ -6,15 +6,12 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: FULL HD WEB CAM passed the basic trial, then exposed empty
-corner uncertainty during the camera-interrupted T3 capture. User removed White
-T1/T2;26saved, BlackT3 physically present, WhiteR3 not played. Game manually
-paused by agent; both clock balances and pending capture preserved.0.175/build176
-fixes uncertain corner readings using independent visible-grid/wood evidence and
-corrects misleading removal guidance. Targeted regressions and actual-session
-replay passed; installed and live clear evidence verified, user retry pending.
-Physical matrix15/27; this capture
-is not yet a clean pass. Earlier67-second hand-gate stall remains unresolved.
+Latest follow-up:0.175 live capture retry remained too slow for practical play.
+It completed27, then WhiteR3 saved28 and clocks switched correctly.28saved,
+Black next, manually paused, capture cleared. User leaving; lighting may change.
+Saved automatic incident clips, current-lighting images and all game logs;
+app closed normally, with no further adjustments per user request. Physical
+matrix15/27 remains; capture responsiveness and earlier67-second stall stay open.
 
 ## Purpose and scope
 
@@ -2437,3 +2434,31 @@ proven. Capture/clock state remains unchanged while manually paused.
 User retry: Resume with WhiteT1/T2 absent and BlackT3 present; expect27saved and
 White running. Then WhiteR3, wait28saved/Blackrunning,Pause. If it struggles again,
 Pause/report and retain evidence. Physical scenario still pending,15/27 unchanged.
+
+### 2026-11-13 — 0.175 live retry slow; preserve and stop
+
+User reports substantial twitching before capture resolved, impractical for live
+play. Then WhiteR3 recognized and clocks switched correctly; user paused.
+Journal: Resume1794607401.368294, capture complete1794607427.663032:
+26.294738seconds from Resume to completion, with prisoners already removed.
+WhiteR3 followed; paused1794607447.83644 at28saved, Black next, no capturePosition
+or clock anchor. Balances Black436.78069856076036/White149.74118993780576.
+Responsiveness remains FAIL; do not mark capture/outage scenario passed.
+
+User explicitly requested no detailed/lengthy adjustments now and image retention
+before lighting changes. Preserved recording/sidecars/journal and extracted events
+under `.build/GuidedTests/corner-removal-slow-0175`. Pinned automatic clips
+`Diagnostic 2026-11-13 14-03-26 FA018B51` (30frames) and
+`Diagnostic 2026-11-13 14-03-47 6415B300` (34frames) in Move Evidence. These are
+bounded clips, not continuous coverage of the whole delay.
+
+Started a current28-move board/lighting capture14-05-21 9638B253. Native AX stop
+and Done actions stalled; canceled those helper processes, closed the settings
+sheet using its Escape shortcut and quit the app normally. No force quit. The
+first normal-quit attempt with the sheet open was canceled. Capture finalized
+and was moved intact with KEEP under the snapshot folder; exact path/frame count
+in session.json. App left closed, recording preserved byte-for-byte and semantic
+clock/pending/review JSON unchanged from pre-exit snapshot. No code, recognition,
+stone or clock-setting adjustments. User also requested commit and push.
+Next session inspect retained evidence before the next fix/test; lighting may
+have changed. Resume from28saved,Black next,WhiteR3 present,T1/T2empty,T3Black.
