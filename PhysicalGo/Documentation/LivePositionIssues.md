@@ -6,11 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.170/build171 installed (camera-preview fix). Two-prisoner threshold2 capture and
-following move passed. Matrix15/27 complete,12 remaining.19 saved,White next,
-both clocks paused. White A18 is physically present but unsaved after a reported
-recognition/preview stall. Preview fix verified and installed; awaiting the live
-A18 retry before completing capture setup. Black A17 remains empty.
+Latest follow-up:0.171/build172 installed with the A18 false-hand fix. Targeted
+regressions and signed-source verification passed. Matrix15/27 complete,12 remaining.
+19saved,White next,both clocks paused;WhiteA18 remains physical and unsaved.
+Mac locked at postlaunch check: fresh camera verification and live A18 retry
+await unlock. BlackA17 remains empty for the capture test.
 
 ## Purpose and scope
 
@@ -1840,3 +1840,84 @@ Next physical checkpoint: while paused remove only unsaved WhiteA18; wait for
 its marker to disappear, Resume, replace WhiteA18 and clear hands. Expect20saved
 and Black clock running, then Pause. Leave BlackA17 empty for the capture test.
 Physical matrix remains15/27; original long-stall cause remains unconfirmed.
+
+### 2026-11-13 — A18 retry isolates false hand-outline obstruction
+
+0.170 preview fix worked, but WhiteA18 still did not register. The user could
+see the physical stone in the fresh live feed while the banner said waiting for
+hands. The normal journal now proves hand obstruction began at1794556669.201
+and persisted while White clock ran. Clocks manually paused at19saved,White next:
+Black365.874617037s,White42.846810545s. A18 remains physical and unsaved.
+
+Continuous capture `Diagnostic 2026-11-12 23-59-29 3690CDF3` shows reliable
+hand-pose output with no hands, but the outline tracker reports a visible hand
+at edge0/depth2.35. Photos independently show no hand. Second capture
+`Diagnostic 2026-11-13 00-01-31 5EA26833` includes user removal,5seconds clear,
+and replacement while paused. User reported the banner cleared. Offline replay
+of frames205–310 reproduces late clearance: frame254 is visibly clear but the
+tracker stays obstructed until270. Investigating the foreground component before
+changing recognition; no threshold relaxation or timeout-based clearance yet.
+Both captures kept; continuous capture stopped and10GB limit restored.
+Physical matrix remains15/27. No physical test marked passed by this replay.
+
+Root cause reproduced offline: the foreground component includes the newly
+placed WhiteA18 (center approximately17,0), so loss of hand-pose recognition
+leaves that stone classified as the departing hand. With no strong chromatic
+hand model, the difference mask also responds to the new white disk. This can
+keep the outline latched indefinitely; brief missing components in the replay
+occasionally let the two-clear-view rule release it.
+
+0.171 fix implemented, validation/build in progress: compute this frame's raw
+board detection before hand-outline tracking. Only white footprints with current
+shape quality≥0.95 and occupancy confidence≥0.95 supply candidate masks; the
+outline tracker independently requires a bright neutral core at nine locations.
+Masks remove only the fitted disk plus0.15grid-space fringe, and only when hand
+pose reliably reports clear. History, adaptive lighting, elapsed time and a
+missing pose do not authorize clearance. Existing foreground/texture checks and
+two-clear-view confirmation still apply. Black-stone masking is not generalized
+without a corresponding incident/test.
+
+Regression fixture `Tests/Fixtures/A18HandOutline` preserves39 grid-sampled frames,
+original timestamps/poses/current white fits, and three original photographs plus
+reference for pipeline integration. The fixed tracker clears by256 rather than270,
+while retaining the real hand through252. This low-chroma sequence supplies no
+qualified motion estimate; the test explicitly requires that no clock press be
+invented. Existing recorded withdrawal/error-band checks remain applicable to
+their separate sequences. New safety checks reject bare-wood/covered-core hints
+and retain fingers beside a verified white stone, including a narrow rim finger.
+
+The full photographed pipeline initially exposed a remaining rim-lighting patch
+with the stone mask applied. Two related corrections are included in final0.171:
+component depth is bounded laterally by the actual board rectangle (a patch
+beyond a corner cannot count as over the board), and low-contrast grain near
+the rim can establish clearance through5×5 spatial averages. That fallback
+requires≥100 texture comparisons, variance>0.0001,correlation>0.985 and a bounded
+brightness transform. Every original pixel still has the tighter0.04 residual
+limit, with0.0004 per-cell mean-square residual limit; averaging cannot simply
+hide a fingertip. No elapsed-time fallback clears a hand.
+
+Pre-install checks now passed:73 synthetic outline/safety checks,21+6 existing
+recorded-outline checks,21 new A18 sequence checks,7 full photographed pipeline
+checks. Pipeline test uses repeated before/hand/after photographs to isolate
+wiring and the static rim patch; the39-frame test separately preserves original
+timestamps. Low-contrast rim shadow, opaque fingertip within that shadow, narrow
+finger beside a verified stone, and a patch wholly beyond the corner are covered.
+Final signed build and clock/capture regression rerun underway.
+
+Final0.171 validation passed:73 outline safety checks;21+6 existing recorded
+outline checks;21 A18 recorded-sequence checks;7 photographed pipeline checks;
+15 lighting-interruption,11 preview,59+7 hand-clock checks;capture suites
+113/103/75/417;7 Python build-registry tests. Initial pipeline failure exposed
+the rim component and was resolved before installation; the final test results
+above refer to the final sources.
+
+Installed signed0.171/build172, source hash
+`106c45179120ee84a097f6eff4c7a8c4faf23c2333f54c4165914fffc555fc68`
+(135sources). Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.171-20261113-003239`.
+Postlaunch SGF is byte-identical; clock/pending/review JSON semantically identical
+to the pre-quit snapshot. Original89-move record verified unchanged. Current19
+moves,White next,manual pause;Black365.874617037s/White42.846810545s.
+Mac is locked, so fresh postlaunch camera verification has NOT passed yet.
+Ask user to unlock with stones unchanged; then verify Live/paused state before
+retrying A18. Spoken retry instructions are prepared but not played while locked.
+Keep physical matrix15/27 until the actual capture cases pass.

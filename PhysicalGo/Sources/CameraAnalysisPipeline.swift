@@ -86,14 +86,6 @@ final class CameraAnalysisPipeline {
         if checkAlignment,aligned==nil,alignmentReport["rejectionReason"]==nil {
             alignmentReport["rejectionReason"]=frame==nil ? "camera frame decoding failed":"tracking anchor unavailable"
         }
-        var handTracking=input.handTracking
-        let handOutline:HandOutlineTracker.Result?
-        if input.checkHands,input.trackingFresh,let frame,!exposureFailure,
-           aligned != nil || BoardAlignmentGate.likelyObstruction(alignmentReport) {
-            handOutline=handTracking.observe(HandOutlineSampling.sample(frame,calibration:aligned ?? calibration),
-                pose:handPose,at:trackingTime,source:input.handTimestampSource)
-        } else {handTracking.reset();handOutline=nil}
-        let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size)
         var result:BoardObservation? = exposureFailure
             ? BoardObservation(readings:(0..<calibration.size*calibration.size).map {
                 .init(row:$0/calibration.size,col:$0%calibration.size,occupancy:.uncertain,confidence:0,delta:0)
@@ -108,6 +100,14 @@ final class CameraAnalysisPipeline {
             }
         }
         let rawResult=result
+        var handTracking=input.handTracking
+        let handOutline:HandOutlineTracker.Result?
+        if input.checkHands,input.trackingFresh,let frame,!exposureFailure,
+           aligned != nil || BoardAlignmentGate.likelyObstruction(alignmentReport) {
+            handOutline=handTracking.observe(HandOutlineSampling.sample(frame,calibration:aligned ?? calibration,observation:rawResult),
+                pose:handPose,at:trackingTime,source:input.handTimestampSource)
+        } else {handTracking.reset();handOutline=nil}
+        let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size)
         var emptyLighting=input.emptyLighting
         if let raw=result,let frame,let aligned {
             result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,

@@ -1,6 +1,7 @@
 import Foundation
 @main struct HandOutlineTests {
     static func main() throws {
+        setbuf(stdout,nil)
         var checks=0
         func check(_ value:Bool,_ message:String) {checks+=1;precondition(value,message)}
         let clear=HandMotionPose(hands:[]),size=9,n=121
@@ -85,8 +86,69 @@ import Foundation
             let done=tracker.observe(textured(nil,shadow:true,edge:edge),pose:clear,at:0.7,source:"test")
             check(done.obstructed==false && done.estimate?.observedUpper==0.6,"Lighting change prolonged a completed withdrawal")
         }
-        print("PASS: \(checks) outline checks: four edges, lost poses, visual confirmation, original press/error, gaps, timestamp epochs and stationary motion")
+        let disk=HandOutlineFrame.WhiteStone(x:3.5,y:0,radiusX:0.44,radiusY:0.47)
+        var covered=frame(0.5);covered.whiteStones=[disk]
+        check(covered.verifiedWhiteStones.isEmpty,"A visible fingertip inherited a stone's clearance mask")
+        var wood=frame(nil);wood.whiteStones=[disk]
+        check(wood.verifiedWhiteStones.isEmpty,"A shape hint alone masked bare wood")
+        var visible=covered.pixels
+        for i in visible.indices {let p=covered.grid(i)
+            if pow((p.0-disk.x)/disk.radiusX,2)+pow((p.1-disk.y)/disk.radiusY,2)<1 {visible[i] = .init(red:0,green:0,light:0.95)}
+        }
+        let beside=HandOutlineFrame(width:n,cells:size,pixels:visible,whiteStones:[disk])
+        check(beside.verifiedWhiteStones.count==1,"A clear white core was not verified")
+        var adjacent=HandOutlineTracker()
+        for t in [0.0,0.1,0.2] {_=adjacent.observe(frame(nil),pose:clear,at:t,source:"stone")}
+        _=adjacent.observe(frame(4),pose:pose(edge:0),at:0.3,source:"stone")
+        for t in [0.4,0.5,0.6] {
+            check(adjacent.observe(beside,pose:clear,at:t,source:"stone").obstructed==true,"Stone mask erased adjacent fingers after pose loss")
+        }
+        var narrow=frame(nil).pixels
+        for i in narrow.indices {let p=covered.grid(i)
+            if pow((p.0-disk.x)/disk.radiusX,2)+pow((p.1-disk.y)/disk.radiusY,2)<1 {narrow[i] = .init(red:0,green:0,light:0.95)}
+            if (3.3...3.7).contains(p.0),p.1 <= -0.45 {narrow[i] = .init(red:0.12,green:-0.02,light:0.55)}
+        }
+        let rimFinger=HandOutlineFrame(width:n,cells:size,pixels:narrow,whiteStones:[disk])
+        check(rimFinger.verifiedWhiteStones.count==1,"Rim-finger fixture must retain its visible white core")
+        var rim=HandOutlineTracker()
+        for t in [0.0,0.1,0.2] {_=rim.observe(frame(nil),pose:clear,at:t,source:"rim")}
+        _=rim.observe(frame(4),pose:pose(edge:0),at:0.3,source:"rim")
+        for t in [0.4,0.5,0.6] {
+            check(rim.observe(rimFinger,pose:clear,at:t,source:"rim").obstructed==true,"White-stone fringe hid a narrow fingertip at the rim")
+        }
+        func rimGrain(shadow:Bool,finger:Bool)->HandOutlineFrame {
+            var pixels=[HandOutlineFrame.Pixel]()
+            for i in 0..<n*n {let p=covered.grid(i),light=Float(0.6+0.015*sin(p.0*5)+0.015*cos(p.1*6))
+                if finger,(3.3...3.7).contains(p.0),p.1 <= -0.45 {pixels.append(.init(red:0.12,green:-0.02,light:0.45))}
+                else if shadow,(2...5).contains(p.0),p.1 <= -0.35 {pixels.append(.init(red:0.12,green:-0.02,light:light*0.9+0.02))}
+                else {pixels.append(.init(red:0.10,green:0.02,light:light))}
+            }
+            return .init(width:n,cells:size,pixels:pixels)
+        }
+        var grain=HandOutlineTracker()
+        for t in [0.0,0.1,0.2] {_=grain.observe(rimGrain(shadow:false,finger:false),pose:clear,at:t,source:"grain")}
+        _=grain.observe(frame(4),pose:pose(edge:0),at:0.3,source:"grain")
+        for t in [0.4,0.5,0.6] {
+            check(grain.observe(rimGrain(shadow:true,finger:true),pose:clear,at:t,source:"grain").obstructed==true,"Spatial averaging hid a small finger in low-contrast rim grain")
+        }
+        _=grain.observe(rimGrain(shadow:true,finger:false),pose:clear,at:0.7,source:"grain")
+        check(grain.observe(rimGrain(shadow:true,finger:false),pose:clear,at:0.8,source:"grain").obstructed==false,"Preserved low-contrast rim grain remained a hand")
+        func cornerPatch(outside:Bool)->HandOutlineFrame {
+            var pixels=frame(nil).pixels
+            for i in pixels.indices {let p=covered.grid(i)
+                if p.0 >= (outside ? 9:6),p.1<=3 {pixels[i] = .init(red:0.12,green:-0.02,light:0.55)}
+            }
+            return .init(width:n,cells:size,pixels:pixels)
+        }
+        let cornerPose=HandMotionPose(hands:pose(edge:0).hands.map{$0.map{.init(id:$0.id,x:$0.x+4,y:$0.y,confidence:$0.confidence)}})
+        var corner=HandOutlineTracker()
+        for t in [0.0,0.1,0.2] {_=corner.observe(frame(nil),pose:clear,at:t,source:"corner")}
+        check(corner.observe(cornerPatch(outside:false),pose:cornerPose,at:0.3,source:"corner").obstructed==true,"Actual corner hand was not blocked")
+        _=corner.observe(cornerPatch(outside:true),pose:clear,at:0.4,source:"corner")
+        check(corner.observe(cornerPatch(outside:true),pose:clear,at:0.5,source:"corner").obstructed==false,"A patch beyond the corner counted as over the board")
+        print("PASS: \(checks) outline checks: four edges, lost poses, visual confirmation, original press/error, gaps, timestamp epochs, stationary motion and white-stone mask safety")
         _=try HandOutlineRecordedTests.run()
         _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockCatchUpLoss/Outline"))
+        _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/A18HandOutline"))
     }
 }

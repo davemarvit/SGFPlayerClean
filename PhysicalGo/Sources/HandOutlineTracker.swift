@@ -1,6 +1,14 @@
 import Foundation
 
 struct HandOutlineFrame {
+    struct WhiteStone:Codable {
+        let x:Double,y:Double,radiusX:Double,radiusY:Double
+        func contains(x:Double,y:Double)->Bool {
+            // Include the fitted outline's antialiasing/shadow fringe, not a
+            // whole intersection where an adjacent fingertip could remain.
+            pow((x-self.x)/(radiusX+0.15),2)+pow((y-self.y)/(radiusY+0.15),2)<=1
+        }
+    }
     struct Pixel {
         var red:Float,green:Float,light:Float
         static let invalid=Pixel(red:0,green:0,light:-1)
@@ -9,6 +17,7 @@ struct HandOutlineFrame {
     let width:Int
     let cells:Int
     let pixels:[Pixel]
+    var whiteStones:[WhiteStone]=[]
     static let scale=10.0,margin=2.0
     func grid(_ index:Int)->(Double,Double) {
         (Double(index%width)/Self.scale-Self.margin,Double(index/width)/Self.scale-Self.margin)
@@ -16,6 +25,19 @@ struct HandOutlineFrame {
     func index(x:Double,y:Double)->Int? {
         let col=Int(((x+Self.margin)*Self.scale).rounded()),row=Int(((y+Self.margin)*Self.scale).rounded())
         guard col>=0,row>=0,col<width,row<width else {return nil};return row*width+col
+    }
+    var verifiedWhiteStones:[WhiteStone] {
+        whiteStones.filter {stone in
+            guard (0.32...0.60).contains(stone.radiusX),(0.32...0.65).contains(stone.radiusY) else {return false}
+            // Current round-shape evidence also needs a bright, neutral core.
+            // A saved stone or a skin-colored fingertip is not clearance.
+            return (0...8).allSatisfy {step in
+                let angle=Double(step)*Double.pi/4,r=step==8 ? 0.0:0.5
+                guard let i=index(x:stone.x+cos(angle)*stone.radiusX*r,y:stone.y+sin(angle)*stone.radiusY*r) else {return false}
+                let p=pixels[i],red=Double(p.red),green=Double(p.green)
+                return p.valid && p.light>=0.65 && sqrt(red*red+green*green+(red+green)*(red+green))<=0.12
+            }
+        }
     }
 }
 
@@ -107,7 +129,8 @@ struct HandOutlineTracker {
                 }
             }
         }
-        let mask=foreground(frame,background:background,direction:direction)
+        let mask=foreground(frame,background:background,direction:direction,
+                            whiteStones:hand==false ? frame.verifiedWhiteStones:[])
         let components=components(mask.closed,core:mask.core,frame:frame)
         let candidates=components.filter {c in
             let lateral=edge%2==0 ? abs(c.x-center.x):abs(c.y-center.y)
@@ -156,8 +179,35 @@ struct HandOutlineTracker {
         let vx=sxx-sx*sx/n,vy=syy-sy*sy/n,cov=sxy-sx*sy/n
         // Flat wood cannot prove clearance. Texture must survive a modest
         // brightness/contrast change; a skin-colored region alone never does.
-        guard vx/n>0.0016,vy/n>0.0016,cov/sqrt(vx*vy)>0.98 else {return false}
-        let slope=cov/vx,offset=(sy-slope*sx)/n
+        var slope:Double,offset:Double,residualLimit=0.08,tileLimit=0.0016
+        if vx/n>0.0016,vy/n>0.0016,cov/sqrt(vx*vy)>0.98 {
+            slope=cov/vx;offset=(sy-slope*sx)/n
+        } else {
+            // Low-contrast rim grain is easily buried in camera noise. Compare
+            // small spatial averages, but still test EVERY original pixel below
+            // with tighter residual limits so a fingertip cannot be averaged away.
+            guard component.maximum<=0.5 else {return false}
+            let members=Set(component.indices),width=frame.width
+            var pairs=[(Double,Double)]()
+            for i in component.indices {
+                var x=0.0,y=0.0,count=0
+                for dy in -2...2 {for dx in -2...2 {
+                    let col=i%width+dx,row=i/width+dy
+                    guard col>=0,col<width,row>=0,row<width else {continue}
+                    let j=row*width+col
+                    if members.contains(j),background.pixels[j].valid,frame.pixels[j].valid {
+                        x+=Double(background.pixels[j].light);y+=Double(frame.pixels[j].light);count+=1
+                    }
+                }}
+                if count>=15 {pairs.append((x/Double(count),y/Double(count)))}
+            }
+            guard pairs.count>=100 else {return false}
+            let count=Double(pairs.count),mx=pairs.map{$0.0}.reduce(0,+)/count,my=pairs.map{$0.1}.reduce(0,+)/count
+            let xx=pairs.map{pow($0.0-mx,2)}.reduce(0,+),yy=pairs.map{pow($0.1-my,2)}.reduce(0,+)
+            let xy=pairs.map{($0.0-mx)*($0.1-my)}.reduce(0,+)
+            guard xx/count>0.0001,yy/count>0.0001,xy/sqrt(xx*yy)>0.985 else {return false}
+            slope=xy/xx;offset=my-slope*mx;residualLimit=0.04;tileLimit=0.0004
+        }
         guard (0.6...1.4).contains(slope) else {return false}
         var tiles=[Int:(squared:Double,count:Int)]()
         let tileWidth=(frame.width+9)/10
@@ -165,16 +215,19 @@ struct HandOutlineTracker {
             let error=Double(frame.pixels[i].light)-slope*Double(background.pixels[i].light)-offset
             // A small remaining fingertip must not disappear into a good
             // whole-component average. Check individual residuals and cells.
-            guard abs(error)<=0.08 else {return false}
+            guard background.pixels[i].valid,frame.pixels[i].valid,abs(error)<=residualLimit else {return false}
             let key=(i/frame.width/10)*tileWidth+(i%frame.width/10)
             let previous=tiles[key] ?? (0,0)
             tiles[key]=(previous.squared+error*error,previous.count+1)
         }
-        return tiles.values.allSatisfy{$0.count<12 || $0.squared/Double($0.count)<=0.0016}
+        return tiles.values.allSatisfy{$0.count<12 || $0.squared/Double($0.count)<=tileLimit}
     }
-    private func foreground(_ frame:HandOutlineFrame,background:HandOutlineFrame,direction:(Double,Double,Double)?)->(closed:[Bool],core:[Bool]) {
-        let raw=zip(frame.pixels,background.pixels).map {p,b->Bool in
+    private func foreground(_ frame:HandOutlineFrame,background:HandOutlineFrame,direction:(Double,Double,Double)?,whiteStones:[HandOutlineFrame.WhiteStone])->(closed:[Bool],core:[Bool]) {
+        let raw=frame.pixels.indices.map {i->Bool in
+            let p=frame.pixels[i],b=background.pixels[i]
             guard p.valid,b.valid,p.light>0.08,b.light>0.08 else {return false}
+            let point=frame.grid(i)
+            if whiteStones.contains(where:{$0.contains(x:point.0,y:point.1)}) {return false}
             let r=Double(p.red-b.red),g=Double(p.green-b.green)
             if let d=direction {
                 if let appearance {
@@ -210,7 +263,11 @@ struct HandOutlineTracker {
             while cursor<indices.count {
                 let i=indices[cursor];cursor+=1
                 let (x,y)=frame.grid(i),d=depth(x:x,y:y,cells:frame.cells)
-                sx+=x;sy+=y;lo=min(lo,d);hi=max(hi,d)
+                // Crossing the tracked edge's infinite line is not enough:
+                // a patch beyond either corner is outside the board too.
+                let lateral=edge%2==0 ? x:y
+                let boardDepth=min(d,lateral+0.75,Double(frame.cells)-0.25-lateral)
+                sx+=x;sy+=y;lo=min(lo,d);hi=max(hi,boardDepth)
                 for dy in -1...1 {for dx in -1...1 where dy != 0 || dx != 0 {
                     let xx=i%n+dx,yy=i/n+dy
                     if xx>=0,xx<n,yy>=0,yy<n {
