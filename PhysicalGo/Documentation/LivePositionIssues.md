@@ -1465,3 +1465,31 @@ Paused balances Black310.826737934 / White114.902653024. Snapshot
 Resume, place White Q10 away from the corner group, clear hands until14 saved/
 Black running, then Pause. Leave White A3/A4 and all other stones in place;
 do not play capturing Black A5 yet. Matrix remains14/27.
+
+Two-prisoner setup interrupted **before White Q10**: user returned after an
+absence, reported clocks stopped / board unreadable, then identified nearly all
+uncertainties in the previously troublesome glare area. Still13 saved; all12
+remaining physical stones recognized. Live readings show roughly19–24 uncertain
+empty intersections clustered around G14–P19. No move, clock balance or review
+state changed relative to the paused B4 baseline. User tried Resume during the
+block; clocks correctly remained stopped. Subsequently manually paused.
+
+Saved sample `Captures/Samples/Unreadable thirteen moves 0166 20261112` contains
+current frame, calibration/readings and empty reference. Saving froze the camera;
+agent explicitly resumed camera using the camera control (not game Resume).
+Native UI confirms Live and game paused. Exact SGF and semantic clock/pending/
+review JSON match B4 baseline: Black310.826737934 / White114.902653024. No Q10 stone
+is present in the sample. Automatic23-frame clip:
+`/Users/dave/Library/Application Support/Physical Go/Move Evidence/Diagnostic 2026-11-12 21-12-08 C7EB7F8A`.
+
+Photo visibly shows broad reflection over the affected wood. Current grid is
+accepted using12 known-stone matches and exposed lines; no hand/global exposure
+block. All sampled stones confidence>=0.96875. Cold-start replay of this single
+image (12 repetitions with explicitly synthetic0.21s stamps, diagnostic only)
+leaves25 of31 raw uncertain points: independent current-image empty checks fail
+mostly because one or both printed grid axes lack sufficient contrast. Thus a
+fresh instance of the existing local-baseline learner does not resolve this
+frame. Probe `/tmp/GlareReturnProbe.swift`; no thresholds or source code changed.
+Next physical recovery step: keep clocks paused, stones and camera fixed, redirect
+the light causing the reflection, clear hands five seconds and report whether
+circles settle. Recheck before continuing White Q10. Matrix unchanged14/27.
