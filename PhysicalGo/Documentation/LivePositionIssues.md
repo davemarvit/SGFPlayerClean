@@ -1338,3 +1338,20 @@ untouched; with camera Live, Resume for about eight seconds, then Pause before
 returning to chat. Report evenly spaced seconds versus bunching/jumps. Kokoro
 guide prepared. This is a diagnostic retest, not another original-matrix pass;
 13/27 passed,14 remaining. Do not claim the display defect resolved until observed.
+
+0.166 foreground countdown physical retest **PASS**: user reports evenly spaced
+seconds. Five saved moves and all timed move records unchanged; manual pause,
+White next, no pending/timing review. Complete clock JSON differs only in White
+remaining time:51.871717375→42.937384084 (8.934333292 seconds elapsed). Black
+remains226.158551416. SGF/pending/review state unchanged. Snapshot:
+`.build/GuidedTests/after-even-countdown-0166`. This verifies the short foreground
+case, not extended background or open-review-panel cadence. Original matrix still
+13/27 passed,14 remaining; this diagnostic retest is not a new scenario.
+
+Next begin capture-policy matrix using existing threshold2. First test a single
+prisoner (below threshold, no automatic removal hold). Keep the existing five
+stones. Planned legal sequence from White next: W A1, B B1, W A3, B A2 captures
+only White A1. Guide each step separately and pause between setup placements;
+the final capturing placement/removal will be observed while running. Immediate
+next step only: Resume, place White A1, clear hand until6 saved/Black running,
+then Pause. Do not place the remaining setup moves yet.
