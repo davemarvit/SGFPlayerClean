@@ -1419,3 +1419,21 @@ other stones unchanged. Verify one White increment, no repeated increment for
 Black's previous capture, and no stale capture hold/review. This completes the
 clock/continuation part of the single-prisoner scenario if successful and starts
 the physical setup for a two-prisoner capture; guidance finding remains separate.
+
+Single-prisoner threshold2 continuation **PASS**: user reports ready; storage
+confirms tenth W[da] (White A4), prior nine timed moves unchanged, exactly one
+White30-second increment, no repeated Black increment, Black next, paused, no
+pending sequence or timing correction. Black balance was unchanged across this
+White move, then counted down until manual pause. Paused balances
+Black259.954716459 / White93.685539708. Snapshot
+`.build/GuidedTests/after-capture-followup-a4-0166`. Functional below-threshold
+clock/removal/continuation scenario complete: **14/27 passed,13 remaining**
+(six capture variants, two rapid timing, five outage variants). Separate
+delayed-removal warning/ambiguity guidance finding remains open, not declared fixed.
+
+Next two-prisoner capture at threshold2, using connected White A3/A4. Planned
+sequence: B B3, W D10, B B4, W Q10, B A5 captures exactly White A3/A4. Guide
+setup placements one at a time with pauses. Immediate next step only: Resume,
+place Black B3 beside White A3, clear hands until11 saved/White running, Pause.
+Keep all stones in place; no capture yet. Qualifying capture will later test
+automatic hold, partial removals and fresh completion separately.
