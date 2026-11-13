@@ -1456,3 +1456,12 @@ Black284.447758497 / White118.259819836. Snapshot
 place Black B4 beside White A4, clear hands until13 saved/White running, then
 Pause. Leave White A3/A4 and every other stone in place; no capture yet.
 Matrix remains14/27.
+
+Two-prisoner threshold2 setup, Black B4 **verified**: user reports done; storage
+confirms thirteenth B[db], previous twelve timed moves unchanged, one30-second
+Black increment, White next, paused, no pending sequence/timing correction.
+Paused balances Black310.826737934 / White114.902653024. Snapshot
+`.build/GuidedTests/after-two-capture-setup-b4-0166`. Next final setup move only:
+Resume, place White Q10 away from the corner group, clear hands until14 saved/
+Black running, then Pause. Leave White A3/A4 and all other stones in place;
+do not play capturing Black A5 yet. Matrix remains14/27.
