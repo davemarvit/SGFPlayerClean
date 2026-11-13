@@ -1446,3 +1446,13 @@ Black286.193785600 / White91.117743483. Snapshot
 `.build/GuidedTests/after-two-capture-setup-b3-0166`. Next step only: Resume,
 place White D10 away from the corner group, clear hands until12 saved/Black
 running, then Pause. Keep all existing stones in place. Matrix remains14/27.
+
+Two-prisoner threshold2 setup, White D10 **verified**: user confirms12 saved,
+Black started and manual pause, other stones untouched. Storage confirms twelfth
+W[jd], previous eleven timed moves unchanged, one30-second White increment,
+Black next, no pending sequence/timing correction. Paused balances
+Black284.447758497 / White118.259819836. Snapshot
+`.build/GuidedTests/after-two-capture-setup-d10-0166`. Next step only: Resume,
+place Black B4 beside White A4, clear hands until13 saved/White running, then
+Pause. Leave White A3/A4 and every other stone in place; no capture yet.
+Matrix remains14/27.
