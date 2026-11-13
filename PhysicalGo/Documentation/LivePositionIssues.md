@@ -1960,3 +1960,11 @@ condition is solved. Setup complete; next actual test is BlackA17 capturing
 WhiteA18/A19 with both prisoners left in place to inspect the automatic hold,
 initialKokorovoice and hold label before manual-pause/camera-interruption steps.
 Physical matrix remains15/27; this was a fix retest/setup move.
+
+Capture-onset instructions issued after confirming fresh Live observations:
+20saved,Black next,manual pause,threshold2;A17empty,A18/A19White,B18/B19Black.
+Resume and placeBlackA17;leave both captured Whites in place and clear hands.
+Check both clocks stop automatically,button says “Paused for stone removal,”
+and the first reminder usesKokoro. Leave prisoners for the next checkpoint;
+manually Pause only if a clock continues after5seconds. Kokoro walkthrough
+prepared. Result pending;matrix15/27.
