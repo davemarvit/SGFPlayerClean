@@ -1712,3 +1712,16 @@ Black at A5, not uncertain. Explain pending capture rather than wrong placement;
 do not ask user to move A5 or replace removed A4. Next inspect step: click A5's
 orange ring, leave Capture progress open and White A3 in place; verify remaining
 removal and stopped clocks.0.169 remains built/verified but not installed.
+
+Capture inspection **verified**: user screenshot identifies Black A5, captured
+A3/A4, and only A3 still awaiting empty verification. User requested temporary
+reminder silence specifically during testing. Agent closed the inspection,
+opened Info & settings → Camera recovery and turned off Speak when the camera,
+board, or lighting needs adjusting, then closed settings. Defaults confirms0.
+Both clock balances and automatic capture hold remain unchanged, with14 saved;
+closing inspection did not pause/resume clocks. This is an existing setting,
+not a new permanent mute feature. It also silences recovery/resume speech for
+now; countdown settings remain untouched. **Restore this toggle to true after
+this capture completes and user pauses, before installing0.169.**
+Next step: remove remaining White A3, clear hand, wait15 saved and White clock
+running, then Pause. Await user completion; no scenario completion claimed yet.
