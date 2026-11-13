@@ -6,14 +6,13 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: overnight investigation complete; 0.173/build174 signed,
-tested and staged (not installed). It adds bounded diagnostic clips for a stuck
-hand gate and recovery, plus a recorded A19 removal regression. The original
-67-second interval's visual cause remains unproven because footage is missing;
-recognition thresholds and timing rules are unchanged. Installed0.172 remains
-at21 saved, White next, manually paused, camera stopped. A17Black, A18/A19empty,
-C19not played. Morning: install staged build with preservation checks, then
-verify the new lighting/current board while paused before Resume. Matrix15/27.
+Latest follow-up: user is comparing FULL HD WEB CAM against Dave11 using
+installed0.172/build173. Camera Live,21saved, White next, clocks manually paused;
+stones unchanged. Static check:100frames/20.2s, all16stones correctly located,
+zero false extras,0–6 uncertain empty points. Paused WhiteC19 placement/removal
+check pending. Original camera reference/settings backed up. Staged0.173/build174
+is verified but not installed; original67-second hand delay remains unresolved.
+Physical matrix15/27; camera comparison does not advance it.
 
 ## Purpose and scope
 
@@ -2238,3 +2237,26 @@ is explicitly not ground truth. The recorded successful replay and the separate
 pose-loss perturbation must not be mislabeled as a reproduction of the failure.
 Morning: use the guarded installer, check the changed lighting while paused,
 and continue diagnosis if the gate stalls again. Do not increment15/27 yet.
+
+### 2026-11-13 — Quick comparison: FULL HD WEB CAM
+
+User requested a quick alternative-webcam recognition check and selected
+FULL HD WEB CAM (USB ID0x21420000bda0567). Kept installed0.172/build173 so
+recognition code remains the same during comparison; staged0.173 is still pending.
+Backed up original Dave11 empty reference, preferences and all recording files in
+`.build/GuidedTests/new-webcam-comparison` before switching cameras. Game stays
+manually paused with21saved; SGF and semantic clock/pending/review sidecars match.
+
+New webcam supplies1920×1080, all four board corners visible. It acquires a grid
+using existing stones/exposed lines. Retained capture:
+`Diagnostic 2026-11-13 12-00-50 EF6C00FB` (KEEP). Across100 consecutive analyzed
+frames over20.198720s, all11Black+5White stones match their saved locations every
+frame, no false extra stones, and0–6 empty intersections are uncertain. All100
+frames delivered to the paused recorder; mean reported confidence at saved
+stones1.0. This supports basic static recognition, not equivalent dynamic/hand
+performance or a controlled same-lighting hardware comparison.
+
+Bounded1GB capture stopped at its limit; restored10GB setting. Next quick test:
+whilepaused placeWhiteC19, clearhand3seconds (expect1detected outside history),
+removeit and clearhand3seconds (expect0).21saved and stopped clocks throughout.
+Do not save a move or resume clocks for this camera comparison.
