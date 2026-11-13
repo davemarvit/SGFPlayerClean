@@ -21,7 +21,7 @@ import Foundation
     private var queued=[Prompt]()
     var onSpeechEvent:SpeechEventHandler?
     init(audio:(any RecoverySpeechOutput)?=nil) {
-        self.audio=audio ?? LocalClockAudio()
+        self.audio=audio ?? LocalClockAudio.forRecovery()
         self.audio.onSpeechFinished = { [weak self] in
             guard let self else {return}
             self.active=nil;self.activeText=nil;self.advance()

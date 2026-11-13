@@ -13,7 +13,13 @@ enum KokoroResourceBundle {
 
 /// Shared offline synthesis. The serial worker never runs on the camera or clock
 /// thread. Common calls have bundled audio; uncommon calls are cached in memory.
-final class KokoroSpeech: @unchecked Sendable {
+protocol KokoroSpeechSynthesizing:Sendable {
+    var available:Bool {get}
+    func cached(_ text:String)->Data?
+    func synthesize(_ text:String,completion:@escaping @Sendable (Data?)->Void)
+}
+
+final class KokoroSpeech: KokoroSpeechSynthesizing, @unchecked Sendable {
     static let shared=KokoroSpeech()
     static let voiceID="kokoro:af_heart"
     static let systemVoiceID="system"

@@ -46,6 +46,8 @@ struct ByoyomiAnnouncements {
 /// Bundled Kokoro speech, system fallback and generated short tones; clock arithmetic remains platform independent.
 @MainActor final class LocalClockAudio:NSObject,RecoverySpeechOutput,AVAudioPlayerDelegate,AVSpeechSynthesizerDelegate {
     private let speech=AVSpeechSynthesizer()
+    private let kokoro:any KokoroSpeechSynthesizing
+    private let waitsForAnnouncements:Bool
     private var tone:AVAudioPlayer?
     private var voice:AVAudioPlayer?
     private var speechGate=SpeechRequestGate()
@@ -66,7 +68,13 @@ struct ByoyomiAnnouncements {
     private var startedAt:Double?
     private var activeUtterance:AVSpeechUtterance?
     var hasStartedSpeech:Bool {startedAt != nil}
-    override init() {super.init();speech.delegate=self}
+    init(kokoro:any KokoroSpeechSynthesizing=KokoroSpeech.shared,waitsForAnnouncements:Bool=false) {
+        self.kokoro=kokoro;self.waitsForAnnouncements=waitsForAnnouncements
+        super.init();speech.delegate=self
+    }
+    static func forRecovery(kokoro:any KokoroSpeechSynthesizing=KokoroSpeech.shared)->LocalClockAudio {
+        LocalClockAudio(kokoro:kokoro,waitsForAnnouncements:true)
+    }
     private func event(_ name:String,reason:String?=nil,engine:String?=nil) {
         guard let activeText else {return}
         var details:[String:Any]=["phrase":activeText,"announcement":announcing]
@@ -99,27 +107,33 @@ struct ByoyomiAnnouncements {
         cancelSpeech(reason:"replaced by a newer speech request")
         let token=speechGate.advance()
         announcing=announcement;activeText=text;periodSpeech=period;utteranceID=UUID().uuidString;event("requested")
-        guard KokoroSpeech.selected(settings.voiceID),KokoroSpeech.shared.available else {
+        guard KokoroSpeech.selected(settings.voiceID),kokoro.available else {
             systemSay(text,settings:settings);return
         }
-        if let data=KokoroSpeech.shared.cached(text),playVoice(data,settings:settings) {return}
+        if let data=kokoro.cached(text),playVoice(data,settings:settings) {return}
         // Never synthesize a countdown on the critical path. Build-time assets
         // cover 1...10; if missing, speak immediately with the system voice.
         if !announcement {systemSay(text,settings:settings);return}
         pendingSpeech=true
-        KokoroSpeech.shared.synthesize(text) {[weak self] data in
+        kokoro.synthesize(text) {[weak self] data in
             Task {@MainActor [weak self] in
                 guard let self,self.speechGate.accepts(token) else {return}
                 self.pendingSpeech=false
                 if let data,self.playVoice(data,settings:settings) {return}
+                self.event("fallback",reason:"Kokoro synthesis or playback failed")
                 self.systemSay(text,settings:settings)
             }
         }
+        // Recovery guidance can wait for the selected voice. Countdown/period
+        // callers retain their deadline; cancellation still invalidates late audio.
+        guard !waitsForAnnouncements else {return}
         // Cold model loading must not delay a time-sensitive announcement.
         // Invalidate a late result after falling back, so it cannot speak twice.
         DispatchQueue.main.asyncAfter(deadline:.now()+1.5) {[weak self] in
             guard let self,self.speechGate.accepts(token),self.pendingSpeech else {return}
-            _=self.speechGate.advance();self.pendingSpeech=false;self.systemSay(text,settings:settings)
+            _=self.speechGate.advance();self.pendingSpeech=false
+            self.event("fallback",reason:"Time-sensitive speech deadline")
+            self.systemSay(text,settings:settings)
         }
     }
     private func playVoice(_ data:Data,settings:LocalClockSounds)->Bool {

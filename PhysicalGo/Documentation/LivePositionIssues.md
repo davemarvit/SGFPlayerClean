@@ -1649,3 +1649,49 @@ Next capture step only: Resume, Black A5, leave captured White A3/A4 physically
 on the board and clear hands. Expect both clocks to stop automatically for
 removal; report the hold/message before removing either prisoner. If either
 clock still runs after5s, manually Pause and report. Matrix remains14/27.
+
+Black A5 / two-prisoner threshold2 **automatic hold verified**: user confirms
+both clocks stopped before either White A3/A4 was removed. Storage holds14 saved
+moves with capturePosition retained, no running anchor; Black299.965191162 /
+White140.844613878 remain unchanged during inspection. Removal/completion are
+still untested; scenario count remains14/27. Snapshot:
+`.build/GuidedTests/two-capture-held-before-removal-0168`.
+
+Two UX findings: first removal instruction used the system voice, later repeats
+Kokoro; button below stopped clocks still said Pause. Journal corroborates first
+request1794550645.26335 → system start1794550646.995665, then next request
+1794550675.517676 → Kokoro1794550675.528236. Root cause is the1.5s synthesis
+deadline; cold Kokoro completed too late but cached the phrase for repeats.
+Preparing0.169: recovery guidance waits for selected Kokoro synthesis (fallback
+only on failure/unavailability); clock/countdown announcements retain deadlines.
+Cancellation still suppresses obsolete delayed audio. Capture transport will
+show Paused for stone removal, with a Pause automatic checking action, while
+manual pause retains Resume. Tests/build pending. Preserve the current capture
+in the running0.168; install after completing this capture, not mid-hold.
+
+0.169 validation:14 new capture-feedback checks pass using delayed synthesis
+through the real audio playback path (silent test WAV): no1.5s system fallback
+for recovery, exactly one Kokoro start when ready, obsolete late audio cancelled,
+actual synthesis failure falls back, and time-sensitive clock speech retains its
+deadline without duplicate late audio. Capture UI lifecycle checks cover active
+hold, manual pause/Resume, partial removal and verified completion. Native
+render inspected at `.build/TestArtifacts/capture-hold-feedback/paused-for-removal.png`;
+Paused for stone removal is legible, with Pause automatic checking beneath it.
+Existing recovery guidance58, capture uncertainty113/conflicts103/local-clock75/
+capture timing417, and clock-review28 + local-clock75 also pass. Seven Python
+build-registry checks pass. Final feedback log `/tmp/physical-go-0169-feedback-test.log`;
+related suites `/tmp/physical-go-0169-tests.log`. Initial build was discarded after
+a source edit during compilation; final-source regression runtime rebuilt.
+
+While the signed build finishes, next physical step issued (also via Kokoro):
+remove White A3 only; leave White A4 and other stones. Both clocks should remain
+stopped with1 prisoner left. If a clock starts, Pause. Awaiting user report; no
+partial-removal pass claimed. Current running0.168 is unchanged.
+
+**0.169 / build170 verified and ready, not installed.** Optimized build and strict
+deep signature verification passed; source hash5160d3c9e61ac429922e9a4870c1c544d79db9f18d2dcf9ed26254b9936d9563
+(135 sources) matches final source. Install is intentionally deferred until this
+physical capture completes and the user pauses, preserving the current hold in
+running0.168. Prepared installer requires15 saved moves, stopped clocks and no
+capturePosition. Changes are ready for review; first live guidance/hold-label
+acceptance in0.169 remains pending installation and a later capture.

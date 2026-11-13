@@ -9,6 +9,8 @@ import AVFoundation
     }
     let correction:Correction?
     let automaticHold:Bool
+    let captureHold:Bool
+    let transportTitle:String
     let title:String
     init(recorder:GameRecorder,clock:LocalGameClock) {
         if !clock.running,recorder.state != .finished,let plan=recorder.pendingCaptureReview {
@@ -19,6 +21,11 @@ import AVFoundation
                 guidance:"The physical board needs checking against the saved position. Choose Check moved stones before resuming the clocks.")
         } else {correction=nil}
         automaticHold = recorder.playFlow == .checking && correction==nil
+        captureHold = recorder.playFlow == .removingCapturedStones && correction==nil
+        transportTitle = correction?.title ?? (captureHold
+            ? (recorder.automaticCaptureConflictPoints.isEmpty ? "Paused for stone removal":"Paused for board check")
+            : automaticHold ? "Pause checking" : [.playing,.removingCapturedStones].contains(recorder.playFlow) ? "Pause"
+            : recorder.playFlow == .clockReview ? "Review & resume…" : recorder.awaitingFirstStart ? "Start":"Resume")
         if let correction {title=correction.title.replacingOccurrences(of:"…",with:"")+" · clocks stopped"}
         else if recorder.awaitingFirstStart && recorder.state == .paused {title="Ready to start"}
         else if recorder.state == .finished {title="Game finished"}
@@ -266,15 +273,15 @@ struct LocalClockPanel:View {
     // switches players. Keep the clock-review gate on every resume path.
     private var transport:some View {
         let presentation=LocalPlayPresentation(recorder:recorder,clock:clock)
-        let waiting=presentation.automaticHold,correction=presentation.correction
+        let waiting=presentation.automaticHold,holding=presentation.captureHold,correction=presentation.correction
         let reviewing = recorder.playFlow == .clockReview
         let pausing = [.playing,.removingCapturedStones].contains(recorder.playFlow)
-        let title = correction?.title ?? (waiting ? "Pause checking" : pausing ? "Pause" : reviewing ? "Review & resume…" : recorder.awaitingFirstStart ? "Start" : "Resume")
+        let title=presentation.transportTitle
         return HStack {
             Spacer(minLength:0)
             Button {
                 if let correction {onReview(correction.id)}
-                else if waiting || pausing {
+                else if waiting || holding || pausing {
                     recorder.pause()
                 } else if clock.requiresReview {
                     review(resume:true)
@@ -283,21 +290,21 @@ struct LocalClockPanel:View {
                 }
             } label: {
                 HStack(spacing:14) {
-                    Image(systemName:correction != nil ? "checkmark.circle.fill":waiting ? "hourglass.circle.fill":pausing ? "pause.circle.fill":"play.circle.fill")
+                    Image(systemName:correction != nil ? "checkmark.circle.fill":waiting || holding ? "hourglass.circle.fill":pausing ? "pause.circle.fill":"play.circle.fill")
                         .font(.system(size:large ? 56:44,weight:.semibold))
                     VStack(alignment:.leading,spacing:2) {
                         Text(title).font(.system(size:large ? 28:24,weight:.semibold))
-                        Text(waiting || correction != nil ? "Clocks stay stopped":"Clock & recording").font(.callout)
+                        Text(holding ? "Pause automatic checking":waiting || correction != nil ? "Clocks stay stopped":"Clock & recording").font(.callout)
                     }
                     if reviewing {Image(systemName:"exclamationmark.triangle.fill").font(.title2)}
                 }.padding(.horizontal,20).padding(.vertical,8)
                     .frame(minWidth:250,minHeight:64)
                     .contentShape(Rectangle())
-            }.buttonStyle(.borderedProminent).tint(reviewing ? .red:waiting || correction != nil ? .orange:.accentColor)
+            }.buttonStyle(.borderedProminent).tint(reviewing ? .red:waiting || holding || correction != nil ? .orange:.accentColor)
                 .actionAttention(reviewing || correction != nil ? .required:.none)
                 .disabled([.idle,.finished,.storageBlocked].contains(recorder.playFlow))
-                .accessibilityLabel(correction?.title ?? (waiting ? "Pause board checking and keep clocks stopped":reviewing ? "Review clocks and resume" : pausing ? "Pause clock and recording":recorder.awaitingFirstStart ? "Start game and clocks":"Resume clock and recording"))
-                .help(correction?.guidance ?? (waiting ? "Clocks are stopped while the board is checked. Pause checking prevents automatic resumption when the view recovers.":reviewing ? "Check both times before resuming." : "Pauses or resumes both the clock and recording. Recognized moves switch players automatically."))
+                .accessibilityLabel(correction?.title ?? (holding ? "\(title). Pause automatic checking":waiting ? "Pause board checking and keep clocks stopped":reviewing ? "Review clocks and resume" : pausing ? "Pause clock and recording":recorder.awaitingFirstStart ? "Start game and clocks":"Resume clock and recording"))
+                .help(correction?.guidance ?? (holding ? "Both clocks are stopped for this capture. Removal is checked automatically. Click to pause checking and prevent automatic resumption.":waiting ? "Clocks are stopped while the board is checked. Pause checking prevents automatic resumption when the view recovers.":reviewing ? "Check both times before resuming." : "Pauses or resumes both the clock and recording. Recognized moves switch players automatically."))
             Spacer(minLength:0)
         }.padding(.vertical,4)
     }
