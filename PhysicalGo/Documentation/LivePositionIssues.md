@@ -6,10 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.171/build172 installed; A18 false-hand retry passed by user
-report and recording/clock journal. Matrix15/27 complete,12 remaining.20saved,
-Black next,both clocks paused. Ready for BlackA17 capture ofWhiteA18/A19;
-leave the two Whites until capture-hold behavior is checked.
+Latest follow-up:0.171/build172 installed. BlackA17 capture onset passed:
+both clocks held automatically,correct hold label,first reminderKokoro (delayed).
+20saved;A17 provisional,A18/A19 still present. Next: manually Pause checking,
+Stop/Start camera,verify manual pause and pending capture survive. Matrix15/27,
+12remaining until full capture-interruption scenario completes.
 
 ## Purpose and scope
 
@@ -1968,3 +1969,26 @@ Check both clocks stop automatically,button says “Paused for stone removal,”
 and the first reminder usesKokoro. Leave prisoners for the next checkpoint;
 manually Pause only if a clock continues after5seconds. Kokoro walkthrough
 prepared. Result pending;matrix15/27.
+
+### 2026-11-13 — A17 capture onset and0.169 feedback verified
+
+User reports correct behavior, delayedKokoro reminder,orange rings atA17/A18/A19,
+and translucentA17. Agent confirms actual automatic capture hold,20saved,no
+clock correction;Black352.627141162s/White67.949604253s,neither running.
+Button accessibility: “Paused for stone removal. Pause automatic checking”.
+The markings match the pending capture: both White prisoners remain and the
+new capturing Black is not finalized into saved history until completion.
+
+Hold began1794560359.382002. First speech requested1794560363.960660,started
+1794560374.634175 withengineKokoro:15.252s afterhold,10.674s afterrequest.
+No system-voice fallback in this capture. User considers delay probably acceptable;
+log latency for future improvement without blocking this test. Both clocks stayed
+held throughout. Snapshot: `.build/GuidedTests/a17-capture-automatic-hold-0171`.
+Automatic diagnostic clip saving reports archive capacity occupied by kept
+evidence; this result uses user report/nativeUI/normaljournal,not a new camera clip.
+
+Next checkpoint groups manual pause and camera interruption: with all stones
+unchanged,click hold transport to Pause automatic checking (button becomesResume),
+Stopcamera,wait5seconds,Startcamera. Expect20saved,pending capture,unchanged
+clock balances and neither clock running. Do not remove either White yet.
+Full scenario remains pending;matrix15/27.
