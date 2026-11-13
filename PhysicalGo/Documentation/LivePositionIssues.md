@@ -6,10 +6,10 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.169 / build170 installed with capture-hold control and Kokoro
-guidance fixes. The two-prisoner capture completed successfully;15 moves saved,
-White next,both clocks paused. Following-move check remains before counting this
-full scenario complete (matrix14/27). See the latest validation record below.
+Latest follow-up:0.169/build170 installed. Two-prisoner threshold2 capture and
+following move passed. Matrix15/27 complete,12 remaining.16 saved,Black next,
+both clocks paused. Next setup is Black B18 for a manually paused capture across
+a camera interruption; voice/hold-label acceptance will accompany that capture.
 
 ## Purpose and scope
 
@@ -1749,3 +1749,21 @@ capture; do not claim it from this completed0.168 capture.
 Next one-step continuation test: Resume, place White D12 (empty, away from the
 corner capture), clear hand, wait16saved andBlackclockrunning,thenPause. All
 otherstones unchanged. Check oneWhiteincrement and no duplicateBlack increment.
+
+Two-prisoner threshold2 continuation **PASS**: user reports all fine. White D12
+saved as move16 W[ld]; all15 earlier timed moves unchanged, oneWhite30-second
+increment, no duplicateBlack increment. Blacknext,manualpause,balances
+Black323.535505642 / White159.848265900. Snapshot:
+`.build/GuidedTests/after-two-capture-continuation-d12-0169`. Full scenario now
+complete: **15/27 passed,12 remaining** (5 capture-policy,2 rapid timing,5 outage/
+restart variants). Prior incidental restart during removal remains supporting
+evidence rather than an extra independently counted scenario.
+
+Next use existing threshold2/game for manually-paused capture across a camera
+interruption, also validating0.169initialKokoro/holdlabel. Upper-left corner
+setup, legal sequence: B B18,W A19,B B19,W A18,B A17 captures A18/A19. Guide
+one placement at a time with manual pauses; first only B B18,wait17saved/White
+running,Pause. At the later capture check new feedback,remaining-point obstruction,
+manualpause then camera interruption/restart; verify pause retained. No new moves
+or settings changed by agent. Other threshold settings are next-game settings
+in the current UI; retain this game for outage checks before changing policies.
