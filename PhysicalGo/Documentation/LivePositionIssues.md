@@ -1355,3 +1355,11 @@ only White A1. Guide each step separately and pause between setup placements;
 the final capturing placement/removal will be observed while running. Immediate
 next step only: Resume, place White A1, clear hand until6 saved/Black running,
 then Pause. Do not place the remaining setup moves yet.
+
+Single-prisoner capture setup, step1 **verified**: user placed White A1, saw6
+saved/Black running and paused. Storage confirms sixth W[aa], earlier five timed
+moves unchanged, exactly one30-second White increment, Black next, no timing
+correction. Paused balances Black221.767975333 / White68.380774833 seconds.
+Snapshot `.build/GuidedTests/after-capture-setup-a1-0166`. Next step only: Resume,
+place Black B1 beside White A1, clear hands until7 saved/White running, then Pause.
+Leave White A1 in place; no capture yet. Matrix remains13/27, setup in progress.
