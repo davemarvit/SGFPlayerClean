@@ -6,11 +6,13 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.171/build172 installed. A17 capture manually paused,then
-camera stopped/restarted: manual pause and pending capture survived,balances
-unchanged.20saved;A17 provisional,A18/A19 present. Next: while paused remove
-onlyWhiteA18 and inspect capture progress (remainingA19). Matrix15/27 until
-full capture-interruption scenario completes.
+Latest follow-up: 0.172/build173 installed and verified. Paused capture panel
+and instruction now agree: only White A19 remains. White A18 is absent; Black
+A17 is provisional. 20 saved and both paused balances preserved exactly.
+Next: Resume with A19 present; remove A19 while covering its intersection for
+5 seconds (20 saved, clocks held), clear hand (21 saved, White running), then
+White C19 (22 saved, Black running) and Pause. Matrix 15/27 pending that result.
+Separate false hand outline during A18 replacement remains open with footage.
 
 ## Purpose and scope
 
@@ -2007,3 +2009,90 @@ Next checkpoint: staypaused,remove onlyWhiteA18,leaveWhiteA19 and all other
 stones,clearhand,openCaptureprogress. Expect onlyA19 still to verifyempty,
 20saved and both clocks stopped. Leavepanelopen. Remaining-point obstruction
 and final completion/following move are still pending;matrix15/27.
+
+### 2026-11-13 — Partial removal reveals another hand-gate stall
+
+User removedWhiteA18 but live-position retained white/orangeA18/A19 and an
+empty-looking orangeA17. Agent found no new board observations for90seconds,
+latestA17/A18/A19=B?W,with hand-obstruction event1794560825.463273. Capture
+and manual pause retained;20saved and exact held clock balances unchanged.
+The scene later recovered: another hand-begin1794561045.668310,clear1794561049.659954.
+The cause of recovery is not established. Continuous images started after that
+clearance,so they do not document the original stalled outline.
+
+`Diagnostic 2026-11-13 01-09-52 5AAE7B22` confirms current reliable no-hand pose,
+clear outline,BlackA17/emptyA18/WhiteA19,all three raw confidences1.0. Kept;
+its1GB limit stopped recording. The previous5GB waiting-only capture
+`Diagnostic 2026-11-13 00-39-38 8B04A502` was moved intact out of the managed
+archive to `.build/GuidedTests/PreservedDiagnostics/` to free capacity without
+deleting evidence. Its KEEP and contents are preserved.
+
+Started bounded5GB replay capture `Diagnostic 2026-11-13 01-11-40 2FFF3C9F`.
+Asked user,while paused,to replaceWhiteA18,clearhand5seconds,removeA18again,
+and leaveA19/allothers unchanged. If it sticks,leave the scene untouched for
+evidence. Do not count the delayed partial removal as a clean pass or infer
+that0.171 covered this case. No new code changes yet;matrix15/27.
+
+### 2026-11-13 — A18 removal recognized; paused instruction was stale
+
+User reports solid White A18 and translucent Black A17 after the replay.
+The retained live board includes the saved White until capture acceptance;
+Black A17 is correctly provisional. Inspection confirms “Still to verify empty:
+A19,” while its separate instruction incorrectly says “2 captured stones.”
+Do not classify that retained board appearance alone as failed recognition.
+
+The 01-11-40 replay records empty A18 with confidence 1.0 from frame 191 onward,
+with clear hand outline and observations delivered to the paused recorder.
+Removal clear frame 190 at 1794561138.297440 is followed by delivery at frame 191,
+1794561138.549908. Separately, replacement was falsely blocked at frames 127–185
+(~12 seconds); frame 160 visibly has no hand. This is additional outline evidence,
+not proof the removal itself stalled. The original earlier removal stall remains
+unexplained. Keep this hand-detection issue open; this release changes no thresholds.
+
+Replay retained with KEEP. Continuous capture stopped at archive capacity;
+original 10 GB per-capture limit restored. No scene reset or move acceptance.
+Snapshot: `.build/GuidedTests/paused-capture-guidance-before-0172`.
+
+0.172 updates paused capture instructions and their spoken remaining-point list
+from fresh, clear observations. Manual pause still prevents move acceptance,
+completion evidence accumulation and clock restart. Completed removal explicitly
+requests Resume for verification; speech no longer promises automatic restart
+while manually paused. Regression first failed on the old source with “Paused
+capture panel and instructions disagree about removed prisoners.” New checks
+cover removal/replacement, uncertain prisoners, hand-covered/stale frames, exact
+clock balances and fresh completion proof after Resume. Validation passed: capture
+clock suite (427 capture/timing, 113 photo uncertainty, 103 conflict guidance,
+75 local-clock checks), 65 live-issue checks and 14 capture feedback checks.
+An isolated copy of the actual 20-move recording also restored the pending A17
+capture, updated A19-only guidance, and preserved SGF and both paused balances.
+Build-registry checks also passed (7). Signed build and installation passed.
+
+The stopped replay was moved intact, including KEEP, to
+`.build/GuidedTests/PreservedDiagnostics/Diagnostic 2026-11-13 01-11-40 2FFF3C9F`
+to free the automatic diagnostic archive for subsequent tests. No evidence was
+deleted. A18 replacement shape qualities at frames 129/160/180 were about
+0.936–0.939, below the existing 0.95 hand-mask eligibility threshold. This helps
+explain why the white exclusion was unavailable, but is not sufficient reason
+to lower the threshold without further hand-safety replay tests.
+
+### 2026-11-13 — 0.172 installed with pending capture preserved
+
+Signed version 0.172/build173 installed and launched. Source hash:
+`d8e5b823f7c473266773905d5579c83a7daae5e42de8926d2a3b5a605f165366` (135 sources).
+Backup: `~/Library/Application Support/Physical Go/Backups/Install-0.172-20261113-012919`.
+The first normal-quit attempt was canceled while the inspection sheet was open;
+closing the sheet allowed normal shutdown. No force quit or game mutation.
+Postlaunch: exact SGF and semantic clock/pending/review sidecars preserved;
+previous 89-move recording also unchanged. Camera Live, current B.W at A17/A18/A19,
+20 saved, no clock correction, Black352.627141162s/White67.949604253s stopped.
+Native capture panel now says both “Still to verify empty: A19” and “1 captured
+stone.” Manual Resume requirement remains visible. Panel left open.
+
+Next combined checkpoint (Kokoro walkthrough prepared): close panel; Resume
+with White A19 still present, expecting both clocks held. Remove White A19 but
+keep the intersection hand-covered for five seconds: remain at 20 saved and
+both stopped. Clear hand: expect 21 saved and White running. If successful,
+play White C19: expect 22 saved and Black running, then Pause. If the capture
+completes while covered, Pause and report instead. C19 legality and coordinate
+orientation were checked against the actual retained game after A17 capture.
+Result pending; do not increment the physical matrix (15/27) yet.

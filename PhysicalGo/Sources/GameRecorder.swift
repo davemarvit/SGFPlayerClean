@@ -1132,6 +1132,22 @@ enum LocalGameSetup {
         captureReadings=nil
         automaticCapture=nil;automaticCaptureStatus=nil;captureCandidate=nil;captureClearViews=[];clearBoardTiming.reset();handMotionTiming.reset();handOverBoard=false
     }
+    /// Manual pause stops acceptance and timing, not read-only removal guidance.
+    /// Do not accumulate completion views here: Resume needs fresh verification.
+    private func updatePausedCaptureGuidance(_ observation:BoardObservation) {
+        guard state == .paused,let capture=automaticCapture ?? provisionalRemovalPlan,
+              observation.handObstructed == false,!observation.lightingBlocked,
+              observation.size==game.boardSize,observation.readings.count==capture.source.count,
+              observation.readings.enumerated().allSatisfy({$0.element.row==$0.offset/game.boardSize && $0.element.col==$0.offset%game.boardSize}) else {return}
+        let readings=observation.signature
+        captureReadings=readings
+        let remaining=capture.captured.filter{readings[$0] != .empty}.count
+        automaticCaptureStatus = !automaticCaptureConflictPoints.isEmpty
+            ? "Clocks remain paused. The camera and recorded board disagree. Compare the highlighted intersections before correcting anything."
+            : remaining>0
+            ? "Remove the remaining \(remaining) captured \(remaining == 1 ? "stone" : "stones"), then move hands clear. Both clocks remain paused. Press Resume to continue checking."
+            : "Captured points appear empty. Press Resume to verify the complete position. Both clocks remain paused."
+    }
     /// Intercept a confidently identified removal before it becomes a generic
     /// chronology review. Only the fully verified target is eventually recorded.
     private func handleAutomaticCapture(_ observation:BoardObservation,now:Double)->Bool {
@@ -1246,6 +1262,7 @@ enum LocalGameSetup {
             suspendVision("Board processing fell behind. Checking a fresh view before continuing.",preserveOrder:true)
         }
         observeEmptyView(observation,now:now)
+        updatePausedCaptureGuidance(observation)
         guard state == .verifying || state == .recording else { return }
         retainingTentativeMoves=false
         guard observation.size == game.boardSize, observation.readings.count == game.boardSize*game.boardSize,
