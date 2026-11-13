@@ -1385,3 +1385,29 @@ Then remove only White A1, clear hands for five seconds and manually Pause befor
 reporting. Expect9 saved, White next, eight physical stones, exactly one Black
 increment and unchanged prior timed moves. Do not wait in chat with clocks running.
 Physical result pending; matrix13/27 until capture and follow-up verified.
+
+Single-prisoner threshold2 capture, clock/removal **PASS from collected evidence**.
+User saw9 saved but did not watch clock onset; no repeat needed for that question.
+Journal excerpt `.build/GuidedTests/single-capture-0166-observations.json` contains
+156 observations plus four events across uptime1005790–1005830. `position` is the
+camera observation signature (GameRecorder.trace), not the saved-position diagram.
+At1005799.041004 the observed-turn clock press switches to White, backdated to
+supported placement1005798.221510; camera still sees White A1, Black A2, White A3.
+48 observations show White running while A1 remains White:92.050255459 seconds
+at1005799.041004 down to80.146841084 at1005810.945621. No automatic hold or
+interruption is recorded during this interval. First clear A1-empty observation
+at1005812.395423,13.354419 seconds after the first White-running observation,
+shows White78.890417959. Move9 accepted at1005813.427383 with White still running.
+Manual pause appears at1005823.916574. One Black30-second increment, original
+eight timed moves unchanged, ninth B[ba], White next and no timing correction.
+Paused balances Black270.486141041 / White67.303668792. State snapshot:
+`.build/GuidedTests/after-single-capture-0166` (four state files; journal excerpt
+retained separately).
+
+Separate guidance finding: while the prisoner remained, the journal emitted
+“recording warning: new unsaved stone” at1005803.851688 and an ambiguity tone
+at1005812.395423, clearing on acceptance. This did not hold or restart the clock,
+but capture-specific removal guidance needs review; do not claim all UX passed.
+Following White move remains to verify continuation before counting this original
+matrix scenario complete (still13/27 fully completed). White A4 can serve as that
+follow-up and begin a later two-prisoner setup; do not move stones until guided.
