@@ -6,13 +6,11 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up: 0.172/build173 installed and verified. Paused capture panel
-and instruction now agree: only White A19 remains. White A18 is absent; Black
-A17 is provisional. 20 saved and both paused balances preserved exactly.
-Next: Resume with A19 present; remove A19 while covering its intersection for
-5 seconds (20 saved, clocks held), clear hand (21 saved, White running), then
-White C19 (22 saved, Black running) and Pause. Matrix 15/27 pending that result.
-Separate false hand outline during A18 replacement remains open with footage.
+Latest follow-up: 0.172/build173. A19 removal hit a 67-second hand-gate stall,
+then recovered without an agent camera reset or recognition change. Capture
+completed as move21; White next, both clocks now manually paused. Black A17
+present, White A18/A19 absent; C19 not played. This is not a clean pass; matrix
+15/27. Preserve the scene while preparing a diagnostic replay.
 
 ## Purpose and scope
 
@@ -2096,3 +2094,29 @@ play White C19: expect 22 saved and Black running, then Pause. If the capture
 completes while covered, Pause and report instead. C19 legality and coordinate
 orientation were checked against the actual retained game after A17 capture.
 Result pending; do not increment the physical matrix (15/27) yet.
+
+### 2026-11-13 — A19 removal stalls, then recovers spontaneously
+
+User removed White A19, covered the point for several seconds, then withdrew;
+reported no update and subsequently spontaneous recovery. Journal shows hand
+obstruction1794562357.820838 through1794562424.828331 (67.007493s), followed by
+capture completion1794562426.070371. The first-clear boundary was
+1025642.273310209. No camera reset, recognition change or successful transport
+click by the agent caused clearance; an attempted hold-button click found no
+matching control after state changed. The agent only inspected settings.
+
+21 saved, White next; Black received exactly one30s increment to382.627141162s.
+The hand-gate wait was uncharged. White ran only after the supported clear-frame
+boundary and was manually paused at1794562437.406133 with54.895708878s.
+Capture hold released, no timing correction, C19 not played. Snapshot:
+`.build/GuidedTests/a19-delayed-capture-0172-21-paused`.
+
+Automatic clip `~/Library/Application Support/Physical Go/Move Evidence/Diagnostic
+2026-11-13 01-32-20 B46E3B3B` retained with KEEP, but it ends1794562345.328103,
+before the hand entry, so cannot diagnose the stalled outline. Need a bounded
+continuous replay of A19 replacement/clear baseline/removal while manually
+paused. Do not classify delayed completion as a clean test pass; matrix15/27.
+
+Started bounded5GB continuous replay `Diagnostic 2026-11-13 01-36-54 3830D2E0` (KEEP).
+Next requested: keep paused, replace only White A19, clear hand5seconds and
+leave it in place for baseline verification before removal; do not play C19.
