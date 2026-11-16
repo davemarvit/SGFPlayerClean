@@ -1,0 +1,160 @@
+Unchanged-board reference experiment — offline stage 4, 2026-11-16
+
+Decision
+Keep the experiment offline. No application, recognition, clock, capture, saved
+recording, or live reference code was changed. The guarded reference adaptation
+has not demonstrated an accuracy benefit over the same guards with a fixed
+reference. Absence of a hand detection is useful context, not proof of no move.
+
+Implementation
+Tools/unchanged_baseline_lab.py is a standalone experiment over actual captured
+pixels and saved native classifier outputs. Tools/unchanged_baseline_photo_stress.py
+adds a clearly synthetic persistence stress using other captured photographs.
+Tools/unchanged_baseline_quiet_replay.py processes a longer unchanged interval
+from a native diagnostic archive using its stored unadapted readings.
+
+Each experiment starts with an explicitly trusted position and image. The
+estimator cannot access subsequent ground-truth labels. It samples the stone
+center and nearby wood separately, including one-sided wood samples at board
+edges. All possible stone bodies are excluded from the wood samples regardless
+of the classifier's predictions. The wood estimates illumination relative to the
+original image. The center must still independently resemble the original empty
+appearance under that illumination; global darkness is not evidence of a stone
+or evidence of emptiness by itself.
+
+Five experimental policies are compared:
+- fixed_reference: repeated direct center match to a fixed reference, without
+  the additional wood/lighting guard. This is an experimental override policy,
+  NOT the production classifier or its existing known-empty lighting behavior.
+- no_hand_only: deliberately weak control that assumes a currently clear,
+  stable-looking interval is unchanged and can replace empty-patch texture.
+- no_interaction_since_seed: stricter control matching the proposed temporal
+  assumption. Any detected hand, unknown hand result, camera gap or established
+  position contradiction invalidates the interval permanently until a new
+  trusted seed is supplied. A wholly missed hand can still fool this policy.
+- guarded_fixed: original center texture plus independent wood/illumination
+  compatibility; no adaptation. This separates the guard from the benefit of
+  adaptation itself.
+- guarded_adaptive: the same guards, with versioned illumination updates. It
+  keeps original center texture fixed. Candidate learning requires four views
+  over 0.6 s plus a 0.8 s quarantine. A newly activated reference requires fresh
+  empty witnesses. A subsequent hand/unknown gate or camera gap can roll back
+  recently activated references without deleting original observations.
+
+Decisions are computed BEFORE learning from that frame. Unknown coverage remains
+unknown. Updates never train on corrected occupancy output. Empty support
+requires three observations spanning 0.4 s. An interval over 0.5 s is a camera
+gap; timestamps are never compressed to hide missing images. Established stone
+contradictions suspend the experiment, including possible capture/removal. Only
+independently compatible empty regions can adapt; other points remain frozen.
+This is not a legal game resolver, move certifier, capture detector or clock model.
+
+Protocol and provenance
+Thresholds were fixed before reading outcome counts; they were not tuned to fix
+B19. Initial v1 artifacts remain preserved. v2 adds the stricter no-interaction
+control and guarded-fixed ablation; it does not change the guarded estimator's
+thresholds. The earlier weak control must not be confused with the stronger
+claim that no interaction occurred anywhere in the entire trusted interval.
+The quiet wrapper's final rerun corrects seed metadata to 410; the estimator and
+thresholds are unchanged. Output manifests hash scripts, source data and images.
+
+Rapid reply
+75 analyzed captured frames from the preserved frames 305–410 incident, seeded
+at 306 after move 7 (six physical stones; an earlier captured white is absent).
+The original capture times and image contents are retained. Model decisions
+are compared with the saved native pixel-classifier corpus, not live recorder
+state. Fourteen reviewed frames after the seed have both labels and recorded
+analysis metadata. The seed is not scored; labeled image 373 has no analyzed-frame
+metadata and is excluded. Thus these totals differ from stage 3's 16-photo
+snapshot totals; they should not be compared as if their denominators matched.
+
+Eleven scenarios: original delivery; all hands missed; all hand results unknown;
+missed hand around each of three placements; a camera gap across each placement;
+all three gaps plus missed remaining hands; hand metadata delayed by 0.6 s.
+Hand/gap scenarios are injected faults, not claims that the original detector
+actually missed all those hands. No image is fabricated. Source frame identity,
+original raw readings and capture timestamps remain intact in every scenario.
+
+On the 14 labeled original-delivery frames, native readings contain two false
+stones and 47 uncertain readings. Both guarded policies preserve all real stones
+but leave those two false readings and 47 uncertainties unchanged. The adaptive
+policy actually performs 998 point-reference updates and five rollbacks; the
+lack of recognition benefit is not because learning was disabled.
+
+The guarded policies produce no new empty support at a labeled real-stone point
+in any of the eleven scenarios. The actual Black timing witnesses at frames
+355–356 remain unmodified. The weak current-hand-only control absorbs all three
+real placements on labeled later views. The strict no-interaction control does
+not harm the scored rapid-reply views, partly because a real 0.576 s delivery
+gap at frame 337 invalidates its trusted interval. The photo stress and synthetic
+unit case expose its blind spot when no gap or hand is reported at all.
+
+Two remaining rapid-reply false readings are raw point 304 at frame 367 and raw
+point 323 (B19 in display rotation 1) at frame 369, both with classifier confidence
+1.0. At B19, nearby wood darkens rapidly: estimated gain changes from about 0.74
+at frame 354 to 0.83 at 357, and to 0.60 at 369. These are not stable quiet-window
+conditions for refreshing a reference. Frame 369 also fails the independent
+center-appearance test. Loosening the threshold just to erase this example would
+not establish safety on real stones. This is the earlier captured B19 phantom,
+not the later saved false move 11 whose exact image was unavailable.
+
+Other captured photographs
+22 non-overlapping labeled corpus photos, including faint, shaded, Go club,
+capture/prisoner and jade-white fixtures. Each original empty reference is a
+trusted seed. The captured test photo is held for a synthetic five seconds with
+all hand flags clear. This is an artificial appearance/persistence stress, NOT
+an observed video sequence or evidence of real placement timing. Repeated frames
+are not counted as independent examples. Some photos contain many stones; this
+is not a claim that those stones could all be played between two camera frames.
+
+Count any erroneous empty support during the hold, rather than selecting a
+convenient final frame. The fixed-reference override gives false empty support
+for 21 stone/photo pairs across 14 photos. Both unguarded no-hand controls absorb
+all 271 real stone/photo pairs across 19 nonempty photos. Both guarded policies
+produce zero erroneous empty support on those tested photographs. The 271 pairs
+are repeated photographed positions, not 271 independent physical placements.
+The guards help relative to these unsafe experimental controls; adaptation adds
+no demonstrated benefit over guarded_fixed and is not promoted on that basis.
+
+Longer quiet interval
+Frames 410–610 of the original diagnostic archive, seeded at the reviewed position
+after move 10. Nine evenly spaced contact-sheet images were visually inspected:
+410, 435, 460, 485, 510, 535, 560, 585, 610. They show the same nine physical stones,
+no visible hand, and empty B19. Only those reviewed frames carry truth labels.
+157 analyzed images span 40.006 seconds. Eight reviewed outcome frames (seed
+excluded) contain 2,888 intersections, all already correct in recorded unadapted
+readings. Every experimental policy preserves those correct outcomes. The guarded
+adaptive policy makes 6,336 point-reference updates without changing classifications.
+This verifies operation during a longer quiet period, but supplies no evidence
+that adaptation fixes genuine long-term lighting drift; no errors occurred in the
+reviewed sample. Selected original event rows and analyzed images are preserved
+outside the diagnostic rotation pool (hard links/copies, not edited pixels).
+
+What this establishes and what remains open
+The implementation can distinguish unavailable hand tracking from a clear view,
+preserve real stones in these guarded tests, quarantine/retract reference updates,
+and refuse to bridge missing camera time. No-hand-only adaptation has concrete
+counterexamples. A fresh baseline is useful only if we first establish that its
+appearance really belongs to the unchanged position; it cannot establish its own
+correctness by remembering a mistaken classification.
+
+We have not demonstrated improved recognition, fewer live clock pauses, or
+calibrated probabilities. Labels are sparse and the replay is one correlated
+session. The synthetic photo hold does not replace real missed-hand videos.
+Clocks/captures stay under existing live authority; no timing is reconstructed.
+The fixed/adaptive guarded tie argues against adding adaptive complexity now.
+The next useful test is independent unchanged-position evidence in competition
+between no placement and candidate locations, plus genuine long quiet lighting-
+drift examples. Preserve frame-level evidence rather than forcing transient
+shadows into an updated reference.
+
+Reproduce from the repository root (numpy and opencv-python):
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*lab.py' -v
+python3 PhysicalGo/Tools/unchanged_baseline_lab.py --corpus /path/to/recognizer-comparison --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json --output /new/external/replay
+python3 PhysicalGo/Tools/unchanged_baseline_photo_stress.py --corpus /path/to/recognizer-comparison --output /new/external/photos
+python3 PhysicalGo/Tools/unchanged_baseline_quiet_replay.py --archive /path/to/native/diagnostic/archive --output /new/external/quiet
+
+Artifacts:
+/Users/dave/Documents/SGF PLayer/work/unchanged-baseline-stage4
+Final directories: evaluation-final, photo-stress-final, quiet-replay-final.
+Compact tracked results: UnchangedBaselineResults.json.

@@ -3449,3 +3449,9 @@ The captured-image quality and single-placement competition pilot remains
 not eliminate the measured false stones. See
 [the evaluation](Documentation/LocalQualityEvaluation.txt) and
 [recorded results](Documentation/LocalQualityEvaluationResults.json).
+
+The next [unchanged-board reference experiment](Documentation/UnchangedBaselineExperiment.txt)
+compares fixed and adaptive references under missed-hand signals, delayed hand
+signals and camera gaps, with additional captured-photo and quiet-interval checks.
+It remains offline: appearance guards preserved real stones in the tested cases,
+but adaptation did not improve recognition over the guarded fixed reference.

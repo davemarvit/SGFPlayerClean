@@ -1,0 +1,10 @@
+{
+  "first": 410,
+  "last": 610,
+  "position": {
+    "black": [262, 280, 282, 300, 309],
+    "white": [60, 72, 288, 250]
+  },
+  "reviewedFrames": [410, 435, 460, 485, 510, 535, 560, 585, 610],
+  "provenance": "Rectified contact sheet visually reviewed on 2026-11-16. These nine frames show the same nine physical stones after move 10, no visible hand, and empty B19. Only reviewed frames are scored. Frame 410 is the trusted seed and is excluded from outcome totals. Intervening images supply causal observations, not additional labels."
+}
