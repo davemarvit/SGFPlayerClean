@@ -1,0 +1,1757 @@
+{
+  "status": "image-reviewed-point-labels",
+  "session": "Diagnostic 2026-11-16 15-37-20 9C7C7B15",
+  "sourceEventsSHA256": "ba313d3005985a9e956d477280fcc8f5dbcbfbcda09097fed2ef14de7bc8de2e",
+  "points": [
+    {
+      "id": "m01-before",
+      "move": 1,
+      "frame": 2,
+      "point": 307,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m01-after",
+      "move": 1,
+      "frame": 226,
+      "point": 307,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m02-before",
+      "move": 2,
+      "frame": 226,
+      "point": 72,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m02-after",
+      "move": 2,
+      "frame": 247,
+      "point": 72,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m03-before",
+      "move": 3,
+      "frame": 247,
+      "point": 249,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m03-after",
+      "move": 3,
+      "frame": 261,
+      "point": 249,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m04-before",
+      "move": 4,
+      "frame": 261,
+      "point": 319,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m04-after",
+      "move": 4,
+      "frame": 287,
+      "point": 319,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m05-before",
+      "move": 5,
+      "frame": 287,
+      "point": 41,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m05-after",
+      "move": 5,
+      "frame": 292,
+      "point": 41,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m06-before",
+      "move": 6,
+      "frame": 292,
+      "point": 282,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m06-after",
+      "move": 6,
+      "frame": 309,
+      "point": 282,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m07-before",
+      "move": 7,
+      "frame": 309,
+      "point": 294,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m07-after",
+      "move": 7,
+      "frame": 329,
+      "point": 294,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m08-before",
+      "move": 8,
+      "frame": 329,
+      "point": 79,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m08-after",
+      "move": 8,
+      "frame": 360,
+      "point": 79,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m09-before",
+      "move": 9,
+      "frame": 360,
+      "point": 136,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m09-after",
+      "move": 9,
+      "frame": 391,
+      "point": 136,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m10-before",
+      "move": 10,
+      "frame": 391,
+      "point": 40,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m10-after",
+      "move": 10,
+      "frame": 408,
+      "point": 40,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m11-before",
+      "move": 11,
+      "frame": 408,
+      "point": 21,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m11-after",
+      "move": 11,
+      "frame": 430,
+      "point": 21,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m12-before",
+      "move": 12,
+      "frame": 430,
+      "point": 59,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m12-after",
+      "move": 12,
+      "frame": 449,
+      "point": 59,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m13-before",
+      "move": 13,
+      "frame": 449,
+      "point": 23,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m13-after",
+      "move": 13,
+      "frame": 476,
+      "point": 23,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m14-before",
+      "move": 14,
+      "frame": 476,
+      "point": 81,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m14-after",
+      "move": 14,
+      "frame": 502,
+      "point": 81,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m15-before",
+      "move": 15,
+      "frame": 502,
+      "point": 44,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m15-after",
+      "move": 15,
+      "frame": 518,
+      "point": 44,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m16-before",
+      "move": 16,
+      "frame": 518,
+      "point": 288,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m16-after",
+      "move": 16,
+      "frame": 620,
+      "point": 288,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m17-before",
+      "move": 17,
+      "frame": 620,
+      "point": 287,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m17-after",
+      "move": 17,
+      "frame": 636,
+      "point": 287,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m18-before",
+      "move": 18,
+      "frame": 636,
+      "point": 308,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m18-after",
+      "move": 18,
+      "frame": 671,
+      "point": 308,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m19-before",
+      "move": 19,
+      "frame": 671,
+      "point": 326,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m19-after",
+      "move": 19,
+      "frame": 690,
+      "point": 326,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m20-before",
+      "move": 20,
+      "frame": 690,
+      "point": 290,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m20-after",
+      "move": 20,
+      "frame": 734,
+      "point": 290,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m21-before",
+      "move": 21,
+      "frame": 734,
+      "point": 269,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m21-after",
+      "move": 21,
+      "frame": 767,
+      "point": 269,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m22-before",
+      "move": 22,
+      "frame": 767,
+      "point": 312,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m22-after",
+      "move": 22,
+      "frame": 832,
+      "point": 312,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m23-before",
+      "move": 23,
+      "frame": 832,
+      "point": 316,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m23-after",
+      "move": 23,
+      "frame": 856,
+      "point": 316,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m24-before",
+      "move": 24,
+      "frame": 856,
+      "point": 313,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m24-after",
+      "move": 24,
+      "frame": 968,
+      "point": 313,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m25-before",
+      "move": 25,
+      "frame": 968,
+      "point": 295,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m25-after",
+      "move": 25,
+      "frame": 1015,
+      "point": 295,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m26-before",
+      "move": 26,
+      "frame": 1015,
+      "point": 334,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m26-after",
+      "move": 26,
+      "frame": 1061,
+      "point": 334,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m27-before",
+      "move": 27,
+      "frame": 1061,
+      "point": 315,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m27-after",
+      "move": 27,
+      "frame": 1084,
+      "point": 315,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m28-before",
+      "move": 28,
+      "frame": 1084,
+      "point": 335,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m28-after",
+      "move": 28,
+      "frame": 1118,
+      "point": 335,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m29-before",
+      "move": 29,
+      "frame": 1118,
+      "point": 336,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m29-after",
+      "move": 29,
+      "frame": 1141,
+      "point": 336,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m30-before",
+      "move": 30,
+      "frame": 1141,
+      "point": 314,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m30-after",
+      "move": 30,
+      "frame": 1193,
+      "point": 314,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m31-before",
+      "move": 31,
+      "frame": 1193,
+      "point": 278,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m31-after",
+      "move": 31,
+      "frame": 1213,
+      "point": 278,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m32-before",
+      "move": 32,
+      "frame": 1213,
+      "point": 186,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m32-after",
+      "move": 32,
+      "frame": 1233,
+      "point": 186,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m33-before",
+      "move": 33,
+      "frame": 1233,
+      "point": 327,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m33-after",
+      "move": 33,
+      "frame": 1263,
+      "point": 327,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m34-before",
+      "move": 34,
+      "frame": 1263,
+      "point": 328,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m34-after",
+      "move": 34,
+      "frame": 1280,
+      "point": 328,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m35-before",
+      "move": 35,
+      "frame": 1280,
+      "point": 289,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m35-after",
+      "move": 35,
+      "frame": 1303,
+      "point": 289,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m36-before",
+      "move": 36,
+      "frame": 1303,
+      "point": 309,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m36-after",
+      "move": 36,
+      "frame": 1336,
+      "point": 309,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m37-before",
+      "move": 37,
+      "frame": 1336,
+      "point": 271,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m37-after",
+      "move": 37,
+      "frame": 1343,
+      "point": 271,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m38-before",
+      "move": 38,
+      "frame": 1343,
+      "point": 174,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m38-after",
+      "move": 38,
+      "frame": 1361,
+      "point": 174,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m39-before",
+      "move": 39,
+      "frame": 1361,
+      "point": 156,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m39-after",
+      "move": 39,
+      "frame": 1380,
+      "point": 156,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m40-before",
+      "move": 40,
+      "frame": 1380,
+      "point": 251,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m40-after",
+      "move": 40,
+      "frame": 1399,
+      "point": 251,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m41-before",
+      "move": 41,
+      "frame": 1399,
+      "point": 270,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m41-after",
+      "move": 41,
+      "frame": 1417,
+      "point": 270,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m42-before",
+      "move": 42,
+      "frame": 1417,
+      "point": 195,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m42-after",
+      "move": 42,
+      "frame": 1436,
+      "point": 195,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m43-before",
+      "move": 43,
+      "frame": 1436,
+      "point": 175,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m43-after",
+      "move": 43,
+      "frame": 1461,
+      "point": 175,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m44-before",
+      "move": 44,
+      "frame": 1461,
+      "point": 194,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m44-after",
+      "move": 44,
+      "frame": 1485,
+      "point": 194,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m45-before",
+      "move": 45,
+      "frame": 1485,
+      "point": 193,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m45-after",
+      "move": 45,
+      "frame": 1510,
+      "point": 193,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m46-before",
+      "move": 46,
+      "frame": 1510,
+      "point": 212,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m46-after",
+      "move": 46,
+      "frame": 1573,
+      "point": 212,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m47-before",
+      "move": 47,
+      "frame": 1573,
+      "point": 192,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m47-after",
+      "move": 47,
+      "frame": 1592,
+      "point": 192,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m48-before",
+      "move": 48,
+      "frame": 1592,
+      "point": 211,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m48-after",
+      "move": 48,
+      "frame": 1611,
+      "point": 211,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m49-before",
+      "move": 49,
+      "frame": 1611,
+      "point": 173,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m49-after",
+      "move": 49,
+      "frame": 1633,
+      "point": 173,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m50-before",
+      "move": 50,
+      "frame": 1633,
+      "point": 233,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m50-after",
+      "move": 50,
+      "frame": 1652,
+      "point": 233,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m51-before",
+      "move": 51,
+      "frame": 1652,
+      "point": 51,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m51-after",
+      "move": 51,
+      "frame": 1712,
+      "point": 51,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m52-before",
+      "move": 52,
+      "frame": 1712,
+      "point": 111,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m52-after",
+      "move": 52,
+      "frame": 1737,
+      "point": 111,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m53-before",
+      "move": 53,
+      "frame": 1737,
+      "point": 89,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m53-after",
+      "move": 53,
+      "frame": 1755,
+      "point": 89,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m54-before",
+      "move": 54,
+      "frame": 1755,
+      "point": 52,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m54-after",
+      "move": 54,
+      "frame": 1773,
+      "point": 52,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m55-before",
+      "move": 55,
+      "frame": 1773,
+      "point": 32,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m55-after",
+      "move": 55,
+      "frame": 1800,
+      "point": 32,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m56-before",
+      "move": 56,
+      "frame": 1800,
+      "point": 33,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m56-after",
+      "move": 56,
+      "frame": 1840,
+      "point": 33,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m57-before",
+      "move": 57,
+      "frame": 1840,
+      "point": 66,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m57-after",
+      "move": 57,
+      "frame": 1846,
+      "point": 66,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m58-before",
+      "move": 58,
+      "frame": 1846,
+      "point": 116,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m58-after",
+      "move": 58,
+      "frame": 1863,
+      "point": 116,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m59-before",
+      "move": 59,
+      "frame": 1863,
+      "point": 117,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m59-after",
+      "move": 59,
+      "frame": 1885,
+      "point": 117,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m60-before",
+      "move": 60,
+      "frame": 1885,
+      "point": 97,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m60-after",
+      "move": 60,
+      "frame": 1918,
+      "point": 97,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m61-before",
+      "move": 61,
+      "frame": 1918,
+      "point": 318,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m61-after",
+      "move": 61,
+      "frame": 1956,
+      "point": 318,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m62-before",
+      "move": 62,
+      "frame": 1956,
+      "point": 300,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m62-after",
+      "move": 62,
+      "frame": 1981,
+      "point": 300,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m63-before",
+      "move": 63,
+      "frame": 1981,
+      "point": 338,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m63-after",
+      "move": 63,
+      "frame": 1996,
+      "point": 338,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m64-before",
+      "move": 64,
+      "frame": 1996,
+      "point": 339,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m64-after",
+      "move": 64,
+      "frame": 2019,
+      "point": 339,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m65-before",
+      "move": 65,
+      "frame": 2019,
+      "point": 225,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m65-after",
+      "move": 65,
+      "frame": 2038,
+      "point": 225,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m66-before",
+      "move": 66,
+      "frame": 2038,
+      "point": 243,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m66-after",
+      "move": 66,
+      "frame": 2109,
+      "point": 243,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m67-before",
+      "move": 67,
+      "frame": 2109,
+      "point": 224,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m67-after",
+      "move": 67,
+      "frame": 2130,
+      "point": 224,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m68-before",
+      "move": 68,
+      "frame": 2130,
+      "point": 223,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m68-after",
+      "move": 68,
+      "frame": 2151,
+      "point": 223,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m69-before",
+      "move": 69,
+      "frame": 2151,
+      "point": 244,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m69-after",
+      "move": 69,
+      "frame": 2172,
+      "point": 244,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m70-before",
+      "move": 70,
+      "frame": 2172,
+      "point": 262,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m70-after",
+      "move": 70,
+      "frame": 2197,
+      "point": 262,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m71-before",
+      "move": 71,
+      "frame": 2197,
+      "point": 187,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m71-after",
+      "move": 71,
+      "frame": 2216,
+      "point": 187,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m72-before",
+      "move": 72,
+      "frame": 2216,
+      "point": 167,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m72-after",
+      "move": 72,
+      "frame": 2286,
+      "point": 167,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m73-before",
+      "move": 73,
+      "frame": 2286,
+      "point": 168,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m73-after",
+      "move": 73,
+      "frame": 2335,
+      "point": 168,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m74-before",
+      "move": 74,
+      "frame": 2335,
+      "point": 149,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m74-after",
+      "move": 74,
+      "frame": 2369,
+      "point": 149,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m75-before",
+      "move": 75,
+      "frame": 2369,
+      "point": 205,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m75-after",
+      "move": 75,
+      "frame": 2392,
+      "point": 205,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m76-before",
+      "move": 76,
+      "frame": 2392,
+      "point": 204,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m76-after",
+      "move": 76,
+      "frame": 2411,
+      "point": 204,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m77-before",
+      "move": 77,
+      "frame": 2411,
+      "point": 207,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m77-after",
+      "move": 77,
+      "frame": 2426,
+      "point": 207,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m78-before",
+      "move": 78,
+      "frame": 2426,
+      "point": 245,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m78-after",
+      "move": 78,
+      "frame": 2465,
+      "point": 245,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m79-before",
+      "move": 79,
+      "frame": 2465,
+      "point": 226,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m79-after",
+      "move": 79,
+      "frame": 2496,
+      "point": 226,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m80-before",
+      "move": 80,
+      "frame": 2496,
+      "point": 264,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m80-after",
+      "move": 80,
+      "frame": 2511,
+      "point": 264,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m81-before",
+      "move": 81,
+      "frame": 2511,
+      "point": 169,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m81-after",
+      "move": 81,
+      "frame": 2541,
+      "point": 169,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m82-before",
+      "move": 82,
+      "frame": 2541,
+      "point": 150,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m82-after",
+      "move": 82,
+      "frame": 2545,
+      "point": 150,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m83-before",
+      "move": 83,
+      "frame": 2545,
+      "point": 148,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m83-after",
+      "move": 83,
+      "frame": 2574,
+      "point": 148,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m84-before",
+      "move": 84,
+      "frame": 2574,
+      "point": 165,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m84-after",
+      "move": 84,
+      "frame": 2583,
+      "point": 165,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m85-before",
+      "move": 85,
+      "frame": 2583,
+      "point": 239,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "m85-after",
+      "move": 85,
+      "frame": 2662,
+      "point": 239,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "capture35-earlier",
+      "move": 35,
+      "frame": 1263,
+      "point": 288,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "capture-earlier",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "capture35-before",
+      "move": 35,
+      "frame": 1280,
+      "point": 288,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "capture-before",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "capture35-after",
+      "move": 35,
+      "frame": 1303,
+      "point": 288,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "capture-after",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "extra-1981-246",
+      "move": 62,
+      "frame": 1981,
+      "point": 246,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "record-disagreement",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    },
+    {
+      "id": "extra-1981-265",
+      "move": 62,
+      "frame": 1981,
+      "point": 265,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "record-disagreement",
+      "provenance": "Assistant visual inspection of validation-85-review/review-01..05.png; before-detail.png checked ambiguous crops. Labels cover centered point only, not clock times or full-board visibility."
+    }
+  ]
+}

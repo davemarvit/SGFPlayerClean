@@ -1,0 +1,161 @@
+{
+  "status": "OFFLINE ONLY; frozen new-session point validation, not promoted",
+  "frozenCommit": "cb56891",
+  "frozenHashes": {
+    "unavailable_shadow_lab.py": "1b1c596928568f7932c620249bfcb6ca31d7a996d6ee94f1f7faa13f2e1563f1",
+    "unavailable_shadow_protocol.json": "5be0e6b384955c3e07ce2bf43bd983a493225a01489bb336b30ca96367ccdd0c",
+    "placement_competition_lab.py": "116bb835f93252ba0978ae39175228a07dbb461b07e167f5d7b10f3326a581ff"
+  },
+  "savedMoves": 85,
+  "pendingMoves": 0,
+  "captureFrames": 2669,
+  "captureStatus": "failed",
+  "captureStopReason": "storage limit reached",
+  "captureAppVersion": "0.193",
+  "captureSourceHash": "c950974442e7cb4cec20954632066149fba9016b64f8d5edee1fb170efe0ac14",
+  "capturesFromRecord": [
+    {
+      "move": 35,
+      "points": [
+        288
+      ]
+    }
+  ],
+  "finalPhysicalStonesFromRecord": {
+    "empty": 277,
+    "black": 43,
+    "white": 41
+  },
+  "latestAnalysisFrame": 2668,
+  "finalRecordVsReadingDifferences": [],
+  "reviewedPoints": 175,
+  "labelCorrectionsToRecordProposals": 8,
+  "automaticPauses": [
+    {
+      "event": "clock automatically paused",
+      "time": 1794872280.4858189,
+      "moveCount": 0,
+      "status": "Recording \u00b7 Black to play.",
+      "clock": {
+        "automaticPauseReason": "Board processing fell behind. Checking a fresh view before continuing.",
+        "blackPeriods": 5,
+        "blackSeconds": 120,
+        "blackToPlay": true,
+        "needsCorrection": false,
+        "notice": "Clock paused \u00b7 Board processing fell behind. Checking a fresh view before continuing.",
+        "running": false,
+        "whitePeriods": 5,
+        "whiteSeconds": 120
+      }
+    }
+  ],
+  "automaticResumes": [
+    {
+      "event": "clock automatically resumed",
+      "time": 1794872287.208008,
+      "moveCount": 1,
+      "status": "Recorded through move 1 \u00b7 Tracking 1 later unconfirmed moves.",
+      "clock": {
+        "automaticPauseReason": "",
+        "blackPeriods": 5,
+        "blackSeconds": 120,
+        "blackToPlay": false,
+        "needsCorrection": false,
+        "notice": "Clock paused",
+        "running": true,
+        "whitePeriods": 5,
+        "whiteSeconds": 120
+      }
+    }
+  ],
+  "automaticPauseDurations": [
+    6.72218918800354
+  ],
+  "clockCorrectionObservations": 0,
+  "finalClockNeedsCorrection": false,
+  "limits": [
+    "Image labels are assistant-reviewed selected points, not user-certified full-board/timing truth.",
+    "No threshold tuning or calibration fitting used this game.",
+    "Static support retention does not establish temporal latency or native clock accuracy.",
+    "Saved move count can lag placement; before-count crops are labeled from pixels.",
+    "The automatic startup pause leaves move 1 with zero charged time; no clock-accuracy claim.",
+    "False-reading counts refer to selected samples, not whole-game error rates."
+  ],
+  "policySummary": {
+    "neutral": {
+      "strongCorrect": 95,
+      "strongWrong": 2,
+      "afterPlacementStrong": 85
+    },
+    "hold_all": {
+      "strongCorrect": 87,
+      "strongWrong": 2,
+      "afterPlacementStrong": 78
+    },
+    "hold_black": {
+      "strongCorrect": 92,
+      "strongWrong": 2,
+      "afterPlacementStrong": 82
+    },
+    "outline_black": {
+      "strongCorrect": 92,
+      "strongWrong": 2,
+      "afterPlacementStrong": 82
+    },
+    "contrast_black": {
+      "strongCorrect": 94,
+      "strongWrong": 2,
+      "afterPlacementStrong": 84
+    }
+  },
+  "rawWrongReviewedReadings": [
+    {
+      "frame": 1981,
+      "point": 246,
+      "reading": {
+        "col": 18,
+        "confidence": 1,
+        "delta": -0.215686274509804,
+        "occupancy": "black",
+        "row": 12
+      },
+      "appearance": {
+        "gain": 0.7792532444000244,
+        "coreError": 0.12633730471134186,
+        "woodError": 0.03623182699084282,
+        "woodPixels": 108,
+        "signedCoreDelta": -0.0989316999912262
+      }
+    },
+    {
+      "frame": 1981,
+      "point": 265,
+      "reading": {
+        "col": 18,
+        "confidence": 1,
+        "delta": -0.3093681917211329,
+        "occupancy": "black",
+        "row": 13
+      },
+      "appearance": {
+        "gain": 0.7130529880523682,
+        "coreError": 0.14997999370098114,
+        "woodError": 0.028999585658311844,
+        "woodPixels": 108,
+        "signedCoreDelta": -0.13499805331230164
+      }
+    }
+  ],
+  "move13Focus": {
+    "firstNativeStrongFrame": 471,
+    "lastNativeStrongFrame": 518,
+    "nativeStrongClearFrames": 19,
+    "contrastStrongClearFrames": 0,
+    "strongWindowSpanSeconds": 9.797033458016813
+  },
+  "blockedViewWarnings": 8,
+  "preservedFiles": 2679,
+  "offlineTestsPassed": 52,
+  "artifactRoot": "/Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8",
+  "decision": "Do not promote: failed placement-support non-regression check; frozen rule left unchanged."
+}

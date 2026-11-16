@@ -1,0 +1,135 @@
+Frozen unavailable-shadow rule: new 85-move game, 2026-11-16
+
+Decision: do not promote. The rule fails the real-placement preservation check
+on this new session. Its code and thresholds remain unchanged from cb56891.
+
+The live app saved 85 moves, with zero pending moves. The latest captured board
+interpretation matches the final legal record at all 361 points. Black 35
+captures the White stone at raw point 288; final occupancy is 43 Black and 41
+White stones. All 85 selected post-placement crops show the expected stone.
+This is not independent verification of every move order or exact move time.
+
+Capture preservation
+
+Session: Diagnostic 2026-11-16 15-37-20 9C7C7B15.
+App: 0.193/build194, source hash recorded in the machine-readable results.
+Recording: Physical Go 3742C9CE-1D74-43BB-B1F4-83BD56D54C99.sgf.
+
+The 5 GB limit stopped capture after move 85. All saved move counts 0 through
+85 occur in the 2,669 captured frames. The final analyzed frame is 2668; frame
+2669 is also saved. The archive was already stopped when inspected, so no new
+capture was needed. The game remains paused; clocks and live recognition were
+not modified for this experiment.
+
+The closed capture was hard-linked outside rotating storage, and five recording
+files were copied. A SHA256 manifest covers all 2,679 preserved files. Original
+camera delivery and observation timestamps are retained. The final position
+and the single capture are available for later replay; the physical board can
+be cleared without losing this evidence.
+
+Frozen evaluation
+
+validate_unavailable_shadow_game.py rejects mismatching SHA256 values for the
+frozen policy implementation, protocol, and placement model before scoring.
+No model fitting, threshold search, or policy edits use this game. The alternate
+policies are the controls already specified before it was played.
+
+175 point/frame samples were visually reviewed in rectified crops: 85 before-
+count points, 85 after-count points, three capture samples, and two extra raw
+stone predictions inconsistent with the saved count. Eight before-count crops
+already contain the next stone (moves 2, 3, 4, 5, 37, 57, 82, 84); their labels
+were corrected from the pixels. Labels are assistant interpretations, not
+user-certified full-board/timing ground truth. Capture is visually checked as
+White at frames 1263/1280 and empty at 1303.
+
+Policy                      Supported placements /85     False samples supported
+neutral                                85                         2
+hold_all                               78                         2
+hold_black                             82                         2
+outline_black                          82                         2
+contrast_black (proposed)               84                         2
+
+These are strong-support checks at selected point/frame samples, not a full
+temporal game decoder. The two false samples are adjacent points in one frame,
+not two independent failure episodes, and neither became a saved phantom move.
+
+Why Black 13 fails
+
+At frame 476, raw point 23 (col 4, row 1), the real stone is off-center. The native
+outline quality is 0.9968, with fitted center (4.12,0.72): its row offset of
+0.28 exceeds the outline fallback's frozen 0.20 limit. The measured center
+darkening is 0.4228, background residual 0.3428, and contrast margin only 0.0800,
+below the frozen 0.14 requirement. Native support is 0.650364, just above 0.65.
+
+The evidence suggests fixed grid-centered sampling confounds off-center stone
+appearance with background disturbance. This is a diagnosis to test, not proof
+that simply widening a threshold is safe. No threshold was relaxed to pass
+the held-out example.
+
+A follow-up diagnostic examined original frames 449–518 without retuning. The
+native control has 19 strongly supported clear observations from frames 471
+through 518 over 9.797 seconds; the proposed policy has none. This is not merely one
+unlucky snapshot. The diagnostic retains all original timestamps and makes no
+clock-press assignments or automatic gap recovery claims.
+
+Why the two false readings escape
+
+At frame 1981, raw points 246 and 265 (rightmost camera column, rows 12 and 13)
+are visually empty. Both native Black readings have confidence 1.0. Their
+background errors are low, 0.0362 and 0.0290, and the appearance calculation
+marks them available. Their signed core changes are -0.0989 and -0.1350, enough
+for the existing shadow weighting to remain above the support threshold.
+
+The new rule only handles UNAVAILABLE appearance; it leaves these existing
+available-but-misleading estimates untouched. Confidence 1.0 plus an apparently
+valid background metric still does not establish a real stone. The live game's
+other decision safeguards prevented these samples becoming saved moves.
+
+Clock audit: separate issue
+
+There was one automatic pause, lasting 6.722 seconds, immediately after Start
+(saved move count 0) and recovering at count 1. Its reason was "Board processing
+fell behind. Checking a fresh view before continuing." No later automatic
+pauses and no clock-correction flags appear. Eight prolonged-hand warnings
+occurred during the game, with the clock running in their logged states.
+
+The camera continued delivering images. Around startup, operation 190 took
+0.875 seconds and operation 191 finished with a frame age of 1.473 seconds. The
+existing observation-gap protection stops at the last verified observation
+when fresh processing falls behind; recovery also waits for board reconciliation.
+These records support a processing/backlog interruption, not a six-second
+absence of camera images. They do not identify the resource-contention cause.
+
+Move 1's stored clock before/after values both leave Black at 120 seconds. Thus
+the startup hold did not charge its elapsed turn time. This requires a separate
+clock-accounting review; absence of a correction flag is not proof of accuracy.
+The frozen offline recognizer has no live clock authority and did not cause or
+repair this behavior. No stored times were changed.
+
+Next work
+
+No additional game is needed yet. This session supplies concrete failures to
+investigate: geometry-aware sampling around verified off-center outlines, and
+checks for spatially varying edge shadows that pass the background metric.
+Keep native readings and causal candidate histories, and keep unavailable and
+contradictory evidence distinct. Also isolate the startup clock hold in its own
+replay before proposing any live timing change.
+
+This game's frozen validation result remains a failure. Any new development
+using these cases would require another untouched game for final validation.
+The previous 65-move regression set remains intact. All 52 offline tests pass.
+
+Artifacts under:
+  /Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8
+  validation-game-85-moves/ — capture, recording sidecars, preservation manifest
+  validation-85-review/ — sample selection, crops, original observations
+  validation-85-results/ — frozen-policy scores, clock audit, measured features
+  validation-85-results/move13-neighboring-frames.json — follow-up diagnostic
+
+Reproduce from the repository root:
+
+python3 PhysicalGo/Tools/validate_unavailable_shadow_game.py \
+  --snapshot '/Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8/validation-game-85-moves' \
+  --prepared '/Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8/validation-85-review' \
+  --labels PhysicalGo/Tools/unavailable_shadow_validation85_labels.json \
+  --output /new/external/validation-results
