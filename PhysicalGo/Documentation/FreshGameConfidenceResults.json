@@ -1,0 +1,302 @@
+{
+  "status": "OFFLINE ONLY; not promoted; limited point-label validation, not full temporal replay",
+  "freshReviewedPoints": 134,
+  "freshLabelCorrectionsToRecordProposals": 11,
+  "freshWrongReadings": [
+    {
+      "session": "fresh-game",
+      "frame": 1281,
+      "point": 75,
+      "truth": "empty",
+      "predicted": "black",
+      "confidence": 1,
+      "correct": false,
+      "rawSupport": 1.0,
+      "shadowSupport": 1.0,
+      "appearanceStrength": null,
+      "appearanceAvailable": false,
+      "kind": "record-disagreement",
+      "episode": "fresh-game/75/black/empty",
+      "id": "extra-1281-75",
+      "capturedAt": 1322777.604000167,
+      "proposedTruth": "empty",
+      "confidence_and_color": 0.9635965948939782,
+      "plus_shadow_evidence": 0.971725240389523
+    }
+  ],
+  "freshUncertainReadings": 0,
+  "freshCapturePointLabels": [
+    {
+      "session": "fresh-game",
+      "frame": 1650,
+      "point": 172,
+      "truth": "empty",
+      "predicted": "empty",
+      "confidence": 1,
+      "correct": true,
+      "rawSupport": null,
+      "shadowSupport": null,
+      "appearanceStrength": null,
+      "appearanceAvailable": true,
+      "kind": "capture-before",
+      "episode": "fresh-game/172/empty/empty",
+      "id": "capture56-before",
+      "capturedAt": 1322849.5651002084,
+      "proposedTruth": "black"
+    },
+    {
+      "session": "fresh-game",
+      "frame": 1660,
+      "point": 172,
+      "truth": "empty",
+      "predicted": "empty",
+      "confidence": 1,
+      "correct": true,
+      "rawSupport": null,
+      "shadowSupport": null,
+      "appearanceStrength": null,
+      "appearanceAvailable": true,
+      "kind": "capture-after",
+      "episode": "fresh-game/172/empty/empty",
+      "id": "capture56-after",
+      "capturedAt": 1322851.572100209,
+      "proposedTruth": "empty"
+    },
+    {
+      "session": "fresh-game",
+      "frame": 1606,
+      "point": 172,
+      "truth": "black",
+      "predicted": "black",
+      "confidence": 1,
+      "correct": true,
+      "rawSupport": 1.0,
+      "shadowSupport": 1.0,
+      "appearanceStrength": 1.0,
+      "appearanceAvailable": true,
+      "kind": "capture-earlier",
+      "episode": "fresh-game/172/black/black",
+      "id": "capture56-earlier",
+      "capturedAt": 1322840.5670669174,
+      "proposedTruth": "black",
+      "confidence_and_color": 0.9635965948939782,
+      "plus_shadow_evidence": 0.9642776429211797
+    }
+  ],
+  "supportComparison": {
+    "native": {
+      "reviewedAfterPlacementPoints": 65,
+      "correctStoneReadings": 65,
+      "correctWithSupportAtLeastPoint65": 65
+    },
+    "blackShadow": {
+      "reviewedAfterPlacementPoints": 65,
+      "correctStoneReadings": 65,
+      "correctWithSupportAtLeastPoint65": 65
+    }
+  },
+  "calibration": {
+    "olderDevelopment": {
+      "nativeScoreAsProbabilityDiagnostic": {
+        "rows": 298,
+        "episodes": 71,
+        "wrongRows": 2,
+        "meanScore": 0.9736258340638004,
+        "fractionCorrect": 0.971830985915493,
+        "brier": 0.030951300027420775,
+        "logLossClippedAt1eMinus6": 0.4170888654215668,
+        "wrongRowsAtLeastPoint97": 2,
+        "reliabilityBins": [
+          {
+            "low": 0.75,
+            "high": 0.9,
+            "rows": 22,
+            "episodeWeight": 4.73888888888889,
+            "meanScore": 0.829479750244461,
+            "fractionCorrect": 1.0
+          },
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 101,
+            "episodeWeight": 22.083333333333336,
+            "meanScore": 0.9538633518256399,
+            "fractionCorrect": 1.0
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 175,
+            "episodeWeight": 44.17777777777778,
+            "meanScore": 0.9989669402502421,
+            "fractionCorrect": 0.954728370221328
+          }
+        ]
+      },
+      "confidence_and_color": {
+        "rows": 298,
+        "episodes": 71,
+        "wrongRows": 2,
+        "meanScore": 0.9718309857228766,
+        "fractionCorrect": 0.971830985915493,
+        "brier": 0.026984989586726647,
+        "logLossClippedAt1eMinus6": 0.12089418533401111,
+        "wrongRowsAtLeastPoint97": 0,
+        "reliabilityBins": [
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 149,
+            "episodeWeight": 37.0,
+            "meanScore": 0.9636195966644724,
+            "fractionCorrect": 0.9459459459459459
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 149,
+            "episodeWeight": 34.0,
+            "meanScore": 0.9807669091099633,
+            "fractionCorrect": 1.0
+          }
+        ]
+      },
+      "plus_shadow_evidence": {
+        "rows": 298,
+        "episodes": 71,
+        "wrongRows": 2,
+        "meanScore": 0.971830985915493,
+        "fractionCorrect": 0.971830985915493,
+        "brier": 0.024582125625808388,
+        "logLossClippedAt1eMinus6": 0.09733221287019489,
+        "wrongRowsAtLeastPoint97": 0,
+        "reliabilityBins": [
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 129,
+            "episodeWeight": 31.0,
+            "meanScore": 0.9614245547729486,
+            "fractionCorrect": 0.9354838709677419
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 169,
+            "episodeWeight": 40.0,
+            "meanScore": 0.9798959700509648,
+            "fractionCorrect": 1.0
+          }
+        ]
+      }
+    },
+    "freshStoneReadings": {
+      "nativeScoreAsProbabilityDiagnostic": {
+        "rows": 77,
+        "episodes": 66,
+        "wrongRows": 1,
+        "meanScore": 0.9983349983349985,
+        "fractionCorrect": 0.9848484848484849,
+        "brier": 0.015251232284199317,
+        "logLossClippedAt1eMinus6": 0.21104397338293973,
+        "wrongRowsAtLeastPoint97": 1,
+        "reliabilityBins": [
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 2,
+            "episodeWeight": 2.0,
+            "meanScore": 0.945054945054945,
+            "fractionCorrect": 1.0
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 75,
+            "episodeWeight": 64.0,
+            "meanScore": 1.0,
+            "fractionCorrect": 0.984375
+          }
+        ]
+      },
+      "confidence_and_color": {
+        "rows": 77,
+        "episodes": 66,
+        "wrongRows": 1,
+        "meanScore": 0.9719068385353563,
+        "fractionCorrect": 0.9848484848484849,
+        "brier": 0.014910983861368245,
+        "logLossClippedAt1eMinus6": 0.07817067328482616,
+        "wrongRowsAtLeastPoint97": 0,
+        "reliabilityBins": [
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 42,
+            "episodeWeight": 34.0,
+            "meanScore": 0.963596594893978,
+            "fractionCorrect": 0.9705882352941176
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 35,
+            "episodeWeight": 32.0,
+            "meanScore": 0.9807364724043204,
+            "fractionCorrect": 1.0
+          }
+        ]
+      },
+      "plus_shadow_evidence": {
+        "rows": 77,
+        "episodes": 66,
+        "wrongRows": 1,
+        "meanScore": 0.9725777596151824,
+        "fractionCorrect": 0.9848484848484849,
+        "brier": 0.015114304118864571,
+        "logLossClippedAt1eMinus6": 0.08143346593527628,
+        "wrongRowsAtLeastPoint97": 1,
+        "reliabilityBins": [
+          {
+            "low": 0.9,
+            "high": 0.97,
+            "rows": 40,
+            "episodeWeight": 32.0,
+            "meanScore": 0.9642776429211796,
+            "fractionCorrect": 1.0
+          },
+          {
+            "low": 0.97,
+            "high": 1,
+            "rows": 37,
+            "episodeWeight": 34.0,
+            "meanScore": 0.9803896341507146,
+            "fractionCorrect": 0.9705882352941176
+          }
+        ]
+      }
+    }
+  },
+  "olderErrorSessions": [
+    "older-rapid"
+  ],
+  "liveSourcesUnchanged": true,
+  "limits": [
+    "Calibration target is correctness of a raw STONE reading, not probability a move was played or its time.",
+    "Older development data was already used to design shadow features; fitting results are not validation.",
+    "Fresh successful placements plus selected disagreements are a biased audit sample, not an operational error-rate estimate.",
+    "Fresh labels are excluded from fitting, but images were inspected during model design; this is not blinded validation.",
+    "Episode weighting reduces duplicate-frame influence; episodes within a session remain correlated.",
+    "Native and shadow methods share inputs. Missing appearance is unknown, not corroboration.",
+    "Earlier-count crops can already contain the next move or a removed capture; labels follow pixels.",
+    "Only selected points are reviewed, not every intersection/frame or the exact placement/removal instant.",
+    "Sparse independent error sessions prevent a deployment-quality calibration claim.",
+    "No decisions, timestamps, native clock/capture behavior, or app settings changed."
+  ],
+  "preservationVerification": {
+    "snapshotFilesChecked": 2343,
+    "mismatches": []
+  },
+  "offlineTestsPassed": 42,
+  "artifacts": "/Users/dave/Documents/SGF PLayer/work/confidence-stage7/audit-documented"
+}

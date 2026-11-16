@@ -1,0 +1,145 @@
+Fresh-game confidence audit — 2026-11-16
+
+Outcome
+
+The successful 65-move game is now usable as an image-reviewed point-label
+regression and confidence audit. All 65 selected post-placement points retain
+strong support under both the frozen native and Black-shadow scores. However,
+an empty intersection received a native black-stone score of 1.0. The game
+record remained correct: this raw false positive was not a saved phantom move.
+
+The new tools are OFFLINE ONLY. They neither advance a game nor change live
+recognition, capture rules, timestamps, clocks, or application settings. This
+work does not establish recognition latency or native clock accuracy.
+
+Evidence and labeling
+
+Preserved session: Diagnostic 2026-11-16 14-35-33 75E76379.
+Snapshot: /Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/fresh-game-65-moves
+Working results: /Users/dave/Documents/SGF PLayer/work/confidence-stage7
+
+The preparer selects the first clear delivered analyzed frame at each saved
+move count, 0 through 65. It rectifies the captured image with that operation's
+calibration and uses the recorded, earlier empty-board reference and its own
+calibration. All 66 selected operations have unadaptedReadings; delivered
+readings and original operation metadata are retained alongside them.
+
+134 point/frame labels were visually checked in crops (with full frame 1281
+also checked): 65 earlier-count move points, 65 post-count move points, three
+capture-point samples, and one extra stone prediction conflicting with the
+record. These are assistant image interpretations, not user-certified ground
+truth. Labels bind to the source events SHA256, and all input images are hashed.
+They do not claim full-board truth across all frames or exact move times.
+
+Ten earlier-count crops already contain the next stone: moves 5, 6, 7, 11, 25,
+29, 39, 50, 53, and 56. At saved count 55, the stone captured by White 56 has
+already been physically removed. Eleven proposed labels were therefore
+corrected using the pixels. Never use saved move count as a frame-truth clock.
+Raw point 172 is visibly Black at frame 1606 and empty at 1650 and 1660.
+
+The new raw error is frame 1281, point 75 (col 18, row 3 in unrotated camera
+coordinates). It is visibly empty, but the native score is Black, confidence
+1.0. Local background error is 0.3319, exceeding the frozen appearance limit
+0.08, so signedCoreDelta is unavailable. The shadow rule deliberately preserves
+the raw weight when appearance is unavailable. Both support values are thus
+1.0, but this is ONE score with no usable corroboration, not two independent
+high-confidence measurements.
+
+Comparison and calibration
+
+The frozen v3 support calculations were not retuned. At the existing 0.65
+independent-support threshold, 65/65 reviewed post-placement points retain
+correct strong support under both native and Black-shadow methods. This is a
+single-frame support check, not the multi-frame placement/competition replay.
+Capture handling is represented by labeled presence/removal samples, not an
+assertion that this tool resolves captures.
+
+Two exploratory ridge-logistic mappings estimate:
+    P(the raw predicted stone color is correct | measured evidence).
+This is not the probability a move happened, a no-move probability, a sequence
+confidence, or a probability that a clock press time is correct.
+
+Control features: intercept, native confidence, Black-vs-White indicator.
+Joint features add raw-minus-shadow support and appearance-unavailable flag.
+Ridge penalty is fixed at 1, excluding the intercept; no hyperparameter search.
+Training uses only previously reviewed older photos and rapid-reply frames.
+Initial occupied reference points are excluded from rapid-frame training,
+because unchanged existing stones cannot supply empty-to-stone contrast.
+Synthetic photo repetitions are deduplicated. Session/point/prediction/truth
+groups each have total weight one to reduce repeated-frame influence.
+
+There are 298 older stone readings in 71 weighted groups, with two errors,
+BOTH from the same older rapid-reply session. Fresh labels never enter fitting.
+Fresh images were inspected while developing the audit, so this is an inspected
+audit set, not a pristine blinded validation set. Another session is needed
+before any deployment claim. The sample deliberately includes a disagreement
+and successful placements, so its proportions are not operational error rates.
+
+Fresh scoring has 77 raw stone readings in 66 weighted groups, with one error.
+The 57 empty readings remain in the audit but do not fit a stone-correctness
+mapping. Episode weighting is not a claim of statistical independence.
+
+Episode-weighted Brier loss, smaller is better:
+                                  Older fitting data    Fresh audit
+Native score treated as probability     0.030951          0.015251
+Confidence + color mapping              0.026985          0.014911
+Plus shadow evidence                    0.024582          0.015114
+
+Native scores are heuristics; treating them as probabilities here is diagnostic.
+The joint model improves on fitting data but is slightly worse than the simpler
+mapping on fresh data. Its estimate for the fresh false stone is still 0.9717,
+versus 0.9636 for the simpler mapping. Neither reliably rejects this error.
+The tiny overall differences, sparse errors, and inspected sample do not justify
+promotion. No model or threshold is selected for live use.
+
+This also answers the motivating question: verified correct low-score examples
+can expose underconfidence, while verified wrong high-score examples expose
+overconfidence. In the older sample, all 22 stone readings scoring 0.75–0.90
+are correct, yet two readings scoring 1.0 are wrong. A scalar confidence score
+alone cannot recover information it discarded. Two systems help when their
+disagreement predicts correctness on independent data; merely choosing the
+higher score or multiplying correlated scores does not establish that.
+
+Next experiment
+
+Preserve these reviewed points as regressions. Audit more transition windows
+around real placements and empty-point candidates, across independent sessions,
+including hands missed by the gate and camera gaps. Test an explicit unknown
+appearance signal, with temporal persistence as a separate feature, against the
+same raw control. Require improved false-stone rejection without erasing the
+65 real placements or borrowing earlier shadow timestamps. Keep live hand/gap,
+capture, and clock safeguards authoritative. Do not simply raise confidence.
+
+Verification and reproducibility
+
+42 offline tests pass, including capture removal in supplied-history proposals,
+review-label provenance checks, train/evaluation leakage rejection, duplicate
+weighting, and existing missed-hand, gap, capture, and timestamp safeguards.
+All 2,343 preserved snapshot files match their preservation SHA256 and sizes.
+Live Swift fingerprints were stable within the preparation and audit runs.
+Unrelated scoring edits appeared concurrently in the workspace; this task's
+changes are restricted to new offline tools, labels, tests, and documentation.
+
+Run from /Users/dave/SGFPlayerClean, with numpy and opencv-python available:
+
+python3 PhysicalGo/Tools/fresh_game_confidence.py \
+  --snapshot '/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/fresh-game-65-moves' \
+  --output /new/external/fresh-review
+
+python3 PhysicalGo/Tools/stone_confidence_audit.py \
+  --previous '/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/evaluation-final' \
+  --corpus '/Users/dave/Documents/SGF PLayer/work/recognizer-comparison' \
+  --prepared /new/external/fresh-review \
+  --labels PhysicalGo/Tools/fresh_game_confidence_labels.json \
+  --output /new/external/confidence-audit
+
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py' -q
+
+Outputs include review proposals and contact sheets, original readings and
+operation metadata, frozen fitted coefficients, scored rows, reliability bins,
+Brier/log losses, source/input hashes, and a machine-readable result summary.
+Never turn unreviewed proposals into labels automatically.
+
+Background: https://scikit-learn.org/stable/modules/calibration
+Calibration needs separate fitting/evaluation data, and better probability
+scores alone do not establish better recognition decisions.

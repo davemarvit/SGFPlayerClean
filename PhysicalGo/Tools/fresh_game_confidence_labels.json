@@ -1,0 +1,1348 @@
+{
+  "status": "image-reviewed-point-labels",
+  "session": "Diagnostic 2026-11-16 14-35-33 75E76379",
+  "scope": "134 selected point/frame labels from 66 snapshots. No full-board or timestamp ground truth. Proposed record labels corrected where pixels differ.",
+  "points": [
+    {
+      "id": "m01-before",
+      "move": 1,
+      "frame": 2,
+      "point": 288,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m01-after",
+      "move": 1,
+      "frame": 115,
+      "point": 288,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m02-before",
+      "move": 2,
+      "frame": 115,
+      "point": 72,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m02-after",
+      "move": 2,
+      "frame": 134,
+      "point": 72,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m03-before",
+      "move": 3,
+      "frame": 134,
+      "point": 59,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m03-after",
+      "move": 3,
+      "frame": 155,
+      "point": 59,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m04-before",
+      "move": 4,
+      "frame": 155,
+      "point": 61,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m04-after",
+      "move": 4,
+      "frame": 187,
+      "point": 61,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m05-before",
+      "move": 5,
+      "frame": 187,
+      "point": 42,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m05-after",
+      "move": 5,
+      "frame": 201,
+      "point": 42,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m06-before",
+      "move": 6,
+      "frame": 201,
+      "point": 43,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m06-after",
+      "move": 6,
+      "frame": 217,
+      "point": 43,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m07-before",
+      "move": 7,
+      "frame": 217,
+      "point": 41,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m07-after",
+      "move": 7,
+      "frame": 221,
+      "point": 41,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m08-before",
+      "move": 8,
+      "frame": 221,
+      "point": 300,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m08-after",
+      "move": 8,
+      "frame": 238,
+      "point": 300,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m09-before",
+      "move": 9,
+      "frame": 238,
+      "point": 62,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m09-after",
+      "move": 9,
+      "frame": 257,
+      "point": 62,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m10-before",
+      "move": 10,
+      "frame": 257,
+      "point": 44,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m10-after",
+      "move": 10,
+      "frame": 288,
+      "point": 44,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m11-before",
+      "move": 11,
+      "frame": 288,
+      "point": 81,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m11-after",
+      "move": 11,
+      "frame": 292,
+      "point": 81,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m12-before",
+      "move": 12,
+      "frame": 292,
+      "point": 47,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m12-after",
+      "move": 12,
+      "frame": 327,
+      "point": 47,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m13-before",
+      "move": 13,
+      "frame": 327,
+      "point": 111,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m13-after",
+      "move": 13,
+      "frame": 358,
+      "point": 111,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m14-before",
+      "move": 14,
+      "frame": 358,
+      "point": 168,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m14-after",
+      "move": 14,
+      "frame": 374,
+      "point": 168,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m15-before",
+      "move": 15,
+      "frame": 374,
+      "point": 51,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m15-after",
+      "move": 15,
+      "frame": 398,
+      "point": 51,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m16-before",
+      "move": 16,
+      "frame": 398,
+      "point": 70,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m16-after",
+      "move": 16,
+      "frame": 426,
+      "point": 70,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m17-before",
+      "move": 17,
+      "frame": 426,
+      "point": 69,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m17-after",
+      "move": 17,
+      "frame": 443,
+      "point": 69,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m18-before",
+      "move": 18,
+      "frame": 443,
+      "point": 89,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m18-after",
+      "move": 18,
+      "frame": 458,
+      "point": 89,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m19-before",
+      "move": 19,
+      "frame": 458,
+      "point": 54,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m19-after",
+      "move": 19,
+      "frame": 474,
+      "point": 54,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m20-before",
+      "move": 20,
+      "frame": 474,
+      "point": 53,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m20-after",
+      "move": 20,
+      "frame": 533,
+      "point": 53,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m21-before",
+      "move": 21,
+      "frame": 533,
+      "point": 73,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m21-after",
+      "move": 21,
+      "frame": 551,
+      "point": 73,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m22-before",
+      "move": 22,
+      "frame": 551,
+      "point": 92,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m22-after",
+      "move": 22,
+      "frame": 574,
+      "point": 92,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m23-before",
+      "move": 23,
+      "frame": 574,
+      "point": 93,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m23-after",
+      "move": 23,
+      "frame": 593,
+      "point": 93,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m24-before",
+      "move": 24,
+      "frame": 593,
+      "point": 91,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m24-after",
+      "move": 24,
+      "frame": 625,
+      "point": 91,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m25-before",
+      "move": 25,
+      "frame": 625,
+      "point": 131,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m25-after",
+      "move": 25,
+      "frame": 630,
+      "point": 131,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m26-before",
+      "move": 26,
+      "frame": 630,
+      "point": 244,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m26-after",
+      "move": 26,
+      "frame": 668,
+      "point": 244,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m27-before",
+      "move": 27,
+      "frame": 668,
+      "point": 317,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m27-after",
+      "move": 27,
+      "frame": 687,
+      "point": 317,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m28-before",
+      "move": 28,
+      "frame": 687,
+      "point": 318,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m28-after",
+      "move": 28,
+      "frame": 739,
+      "point": 318,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m29-before",
+      "move": 29,
+      "frame": 739,
+      "point": 298,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m29-after",
+      "move": 29,
+      "frame": 743,
+      "point": 298,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m30-before",
+      "move": 30,
+      "frame": 743,
+      "point": 262,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m30-after",
+      "move": 30,
+      "frame": 839,
+      "point": 262,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m31-before",
+      "move": 31,
+      "frame": 839,
+      "point": 294,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m31-after",
+      "move": 31,
+      "frame": 927,
+      "point": 294,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m32-before",
+      "move": 32,
+      "frame": 927,
+      "point": 315,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m32-after",
+      "move": 32,
+      "frame": 945,
+      "point": 315,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m33-before",
+      "move": 33,
+      "frame": 945,
+      "point": 296,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m33-after",
+      "move": 33,
+      "frame": 960,
+      "point": 296,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m34-before",
+      "move": 34,
+      "frame": 960,
+      "point": 336,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m34-after",
+      "move": 34,
+      "frame": 973,
+      "point": 336,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m35-before",
+      "move": 35,
+      "frame": 973,
+      "point": 335,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m35-after",
+      "move": 35,
+      "frame": 987,
+      "point": 335,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m36-before",
+      "move": 36,
+      "frame": 987,
+      "point": 337,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m36-after",
+      "move": 36,
+      "frame": 1008,
+      "point": 337,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m37-before",
+      "move": 37,
+      "frame": 1008,
+      "point": 316,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m37-after",
+      "move": 37,
+      "frame": 1057,
+      "point": 316,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m38-before",
+      "move": 38,
+      "frame": 1057,
+      "point": 249,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m38-after",
+      "move": 38,
+      "frame": 1094,
+      "point": 249,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m39-before",
+      "move": 39,
+      "frame": 1094,
+      "point": 309,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m39-after",
+      "move": 39,
+      "frame": 1099,
+      "point": 309,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m40-before",
+      "move": 40,
+      "frame": 1099,
+      "point": 174,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m40-after",
+      "move": 40,
+      "frame": 1152,
+      "point": 174,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m41-before",
+      "move": 41,
+      "frame": 1152,
+      "point": 154,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m41-after",
+      "move": 41,
+      "frame": 1194,
+      "point": 154,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m42-before",
+      "move": 42,
+      "frame": 1194,
+      "point": 173,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m42-after",
+      "move": 42,
+      "frame": 1218,
+      "point": 173,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m43-before",
+      "move": 43,
+      "frame": 1218,
+      "point": 155,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m43-after",
+      "move": 43,
+      "frame": 1265,
+      "point": 155,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m44-before",
+      "move": 44,
+      "frame": 1265,
+      "point": 286,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m44-after",
+      "move": 44,
+      "frame": 1281,
+      "point": 286,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m45-before",
+      "move": 45,
+      "frame": 1281,
+      "point": 306,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m45-after",
+      "move": 45,
+      "frame": 1295,
+      "point": 306,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m46-before",
+      "move": 46,
+      "frame": 1295,
+      "point": 83,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m46-after",
+      "move": 46,
+      "frame": 1353,
+      "point": 83,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m47-before",
+      "move": 47,
+      "frame": 1353,
+      "point": 175,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m47-after",
+      "move": 47,
+      "frame": 1409,
+      "point": 175,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m48-before",
+      "move": 48,
+      "frame": 1409,
+      "point": 194,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m48-after",
+      "move": 48,
+      "frame": 1446,
+      "point": 194,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m49-before",
+      "move": 49,
+      "frame": 1446,
+      "point": 172,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m49-after",
+      "move": 49,
+      "frame": 1480,
+      "point": 172,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m50-before",
+      "move": 50,
+      "frame": 1480,
+      "point": 191,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m50-after",
+      "move": 50,
+      "frame": 1486,
+      "point": 191,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m51-before",
+      "move": 51,
+      "frame": 1486,
+      "point": 192,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m51-after",
+      "move": 51,
+      "frame": 1531,
+      "point": 192,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m52-before",
+      "move": 52,
+      "frame": 1531,
+      "point": 193,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m52-after",
+      "move": 52,
+      "frame": 1577,
+      "point": 193,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m53-before",
+      "move": 53,
+      "frame": 1577,
+      "point": 211,
+      "proposedTruth": "empty",
+      "truth": "black",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m53-after",
+      "move": 53,
+      "frame": 1580,
+      "point": 211,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m54-before",
+      "move": 54,
+      "frame": 1580,
+      "point": 153,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m54-after",
+      "move": 54,
+      "frame": 1606,
+      "point": 153,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m55-before",
+      "move": 55,
+      "frame": 1606,
+      "point": 210,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m55-after",
+      "move": 55,
+      "frame": 1650,
+      "point": 210,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m56-before",
+      "move": 56,
+      "frame": 1650,
+      "point": 171,
+      "proposedTruth": "empty",
+      "truth": "white",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m56-after",
+      "move": 56,
+      "frame": 1660,
+      "point": 171,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m57-before",
+      "move": 57,
+      "frame": 1660,
+      "point": 231,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m57-after",
+      "move": 57,
+      "frame": 1720,
+      "point": 231,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m58-before",
+      "move": 58,
+      "frame": 1720,
+      "point": 250,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m58-after",
+      "move": 58,
+      "frame": 1784,
+      "point": 250,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m59-before",
+      "move": 59,
+      "frame": 1784,
+      "point": 233,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m59-after",
+      "move": 59,
+      "frame": 1861,
+      "point": 233,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m60-before",
+      "move": 60,
+      "frame": 1861,
+      "point": 232,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m60-after",
+      "move": 60,
+      "frame": 1890,
+      "point": 232,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m61-before",
+      "move": 61,
+      "frame": 1890,
+      "point": 213,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m61-after",
+      "move": 61,
+      "frame": 1915,
+      "point": 213,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m62-before",
+      "move": 62,
+      "frame": 1915,
+      "point": 251,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m62-after",
+      "move": 62,
+      "frame": 1936,
+      "point": 251,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m63-before",
+      "move": 63,
+      "frame": 1936,
+      "point": 212,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m63-after",
+      "move": 63,
+      "frame": 1960,
+      "point": 212,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m64-before",
+      "move": 64,
+      "frame": 1960,
+      "point": 195,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m64-after",
+      "move": 64,
+      "frame": 2039,
+      "point": 195,
+      "proposedTruth": "white",
+      "truth": "white",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m65-before",
+      "move": 65,
+      "frame": 2039,
+      "point": 214,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "placement-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "m65-after",
+      "move": 65,
+      "frame": 2086,
+      "point": 214,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "placement-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "capture56-before",
+      "move": 56,
+      "frame": 1650,
+      "point": 172,
+      "proposedTruth": "black",
+      "truth": "empty",
+      "kind": "capture-before",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "capture56-after",
+      "move": 56,
+      "frame": 1660,
+      "point": 172,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "capture-after",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "extra-1281-75",
+      "move": 44,
+      "frame": 1281,
+      "point": 75,
+      "proposedTruth": "empty",
+      "truth": "empty",
+      "kind": "record-disagreement",
+      "provenance": "Assistant visual inspection of saved pixel crops review-01..04.png; centered intersection only. Full frame 1281 also checked for extra-1281-75. Not a user-verified label."
+    },
+    {
+      "id": "capture56-earlier",
+      "move": 56,
+      "frame": 1606,
+      "point": 172,
+      "proposedTruth": "black",
+      "truth": "black",
+      "kind": "capture-earlier",
+      "provenance": "Assistant visual inspection of capture-check-01.png: centered black stone at raw point172, frame1606. Not a user-verified label."
+    }
+  ],
+  "sourceEventsSHA256": "49822db61f005a5667311557f886d20fba5c0cbf9bb036c9863c6cb42b5bc6c2"
+}
