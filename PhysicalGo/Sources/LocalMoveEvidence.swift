@@ -10,17 +10,40 @@ struct LocalMoveEvidence {
         var previous: Double?
         var established: Double?
         var count: Int
+        // Exact recent sightings allow selective retraction inside a compressed
+        // run. Older established chronology remains compact and unchanged.
+        var recentTimes=[Double]()
+        mutating func remove(_ time:Double) {
+            guard time>=first,recentTimes.contains(time) else {return}
+            recentTimes.removeAll{$0==time};count-=1
+            if recentTimes.isEmpty,count>0 {
+                // The revision exhausted the recent cache. Retain only older
+                // exact endpoints, never the withdrawn last timestamp/count.
+                recentTimes=Array(Set([Optional(first),established].compactMap{$0}.filter{$0 != time})).sorted()
+                count=recentTimes.count
+            }
+            guard let newest=recentTimes.last else {return}
+            if first==time {first=recentTimes.first!}
+            last=newest;previous=recentTimes.dropLast().last
+            if established==time || established.map({$0-first<0.15}) == true {
+                established=recentTimes.first{$0-first>=0.15}
+            }
+        }
         mutating func append(_ time: Double) {
+            recentTimes.append(time)
+            if recentTimes.count>64 {recentTimes.removeFirst(recentTimes.count-64)}
             previous=last; last=time; count += 1
             if established == nil && time-first>=0.15 { established=time }
         }
         mutating func trim(before cutoff: Double) {
+            recentTimes.removeAll{$0<cutoff}
             guard first<cutoff else { return }
-            // Only the two newest times are known exactly. Do not credit an
-            // estimated number of repetitions after the retention boundary.
+            // Preserve the conservative expiry policy: count only the two
+            // newest endpoints, never infer repetitions past the boundary.
             first=previous.map { $0>=cutoff ? $0 : last } ?? last
             count=first<last ? 2 : 1
             established=last-first>=0.15 ? last : nil
+            recentTimes.removeAll{$0<first}
             if first==last { previous=nil }
         }
     }
@@ -29,6 +52,7 @@ struct LocalMoveEvidence {
         var first:Double
         var last:Double
         var count:Int
+        var recentTimes=[Double]()
         var supported:Bool {count>=2 && last-first>=0.15}
     }
     // Raw sightings remain useful for later ordering when a stone becomes clear.
@@ -48,6 +72,25 @@ struct LocalMoveEvidence {
             // timestamps. Drop its dark evidence rather than invent a split.
             points[point].removeAll{$0.value == .black && $0.last>=since}
             anchors[point]=nil;expiredPoints.remove(point)
+        }
+    }
+
+    mutating func discountDarkReadings(_ suspect:Set<Int>,at time:Double) {
+        for point in suspect where points.indices.contains(point) {
+            for i in points[point].indices where points[point][i].value == .black {
+                points[point][i].remove(time)
+            }
+            points[point].removeAll{$0.count==0}
+            if var anchor=anchors[point],anchor.color == .black,anchor.recentTimes.contains(time) {
+                anchor.recentTimes.removeAll{$0==time};anchor.count-=1
+                if anchor.count==0 {anchors[point]=nil}
+                else {
+                    if anchor.recentTimes.isEmpty {anchor.recentTimes=[anchor.first];anchor.count=1}
+                    if anchor.first==time {anchor.first=anchor.recentTimes.first ?? anchor.first}
+                    if anchor.last==time {anchor.last=anchor.recentTimes.last ?? anchor.first}
+                    anchors[point]=anchor
+                }
+            }
         }
     }
 
@@ -78,8 +121,10 @@ struct LocalMoveEvidence {
                 }}
                 if canAnchor && neighbors>0 && Double(unchanged)/Double(neighbors)>=0.75 {
                     if var old=anchors[i],now-old.last<=1.5 {
-                        old.count += 1;old.last=now;anchors[i]=old
-                    } else {anchors[i]=Anchor(color:readings[i],first:now,last:now,count:1)}
+                        old.count += 1;old.last=now;old.recentTimes.append(now)
+                        if old.recentTimes.count>64 {old.recentTimes.removeFirst(old.recentTimes.count-64)}
+                        anchors[i]=old
+                    } else {anchors[i]=Anchor(color:readings[i],first:now,last:now,count:1,recentTimes:[now])}
                 }
             }
             // Expiry protects an unresolved appearance, not every historical
@@ -101,7 +146,7 @@ struct LocalMoveEvidence {
             if let last=points[i].last, last.value==readings[i] {
                 points[i][points[i].count-1].append(now)
             } else {
-                points[i].append(Run(value:readings[i],first:now,last:now,count:1))
+                points[i].append(Run(value:readings[i],first:now,last:now,count:1,recentTimes:[now]))
             }
             if points[i].count>Self.maximumRunsPerPoint {
                 let excess=points[i].count-Self.maximumRunsPerPoint

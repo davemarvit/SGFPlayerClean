@@ -4,7 +4,8 @@ import Foundation
 /// Only new dark readings are discounted; uncertainty never means empty.
 struct ShadowEvidence {
     static let handLookback=0.8
-    private struct Sample {let time:Double;let points:Set<Int>}
+    struct Discount {let capturedAt:Double;let processedAt:Double;let points:Set<Int>}
+    private struct Sample {let time:Double;let processedAt:Double;let points:Set<Int>}
     private var recent=[Sample]()
     private var last:Double?
     private var handAt:Double?
@@ -12,14 +13,20 @@ struct ShadowEvidence {
     private var clusterPoints=Set<Int>()
     mutating func reset() {self=Self()}
     mutating func noteHand(at time:Double,protected:Set<Int>)->Set<Int> {
+        noteHandSamples(at:time,protected:protected).reduce(into:Set<Int>()){$0.formUnion($1.points)}
+    }
+    mutating func noteHandSamples(at time:Double,protected:Set<Int>)->[Discount] {
         guard time.isFinite,last.map({time>$0}) ?? true else {return []}
         if let last,time-last>1.5 {reset()}
         last=time;handAt=time
-        let points=recent.filter{time-$0.time<=Self.handLookback}.reduce(into:Set<Int>()){$0.formUnion($1.points)}.subtracting(protected)
+        let points=recent.filter{time-$0.time<=Self.handLookback}.compactMap {sample -> Discount? in
+            let points=sample.points.subtracting(protected)
+            return points.isEmpty ? nil:Discount(capturedAt:sample.time,processedAt:sample.processedAt,points:points)
+        }
         recent=[]
         return points
     }
-    mutating func discount(_ raw:BoardObservation,base:[Occupancy],protected:Set<Int>,at time:Double)->Set<Int> {
+    mutating func discount(_ raw:BoardObservation,base:[Occupancy],protected:Set<Int>,at time:Double,processedAt:Double?=nil)->Set<Int> {
         guard raw.readings.count==base.count,time.isFinite,last.map({time>$0}) ?? true else {return []}
         if let last,time-last>1.5 {reset()}
         last=time;recent.removeAll{time-$0.time>Self.handLookback}
@@ -42,7 +49,7 @@ struct ShadowEvidence {
         // Preserve a short lookback for the hand detector's entry latency.
         // Low score alone, on an otherwise clear board, is not enough.
         let retrospective=unknown>=2 ? weak.union(simultaneous.count>=3 ? simultaneous:[]):[]
-        recent.append(Sample(time:time,points:retrospective))
+        recent.append(Sample(time:time,processedAt:processedAt ?? time,points:retrospective))
         if recent.count>64 {recent.removeFirst(recent.count-64)}
         return suspect
     }

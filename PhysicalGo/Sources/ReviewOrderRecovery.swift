@@ -3,7 +3,7 @@ import Foundation
 /// Recover a proposal from recorded sightings, including frames collected while
 /// paused. This never changes the game or clock and never invents passes/captures.
 enum ReviewOrderRecovery {
-    struct Frame {let time:Double;var position:[UInt8];var lightingBlocked=false;var uptime:Double?=nil}
+    struct Frame {let time:Double;var position:[UInt8];var lightingBlocked=false;var uptime:Double?=nil;var observationID:String?=nil}
     struct Interval {let point:Int;let color:Stone;let emptyThrough:Double;let presentBy:Double}
     struct Result {
         var orders:[[Int]]=[]
@@ -95,6 +95,18 @@ enum ReviewOrderRecovery {
             guard let entry=try? JSONSerialization.jsonObject(with:Data(line)) as? [String:Any],
                   let time=entry["time"] as? Double,time<=through else {continue}
             if entry["event"] as? String=="shadow evidence discounted retrospectively",
+               let samples=entry["shadowSamples"] as? [[String:Any]] {
+                for sample in samples {
+                    guard let stamp=sample["captureUptime"] as? Double,let points=sample["points"] as? [Int] else {continue}
+                    let id=sample["observationID"] as? String
+                    for i in frames.indices where id.map({frames[i].observationID==$0}) ?? (frames[i].time>=time-2 && frames[i].uptime==stamp) {
+                        for p in points where frames[i].position.indices.contains(p) && frames[i].position[p]==66 {frames[i].position[p]=63}
+                    }
+                }
+                continue
+            }
+            // Older archives only recorded a coarse window; retain their semantics.
+            if entry["event"] as? String=="shadow evidence discounted retrospectively",
                let points=entry["shadowPoints"] as? [Int],let since=entry["shadowSinceUptime"] as? Double,
                let end=entry["shadowThroughUptime"] as? Double {
                 for i in frames.indices where frames[i].time>=time-2 && frames[i].uptime.map({$0>=since && $0<=end}) == true {
@@ -105,7 +117,7 @@ enum ReviewOrderRecovery {
             guard entry["event"] as? String=="observation",
                   let position=(entry["interpretedPosition"] ?? entry["position"]) as? String,position.utf8.count==before.count else {continue}
             frames.append(Frame(time:time,position:Array(position.utf8),lightingBlocked:entry["lightingBlocked"] as? Bool ?? false,
-                                uptime:(entry["captureUptime"] ?? entry["uptime"]) as? Double))
+                                uptime:(entry["captureUptime"] ?? entry["uptime"]) as? Double,observationID:entry["observationID"] as? String))
         }
         return recover(before:before,after:after,first:first,frames:frames)
     }

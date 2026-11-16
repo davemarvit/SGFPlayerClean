@@ -20,7 +20,7 @@ DEPENDENCIES = {
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
         'ReviewRevision.swift', 'LivePositionIssue.swift', 'LocalPlayFlow.swift', 'PlacementAmbiguity.swift', 'ProvisionalPlay.swift', 'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
-        'AutomaticCapture.swift', 'ShadowEvidence.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
+        'AutomaticCapture.swift', 'ShadowEvidence.swift', 'ObservationEvidence.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
     'Sources/LocalGameClock.swift': ('Sources/DiagnosticSettings.swift','Sources/RecordingStorage.swift'),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),

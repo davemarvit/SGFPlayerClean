@@ -163,6 +163,18 @@ import Foundation
             }
         }
     }
+    /// Witnesses use processing time; shadow samples explicitly carry both clocks.
+    mutating func discountDarkReadings(_ points:Set<Int>,at time:Double) {
+        localEvidence.discountDarkReadings(points,at:time)
+        revisionProposal=nil
+        for c in candidates.indices {
+            for w in candidates[c].witnesses.indices where candidates[c].witnesses[w].time==time {
+                guard !Set(candidates[c].moves.prefix(candidates[c].witnesses[w].depth)).isDisjoint(with:points) else {continue}
+                candidates[c].witnesses[w].unknown.formUnion(points)
+                candidates[c].witnesses[w].complete=false
+            }
+        }
+    }
     mutating func noteFrame(now:Double)->Bool {
         guard inputTimes.last.map({now>$0}) ?? true else {return false}
         inputTimes.append(now)

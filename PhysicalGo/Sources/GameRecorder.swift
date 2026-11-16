@@ -929,6 +929,15 @@ enum LocalGameSetup {
             if let hand=observation.handObstructed {entry["handObstructed"]=hand}
             if let stamp=observation.capturedAt {entry["captureUptime"]=stamp}
             entry["lightingBlocked"]=observation.lightingBlocked
+            // Occupancy is already preserved in position. Parallel numeric
+            // arrays retain raw quality without 361 repeated field dictionaries.
+            entry["evidenceSchemaVersion"]=1
+            entry["readingConfidence"]=observation.readings.map(\.confidence)
+            entry["readingDelta"]=observation.readings.map(\.delta)
+            if observation.size<=0 || observation.readings.enumerated().contains(where:{$0.element.row != $0.offset/observation.size || $0.element.col != $0.offset%observation.size}) {
+                entry["readingCoordinates"]=observation.readings.map{[$0.row,$0.col]}
+            }
+            if let estimate=observation.clockPressEstimate,let data=try? JSONEncoder().encode(estimate),let value=try? JSONSerialization.jsonObject(with:data) {entry["clockPressEstimate"]=value}
             if let notice=observation.notice { entry["detectionNotice"]=notice }
             observationNumber += 1; entry["observation"]=observationNumber; entry["size"]=observation.size
             let candidates=Set(history.tentativeSequences.flatMap{$0})
@@ -1105,6 +1114,7 @@ enum LocalGameSetup {
     private var captureClearViews:[Double]=[]
     private var clearBoardTiming=ClearBoardTiming()
     private var shadowEvidence=ShadowEvidence()
+    private(set) var observationEvidence=ObservationEvidence()
     private var shadowProtectedPoints:Set<Int> {
         var points=Set(clock.provisionalMoves.flatMap{$0.observedLocations ?? []})
         for path in observationHistory.candidates {
@@ -1139,19 +1149,27 @@ enum LocalGameSetup {
         // A fresh obstructed frame proves camera continuity, never stone placement.
         lastCameraTime=now
         let shadowTime=capturedAt ?? now
-        let suspect=shadowEvidence.noteHand(at:shadowTime,protected:shadowProtectedPoints)
+        let discounts=shadowEvidence.noteHandSamples(at:shadowTime,protected:shadowProtectedPoints)
+        let suspect=discounts.reduce(into:Set<Int>()){$0.formUnion($1.points)}
         if !suspect.isEmpty,state == .recording,automaticCapture==nil,!clock.provisionalCapturePaused,captureCandidate==nil {
             let since=shadowTime-ShadowEvidence.handLookback
-            clearBoardTiming.discountDarkReadings(suspect,since:since)
-            observationHistory.discountDarkReadings(suspect,since:since)
+            var revisions=[[String:Any]]()
+            for discount in discounts {
+                clearBoardTiming.discountDarkReadings(discount.points,at:discount.capturedAt)
+                observationHistory.discountDarkReadings(discount.points,at:discount.processedAt)
+                let id=observationEvidence.discount(capturedAt:discount.capturedAt,points:discount.points,reason:"subsequent hand entry",now:now)
+                var revision:[String:Any]=["captureUptime":discount.capturedAt,"processedUptime":discount.processedAt,"points":discount.points.sorted()]
+                if let id {revision["observationID"]=id};revisions.append(revision)
+            }
             reviewHistory.interrupt()
             let base=reviewHistory.latest ?? DeferredMoveHistory.states(player.board)
             clock.pendingTurnEvidence=clearBoardTiming.pendingTurn(base:base,excluding:shadowProtectedPoints,
                 color:clock.engine.blackToPlay ? .black:.white,after:timingEpoch)
             trace(event:"shadow evidence discounted retrospectively",now:now,
-                  extra:["shadowPoints":suspect.sorted(),"shadowSinceUptime":since,"shadowThroughUptime":shadowTime])
+                  extra:["shadowPoints":suspect.sorted(),"shadowSinceUptime":since,"shadowThroughUptime":shadowTime,
+                         "shadowSamples":revisions])
         }
-        clearBoardTiming.noteHand(at:now)
+        clearBoardTiming.noteHand(at:shadowTime)
         if !handOverBoard {trace(event:"hand obstruction began",now:now,extra:["captureUptime":capturedAt ?? now])}
         handOverBoard=true;captureClearViews=[];provisionalTimingBlockedSince=nil;unobservedTurnView=nil
         observeVisibility(blocked:true,now:capturedAt ?? now)
@@ -1299,11 +1317,13 @@ enum LocalGameSetup {
                   lastConsumedCaptureTime.map({stamp>$0}) ?? true else {return}
             lastConsumedCaptureTime=stamp
         }
+        let observationID=observationEvidence.append(rawObservation,processedAt:now)
         if observation.handObstructed == true {noteHandObstruction(now:now,capturedAt:observation.capturedAt);onObservationProcessed?(observation,now);return}
         var shadowPoints=Set<Int>()
         if state == .recording,automaticCapture==nil,!clock.provisionalCapturePaused,captureCandidate==nil,provisionalCaptureEvidence==nil {
             let base=reviewHistory.latest ?? DeferredMoveHistory.states(player.board)
-            shadowPoints=shadowEvidence.discount(observation,base:base,protected:shadowProtectedPoints,at:observation.capturedAt ?? now)
+            shadowPoints=shadowEvidence.discount(observation,base:base,protected:shadowProtectedPoints,at:observation.capturedAt ?? now,processedAt:now)
+            observationEvidence.discount(capturedAt:observation.capturedAt ?? now,points:shadowPoints,reason:"shadow-prone reading",now:now)
             observation=observation.discountingDarkReadings(shadowPoints)
         }
         handOverBoard=false
@@ -1316,7 +1336,7 @@ enum LocalGameSetup {
             checkpointPendingMoves()
             onObservationProcessed?(observation,now)
             if hasGame {
-                trace(event:"observation",observation:rawObservation,now:now,extra:shadowPoints.isEmpty ? [:]:[
+                trace(event:"observation",observation:rawObservation,now:now,extra:["observationID":observationID,
                     "shadowPoints":shadowPoints.sorted(),
                     "interpretedPosition":observation.signature.map{$0 == .black ? "B":$0 == .white ? "W":$0 == .empty ? ".":"?"}.joined()])
             }

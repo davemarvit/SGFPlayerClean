@@ -1,0 +1,40 @@
+Recorded rapid reply / retrospective shadow regression
+
+Source: clock-pause-moves9-10-2026-11-15, recorded Physical Go 0.187.
+The original archive remains outside the repository, with 106 lossless images
+(frames 305–410), reference/anchor, events and the game's sidecars.
+sequence.json contains the 75 completed analysis operations in that range.
+It retains each frame ID, original camera capture uptime, callback uptime,
+classifier readings/scores/deltas, footprints, placement fits and hand estimate.
+The source events.jsonl SHA-256 is embedded in sequence.json.
+
+For delivered frames, processedAt is the recorded recorderUptime. For hand
+frames, it is the exact recorder callback when logged, otherwise operation
+completion uptime. Repeated blocked callbacks had no separate recorder row;
+this small callback approximation supplies continuity, never placement time.
+Raw pixels are not rerun by this benchmark. Initial SGF comes from session.json.
+The harness verifies the starting board with synthetic clean views, then starts
+controlled clocks immediately before frame 305. Recorded decisions such as
+"accepted" and "requires review" are never fed back as commands.
+
+Expected suffix in recorder coordinates:
+8 White 288 = W[dp]; 9 Black 309 = B[fq]; 10 White 250 = W[dn].
+White at point 281 was captured by move 7; it is absent in the starting position.
+
+The failure: Black 309 is independently clear in frames 355 and 356. Frame 357
+has a weaker dark reading and more uncertain points. Hand entry in frame 358
+used to invalidate all readings of point 309 in its 0.8-second lookback, erasing
+both clean frames. Those earlier readings must survive the precise revision.
+
+Timing oracle (original camera uptime; estimates, not physical ground truth):
+White 8: 1265045.9376668755, recorded hand-exit bracket midpoint.
+Black 9: 1265050.6216669178, first independent clean camera sighting.
+White 10: 1265052.620700167, next recorded hand-exit bracket midpoint.
+The weak initial Black view does not justify reusing the earlier hand midpoint
+1265050.027200167. Stage 1 conservatively keeps the first clean timestamp,
+about 0.5945 s later; future work may improve that uncertainty explicitly.
+
+The benchmark also removes frames 355/356's clear Black readings as an explicit
+counterfactual. That variant MUST retain clock review instead of inventing a
+press. Other registered suites test phantom stones, captures, camera interruption
+and review/resume. See PhysicalGo/Documentation/ObservationReplay.txt.

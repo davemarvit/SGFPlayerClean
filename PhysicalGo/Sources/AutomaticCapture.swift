@@ -84,12 +84,23 @@ struct CaptureConflictMonitor {
 /// Bounded, chronological evidence survives hand re-entry and recognition lag.
 /// Camera interruption, pause or calibration changes still invalidate the epoch.
 struct ClearBoardTiming {
-    private struct View {let time:Double;var position:[Occupancy];let confidence:[Double];let estimate:ClockPressEstimate;let aliases:[Int:Set<Int>]}
+    private struct View {
+        let time:Double
+        let rawPosition:[Occupancy]
+        let confidence:[Double]
+        let estimate:ClockPressEstimate
+        let aliases:[Int:Set<Int>]
+        var discounted=Set<Int>()
+        private(set) var position:[Occupancy]
+        mutating func discount(_ points:Set<Int>) {
+            discounted.formUnion(points)
+            for p in points where rawPosition.indices.contains(p) && rawPosition[p] == .black {position[p] = .uncertain}
+        }
+    }
     private var views=[View]()
     private var consumedUntil = -Double.infinity
     private var lastActivity:Double?
-    private var shadowBoundaries=[Int:Double]()
-    mutating func reset() {views=[];consumedUntil = -Double.infinity;lastActivity=nil;shadowBoundaries=[:]}
+    mutating func reset() {views=[];consumedUntil = -Double.infinity;lastActivity=nil}
     mutating func noteHand(at time:Double) {
         guard time.isFinite else {return}
         if let lastActivity,time-lastActivity>1.5 {reset()}
@@ -99,12 +110,22 @@ struct ClearBoardTiming {
         consumedUntil=max(consumedUntil,time);views.removeAll{$0.time<=consumedUntil}
     }
     mutating func discountDarkReadings(_ points:Set<Int>,since:Double) {
-        for i in views.indices where views[i].time>=since {
-            for p in points where views[i].position.indices.contains(p) && views[i].position[p] == .black {
-                views[i].position[p] = .uncertain
-                shadowBoundaries[p]=max(shadowBoundaries[p] ?? -.infinity,views[i].time)
-            }
-        }
+        for i in views.indices where views[i].time>=since {views[i].discount(points)}
+    }
+    mutating func discountDarkReadings(_ points:Set<Int>,at time:Double) {
+        guard let i=views.firstIndex(where:{$0.time==time}) else {return}
+        views[i].discount(points)
+    }
+    /// Discounted evidence cannot date a placement. It also cannot contradict
+    /// an independent earlier clear sighting of that same placement.
+    private func boundary(_ points:Set<Int>,after contradiction:Double)->Double {
+        let firstClear=views.first {view in
+            view.time>contradiction && points.contains{view.position.indices.contains($0) && view.position[$0].stone != nil}
+        }?.time ?? .infinity
+        let suspect=views.last {view in
+            view.time<firstClear && !view.discounted.isDisjoint(with:points)
+        }?.time ?? -.infinity
+        return max(contradiction,suspect)
     }
     mutating func observe(_ observation:BoardObservation,now:Double) {
         guard let stamp=observation.capturedAt,
@@ -118,8 +139,8 @@ struct ClearBoardTiming {
         views.removeAll {stamp-$0.time>120}
         let estimate=observation.clockPressEstimate.flatMap{$0.valid && $0.time<=stamp ? $0:nil}
             ?? ClockPressEstimate(time:stamp,method:.clearFrame)
-        views.append(.init(time:stamp,position:observation.signature,confidence:observation.readings.map(\.confidence),estimate:estimate,
-                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count))))
+        views.append(.init(time:stamp,rawPosition:observation.signature,confidence:observation.readings.map(\.confidence),estimate:estimate,
+                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count)),position:observation.signature))
         if views.count>1000 {views.removeFirst(views.count-1000)}
     }
     func estimate(target:[Occupancy],changed:Set<Int>,after epoch:Double)->ClockPressEstimate? {
@@ -129,7 +150,7 @@ struct ClearBoardTiming {
             changed.contains {p in target.indices.contains(p) && view.position.indices.contains(p) &&
                 view.position[p] != .uncertain && view.position[p] != target[p]}
         }?.time ?? -Double.infinity
-        let boundary=max(contradicted,changed.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
+        let boundary=boundary(changed,after:contradicted)
         return views.first {view in
             view.time>boundary &&
             view.estimate.time>=epoch && view.estimate.time>consumedUntil &&
@@ -158,7 +179,7 @@ struct ClearBoardTiming {
             locations.allSatisfy{view.position.indices.contains($0) && view.position[$0] == .empty} ||
                 locations.contains{view.position.indices.contains($0) && view.position[$0].stone==color.opponent}
         }?.time ?? -.infinity
-        let boundary=max(contradicted,locations.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
+        let boundary=boundary(locations,after:contradicted)
         let eligible=views.filter{$0.time>boundary && matches($0)}
         guard let first=eligible.first,
               confirmation(eligible,locations:locations,ignoring:Set(aliases.flatMap{$0}),after:boundary) != nil else {return nil}
@@ -241,7 +262,7 @@ struct ClearBoardTiming {
         let points=base.indices.filter{base[$0] == .empty && !excluding.contains($0) && newest.position[$0].stone==color && newest.confidence[$0]>=0.9}
         return points.compactMap {p -> ClockPressEstimate? in
             let contradicted=views.last{$0.position[p] != .uncertain && $0.position[p].stone != color}?.time ?? -.infinity
-            let boundary=max(contradicted,shadowBoundaries[p] ?? -.infinity)
+            let boundary=boundary([p],after:contradicted)
             return views.first {view in
                 view.time>boundary && view.estimate.time>=epoch && view.estimate.time>consumedUntil &&
                     view.position[p].stone==color && view.confidence[p]>=0.9
@@ -271,7 +292,7 @@ struct ClearBoardTiming {
                 locations.allSatisfy{view.position[$0] == .empty} ||
                     locations.contains{view.position[$0].stone==color.opponent}
             }?.time ?? -.infinity
-            let boundary=max(contradicted,locations.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
+            let boundary=boundary(locations,after:contradicted)
             let eligible=views.filter {view in
                 guard view.time>boundary,view.estimate.time>=epoch,view.estimate.time>consumedUntil else {return false}
                 let occupied=locations.filter{view.position[$0].stone != nil}

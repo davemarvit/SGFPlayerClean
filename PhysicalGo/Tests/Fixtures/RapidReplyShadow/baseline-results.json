@@ -1,0 +1,51 @@
+{
+  "commit": "357e23d",
+  "scope": "New saved-input replay run against the validated fallback before source edits. Clock settings were controlled; captured near-overtime variant was added afterward.",
+  "results": [
+    {
+      "clock": "absolute",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    },
+    {
+      "clock": "fischer",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    },
+    {
+      "clock": "byoyomi",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    }
+  ]
+}

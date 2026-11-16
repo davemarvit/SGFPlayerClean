@@ -1,0 +1,176 @@
+{
+  "validatedOn": "2026-11-16",
+  "appVersion": "0.188",
+  "appSourceHash": "b4e6a8b930cea715b1042fc456119627ed6f77b3152b3cd1c675dc5809e1b001",
+  "localSourceHash": "b001078999442e64ede2f4758b595e062bf6a3c0602baca4488f4cb54e0aca74",
+  "fixtureSHA256": "92d1b3f39e3289196b9c3ea0d0ba1988de70a70fd6e3dd7f1d205f6bf710fcf6",
+  "fallbackCommit": "357e23d",
+  "buildRegistryChecks": 7,
+  "regressionSuites": 16,
+  "passed": true,
+  "scope": "Rapid-reply replay uses saved classifier outputs and recorded hand gates, not rerun pixels. Other suites cover captured photos and constructed clock/capture cases. Physical placement times are estimates, not ground truth.",
+  "before": [
+    {
+      "clock": "absolute",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    },
+    {
+      "clock": "fischer",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    },
+    {
+      "clock": "byoyomi",
+      "falsePauses": 1,
+      "observations": 75,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply"
+    }
+  ],
+  "after": [
+    {
+      "blackBalanceErrorSeconds": 0,
+      "clock": "absolute",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "clock": "fischer",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "clock": "byoyomi",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "clock": "byoyomi",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": true,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "clock": "absolute",
+      "expectedReview": true,
+      "falsePauses": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "reviewTransitions": 1,
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "counterfactual missing intermediate sightings"
+    }
+  ]
+}

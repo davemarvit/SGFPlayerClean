@@ -1,0 +1,79 @@
+Observation preservation and sequence benchmark — stage 1
+
+Validated fallback before these changes:
+357e23d, on origin/codex/physical-go-maintainability.
+Twelve selected regression suites and seven build-registry checks passed before
+that checkpoint was committed and pushed. The recent rapid-reply pause remained
+present at that checkpoint and was reproduced by the new replay test.
+
+Architecture
+ObservationEvidence retains immutable BoardObservation values, unique IDs,
+camera capture times and processing times. Interpretation revisions are separate
+records. Retention is bounded by 12 seconds / 256 observations; this buffer is
+not an unbounded image archive. Raw camera photographs continue to use existing
+capture storage settings. No classifier, recognition threshold, clock arithmetic,
+capture rule or continuous image-capture limit is changed.
+
+ShadowEvidence now returns the exact suspect samples, with both timestamp domains.
+GameRecorder applies a revision to that sample in the clear-board timing cache
+(camera time) and move-history cache (processing time). A weak reading at a point
+can no longer erase independent clean readings at that same point. Local evidence
+keeps a bounded set of exact recent timestamps inside compressed runs so it can
+remove a sample without discarding the whole run. Expiry remains conservative.
+
+Timing preserves the first independent supporting sighting. Suspect samples
+before that sighting prevent backdating to an unsupported hand estimate. Suspect
+samples after it do not themselves contradict a previously seen stone. Definite
+absence/opposite color still retracts an episode. A revised current sample cannot
+protect a timeout or certify a turn. Fresh confirmation, capture-specific guards,
+chronology, camera freshness and clock review requirements remain in force.
+
+Observation journals preserve raw occupancy plus compact parallel confidence and
+delta arrays, capture/processing uptime, identity and available hand estimate.
+Noncanonical coordinates are recorded explicitly. Shadow revisions are append-only
+rows naming exact sample timestamps; raw rows are never rewritten. Review recovery
+understands the new exact-sample rows and retains old coarse-window semantics for
+older journals. Diagnostic writes retain the existing bounded asynchronous queue;
+if that queue is saturated, diagnostic rows can still be dropped. The bounded
+in-memory observations remain available independently of optional disk logging.
+
+Run from the repository root:
+python3 PhysicalGo/Tools/recognition_benchmark.py --output /absolute/new/report-folder
+
+This writes manifest.json (source and fixture hashes, commit and working-tree
+status), replay.json (per-frame state and sequence metrics), summary.json and
+validation.log. It runs the seven build checks and sixteen selected suites.
+The output must be a new folder outside PhysicalGo. It does not launch, install
+or modify the running application or the user's game.
+
+The rapid-reply replay covers absolute, Fischer and Japanese byoyomi clocks,
+including the captured game's near-overtime balances. It compares all press
+estimates and final balances against independently applied clock presses, and
+checks the already-captured stone stays absent. A counterfactual missing the
+intermediate clean sightings must still pause for review. The other suites cover
+recorded B19 flicker, shadow clusters, provisional timing, actual capture images,
+long visibility gaps, camera continuity, hand timing, review/resume and orientation.
+
+Limits
+This stage measures saved-observation sequence processing, not general pixel
+classification accuracy. Hand-gated frames supply continuity only. Its timing
+oracle preserves supported camera estimates; it does not claim measured physical
+placement times. The full pixel archive remains available for a later recognition
+benchmark. Independent boards, lighting and future real games still matter.
+
+Validation completed 2026-11-16
+All 16 benchmark suites and all 7 build-registry checks passed on the final source.
+The signed 0.188 / build 189 app was built and its embedded source hash verified.
+ObservationReplayResults.json preserves the before/after metrics and source hashes.
+
+Before: one false review hold and only one timed move in each of three clock modes.
+After: zero false holds, correct three-move suffix, three separate supported press
+estimates and zero balance/timestamp error against the reference press schedule.
+The additional captured near-overtime configuration also passed. Removing the
+intermediate clean readings still produces one necessary hold and only one press.
+The capture suite passed 429 automatic capture/hand-clear checks, plus uncertainty
+and conflict checks; actual faint-capture photo and camera-preview suites passed.
+
+Implementation branch: codex/physical-go-observation-preservation.
+The installed/running 0.187 app and current game were not replaced or relaunched.
+The new signed build is at PhysicalGo/.build/Physical Go.app.
