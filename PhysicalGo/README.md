@@ -3455,3 +3455,10 @@ compares fixed and adaptive references under missed-hand signals, delayed hand
 signals and camera gaps, with additional captured-photo and quiet-interval checks.
 It remains offline: appearance guards preserved real stones in the tested cases,
 but adaptation did not improve recognition over the guarded fixed reference.
+
+## Volume control (0.191)
+
+The main toolbar now exposes **Voice & clock volume**, with a 0–100% slider and
+percentage readout. It uses the same saved setting as the detailed clock sound
+controls and adjusts clock tones and spoken guidance without changing system
+volume or game timing.

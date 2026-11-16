@@ -171,6 +171,26 @@ struct LocalClockSettingsView:View {
     }
 }
 
+/// The toolbar and detailed settings edit the same persisted audio level.
+struct ClockVolumeControl:View {
+    @ObservedObject var clock:LocalGameClock
+    private var percentage:String {"\(Int((clock.sounds.volume*100).rounded()))%"}
+    var body:some View {
+        VStack(alignment:.leading,spacing:3) {
+            Text("Voice & clock volume").font(.caption).foregroundStyle(.secondary)
+            HStack(spacing:6) {
+                Image(systemName:clock.sounds.volume==0 ? "speaker.slash.fill":"speaker.wave.2.fill")
+                    .frame(width:20).accessibilityHidden(true)
+                Slider(value:$clock.sounds.volume,in:0...1,step:0.01)
+                    .accessibilityLabel("Voice and clock volume")
+                    .accessibilityValue(percentage)
+                Text(percentage).font(.caption.monospacedDigit()).frame(width:36,alignment:.trailing)
+            }
+        }.frame(width:190)
+            .help("Adjust clock tones and spoken guidance. The level is saved automatically and does not change your Mac's system volume.")
+    }
+}
+
 struct LocalClockSoundControls:View {
     @ObservedObject var clock:LocalGameClock
     var body:some View {
@@ -183,7 +203,7 @@ struct LocalClockSoundControls:View {
             Toggle("Announce overtime and periods remaining",isOn:$clock.sounds.announcePeriods)
             Toggle("Announce 1:30 remaining without byoyomi",isOn:$clock.sounds.announceNinety)
             Toggle("Sound when time expires",isOn:$clock.sounds.timeoutSound)
-            HStack {Text("Volume");Slider(value:$clock.sounds.volume,in:0...1).frame(maxWidth:240)}
+            ClockVolumeControl(clock:clock)
             Picker("Voice",selection:$clock.sounds.voiceID) {
                 Text("Amelia · Kokoro (included)").tag("")
                 Text("System English voice").tag(KokoroSpeech.systemVoiceID)

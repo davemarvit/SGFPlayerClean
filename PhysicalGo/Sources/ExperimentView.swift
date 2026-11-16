@@ -95,6 +95,7 @@ struct ExperimentView: View {
             }.pickerStyle(.segmented).labelsHidden().frame(width:200)
                 .help("Switch views without interrupting the game or camera.")
             Spacer()
+            ClockVolumeControl(clock:recorder.clock)
             Button("Info & settings",systemImage:"info.circle") {showsInfo=true}
             Menu {
                 Button("Calibrate stones…") {model.beginStoneCalibration()}.disabled(!model.canBeginStoneCalibration)
