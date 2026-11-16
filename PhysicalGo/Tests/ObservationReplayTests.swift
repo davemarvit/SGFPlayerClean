@@ -40,8 +40,18 @@ import Foundation
                 precondition(r.clock.correct(black:black,white:white,blackToPlay:false,moveCount:7,at:start))
                 r.clock.resume(at:start)
             } else {r.clock.ready(at:start)}
-            var preservedRows=0
+            var preservedRows=0,candidateHistoryRows=0
             r.onDiagnosticEvent={row in
+                let snapshots=([row["candidateHistory"] as? [String:Any]].compactMap{$0}) +
+                    ((row["moveTimings"] as? [[String:Any]] ?? []).compactMap{$0["candidateHistory"] as? [String:Any]})
+                for candidate in snapshots {
+                    candidateHistoryRows+=1
+                    if candidate["shadowClearanceKnown"] as? Bool != false {failures.append("Candidate diagnostics invented shadow clearance")}
+                    if let first=candidate["firstSupportedAt"] as? Double,
+                       let confirmation=candidate["confirmation"] as? [String:Any],let certified=confirmation["capturedAt"] as? Double,certified<first {
+                        failures.append("Candidate confirmation predates its supporting observation")
+                    }
+                }
                 guard row["event"] as? String == "observation",let fact=r.observationEvidence.observations.last else {return}
                 if row["observationID"] as? String != fact.id ||
                     row["readingConfidence"] as? [Double] != fact.raw.readings.map(\.confidence) ||
@@ -84,10 +94,11 @@ import Foundation
                 states.append(["frame":f.frameID,"moves":r.moveCount,"timed":r.clock.lastTimedMove,"review":r.clock.requiresReview])
             }
             if preservedRows != sequence.frames.filter({!$0.handObstructed}).count {failures.append("Replay failed to journal all delivered observations")}
+            if candidateHistoryRows==0 {failures.append("Recorder omitted candidate provenance")}
             r.onDiagnosticEvent=nil
             let points=r.game.moves.dropFirst(7).compactMap{$0.1.map{$0.1*19+$0.0}}
             let times=r.clock.moves.compactMap{$0.estimate?.time}.map{$0-offset}
-            reports.append(["scenario":missingEvidence ? "counterfactual missing intermediate sightings":"recorded rapid reply","clock":kind.rawValue,"nearOvertime":nearExpiry,"observations":sequence.frames.count,
+            reports.append(["scenario":missingEvidence ? "counterfactual missing intermediate sightings":"recorded rapid reply","clock":kind.rawValue,"nearOvertime":nearExpiry,"observations":sequence.frames.count,"candidateHistoryRows":candidateHistoryRows,
                 "savedPoints":points,"reviewTransitions":pauses,"falsePauses":missingEvidence ? 0:pauses,"expectedReview":missingEvidence,"orderMatches":points==sequence.expectedPoints,"pressTimes":times,"running":r.clock.running,"states":states])
             if points != sequence.expectedPoints {failures.append("\(kind): wrong move sequence \(points)")}
             if missingEvidence {

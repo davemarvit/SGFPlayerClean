@@ -1374,7 +1374,7 @@ enum LocalGameSetup {
         if let established=reviewHistory.latest ?? positions.last.map({DeferredMoveHistory.states($0)}),readings==established {
             lastEstablishedViewAt=observation.capturedAt ?? now
         }
-        clearBoardTiming.observe(observation,now:now)
+        clearBoardTiming.observe(observation,now:now,rawObservation:rawObservation,observationID:observationID,shadowPoints:shadowPoints)
         unclearPointCount=readings.filter{$0 == .uncertain}.count
         // Evaluate after acceptance so a move saved in this frame never gets a
         // failure sound. This runs even when global uncertainty blocks the move.
@@ -1657,9 +1657,11 @@ enum LocalGameSetup {
             noteVisibilityProgress()
             clearBoardTiming.consume(through:first.estimate.time)
             provisionalTimingBlockedSince=nil
-            trace(event:"observed turn clock press",now:now,extra:["number":number,"locations":first.locations.sorted(),"pressTime":first.estimate.time,"placementIndependent":true,
+            var candidateDetails:[String:Any]=[:]
+            if let data=try? JSONEncoder().encode(first.history),let value=try? JSONSerialization.jsonObject(with:data) {candidateDetails["candidateHistory"]=value}
+            trace(event:"observed turn clock press",now:now,extra:candidateDetails.merging(["number":number,"locations":first.locations.sorted(),"pressTime":first.estimate.time,"placementIndependent":true,
                 "turnConfidence":first.confirmation.level.rawValue,"confirmationViews":first.confirmation.clearViews,
-                "confirmationSpan":first.confirmation.span,"minimumStoneScore":first.confirmation.minimumScore])
+                "confirmationSpan":first.confirmation.span,"minimumStoneScore":first.confirmation.minimumScore]) {_,new in new})
         }
     }
     private var provisionalCaptureEvidence:(point:Int,captured:Set<Int>,first:Double,last:Double,count:Int)?
@@ -1721,8 +1723,9 @@ enum LocalGameSetup {
             }
         }
         guard let turn=ProvisionalPlay.turn(history:observationHistory,game:game,base:player.board,offset:offset,now:now),
-              let estimate=clearBoardTiming.provisionalEstimate(target:turn.target,changed:turn.changed,locations:turn.locations,
-                color:turn.color,aliases:turn.aliases,after:timingEpoch) else {
+              let history=clearBoardTiming.provisionalHistory(target:turn.target,changed:turn.changed,locations:turn.locations,
+                color:turn.color,aliases:turn.aliases,after:timingEpoch),
+              history.confirmation(ignoring:Set(turn.aliases.flatMap{$0})) != nil,let estimate=history.pressEstimate else {
             // Reopening a retained position validates it without pressing again.
             if offset>0,offset==observationHistory.pendingCount,
                let last=ProvisionalPlay.turn(history:observationHistory,game:game,base:player.board,offset:offset-1,now:now),
@@ -1749,7 +1752,10 @@ enum LocalGameSetup {
             noteVisibilityProgress()
             clearBoardTiming.consume(through:estimate.time)
             if clock.provisionalCapturePaused {automaticCaptureStatus=nil;provisionalCaptureEvidence=nil;clearCaptureConflictEvidence();clock.finishAutomaticCapture(at:estimate.time,now:now)}
-            trace(event:"provisional clock press",now:now,extra:["number":moveCount+offset+1,"locations":turn.locations.sorted(),"pressTime":estimate.time])
+            var details:[String:Any]=["number":moveCount+offset+1,"locations":turn.locations.sorted(),"pressTime":estimate.time,"appliedPressTime":press.time]
+            if let data=try? JSONEncoder().encode(history.snapshot(ignoring:Set(turn.aliases.flatMap{$0}))),
+               let value=try? JSONSerialization.jsonObject(with:data) {details["candidateHistory"]=value}
+            trace(event:"provisional clock press",now:now,extra:details)
         }
     }
     private func updatePlacementChime(_ observation: BoardObservation, readings: [Occupancy], now: Double) {
@@ -1853,6 +1859,7 @@ enum LocalGameSetup {
             let before=DeferredMoveHistory.states(offset==0 ? player.board:boards[offset-1])
             let changed=Set(before.indices.filter {before[$0] != target[$0]})
             let estimate=clearBoardTiming.estimate(target:target,changed:changed,after:afterBoundary)
+            let candidate=target[point].stone.flatMap{clearBoardTiming.candidateHistory(locations:[point],color:$0,after:afterBoundary)?.snapshot()}
             estimates.append(estimate)
             if let estimate {afterBoundary=estimate.time+1e-6}
             let clear=estimate?.time
@@ -1860,6 +1867,7 @@ enum LocalGameSetup {
             var value:[String:Any]=["moveNumber":moveCount+offset+1,"point":point,"size":game.boardSize,
                 "color":boards[offset].grid[point/game.boardSize][point%game.boardSize]?.rawValue ?? "",
                 "timingScope":clear == nil ? "first retained candidate to recorded":"first hand-clear completed-board frame to recorded","run":timingRun]
+            if let candidate,let data=try? JSONEncoder().encode(candidate),let json=try? JSONSerialization.jsonObject(with:data) {value["candidateHistory"]=json}
             if let estimate,let data=try? JSONEncoder().encode(estimate) {value["clockPressEstimate"]=try? JSONSerialization.jsonObject(with:data)}
             if let first,first>=timingEpoch,now>=first {value["seconds"]=now-first}
             else {value["unavailableReason"]="No uninterrupted candidate timing (pause, recovery or missing evidence)."}

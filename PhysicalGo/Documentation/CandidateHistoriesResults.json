@@ -1,0 +1,147 @@
+{
+  "validatedOn": "2026-11-16",
+  "baselineCommit": "feca90c",
+  "appVersion": "0.189",
+  "appSourceHash": "ca2d1f276f6cee2ac5d534fea09d5de9a83891bc1cda7cb71f840166ddf0a1e1",
+  "localSourceHash": "8e8107aa56fb957c92d1e98b8268c203f4d8af8d9943e47159178f14852b6614",
+  "fixtureSHA256": "92d1b3f39e3289196b9c3ea0d0ba1988de70a70fd6e3dd7f1d205f6bf710fcf6",
+  "oracleSHA256": "76b2a51700ad0f6bd5bfc272753725f20a604659e0251c06fe62c29ba8385d95",
+  "buildRegistryChecks": 7,
+  "passed": true,
+  "buildRegistryExitCode": 0,
+  "regressionExitCode": 0,
+  "regressionSuites": 17,
+  "scope": "Rapid-reply replay uses saved classifier outputs and recorded hand gates, not rerun pixels. Other suites cover captured photos and constructed clock/capture cases. Physical placement times are estimates, not ground truth.",
+  "sequences": [
+    {
+      "blackBalanceErrorSeconds": 0,
+      "candidateHistoryRows": 6,
+      "clock": "absolute",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "candidateHistoryRows": 6,
+      "clock": "fischer",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "candidateHistoryRows": 6,
+      "clock": "byoyomi",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "blackBalanceErrorSeconds": 0,
+      "candidateHistoryRows": 6,
+      "clock": "byoyomi",
+      "expectedReview": false,
+      "falsePauses": 0,
+      "maximumPressTimestampErrorSeconds": 0,
+      "nearOvertime": true,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755,
+        1265050.6216669178,
+        1265052.620700167
+      ],
+      "reviewTransitions": 0,
+      "running": true,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "recorded rapid reply",
+      "whiteBalanceErrorSeconds": 0
+    },
+    {
+      "candidateHistoryRows": 4,
+      "clock": "absolute",
+      "expectedReview": true,
+      "falsePauses": 0,
+      "nearOvertime": false,
+      "observations": 75,
+      "orderMatches": true,
+      "pressTimes": [
+        1265045.9376668755
+      ],
+      "reviewTransitions": 1,
+      "running": false,
+      "savedPoints": [
+        288,
+        309,
+        250
+      ],
+      "scenario": "counterfactual missing intermediate sightings"
+    }
+  ],
+  "candidateComparison": {
+    "baselineCommit": "feca90c",
+    "comparedFrames": 299,
+    "decisionComparisons": 3608,
+    "historyChecks": 23,
+    "mismatches": 0,
+    "recordedAnalysisOperations": 75,
+    "scope": "Timing-policy differential comparison; actual game/clock/capture behavior also checked by recorder replay and regression suites.",
+    "syntheticScenarios": 12
+  }
+}

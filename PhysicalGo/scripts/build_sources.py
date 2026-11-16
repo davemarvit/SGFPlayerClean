@@ -2,7 +2,7 @@
 from pathlib import Path
 
 DEPENDENCIES = {
-    'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift',),
+    'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift'),
     'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
     'Sources/HandOutlineSampling.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
     'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),

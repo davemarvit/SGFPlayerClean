@@ -1,0 +1,95 @@
+Candidate histories — stage 2
+
+Baseline: feca90c (stage 1 implementation c7b0b5e), version 0.188.
+Implementation branch: codex/physical-go-candidate-histories.
+
+CandidateMoveHistory derives one color/location hypothesis from the bounded
+ClearBoardTiming observations. It is now used for local turn confirmation,
+pending-turn timing protection and provisional placement timing. Each query uses
+its own candidate's witnesses; there is no shared first-appearance time for a turn.
+Full legal-board and capture-completion checks retain their separate requirements.
+Clock arithmetic, recognition thresholds and the SGF legal-history resolver are
+unchanged in this stage.
+
+A history records:
+- The raw first appearance and its immutable observation ID.
+- The first qualifying sighting and its observation ID, independently of raw
+  appearance. Shadow suspicion cannot rewrite the original readings/scores.
+- The last definite absence and contradiction; absence or an opposite color
+  starts a new appearance episode. Uncertainty alone does not mean empty.
+- An appearance interval with an optional lower bound. Missing absence evidence
+  remains missing; no physical placement time is invented.
+- A supported hand-exit estimate, retaining its interval and method, separately
+  from the first clear image and the chosen clock estimate.
+- The fresh confirmation witness's capture and processing times. This is the
+  witness certifying the current decision, not a claim about the earliest possible
+  certification. The durable press records it once without changing placement time.
+- Possible locations, current observed location and observed occupancy separately.
+  A single visible location does not certify which alias the SGF should use.
+
+Identity and retention
+The episode identity includes the observation epoch, color, possible locations and
+first retained raw sighting. It survives quality revisions while that sighting is
+retained. It changes on definite removal/reappearance and epoch reset. These are
+bounded current hypotheses, not permanent game move IDs: histories share the
+existing 120-second / 1,000-view timing cache, and consumed or expired evidence is
+not resurrected. Existing pending-game persistence still governs reopening, which
+requires fresh confirmation. Candidate summaries are diagnostic, not authorization
+to reuse a clock press after restart.
+
+Occupancy, location, order and timing
+An observed stone can have confirmation evidence while its order relative to an
+opponent's stone remains unresolved. relativeOrder requires repeated sightings
+and intervening repeated empty evidence; first-detection sorting is insufficient.
+This relation is advisory. The existing legal-history resolver and clock catch-up
+checks continue to decide whether an order can be committed and timed. A later
+candidate retains its own evidence even when an earlier pair's order is unclear.
+
+Journal provenance
+Observed and provisional clock presses journal candidate summaries. Verified SGF
+sequences also include per-candidate summaries alongside their completed-board
+estimates. During a provisional capture, appliedPressTime identifies the actual
+capture-clock boundary separately from the candidate's placement estimate. The
+candidate summary is evidence, not an alternative clock ledger.
+
+Hand shadows
+All immediate and retrospective shadow suspicions are retained as quality metadata.
+Retrospective timing retractions are tracked separately from immediate filtered
+readings, preserving stage-1 timing semantics. Shadow clearance remains explicitly
+unknown; a precise hand exit never certifies that a hand's shadow has cleared.
+The separate shadow-clearance experiment remains in ObservationReplay.txt.
+
+Verification
+Run:
+python3 PhysicalGo/Tools/recognition_benchmark.py --output /absolute/new/report-folder
+
+The benchmark now runs 17 suites plus the seven build checks. CandidateHistoryTests
+compares the production decisions against StageOneTimingOracle, a frozen test-only
+copy of ClearBoardTiming from feca90c. It checks turn identity, timing estimates,
+confidence levels/counts/spans, pending timing and provisional/completed-board
+estimates. Inputs include twelve constructed scenarios and the 75-operation
+recorded rapid reply (59 delivered observations). The oracle receives the same
+interpretations and lifecycle events but calculates its decisions independently.
+The complete recorder replay separately checks actual saved moves, false pauses,
+clock balances and the missing-evidence control. Other suites guard captured
+photographs, capture completion, camera continuity, review/resume and phantom moves.
+
+This stage is a behavior-preserving consolidation with explicit provenance and
+uncertainty. It does not claim a new pixel classifier or measured physical timing
+accuracy. Frozen-oracle equivalence is supplemented by independent scenario
+expectations, clock reference schedules and capture regression checks.
+
+Validation completed 2026-11-16
+All 17 suites and all 7 build-registry checks passed. The differential comparison
+made 3,608 decisions across 299 frames, with zero differences from stage 1.
+There are 23 focused history assertions plus the aggregate differential assertion.
+The full recorder replay preserved the three moves and their separate supported
+press estimates, with zero false holds and zero clock-balance differences in all
+four configurations, including the captured near-overtime balances. Removing the
+intermediate sightings still required a clock review. Capture checks included 429
+automatic-capture/hand-clear assertions, recorded faint-capture photographs and
+capture uncertainty/conflict cases. Camera, review/resume and orientation passed.
+
+The signed 0.189 / build 190 app was built and its source hash verified against
+the tested sources. CandidateHistoriesResults.json retains the metrics and hashes.
+The installed/running application and the user's game were not replaced or relaunched.

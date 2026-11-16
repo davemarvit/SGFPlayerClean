@@ -118,3 +118,7 @@ Possible experiment after candidate histories are established:
 
 This idea should inform the quality/provenance fields in the next-phase design;
 developing a shadow detector remains a separate, measured follow-up experiment.
+
+Stage 2 implementation is described in CandidateHistories.txt. Candidate histories
+now retain the separate quality/provenance fields anticipated above. Explicit
+shadow-clearance detection remains a follow-up experiment.

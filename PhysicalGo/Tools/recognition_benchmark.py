@@ -10,6 +10,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = {
+    'candidate-history-test': 'per-candidate histories and differential replay against stage 1',
     'observation-replay-test': 'rapid reply, exact observations, clock arithmetic, missing-evidence control',
     'shadow-recognition-test': 'shadow bursts, retrospective revisions, review-gap continuation',
     'adaptive-turn-timing-test': 'confidence timing, isolated flashes, timeout boundaries',
@@ -47,7 +48,8 @@ def main():
                 'scope': 'Rapid-reply replay uses saved classifier outputs and recorded hand gates, not rerun pixels. '
                          'Other suites cover captured photos and constructed clock/capture cases. Physical placement times are estimates, not ground truth.'}
     (output / 'manifest.json').write_text(json.dumps(metadata, indent=2) + '\n')
-    env = {**os.environ, 'PHYSICAL_GO_REPLAY_REPORT': str(output / 'replay.json')}
+    env = {**os.environ, 'PHYSICAL_GO_REPLAY_REPORT': str(output / 'replay.json'),
+           'PHYSICAL_GO_CANDIDATE_REPORT': str(output / 'candidates.json')}
     with (output / 'validation.log').open('w') as log:
         registry = subprocess.run([sys.executable, str(ROOT / 'Tests/test_build.py')], cwd=ROOT.parent, stdout=log, stderr=subprocess.STDOUT)
         checks = subprocess.run([sys.executable, str(ROOT / 'build.py'), *('--' + name for name in SUITES)],
@@ -57,6 +59,8 @@ def main():
                'regressionSuites': len(SUITES), 'scope': metadata['scope']}
     if (output / 'replay.json').exists():
         summary['sequences'] = [{k: v for k, v in row.items() if k != 'states'} for row in json.loads((output / 'replay.json').read_text())]
+    if (output / 'candidates.json').exists():
+        summary['candidateComparison'] = json.loads((output / 'candidates.json').read_text())
     (output / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
     print(('PASS' if summary['passed'] else 'FAIL') + ': ' + str(output), flush=True)
     return 0 if summary['passed'] else 1
