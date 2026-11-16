@@ -194,8 +194,8 @@ import AppKit
         check(liveVoice.phrases.last=="Board position verified. Clocks remain paused." && live.clock.engine==pausedClock && live.state == .paused,"Paused restoration lost its acknowledgment or resumed/changed clocks")
         liveVoice.finish()
 
-        // Physical walkthrough regression: the absence lasts long enough to
-        // become a durable review before the player pauses and restores it.
+        // Missing stones alone are a discrepancy, not a new chronology. Older
+        // saved missing-only reviews must still restore safely when reopened.
         let longVoice=GuidanceVoice()
         let longModel=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,
             referenceArchive:nil,recordingStorage:root,diagnosticRoot:root.appendingPathComponent("long-missing-diagnostics"),recoveryAudio:longVoice)
@@ -215,11 +215,21 @@ import AppKit
         let longSGF=long.sgf(),longPresses=try pressEncoder.encode(long.clock.moves)
         var absent=twoStones;absent[40] = .empty
         feedLong(absent,count:80)
-        check(long.hasDeferredMoves && long.reviewHistory.unresolved==1 && long.pendingBoardRestoration != nil,"Long missing-stone fixture did not cross the review escalation")
-        let missingSection=long.reviewHistory.sections.last!
+        check(!long.hasDeferredMoves && long.adjustmentIssues[40] != nil && long.sgf()==longSGF,"Missing-only observations created a new move-order review or changed saved history")
         longVoice.start();long.pause()
+        try long.flushStorage()
+        var missingHistory=DeferredMoveHistory()
+        missingHistory.size=9;missingHistory.anchorSignature=RecordingIdentity.signature(for:long.game);missingHistory.baseMove=2
+        missingHistory.sections=[.init(reviewNumber:1,before:twoStones,after:absent,moves:nil,reason:"Historical missing-stone review",firstSeen:longNow-16,confirmedAt:longNow,liveNext:.black)]
+        let legacyURL=root.appendingPathComponent("historical-missing.sgf")
+        try Data(longSGF.utf8).write(to:legacyURL)
+        try FileManager.default.copyItem(at:long.autosaveURL!.deletingPathExtension().appendingPathExtension("clock.json"),to:legacyURL.deletingPathExtension().appendingPathExtension("clock.json"))
+        try JSONEncoder().encode(missingHistory).write(to:legacyURL.deletingPathExtension().appendingPathExtension("reviews.json"))
+        try long.restoreSavedGame(from:legacyURL)
+        long.onReviewNeeded?();longVoice.start()
+        check(long.hasDeferredMoves && long.pendingBoardRestoration != nil,"Historical missing-stone review could not be restored")
+        let missingSection=long.reviewHistory.sections.last!
         let longClock=long.clock.engine
-        let missingHistory=long.reviewHistory
         feedLong(twoStones,count:3)
         let duplicate=longObservation(twoStones)
         for _ in 0..<10 {long.consume(duplicate,now:longNow)}
@@ -269,7 +279,7 @@ import AppKit
 
         longVoice.finish();long.resume();feedLong(twoStones)
         feedLong(absent,count:80)
-        check(long.hasDeferredMoves && long.clock.running,"Running restoration fixture did not retain its review and clock")
+        check(!long.hasDeferredMoves && long.adjustmentIssues[40] != nil && long.clock.running,"Missing-only discrepancy stopped play or created an artificial move-order review")
         feedLong(twoStones,count:12)
         let runningPresses=try pressEncoder.encode(long.clock.moves)
         check(!long.hasDeferredMoves && long.clock.running && long.clock.engine.blackToPlay && long.sgf()==longSGF && runningPresses==longPresses,"Running restoration paused play or invented a replacement move")

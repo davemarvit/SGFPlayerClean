@@ -12,6 +12,8 @@ struct PlaySessionControls:View {
                     Button(recorder.hasDeferredMoves && recorder.tentativeNextPlayer == nil ? "Pass" : "\((recorder.tentativeNextPlayer ?? recorder.nextPlayer).rawValue.capitalized) pass") {recorder.pass()}.disabled(!recorder.canPass)
                     PhysicalScoreButton(scoring:model.scoring,recorder:recorder,orientation:model.orientation)
                     Button("End game…") {confirmEnd=true}.disabled(!recorder.hasGame || recorder.state == .finished)
+                    Button("Rotate view",systemImage:"rotate.right") {model.rotateView()}
+                        .help("Rotate the board and camera view 90° clockwise. The recorded game and clocks are preserved.")
                 }
                 Spacer()
                 if model.exportingSGF {ProgressView().controlSize(.small)}

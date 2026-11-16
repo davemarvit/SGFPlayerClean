@@ -69,6 +69,7 @@ struct ReviewSectionView:View {
         guard let section else {return .mixed}
         return .classify(before:section.before,after:section.after)
     }
+    private var hasUncertainAdditionOrder:Bool {changeKind == .additions && (section?.suggestedOrders?.count ?? 0)>1}
     private var withdrawal:AccidentalStoneWithdrawal? {section?.committed == false ? (hasEditedObservation ? editedWithdrawal:initialWithdrawal):nil}
     private var cleanupReady:Bool {withdrawal.map{recorder.accidentalRemovalVerified($0)} ?? false}
     private var showsCleanupBoard:Bool {mode == .cleanup || (mode == .choose && cleanupReady)}
@@ -219,10 +220,13 @@ struct ReviewSectionView:View {
                 Text("Ready to confirm the cleanup").font(.title3.bold())
                 Text("The extra stones are gone. \(plan.nextPlayer.rawValue.capitalized) plays next after you save.")
             } else {
-                Text(turnConflict != nil ? "The wrong color appears to have played first":changeKind.title).font(.title3.bold())
+                Text(turnConflict != nil ? "The wrong color appears to have played first":hasUncertainAdditionOrder ? "Stones detected · move order uncertain":changeKind.title).font(.title3.bold())
                 if let conflict=turnConflict {
                     Text("\(firstColor.rawValue.capitalized) was next. The camera saw \(conflict.color.rawValue.capitalized) first among the marked stones.")
                 } else {
+                    if hasUncertainAdditionOrder,let orders=section?.suggestedOrders {
+                        Text("The orange rings mark \(changedPoints.count) detected stones whose order was not established. \(orders.count) move orders fit the saved observations. Confirm the order you played below.")
+                    }
                     Text(changeKind.instructions)
                     Text(turnKnown ? "The saved game has \(firstColor.rawValue.capitalized) to play.":"An earlier review is unresolved. The complete sequence will be checked afterward.").font(.callout)
                 }

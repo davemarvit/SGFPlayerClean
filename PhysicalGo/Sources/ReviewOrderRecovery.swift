@@ -3,7 +3,7 @@ import Foundation
 /// Recover a proposal from recorded sightings, including frames collected while
 /// paused. This never changes the game or clock and never invents passes/captures.
 enum ReviewOrderRecovery {
-    struct Frame {let time:Double;let position:[UInt8];var lightingBlocked=false}
+    struct Frame {let time:Double;var position:[UInt8];var lightingBlocked=false;var uptime:Double?=nil}
     struct Interval {let point:Int;let color:Stone;let emptyThrough:Double;let presentBy:Double}
     struct Result {
         var orders:[[Int]]=[]
@@ -93,10 +93,19 @@ enum ReviewOrderRecovery {
         var frames=[Frame]()
         for line in lines {
             guard let entry=try? JSONSerialization.jsonObject(with:Data(line)) as? [String:Any],
-                  entry["event"] as? String=="observation",
-                  let time=entry["time"] as? Double,time<=through,
-                  let position=entry["position"] as? String,position.utf8.count==before.count else {continue}
-            frames.append(Frame(time:time,position:Array(position.utf8),lightingBlocked:entry["lightingBlocked"] as? Bool ?? false))
+                  let time=entry["time"] as? Double,time<=through else {continue}
+            if entry["event"] as? String=="shadow evidence discounted retrospectively",
+               let points=entry["shadowPoints"] as? [Int],let since=entry["shadowSinceUptime"] as? Double,
+               let end=entry["shadowThroughUptime"] as? Double {
+                for i in frames.indices where frames[i].time>=time-2 && frames[i].uptime.map({$0>=since && $0<=end}) == true {
+                    for p in points where frames[i].position.indices.contains(p) && frames[i].position[p]==66 {frames[i].position[p]=63}
+                }
+                continue
+            }
+            guard entry["event"] as? String=="observation",
+                  let position=(entry["interpretedPosition"] ?? entry["position"]) as? String,position.utf8.count==before.count else {continue}
+            frames.append(Frame(time:time,position:Array(position.utf8),lightingBlocked:entry["lightingBlocked"] as? Bool ?? false,
+                                uptime:(entry["captureUptime"] ?? entry["uptime"]) as? Double))
         }
         return recover(before:before,after:after,first:first,frames:frames)
     }

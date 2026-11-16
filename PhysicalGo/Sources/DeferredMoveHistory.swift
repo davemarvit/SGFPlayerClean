@@ -66,7 +66,7 @@ struct DeferredMoveHistory:Codable {
     /// Camera uncertainty is never a new stone or a capture. Existing ambiguous
     /// points retain the previous physical interpretation until clear evidence.
     @MainActor mutating func observe(_ observation:BoardObservation,base:BoardSnapshot,game:SGFGame,
-                                    signature:String,now:Double,allowStart:Bool)->Bool {
+                                    signature:String,now:Double,allowStart:Bool,certifiedPoint:Int?=nil,requiresTurnCertification:Bool=false)->Bool {
         guard active || allowStart else {interrupt();return false}
         guard observation.size==game.boardSize,observation.readings.count==game.boardSize*game.boardSize,
               !observation.lightingBlocked else {interrupt();return false}
@@ -77,14 +77,10 @@ struct DeferredMoveHistory:Codable {
         }
         guard current != baseline else {interrupt();return false}
         if candidate != current || now-last>1.5 || now<=last {
-            candidate=current;first=now;frames=1;last=now;return false
-        }
-        frames += 1;last=now
-        guard frames>=5,now-first>=0.8 else {return false}
-        let started=first;interrupt()
+            candidate=current;first=now;frames=1;last=now
+        } else {frames += 1;last=now}
         let wasActive=active
         let previousTurn=wasActive ? nextColor : (game.moves.last?.0.opponent ?? game.initialPlayer ?? .black)
-        if !wasActive {size=game.boardSize;anchorSignature=signature;baseMove=game.moves.count}
         let additions=current.indices.filter{current[$0].stone != nil && current[$0] != baseline[$0]}
         var ordered:[Move]?
         if wasActive,additions.count==1,let color=current[additions[0]].stone,
@@ -95,6 +91,23 @@ struct DeferredMoveHistory:Codable {
                 ordered=[Move(color:color,point:BoardPosition(point/size,point%size))]
             }
         }
+        // Only an independently certified, exact single addition gets the fast
+        // path. Captures, removals, unknown turns and partial views keep their
+        // existing full-position verification and complete-history checks.
+        let singleAddition=wasActive && previousTurn != nil && additions.count==1 &&
+            ordered?.count==1 && !observation.signature.contains(.uncertain) &&
+            baseline.indices.allSatisfy{baseline[$0] == .empty || baseline[$0]==current[$0]}
+        let fast=singleAddition && certifiedPoint==additions.first
+        if requiresTurnCertification && singleAddition && !fast {
+            // Do not wait forever for a low-scoring stone, and do not turn its
+            // first possible sighting into a certified press. Preserve the
+            // stable position as a review; timing stays explicitly unresolved.
+            guard now-first>=2 else {return false}
+            ordered=nil
+        }
+        guard (fast && frames>=2 && now-first>=0.2) || (frames>=5 && now-first>=0.8) else {return false}
+        let started=first;interrupt()
+        if !wasActive {size=game.boardSize;anchorSignature=signature;baseMove=game.moves.count}
         let number=ordered == nil ? nextReviewNumber:nil
         var next=ordered?.last?.color.opponent
         // Without captures/replacements, color counts can identify the next

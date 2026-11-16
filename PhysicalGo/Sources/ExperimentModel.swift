@@ -712,7 +712,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         let agrees = cameraState == .live && !frozen && !alignmentNeedsRecovery &&
             !observation.lightingBlocked && observation.handObstructed == false &&
             observation.size==recorder.game.boardSize && expected==observation.signature
-        let resolved = recorder.adjustmentIssues.isEmpty && !recorder.hasDeferredMoves &&
+        let resolved = !recorder.visibilityWarning && recorder.adjustmentIssues.isEmpty && !recorder.hasDeferredMoves &&
             recorder.pendingMoveCount==0 && (recorder.state == .paused || !recorder.needsAttention) &&
             !recorder.clock.requiresReview && recorder.saveError==nil && recorder.pendingSaveError==nil &&
             recorder.reviewSaveError==nil && recorder.clock.saveError==nil && !recorder.recoveryReadBlocked
@@ -731,7 +731,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             recordingWarningFeedback.began(session:recorder.autosaveURL?.path)
             recoverySpeech.request(.recordingWarning,text:spokenRecoveryInstruction,settings:recorder.clock.sounds,refresh:{ [weak self] in
                 guard let self,self.recoverySpeechEnabled,self.recorder.clock.audible,
-                      self.recorder.needsAttention || self.recorder.hasDeferredMoves else {return nil}
+                      self.recorder.needsAttention || self.recorder.visibilityWarning || self.recorder.hasDeferredMoves else {return nil}
                 return self.spokenRecoveryInstruction
             })
         }
@@ -941,6 +941,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             if alignmentNeedsRecovery && recoverySearchAttempts > 0 { recoverySearchAttempts -= 1 }
         }
         gridGeneration += 1; detectingGrid = false
+        // A check describes the geometry/search that produced it. Manual edits
+        // and canceled searches must not retain that obsolete result.
+        alignmentCheck = .idle
     }
     func boardSizeChanged() {
         if calibration?.size == size { return } // Imported sample already supplies matching geometry.
@@ -1400,6 +1403,12 @@ enum PhysicalPlayMode: String, CaseIterable {
                     self.alignmentNeedsRecovery=true
                     self.detectGrid(recovering:true)
                     return
+                }
+                // A fresh accepted live frame supersedes a failed grid search.
+                // Keep this after the obstruction, alignment and movement gates;
+                // merely having four corners (or a frozen image) is not a pass.
+                if !result.lightingBlocked && self.alignmentCheck == .failed {
+                    self.alignmentCheck = .passed
                 }
                 var delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
                 delivered.capturedAt=captureUptime;delivered.handObstructed=analysis.handObstructed;delivered.clockPressEstimate=handEstimate

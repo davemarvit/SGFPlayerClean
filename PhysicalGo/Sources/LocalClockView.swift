@@ -60,12 +60,22 @@ import AVFoundation
             title=correction.title.replacingOccurrences(of:"…",with:"")
             detail="\(clocks) The saved game is preserved.";nextStep=correction.guidance
         } else if clock.requiresReview {
-            title="Check clock times";detail="\(clocks) The saved game is preserved."
-            nextStep="Choose Review & resume to check both times before continuing."
+            if let section=recorder.reviewHistory.sections.last(where:{!$0.committed && $0.moves==nil && ($0.suggestedOrders?.count ?? 0)>1 && ReviewChangeKind.classify(before:$0.before,after:$0.after) == .additions}) {
+                let count=section.before.indices.filter{section.before[$0] != section.after[$0]}.count
+                title="Move order and clock times need review"
+                detail="\(clocks) \(count) marked stones are detected; their move order is uncertain."
+                nextStep="Open Review \(section.reviewNumber ?? 1) to confirm the sequence. Review & resume checks both clock times."
+            } else {
+                title="Check clock times";detail="\(clocks) The saved game is preserved."
+                nextStep="Choose Review & resume to check both times before continuing."
+            }
         } else if let capture=recorder.automaticCaptureStatus {
             title=recorder.automaticCaptureConflictPoints.isEmpty ? "Removing captured stones":"Check board before resuming"
             detail="Both clocks stopped. The capture is being checked."
             nextStep=recorder.state == .paused ? "Press Resume to continue checking the capture. Both clocks stay stopped until removal is verified.":capture
+        } else if recorder.visibilityWarning {
+            title="Clear the board view";detail="\(clocks) \(recorder.moveCount) moves saved."
+            nextStep=GameRecorder.visibilityGuidance
         } else if recorder.handOverBoard && recorder.state == .recording {
             title="Waiting for hands to clear";detail="\(clocks) The move will be confirmed after the board is clear."
             nextStep="Keep the stones in place. Timing uses the first clear frame of the completed move."

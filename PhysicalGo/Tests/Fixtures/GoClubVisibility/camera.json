@@ -1,0 +1,113 @@
+{
+  "alignmentNeedsRecovery" : false,
+  "appBuild" : "185",
+  "appVersion" : "0.184",
+  "archiveByteLimit" : 10000000000,
+  "boardSize" : 19,
+  "byteLimit" : 3677063090,
+  "bytesWritten" : 712890955,
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.26745026512385395,
+        "y" : 0.11407569385439982
+      },
+      {
+        "x" : 0.73429034712235031,
+        "y" : 0.085104542377596931
+      },
+      {
+        "x" : 0.80829761213595608,
+        "y" : 0.89029015544428647
+      },
+      {
+        "x" : 0.22943798229445383,
+        "y" : 0.9177100033379858
+      }
+    ],
+    "h" : [
+      0.46061345783295699,
+      -0.082163835835585869,
+      0.26745026512385395,
+      -0.02969281968644533,
+      0.62703616539476636,
+      0.11407569385439982,
+      -0.008479784856141998,
+      -0.19243349581728353
+    ],
+    "size" : 19
+  },
+  "cameraFrameNumber" : 1727,
+  "cameraID" : "0x21000000bda0567",
+  "cameraState" : "live",
+  "capturePolicy" : "Lossless PNG for every frame delivered to the app (~5 fps); includes skipped, frozen and rejected frames. Native camera frames between app deliveries are not captured.",
+  "editingCorrections" : false,
+  "framesSaved" : 229,
+  "frozen" : false,
+  "gridGeneration" : 1,
+  "hasReference" : true,
+  "initialSGF" : "(;AP[PhysicalGo:0.134]C[Physical Go camera recording. Review move history before sharing.][Clock started or corrected after move 8. Earlier times are not inferred.]CA[UTF-8]DT[2026-11-13]FF[4]GM[1]KM[6.5]OT[5x15 byo-yomi]PL[B]RU[Japanese]SZ[19]TM[120];B[pp]BL[114.191];W[dd]WL[116.556];B[dq]BL[107.411];W[qd]WL[112.977];B[cn]BL[101.230];W[od]WL[108.460];B[qj]BL[94.919];W[jp]WL[102.669];B[lq]BL[80.961];W[gq]WL[93.996])",
+  "longAxisRows" : false,
+  "manualCorrections" : [
+
+  ],
+  "playMode" : "local",
+  "reason" : "Stopped by user",
+  "recorder" : {
+    "moveCount" : 10,
+    "needsAttention" : false,
+    "nextPlayer" : "black",
+    "pendingMoves" : 0,
+    "state" : "recording",
+    "status" : "Recording later moves · 1 sections to review after play · 0 ordered moves retained.",
+    "unsavedCandidates" : 0
+  },
+  "referenceAutomatic" : false,
+  "referenceCalibration" : {
+    "corners" : [
+      {
+        "x" : 0.26818196089713248,
+        "y" : 0.11430586228629346
+      },
+      {
+        "x" : 0.73406802422419282,
+        "y" : 0.086049220132462328
+      },
+      {
+        "x" : 0.80878334714421596,
+        "y" : 0.89123171943724466
+      },
+      {
+        "x" : 0.22941109141544186,
+        "y" : 0.91793630805951532
+      }
+    ],
+    "h" : [
+      0.45972857948716139,
+      -0.083459260164461688,
+      0.26818196089713248,
+      -0.028978437225836227,
+      0.62482001379555085,
+      0.11430586228629346,
+      -0.008388165179114747,
+      -0.1947961208285463
+    ],
+    "size" : 19
+  },
+  "reserveBytes" : 2000000000,
+  "retentionPolicy" : "Oldest unpinned, inactive camera archives rotate automatically. KEEP files preserve selected archives.",
+  "revision" : 2,
+  "rotatedArchives" : 17,
+  "schemaVersion" : 1,
+  "source" : "FULL HD WEB CAM",
+  "sourceHash" : "5a61dbf55346f862c851eed9cec3091846c2d4259b9ce5177c4c4a595f3e86db",
+  "startedAt" : 1794640372.999248,
+  "status" : "complete",
+  "straightenBoard" : true,
+  "targetProcessingFPS" : 5,
+  "threshold" : 0.13,
+  "timezone" : "America\/Los_Angeles",
+  "tracksCameraMotion" : true,
+  "updatedAt" : 1794640418.5775352,
+  "viewQuarterTurns" : 3
+}

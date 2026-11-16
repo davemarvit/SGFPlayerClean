@@ -70,6 +70,15 @@ struct BoardChroma {
     let green: Double
     var blue: Double { -red-green }
     var magnitude: Double { sqrt(red*red+green*green+blue*blue) }
+    // White jade can retain a cool tint instead of becoming fully neutral.
+    // Compare against lighting-corrected wood; brightness, covered ink and
+    // bounded shape remain separate requirements at the call sites.
+    func supportsWhiteStone(comparedTo wood:Self)->Bool {
+        let neutral = wood.magnitude-magnitude>0.035 && magnitude<wood.magnitude*0.65
+        let cool = magnitude<0.075 && magnitude<wood.magnitude*0.90
+            && wood.red-red>0.035 && blue-wood.blue>0.035
+        return neutral || cool
+    }
     static func + (a:Self,b:Self)->Self { .init(red:a.red+b.red,green:a.green+b.green) }
     static func - (a:Self,b:Self)->Self { .init(red:a.red-b.red,green:a.green-b.green) }
 }
@@ -184,7 +193,7 @@ struct IntersectionReading: Codable, Equatable {
 }
 
 struct BoardObservation {
-    let readings: [IntersectionReading]
+    var readings: [IntersectionReading]
     let size: Int
     var notice: String? = nil
     var lightingBlocked = false
@@ -369,7 +378,7 @@ enum BoardDetector {
     /// alone assigns a stone color or a new empty label.
     private static func gridCrossEvidence(frame:GrayFrame,reference:GrayFrame,
                                            calibration:BoardCalibration,referenceCalibration:BoardCalibration,
-                                           col:Double,row:Double)->(survives:Bool,covered:Bool) {
+                                           col:Double,row:Double)->(survives:Bool,covered:Bool,partlyCovered:Bool,inkDisappeared:Bool) {
         var found=[0,0],matched=[0,0],missing=[0,0]
         for axis in 0..<2 { for along in [-0.24,-0.12,0.12,0.24] {
             let vertical=axis==1,c=col+(vertical ? 0:along),r=row+(vertical ? along:0)
@@ -392,9 +401,14 @@ enum BoardDetector {
             if live<0.035 && live<best.1*0.35 {missing[axis] += 1}
         } }
         // At the board edge only the inward half of one rail is printed.
+        // If the other rail is too faint, two lost samples still establish
+        // ink loss (not coverage). Only the >=0.94 white-disk recovery below
+        // can use that weaker signal, with no surviving ink or exposed wood.
         let enough=found.allSatisfy{$0>=2}
         return (enough && (0..<2).allSatisfy{Double(matched[$0])/Double(found[$0])>=0.75},
-                enough && (0..<2).allSatisfy{Double(missing[$0])/Double(found[$0])>=0.75})
+                enough && (0..<2).allSatisfy{Double(missing[$0])/Double(found[$0])>=0.75},
+                (0..<2).allSatisfy{found[$0]>=3 && missing[$0]>=2 && matched[$0]==0},
+                matched.allSatisfy{$0==0} && missing.reduce(0,+)>=2)
     }
     private static func shadedEmptyEvidence(frame:GrayFrame,reference:GrayFrame,calibration:BoardCalibration,
                                             referenceCalibration:BoardCalibration,col:Double,row:Double,
@@ -601,6 +615,7 @@ enum BoardDetector {
         var geometryBlocked=Set<Int>()
         var liveWood=[Int:Double]()
         var stoneCandidates=[Int:IntersectionReading]()
+        var whiteHints=Set<Int>()
         var independentAppearance:BoardObservation?
         for row in 0..<calibration.size { for col in 0..<calibration.size {
             // Estimate illumination from nearby cell centers, not from the stone.
@@ -627,6 +642,7 @@ enum BoardDetector {
             var candidate = classify(frame:frame,reference:reference,calibration:calibration,referenceCalibration:referenceCalibration,
                 col:Double(col),row:Double(row),threshold:threshold,correction:correction,colorShift:colorShift)
             var center = ImagePoint(x:Double(col),y:Double(row))
+            if candidate.stoneHint == .white {whiteHints.insert(row*calibration.size+col)}
             var independentlyDark=false
             if excessiveChange,candidate.occupancy == .black,candidate.confidence>=0.95,candidate.delta < -0.30 {
                 if independentAppearance==nil {independentAppearance=BoardAppearanceDetector.detect(frame:frame,calibration:calibration,threshold:threshold)}
@@ -745,15 +761,50 @@ enum BoardDetector {
         var recoveredShapes=[StoneFootprint]()
         for (index,reading) in resolved.enumerated() where reading.occupancy == .empty ||
             (reading.occupancy == .uncertain && !geometryBlocked.contains(index) && !disputed.contains(index)) {
-            guard gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
-                referenceCalibration:referenceCalibration,col:Double(reading.col),row:Double(reading.row)).covered else {continue}
+            let cross=gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
+                referenceCalibration:referenceCalibration,col:Double(reading.col),row:Double(reading.row))
+            // Reflections on white stones can resemble part of a faint rail.
+            // Missing samples on BOTH axes, no surviving samples, partial white
+            // color and a stronger bounded disk can contradict brightness-only
+            // "empty". Actual exposed wood remains authoritative.
+            let partialWhite=cross.partlyCovered && whiteHints.contains(index)
+                && exposedWood[index]==nil && liveWood[index]==nil
+            guard cross.covered || partialWhite else {continue}
             let recovered=StoneGeometry.coveredStone(reading,frame:frame,reference:reference,
                 calibration:calibration,referenceCalibration:referenceCalibration,correction:globalCorrection,
                 colorShift:globalColorCorrection,neighbors:geometry.footprints+recoveredShapes,
                 neighborReadings:geometry.readings)
+            let accepted=recovered.flatMap { color,shape -> (Occupancy,StoneFootprint)? in
+                cross.covered || (color == .white && shape.quality>=0.90) ? (color,shape):nil
+            }
             resolved[index]=IntersectionReading(row:reading.row,col:reading.col,
-                occupancy:recovered?.0 ?? .uncertain,confidence:recovered?.1.quality ?? 0,delta:reading.delta)
-            if let recovered {recoveredShapes.append(recovered.1)}
+                occupancy:accepted?.0 ?? .uncertain,confidence:accepted?.1.quality ?? 0,delta:reading.delta)
+            if let accepted {recoveredShapes.append(accepted.1)}
+        }
+        // Faint reference rails may not prove coverage in every frame. For an
+        // already uncertain white-color candidate, a stronger independent disk
+        // fit can establish the stone without a fixed absolute brightness floor.
+        // Keep all wood, surviving-cross and ownership contradictions authoritative.
+        for index in whiteHints.sorted() where (resolved[index].occupancy == .uncertain || resolved[index].occupancy == .empty)
+            && !geometryBlocked.contains(index) && !disputed.contains(index) {
+            let reading=resolved[index]
+            let cross=gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
+                referenceCalibration:referenceCalibration,col:Double(reading.col),row:Double(reading.row))
+            // A faint reference rail may provide only one reliable sample.
+            // Positive ink loss with no surviving samples challenges brightness-only empty,
+            // but only the stronger white disk fit below can replace that label.
+            // Surviving ink and exposed wood retain their authority; the disk
+            // still needs >=0.94 quality, white body color and separate ownership.
+            guard !cross.survives,
+                  reading.occupancy == .uncertain || (cross.inkDisappeared && exposedWood[index]==nil && liveWood[index]==nil),
+                let shape=StoneGeometry.shadedWhiteStone(.init(row:reading.row,col:reading.col,
+                    occupancy:.uncertain,confidence:0,delta:reading.delta),frame:frame,reference:reference,
+                    calibration:calibration,referenceCalibration:referenceCalibration,correction:globalCorrection,
+                    colorShift:globalColorCorrection,neighbors:(geometry.footprints+recoveredShapes).filter {
+                        resolved[$0.row*calibration.size+$0.col].occupancy.stone != nil
+                    }) else {continue}
+            resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.white,confidence:shape.quality,delta:reading.delta)
+            recoveredShapes.append(shape)
         }
         let outlined=Set((geometry.footprints+geometry.placementFits+recoveredShapes).filter{$0.quality>=0.80}.map{$0.row*calibration.size+$0.col})
         for (index,reading) in resolved.enumerated() where reading.occupancy.stone != nil && !outlined.contains(index) {
@@ -849,8 +900,7 @@ enum BoardDetector {
                 // A shaded white stone may be slightly darker than bare wood.
                 // Allow that only with strong loss of wood chroma and covered
                 // reference ink below; brightness similarity alone is not empty.
-                whiteColor = change > -0.06 && expectedWood.magnitude-current.magnitude > 0.035
-                    && current.magnitude < expectedWood.magnitude*0.65
+                whiteColor = change > -0.06 && current.supportsWhiteStone(comparedTo:expectedWood)
                 if whiteColor {
                     colorHintVotes += 1
                     if !checkedCoverage {

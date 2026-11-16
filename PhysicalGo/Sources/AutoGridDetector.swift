@@ -351,22 +351,42 @@ enum AutoGridDetector {
         let n=calibration.size
         var tested=0,matched=0,borders=[Int](repeating:0,count:4),quadrants=[Int](repeating:0,count:4)
         for vertical in [false,true] { for rail in 0..<n { for segment in 0..<(n-1) {
-            var a=[Double](),b=[Double]()
-            for across in [-0.18,-0.12,-0.06,0,0.06,0.12,0.18] {
-                let c=vertical ? Double(rail)+across : Double(segment)+0.5
-                let r=vertical ? Double(segment)+0.5 : Double(rail)+across
-                if let old=anchor.frame.patchMean(anchor.calibration.point(col:c,row:r)),
-                   let now=frame.patchMean(calibration.point(col:c,row:r)) { a.append(old); b.append(now) }
+            // Sample several positions on an outer segment: a single midpoint
+            // is fragile on faint printed lines. Count each segment only once,
+            // retaining three DISTINCT segments on every border and the same
+            // contrast, normalized-profile and distributed-support thresholds.
+            var eligible=false,accepted=false
+            for along in (rail==0 || rail==n-1) ? [0.5,0.2,0.35,0.65,0.8]:[0.5] {
+                var a=[Double](),b=[Double]()
+                for across in [-0.18,-0.12,-0.06,0,0.06,0.12,0.18] {
+                    let c=vertical ? Double(rail)+across : Double(segment)+along
+                    let r=vertical ? Double(segment)+along : Double(rail)+across
+                    if let old=anchor.frame.patchMean(anchor.calibration.point(col:c,row:r)),
+                       let now=frame.patchMean(calibration.point(col:c,row:r)) { a.append(old); b.append(now) }
+                }
+                guard a.count==7,let high=a.max(),let low=a.min(),let currentHigh=b.max(),let currentLow=b.min() else { continue }
+                let faint=high-low<=0.06
+                if faint {
+                    // A faint outer rail still establishes board extent. Require a
+                    // centered valley with both flanks in the immutable anchor,
+                    // then the same normalized shape in this fresh image. Interior
+                    // support and all four border requirements stay unchanged.
+                    guard rail==0 || rail==n-1,high-low>max(0.018,high*0.035),
+                          let trough=a.indices.min(by:{a[$0]<a[$1]}),(2...4).contains(trough),
+                          min(a[0],a[6])-low>(high-low)*0.75 else {continue}
+                }
+                eligible=true
+                let depth=high-low,currentDepth=currentHigh-currentLow
+                guard currentDepth>max(faint ? 0.012:0.035,depth*0.25),currentDepth<depth*3 else { continue }
+                var error=0.0
+                // Compare line shape independently of exposure. Both profiles still
+                // need real contrast, outer-rail support and matching quadrants.
+                for i in a.indices { error += abs((a[i]-high)/depth-(b[i]-currentHigh)/currentDepth) }
+                guard error/7<min(0.10,0.03/depth) else { continue }
+                accepted=true;break
             }
-            guard a.count==7,let high=a.max(),let low=a.min(),high-low>0.06,let currentHigh=b.max(),let currentLow=b.min() else { continue }
-            tested += 1
-            let depth=high-low,currentDepth=currentHigh-currentLow
-            guard currentDepth>max(0.035,depth*0.25),currentDepth<depth*3 else { continue }
-            var error=0.0
-            // Compare line shape independently of exposure. Both profiles still
-            // need real contrast, outer-rail support and matching quadrants.
-            for i in a.indices { error += abs((a[i]-high)/depth-(b[i]-currentHigh)/currentDepth) }
-            guard error/7<min(0.10,0.03/depth) else { continue }
+            if eligible {tested += 1}
+            guard accepted else {continue}
             matched += 1
             if rail==0 { borders[vertical ? 0 : 2] += 1 }
             if rail==n-1 { borders[vertical ? 1 : 3] += 1 }

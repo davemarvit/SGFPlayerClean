@@ -37,6 +37,7 @@ import Foundation
                 : "Remove the remaining captured stones at \(locations(remaining)), then move your hands clear."
             return "\(prefix) \(action) Open Review \(reviewHistory.sections.last?.reviewNumber ?? 1) and choose Confirm capture when available."
         }
+        if visibilityWarning {return "\(prefix) \(Self.visibilityGuidance)"}
         if let section=reviewHistory.sections.last(where:{!$0.committed && $0.moves==nil}) {
             let review="Review \(section.reviewNumber ?? 1)"
             let lead=clock.running ? "Move history needs review." : prefix
@@ -51,6 +52,9 @@ import Foundation
                 return "\(lead) Stone colors differ at \(locations(changed)). Check the physical colors in \(review), then correct the camera reading or review the moves."
             case .additions:
                 let turn=clock.awaitingTurn ? " Then choose whose turn it is before resuming." : ""
+                if (section.suggestedOrders?.count ?? 0)>1 {
+                    return "\(lead) The \(changed.count) marked stones are detected, but their move order is uncertain. Open \(review) and confirm the order you played.\(turn)"
+                }
                 return "\(lead) New stones at \(locations(changed)) need checking. Open \(review) to enter the actual moves or undo accidental additions.\(turn)"
             case .mixed:
                 return "\(lead) Placements and removals differ at \(locations(changed)). Open \(review) and compare with the physical board before choosing a correction."

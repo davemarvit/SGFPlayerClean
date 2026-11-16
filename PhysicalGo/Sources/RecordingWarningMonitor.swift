@@ -1,5 +1,42 @@
 import Foundation
 
+/// Advisory only. Follow one visibility loss across hand callbacks and corrupt
+/// board readings; a brief false hand-clear result must not restart its grace.
+struct BoardVisibilityWarning {
+    private var began:Double?
+    private var last:Double?
+    private var clearSince:Double?
+    private var clearFrames=0
+    private(set) var active=false
+    mutating func reset() {self=Self()}
+    @discardableResult mutating func observe(blocked:Bool,now:Double)->Bool {
+        guard now.isFinite,last.map({now>$0}) ?? true else {return false}
+        if let last,now-last>1.5 {reset()}
+        last=now
+        if blocked {
+            if began==nil {began=now}
+            clearSince=nil;clearFrames=0
+            if !active,now-began!>=5 {active=true;return true}
+        } else if began != nil {
+            if clearSince==nil {clearSince=now}
+            clearFrames+=1
+            if clearFrames>=5,now-clearSince!>=0.8 {
+                began=nil;clearSince=nil;clearFrames=0;active=false
+            }
+        }
+        return false
+    }
+    static func blocked(_ readings:[Occupancy],expected:[Occupancy])->Bool {
+        guard readings.count==expected.count,!readings.isEmpty else {return true}
+        let unknown=readings.filter{$0 == .uncertain}.count
+        let additions=readings.indices.filter{expected[$0] == .empty && readings[$0].stone != nil}.count
+        let conflicts=readings.indices.contains{expected[$0].stone != nil && readings[$0] != .uncertain && readings[$0] != expected[$0]}
+        // Several clearly visible new stones are an order question. A large
+        // burst plus contradictions at recorded stones suggests a hidden view.
+        return unknown>max(2,readings.count/20) || (additions>8 && conflicts)
+    }
+}
+
 /// Advisory only: detecting an unsaved stone must never alter accepted move history.
 /// A few sightings and a grace period separate ordinary confirmation from a stall.
 struct RecordingWarningMonitor {
@@ -28,7 +65,7 @@ struct RecordingWarningMonitor {
         for index in indices {candidates[index]=nil}
     }
     mutating func noteSound(now:Double) {lastSound=now}
-    mutating func update(readings:[Occupancy],accepted:[Occupancy],now:Double,blocked:Bool,knownPlacementWarnings:Set<Int>=[],trackedMoves:Set<Int>=[],coalesceEpisode:Bool=false)->Signal? {
+    mutating func update(readings:[Occupancy],accepted:[Occupancy],now:Double,blocked:Bool,knownPlacementWarnings:Set<Int>=[],trackedMoves:Set<Int>=[],coalesceEpisode:Bool=false,externalWarningActive:Bool=false)->Signal? {
         guard readings.count==accepted.count,lastFrame.map({now>$0}) ?? true else {return nil}
         let gap=lastFrame.map{now-$0>1.5} ?? false
         lastFrame=now
@@ -66,6 +103,11 @@ struct RecordingWarningMonitor {
         }.map(\.key)
         let interval=coalesceEpisode ? 30.0:Self.minimumSoundInterval
         let canSound=lastSound.map{now-$0>=interval} ?? true
+        if externalWarningActive && !canSound {
+            // The visibility alert already covers this episode. Retain the
+            // unsaved-stone indicator without announcing the same problem twice.
+            for index in overdue {candidates[index]?.warned=true}
+        }
         if !overdue.isEmpty && canSound {
             // Coalesce stones arriving within one callback. The cooldown prevents
             // a hand-shaped cluster or color flicker from producing a sound storm.

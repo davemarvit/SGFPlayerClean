@@ -212,7 +212,8 @@ struct ExperimentView: View {
             HStack {
                 Text(model.running ? "Camera active · recognition continues with views hidden":"Camera stopped").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Set up next game") {workspace.activity = .setup}
+                Button("Camera & setup") {workspace.activity = .setup}
+                    .help("Open camera and setup controls while keeping the current game.")
             }
         }
     }

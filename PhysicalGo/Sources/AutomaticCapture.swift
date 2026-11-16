@@ -84,11 +84,12 @@ struct CaptureConflictMonitor {
 /// Bounded, chronological evidence survives hand re-entry and recognition lag.
 /// Camera interruption, pause or calibration changes still invalidate the epoch.
 struct ClearBoardTiming {
-    private struct View {let time:Double;let position:[Occupancy];let confidence:[Double];let estimate:ClockPressEstimate;let aliases:[Int:Set<Int>]}
+    private struct View {let time:Double;var position:[Occupancy];let confidence:[Double];let estimate:ClockPressEstimate;let aliases:[Int:Set<Int>]}
     private var views=[View]()
     private var consumedUntil = -Double.infinity
     private var lastActivity:Double?
-    mutating func reset() {views=[];consumedUntil = -Double.infinity;lastActivity=nil}
+    private var shadowBoundaries=[Int:Double]()
+    mutating func reset() {views=[];consumedUntil = -Double.infinity;lastActivity=nil;shadowBoundaries=[:]}
     mutating func noteHand(at time:Double) {
         guard time.isFinite else {return}
         if let lastActivity,time-lastActivity>1.5 {reset()}
@@ -96,6 +97,14 @@ struct ClearBoardTiming {
     }
     mutating func consume(through time:Double) {
         consumedUntil=max(consumedUntil,time);views.removeAll{$0.time<=consumedUntil}
+    }
+    mutating func discountDarkReadings(_ points:Set<Int>,since:Double) {
+        for i in views.indices where views[i].time>=since {
+            for p in points where views[i].position.indices.contains(p) && views[i].position[p] == .black {
+                views[i].position[p] = .uncertain
+                shadowBoundaries[p]=max(shadowBoundaries[p] ?? -.infinity,views[i].time)
+            }
+        }
     }
     mutating func observe(_ observation:BoardObservation,now:Double) {
         guard let stamp=observation.capturedAt,
@@ -120,11 +129,12 @@ struct ClearBoardTiming {
             changed.contains {p in target.indices.contains(p) && view.position.indices.contains(p) &&
                 view.position[p] != .uncertain && view.position[p] != target[p]}
         }?.time ?? -Double.infinity
+        let boundary=max(contradicted,changed.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
         return views.first {view in
-            view.time>contradicted &&
+            view.time>boundary &&
             view.estimate.time>=epoch && view.estimate.time>consumedUntil &&
             ReviewBoardVerification.matches(view.position,target:target,requiredClear:changed)
-        }?.estimate
+        }.map{supportedEstimate($0,after:boundary)}
     }
     /// Turn identity can be certain before the exact intersection. Require a
     /// single visible stone, repeated clear frames, and agreement elsewhere.
@@ -144,11 +154,15 @@ struct ClearBoardTiming {
         }
         // A definite absence retracts an earlier flash; later real play needs
         // its own boundary. Hand frames alone do not retract placement evidence.
-        let absent=views.last{view in locations.allSatisfy{view.position.indices.contains($0) && view.position[$0] == .empty}}?.time ?? -.infinity
-        let eligible=views.filter{$0.time>absent && matches($0)}
-        guard let first=eligible.first,let last=eligible.last,let newest=views.last,
-              last.time==newest.time,eligible.count>=3,last.time-first.time>=0.2 else {return nil}
-        return first.estimate
+        let contradicted=views.last{view in
+            locations.allSatisfy{view.position.indices.contains($0) && view.position[$0] == .empty} ||
+                locations.contains{view.position.indices.contains($0) && view.position[$0].stone==color.opponent}
+        }?.time ?? -.infinity
+        let boundary=max(contradicted,locations.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
+        let eligible=views.filter{$0.time>boundary && matches($0)}
+        guard let first=eligible.first,
+              confirmation(eligible,locations:locations,ignoring:Set(aliases.flatMap{$0}),after:boundary) != nil else {return nil}
+        return supportedEstimate(first,after:boundary)
     }
     func firstMatch(target:[Occupancy],changed:Set<Int>,after epoch:Double)->Double? {
         estimate(target:target,changed:changed,after:epoch)?.time
@@ -158,16 +172,81 @@ struct ClearBoardTiming {
         let color:Stone
         let locations:Set<Int>
         let estimate:ClockPressEstimate
+        let confirmation:Confirmation
+    }
+    struct Confirmation {
+        enum Level:String {case strong,handSupported,consistent,cautious}
+        let level:Level
+        let clearViews:Int
+        let span:Double
+        let minimumScore:Double
+    }
+    /// Detector scores are heuristic, not probabilities. A high score alone
+    /// cannot make a short-lived corner/shadow reading press the clock. Both
+    /// provisional paths use the same turn-level evidence policy; the returned
+    /// press still dates to the first supported sighting, not confirmation.
+    private func supportedEstimate(_ view:View,after contradiction:Double)->ClockPressEstimate {
+        guard view.estimate.time>contradiction else {
+            return .init(time:view.time,method:.clearFrame,timestampSource:view.estimate.timestampSource,
+                         fallbackReason:"Earlier hand estimate predates a contradictory stone reading")
+        }
+        return view.estimate
+    }
+    private func confirmation(_ eligible:[View],locations:Set<Int>,ignoring:Set<Int>,after contradiction:Double)->Confirmation? {
+        guard let first=eligible.first,let newest=views.last,eligible.last?.time==newest.time else {return nil}
+        // Uncertainty interrupts confirmation, but does not erase the earlier
+        // timestamp. Definite absence/opposite colour is retracted by callers.
+        let unclear=views.last {view in
+            view.time>=first.time && locations.filter{view.position[$0].stone != nil}.count != 1
+        }?.time ?? -.infinity
+        let run=eligible.filter{$0.time>unclear}
+        guard let start=run.first,let last=run.last else {return nil}
+        let scores=run.flatMap {view in locations.compactMap {p in view.position[p].stone != nil ? view.confidence[p]:nil}}
+        guard let score=scores.min(),score.isFinite,score>=0.9 else {return nil}
+        let ignored=ignoring.union(locations)
+        var previous=start.position
+        let stable=run.allSatisfy {view in
+            guard view.position.filter({$0 == .uncertain}).count<=max(2,view.position.count/20) else {return false}
+            let changes=view.position.indices.filter {p in
+                !ignored.contains(p) && view.position[p] != .uncertain && previous[p] != .uncertain && view.position[p] != previous[p]
+            }
+            // A later reply must not invalidate a completed earlier turn.
+            // Flickering/removing stones, colour changes, and bursts of new
+            // stones elsewhere lower confidence in the whole observation.
+            guard changes.count<=1,changes.allSatisfy({previous[$0] == .empty && view.position[$0].stone != nil}) else {return false}
+            for p in previous.indices where view.position[p] != .uncertain {previous[p]=view.position[p]}
+            return true
+        }
+        let estimate=supportedEstimate(first,after:contradiction)
+        let hand=estimate.method == .handMotion || estimate.method == .handBracket
+        let handInterval=hand && estimate.observedLower != nil && estimate.observedUpper != nil
+        let preciseHand=handInterval && estimate.latestPlausibleTime-estimate.earliestPlausibleTime<=0.6
+        let level:Confirmation.Level
+        let count:Int,seconds:Double
+        if score>=0.97 && stable && preciseHand {
+            level = .strong;count=2;seconds=0.2
+        } else if stable && handInterval {
+            level = .handSupported;count=2;seconds=0.4
+        } else if score>=0.97 && stable && !hand {
+            level = .consistent;count=4;seconds=0.6
+        } else {
+            level = .cautious;count=6;seconds=1.0
+        }
+        let span=last.time-start.time
+        guard run.count>=count,span>=seconds else {return nil}
+        return .init(level:level,clearViews:run.count,span:span,minimumScore:score)
     }
     func pendingTurn(base:[Occupancy],excluding:Set<Int>,color:Stone,after epoch:Double)->ClockPressEstimate? {
         guard let newest=views.last,newest.position.count==base.count else {return nil}
         let points=base.indices.filter{base[$0] == .empty && !excluding.contains($0) && newest.position[$0].stone==color && newest.confidence[$0]>=0.9}
-        return views.first {view in
-            view.estimate.time>=epoch && view.estimate.time>consumedUntil && points.contains {p in
-                view.position[p].stone==color && view.confidence[p]>=0.9 &&
-                    !views.contains{$0.time>view.time && $0.position[p] != .uncertain && $0.position[p].stone != color}
-            }
-        }?.estimate
+        return points.compactMap {p -> ClockPressEstimate? in
+            let contradicted=views.last{$0.position[p] != .uncertain && $0.position[p].stone != color}?.time ?? -.infinity
+            let boundary=max(contradicted,shadowBoundaries[p] ?? -.infinity)
+            return views.first {view in
+                view.time>boundary && view.estimate.time>=epoch && view.estimate.time>consumedUntil &&
+                    view.position[p].stone==color && view.confidence[p]>=0.9
+            }.map{supportedEstimate($0,after:boundary)}
+        }.min{$0.time<$1.time}
     }
     /// Physical turn evidence is local. An unrelated uncertain intersection or
     /// an incorrect candidate path must not make the player keep paying time.
@@ -192,14 +271,14 @@ struct ClearBoardTiming {
                 locations.allSatisfy{view.position[$0] == .empty} ||
                     locations.contains{view.position[$0].stone==color.opponent}
             }?.time ?? -.infinity
+            let boundary=max(contradicted,locations.compactMap{shadowBoundaries[$0]}.max() ?? -.infinity)
             let eligible=views.filter {view in
-                guard view.time>contradicted,view.estimate.time>=epoch,view.estimate.time>consumedUntil else {return false}
+                guard view.time>boundary,view.estimate.time>=epoch,view.estimate.time>consumedUntil else {return false}
                 let occupied=locations.filter{view.position[$0].stone != nil}
                 return occupied.count==1 && occupied.contains{view.position[$0].stone==color && view.confidence[$0]>=0.9}
             }
-            guard let first=eligible.first,let last=eligible.last,eligible.count>=2,last.time-first.time>=0.2,
-                  newest.time-last.time<=0.75 else {return nil}
-            return ObservedTurn(color:color,locations:locations,estimate:first.estimate)
+            guard let first=eligible.first,let confirmation=confirmation(eligible,locations:locations,ignoring:excluding,after:boundary) else {return nil}
+            return ObservedTurn(color:color,locations:locations,estimate:supportedEstimate(first,after:boundary),confirmation:confirmation)
         }.sorted{$0.estimate.time<$1.estimate.time}
     }
 }

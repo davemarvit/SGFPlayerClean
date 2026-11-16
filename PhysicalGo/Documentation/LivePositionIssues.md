@@ -6,12 +6,13 @@ Status: all four batches completed in 0.157 / build 158. Full regression and
 signed-build verification passed. Capture timing retains its configurable policy. See the
 implementation and validation record below for coverage and limitations.
 
-Latest follow-up:0.175 live capture retry remained too slow for practical play.
-It completed27, then WhiteR3 saved28 and clocks switched correctly.28saved,
-Black next, manually paused, capture cleared. User leaving; lighting may change.
-Saved automatic incident clips, current-lighting images and all game logs;
-app closed normally, with no further adjustments per user request. Physical
-matrix15/27 remains; capture responsiveness and earlier67-second stall stay open.
+Latest follow-up: 0.180/build 181 installed and verified before moving locations.
+A19 recognized White in all 64 live validation frames (previously 0/56 in replay).
+Camera and diagnostics stopped; 21 saved moves, White next, both clocks paused
+and unchanged. A19 remains an unsaved physical stone. Recording, calibration,
+preferences and jade-board evidence backed up outside .build. Safe to pack up.
+Physical acceptance remains 16/27; darker jade A1 remains open. Next session:
+calibrate the new empty board and start a separate test recording.
 
 ## Purpose and scope
 
@@ -2462,3 +2463,553 @@ clock/pending/review JSON unchanged from pre-exit snapshot. No code, recognition
 stone or clock-setting adjustments. User also requested commit and push.
 Next session inspect retained evidence before the next fix/test; lighting may
 have changed. Resume from28saved,Black next,WhiteR3 present,T1/T2empty,T3Black.
+
+### 2026-11-13 — New environment: old-game expectations block setup grid
+
+User reports Looking for grid after changing board/stones/location. Camera photo
+shows an empty19x19board fully visible. Retained83-frame diagnostic17-28-16
+F6BE8802 (stopped explicitly; archived under before-new-board-20261113) records
+repeated: Grid found, but known stones do not verify its alignment. recoveryExpected
+still takes the paused28-move game's stones while UI is in next-game Setup.
+Thus this was not failure to detect the new grid. Workflow defect remains open.
+
+Backed up all prior recording files under `.build/GuidedTests/before-new-board-20261113`,
+returned to prior game, ended recording through normal End game confirmation
+(no inferred result), returned to Setup. Grid aligned immediately. Empty-board
+readiness initially had152uncertain points; attempted empty-reference action but
+control was already gone. Subsequent UI showed new saved setup; agent did not
+successfully invoke reference capture or Save game setup. Active recording:
+`Physical Go 52814471-C0DD-4625-800C-709CDBEB9CDD.sgf`.
+Fresh journal now shows0unclear and lightingBlockedfalse;0saved,Black next,
+paused at60s each. Previous28-move SGF byte-identical to snapshot; retained under
+session.previousGuidedRecording, with active testRecording updated to new game.
+No source/build changes. No physical test-count increment.
+
+### 2026-11-13 — New-board White O3 missed (investigation)
+
+User confirmed physical sequence White P4, Black P3, White O3, Black P2. P4 is
+already move4; the next three moves require recovery. Saved SGF and sidecars
+before intervention under `.build/GuidedTests/new-board-white-o3`. Canceled
+inspection without edits and explicitly paused board checking/clocks. Two Black
+stones are real, not duplicate detections. White O3 is visible in the raw image.
+
+Retained `Diagnostic 2026-11-13 17-42-15 264A828E` under the same snapshot folder:
+760 frames,657 processed observations; O3 uncertain640,white17. Both Black P2/P3
+and saved White P4 recognized in all657 observations. Reference-backed detection;
+clear hand outline, supported alignment, no lighting block. The recorded-image
+replay reproduces the failure with and without an empty-board reference. The
+white stone's body is slightly darker than reference wood; investigating the
+fixed brightness allowance and independent bounded shape evidence. No move
+history, clock balance, or recognition-setting edits yet. No test-count increment.
+
+Diagnosis: O3 is slightly darker than the yellow reference wood. The existing
+absolute -0.06 luminance allowance rejects enough body pixels to break both
+classification and outline fitting. Instrumented replay also shows faint-rail
+coverage alternating true/false. A new fallback considers only uncertain points
+with existing partial white-color evidence, no blocked geometry/ownership or
+surviving-cross contradiction, and requires a separate white disk with quality
+>=0.94, normal radius and center. Its color evidence still requires strong loss
+of wood tint; the luminance floor is relative (75% of reference wood). Empty
+readings are not promoted by this fallback. No history labels are visual proof.
+Actual frame1/frame13 fixtures added with all seven stones annotated; first725
+photo/empty/shadow assertions passed. Broader regressions and signed0.176/build177
+are running; installation pending.
+
+History repair completed through normal review UI using the user-confirmed
+B P3, W O3, B P2 sequence and camera-snapshot correction. Verified exact seven
+SGF moves; review committed. White next, clocks paused, exact balances unchanged:
+Black129.1243270211853 / White92.07860514544882. Move5 retains its known clock
+boundary; no times or increments were inferred for moves6–7. SGF labels manual
+entries and the clock-history boundary. Do not describe the displayed balances
+as reconstructed times for the missed turns.
+
+Longer offline replay: first100 consecutive processed frames from the preserved
+clip, exact original calibration/reference. Old O3 White2/100; new100/100, no
+missing/recolored real stones and no extra detections across all361 points.
+Five consecutive O3 White readings reached at1.054702seconds; longest run100.
+Worst measured detector time0.092901s in this replay. This is offline evidence;
+live installation/verification and physical removal/replacement remain pending.
+
+Validation complete:8/8 selected suites passed (`shaded-white-test`,
+`known-empty-lighting-test`, `camera-preview-test`, `lighting-test`,
+`touching-shadow-test`, `geometry-test`, `appearance-test`, `test`), plus7 Python
+build-registry checks and clean diff whitespace. Full signed build0.176/build177
+verified. Logs `/tmp/physical-go-0176-{regressions,build,o3-replay,install}.log`.
+Existing touching-shadow suite still documents its3 preexisting small/striped
+wood-cover limitations; this change does not claim to resolve those.
+
+Installed normally with backup `Install-0.176-20261113-175541`. Source hash
+`9f55852af44afd4da58019787a1ae59af77f7072c06ea121a0e6f78302b93fd9`,135 production
+sources. Exact SGF and semantic clock/pending/review sidecars preserved across
+quit/install/relaunch. Live verification50 successive fresh observations over
+approximately10s: exact7stone position every time, O3 White,0unclear,0extras,
+7saved/White next/clocks stopped. Evidence saved at
+`.build/GuidedTests/new-board-white-o3/live-0176.json`.
+
+Next physical check: while paused remove only White O3, clear hand and leave it
+off. Expect a prompt missing-stone ring,7saved and stopped clocks; then separately
+replace White O3 and verify recognition/ring clearance. Not yet reported by user;
+no physical matrix-count increment.
+
+User confirmed the 0.176 White O3 removal check: orange ring appeared immediately. Replacement/ring-clearance check is next. Move count and clock state were not explicitly reconfirmed in this reply; no matrix-count increment.
+
+User confirmed White O3 replacement: ring cleared promptly,7 saved moves and both clocks stopped. O3 removal/replacement regression PASSED on installed0.176. This closes the new-board O3 recognition incident; broader physical matrix remains15/27 (additional regression, not a previously uncompleted matrix case).
+
+Next broader test uses the new board's existing Black P2/P3 group. Verified with
+SGFPlayer from the actual7-move SGF: W O2, B D16, W Q2, B K10, W P1, B K16
+are legal and make no captures. User can do all six setup moves in one Resume
+cycle, clearing hands and waiting for each saved move/turn change; Pause at13,
+White next. Q3 must remain empty. Subsequent W Q3 captures exactly Black P2/P3
+at threshold2. Capture placement and removal will be separate checkpoints to
+measure hold/completion. Setup is instructed, not yet reported complete.
+
+### 2026-11-13 — New-board capture setup: grid interruption and O2 warning
+
+User reports a brief grid loss and a well-positioned stone ring that resolved.
+Journal confirms this affected clocks, not just display. WhiteO2 saved as move8;
+then grid gate repeatedly failed distributed/outer-rail support (one border only
+0–2 matches; minimum3) despite low profile error. Hold began1794624688.729383.
+Moves9–12 (B D16,W Q2,B K10,W P1) recovered together1794624708.222299 without
+complete clock boundaries; clock needsCorrection true,Black next,12 saved.
+Exact held balances Black126.54032706283033/White117.28732356149703. No inferred
+increments/times. WhiteO2 (canonical248) was marked uncertain, then live ring
+cleared. Current photograph has no BlackK16; asked user whether placed.
+
+Saved complete recording sidecars/journal and recent-event extraction under
+`.build/GuidedTests/new-board-setup-grid-0176`; bounded current camera clip
+`Diagnostic 2026-11-13 18-53-21 0C2AB14F` stopped and archived there with KEEP.
+The clip is after the reported event, not footage of the entire earlier outage.
+Setup and capture test remain incomplete; do not play WhiteQ3 yet. No source
+changes, clock corrections, or test-count increment in this investigation.
+
+Post-event clip analysis:77 saved frames,68 processed observations. O2 was White
+in43 and empty in25; this is ongoing unstable recognition despite the warning
+ring clearing. Do not call the issue resolved or proceed to capture on the basis
+of the cleared ring alone. The preserved images support independent diagnosis.
+
+User confirmed WhiteP1 present and BlackK16 unplayed. During offline diagnosis,
+recording remained active despite timing hold; O2 flicker generated7 unresolved
+review tabs, then one more before camera stopped. All8 differ only atO2 between
+White and empty. Stopped camera and quit normally; backed up before-review-cleanup.
+Verified zero-move resolution on a copy via normal GameRecorder.resolveReview
+APIs, then applied to active record. All8 resolved, exact12-move SGF and balances
+preserved; timing review remains required. Restored app paused. A missing stone
+alone escalating to chronology reviews after12seconds is an additional defect:
+these should remain recognition/restoration issues, not repeated move-order tabs.
+No production changes for O2/grid/review proliferation yet.
+
+0.177 candidate fixes under test (not yet installed):
+- Near-equal brightness no longer wins over partial white color plus positive
+  disappearance of at least2 previously visible ink samples on each axis, with
+  no surviving samples. This path needs a separately fitted White disk>=0.90;
+  failed shape evidence stays uncertain. Positive exposed wood still wins.
+- Shaded-white outlines can mask the exterior portion covered by independently
+  recognized neighboring stones. Body votes remain unmasked (>=92% agreement),
+  at least half the exterior ring must remain visible, and centers stay separate.
+  This also handles raw O3 uncertainty beside the newly placed O2: all68 raw
+  observations in the post-event clip had O3 uncertain, previously retained by
+  the established-stone tracker. Do not mislabel that as reliable raw recognition.
+- Faint OUTER anchor rails may use a lower relative contrast floor only with a
+  centered valley and both flanks, then matching fresh normalized profile shape.
+  All4 outer borders, distributed support and existing movement rejection remain.
+- Without an existing unresolved chronology, a removal-only observation cannot
+  start a move-order review. Persistent absence keeps its normal actionable
+  discrepancy. Existing deferred sequences and actual additions retain reviews.
+
+New two-photo FaintBoardO2 fixture, exact reference/anchor, all12stones annotated:
+731 checks passed before final neighbor-mask filtering; full rerun underway.
+New prolonged missing/restored-stone test reproduces review creation on0.176.
+Full selected regression batch and signed0.177/build178 compiling.
+
+### 2026-11-13 — 0.177 verified and installed; false review queue cleared
+
+All18 selected suites passed: faint-board731, review-flicker21, shaded-white725,
+glare-grid64, known-empty90/residual-glare171, live-position65, resume-alignment18,
+camera-preview11, capture-clock113+103+75+429, recovery-lifecycle16,
+physical-review87/review-queue218, lighting86, covered-grid108 variants,
+visible-grid27 variants, touching-shadow27 variants, geometry27 cases,
+automatic-grid71, vision373 (includes placement199 and rectification47).
+Build registry7 and whitespace checks passed. The first review-queue run raced
+an asynchronous clock write when reopening a recorder immediately after capture
+confirmation. Unmodified reruns passed on both0.176 and0.177; corrected the test
+to call flushStorage before simulated restart, matching normal app shutdown.
+No clock production behavior changed for this test correction.
+
+Full68-frame clip: O2 now White68/68 (formerly43), O3 White68/68 (formerly all
+uncertain), no extra stones, no new missing readings. First five O2 matches span
+1.094s. A separate PREEXISTING P1 edge-reading issue remains: empty13/68, identical
+frames to original0.176 readings. Initial strict all12 replay failed on these13;
+subsequent comparison explicitly checks them against the old readings, rather
+than claiming perfect recognition. This limitation is not fixed by0.177.
+
+Installed signed0.177/build178, source hash
+94d29bf48448487e751e2fdfd486c8e0df67d3547f39020aec2bef05f4ed0e9b.
+Backup Install-0.177-20261113-191812. Exact SGF and semantic clock/pending/review
+sidecars preserved across normal quit/install/relaunch. Live verification100
+observations: O2/O3 White100/100, P1 White78/empty22, all other points match,
+no unresolved reviews. Evidence: new-board-setup-grid-0176/live-0177.json.
+Do not describe this as a clean full-board camera pass. Camera live, recording
+paused,12 saved,Black next, balances126.54032706283033/117.28732356149703.
+Clock review still required; no clock correction or invented timing performed.
+Resolved review tabs remain as historical evidence and need no user action.
+
+Next work: diagnose P1 edge readings, then user clock review and BlackK16 setup
+move13 before the separate WhiteQ3 capture checkpoint. Exact earlier grid outage
+is not captured in the retained post-event clip; physical confirmation remains
+necessary. No increment to15/27 physical acceptance count.
+
+### 2026-11-13 — P1 edge recognition investigation (0.178 candidate)
+
+User requested diagnosis before continuing capture. Reproduced P1 empty in
+frames10/16 using the unchanged0.177 runtime. At canonical(row14,col0), initial
+white-color hint survives but brightness resembles reference wood. Only1
+horizontal and2 vertical ink samples are reliable; frame16 loses1 on each axis.
+The old coverage gate needs2 samples per axis, so brightness-only empty prevents
+strong shaded-white outline fitting. Independent disk fit quality0.995–0.998
+in failing frames, with no exposed-wood evidence or surviving ink samples.
+
+Candidate allows an outer-edge brightness-only empty to attempt the existing
+>=0.94 white disk fit only when both axes have positive missing reference ink,
+no surviving samples, a white-color hint, no wood evidence and no ownership or
+geometry block. Interior conditions unchanged; failed fit preserves empty.
+No saved position or expected stone count is used to label the image.
+Added both failing photos to FaintBoardO2 fixture and edge exposure controls.
+Verification in progress; installed app remains0.177, paused12moves.
+
+P1 candidate verification progress: four-photo check1461 passed. Full recorded
+68-frame replay now recognizes all12stones in every frame, with0 missing,
+0 extra (P1 formerly13empty). Candidate BoardDetector compiled against unchanged
+0.177 companion runtime; final production-runtime suites/build still running.
+Added small positive/negative exposure tests plus edge shadows retaining rails.
+
+Final0.178 runtime: all68 recorded frames show exact12stones,0 missing/extra;
+worst measured detector time0.146s while build/tests were active. All10 selected
+suites pass: faint-board1473, review-flicker21, shaded-white727, known-empty90+
+residual-glare171, capture-clock113+103+75+429, covered-grid108 variants,
+visible-grid27 variants, touching-edge1011, geometry27 cases, vision373.
+Build registry7 and whitespace checks pass. Signed0.178/build179 installed,
+hash8157230949585f70ed96ebe1b8b9814aa46b3b131eb7f18e732f8db54b977d2d.
+Backup Install-0.178-20261113-192911; exact SGF and semantic clock/pending/review
+sidecars preserved before relaunch. Live verification in progress.
+User says the choice of clock balances does not matter because this is a test;
+keep held balances and clear timing review while paused after verification.
+
+Post-install verification:100 consecutive fresh observations over26.22s, exact
+12stones in every frame,0 uncertainty/extra detections. Exact SGF and semantic
+clock/pending/review sidecars unchanged across relaunch. Evidence at
+new-board-setup-grid-0176/live-0178.json. Then, with user authorization, used
+Clock options > Adjust clocks > Save clock correction to acknowledge held test
+times. Black126.540327 (numeric field rounded by <1microsecond), White exact
+117.28732356149703. Verified needsCorrection false,clock anchor absent,12moves,
+Black next,all reviews committed,exact SGF unchanged. No missing timing inferred.
+
+Next physical check instructed (also Kokoro): leave paused, remove only WhiteP1,
+clear hand for3seconds, replace it, clear hand. Expect missing-stone warning then
+clearance,12saved,Black next,both clocks stopped. Await user report; do not count
+physical regression as passed yet. Then resume capture setup at BlackK16.
+
+User reports P1 removal/replacement worked. Journal confirms11 observations of
+P1 empty followed by White restored; final12saved,Black next,paused,0unclear,
+0extra,needsCorrection false. Evidence p1-physical-0178.json. Physical regression
+PASSED, no acceptance-matrix increment. To reduce unnecessary setup pauses,
+next instruction combines B K16 (wait13saved/White clock) with W Q3 placement.
+Leave captured BlackP2/P3 on board, clear hands, expect both clocks held and
+removal prompt. Removal remains a separate timing checkpoint; not yet performed.
+
+### 2026-11-13 — Q3 capture placement and grid support regression
+
+BlackK16 saved correctly as13; WhiteQ3 did not establish a capture hold. User
+paused: Black148.2037982498635,White85.94939968571998,White next,no clock review
+required,no capturePosition. Preserve Q3 and both BlackP2/P3 prisoners physically.
+Saved recording sidecars/journal under new-board-q3-0178; captured and stopped
+Diagnostic19-34-21 2B8E1D48,126images,94operations,83delivered/11grid rejected.
+Delivered Q3 rawWhite59/empty24. No move was manually added or timing invented.
+
+Q3 brightness resembles wood; white hint and strong disk survive, but only1
+horizontal reference ink sample is reliable, versus4vertical. Typically3vertical
+samples disappear,none survive. The0.178 edge-only recovery was too narrow.
+Candidate0.179 uses >=2 disappeared samples with evidence on both reference axes
+and zero surviving samples to permit the existing>=0.94 white disk fit, anywhere
+on the board. Wood and ownership guards remain. Failed fits retain previous
+labels. Initial all126 replay:Q3 White123/empty3,no extras; frame78 also has an
+uncertain Q2. These isolated residuals are explicitly retained as limitations,
+not claimed as perfect detection. Full recorder replay is needed to assess holds.
+
+Outer-rail midpoint profiles reject11frames despite low profile error. Candidate
+samples up to5 positions per outer segment, counting each segment ONCE; requires
+same3distinct segments on EACH border, distributed support, real contrast and
+normalized shape match. All11previously rejected images now supported in
+prototype. Added FaintCaptureQ3 frames2/3/5/64, exact anchor and13-move SGF for
+photo-to-recorder capture-hold regression; full build/test pending.
+
+Full126-image prototype replay passes: all grids accepted;Q3 White123/126,
+remaining3 isolated empty readings plus1 Q2 uncertainty retained as limitations.
+Using original frame timestamps, GameRecorder enters threshold2 capture hold
+at0.594s. Through the rest of the25s clip, both clock balances stay fixed,
+remaining prisoners stay exactlyP2/P3,13moves stay saved. No capture completion
+invented. Full replay45984checks; committed4-photo regression1454checks.
+The first fixture attempt omitted handObstructed=false; the recorded hand-pose
+and outline decisions were clear. Supplying that pipeline result fixes the test
+setup; no hand-clear or clock policy was relaxed. Final14-suite runtime and
+signed0.179/build180 compiling; not installed yet.
+
+Final0.179 runtime reproduces the full126-frame result:45984checks, capture hold
+at0.594s,all126grids supported,stable clocks and prisoner count thereafter.
+All14 selected suites pass: faint-capture1454,faint-board1473,review-flicker21,
+shaded-white727,glare-grid64,known-empty90/residual171,resume-alignment18,
+capture-clock113+103+75+429,covered-grid108variants,visible-grid27variants,
+touching-edge1011,geometry27cases,automatic-grid71,vision373. Python registry7
+and whitespace checks pass. No clock/recorder policy changed in0.179.
+
+Installed signed0.179/build180,source hash
+1f826d7f4de82beb194c2c1b14ce5e843cde4d8b0ddb5bd04387565bbf47baa9.
+Backup Install-0.179-20261113-194609; exact SGF and semantic clock/pending/review
+sidecars preserved across normal quit/install/relaunch. Recorded move count13;
+clock baseMove remains12 (correction boundary), with timed move13 stored in clock
+history. White next,paused. Post-install live check underway.
+
+Post-install live check100observations:Q3 White87/empty13, Q2 uncertain3; all
+other points correct. First3 coherent views at0.649s,longest coherent run14.
+No grid-alignment warning events in this verification interval; camera Live.
+Exact SGF and semantic clock/pending/review sidecars preserved;13saved,White
+next,paused,balances148.2037982498635/85.94939968571998. Evidence live-0179.json.
+This is improvement with residual single-frame misses, not a full-board perfect
+recognition pass. Physical capture remains UNVERIFIED. Instructed clean retry:
+remove only unsaved WhiteQ3 whilepaused,clear3seconds,Resume,replaceQ3,clear.
+Leave BlackP2/P3 in place and report hold/removal prompt before removing them.
+
+Retry clarification: after Resume, wait for White clock to start BEFORE replacing
+Q3, so base-board verification finishes first. Final user instructions include
+this requirement; initial Kokoro sentence did not explicitly include that wait.
+
+User confirms0.179 physical retry: both clocks stopped and two-Black-stone
+removal prompt; P2/P3 still present. Journal confirms automatic capture hold
+at1794628111.339947,firstFrame1088387.1456336663,decision1088388.0593909167:
+0.914s from first candidate image to hold.13saved,Black148.2037982498635,
+White76.37752256123349,both stopped. Capture-hold checkpoint PASSED; completion
+not yet tested. Latest generic recordingProblem says next move could not be
+verified while active capture status correctly requests two stones; retain as
+possible messaging issue, not evidence the hold failed.
+Next: leave automatic hold active,remove both BlackP2/P3 together,clear hands;
+expect14saved and Black clock automatically resumes,then user Pause. Removal
+speed and final clock switch remain pending; no physical-matrix increment yet.
+
+User confirms successful prompt two-prisoner removal. Journal: first clear
+1088421.5376668759,completion1088422.9956734583,delay1.458006582s. Move14WhiteQ3
+saved,Black automatically runs,White receives exactly30s (76.37752256123349 to
+106.37752256123349). User paused atBlack137.91692825060937/White106.37752256123349,
+no uncertainty/extra detections. Newboard capture regression PASSED; original
+threshold2 case was already passed, so matrix remains15/27.
+
+Diagnostic19-49-50 DC97EE78 stopped and archived under new-board-q3-0178 with
+KEEP,390frames. Its initial state is ALREADY14saved: collection began after
+completion. It does NOT capture the removal transition; reported1.458s is from
+the journal's verified-clear boundary, not an independent image hand-clear time.
+
+Next active-capture camera stop/start retry: using current14move game, simulated
+B B1,W A1,B B2,W A2 (alllegal,nocapture),thenBlackA3 capturesWhiteA1/A2 exactly.
+User can batch four setup moves in one Resume cycle,waiting for each saved move
+and next clock,thenPause at18,Blacknext,A3empty. Capturing move and camera outage
+remain separate checkpoints. No new setup moves reported yet.
+
+### 2026-11-13 — A1 corner setup stalls confirmation of B2/A2
+
+User reports four-move setup done. Saved15BlackB1/16WhiteA1,with high-confidence
+ordered BlackB2/WhiteA2 retained; journal status2tentativemoves. A1 readsempty,
+blockingstableconfirmation. Paused,Blacknext,no timingreview,balances
+183.51502995871607/156.02402268652804. Do notplayA3 until18savedverified.
+Snapshot under new-board-a1-0179. Diagnostic20-00-16 228A58E1 stopped/archived
+withKEEP:159frames,117processed,A1empty114/White3. Actualphoto showsWhiteA1
+present,slightlytowardouterboardedge. Initialwhitehint,referenceink[1,2],
+missing[0,2],nosurvivingink,nowoodcontradiction. Strongshaded-white diskfitfails;
+thisisnotlackofentrytothe0.179ink-lossrecoverypath. No sourcechangesyet.
+AskeduserwhilepausedtocenterWhiteA1preciselyonthecornerintersection,smallnudge
+inward,leaveeverythingelseunchanged;helpsisolateedge-background/outlineeffect.
+
+Offline fit diagnostic: A1 body has~97%white votes,fitcenter(0.04,-0.16),
+radius0.48,quality0.859–0.867 (required0.94). Exterior ring~16%white drives the
+penalty. Adjacent A2 footprint quality0.877 is below0.90 masking admission;
+neighbor/edge contamination is a likely contributor,not yet validated. Initial
+physical offset~0.16cell is within normal0.28fit limit,so do not describe the
+stone as illegally or grossly misplaced. Centering request is a diagnostic;
+software should handle reasonable placement and still needs evaluation if it
+only succeeds after adjustment. No production code/build changes this turn.
+
+User clarification: swapped A1 for a better-looking/lightly colored White stone;
+this is a jade set and the original is darker than most White stones. This was
+NOT a controlled centering-only change. Latest100observations nowWhiteA1,
+confidence1,offset0.08,no warning.16saved+2retained remain whilepaused,clock
+balancesunchanged. Lighterreplacement is a WORKAROUND; darkerjade issue OPEN.
+Preserved original photos allow regression work without claiming color alone
+caused the difference (placement also changed). NextResume,wait18saved/Blackclock,
+thenBlackA3,clear,leaveWhiteA1/A2 for capturehold and subsequentcamera-outage test.
+
+Lighterjade comparison captured/stopped/archived withKEEP: Diagnostic 2026-11-13 20-05-30 21C7B7C9.
+No source/build changes;0.179 remainsinstalled.
+
+Userconfirms18savedthenBlackA3capturehold. Journalholdfirstframe1089693.5406334999,
+decision1089694.3298183752 (~0.789s). HeldBlack175.11424262568954,
+White156.02402268652804. Snapshot a3-camera-outage-0179. AgentusedStopcamera,
+waitedatleast5seconds,verifiedoffhold,Startcamera; neverpressedPause/Resume.
+FreshviewsafterrestartshowA1/A2White,A3Black,0unclear,18saved,automaticcapture
+stillactive. ExactSGFandbalancespreserved. Camera-restart checkpointPASSED.
+
+StartedcontinuousdiagnosticBEFOREremovalinstructions;pointer
+/tmp/physical-go-a3-removal-capture-path. Muststop/archiveatnextreply.
+NextremovebothWhiteA1/A2,clearhand;expect19saved/Whiteclock. ThenWhiteD10,
+clearhand;expect20saved/Blackclock,Pause. SimulatedcaptureandD10withrepository
+SGFPlayer: legal,exact2prisoners,noadditionalcapture. Wholeoutagescenarioawaits
+removal/continuation;do notincrementacceptancecountyet.
+
+### 2026-11-13 — Active-capture camera restart passed
+
+The user's successful result is confirmed by the journal. Capture move 19
+completed at uptime 1089891.82376675, after the first verified-clear frame at
+1089890.523666917: 1.3001 seconds. Black received exactly one 30-second increment,
+from 175.11424262568954 to 205.11424262568954. White D10 saved as move 20 and
+started Black's clock. The user then paused: Black 198.08966539687145, White
+173.61548924911767. No pending capture, timing review, unclear points, or unsaved
+points remain. The original 18-move SGF prefix is byte-for-byte unchanged; only
+moves 19 and 20 were appended.
+
+The active-capture camera-outage scenario has passed end to end. Physical
+acceptance is now **16/27 (about 59%)**, with 11 remaining; four outage/restart
+variants remain. This is a new scenario pass, unlike the preceding Q3 retest.
+
+The diagnostic clip is stopped and archived with KEEP under
+`.build/GuidedTests/a3-camera-outage-0179`: 678 images, beginning at 18 saved moves.
+It includes the removal transition and White D10. The first processed clear
+image is 296; its processing event is at uptime 1089890.8153775418. The reported
+1.3001-second delay uses the journal's capture-time boundary, not processing time.
+
+Next, retry the manually paused capture/camera-outage case. Simulation from the
+actual 20-move game confirms that Black B18, White A19, Black B19, White A18 are
+legal and make no captures. A later Black A17 captures White A18/A19 exactly.
+The user is instructed to batch those four setup moves, then pause at 24 saved
+moves, Black next, with A17 empty. Manual pause, camera restart, and removal will
+remain separate checkpoints. Use the lighter White stones for this clock-policy
+test; the darker jade recognition defect remains open. Setup is not yet reported.
+
+### 2026-11-13 — A19 corner recognition blocks the next setup
+
+Black B18 saved as move21. White A19 is visible at the corner but not recorded;
+no later setup moves were observed. User paused at Black223.4993453540713 /
+White118.87759770848788, White next, no timing review. Keep A17 empty.
+Saved recording sidecars under new-board-a19-0179. Stopped and archived diagnostic
+20-23-25 2D6C1002 with KEEP:76images,56processed,all56 A19 readings empty.
+The candidate reports empty confidence1 and no white-color hint; local wood-color
+adjustment is large. Reference ink support is[0,2],with both available samples
+missing. The default strong shaded-white fit (zero color-shift probe) is near
+0.91–0.92 quality,below0.94. Investigating actual global-versus-local color
+adjustment before changing thresholds. No source/build edits yet.
+
+
+A19 diagnosis: after correcting lighting from exposed wood, the stone retains a
+cool jade tint. Saturation reduction alone rejects most body pixels. A general
+color check now also accepts a low-saturation cool surface with both substantial
+red loss and blue gain relative to corrected wood. Brightness, exposed wood,
+surviving ink, shape and ownership checks still apply; no coordinate or saved
+move count is used to invent an observed stone.
+
+The other contributing factor is the corner reference rail: only one axis has
+reliable ink. Two positively lost ink samples with none surviving can now
+challenge brightness-only empty even on one axis, but the same strong white disk
+fit (quality >=0.94) is still required. This is weaker ink-loss evidence, not a
+claim that both rails are covered. Color-only changes recognized 13/56 frames;
+combined changes recognized 55/56, with no other point/color errors. Frame 62
+remains a miss. The original app reported A19 empty in all 56 frames.
+
+Added JadeWhiteA19 photo fixtures with five recognized frames and the residual
+miss, absence controls from earlier board photos, and cool-colored circular
+lighting patches that retain rails. Broad vision, glare, shadow, grid, and
+capture regression checks and a signed 0.180/build 181 are in progress.
+
+
+### 2026-11-13 — A19 validation and departure from the jade-board location
+
+The production runtime replays the original A19 incident at 55/56 White, with
+one residual empty result (frame 62) and no other stone errors. All **18/18**
+selected regression suites passed: jade-white, faint-capture, faint-board,
+shaded-white, glare-grid-recovery, known-empty-lighting, resume-alignment,
+capture-clock, recovery-glare, lighting, covered-grid-stone, visible-grid-stone,
+touching-shadow, shaded-cross, touching-edge, geometry, grid, and base vision.
+Seven Python build checks also passed. The signed 0.180/build 181 was installed
+by normal quit/relaunch, preserving the exact SGF and semantic clock, pending,
+and review sidecars. Source hash:
+`ad32ecb51c3bd233d86bd930009f9ba4571c579aac0c9a19d477862f1c2cf2fd` (135 sources).
+
+Before packing, a fresh paused live clip captured 77 images / 64 processed
+observations. **A19 was White in all 64**, both before and after lighting
+adaptation. White O2 was briefly empty in 2/64; all other points matched and no
+extra stones were invented. This is a short live stability check, not a completed
+placement/removal test or proof of perfect recognition. The old darker A1 photos
+still fail in the separate replay; that limitation remains open.
+
+The user is moving to traditional boards in another location. Camera and
+continuous diagnostics are now stopped, and both clocks remain paused. The
+recording still has 21 saved moves, White next, Black 223.4993453540713 seconds /
+White 118.87759770848788 seconds. A19 was observed but never saved; no move or
+time was fabricated for it. The manual-pause capture setup remains incomplete,
+with A17 empty. Acceptance remains **16/27**, with 11 scenarios remaining.
+
+An independent APFS copy-on-write backup outside `.build` preserves the current
+recording and all sidecars, empty reference, app preferences, session progress,
+and six incident folders covering O3, grid/O2/P1, Q3, A1, A19, and the successful
+A3 camera-outage capture. A seventh folder contains the final A19 live clip.
+Original evidence file inventories and sizes match; event logs match byte for
+byte. SGF and full clock JSON also match the pre-install snapshot after the live
+check and camera stop. Backup location:
+`~/Library/Application Support/Physical Go/Backups/Jade-board-location-20261113-203757`.
+
+Next session should establish a new empty-board calibration/reference and a
+separate test recording for the new board and lighting. Keep this saved game
+and evidence intact; do not reuse its lighting baseline as evidence about a
+physically different board. Resume outstanding capture-policy/outage scenarios
+from a convenient fresh setup, batching routine placements where appropriate.
+
+### 2026-11-15 — stale alignment failure after manual corners
+
+The setup banner retained `alignmentCheck.failed` from an earlier automatic
+grid search even after manual corner selection and fresh live validation. The
+green new-game readiness message independently requires fresh aligned frames
+and a verified empty board, so the two messages could contradict each other.
+
+Canceling a search or changing manual corners now clears its obsolete result.
+A fresh accepted live observation supersedes a failed search only after the
+existing obstruction, alignment, lighting and possible-board-movement gates.
+No recognition thresholds, move timestamps, capture rules or clock logic changed.
+
+Verification: optimized camera-preview and workflow-ui suites both passed
+(`/tmp/physical-go-alignment-tests.log`), including six added status assertions
+for accepted live frames, hand obstruction, freeze/stale frames, recovery, corner
+edits and grid reset. Existing clock/capture/game-preservation checks passed;
+`git diff --check` passed. Source fix only: installed/running 0.186 was left
+untouched to preserve the user's current calibration and live testing session.
+
+### 2026-11-15 — 0.187: in-game rotation and B19 false-pause timer
+
+Added Rotate view to local Play controls and renamed Set up next game navigation
+to Camera & setup. Existing Setup rotation remains usable during a game; manual
+rotation changes display orientation without rewriting recorded coordinates.
+
+User confirmed displayed B19 (raw point 323 at quarter-turn 1) was empty. Its
+flickering black readings nonetheless triggered a clock review after move 4.
+The candidate vanished in a clear frame, but resetObservationHistory did not
+clear provisionalTimingBlockedSince, allowing the next flicker to inherit the
+previous two-second deadline. Clearing that timer with its history fixes the
+reproduced false pause. Continuous unresolved timing keeps the existing guard.
+
+Saved readings plus a reconstructed initial logged adjustment marker reproduce
+the old pause at the exact recorded observation. The new fixture verifies no
+false pause/press, the actual F4 fifth move, its own timestamp, and correct elapsed
+time. Images were unavailable: diagnostics had hit the configured storage cap.
+The visual cause of the false reading remains undetermined.
+
+Verification: 122 transient-pause checks; seven additional suites (shadow
+recognition, adaptive timing, placement timing, provisional play/captures, camera
+preview/alignment, workflow, orientation); seven build-registry checks; whitespace
+and strict signed-bundle checks all passed. Installed/relaunched 0.187/build188.
+Five-move SGF and exact held clock engine verified unchanged after normal shutdown
+and relaunch. Existing clock review remains for user confirmation, White next.
+Backup, original journal/sidecars, before-fix probe, regression logs and verification:
+`/Users/dave/Documents/SGF PLayer/work/clock-pause-2026-11-15`.

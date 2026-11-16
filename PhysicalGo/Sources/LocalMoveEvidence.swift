@@ -42,6 +42,14 @@ struct LocalMoveEvidence {
     var runCount:Int { points.reduce(0) { $0+$1.count } }
     var sampleCount:Int { points.reduce(0) { $0+$1.reduce(0) { $0+$1.count } } }
     mutating func reset() { points=[];expiredPoints=[];anchors=[:];lastTime=nil }
+    mutating func discountDarkReadings(_ suspect:Set<Int>,since:Double) {
+        for point in suspect where points.indices.contains(point) {
+            // A compressed run straddling this boundary lacks exact interior
+            // timestamps. Drop its dark evidence rather than invent a split.
+            points[point].removeAll{$0.value == .black && $0.last>=since}
+            anchors[point]=nil;expiredPoints.remove(point)
+        }
+    }
 
     mutating func observe(_ readings:[Occupancy],base:[Occupancy],now:Double) {
         guard lastTime.map({now>$0}) ?? true else { return }

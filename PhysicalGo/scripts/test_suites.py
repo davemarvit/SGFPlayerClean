@@ -25,6 +25,17 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'shadow-recognition-test': Suite('ShadowRecognitionTests', 'app', ('Tests/ShadowRecognitionTests.swift',), optimized=False),
+    'go-club-visibility-test': Suite('GoClubVisibilityTests', 'app', ('Tests/GoClubVisibilityTests.swift',), optimized=False),
+    'missing-provisional-review-test': Suite('MissingProvisionalReviewTests', 'recorder', ('Tests/MissingProvisionalReviewTests.swift',), optimized=False),
+    'adaptive-turn-timing-test': Suite('AdaptiveTurnTimingTests', 'recorder', ('Tests/AdaptiveTurnTimingTests.swift',), optimized=False),
+    'clock-awaiting-turn-test': Suite('ClockAwaitingTurnTests', 'recorder', ('Tests/ClockAwaitingTurnTests.swift',), optimized=False),
+    'transient-clock-pause-test': Suite('TransientClockPauseTests', 'recorder', ('Tests/TransientClockPauseTests.swift',), optimized=False),
+    'jade-white-test': Suite('JadeWhiteTests', 'vision', ('Tests/JadeWhiteTests.swift',)),
+    'faint-capture-test': Suite('FaintCaptureTests', 'app', ('Tests/FaintCaptureTests.swift',)),
+    'faint-board-test': Suite('FaintBoardTests', 'vision', ('Tests/FaintBoardTests.swift',), extra=('Sources/AutoGridDetector.swift',)),
+    'review-flicker-test': Suite('ReviewFlickerTests', 'app', ('Tests/ReviewFlickerTests.swift',), optimized=False),
+    'shaded-white-test': Suite('ShadedWhiteTests', 'vision', ('Tests/ShadedWhiteTests.swift',)),
     'capture-hold-feedback-test': Suite('CaptureHoldFeedbackTests', 'app', ('Tests/CaptureHoldFeedbackTests.swift',), optimized=False),
     'lighting-interruption-test': Suite('LightingInterruptionTests', 'app', ('Tests/LightingInterruptionTests.swift',), optimized=False),
     'glare-grid-recovery-test': Suite('GlareGridRecoveryTests', 'vision', ('Tests/GlareGridRecoveryTests.swift',), extra=('Sources/AutoGridDetector.swift','Sources/KnownEmptyLighting.swift')),

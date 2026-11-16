@@ -1,0 +1,6 @@
+{
+  "recording": "Physical Go 1B8721B8-F691-4F96-9BFD-FE6ED968F445",
+  "capturedMoves": 7,
+  "incident": "Clock review cleared needsCorrection but retained awaitingTurn, so fresh board verification could not resume clocks.",
+  "files": "Unmodified saved SGF, clock and pending checkpoints copied while diagnosing the incident."
+}

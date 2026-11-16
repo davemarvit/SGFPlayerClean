@@ -6,7 +6,7 @@ import Foundation
     struct Witness:Codable {
         let time:Double
         var depth:Int
-        let unknown:Set<Int>
+        var unknown:Set<Int>
         // Older pending checkpoints omit this optional evidence.
         var clearSingle: Bool?
         var complete=true
@@ -152,6 +152,17 @@ import Foundation
         return copy
     }
     mutating func interruptLocally() { revisionProposal=nil;freshAfter=inputTimes.last }
+    mutating func discountDarkReadings(_ points:Set<Int>,since:Double) {
+        localEvidence.discountDarkReadings(points,since:since)
+        revisionProposal=nil
+        for c in candidates.indices {
+            for w in candidates[c].witnesses.indices where candidates[c].witnesses[w].time>=since {
+                guard !Set(candidates[c].moves.prefix(candidates[c].witnesses[w].depth)).isDisjoint(with:points) else {continue}
+                candidates[c].witnesses[w].unknown.formUnion(points)
+                candidates[c].witnesses[w].complete=false
+            }
+        }
+    }
     mutating func noteFrame(now:Double)->Bool {
         guard inputTimes.last.map({now>$0}) ?? true else {return false}
         inputTimes.append(now)

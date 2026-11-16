@@ -112,6 +112,9 @@ import SwiftUI
         check(capture.reviewHistory.sections[0].before == original.before && capture.reviewHistory.sections[0].after == original.after,
               "Capture review overwrote its original snapshots")
         check(capture.confirmCaptureReview(id, now: now) != nil && capture.moveCount == 46, "Repeated confirmation duplicated the capture")
+        // A restart follows the app's normal storage flush. The announcement
+        // queued after review finalization is an asynchronous clock write.
+        try capture.flushStorage()
         let reopened = GameRecorder(storage: root); reopened.clock.audible = false
         try reopened.restoreSavedGame(from: capture.autosaveURL!)
         check(reopened.moveCount == 46 && !reopened.hasDeferredMoves, "Capture resolution failed restart")

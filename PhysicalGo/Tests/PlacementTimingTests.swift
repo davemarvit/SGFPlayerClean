@@ -31,8 +31,8 @@ import Foundation
         }
         r.clock.configure(.init(kind:.byoyomi,mainSeconds:0,periodSeconds:15,periods:1),blackToPlay:false,baseMove:71)
         r.clock.bind(to:file,signature:RecordingIdentity.signature(for:r.game));r.clock.ready(at:origin+incident.turnStartedAt)
-        var previous=origin+incident.turnStartedAt
-        for (index,f) in incident.frames.enumerated() {
+        var previous=origin+incident.turnStartedAt,checkedIndependentPress=false
+        for f in incident.frames {
             let t=origin+f.time
             // The compact journal omits obstructed frames. Maintain camera
             // continuity only; these synthetic hand callbacks provide no press.
@@ -44,7 +44,8 @@ import Foundation
             r.consume(.init(readings:f.readings,size:19,footprints:f.footprints ?? [],placementFits:f.placementFits ?? [],
                             capturedAt:t,handObstructed:f.handObstructed,clockPressEstimate:estimate),now:t)
             r.clock.tick(at:t)
-            if index==1 {
+            if !checkedIndependentPress,r.clock.provisionalMoves.map(\.number)==[72] {
+                checkedIndependentPress=true
                 print("INCIDENT",r.moveCount,r.pendingMoveCount,r.clock.provisionalMoves.map(\.number),r.clock.notice,r.status)
                 check(r.moveCount==71,"Timing accepted an unresolved SGF placement")
                 check(r.clock.provisionalMoves.map(\.number)==[72],"White72 was not timed independently of the spurious Black candidate")
@@ -55,6 +56,7 @@ import Foundation
                 check(restored.clock.engine.white==r.clock.engine.white,"Restart changed White's measured clock")
             }
         }
+        check(checkedIndependentPress,"Adaptive confirmation lost White72's independently observed turn")
         check(r.clock.engine.expiredBlack==nil,"Recorded incident still declares a false timeout")
         check(r.clock.engine.white.periods==1 && r.clock.engine.white.remaining==15,"Placement ambiguity consumed White's period")
         check(r.clock.needsCorrection && !r.clock.running,"Unobserved intervening press times were invented")
@@ -70,12 +72,14 @@ import Foundation
         timing.observe(observation(1),now:1)
         check(timing.observedTurns(base:Array(repeating:.empty,count:81),excluding:[],after:0).isEmpty,"One-frame phantom pressed a clock")
         values[50] = .white;timing.observe(observation(1.3),now:1.3)
+        check(timing.observedTurns(base:Array(repeating:.empty,count:81),excluding:[],after:0).isEmpty,"Bare two-frame detection bypassed confidence-dependent confirmation")
+        for t in [1.6,1.9,2.2,2.5] {timing.observe(observation(t),now:t)}
         let first=timing.observedTurns(base:Array(repeating:.empty,count:81),excluding:[],after:0)
-        check(first.count==1 && first[0].color == .black && first[0].estimate.time==1,"A later stone blocked the earlier turn")
-        timing.consume(through:1);timing.observe(observation(1.6),now:1.6)
+        check(first.first?.color == .black && first.first?.estimate.time==1,"A later stone blocked the earlier turn")
+        timing.consume(through:1);timing.observe(observation(2.8),now:2.8)
         let second=timing.observedTurns(base:Array(repeating:.empty,count:81),excluding:[10],after:0)
         check(second.count==1 && second[0].color == .white && second[0].estimate.time==1.3,"Alternating reply lost its first sighting")
-        values[50] = .empty;timing.observe(observation(1.9),now:1.9)
+        values[50] = .empty;timing.observe(observation(3.1),now:3.1)
         check(timing.pendingTurn(base:Array(repeating:.empty,count:81),excluding:[10],color:.white,after:0)==nil,"Withdrawal retained phantom timing evidence")
         timing.reset();values[10] = .black
         timing.observe(observation(3,hand:nil),now:3);timing.observe(observation(3.3,hand:true),now:3.3)

@@ -34,6 +34,7 @@ import Combine
         var pressEvidence:[PressEvidence]?=nil
         var provisionalMoves:[Move]?=nil
         var provisionalCaptureStart:ClockPressEstimate?=nil
+        var reviewedMissingProvisional:[Int]?=nil
     }
     struct PressEvidence:Codable {let number:Int;let estimate:ClockPressEstimate?;var applied:Bool}
     private(set) var pressEvidence=[PressEvidence]()
@@ -94,6 +95,13 @@ import Combine
     var provisionalCapturePaused:Bool {automaticCapturePaused && provisionalCaptureStart != nil}
     private(set) var moves=[Move]()
     @Published private(set) var provisionalMoves=[Move]()
+    /// Explicitly agreed totals may supersede orphaned presses, but only after
+    /// the recorder positively verifies the saved board in fresh clear frames.
+    private var reviewedMissingProvisional:[Int]?
+    var canResolveMissingProvisional:Bool {
+        !running && !requiresReview && !provisionalMoves.isEmpty &&
+            reviewedMissingProvisional == provisionalMoves.map(\.number)
+    }
     var lastTimedMove:Int {max(baseMove,moves.last?.number ?? 0,provisionalMoves.last?.number ?? 0)}
     var provisionalNextPlayer:Stone? {provisionalMoves.last.map{$0.black ? .white:.black}}
     private(set) var baseMove=0
@@ -134,7 +142,9 @@ import Combine
     deinit {timer?.cancel()}
     var enabled:Bool {engine.enabled}
     var running:Bool {engine.running}
-    var requiresReview:Bool {needsCorrection || engine.expiredBlack != nil}
+    // Deferred live history has its own next-player picker. A stale turn gate
+    // outside that workflow needs clock review instead of endless verification.
+    var requiresReview:Bool {needsCorrection || (awaitingTurn && !liveReviewActive) || engine.expiredBlack != nil}
     func configure(_ settings:LocalClockSettings,blackToPlay:Bool,baseMove:Int=0) {
         guard settings.validationError==nil else {return}
         timer?.cancel();timer=nil;audio.stop(reason:"clock configured")
@@ -143,7 +153,7 @@ import Combine
         automaticCapturePaused=false;automaticCapturePosition=nil;provisionalCaptureStart=nil
         needsCorrection=false;manuallyPaused=false;notice="Clock starts when the board is ready."
         liveReviewActive=false;awaitingTurn=false;timingNote=nil;liveEvents=[]
-        pendingResumeAnnouncement=nil;pressEvidence=[];provisionalMoves=[];lastPeriodNotices=[]
+        pendingResumeAnnouncement=nil;pressEvidence=[];provisionalMoves=[];lastPeriodNotices=[];reviewedMissingProvisional=nil
         clearAutomaticPause()
         file=nil;signature="";saveError=nil;turnBaseline=nil;pendingTurnEvidence=nil
         lastObservationAt=nil;observationGapHeld=false
@@ -157,6 +167,13 @@ import Combine
         pendingTurnEvidence=nil
         if let lastObservationAt {self.lastObservationAt=max(lastObservationAt,now)}
         observationGapHeld=false
+        if canResolveMissingProvisional,let next=provisionalNextPlayer {
+            // Verification found the retained stones after all. Their turns are
+            // covered by the approved totals; never press or award them again.
+            engine.blackToPlay=next == .black
+            for index in provisionalMoves.indices {provisionalMoves[index].reviewed=true}
+        }
+        reviewedMissingProvisional=nil
         engine.resume(at:now);clearAutomaticPause();turnBaseline=engine;notice="\(engine.blackToPlay ? "Black":"White") to play"
         let announcement=pendingResumeAnnouncement;pendingResumeAnnouncement=nil
         if announcement == nil && audible {audio.beganTurn(engine,settings:sounds)}
@@ -281,7 +298,15 @@ import Combine
         guard enabled else {return}
         if !provisional,let i=provisionalMoves.firstIndex(where:{$0.number==number}) {
             guard provisionalMoves[i].black==black else {recover(toBlack:!black,reason:"The corrected move color conflicts with its observed clock press. Review the clocks.",at:now);return}
-            let press=provisionalMoves.remove(at:i);moves.append(press);moves.sort{$0.number<$1.number}
+            var press=provisionalMoves.remove(at:i)
+            if reviewedMissingProvisional != nil {
+                // The fresh board proved this was a real turn. Keep its measured
+                // evidence, use agreed totals, and resume the verified next side.
+                press.reviewed=true
+                engine.blackToPlay=provisionalMoves.last.map{!$0.black} ?? !black
+                reviewedMissingProvisional=nil
+            }
+            moves.append(press);moves.sort{$0.number<$1.number}
             // Agreed balances are a correction boundary, not an undoable
             // measured press. Earlier thinking time cannot be reconstructed.
             if press.reviewed == true {baseMove=max(baseMove,number)}
@@ -543,6 +568,11 @@ import Combine
         pause(at:now)
         engine.correct(black:black,white:white,blackToPlay:blackToPlay)
         audio.resetAnnouncements(to:engine)
+        // Explicit clock review supplies the next player as well as balances.
+        // Keep the manual pause until fresh board verification, but release the
+        // unknown-turn gate that would otherwise make ready() refuse forever.
+        awaitingTurn=false
+        reviewedMissingProvisional=nil
         needsCorrection=false;manuallyPaused=true;baseMove=moveCount
         notice="Clocks corrected · paused. Resume when both players are ready.";save()
         return true
@@ -550,6 +580,7 @@ import Combine
     /// Preserve the timing boundary independently of unresolved SGF locations.
     func acknowledgePendingTurns(_ locations:[Set<Int>],firstBlack:Bool,moveCount:Int) {
         guard !requiresReview,!running else {return}
+        reviewedMissingProvisional=locations.isEmpty && !provisionalMoves.isEmpty ? provisionalMoves.map(\.number):nil
         for (offset,points) in locations.enumerated() {
             let number=moveCount+offset+1
             guard !provisionalMoves.contains(where:{$0.number==number}) else {continue}
@@ -560,6 +591,15 @@ import Combine
         liveReviewActive = !provisionalMoves.isEmpty
         if !locations.isEmpty {timingNote="Agreed clock balances include the pending moves. Their placements remain under review; no historical clock presses were inferred."}
         save()
+    }
+    /// Called only after repeated clear observations of the saved position.
+    /// Keep the agreed totals; undoing a false press would overwrite that review.
+    @discardableResult func resolveMissingProvisional(moveCount:Int,blackToPlay:Bool)->Bool {
+        guard canResolveMissingProvisional,baseMove==moveCount else {return false}
+        provisionalMoves=[];reviewedMissingProvisional=nil;liveReviewActive=false
+        engine.blackToPlay=blackToPlay
+        timingNote="Agreed clock totals retained. Fresh board verification cleared the absent provisional move."
+        save();return true
     }
     private func valid(_ side:LocalClockEngine.Side)->Bool {
         side.remaining.isFinite && (0.001...604800).contains(side.remaining) &&
@@ -578,7 +618,7 @@ import Combine
         // A resolved review can place the checkpoint at the move being undone.
         // Keep the shortened recording reloadable without inventing press times.
         baseMove=min(baseMove,moveCount);moves.removeAll{$0.number>moveCount};pressEvidence.removeAll{$0.number>moveCount}
-        liveEvents=[];provisionalMoves=[];liveReviewActive=false;awaitingTurn=false
+        liveEvents=[];provisionalMoves=[];liveReviewActive=false;awaitingTurn=false;reviewedMissingProvisional=nil
         save()
     }
     func restore(from sgf:URL,signature:String,moveCount:Int,blackToPlay:Bool) {
@@ -605,6 +645,7 @@ import Combine
                 press.black==(offset%2==0 ? blackToPlay:!blackToPlay)
             }) else {throw RecordingStore.Failure(message:"Provisional clock presses do not match this game.")}
             engine=data.engine;engine.restoredPaused();moves=data.moves;provisionalMoves=provisional;baseMove=data.baseMove;pressEvidence=data.pressEvidence ?? []
+            reviewedMissingProvisional=data.reviewedMissingProvisional
             audio.resetAnnouncements(to:engine)
             needsCorrection=data.needsCorrection;manuallyPaused=true;file=url;self.signature=signature
             liveEvents=data.liveEvents ?? [];liveReviewActive=data.liveReviewActive ?? false
@@ -652,7 +693,7 @@ import Combine
         do {
             let saved=Saved(signature:signature,engine:engine,moves:moves,baseMove:baseMove,needsCorrection:needsCorrection,
                             liveEvents:liveEvents,liveReviewActive:liveReviewActive,awaitingTurn:awaitingTurn,timingNote:timingNote,automaticPause:automaticPause,
-                            resumeAnnouncement:pendingResumeAnnouncement,capturePosition:automaticCapturePosition,pressEvidence:pressEvidence,provisionalMoves:provisionalMoves,provisionalCaptureStart:provisionalCaptureStart)
+                            resumeAnnouncement:pendingResumeAnnouncement,capturePosition:automaticCapturePosition,pressEvidence:pressEvidence,provisionalMoves:provisionalMoves,provisionalCaptureStart:provisionalCaptureStart,reviewedMissingProvisional:reviewedMissingProvisional)
             try storageWriter.submit("clock",component:.clock,coalescingKey:file.path) {try JSONEncoder().encode(saved).write(to:file,options:.atomic)}
             saveError=nil
         } catch {saveError="Could not save clock: \(error.localizedDescription)"}

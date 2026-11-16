@@ -50,7 +50,7 @@ enum StoneGeometry {
     private static func fit(_ reading:IntersectionReading,frame:GrayFrame,reference:GrayFrame,
                             calibration:BoardCalibration,referenceCalibration:BoardCalibration,
                             correction:Double,colorShift:BoardChroma,masking:[StoneFootprint]=[],minimumQuality:Double=0.78,
-                            occlusion:[ColoredNeighbor]=[],searchSteps:Int=11)->StoneFootprint? {
+                            occlusion:[ColoredNeighbor]=[],searchSteps:Int=11,shadedWhite:Bool=false)->StoneFootprint? {
         // An occlusion fit keeps the expected FULL stone size. Only the minimum
         // visible body shrinks, by the union of independently observed neighbors.
         // This avoids accepting a small shadow as an unusually small stone.
@@ -67,7 +67,8 @@ enum StoneGeometry {
                 black=current-correction<base-0.20 && current-correction<base*0.65
                 if contextual || reading.occupancy != .black,let a=frame.patchColor(p),let b=reference.patchColor(q) {
                     let expected=b+colorShift
-                    white=(expected.magnitude-a.magnitude>0.035 && a.magnitude<expected.magnitude*0.65 && current-correction>base-0.06)
+                    let minimumWhite = shadedWhite ? base*0.75 : base-0.06
+                    white=(a.supportsWhiteStone(comparedTo:expected) && current-correction>minimumWhite)
                         || current-correction>base+0.12
                 }
                 if reading.occupancy == .black ? black : white {vote=1}
@@ -201,6 +202,32 @@ enum StoneGeometry {
             candidates.append((color,shape))
         }
         return candidates.count==1 ? candidates[0]:nil
+    }
+
+    /// A shaded white body can be darker than yellow wood. Partial white-color
+    /// evidence may nominate it, but only a strong, separate disk can resolve it.
+    /// This path never labels empty wood or bypasses a surviving printed cross.
+    static func shadedWhiteStone(_ reading:IntersectionReading,frame:GrayFrame,reference:GrayFrame,
+                                 calibration:BoardCalibration,referenceCalibration:BoardCalibration,
+                                 correction:Double,colorShift:BoardChroma?,neighbors:[StoneFootprint])->StoneFootprint? {
+        guard reading.occupancy == .uncertain,let colorShift else {return nil}
+        let hypothesis=IntersectionReading(row:reading.row,col:reading.col,occupancy:.white,confidence:0,delta:reading.delta)
+        let ordinary=fit(hypothesis,frame:frame,reference:reference,calibration:calibration,
+            referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift,
+            minimumQuality:0.94,shadedWhite:true)
+        // A separately fitted neighbor may hide part of the OUTER ring, never
+        // the candidate's body. The masked fit still requires >=92% body votes,
+        // half the ring visible and separate centers; uncertainty cannot seed it.
+        let masks=neighbors.filter{$0.quality>=0.90 && abs($0.row-reading.row)<=1 && abs($0.col-reading.col)<=1}
+        let masked=ordinary==nil && !masks.isEmpty ? fit(hypothesis,frame:frame,reference:reference,
+            calibration:calibration,referenceCalibration:referenceCalibration,correction:correction,
+            colorShift:colorShift,masking:masks,minimumQuality:0.94,shadedWhite:true):nil
+        guard let shape=ordinary ?? masked,
+              (0.38...0.52).contains(shape.radiusCol),
+              max(abs(shape.center.x-Double(reading.col)),abs(shape.center.y-Double(reading.row)))<=0.28+1e-9,
+              !neighbors.contains(where:{hypot((shape.center.x-$0.center.x)/(shape.radiusCol+$0.radiusCol),
+                (shape.center.y-$0.center.y)/(shape.radiusRow+$0.radiusRow))<0.90}) else {return nil}
+        return shape
     }
     private struct WoodEvidence { let point:ImagePoint; let matches:Bool }
     private struct InkEvidence { let point:ImagePoint; let axis:Int; let survives:Bool }
