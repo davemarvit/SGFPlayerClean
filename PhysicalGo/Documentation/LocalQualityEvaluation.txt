@@ -1,0 +1,111 @@
+Local image quality and placement competition — stage 3 pilot (2026-11-16)
+
+Decision: keep all new estimates offline and non-authoritative. Do not promote
+this initial weighting rule to recognition, clock timing or capture handling.
+The production changes in 0.190 only add explicit correction of a latest saved
+false placement. The existing stage-2 recognition/timing decisions remain intact.
+
+What was evaluated
+Tools/local_quality_lab.py rectifies captured pixels using each saved homography.
+At every intersection it samples surrounding board wood, excluding the potential
+stone body at EVERY intersection. Exclusions never depend on ground-truth labels
+or classifier confidence. It records local darkening relative to global exposure,
+background residual and causal temporal change, sample coverage and a heuristic
+quality score. Insufficient coverage is unknown, never evidence of clean wood.
+Temporal support requires recorded analyzed frames within 0.5 seconds. Global
+exposure is retained separately. Background recovery requires three qualifying
+frames spanning 0.4 seconds; actual hand-shadow clearance remains unknown.
+
+Every output preserves the raw readings and available recorded frame decisions,
+plus separate counterfactual outputs. No source capture, saved observation, SGF,
+recorder decision or clock press is rewritten. Current timestamps are copied, not
+reconstructed from the quality scores. Static photos have no temporal history.
+
+Placement competition means alternative locations for ONE physical placement.
+The prototype assigns relative ranking mass to expected-color candidates and a
+no-move-or-unknown alternative. A strong candidate reduces the relative share of
+weak competitors, without deleting their raw evidence. Two equally supported
+candidates cannot force a winner. These shares are NOT calibrated probabilities.
+Hand blockage, a missing gate, camera gaps, changed retained stones (including
+possible captures), or opposite-color additions force abstention. Alternating
+turns and capture legality remain responsibilities of the existing recorder.
+A single-placement condition is an assumption of this experiment, not a universal
+one-stone-per-image rule or a replacement for multi-move gap recovery.
+
+The existing production system already uses alternating colors, legal complete
+board positions, captured-stone handling and anchored earlier observations. It
+has no general soft normalized competition among all candidate locations. This
+experiment measures that additional idea without replacing those constraints.
+
+Data and provenance
+- 106 preserved rapid-reply images, frames 305–410. Native pixel-classifier
+  readings come from the prior saved baseline; image-quality features are newly
+  computed from pixels. Recorded gates/decisions come from the tracked
+  RapidReplyShadow sequence fixture; 31 images have no analyzed-frame decision.
+- 22 other labeled photo fixtures (shaded, faint, Go club, capture, jade). Five
+  incident photos in the old 27-photo corpus are excluded to avoid double-counting.
+- 16 timeline frames were visually inspected in rectified contact/keyframe sheets
+  and labeled in local_quality_labels.json. They cover before placement and three
+  real placements. Uninspected or occluded frames are not scored for accuracy.
+- Labels describe physical occupancy, including retained prisoners where the
+  earlier fixture labels show them. Episode baselines are explicitly provided
+  prior positions, not labels inferred from the current frame.
+- This is a development pilot, not an independent held-out evaluation. Consecutive
+  frames are correlated. Fixed initial thresholds were used without fitting them
+  to outcome counts. A subsequent no-visible-wood guard fixes missing-data
+  handling; it does not tune thresholds. Input and program hashes are recorded.
+
+Results (LocalQualityEvaluationResults.json)
+Other fixtures: 7,942 intersections across 22 photos. Existing readings have
+7,941 correct and one missed stone. Demoting weak stone readings when local
+quality is poor introduces 13 uncertain readings without fixing that miss.
+Timeline labels: 5,776 intersections across 16 photos. Existing readings have
+5,723 correct, four false stones and 49 uncertain readings. The same demotion
+rule leaves all four false stones and increases uncertainty to 51.
+
+Conditional placement competition on those 16 timeline views:
+- Without quality weighting: seven correct selections, zero wrong, nine abstentions.
+- With quality weighting: five correct selections, zero wrong, eleven abstentions.
+These are repeated views of three moves, not seven/five independent recognized
+moves. Abstention includes the two no-move views and unavailable/blocked gates;
+this count is not a comparison with production move or clock accuracy.
+
+Why not promote
+Quality weighting suppresses the real Black placement at raw point 309 in frames
+355 and 356. Those very observations must survive to prevent the previously
+replayed clock pause. Broad background change is not sufficient to reject a
+correctly visible stone. The B19 edge region also has insufficient wood coverage
+under the frozen sampling rule; its quality stays unknown. In frame 369 the
+native false Black at B19 has confidence 1, so a weak-reading-only rule cannot
+remove it. A confident isolated phantom requires a no-move model and shape /
+background evidence, not merely ranking it against other placements.
+
+Next experiment should distinguish stable stone evidence from changes in nearby
+wood, improve edge/background coverage, and test separate no-move evidence. Use
+new labeled episodes and the existing negative controls before adjusting any
+production thresholds. Do not retroactively discard known-good timing witnesses
+merely because a shadow or hand appeared later. Preserve candidate-specific first
+appearance, supported placement time and later certification time separately.
+
+Reproduce (macOS native corpus plus Python numpy and opencv-python):
+python3 -m unittest discover -s PhysicalGo/Tools -p test_local_quality_lab.py -v
+python3 PhysicalGo/Tools/local_quality_lab.py --corpus /path/to/recognizer-comparison --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json --output /new/external/report
+python3 PhysicalGo/Tools/recognition_benchmark.py --output /new/external/regressions
+
+Full pilot artifacts are retained locally at:
+/Users/dave/Documents/SGF PLayer/work/local-quality-stage3/evaluation-final
+The contact sheets and preserved current-game sidecars are in the parent folder.
+Current B19 move 11 was saved after continuous camera capture had stopped at its
+storage limit; no image of that exact save is available. The earlier rapid-reply
+B19 false readings are available and must not be conflated with that later event.
+
+Verification outcome
+All 18 native regression suites and seven build-registry checks passed, including
+19 false-detection-removal checks within 81 historical-correction checks. The
+recorded rapid reply retains all three press estimates, with zero false pauses
+and zero clock-balance differences against expected replay values in absolute,
+Fischer, byoyomi and near-overtime cases. Removing the essential intermediate
+sightings still produces the required review hold. Candidate timing remains
+identical across 3,608 comparisons / 299 frames. These validate retained production
+behavior, not the offline counterfactual decisions or physical ground-truth times.
+All four Python quality/competition tests passed.

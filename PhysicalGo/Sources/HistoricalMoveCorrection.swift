@@ -3,13 +3,14 @@ import Foundation
 /// A reviewed edit of accepted history. Replay uses the same rules engine as play;
 /// the original recording and its evidence remain available after saving a copy.
 @MainActor struct HistoricalMoveCorrection {
-    struct Edit:Equatable {let number:Int;let destination:BoardPosition}
+    struct Edit:Equatable {let number:Int;let destination:BoardPosition?}
     let edits:[Edit]
     let sourceURL:URL
     let sourceSignature:String
     let sourceReviews:Data
     let number:Int
-    let destination:BoardPosition
+    let destination:BoardPosition?
+    var removesFalseDetection:Bool {edits.count==1 && destination==nil}
     let keepsLaterMoves:Bool
     let text:String
     let game:SGFGame
@@ -47,10 +48,16 @@ import Foundation
         guard !edits.isEmpty,Set(edits.map(\.number)).count==edits.count else {throw fail("Choose each move's corrected location once.")}
         guard keepsLaterMoves || edits.count==1 else {throw fail("Keep later moves while correcting several moves together.")}
         for edit in edits {
-            guard (1...recorder.moveCount).contains(edit.number),
-                  (0..<recorder.game.boardSize).contains(edit.destination.row),(0..<recorder.game.boardSize).contains(edit.destination.col) else {throw fail("Choose a saved move and an intersection on the board.")}
+            guard (1...recorder.moveCount).contains(edit.number) else {throw fail("Choose a saved move.")}
             let old=recorder.game.moves[edit.number-1]
-            guard old.1?.0 != edit.destination.col || old.1?.1 != edit.destination.row else {throw fail("Choose a different intersection for move \(edit.number).")}
+            guard let destination=edit.destination else {
+                guard edits.count==1,edit.number==recorder.moveCount,old.1 != nil,reviewEdit==nil else {
+                    throw fail("Remove a false detection only for the latest saved placement, as a separate correction. Earlier moves may affect later turns and captures.")
+                }
+                continue
+            }
+            guard (0..<recorder.game.boardSize).contains(destination.row),(0..<recorder.game.boardSize).contains(destination.col) else {throw fail("Choose an intersection on the board.")}
+            guard old.1?.0 != destination.col || old.1?.1 != destination.row else {throw fail("Choose a different intersection for move \(edit.number).")}
         }
         self.edits=edits
         let number=edits[0].number,destination=edits[0].destination
@@ -66,7 +73,13 @@ import Foundation
         for edit in edits {
             let index=indexes[edit.number-1],tag=recorder.game.moves[edit.number-1].0 == .black ? "B":"W"
             let previous=nodes[index].props[tag]?.first ?? ""
-            nodes[index].props[tag]=[SGFCoordinates.toSGF(x:edit.destination.col,y:edit.destination.row)]
+            guard let destination=edit.destination else {
+                // No placement occurred: remove the turn, never replace it with a pass.
+                nodes=Array(nodes.prefix(index))
+                nodes[0].props["C",default:[]].append("False detection removed: move \(edit.number), SGF \(previous). Original recording: \(sourceURL.lastPathComponent)")
+                continue
+            }
+            nodes[index].props[tag]=[SGFCoordinates.toSGF(x:destination.col,y:destination.row)]
             nodes[index].props["C",default:[]].append("Move corrected from SGF \(previous.isEmpty ? "pass":previous) to \(nodes[index].props[tag]![0]). Original recording: \(sourceURL.lastPathComponent)")
         }
         if !keepsLaterMoves {nodes=Array(nodes.prefix(indexes[number-1]+1))}
@@ -84,16 +97,22 @@ import Foundation
         }
         positions=boards;discardedMoves=recorder.moveCount-game.moves.count
         var history=recorder.reviewHistory
-        if let reviewEdit,let correction=edits.first(where:{$0.number==reviewEdit.savedMoveNumber}) {
+        if let reviewEdit,let correction=edits.first(where:{$0.number==reviewEdit.savedMoveNumber}),let destination=correction.destination {
             // Validate the original preview before rebuilding a changed destination.
             _=try reviewEdit.applying(to:history)
-            let revised=try ReviewObservationEdit(recorder:recorder,reviewID:reviewEdit.reviewID,from:reviewEdit.from,to:correction.destination)
+            let revised=try ReviewObservationEdit(recorder:recorder,reviewID:reviewEdit.reviewID,from:reviewEdit.from,to:destination)
             history=try revised.applying(to:history)
         }
         // Committed reviews are an audit trail of the original observations.
         // Pending sections must be reconsidered against the corrected baseline.
         let retainedMoveCount=game.moves.count
-        if discardedMoves>0 {history.sections.removeAll{$0.committed && ($0.savedStart ?? 0)+($0.moves?.count ?? 0)>retainedMoveCount}}
+        if destination==nil {
+            for i in history.sections.indices {
+                guard history.sections[i].committed,let start=history.sections[i].savedStart,
+                      start<number,number<=start+(history.sections[i].moves?.count ?? 0) else {continue}
+                history.sections[i].undoneMoveNumbers=Array(Set((history.sections[i].undoneMoveNumbers ?? [])+[number])).sorted()
+            }
+        } else if discardedMoves>0 {history.sections.removeAll{$0.committed && ($0.savedStart ?? 0)+($0.moves?.count ?? 0)>retainedMoveCount}}
         var before=DeferredMoveHistory.states(boards.last!)
         var knownPrefix=true
         for i in history.sections.indices where !history.sections[i].committed {

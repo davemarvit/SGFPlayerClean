@@ -14,21 +14,28 @@ struct HistoricalMoveCorrectionView:View {
     @State private var revision:ReviewRevision?
     @State private var selectedNumber=0
     @State private var destinations=[Int:BoardPosition]()
+    @State private var removalNumber:Int?
+    private var removesFalseDetection:Bool {removalNumber != nil}
     @State private var coordinateText=""
     @State private var saveError:String?
     private var activeNumber:Int {max(1,min(selectedNumber==0 ? number:selectedNumber,recorder.moveCount))}
-    private var edits:[HistoricalMoveCorrection.Edit] {destinations.keys.sorted().map{.init(number:$0,destination:destinations[$0]!)}}
+    private var edits:[HistoricalMoveCorrection.Edit] {removesFalseDetection ? [.init(number:removalNumber!,destination:nil)]:destinations.keys.sorted().map{.init(number:$0,destination:destinations[$0]!)}}
     private var result:Result<HistoricalMoveCorrection,Error>? {
         edits.isEmpty ? nil:Result{try HistoricalMoveCorrection(recorder:recorder,edits:edits,reviewEdit:reviewEdit)}
     }
     private var plan:HistoricalMoveCorrection? {try? result?.get()}
-    private func original(_ move:Int)->BoardPosition? {recorder.game.moves[move-1].1.map{BoardPosition($0.1,$0.0)}}
+    private func original(_ move:Int)->BoardPosition? {
+        guard recorder.game.moves.indices.contains(move-1) else {return nil}
+        return recorder.game.moves[move-1].1.map{BoardPosition($0.1,$0.0)}
+    }
     private func coordinate(_ p:BoardPosition)->String {BoardCoordinates.name(point:p.row*recorder.game.boardSize+p.col,size:recorder.game.boardSize,orientation:orientation)}
     private var heading:String {
         guard edits.count==1,let edit=edits.first else {return "Correct game record"}
-        return "Change move \(edit.number) from \(original(edit.number).map(coordinate) ?? "Pass") to \(coordinate(edit.destination))?"
+        if edit.destination==nil {return "Remove false move \(edit.number) at \(original(edit.number).map(coordinate) ?? "")?"}
+        return "Change move \(edit.number) from \(original(edit.number).map(coordinate) ?? "Pass") to \(edit.destination.map(coordinate) ?? "empty (no move)")?"
     }
     private func select(_ point:BoardPosition,move:Int?=nil) {
+        removalNumber=nil
         let n=move ?? activeNumber
         if point==original(n) {destinations.removeValue(forKey:n)} else {destinations[n]=point}
         // Dragging an older stone should keep the viewed position in place,
@@ -59,9 +66,9 @@ struct HistoricalMoveCorrectionView:View {
                 Stepper("View after move \(activeNumber)",value:$selectedNumber,in:1...max(1,recorder.moveCount))
                 Button("Latest") {selectedNumber=recorder.moveCount}
             }
-            Text("\(recorder.game.moves[activeNumber-1].0.rawValue.capitalized) move \(activeNumber) · \(original(activeNumber).map(coordinate) ?? "Pass") → \(destinations[activeNumber].map(coordinate) ?? "unchanged")").font(.headline)
+            Text("\(recorder.game.moves.dropFirst(activeNumber-1).first?.0.rawValue.capitalized ?? "") move \(activeNumber) · \(original(activeNumber).map(coordinate) ?? "Pass") → \(removalNumber==activeNumber ? "empty (no move)":destinations[activeNumber].map(coordinate) ?? "unchanged")").font(.headline)
             RecordedBoard(recorder:recorder,orientation:orientation,allowsLiveSelection:true,
-                boardOverride:plan?.positions[activeNumber] ?? recorder.positions[activeNumber],
+                boardOverride:plan.map{$0.positions[min(activeNumber,$0.positions.count-1)]} ?? recorder.positions[min(activeNumber,recorder.positions.count-1)],
                 highlightedPoints:[plan == nil ? original(activeNumber):destinations[activeNumber] ?? original(activeNumber)].compactMap{$0.map{$0.row*recorder.game.boardSize+$0.col}},
                 showsLastMoveMarker:false,onDrag:drag,onPoint:{select($0)})
                 .frame(width:500,height:500)
@@ -70,19 +77,25 @@ struct HistoricalMoveCorrectionView:View {
                 TextField("Coordinate",text:$coordinateText).frame(width:80).onSubmit(enterCoordinate)
                 Button("Use coordinate",action:enterCoordinate)
             }
+            if activeNumber==recorder.moveCount,original(activeNumber) != nil,reviewEdit==nil {
+                Button("Remove false detection — no stone was played") {
+                    destinations=[:];removalNumber=activeNumber;saveError=nil
+                }
+                Text("Use this only if the latest saved placement never happened. It restores the preceding position and leaves the same player to move. Clock times need review.").font(.caption).foregroundStyle(.secondary)
+            }
             if !edits.isEmpty {
                 Text("Changes to save (\(edits.count))").font(.headline)
                 ForEach(edits,id:\.number) {edit in
                     HStack {
-                        Text("Move \(edit.number): \(original(edit.number).map(coordinate) ?? "Pass") → \(coordinate(edit.destination))")
+                        Text("Move \(edit.number): \(original(edit.number).map(coordinate) ?? "Pass") → \(edit.destination.map(coordinate) ?? "empty (no move)")")
                         Spacer()
                         Button("Show") {selectedNumber=edit.number}
-                        Button("Remove edit") {destinations.removeValue(forKey:edit.number)}
+                        Button("Remove edit") {destinations.removeValue(forKey:edit.number);removalNumber=nil}
                     }
                 }
             }
             if let plan {
-                Text(plan.discardedMoves==0
+                Text(plan.removesFalseDetection ? "No move or pass will be recorded for this detection. The board returns to move \(plan.game.moves.count)." : plan.discardedMoves==0
                     ? "The complete sequence replays legally. \(plan.reviews.unresolved==0 ? "No unresolved board reviews remain.":"\(plan.reviews.unresolved) board reviews still need checking.")"
                     : "\(plan.discardedMoves) later moves will be set aside in the original recording. Check clock times before continuing.")
             } else if case .failure(let error)=result {
@@ -101,7 +114,7 @@ struct HistoricalMoveCorrectionView:View {
             HStack {
                 Button("Cancel",action:onClose).keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(edits.count==1 ? "Yes, correct move":"Confirm \(edits.count) corrections") {
+                Button(removesFalseDetection ? "Yes, remove false move":edits.count==1 ? "Yes, correct move":"Confirm \(edits.count) corrections") {
                     guard let plan,revision?.matches(recorder)==true else {return}
                     do {try recorder.applyHistoricalCorrection(plan);onSaved?();onClose()} catch {saveError=error.localizedDescription}
                 }.disabled(plan==nil || revision?.matches(recorder) != true).keyboardShortcut(.defaultAction)

@@ -2054,6 +2054,9 @@ enum LocalGameSetup {
         }
         props.merge(clock.engine.settings.sgfProperties) {_,new in new}
         if clock.enabled && clock.baseMove>0 {props["C",default:[]].append("Clock started or corrected after move \(clock.baseMove). Earlier times are not inferred.")}
+        // Removal provenance belongs to the root even when no moves remain.
+        let removalNotes=game.sourceTree?.mainLineNodes.first?.props["C"]?.filter{$0.hasPrefix("False detection removed:")} ?? []
+        props["C",default:[]].append(contentsOf:removalNotes)
         var nodes=[SGFNode(props:props)]
         let sourceMoves=game.sourceTree?.mainLineNodes.filter{$0.props["B"] != nil || $0.props["W"] != nil} ?? []
         for (i,move) in game.moves.enumerated() {
@@ -2100,8 +2103,13 @@ enum LocalGameSetup {
             throw error
         }
         try restoreSavedGame(from:file)
-        reviewNotice="\(plan.edits.count==1 ? "Move \(plan.number)":"\(plan.edits.count) moves") corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
-        trace(event:"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"point":plan.destination.row*game.boardSize+plan.destination.col,"discardedMoves":plan.discardedMoves,"corrections":plan.edits.map{["move":$0.number,"point":$0.destination.row*game.boardSize+$0.destination.col]}])
+        reviewNotice=plan.removesFalseDetection
+            ? "False move \(plan.number) removed. Original recording preserved. \(nextPlayer.rawValue.capitalized) still has this turn. Check the board and both clock times before resuming."
+            : "\(plan.edits.count==1 ? "Move \(plan.number)":"\(plan.edits.count) moves") corrected. Original recording preserved. \(plan.discardedMoves==0 ? "Later moves retained.":"Later moves remain in the original recording.") Check the live board before resuming."
+        trace(event:plan.removesFalseDetection ? "false detection removed":"historical move corrected",extra:["move":plan.number,"source":plan.sourceURL.lastPathComponent,"discardedMoves":plan.discardedMoves,
+            "corrections":plan.edits.map { edit -> [String:Any] in
+                ["move":edit.number,"point":edit.destination.map{$0.row*game.boardSize+$0.col} as Any? ?? NSNull(),"removed":edit.destination==nil]
+            }])
     }
     private func persist(checkpoint:Bool=true,wait:Bool=false) {
         guard let autosaveURL else { return }

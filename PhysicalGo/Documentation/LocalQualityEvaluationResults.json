@@ -1,0 +1,908 @@
+{
+  "promotion": "NOT PROMOTED: descriptive pilot; no clock or capture timing validation for counterfactual decisions",
+  "frames": 128,
+  "comparisons": [
+    {
+      "dataset": "static",
+      "board": "shaded-000001",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "shaded-000013",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "shaded-empty-empty-reference",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "faint-000001",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "faint-000005",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "faint-000010",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "faint-000016",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "faint-empty-reference",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "club-000001",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "club-000108",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "club-000229",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "club-empty-reference",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "FaintCaptureQ3-000002",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 358,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 3
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "FaintCaptureQ3-000003",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "FaintCaptureQ3-000005",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 359,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "FaintCaptureQ3-000064",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 359,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000002",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000004",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000030",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000062",
+      "baseline": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 1,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 360,
+        "falseStone": 0,
+        "missedStone": 1,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000074",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "static",
+      "board": "JadeWhiteA19-000076",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "306",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "316",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "333",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "337",
+      "baseline": {
+        "correct": 359,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      },
+      "weakDemotion": {
+        "correct": 359,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "343",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "354",
+      "baseline": {
+        "correct": 353,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 8
+      },
+      "weakDemotion": {
+        "correct": 352,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 9
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "355",
+      "baseline": {
+        "correct": 355,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 6
+      },
+      "weakDemotion": {
+        "correct": 355,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 6
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "356",
+      "baseline": {
+        "correct": 352,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 9
+      },
+      "weakDemotion": {
+        "correct": 352,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 9
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "357",
+      "baseline": {
+        "correct": 350,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 11
+      },
+      "weakDemotion": {
+        "correct": 349,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 12
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "358",
+      "baseline": {
+        "correct": 352,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 9
+      },
+      "weakDemotion": {
+        "correct": 352,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 9
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "367",
+      "baseline": {
+        "correct": 359,
+        "falseStone": 1,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      },
+      "weakDemotion": {
+        "correct": 359,
+        "falseStone": 1,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "369",
+      "baseline": {
+        "correct": 359,
+        "falseStone": 1,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      },
+      "weakDemotion": {
+        "correct": 359,
+        "falseStone": 1,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 1
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "373",
+      "baseline": {
+        "correct": 357,
+        "falseStone": 2,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      },
+      "weakDemotion": {
+        "correct": 357,
+        "falseStone": 2,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 2
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "380",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "395",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    },
+    {
+      "dataset": "timeline",
+      "board": "410",
+      "baseline": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 361,
+        "falseStone": 0,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 0
+      }
+    }
+  ],
+  "totals": {
+    "static": {
+      "labeledFrames": 22,
+      "baseline": {
+        "correct": 7941,
+        "falseStone": 0,
+        "missedStone": 1,
+        "wrongColor": 0,
+        "uncertain": 0
+      },
+      "weakDemotion": {
+        "correct": 7928,
+        "falseStone": 0,
+        "missedStone": 1,
+        "wrongColor": 0,
+        "uncertain": 13
+      }
+    },
+    "timeline": {
+      "labeledFrames": 16,
+      "baseline": {
+        "correct": 5723,
+        "falseStone": 4,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 49
+      },
+      "weakDemotion": {
+        "correct": 5721,
+        "falseStone": 4,
+        "missedStone": 0,
+        "wrongColor": 0,
+        "uncertain": 51
+      }
+    }
+  },
+  "conditionalPlacementCompetition": {
+    "competitionWithoutQuality": {
+      "correct": 7,
+      "wrong": 0,
+      "abstain": 9
+    },
+    "placementCompetition": {
+      "correct": 5,
+      "wrong": 0,
+      "abstain": 11
+    },
+    "scope": "Selected 16 labeled timeline frames; repeated views of three placements. This is not live-recorder accuracy, independent games, or clock timing."
+  },
+  "protocol": {
+    "version": 1,
+    "pixelsPerInterval": 24,
+    "margin": 1.5,
+    "woodExclusionRadius": 0.57,
+    "ringInner": 0.65,
+    "ringOuter": 1.35,
+    "minimumWoodPixels": 80,
+    "darkeningStart": 0.025,
+    "darkeningScale": 0.12,
+    "changeStart": 0.015,
+    "changeScale": 0.1,
+    "residualStart": 0.02,
+    "residualScale": 0.12,
+    "poorQuality": 0.4,
+    "weakConfidence": 0.97,
+    "nullWeight": 0.25,
+    "winnerShare": 0.6,
+    "winnerMargin": 0.25,
+    "maximumFrameGap": 0.5,
+    "recoveryFrames": 3,
+    "recoverySeconds": 0.4
+  },
+  "programSHA256": "4890819a2b976210b3669e0a2f57bf6c0d1b7623dfe7a1aa8efb2bb71e0a4750",
+  "labelsSHA256": "7e75394d311862a7948464a9e1dc7c2b3a8f7c08be7ed910f457021f658341cb",
+  "sequenceSHA256": "92d1b3f39e3289196b9c3ea0d0ba1988de70a70fd6e3dd7f1d205f6bf710fcf6",
+  "runtime": {
+    "numpy": "2.4.1",
+    "opencv": "4.13.0"
+  },
+  "nativeVerification": {
+    "passed": true,
+    "buildRegistryExitCode": 0,
+    "regressionExitCode": 0,
+    "regressionSuites": 18,
+    "scope": "Rapid-reply replay uses saved classifier outputs and recorded hand gates, not rerun pixels. Other suites cover captured photos and constructed clock/capture cases. Physical placement times are estimates, not ground truth.",
+    "sequences": [
+      {
+        "blackBalanceErrorSeconds": 0,
+        "candidateHistoryRows": 6,
+        "clock": "absolute",
+        "expectedReview": false,
+        "falsePauses": 0,
+        "maximumPressTimestampErrorSeconds": 0,
+        "nearOvertime": false,
+        "observations": 75,
+        "orderMatches": true,
+        "pressTimes": [
+          1265045.9376668755,
+          1265050.6216669178,
+          1265052.620700167
+        ],
+        "reviewTransitions": 0,
+        "running": true,
+        "savedPoints": [
+          288,
+          309,
+          250
+        ],
+        "scenario": "recorded rapid reply",
+        "whiteBalanceErrorSeconds": 0
+      },
+      {
+        "blackBalanceErrorSeconds": 0,
+        "candidateHistoryRows": 6,
+        "clock": "fischer",
+        "expectedReview": false,
+        "falsePauses": 0,
+        "maximumPressTimestampErrorSeconds": 0,
+        "nearOvertime": false,
+        "observations": 75,
+        "orderMatches": true,
+        "pressTimes": [
+          1265045.9376668755,
+          1265050.6216669178,
+          1265052.620700167
+        ],
+        "reviewTransitions": 0,
+        "running": true,
+        "savedPoints": [
+          288,
+          309,
+          250
+        ],
+        "scenario": "recorded rapid reply",
+        "whiteBalanceErrorSeconds": 0
+      },
+      {
+        "blackBalanceErrorSeconds": 0,
+        "candidateHistoryRows": 6,
+        "clock": "byoyomi",
+        "expectedReview": false,
+        "falsePauses": 0,
+        "maximumPressTimestampErrorSeconds": 0,
+        "nearOvertime": false,
+        "observations": 75,
+        "orderMatches": true,
+        "pressTimes": [
+          1265045.9376668755,
+          1265050.6216669178,
+          1265052.620700167
+        ],
+        "reviewTransitions": 0,
+        "running": true,
+        "savedPoints": [
+          288,
+          309,
+          250
+        ],
+        "scenario": "recorded rapid reply",
+        "whiteBalanceErrorSeconds": 0
+      },
+      {
+        "blackBalanceErrorSeconds": 0,
+        "candidateHistoryRows": 6,
+        "clock": "byoyomi",
+        "expectedReview": false,
+        "falsePauses": 0,
+        "maximumPressTimestampErrorSeconds": 0,
+        "nearOvertime": true,
+        "observations": 75,
+        "orderMatches": true,
+        "pressTimes": [
+          1265045.9376668755,
+          1265050.6216669178,
+          1265052.620700167
+        ],
+        "reviewTransitions": 0,
+        "running": true,
+        "savedPoints": [
+          288,
+          309,
+          250
+        ],
+        "scenario": "recorded rapid reply",
+        "whiteBalanceErrorSeconds": 0
+      },
+      {
+        "candidateHistoryRows": 4,
+        "clock": "absolute",
+        "expectedReview": true,
+        "falsePauses": 0,
+        "nearOvertime": false,
+        "observations": 75,
+        "orderMatches": true,
+        "pressTimes": [
+          1265045.9376668755
+        ],
+        "reviewTransitions": 1,
+        "running": false,
+        "savedPoints": [
+          288,
+          309,
+          250
+        ],
+        "scenario": "counterfactual missing intermediate sightings"
+      }
+    ],
+    "candidateComparison": {
+      "baselineCommit": "feca90c",
+      "comparedFrames": 299,
+      "decisionComparisons": 3608,
+      "historyChecks": 23,
+      "mismatches": 0,
+      "recordedAnalysisOperations": 75,
+      "scope": "Timing-policy differential comparison; actual game/clock/capture behavior also checked by recorder replay and regression suites.",
+      "syntheticScenarios": 12
+    }
+  }
+}

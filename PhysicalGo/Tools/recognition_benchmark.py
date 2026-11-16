@@ -10,6 +10,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = {
+    'historical-correction-test': 'false saved placement removal, copies, clocks, captures and correction UI',
     'candidate-history-test': 'per-candidate histories and differential replay against stage 1',
     'observation-replay-test': 'rapid reply, exact observations, clock arithmetic, missing-evidence control',
     'shadow-recognition-test': 'shadow bursts, retrospective revisions, review-gap continuation',

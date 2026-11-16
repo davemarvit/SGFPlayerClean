@@ -3433,3 +3433,19 @@ The recorded Black65–67 incident is replayed by `--hand-clock-test` and
 loss, actual camera gaps, missing presses and synthetic fingertips within changing
 light. This is regression evidence, not a guarantee of accuracy for every camera
 and lighting condition.
+
+## Latest false detections and offline quality pilot (0.190)
+
+In **Correct placement**, the latest saved placement now offers **Remove false
+detection — no stone was played**. Confirmation saves a corrected copy with that
+turn removed, preserves the original recording and restores the preceding legal
+position. It does not insert a pass. The clock remains paused with both balances
+retained and an explicit time review, since a phantom press is not a reliable
+basis for refunding elapsed time. Earlier saved placements cannot be removed by
+this shortcut because subsequent turns and captures may depend on them.
+
+The captured-image quality and single-placement competition pilot remains
+**offline only**. Its first weighting rule lost useful real-move evidence and did
+not eliminate the measured false stones. See
+[the evaluation](Documentation/LocalQualityEvaluation.txt) and
+[recorded results](Documentation/LocalQualityEvaluationResults.json).

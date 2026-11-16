@@ -1,0 +1,316 @@
+{
+  "scope": "Pilot labels from visually inspected retained frames; not independent held-out games. Physical occupancy, not move count. Uninspected or hand-occluded frames excluded from accuracy totals. Raw point 323 is empty in these selected frames. Static labels inherit the prior regression corpus.",
+  "timelineTruth": {
+    "306": {
+      "black": [
+        262,
+        280,
+        282,
+        300
+      ],
+      "white": [
+        60,
+        72
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "316": {
+      "black": [
+        262,
+        280,
+        282,
+        300
+      ],
+      "white": [
+        60,
+        72
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "333": {
+      "black": [
+        262,
+        280,
+        282,
+        300
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "337": {
+      "black": [
+        262,
+        280,
+        282,
+        300
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "343": {
+      "black": [
+        262,
+        280,
+        282,
+        300
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "354": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "local darkening"
+    },
+    "355": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "356": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "357": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "local darkening"
+    },
+    "358": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "local darkening"
+    },
+    "367": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "369": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "373": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "380": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "395": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    },
+    "410": {
+      "black": [
+        262,
+        280,
+        282,
+        300,
+        309
+      ],
+      "white": [
+        60,
+        72,
+        288,
+        250
+      ],
+      "provenance": "manual inspection of rectified contact/keyframes; legal initial position as context; all other points empty",
+      "visualQuality": "no hand visible; shadow clearance not established"
+    }
+  },
+  "episodes": [
+    {
+      "first": 306,
+      "last": 343,
+      "color": "white",
+      "before": {
+        "black": [
+          262,
+          280,
+          282,
+          300
+        ],
+        "white": [
+          60,
+          72
+        ]
+      }
+    },
+    {
+      "first": 344,
+      "last": 358,
+      "color": "black",
+      "before": {
+        "black": [
+          262,
+          280,
+          282,
+          300
+        ],
+        "white": [
+          60,
+          72,
+          288
+        ]
+      }
+    },
+    {
+      "first": 359,
+      "last": 410,
+      "color": "white",
+      "before": {
+        "black": [
+          262,
+          280,
+          282,
+          300,
+          309
+        ],
+        "white": [
+          60,
+          72,
+          288
+        ]
+      }
+    }
+  ]
+}
