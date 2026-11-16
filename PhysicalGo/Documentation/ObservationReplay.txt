@@ -77,3 +77,44 @@ and conflict checks; actual faint-capture photo and camera-preview suites passed
 Implementation branch: codex/physical-go-observation-preservation.
 The installed/running 0.187 app and current game were not replaced or relaunched.
 The new signed build is at PhysicalGo/.build/Physical Go.app.
+
+Next phase and tracked idea — 2026-11-16
+Proceed with per-candidate evidence histories: first appearance, last definite
+absence, supported hand-exit interval and confirmation time. Keep occupancy,
+location, chronology and timing uncertainty distinct. Compare the proposed
+decisions with the current recorder in offline replay before switching behavior.
+
+Dave's proposed follow-up: detect when a hand's shadow has cleared, independently
+of when the hand itself has cleared. Status: recorded for investigation; not a
+new implementation requirement or a dependency blocking candidate histories.
+
+Current partial support: ShadowEvidence discounts correlated dark readings and
+uses a recent-hand window plus retrospective sample-specific revisions.
+HandOutlineTracker checks visible foreground clearance and can recognize preserved
+board texture under moving light/shadow, allowing hand clearance despite that
+lighting change. KnownEmptyLighting also supplies local lighting adaptation.
+These mechanisms do not expose a separate, explicit shadow-clearance event or a
+per-region shadow-clearance estimate for move candidates. Hand-clear must not be
+interpreted as proof that every intersection is free of shadow.
+
+Possible experiment after candidate histories are established:
+- Track illumination/texture recovery over trusted board-background regions
+  across several frames, independently of the hand outline. Evaluate local
+  regions: one lingering shadow need not discredit the entire board.
+- Distinguish a passing shadow from a real new stone, captured-stone removal,
+  glare, camera auto-exposure and a lasting ambient-light change. Clearance
+  cannot require every pixel to return to its pre-move value.
+- Retain hand presence, suspected shadow and measured lighting stability as
+  separate quality evidence associated with immutable observations. Use later
+  recovery to revise only the relevant samples; uncertain evidence stays unknown.
+- Use shadow clearance to assess reading quality while keeping candidate move
+  timing independent. Preserve earlier supported placement evidence and its
+  interval; shadow-clearance/confirmation time is not automatically a clock press.
+- Evaluate hand gone/shadow lingering, shadow preceding hand entry, shadows from
+  off-board hands, rapid replies, real dark stones and capture sequences. Label
+  visible clearance intervals from retained pixels where possible; do not treat
+  the existing detector's outputs as ground truth. Compare false/missed moves,
+  unnecessary pauses, confirmation delay and timing/capture regressions in replay.
+
+This idea should inform the quality/provenance fields in the next-phase design;
+developing a shadow detector remains a separate, measured follow-up experiment.
