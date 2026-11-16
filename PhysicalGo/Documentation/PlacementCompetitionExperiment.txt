@@ -1,0 +1,169 @@
+Offline placement competition experiment — 2026-11-16
+
+Decision
+Keep all new scoring offline. The color-specific shadow control is a promising
+development result: it avoids selecting the captured B19 phantom, preserves all
+three real placement locations and Black's timing witnesses, and loses no photo
+probes relative to the raw-confidence experimental control. Competition itself
+has not shown additional benefit over independently scoring the same candidates.
+This is not yet a validated improvement to the live recognizer or clock system.
+
+Implementation
+Tools/placement_competition_lab.py returns one of placement, no_move, or unknown.
+Each invocation receives a supplied prior position and expected color. It does
+not update a game, resolve captures, infer multiple moves, or generate presses.
+Tools/evaluate_placement_competition.py runs the captured-data experiment.
+Tools/placement_competition_protocol.json records its frozen numeric settings.
+
+At each previously empty intersection with a raw stone candidate, the prototype
+combines the classifier's heuristic confidence with optional appearance support.
+Appearance support measures directional median change at the stone center after
+adjusting the trusted reference using illumination measured in nearby wood.
+All possible stone bodies are excluded from that wood measurement, and board
+edges use the available one-sided samples. The current frame is compared with a
+trusted earlier image, never a future clean image. Missing or unreliable wood
+coverage is neutral; it cannot become evidence that the point is empty.
+
+The relevant distinction in the captured incident is substantial: the real
+Black stone has roughly 0.33–0.36 center darkening beyond the local wood change,
+whereas the two false dark spots have roughly 0.03. These are grayscale feature
+differences, not calibrated probabilities. White stones can also have low
+contrast against pale wood, so low contrast alone cannot reject White.
+
+Five controls
+- raw_competition: raw-confidence support and temporal evidence, with competition.
+- appearance_independent: appearance discount for both colors; one qualifying
+  candidate may be selected without normalizing against weaker alternatives.
+- appearance_competition: the same appearance evidence with location competition.
+- black_shadow_independent: apply the appearance discount to Black only; keep
+  White's existing raw-confidence evidence. No cross-location normalization.
+- black_shadow_competition: the same color-specific evidence with competition.
+
+Competition assigns relative support among expected-color locations and a null
+alternative. A strong candidate reduces weaker candidates' shares, but does not
+delete their observations. A winner must also have independently strong evidence
+in two clear observations at least 0.12 seconds apart. A large null share alone
+does not prove no move occurred: no_move requires repeated positive unchanged
+appearance and confident empty readings throughout the relevant board area.
+Otherwise the result is unknown. Shares are not posterior probabilities.
+
+Hand obstruction/unavailable tracking, failed lighting, changed retained stones
+and opposite-color additions force unknown. Possible captures remain for the
+existing legal resolver. A camera gap over 0.5 seconds latches review until a new
+trusted context is explicitly supplied; the model cannot silently recover a
+single-turn assumption after an arbitrary gap. This conservative behavior is
+not proposed as a replacement for the application's existing gap recovery.
+
+Candidate history and timing
+Every location/color pair preserves its own first observed time and observation
+history, including weak and hand-obstructed sightings. These are not placement
+times. Current independent support has its own consecutive witness run; a weak,
+absent, obstructed or interrupted candidate breaks that run. A later appearance
+cannot borrow an old supported timestamp. First-ever support remains archived.
+Decision rows expose current-run firstSupported separately from confirmation.
+Candidate rows also retain firstSupportedEver; history files preserve the full
+first-ever evidence. Later hands do not retroactively erase good earlier images.
+
+Original native frame timing estimates are copied as unassigned metadata. The
+experiment never assigns a global frame estimate to one candidate as a clock
+press. All decisions explicitly have clockAuthority=false. A first sighting
+during a hand interaction must not be confused with a supported clock event.
+
+Data and limits
+The real rapid-reply segment has 75 analyzed views, with supplied conditional
+contexts for White8, Black9 and White10. A separate Black-next probe starts with
+the manually supplied position after White10, exposing the phantom Black at
+raw point 323 (B19 in the rotated UI). Supplying this context does not claim
+that the experiment automatically inferred White10 or decoded the whole game.
+Three correct conditional placements are not three validated clock presses.
+
+There are twelve delivery scenarios: recorded; the ten previous missed-hand,
+unknown-hand, delayed-hand and camera-gap injections; and a negative control
+removing precisely Black's frames 355/356. Original frame times are retained.
+The 40-second quiet continuation is also replayed using its preserved unadapted
+native readings. Rapid reply uses the earlier rerun pixel-classifier readings;
+both sources are preserved and their distinction is explicit.
+
+Twenty-two other captured photos supply 271 conditional stone/photo probes.
+Each probe supplies all other actual stones as known context and asks about one
+missing stone. This is a synthetic prior-position test, not recognition of a
+whole board from nothing. Each photograph is held for five synthetic seconds;
+repeated images add persistence, not independent visual evidence or real timing.
+Known-position/no-additional-move probes supplement the placement probes.
+Physical prisoners awaiting removal retain their existing physical labels.
+
+All captures and labels were examined in previous work. This is development
+evidence, not a fresh holdout. The earlier captured B19 false reading is not an
+image of the much later saved false move 11; that later event lacks captured
+images. Reviewed-frame scores and location-level episode results are reported
+separately: a selection may occur between manually reviewed frames.
+
+Results and iteration
+Version 1 applied the same contrast discount to both colors. It avoided B19 and
+retained the three real incident locations, but photo probe recognition dropped
+from 230/271 in the raw control to 164/271. All 66 additional losses were White.
+Version 2 therefore added the two Black-only controls. They recovered every one
+of those 66 probes, still avoided B19, and retained the same real locations.
+Version 3 hardens current-run timestamps against vanished/reappearing candidates.
+Numeric thresholds did not change across these versions. Earlier results and
+source snapshots are retained outside the repository. The color-specific choice
+was informed by development outcomes; it is not an independently tested choice.
+
+Raw competition selects B19 in the recorded Black-next probe and eight of its
+repeated delivery contexts. Both Black-only controls select no incorrect
+locations in those contexts. They recognize the same 230 photo probes as the
+raw control, with no additional losses, wrong locations or false no-move results.
+The remaining 41 unrecognized photo probes are already absent from this raw
+experimental control; these counts are not native-classifier accuracy numbers.
+
+Recorded conditional selection frames remain White8=335, Black9=356, White10=371.
+Black's independent witnesses are the original frames 355/356 and their exact
+capture times. The negative control without those witnesses abstains. White10
+retains support beginning at 367, while opposite-color shadows delay selection
+until 371; the experiment does not silently disregard that safeguard.
+
+The competitive and independent versions make identical decisions on all 1,456
+captured replay views compared for each appearance family, and have identical
+photo-probe outcomes. Synthetic unit tests verify that competition functions,
+including a case where extra weak candidates make it more conservative. There
+is no measured reason yet to prefer the more complex competitive decision rule.
+
+Remaining limitations are material. The no-move test returns unknown at all
+eight reviewed quiet frames; even the first quiet view has 98 raw empty readings
+below the conservative confidence floor. Thus no-move recognition is not yet
+useful enough here. Missed-hand injections also expose 16 repeated selections
+using witnesses that the original recording marked hand-obstructed, in both raw
+and new controls. This is not 16 independent incidents. It demonstrates why
+candidate appearance times cannot become clock presses without the existing
+native timing safeguards. No clock-accuracy or pause-reduction claim is made.
+
+Verification and next step
+33 offline tests pass, covering competition/ties, no-move versus unknown,
+unknown coverage, candidate-specific times, stale-timestamp isolation, late
+hands, camera gaps, exposure failures, capture/opposite-color contradictions,
+color-specific shadow support, and the earlier experiment regressions.
+Source and observation fingerprints verify that live Swift files, raw readings,
+captured times and pixel evidence remain unchanged. The app was not rebuilt,
+installed or relaunched. No saved game or clock state was edited.
+
+Freeze this candidate and collect a short fresh session containing real Black
+edge placements, hand shadows with no placement, low-contrast White stones,
+rapid replies and captures. Evaluate offline before any integration. Prioritize
+validating the color-specific appearance evidence; competition has not earned
+promotion. Native legal/capture/clock replay remains required before using any
+new evidence in production decisions.
+
+Reproduction
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py' -v
+python3 PhysicalGo/Tools/evaluate_placement_competition.py \
+  --corpus '/Users/dave/Documents/SGF PLayer/work/recognizer-comparison' \
+  --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json \
+  --quiet '/Users/dave/Documents/SGF PLayer/work/unchanged-baseline-stage4/quiet-replay-final' \
+  --output '/absolute/new/external/report/folder'
+
+Dependencies: the existing Python numpy/opencv environment. Reports include the
+protocol and supplied contexts, input/image/script hashes, raw observations,
+appearance features, complete native frame metadata, per-frame decisions,
+per-candidate histories, and summary counts for all controls.
+Artifacts: /Users/dave/Documents/SGF PLayer/work/placement-competition-stage6
+Compact tracked result: PlacementCompetitionResults.json.

@@ -1,0 +1,581 @@
+{
+  "status": "OFFLINE ONLY; no automatic promotion",
+  "aggregation": {
+    "raw_competition": {
+      "recordedRealLocationsRecognized": 3,
+      "recordedWrongLocationContexts": 1,
+      "blackNextProbeWrongPoints": [
+        323
+      ],
+      "blackConfirmedBy356": true,
+      "black355356SupportPreserved": true,
+      "missingBlackWitnessesAbstained": true,
+      "allScenarioWrongLocationContexts": 8,
+      "allScenarioFalseNoMoveReadings": 0,
+      "allScenarioGuardViolations": 0,
+      "faultSelectionsUsingOriginallyHandBlockedWitnesses": 16,
+      "quietCounts": {
+        "correctPlacements": 0,
+        "wrongPlacements": 0,
+        "correctNoMove": 0,
+        "falseNoMove": 0,
+        "unknown": 8,
+        "scoredFrames": 8,
+        "guardViolations": 0
+      },
+      "photoStoneProbes": 271,
+      "photoStoneProbesRecognized": 230,
+      "photoProbesWithWrongLocation": 0,
+      "photoProbesWithFalseNoMove": 0
+    },
+    "appearance_independent": {
+      "recordedRealLocationsRecognized": 3,
+      "recordedWrongLocationContexts": 0,
+      "blackNextProbeWrongPoints": [],
+      "blackConfirmedBy356": true,
+      "black355356SupportPreserved": true,
+      "missingBlackWitnessesAbstained": true,
+      "allScenarioWrongLocationContexts": 0,
+      "allScenarioFalseNoMoveReadings": 0,
+      "allScenarioGuardViolations": 0,
+      "faultSelectionsUsingOriginallyHandBlockedWitnesses": 16,
+      "quietCounts": {
+        "correctPlacements": 0,
+        "wrongPlacements": 0,
+        "correctNoMove": 0,
+        "falseNoMove": 0,
+        "unknown": 8,
+        "scoredFrames": 8,
+        "guardViolations": 0
+      },
+      "photoStoneProbes": 271,
+      "photoStoneProbesRecognized": 164,
+      "photoProbesWithWrongLocation": 0,
+      "photoProbesWithFalseNoMove": 0
+    },
+    "appearance_competition": {
+      "recordedRealLocationsRecognized": 3,
+      "recordedWrongLocationContexts": 0,
+      "blackNextProbeWrongPoints": [],
+      "blackConfirmedBy356": true,
+      "black355356SupportPreserved": true,
+      "missingBlackWitnessesAbstained": true,
+      "allScenarioWrongLocationContexts": 0,
+      "allScenarioFalseNoMoveReadings": 0,
+      "allScenarioGuardViolations": 0,
+      "faultSelectionsUsingOriginallyHandBlockedWitnesses": 16,
+      "quietCounts": {
+        "correctPlacements": 0,
+        "wrongPlacements": 0,
+        "correctNoMove": 0,
+        "falseNoMove": 0,
+        "unknown": 8,
+        "scoredFrames": 8,
+        "guardViolations": 0
+      },
+      "photoStoneProbes": 271,
+      "photoStoneProbesRecognized": 164,
+      "photoProbesWithWrongLocation": 0,
+      "photoProbesWithFalseNoMove": 0
+    },
+    "black_shadow_independent": {
+      "recordedRealLocationsRecognized": 3,
+      "recordedWrongLocationContexts": 0,
+      "blackNextProbeWrongPoints": [],
+      "blackConfirmedBy356": true,
+      "black355356SupportPreserved": true,
+      "missingBlackWitnessesAbstained": true,
+      "allScenarioWrongLocationContexts": 0,
+      "allScenarioFalseNoMoveReadings": 0,
+      "allScenarioGuardViolations": 0,
+      "faultSelectionsUsingOriginallyHandBlockedWitnesses": 16,
+      "quietCounts": {
+        "correctPlacements": 0,
+        "wrongPlacements": 0,
+        "correctNoMove": 0,
+        "falseNoMove": 0,
+        "unknown": 8,
+        "scoredFrames": 8,
+        "guardViolations": 0
+      },
+      "photoStoneProbes": 271,
+      "photoStoneProbesRecognized": 230,
+      "photoProbesWithWrongLocation": 0,
+      "photoProbesWithFalseNoMove": 0
+    },
+    "black_shadow_competition": {
+      "recordedRealLocationsRecognized": 3,
+      "recordedWrongLocationContexts": 0,
+      "blackNextProbeWrongPoints": [],
+      "blackConfirmedBy356": true,
+      "black355356SupportPreserved": true,
+      "missingBlackWitnessesAbstained": true,
+      "allScenarioWrongLocationContexts": 0,
+      "allScenarioFalseNoMoveReadings": 0,
+      "allScenarioGuardViolations": 0,
+      "faultSelectionsUsingOriginallyHandBlockedWitnesses": 16,
+      "quietCounts": {
+        "correctPlacements": 0,
+        "wrongPlacements": 0,
+        "correctNoMove": 0,
+        "falseNoMove": 0,
+        "unknown": 8,
+        "scoredFrames": 8,
+        "guardViolations": 0
+      },
+      "photoStoneProbes": 271,
+      "photoStoneProbesRecognized": 230,
+      "photoProbesWithWrongLocation": 0,
+      "photoProbesWithFalseNoMove": 0
+    }
+  },
+  "liveSourcesUnchanged": true,
+  "observationsUnchanged": true,
+  "limits": [
+    "Conditional prior positions are supplied, not automatically inferred; no end-to-end game or clock claim.",
+    "Native recorded timing estimates are preserved as unassigned frame metadata, never synthesized per candidate.",
+    "Photo repeats and one-stone-missing contexts are synthetic stress probes, not independent played moves.",
+    "All captured sessions were examined previously. This is a development experiment, not fresh validation.",
+    "The captured early B19 false reading is not an image of the later saved phantom move 11.",
+    "Appearance and competition contributions must be assessed with their separate controls."
+  ],
+  "verification": {
+    "offlineTestsPassed": 33,
+    "capturedDecisionRowsWithOriginalTimesAndMetadata": 7280,
+    "noDecisionHasClockAuthority": true,
+    "currentSupportMatchesCurrentWitnessRun": true,
+    "competitionAblations": {
+      "appearance": {
+        "decisionsCompared": 1456,
+        "differences": []
+      },
+      "black_shadow": {
+        "decisionsCompared": 1456,
+        "differences": []
+      }
+    },
+    "additionalLostPhotoProbes": [],
+    "additionalGainedPhotoProbes": [],
+    "additionalMissedConditionalRealEventsAcrossScenarios": [],
+    "liveSourcesUnchanged": true,
+    "observationsUnchanged": true,
+    "nativeAppRebuiltOrRelaunched": false,
+    "nativeClockSuiteRerun": false
+  },
+  "recordedConditionalResults": {
+    "raw_competition": {
+      "white8": {
+        "counts": {
+          "correctPlacements": 0,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 5,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 288,
+          "confirmedAt": {
+            "frame": 335,
+            "capturedAt": 1265046.532667084
+          },
+          "firstSeen": {
+            "frame": 329,
+            "capturedAt": 1265045.8076668337
+          },
+          "firstSupported": {
+            "frame": 333,
+            "capturedAt": 1265046.3096668345
+          },
+          "witnesses": [
+            {
+              "frame": 333,
+              "capturedAt": 1265046.3096668345
+            },
+            {
+              "frame": 335,
+              "capturedAt": 1265046.532667084
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          288
+        ],
+        "expectedPoint": 288,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "black9": {
+        "counts": {
+          "correctPlacements": 1,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 4,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 309,
+          "confirmedAt": {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          },
+          "firstSeen": {
+            "frame": 351,
+            "capturedAt": 1265049.8227001668
+          },
+          "firstSupported": {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          "witnesses": [
+            {
+              "frame": 355,
+              "capturedAt": 1265050.6216669178
+            },
+            {
+              "frame": 356,
+              "capturedAt": 1265050.8077002084
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          309
+        ],
+        "expectedPoint": 309,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178,
+            "rawConfidence": 1,
+            "weight": 1.0,
+            "appearanceStrength": 1.0,
+            "imageUsable": true,
+            "supported": true
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084,
+            "rawConfidence": 1,
+            "weight": 1.0,
+            "appearanceStrength": 1.0,
+            "imageUsable": true,
+            "supported": true
+          }
+        ],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "white10": {
+        "counts": {
+          "correctPlacements": 1,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 4,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 250,
+          "confirmedAt": {
+            "frame": 371,
+            "capturedAt": 1265053.8197002085
+          },
+          "firstSeen": {
+            "frame": 366,
+            "capturedAt": 1265052.8157002088
+          },
+          "firstSupported": {
+            "frame": 367,
+            "capturedAt": 1265053.0197002506
+          },
+          "witnesses": [
+            {
+              "frame": 367,
+              "capturedAt": 1265053.0197002506
+            },
+            {
+              "frame": 368,
+              "capturedAt": 1265053.2247002085
+            },
+            {
+              "frame": 369,
+              "capturedAt": 1265053.4107001675
+            },
+            {
+              "frame": 370,
+              "capturedAt": 1265053.6146668755
+            },
+            {
+              "frame": 371,
+              "capturedAt": 1265053.8197002085
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          250
+        ],
+        "expectedPoint": 250,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "black-next-probe": {
+        "counts": {
+          "correctPlacements": 0,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 5,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 323,
+          "confirmedAt": {
+            "frame": 370,
+            "capturedAt": 1265053.6146668755
+          },
+          "firstSeen": {
+            "frame": 369,
+            "capturedAt": 1265053.4107001675
+          },
+          "firstSupported": {
+            "frame": 369,
+            "capturedAt": 1265053.4107001675
+          },
+          "witnesses": [
+            {
+              "frame": 369,
+              "capturedAt": 1265053.4107001675
+            },
+            {
+              "frame": 370,
+              "capturedAt": 1265053.6146668755
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          323
+        ],
+        "expectedPoint": null,
+        "recognizedExpectedPoint": null,
+        "wrongSelectedPoints": [
+          323
+        ],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      }
+    },
+    "black_shadow_competition": {
+      "white8": {
+        "counts": {
+          "correctPlacements": 0,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 5,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 288,
+          "confirmedAt": {
+            "frame": 335,
+            "capturedAt": 1265046.532667084
+          },
+          "firstSeen": {
+            "frame": 329,
+            "capturedAt": 1265045.8076668337
+          },
+          "firstSupported": {
+            "frame": 333,
+            "capturedAt": 1265046.3096668345
+          },
+          "witnesses": [
+            {
+              "frame": 333,
+              "capturedAt": 1265046.3096668345
+            },
+            {
+              "frame": 335,
+              "capturedAt": 1265046.532667084
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          288
+        ],
+        "expectedPoint": 288,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "black9": {
+        "counts": {
+          "correctPlacements": 1,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 4,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 309,
+          "confirmedAt": {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          },
+          "firstSeen": {
+            "frame": 351,
+            "capturedAt": 1265049.8227001668
+          },
+          "firstSupported": {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          "witnesses": [
+            {
+              "frame": 355,
+              "capturedAt": 1265050.6216669178
+            },
+            {
+              "frame": 356,
+              "capturedAt": 1265050.8077002084
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          309
+        ],
+        "expectedPoint": 309,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178,
+            "rawConfidence": 1,
+            "weight": 1.0,
+            "appearanceStrength": 1.0,
+            "imageUsable": true,
+            "supported": true
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084,
+            "rawConfidence": 1,
+            "weight": 1.0,
+            "appearanceStrength": 1.0,
+            "imageUsable": true,
+            "supported": true
+          }
+        ],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "white10": {
+        "counts": {
+          "correctPlacements": 1,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 4,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": {
+          "selected": 250,
+          "confirmedAt": {
+            "frame": 371,
+            "capturedAt": 1265053.8197002085
+          },
+          "firstSeen": {
+            "frame": 366,
+            "capturedAt": 1265052.8157002088
+          },
+          "firstSupported": {
+            "frame": 367,
+            "capturedAt": 1265053.0197002506
+          },
+          "witnesses": [
+            {
+              "frame": 367,
+              "capturedAt": 1265053.0197002506
+            },
+            {
+              "frame": 368,
+              "capturedAt": 1265053.2247002085
+            },
+            {
+              "frame": 369,
+              "capturedAt": 1265053.4107001675
+            },
+            {
+              "frame": 370,
+              "capturedAt": 1265053.6146668755
+            },
+            {
+              "frame": 371,
+              "capturedAt": 1265053.8197002085
+            }
+          ]
+        },
+        "everSelectedPoints": [
+          250
+        ],
+        "expectedPoint": 250,
+        "recognizedExpectedPoint": true,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      },
+      "black-next-probe": {
+        "counts": {
+          "correctPlacements": 0,
+          "wrongPlacements": 0,
+          "correctNoMove": 0,
+          "falseNoMove": 0,
+          "unknown": 5,
+          "scoredFrames": 5,
+          "guardViolations": 0
+        },
+        "firstSelection": null,
+        "everSelectedPoints": [],
+        "expectedPoint": null,
+        "recognizedExpectedPoint": null,
+        "wrongSelectedPoints": [],
+        "blackTimingWitnesses": [],
+        "selectionsUsingOriginallyHandBlockedWitnesses": 0,
+        "syntheticPersistence": false
+      }
+    }
+  },
+  "artifactFolder": "/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/evaluation-final",
+  "artifactHashes": {
+    "plan.json": "53c06ecb011516e93033fe00f2e5998b461a21276193760abcce21215106cae3",
+    "manifest.json": "4849c46927d0e8e41fbb33bb43be05c3df3d7ba472b688fad113c3a370ba15ef",
+    "summary.json": "a6140059b004a92583bbbfdf1088a4cee66fc9b71078e39d801f30dae450bdcf",
+    "verification.json": "0fa13644ef49ff90c1b0526eebf87174506e016d4dffcbe1937bb058a98f442a"
+  },
+  "developmentIterations": {
+    "v1": "Symmetric contrast penalty loses 66 white stone/photo probes; preserved in evaluation-v1.",
+    "v2": "Black-only discount restores those probes; selected after seeing v1, not fresh validation.",
+    "v3": "Separates current-run support time from archived first-ever support; thresholds unchanged."
+  }
+}

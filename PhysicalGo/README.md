@@ -3465,6 +3465,13 @@ The first 53-setting run found no improvement and rejected eight configurations
 that suppressed real stones; the existing settings remain selected. See the
 [recorded search results](Documentation/RecognitionParameterSearchResults.json).
 
+The [placement-competition experiment](Documentation/PlacementCompetitionExperiment.txt)
+adds candidate-specific histories and separates placement, no-move and unknown.
+A Black-specific shadow control avoids the captured B19 phantom while retaining
+the incident's real placements and matching its raw-confidence control on the
+photo stress checks. Competition itself adds no measured benefit, and fresh
+session/clock validation is still needed. All new scoring remains offline.
+
 ## Volume control (0.191)
 
 The main toolbar now exposes **Voice & clock volume**, with a 0–100% slider and
