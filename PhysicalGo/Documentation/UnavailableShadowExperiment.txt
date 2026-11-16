@@ -1,0 +1,162 @@
+Unavailable shadow evidence — offline experiment, 2026-11-16
+
+Result
+
+The selective contrast fallback preserves strong support for all 65 reviewed
+placements while withholding support from the reviewed false Black reading at
+frame 1281, raw point 75. It also preserves the older photo control's supported
+stones and the older replay's decisions and timestamps. This is a promising
+development result, not a live release or an independent validation result.
+
+No live recognition, clock, capture, application settings, or native Swift
+sources were changed by this task. Unrelated scoring edits in the shared
+workspace were left untouched. The only existing implementation modified is
+the OFFLINE PlacementCompetition class: an optional filter can reduce support,
+but cannot increase it, discard raw readings, infer emptiness, or bypass guards.
+
+What was tested
+
+All policies retain the existing Black-specific shadow weighting whenever
+appearance is available. Missing appearance is evaluated separately:
+
+neutral: the existing fallback keeps the raw support.
+hold_all: hold any candidate whose appearance is unavailable.
+hold_black: apply that hold to Black only, preserving the White control.
+outline_black: permit missing Black appearance with an existing current-frame
+  stone-outline fit of quality >=0.90 and center offset <=0.20 per axis.
+contrast_black: permit missing Black appearance only when background mismatch
+  is the sole failure and measured center darkening exceeds the surrounding
+  wood residual by >=0.14. All other missing/invalid evidence stays pending.
+
+The contrast measurement is median(current core - gain * reference core).
+Gain must remain within the existing [0.4, 1.8] bounds; at least 90% of the
+core must be visible, enough wood samples must exist, and the core/background
+metrics must be finite. The original signedCoreDelta remains unavailable.
+The extra measurement does not silently turn the failed background check into
+a successful one. The 0.14 margin reuses the existing full-contrast threshold;
+no parameter search was performed.
+
+This contrast margin is a heuristic, NOT a probability or statistical error
+bound. In particular, a localized hand shadow can still imitate a stone, so
+hand, exposure, temporal, legality, and capture checks remain authoritative.
+Available appearance that contradicts a stone cannot be overruled by either
+fallback. White behavior is unchanged in the selective policies.
+
+Development history is retained: v1's outline-only rule failed at Black 21
+(outline quality 0.8755, below 0.90). Its threshold was not relaxed. v2 adds
+the separate contrast ablation. Both the earlier game and this 65-move game
+have now influenced development; neither is a clean holdout.
+
+Reviewed game and photo results
+
+                                Real placements /65   False reading supported
+neutral                                  65                    yes
+hold_all                                 63                    no
+hold_black                               64                    no
+outline_black                            64                    no
+contrast_black                           65                    no
+
+These are single-frame support checks on the 65 independently image-reviewed
+post-placement points, not 65 completed multi-frame move decisions.
+
+For Black 21, measured center darkening is 0.4601 and wood residual is 0.2027:
+their difference is 0.2573, above 0.14. For the empty edge at frame 1281, the
+corresponding values are 0.0260 and 0.3319: the difference is negative. Both
+native readings were confidence 1.0; the spatial evidence distinguishes them.
+
+The older photos contain 247 correct stone samples above the single-frame
+support threshold in the neutral control. contrast_black retains all 247;
+hold_black loses 20, and hold_all loses 30. Photo outline metadata is absent,
+so outline_black is conservatively held when that evidence is unavailable.
+
+Complete one-stone-missing photo probes are also checked separately: a known
+prior position is supplied, the photo is repeated 25 times, and the original
+full-board decision guards remain active. Those synthetic repetitions are not
+independent images or real played moves. The verifier compares every decision
+and timing field against the neutral control and the stage6 aggregate.
+It retains 230 of 271 probes with zero wrong locations and identical decisions
+and timing fields across all 6,775 paired synthetic frames.
+
+Temporal evidence and safeguards
+
+The focused video includes 95 captured point observations. Visual review labels
+78 and excludes 17 occluded/ambiguous views. The contrast fallback retains all
+16 strongly supported correct stone observations, including all nine in frames
+whose recorded hand/exposure gates are clear. It removes support from two
+false-stone observations at the same empty edge, including one clear-gated view.
+These are two readings in one event, not two independent failure cases.
+
+The original focused windows encounter >0.5-second analysis gaps. Every policy
+leaves review latched; no policy declares a placement across those gaps. A
+separate, explicitly conditional probe supplies a reviewed empty point at
+frame 534 after the earlier gap. It is not automatic recovery.
+
+In that supplied context, neutral and contrast_black both first see Black 21
+at frame 545 (hand blocked), first support it at 547, and obtain their second
+witness at 548. They retain exactly the same original capture times. Frame 545
+cannot lend its timestamp to the usable 547/548 support run. Subsequent gaps
+remain latched, and the result still has no clock authority.
+
+The older rapid-reply replay covers 12 delivery/fault scenarios and four
+conditional positions. All 1,300 neutral output rows match the archived stage6
+control exactly. contrast_black changes no decision or timing field in those
+1,300 rows. Real Black witnesses 355 and 356 remain at their original times,
+with confirmation at 356. Removing those witnesses still prevents selection.
+Capture/removal, opposite-color, hand, unknown-hand, exposure and gap conditions
+cannot be overridden by the filter. Pending evidence never becomes no-move.
+
+An existing limitation remains: injected missed-hand scenarios produce 16
+repeated selections using witnesses originally marked hand-blocked, unchanged
+from the neutral control. They are not 16 independent events and are not proof
+of valid clock times. This experiment does not solve missed-hand detection or
+establish native clock accuracy. No live timing behavior was modified.
+
+Verification and artifacts
+
+52 offline tests pass. They cover unsupported-to-supported timestamps, retained
+observations, pending versus empty, finite/reducing-only filters, hand/gap/
+capture guards, valid and invalid contrast measurements, and neutral parity.
+All 2,343 preserved snapshot files, including the recording and clock sidecars,
+still match their preservation hashes and sizes. Swift source fingerprints were
+stable within the experiment runs.
+
+Artifacts:
+  /Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8
+  outline-v1.json — failed outline-only pilot and frozen v1 protocol
+  evaluation-verified — full rows, traces, contact sheets, scores, input hashes
+  verification-verified — full photo probes and exact replay comparison
+  preservation-verification.json — archived capture/recording integrity
+
+Tracked source and labels:
+  Tools/unavailable_shadow_protocol.json
+  Tools/unavailable_shadow_lab.py
+  Tools/evaluate_unavailable_shadow.py
+  Tools/verify_unavailable_shadow.py
+  Tools/unavailable_shadow_focus_labels.json
+  Tools/fresh_game_confidence_labels.json (unchanged)
+
+Reproduction from the repository root (numpy and opencv-python required):
+
+python3 PhysicalGo/Tools/evaluate_unavailable_shadow.py \
+  --previous '/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/evaluation-final' \
+  --corpus '/Users/dave/Documents/SGF PLayer/work/recognizer-comparison' \
+  --prepared '/Users/dave/Documents/SGF PLayer/work/confidence-stage7/fresh-review-final' \
+  --snapshot '/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/fresh-game-65-moves' \
+  --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json \
+  --output /new/external/evaluation
+
+python3 PhysicalGo/Tools/verify_unavailable_shadow.py \
+  --evaluation /new/external/evaluation \
+  --previous '/Users/dave/Documents/SGF PLayer/work/placement-competition-stage6/evaluation-final' \
+  --output /new/external/verification
+
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py' -q
+
+Next validation
+
+Keep the rule frozen and offline. Another untouched natural-play capture of
+roughly 50–70 moves is now useful; normal pauses, ordinary hand movements, and
+captures if they occur are sufficient. No preset sequence is needed. Ensure
+continuous capture is enabled before play. Review positions and timing evidence
+independently before comparing the fixed policy. Any further tuning would use
+that game as development data and require another untouched validation session.

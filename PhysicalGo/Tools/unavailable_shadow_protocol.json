@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "status": "OFFLINE ONLY; development experiment using previously inspected sessions",
+  "policies": ["neutral", "hold_all", "hold_black", "outline_black", "contrast_black"],
+  "contrastMargin": 0.14,
+  "developmentHistory": "v1 outline-only policy preserved 64/65 selected real placements, so it failed. v2 adds a separate center-darkening-minus-background-error ablation; threshold reuses frozen contrastFull, with no numerical search. This is inspected development data, not a fresh holdout.",
+  "outlineMinimumQuality": 0.9,
+  "outlineMaximumAxisOffset": 0.2,
+  "supportThreshold": 0.65,
+  "maximumGap": 0.5,
+  "minimumWitnesses": 2,
+  "minimumWitnessSeconds": 0.12,
+  "scope": "Only gate candidate support when signedCoreDelta is unavailable; never override available contradictory appearance, alter raw readings, infer emptiness, or assign clock presses.",
+  "thresholdProvenance": "Outline quality 0.90 and center offset 0.20 reuse strict existing StoneGeometry.swift criteria. Remaining values are frozen placement_competition_protocol.json safeguards; no search.",
+  "acceptance": [
+    "All 65 reviewed post-placement points keep strong support under the proposed selective policy.",
+    "Fresh frame 1281 point 75 loses unsupported high-confidence support.",
+    "Older known-shadow controls remain rejected, and real Black timing witnesses 355/356 remain unchanged.",
+    "Missing-hand, camera-gap, capture and opposite-color guards cannot be bypassed.",
+    "No candidate may inherit a first-supported timestamp from an earlier unsupported reading.",
+    "No live changes or promotion; another untouched natural-play game required for validation."
+  ]
+}

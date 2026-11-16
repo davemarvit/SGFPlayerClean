@@ -1,0 +1,391 @@
+{
+  "status": "OFFLINE ONLY; development experiment, not promoted",
+  "protocol": {
+    "version": 2,
+    "status": "OFFLINE ONLY; development experiment using previously inspected sessions",
+    "policies": [
+      "neutral",
+      "hold_all",
+      "hold_black",
+      "outline_black",
+      "contrast_black"
+    ],
+    "contrastMargin": 0.14,
+    "developmentHistory": "v1 outline-only policy preserved 64/65 selected real placements, so it failed. v2 adds a separate center-darkening-minus-background-error ablation; threshold reuses frozen contrastFull, with no numerical search. This is inspected development data, not a fresh holdout.",
+    "outlineMinimumQuality": 0.9,
+    "outlineMaximumAxisOffset": 0.2,
+    "supportThreshold": 0.65,
+    "maximumGap": 0.5,
+    "minimumWitnesses": 2,
+    "minimumWitnessSeconds": 0.12,
+    "scope": "Only gate candidate support when signedCoreDelta is unavailable; never override available contradictory appearance, alter raw readings, infer emptiness, or assign clock presses.",
+    "thresholdProvenance": "Outline quality 0.90 and center offset 0.20 reuse strict existing StoneGeometry.swift criteria. Remaining values are frozen placement_competition_protocol.json safeguards; no search.",
+    "acceptance": [
+      "All 65 reviewed post-placement points keep strong support under the proposed selective policy.",
+      "Fresh frame 1281 point 75 loses unsupported high-confidence support.",
+      "Older known-shadow controls remain rejected, and real Black timing witnesses 355/356 remain unchanged.",
+      "Missing-hand, camera-gap, capture and opposite-color guards cannot be bypassed.",
+      "No candidate may inherit a first-supported timestamp from an earlier unsupported reading.",
+      "No live changes or promotion; another untouched natural-play game required for validation."
+    ]
+  },
+  "freshReviewedPlacementSupport": {
+    "neutral": {
+      "realPlacementsStrong": 65,
+      "strongFalseReadings": 1
+    },
+    "hold_all": {
+      "realPlacementsStrong": 63,
+      "strongFalseReadings": 0
+    },
+    "hold_black": {
+      "realPlacementsStrong": 64,
+      "strongFalseReadings": 0
+    },
+    "outline_black": {
+      "realPlacementsStrong": 64,
+      "strongFalseReadings": 0
+    },
+    "contrast_black": {
+      "realPlacementsStrong": 65,
+      "strongFalseReadings": 0
+    }
+  },
+  "olderPhotoPointSupport": {
+    "neutral": {
+      "strongCorrect": 247,
+      "strongWrong": 0,
+      "lostCorrectVersusNeutral": 0
+    },
+    "hold_all": {
+      "strongCorrect": 217,
+      "strongWrong": 0,
+      "lostCorrectVersusNeutral": 30
+    },
+    "hold_black": {
+      "strongCorrect": 227,
+      "strongWrong": 0,
+      "lostCorrectVersusNeutral": 20
+    },
+    "outline_black": {
+      "strongCorrect": 227,
+      "strongWrong": 0,
+      "lostCorrectVersusNeutral": 20
+    },
+    "contrast_black": {
+      "strongCorrect": 247,
+      "strongWrong": 0,
+      "lostCorrectVersusNeutral": 0
+    }
+  },
+  "focusedPointScores": {
+    "neutral": {
+      "excludedOccluded": 17,
+      "reviewedPoints": 78,
+      "strongCorrectPointFrames": 16,
+      "clearStrongCorrectPointFrames": 9,
+      "strongFalsePointFrames": 2,
+      "clearStrongFalsePointFrames": 1
+    },
+    "hold_all": {
+      "excludedOccluded": 17,
+      "reviewedPoints": 78,
+      "strongCorrectPointFrames": 0,
+      "clearStrongCorrectPointFrames": 0,
+      "strongFalsePointFrames": 0,
+      "clearStrongFalsePointFrames": 0
+    },
+    "hold_black": {
+      "excludedOccluded": 17,
+      "reviewedPoints": 78,
+      "strongCorrectPointFrames": 0,
+      "clearStrongCorrectPointFrames": 0,
+      "strongFalsePointFrames": 0,
+      "clearStrongFalsePointFrames": 0
+    },
+    "outline_black": {
+      "excludedOccluded": 17,
+      "reviewedPoints": 78,
+      "strongCorrectPointFrames": 4,
+      "clearStrongCorrectPointFrames": 3,
+      "strongFalsePointFrames": 0,
+      "clearStrongFalsePointFrames": 0
+    },
+    "contrast_black": {
+      "excludedOccluded": 17,
+      "reviewedPoints": 78,
+      "strongCorrectPointFrames": 16,
+      "clearStrongCorrectPointFrames": 9,
+      "strongFalsePointFrames": 0,
+      "clearStrongFalsePointFrames": 0
+    }
+  },
+  "reviewedContext": {
+    "neutral": {
+      "frame": 548,
+      "capturedAt": 1322630.204800209,
+      "supported": true,
+      "eligible": true,
+      "firstSeen": {
+        "frame": 545,
+        "capturedAt": 1322629.6098001674
+      },
+      "witnesses": [
+        {
+          "frame": 547,
+          "capturedAt": 1322630.0188002917
+        },
+        {
+          "frame": 548,
+          "capturedAt": 1322630.204800209
+        }
+      ],
+      "firstSupported": {
+        "frame": 547,
+        "capturedAt": 1322630.0188002917
+      },
+      "gapReview": false,
+      "assessment": {
+        "rawSupport": 1.0,
+        "baselineSupport": 1.0,
+        "support": 1.0,
+        "appearanceAvailable": false,
+        "missingReasons": [
+          "background does not match reference"
+        ],
+        "outline": null,
+        "reason": "unavailable appearance retained by control",
+        "clockAuthority": false
+      },
+      "clockAuthority": false
+    },
+    "contrast_black": {
+      "frame": 548,
+      "capturedAt": 1322630.204800209,
+      "supported": true,
+      "eligible": true,
+      "firstSeen": {
+        "frame": 545,
+        "capturedAt": 1322629.6098001674
+      },
+      "witnesses": [
+        {
+          "frame": 547,
+          "capturedAt": 1322630.0188002917
+        },
+        {
+          "frame": 548,
+          "capturedAt": 1322630.204800209
+        }
+      ],
+      "firstSupported": {
+        "frame": 547,
+        "capturedAt": 1322630.0188002917
+      },
+      "gapReview": false,
+      "assessment": {
+        "rawSupport": 1.0,
+        "baselineSupport": 1.0,
+        "support": 1.0,
+        "appearanceAvailable": false,
+        "missingReasons": [
+          "background does not match reference"
+        ],
+        "outline": null,
+        "reason": "center darkening exceeds background residual plus margin",
+        "clockAuthority": false
+      },
+      "clockAuthority": false
+    }
+  },
+  "olderReplay": {
+    "neutral": {
+      "conditionalContexts": 48,
+      "wrongLocationContexts": 0,
+      "guardViolations": 0,
+      "originallyBlockedWitnessSelections": 16,
+      "blackTiming": {
+        "selected": 309,
+        "confirmedAt": {
+          "frame": 356,
+          "capturedAt": 1265050.8077002084
+        },
+        "firstSeen": {
+          "frame": 351,
+          "capturedAt": 1265049.8227001668
+        },
+        "firstSupported": {
+          "frame": 355,
+          "capturedAt": 1265050.6216669178
+        },
+        "witnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          }
+        ]
+      },
+      "missingBlackWitnessesAbstained": true
+    },
+    "hold_all": {
+      "conditionalContexts": 48,
+      "wrongLocationContexts": 0,
+      "guardViolations": 0,
+      "originallyBlockedWitnessSelections": 16,
+      "blackTiming": {
+        "selected": 309,
+        "confirmedAt": {
+          "frame": 356,
+          "capturedAt": 1265050.8077002084
+        },
+        "firstSeen": {
+          "frame": 351,
+          "capturedAt": 1265049.8227001668
+        },
+        "firstSupported": {
+          "frame": 355,
+          "capturedAt": 1265050.6216669178
+        },
+        "witnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          }
+        ]
+      },
+      "missingBlackWitnessesAbstained": true
+    },
+    "hold_black": {
+      "conditionalContexts": 48,
+      "wrongLocationContexts": 0,
+      "guardViolations": 0,
+      "originallyBlockedWitnessSelections": 16,
+      "blackTiming": {
+        "selected": 309,
+        "confirmedAt": {
+          "frame": 356,
+          "capturedAt": 1265050.8077002084
+        },
+        "firstSeen": {
+          "frame": 351,
+          "capturedAt": 1265049.8227001668
+        },
+        "firstSupported": {
+          "frame": 355,
+          "capturedAt": 1265050.6216669178
+        },
+        "witnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          }
+        ]
+      },
+      "missingBlackWitnessesAbstained": true
+    },
+    "outline_black": {
+      "conditionalContexts": 48,
+      "wrongLocationContexts": 0,
+      "guardViolations": 0,
+      "originallyBlockedWitnessSelections": 16,
+      "blackTiming": {
+        "selected": 309,
+        "confirmedAt": {
+          "frame": 356,
+          "capturedAt": 1265050.8077002084
+        },
+        "firstSeen": {
+          "frame": 351,
+          "capturedAt": 1265049.8227001668
+        },
+        "firstSupported": {
+          "frame": 355,
+          "capturedAt": 1265050.6216669178
+        },
+        "witnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          }
+        ]
+      },
+      "missingBlackWitnessesAbstained": true
+    },
+    "contrast_black": {
+      "conditionalContexts": 48,
+      "wrongLocationContexts": 0,
+      "guardViolations": 0,
+      "originallyBlockedWitnessSelections": 16,
+      "blackTiming": {
+        "selected": 309,
+        "confirmedAt": {
+          "frame": 356,
+          "capturedAt": 1265050.8077002084
+        },
+        "firstSeen": {
+          "frame": 351,
+          "capturedAt": 1265049.8227001668
+        },
+        "firstSupported": {
+          "frame": 355,
+          "capturedAt": 1265050.6216669178
+        },
+        "witnesses": [
+          {
+            "frame": 355,
+            "capturedAt": 1265050.6216669178
+          },
+          {
+            "frame": 356,
+            "capturedAt": 1265050.8077002084
+          }
+        ]
+      },
+      "missingBlackWitnessesAbstained": true
+    }
+  },
+  "verification": {
+    "neutralExactReplayParityRows": 1300,
+    "contrastDecisionTimingDifferences": 0,
+    "photoProbes": {
+      "probes": 271,
+      "recognized": 230,
+      "wrongLocations": 0,
+      "pairedDecisionFrames": 6775
+    },
+    "evaluationInputHashesChecked": 239,
+    "limits": "Photo repeats are synthetic, supplied-prior-position probes; no real-time or native clock claim."
+  },
+  "preservation": {
+    "snapshotFilesChecked": 2343,
+    "mismatches": []
+  },
+  "testsPassed": 52,
+  "liveSourcesUnchangedDuringRun": true,
+  "artifacts": "/Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8",
+  "limits": [
+    "All data inspected development data; no generalization claim.",
+    "65-point check measures support, not end-to-end move timing.",
+    "Photo outline metadata unavailable; outline-only ablation conservatively holds missing evidence there.",
+    "Focused candidate runs do not resolve full-board legality or captures.",
+    "Missing-hand injections cannot prove actual hands absent; original-blocked witnesses are reported.",
+    "Contrast margin is heuristic, not a probability or statistical error bound."
+  ],
+  "evaluation": "/Users/dave/Documents/SGF PLayer/work/unavailable-shadow-stage8/evaluation-verified"
+}

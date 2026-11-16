@@ -6,6 +6,7 @@ advance a game. The caller supplies an explicit trusted prior position/turn.
 """
 from dataclasses import dataclass, field
 import json
+import math
 from pathlib import Path
 from types import MappingProxyType
 
@@ -93,10 +94,13 @@ class PlacementCompetition:
     Candidate timestamps describe observations, never estimated clock presses.
     Hands/gaps reset usable runs but preserve every earlier evidence record.
     """
-    def __init__(self, before, color, method='appearance_competition'):
+    def __init__(self, before, color, method='appearance_competition', *, support_filter=None):
         if method not in METHODS or color not in ('black', 'white'):
             raise ValueError('Unsupported method/color')
         self.before, self.color, self.method = tuple(before), color, method
+        # Offline experiments may only reduce support. Keep original readings,
+        # histories, temporal gates and capture/turn checks authoritative.
+        self.support_filter = support_filter
         self.histories = {}
         self.last_time = None
         self.gap_review = False
@@ -139,6 +143,11 @@ class PlacementCompetition:
             stamp = {'frame': view.frame, 'capturedAt': view.time}
             history = self.histories.setdefault(key, History(dict(stamp)))
             raw, strength, weight = candidate_weight(reading, appearance, self.method)
+            if self.support_filter is not None:
+                filtered = self.support_filter(view, point, weight)
+                if not math.isfinite(filtered) or not 0 <= filtered <= weight:
+                    raise ValueError('Support filter may only reduce finite support')
+                weight = filtered
             supported = image_usable and weight >= PROTOCOL['minimumIndependentSupport']
             evidence = {**stamp, 'rawConfidence': reading['confidence'], 'weight': weight,
                         'appearanceStrength': strength, 'imageUsable': image_usable,

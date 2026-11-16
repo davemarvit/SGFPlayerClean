@@ -1,0 +1,577 @@
+{
+  "status": "assistant-image-reviewed-points",
+  "sourceEventsSHA256": "49822db61f005a5667311557f886d20fba5c0cbf9bb036c9863c6cb42b5bc6c2",
+  "provenance": "Visual inspection of focused-review-01..03.png in unavailable-shadow-stage8/evaluation-v2. Null means occluded/ambiguous, excluded from scoring. Local point labels do not certify whole-board hand clearance or clock times.",
+  "points": [
+    {
+      "case": "real-black21",
+      "frame": 520,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 522,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 523,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 525,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 527,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 528,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 529,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 531,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 533,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 534,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 535,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 536,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 537,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 539,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 540,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 541,
+      "point": 73,
+      "truth": "empty"
+    },
+    {
+      "case": "real-black21",
+      "frame": 543,
+      "point": 73,
+      "truth": null
+    },
+    {
+      "case": "real-black21",
+      "frame": 544,
+      "point": 73,
+      "truth": null
+    },
+    {
+      "case": "real-black21",
+      "frame": 545,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 547,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 548,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 550,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 551,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 553,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 555,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 557,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 558,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 559,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 561,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 562,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 564,
+      "point": 73,
+      "truth": null
+    },
+    {
+      "case": "real-black21",
+      "frame": 565,
+      "point": 73,
+      "truth": null
+    },
+    {
+      "case": "real-black21",
+      "frame": 567,
+      "point": 73,
+      "truth": null
+    },
+    {
+      "case": "real-black21",
+      "frame": 569,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 570,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 572,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "real-black21",
+      "frame": 574,
+      "point": 73,
+      "truth": "black"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1230,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1231,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1233,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1235,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1236,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1238,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1240,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1242,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1243,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1245,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1247,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1249,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1251,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1253,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1256,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1258,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1259,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1261,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1262,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1265,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1266,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1267,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1269,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1270,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1272,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1274,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1276,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1278,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1280,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1281,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1284,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1287,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1288,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1290,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1292,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1293,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1295,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1298,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1300,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1302,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1303,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1305,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1306,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1307,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1309,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1310,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1312,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1313,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1315,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1317,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1318,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1320,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1322,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1323,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1325,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1327,
+      "point": 75,
+      "truth": "empty"
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1329,
+      "point": 75,
+      "truth": null
+    },
+    {
+      "case": "empty-edge",
+      "frame": 1330,
+      "point": 75,
+      "truth": "empty"
+    }
+  ]
+}
