@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "stage": "guarded_adaptive_empty_evidence",
+  "seed": 20261116,
+  "randomTrials": 24,
+  "refinementTrials": 12,
+  "parameters": {
+    "coreError": [0.015, 0.03, 0.045, 0.06, 0.09],
+    "woodError": [0.01, 0.02, 0.035, 0.05, 0.07],
+    "minimumGain": [0.45, 0.5, 0.65, 0.8],
+    "maximumGain": [1.15, 1.35, 1.6, 1.85],
+    "stableGainRange": [0.015, 0.035, 0.05, 0.07],
+    "learningFrames": [3, 4, 6],
+    "learningSeconds": [0.4, 0.6, 0.9, 1.2],
+    "emptyWitnesses": [2, 3, 4, 5],
+    "emptySeconds": [0.2, 0.4, 0.6, 0.8]
+  },
+  "trainingPhotoGroups": ["shaded", "shaded-empty", "faint", "faint-empty", "club", "club-empty"],
+  "validationPhotoGroups": ["FaintCaptureQ3", "JadeWhiteA19"],
+  "splitNote": "Rapid reply and quiet continuation are one development session, both training. Entire photo fixture groups are reserved from selection. All data was examined in previous experiments: this is development validation, not an unseen test set.",
+  "objective": "Reject any real-stone empty support, blocked-frame output, or changed timing anchor. Minimize distinct phantom point/case pairs, then uncertain point/frame readings, then normalized distance from the incumbent. Empty-point accuracy and number of adaptations earn no reward. Photo persistence is synthetic and scored once at its last frame; every intermediate false-empty output still counts as a safety failure."
+}

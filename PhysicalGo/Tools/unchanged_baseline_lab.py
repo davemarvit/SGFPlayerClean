@@ -9,6 +9,7 @@ from collections import Counter
 from dataclasses import dataclass
 import json
 from pathlib import Path
+from types import MappingProxyType
 
 import cv2
 import numpy as np
@@ -24,6 +25,29 @@ PROTOCOL = dict(version=2, seedFrame=306, maximumGap=.5, coreRadius=.32,
                 quarantineSeconds=.8, emptyWitnesses=3, emptySeconds=.4)
 METHODS = ('fixed_reference', 'no_hand_only', 'no_interaction_since_seed', 'guarded_fixed', 'guarded_adaptive')
 INITIAL = {'black': [262, 280, 282, 300], 'white': [60, 72]}
+
+# Only appearance/evidence controls are tunable. Delivery, quarantine, sampling,
+# coverage and established-position guards remain fixed in every experiment.
+TUNABLE = ('coreError', 'woodError', 'minimumGain', 'maximumGain',
+           'stableGainRange', 'learningFrames', 'learningSeconds',
+           'emptyWitnesses', 'emptySeconds')
+
+
+def parameters(overrides=None):
+    overrides = dict(overrides or {})
+    if set(overrides) - set(TUNABLE):
+        raise ValueError('Cannot tune a fixed safeguard or unknown parameter')
+    result = {**PROTOCOL, **overrides}
+    for key in TUNABLE:
+        value = result[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not np.isfinite(value) or value <= 0:
+            raise ValueError('Invalid parameter: ' + key)
+    for key in ('learningFrames', 'emptyWitnesses'):
+        if not isinstance(result[key], int) or not 2 <= result[key] <= 12:
+            raise ValueError(key + ' must be an integer between 2 and 12')
+    if not result['minimumGain'] <= 1 <= result['maximumGain']:
+        raise ValueError('Gain interval must include the unchanged reference')
+    return MappingProxyType(result)
 
 
 def occupancy(points):
@@ -75,11 +99,26 @@ def features(core, wood, anchor_core, anchor_wood):
     return rows
 
 
-def compatible(feature):
+def compatible(feature, config=PROTOCOL):
     return (feature['gain'] is not None and feature['coreError'] is not None
-            and PROTOCOL['minimumGain'] <= feature['gain'] <= PROTOCOL['maximumGain']
-            and feature['coreError'] <= PROTOCOL['coreError']
-            and feature['woodError'] <= PROTOCOL['woodError'])
+            and config['minimumGain'] <= feature['gain'] <= config['maximumGain']
+            and feature['coreError'] <= config['coreError']
+            and feature['woodError'] is not None
+            and feature['woodError'] <= config['woodError'])
+
+
+def batch_residuals(cores, references):
+    """Same scalar residual, vectorized for fully visible equal-sized patches."""
+    if len({len(a) for a in cores + references}) != 1:
+        return [residual(a, b) for a, b in zip(cores, references)]
+    a, b = np.stack(cores), np.stack(references)
+    complete = np.isfinite(a).all(axis=1) & np.isfinite(b).all(axis=1)
+    result = np.full(len(cores), np.inf)
+    if complete.any():
+        result[complete] = np.quantile(np.abs(a[complete]-b[complete]), .8, axis=1)
+    for point in np.flatnonzero(~complete):
+        result[point] = residual(a[point], b[point])
+    return result
 
 
 @dataclass
@@ -100,7 +139,9 @@ class Baseline:
     points while other points are frozen. It never learns a new core texture or
     accepts a move/capture. Labels are not available to this class.
     """
-    def __init__(self, method, seed, expected):
+    def __init__(self, method, seed, expected, overrides=None, batch=False):
+        self.config = parameters(overrides)
+        self.batch = batch
         self.method, self.expected = method, tuple(expected)
         self.anchor = [a.copy() for a in seed.core]
         self.versions = [[{'at': seed.time, 'frame': seed.frame, 'gain': 1., 'core': a.copy(), 'witnesses': [seed.frame]}]
@@ -113,7 +154,8 @@ class Baseline:
 
     def step(self, observation):
         o = observation
-        continuous = 0 < o.time-self.last <= PROTOCOL['maximumGap']
+        config = self.config
+        continuous = 0 < o.time-self.last <= config['maximumGap']
         self.last = o.time
         blocked = o.hand is not False or o.lighting_blocked
         # A missing established stone could be a capture, hand, or camera shift.
@@ -129,25 +171,27 @@ class Baseline:
             if o.hand is not False or not continuous:
                 # Revoke recently activated adaptations, not original evidence.
                 for point, versions in enumerate(self.versions):
-                    while len(versions) > 1 and o.time-versions[-1]['at'] <= PROTOCOL['quarantineSeconds']:
+                    while len(versions) > 1 and o.time-versions[-1]['at'] <= config['quarantineSeconds']:
                         removed = versions.pop()
                         events.append({'type': 'rollback', 'point': point, 'version': removed['version'],
                                        'reason': 'hand/unknown gate or camera gap'})
             return {'emptySupport': [], 'updates': events, 'blocked': True,
                     'reasons': [name for name, value in [('hand or unknown gate', blocked), ('camera gap', not continuous), ('established position changed', not context_ok), ('no uninterrupted unchanged interval since seed', interval_untrusted)] if value]}
 
+        errors = (batch_residuals(o.core, [v[-1]['core'] for v in self.versions])
+                  if self.batch else None)
         for point, (raw, core, metric, old) in enumerate(zip(o.raw, o.core, o.metrics, self.expected)):
             if old != 'empty':
                 continue
             version = self.versions[point][-1]
-            matches = residual(core, version['core']) <= PROTOCOL['coreError']
+            matches = (errors[point] if errors is not None else residual(core, version['core'])) <= config['coreError']
             if self.method in ('guarded_fixed', 'guarded_adaptive'):
-                matches = matches and compatible(metric)
+                matches = matches and compatible(metric, config)
             run = self.witnesses[point]
             if matches:
                 run.append((o.time, o.frame))
                 run[:] = run[-12:]
-                if len(run) >= PROTOCOL['emptyWitnesses'] and o.time-run[0][0] >= PROTOCOL['emptySeconds']:
+                if len(run) >= config['emptyWitnesses'] and o.time-run[0][0] >= config['emptySeconds']:
                     support.append(point)
             else:
                 run.clear()
@@ -155,19 +199,19 @@ class Baseline:
             if self.method in ('fixed_reference', 'guarded_fixed'):
                 continue
             # Decisions above always precede learning from this observation.
-            eligible = self.method in ('no_hand_only', 'no_interaction_since_seed') or compatible(metric)
+            eligible = self.method in ('no_hand_only', 'no_interaction_since_seed') or compatible(metric, config)
             pending = self.pending[point]
             if not eligible:
                 pending.clear()
                 continue
             gain = metric['gain'] if metric['gain'] is not None else 1.
-            if pending and self.method == 'guarded_adaptive' and abs(gain-pending[0]['gain']) > PROTOCOL['stableGainRange']:
+            if pending and self.method == 'guarded_adaptive' and abs(gain-pending[0]['gain']) > config['stableGainRange']:
                 pending.clear()
             pending.append({'at': o.time, 'frame': o.frame, 'gain': gain, 'core': core.copy()})
-            if len(pending) < PROTOCOL['learningFrames'] or o.time-pending[0]['at'] < PROTOCOL['learningSeconds']+PROTOCOL['quarantineSeconds']:
+            if len(pending) < config['learningFrames'] or o.time-pending[0]['at'] < config['learningSeconds']+config['quarantineSeconds']:
                 continue
-            matured = [p for p in pending if o.time-p['at'] >= PROTOCOL['quarantineSeconds']]
-            if len(matured) < PROTOCOL['learningFrames'] or matured[-1]['at']-matured[0]['at'] < PROTOCOL['learningSeconds']:
+            matured = [p for p in pending if o.time-p['at'] >= config['quarantineSeconds']]
+            if len(matured) < config['learningFrames'] or matured[-1]['at']-matured[0]['at'] < config['learningSeconds']:
                 continue
             new_gain = float(np.median([p['gain'] for p in matured]))
             new_core = (self.anchor[point]*new_gain if self.method == 'guarded_adaptive'

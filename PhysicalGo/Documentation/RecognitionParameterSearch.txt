@@ -1,0 +1,161 @@
+Offline recognition parameter search — 2026-11-16
+
+First run
+53 configurations: incumbent, 18 one-axis endpoints, 24 random combinations,
+and 10 remaining unique neighboring refinements. Forty-five passed the training
+safety checks; eight produced empty evidence against real stones and were
+rejected. Every trial left the same two phantom point/case pairs and 47 uncertain
+point/frame readings. The incumbent therefore won the tie. There is no measured
+recognition improvement and no reason to change live settings.
+
+Both the incumbent and selected result (the same settings) preserved all labeled
+real stones in the reserved photo groups and all ten additional hand/gap fault
+scenarios. The reserved photos retain one existing classifier miss; this stage
+neither fixes nor hides it. Twenty phantom point/scenario pairs in fault checks
+are the same two underlying false readings repeated across ten scenarios, not
+twenty independent incidents.
+
+Sensitivity is informative: coreError=0.09 suppressed six real stone/photo pairs,
+and woodError=0.07 suppressed four. Neither removed the phantom readings. At
+those readings (367/raw304 and 369/raw323), direct core errors against the
+unadapted seed were approximately 0.145 and 0.252. No reference adaptation had
+activated at those points; the hand gate had only recently cleared. This is
+consistent with insufficient stable evidence for this baseline strategy, not
+an optimizer failing to select the most permissive settings. It does not prove
+that another representation or candidate-selection stage cannot help.
+
+All 19 offline tests passed. The scalar and vectorized traces agree. A further
+comparison against preserved stage-4 output matched all 1,478 decisions across
+34 cases, including adaptations, rollbacks and original timestamps. Live Swift
+fingerprints and the captured observations are unchanged. Native clock/capture
+suites were not rerun because no native code or integration changed.
+
+See RecognitionParameterSearchResults.json for the compact result snapshot and
+the external artifact folder's plan, manifests, trial records and full traces.
+Next: keep these settings, extend the harness to a separately specified
+single-placement/no-placement competition stage, and collect new sessions.
+Threshold search alone has not shown a benefit on the errors in this corpus.
+
+Scope
+This first search tunes the guarded unchanged-board evidence experiment. It
+does not tune the entire recognizer. No application setting, Swift source, SGF,
+clock balance, capture archive, or installed app is written by the search.
+The result remains experimental even if training and validation improve.
+
+Tools/recognition_parameter_space.json is the reproducible search specification.
+Its nine axes are:
+- coreError: maximum difference from the original empty intersection texture.
+- woodError: maximum residual in surrounding wood after estimating lighting.
+- minimumGain, maximumGain: accepted illumination scale relative to the seed.
+- stableGainRange: variation allowed while collecting adaptation witnesses.
+- learningFrames, learningSeconds: evidence required for a lighting adaptation.
+- emptyWitnesses, emptySeconds: evidence required to support an empty point.
+
+These cover appearance compatibility, illumination adaptation and temporal
+empty evidence. Native stone shape/color scoring, hand/shadow detection,
+single-placement competition, move certification and confidence calibration are
+not optimized here. The earlier competition prototype has separate knobs, but
+it is not yet part of this search. Clock/capture rules are constraints, not axes.
+
+Safeguards
+Every estimator receives an isolated read-only configuration. Only the nine
+named axes can be overridden; trying to change any other protocol key fails.
+The 0.5 s continuity limit, 0.8 s quarantine/rollback window, sampling geometry,
+minimum coverage and minimum wood sample count remain fixed. Unknown/detected
+hands, exposure failures and gaps cannot establish an unchanged interval.
+An established stone disappearing or becoming uncertain blocks evidence,
+including when a legitimate capture could be in progress. This stage does not
+resolve captures or infer legal moves; the legal resolver remains separate.
+
+The learner can adjust illumination only. It cannot replace the original empty
+texture with an arriving stone. Decisions precede learning on each frame. Late
+hand signals can revoke recent adaptations without rewriting observations.
+Real-stone empty support is a rejection even when the raw classifier already
+missed that stone. Thus a pre-existing miss cannot hide an unsafe override.
+Black's actual rapid-reply witnesses at frames 355/356, raw point 309, must not
+receive empty support. Original raw readings, captured times and pixel patches
+are fingerprinted before and after evaluation. Live Swift files are also hashed.
+
+Preserving those two witnesses is not a new measurement of clock accuracy.
+This experiment does not produce presses, recover elapsed time, or exercise
+the native legal/capture resolver. Integration would require the existing
+native replay benchmark, all clock configurations and capture regressions.
+
+Data and split
+The recorded rapid-reply interval and longer quiet continuation belong to the
+same session. BOTH are training data; adjacent frames are never divided into
+training and validation. Their observations retain original capture timestamps.
+Rapid reply uses previously rerun native pixel classifications. Quiet replay
+uses preserved native unadapted classifications; these sources are identified
+separately and are not assumed interchangeable.
+
+Twelve captured photos from shaded, faint and club groups (including their
+empty references) are training stress cases. Ten photos from the complete
+FaintCaptureQ3 and JadeWhiteA19 groups are reserved from parameter selection.
+The five incident photos in the static corpus are excluded because they overlap
+the rapid timeline. No group is split between training and validation.
+
+Photo persistence is a synthetic five-second hold, NOT video or real timing.
+Each photograph is scored once at the final synthetic frame. Every intermediate
+real-stone suppression still rejects the setting. Physical stones awaiting
+capture removal retain the physical-occupancy labels from the existing corpus.
+The actual timeline is scored only at previously reviewed frames; all other
+observations provide causal evidence without being treated as ground truth.
+
+All of these datasets were examined in earlier experiments. Reserved groups
+provide development regression checks, not an untouched independent test set.
+A fresh camera/board/lighting session is required before a promotion claim.
+
+Search and objective
+Run the incumbent, each axis's two endpoints with all others fixed, and 24
+seeded random combinations. Refine at up to 12 neighboring grid settings around
+the best TRAINING result. This is a bounded search, not a guarantee of a global
+optimum. Equal outcomes prefer the smallest normalized departure from existing
+settings, so a flat landscape does not produce a spurious new recommendation.
+
+Rank safety first. Then minimize distinct false-stone point/case pairs, then
+uncertain point/frame readings. Most intersections are empty, so overall board
+accuracy and adaptation counts receive no reward. These measures describe
+occupancy evidence; they are not measured phantom move events, paused seconds,
+or confirmation latency. Raw missed/wrong-color/uncertain counts are retained
+for comparison, and repeated readings are not independent placements.
+
+The selected setting is written to selected.json BEFORE validation is evaluated.
+Validation cannot select another winner or drive refinement. The incumbent and
+selected setting are checked against both reserved groups and all ten additional
+missed-hand, unknown-hand, delayed-hand and camera-gap scenarios. A failed check
+rejects the candidate; it must not start an unreported search on validation.
+No result is ever promoted automatically.
+
+Reproduction (from the repository root; output must be NEW and external)
+python3 PhysicalGo/Tools/recognition_parameter_search.py \
+  --corpus '/Users/dave/Documents/SGF PLayer/work/recognizer-comparison' \
+  --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json \
+  --quiet '/Users/dave/Documents/SGF PLayer/work/unchanged-baseline-stage4/quiet-replay-final' \
+  --workers 3 \
+  --output '/absolute/new/report/folder'
+
+Dependencies are the existing Python environment's numpy and opencv-python.
+The quiet input is the preserved prior replay folder, not a rotating live archive.
+Read/rectify/sample captured images once, then reuse immutable observations.
+Worker processes receive only training cases. An optional vectorized residual
+calculation is checked against the scalar evaluator, including complete output
+traces for the incident and a reserved captured photo at both configurations.
+The original experiment remains scalar by default and retains its old settings.
+
+Artifacts
+plan.json: search space, fixed protocol, source fingerprint, written before search.
+manifest.json: exact data split, input/image/script hashes and runtime versions.
+observations.jsonl: original classifier readings, times and measured features.
+trials.jsonl: every setting, training outcome and duration, flushed as it finishes.
+selected.json: frozen training choice, written before validation.
+incumbent/ and selected/: complete per-frame decisions for every evaluated case.
+*-scalar-check/: reference evaluator traces for the equivalence checks.
+summary.json: outcome, safety/immutability checks and explicit limitations.
+
+Tests
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py' -v
+The suite covers configuration isolation, rejected safeguard overrides, scalar
+equivalence, all sampled settings' hand/gap/capture gates, unsafe real-stone
+absorption controls, late-hand rollback, deterministic selection, incumbent tie
+preference, validation exclusion and group split validation, plus prior labs.

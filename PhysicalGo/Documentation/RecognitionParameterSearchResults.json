@@ -1,0 +1,564 @@
+{
+  "status": "OFFLINE ONLY",
+  "trialCount": 53,
+  "safeTrainingTrials": 45,
+  "selectedTrial": 0,
+  "selectedParameters": {
+    "coreError": 0.045,
+    "woodError": 0.035,
+    "minimumGain": 0.5,
+    "maximumGain": 1.6,
+    "stableGainRange": 0.035,
+    "learningFrames": 4,
+    "learningSeconds": 0.6,
+    "emptyWitnesses": 3,
+    "emptySeconds": 0.4
+  },
+  "strictTrainingImprovement": false,
+  "selectedPassesAllSafetyChecks": true,
+  "automaticPromotion": false,
+  "requiresFreshSessionValidation": true,
+  "observationEvidenceUnchanged": true,
+  "liveSourcesUnchanged": true,
+  "scalarBatchTraceEquivalence": {
+    "incumbent": true,
+    "selected": true
+  },
+  "limits": [
+    "Only unchanged-board evidence is tuned; pixel classifier and move competition remain outside this search.",
+    "No clock presses or balances are simulated by this stage. Preserving two anchors is not an end-to-end clock-accuracy measurement.",
+    "Capture/removal contradictions block evidence; this stage does not resolve legal captures.",
+    "Unknown readings are not calibrated probabilities or measured pauses. No confirmation latency for real moves is claimed.",
+    "Rapid reply and quiet continuation are one development session, both training. Entire photo fixture groups are reserved from selection. All data was examined in previous experiments: this is development validation, not an unseen test set."
+  ],
+  "checks": {
+    "incumbent": {
+      "training": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 2,
+          "uncertainPointFrames": 47,
+          "missedStonePointFrames": 0,
+          "falseStonePointFrames": 2,
+          "adaptations": 14932,
+          "rollbacks": 5,
+          "scoredFrames": 34
+        }
+      },
+      "validation": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 0,
+          "uncertainPointFrames": 0,
+          "missedStonePointFrames": 1,
+          "falseStonePointFrames": 0,
+          "adaptations": 6018,
+          "rollbacks": 0,
+          "scoredFrames": 10
+        }
+      },
+      "robustness": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 20,
+          "uncertainPointFrames": 452,
+          "missedStonePointFrames": 0,
+          "falseStonePointFrames": 20,
+          "adaptations": 10457,
+          "rollbacks": 448,
+          "scoredFrames": 138
+        }
+      }
+    },
+    "selected": {
+      "training": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 2,
+          "uncertainPointFrames": 47,
+          "missedStonePointFrames": 0,
+          "falseStonePointFrames": 2,
+          "adaptations": 14932,
+          "rollbacks": 5,
+          "scoredFrames": 34
+        }
+      },
+      "validation": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 0,
+          "uncertainPointFrames": 0,
+          "missedStonePointFrames": 1,
+          "falseStonePointFrames": 0,
+          "adaptations": 6018,
+          "rollbacks": 0,
+          "scoredFrames": 10
+        }
+      },
+      "robustness": {
+        "safe": true,
+        "totals": {
+          "realStoneEmptySupport": 0,
+          "blockedFrameOutput": 0,
+          "timingAnchorLoss": 0,
+          "phantomPointCases": 20,
+          "uncertainPointFrames": 452,
+          "missedStonePointFrames": 0,
+          "falseStonePointFrames": 20,
+          "adaptations": 10457,
+          "rollbacks": 448,
+          "scoredFrames": 138
+        }
+      }
+    }
+  },
+  "artifactFolder": "/Users/dave/Documents/SGF PLayer/work/parameter-search-stage5/search-v1",
+  "artifactHashes": {
+    "plan.json": "1bb4ded0598cec4ab3d8bd98cd9fe9cfd1691c10310bb750108c6198bf17dde5",
+    "manifest.json": "e78104beb16e58b14e6c8979dc418e34f0bdc59021eaed7763a2c25d254a818a",
+    "selected.json": "e4dae8bb102aac4a190f6ebb91beb4ce96aee0ae2213f6f0b94e71bee4d12961",
+    "trials.jsonl": "edfe36b8c11365b2ce4385a6a7961c649f50fc808c9a14b17911499253c4fdd3",
+    "summary.json": "cb7de21780965770b9579e9230011f385c4d5ca1390a2ce3ea241900e59b0390",
+    "prior-stage-equivalence.json": "380b5736e43c1fa8f06a0ab45879117dd8df331d683471ad3469c1412cf66850"
+  },
+  "priorStageEquivalence": {
+    "allPriorExperimentTracesMatch": true,
+    "caseCount": 34,
+    "frameDecisions": 1478,
+    "cases": {
+      "FaintCaptureQ3-000002": 25,
+      "FaintCaptureQ3-000003": 25,
+      "FaintCaptureQ3-000005": 25,
+      "FaintCaptureQ3-000064": 25,
+      "JadeWhiteA19-000002": 25,
+      "JadeWhiteA19-000004": 25,
+      "JadeWhiteA19-000030": 25,
+      "JadeWhiteA19-000062": 25,
+      "JadeWhiteA19-000074": 25,
+      "JadeWhiteA19-000076": 25,
+      "club-000001": 25,
+      "club-000108": 25,
+      "club-000229": 25,
+      "club-empty-reference": 25,
+      "faint-000001": 25,
+      "faint-000005": 25,
+      "faint-000010": 25,
+      "faint-000016": 25,
+      "faint-empty-reference": 25,
+      "quiet-continuation": 156,
+      "rapid-all_gaps_and_missed_hands": 53,
+      "rapid-all_hands_missed": 74,
+      "rapid-camera_gap_black9": 66,
+      "rapid-camera_gap_white10": 68,
+      "rapid-camera_gap_white8": 67,
+      "rapid-hand_signal_delayed_600ms": 74,
+      "rapid-missed_hand_black9": 74,
+      "rapid-missed_hand_white10": 74,
+      "rapid-missed_hand_white8": 74,
+      "rapid-recorded": 74,
+      "rapid-unknown_hand": 74,
+      "shaded-000001": 25,
+      "shaded-000013": 25,
+      "shaded-empty-empty-reference": 25
+    }
+  },
+  "trainingSensitivity": [
+    {
+      "trial": 1,
+      "phase": "sensitivity:coreError",
+      "parameters": {
+        "coreError": 0.015,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 2,
+      "phase": "sensitivity:coreError",
+      "parameters": {
+        "coreError": 0.09,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": false,
+      "realStoneEmptySupport": 6,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 3,
+      "phase": "sensitivity:woodError",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.01,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 4,
+      "phase": "sensitivity:woodError",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.07,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": false,
+      "realStoneEmptySupport": 4,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 5,
+      "phase": "sensitivity:minimumGain",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.45,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 6,
+      "phase": "sensitivity:minimumGain",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.8,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 7,
+      "phase": "sensitivity:maximumGain",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.15,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 8,
+      "phase": "sensitivity:maximumGain",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.85,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 9,
+      "phase": "sensitivity:stableGainRange",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.015,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 10,
+      "phase": "sensitivity:stableGainRange",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.07,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 11,
+      "phase": "sensitivity:learningFrames",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 3,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 12,
+      "phase": "sensitivity:learningFrames",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 6,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 13,
+      "phase": "sensitivity:learningSeconds",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.4,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 14,
+      "phase": "sensitivity:learningSeconds",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 1.2,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 15,
+      "phase": "sensitivity:emptyWitnesses",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 2,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 16,
+      "phase": "sensitivity:emptyWitnesses",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 5,
+        "emptySeconds": 0.4
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 17,
+      "phase": "sensitivity:emptySeconds",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.2
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    },
+    {
+      "trial": 18,
+      "phase": "sensitivity:emptySeconds",
+      "parameters": {
+        "coreError": 0.045,
+        "woodError": 0.035,
+        "minimumGain": 0.5,
+        "maximumGain": 1.6,
+        "stableGainRange": 0.035,
+        "learningFrames": 4,
+        "learningSeconds": 0.6,
+        "emptyWitnesses": 3,
+        "emptySeconds": 0.8
+      },
+      "safe": true,
+      "realStoneEmptySupport": 0,
+      "phantomPointCases": 2,
+      "uncertainPointFrames": 47
+    }
+  ],
+  "unsafeTrials": [
+    {
+      "trial": 2,
+      "realStoneEmptySupport": 6
+    },
+    {
+      "trial": 4,
+      "realStoneEmptySupport": 4
+    },
+    {
+      "trial": 20,
+      "realStoneEmptySupport": 15
+    },
+    {
+      "trial": 26,
+      "realStoneEmptySupport": 6
+    },
+    {
+      "trial": 33,
+      "realStoneEmptySupport": 11
+    },
+    {
+      "trial": 37,
+      "realStoneEmptySupport": 2
+    },
+    {
+      "trial": 40,
+      "realStoneEmptySupport": 2
+    },
+    {
+      "trial": 42,
+      "realStoneEmptySupport": 4
+    }
+  ],
+  "verification": {
+    "offlineUnitTestsPassed": 19,
+    "liveSourceFilesChanged": 0,
+    "nativeSuiteRerun": false,
+    "reason": "Only offline Python experiment and documentation changed; native clock/capture code was not changed or integrated."
+  }
+}

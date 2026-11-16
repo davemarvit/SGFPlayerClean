@@ -3456,6 +3456,15 @@ signals and camera gaps, with additional captured-photo and quiet-interval check
 It remains offline: appearance guards preserved real stones in the tested cases,
 but adaptation did not improve recognition over the guarded fixed reference.
 
+The [offline parameter search](Documentation/RecognitionParameterSearch.txt)
+now exposes nine appearance, lighting-adaptation and empty-evidence controls.
+It uses captured images, a fixed group split, reproducible random/local search,
+real-stone rejection checks and unchanged clock/capture safeguards. It does not
+change live recognition or automatically promote a winning setting.
+The first 53-setting run found no improvement and rejected eight configurations
+that suppressed real stones; the existing settings remain selected. See the
+[recorded search results](Documentation/RecognitionParameterSearchResults.json).
+
 ## Volume control (0.191)
 
 The main toolbar now exposes **Voice & clock volume**, with a 0–100% slider and
