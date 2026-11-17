@@ -1,0 +1,47 @@
+Continuous capture armed for the next game's Start button
+2026-11-16
+
+Advanced settings > Continuous diagnostics now includes “Start continuous capture
+with next game”. Arming is an explicit, session-only choice. It does not create
+an archive, save images, start recording moves or run a clock. The ordinary
+“Record continuous camera images” switch still starts collection immediately.
+
+The central GameRecorder.resume() path invokes onFirstStartRequested only after
+the storage/state and clock-review gates accept the request, and only while the
+new game is awaiting its first Start. ExperimentModel consumes the arm and opens
+continuous diagnostics immediately. The existing asynchronous writer handles
+allocation and disk work. Fresh-board verification still controls clock startup;
+no clock calculation, recognition threshold or stone-capture rule changed.
+
+Saving game setup leaves collection armed and both clocks stopped. Later pauses
+and resumes do not create another archive or restart a stopped capture. Disabling
+Diagnostics mode, stopping capture or exiting the app cancels the arm. Collection
+continues during pauses once started, as before. The main window shows “Capture
+ready · starts with game” while armed, then the existing recording indicator.
+
+Verification:
+  python3 PhysicalGo/build.py --async-diagnostics-test --clock-awaiting-turn-test \
+    --processing-gap-test --capture-clock-test --debug-tests
+
+All four suites passed. The diagnostics suite now has 20 checks covering arming
+without an archive, setup without early capture/countdown, rejected Start, first
+Start triggering capture without bypassing verification, one-time activation,
+stop/master-disable behavior, and the existing asynchronous storage/failure cases.
+Clock and capture suites passed unchanged, including automatic holds and removal.
+
+The signed app was installed at /Users/dave/Applications/Physical Go.app.
+Source hash: c8bfb0be174140b58857baccfba70ac710c75057555f4933dcb71cd7e505cd6e
+The previous signed app and current game's files were backed up under:
+  /Users/dave/Documents/SGF PLayer/work/capture-on-start/
+
+After the user confirmed the physical board was empty, the reference was
+refreshed. Live verification reported 0 stones and 0 uncertain intersections.
+“Save game setup” created a separate paused 19x19 even game, Japanese rules,
+6.5 komi, 2:00 main time plus five 15-second byoyomi periods. Both clocks showed
+2:00 and the enabled transport read “Start game and clocks”. Continuous capture
+was off, armed for that button, with its existing 5 GB maximum. Start was not
+clicked during setup. The old 85-move SGF and decoded clock state are unchanged.
+
+Artifacts: tests.log, build.log, verification.json, ui-armed.txt and ui-ready.txt
+in the backup folder. The prior reference and refreshed reference are also kept
+there; no test game or continuous recording was started to verify the real UI.

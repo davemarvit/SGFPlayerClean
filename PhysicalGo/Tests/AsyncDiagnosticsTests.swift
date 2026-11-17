@@ -36,6 +36,46 @@ import AppKit
         let end=Date().addingTimeInterval(5)
         while failed.state != .failed && Date()<end {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
         check(failed.state == .failed && failed.canStart,"Asynchronous startup failure left the recorder stuck")
-        print("PASS: \(checks) asynchronous archive allocation, main-thread responsiveness, stop/queue ordering and startup-failure checks")
+        let defaultsName="PhysicalGo.ArmedDiagnostics."+UUID().uuidString
+        let defaults=UserDefaults(suiteName:defaultsName)!
+        defer {defaults.removePersistentDomain(forName:defaultsName)}
+        let captureRoot=root.appendingPathComponent("armed-continuous")
+        let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,
+            recordingStorage:nil,settings:defaults,diagnosticRoot:captureRoot,moveEvidenceRoot:root.appendingPathComponent("clips"))
+        model.recorder.clock.audible=false
+        model.armDiagnosticsForNextGame(true)
+        check(model.diagnostics.startWithNextGame && !model.diagnostics.isOpen && model.diagnostics.folder==nil,"Arming opened a capture")
+        check(!FileManager.default.fileExists(atPath:captureRoot.path),"Arming wrote an archive before Start")
+        check(model.recorder.resume() == .unavailable && model.diagnostics.startWithNextGame,"Unavailable Start consumed the arm")
+        model.recorder.start(size:19,clockSettings:.init(kind:.absolute,mainSeconds:120),startPaused:true)
+        check(model.recorder.awaitingFirstStart && !model.recorder.clock.running && !model.diagnostics.isOpen,"Saving setup started clocks or capture")
+        check(model.recorder.resume() == .checking,"First Start failed")
+        check(model.diagnostics.isCapturing && !model.diagnostics.startWithNextGame,"First Start did not consume the arm and start capture")
+        check(!model.recorder.clock.running && model.recorder.clock.engine.black.remaining==120,"Capture bypassed clock verification or changed balances")
+        let firstFolder=model.diagnostics.folder
+        model.recorder.pause();model.recorder.resume()
+        check(model.diagnostics.folder==firstFolder && model.diagnostics.isCapturing,"Resume duplicated the continuous capture")
+        model.recorder.pause();model.diagnostics.closeForExit()
+        model.recorder.resume()
+        check(!model.diagnostics.isOpen && model.diagnostics.folder==firstFolder,"Stopped capture restarted without rearming")
+        model.recorder.pause();model.armDiagnosticsForNextGame(true);model.diagnosticSettings.enabled=false
+        check(!model.diagnostics.startWithNextGame,"Diagnostics master switch left capture armed")
+        model.recorder.resume()
+        check(!model.diagnostics.isOpen,"Diagnostics-off Start opened capture")
+        model.recorder.pause();model.armDiagnosticsForNextGame(true);model.diagnostics.stop()
+        check(!model.diagnostics.startWithNextGame,"Stop did not cancel an armed capture")
+        // A paused game requiring agreed times must not consume a Start request.
+        let fixtureRoot=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockAwaitingTurn")
+        let reviewRoot=root.appendingPathComponent("reviewed-game")
+        try FileManager.default.createDirectory(at:reviewRoot,withIntermediateDirectories:true)
+        for suffix in ["sgf","clock.json","pending.json"] {
+            try FileManager.default.copyItem(at:fixtureRoot.appendingPathComponent("game."+suffix),to:reviewRoot.appendingPathComponent("game."+suffix))
+        }
+        let reviewed=GameRecorder(storage:reviewRoot)
+        reviewed.clock.audible=false
+        try reviewed.restoreSavedGame(from:reviewRoot.appendingPathComponent("game.sgf"))
+        var startRequests=0;reviewed.onFirstStartRequested={startRequests+=1}
+        check(reviewed.resume() == .clockReview && startRequests==0,"Rejected clock-review resume invoked capture hook")
+        print("PASS: \(checks) asynchronous archive allocation, armed Start capture, clock gates, stop ordering and startup-failure checks")
     }
 }

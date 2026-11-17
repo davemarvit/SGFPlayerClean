@@ -581,6 +581,11 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard let self,self.soundMode != .off else {return}
             NSSound(named:"Pop")?.play()
         }
+        recorder.onFirstStartRequested = { [weak self] in
+            guard let self,self.playMode == .local,self.diagnosticSettings.enabled,
+                  self.diagnostics.startWithNextGame else {return}
+            self.startDiagnostics()
+        }
         recorder.onAttention = { [weak self] in self?.playRecordingWarning() }
         recorder.onCaptureConflictChanged = { [weak self] announce in
             guard let self else {return}
@@ -680,7 +685,13 @@ enum PhysicalPlayMode: String, CaseIterable {
          "manualCorrections":boardCorrections.values.sorted{$0.key<$1.key}.map {["point":$0.key,"occupancy":$0.value.rawValue] as [String:Any]},
          "editingCorrections":boardCorrections.isEditing]
     }
+    func armDiagnosticsForNextGame(_ armed:Bool) {
+        guard !armed || (playMode == .local && diagnostics.canStart) else {return}
+        if armed && !diagnosticSettings.enabled {diagnosticSettings.enabled=true}
+        diagnostics.startWithNextGame=armed
+    }
     func startDiagnostics() {
+        diagnostics.startWithNextGame=false
         if !diagnosticSettings.enabled {diagnosticSettings.enabled=true}
         var context=diagnosticContext
         context["appVersion"]=Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development"

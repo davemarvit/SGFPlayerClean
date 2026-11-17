@@ -40,11 +40,16 @@ struct DiagnosticControls:View {
                     Toggle("Record continuous camera images",isOn:Binding(get:{diagnostics.isCapturing},set:{enabled in
                         if enabled {model.startDiagnostics()} else {diagnostics.stop()}
                     })).toggleStyle(.switch).disabled(!model.diagnosticSettings.enabled || (!diagnostics.isCapturing && !diagnostics.canStart))
+                    Toggle("Start continuous capture with next game",isOn:Binding(
+                        get:{diagnostics.startWithNextGame},set:{model.armDiagnosticsForNextGame($0)}))
+                        .toggleStyle(.switch)
+                        .disabled(!model.diagnosticSettings.enabled || !diagnostics.canStart || model.playMode != .local)
                     Picker("Maximum continuous capture",selection:$diagnostics.limitGB) {
                         ForEach([1,5,10],id:\.self) {Text("\($0) GB").tag($0)}
                     }.disabled(!diagnostics.canStart)
-                    Text("Continuous recording must be started manually after opening the app. It includes camera frames while play is paused.").font(.caption).foregroundStyle(.secondary)
-                    Text(diagnostics.status).foregroundStyle(diagnostics.state == .failed ? Color.red:Color.secondary)
+                    Text("Start capture now, or arm it for the next game's Start button. Saving game setup does not start an armed capture. Once started, capture continues while play is paused. Arming resets when the app closes.").font(.caption).foregroundStyle(.secondary)
+                    Text(diagnostics.startWithNextGame ? "Capture is ready. No continuous images are saved until you press Start for the new game." : diagnostics.status)
+                        .foregroundStyle(diagnostics.state == .failed ? Color.red:Color.secondary)
                     KeepDiagnosticCapture(folder:diagnostics.folder)
                     Button("Show continuous captures") {
                         let folder=diagnostics.folder ?? CaptureFolders.root
@@ -86,6 +91,8 @@ struct DiagnosticIndicator:View {
         if diagnostics.isCapturing {
             Label("Saving diagnostics · \(diagnostics.savedFrames) images",systemImage:"circle.inset.filled")
                 .foregroundStyle(.orange).accessibilityLabel("Diagnostic image recording active")
+        } else if diagnostics.startWithNextGame {
+            Label("Capture ready · starts with game",systemImage:"camera")
         } else if diagnostics.state == .failed {
             Label("DIAGNOSTICS STOPPED",systemImage:"exclamationmark.triangle.fill").foregroundStyle(.red)
         } else if diagnostics.state == .finishing {

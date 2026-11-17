@@ -341,6 +341,8 @@ enum LocalGameSetup {
     }
     @Published private(set) var diagnosticError:String?
     var onGameStarted:(()->Void)?
+    /// Accepted first Start request, before fresh-board verification or clock running.
+    var onFirstStartRequested:(()->Void)?
     @Published private(set) var awaitingFirstStart=false
     private var announceFirstStart=false
     var onMoveAccepted:((Int,Stone)->Void)?
@@ -755,6 +757,7 @@ enum LocalGameSetup {
         guard !recoveryReadBlocked,storageWriter.error==nil,saveError==nil,pendingSaveError==nil,reviewSaveError==nil,
               state == .paused else {return .unavailable}
         guard !clock.requiresReview else {return .clockReview}
+        if awaitingFirstStart {onFirstStartRequested?()}
         if journal==nil {beginTrace(append:true,createIfMissing:true)}
         else {journal?.ensureOpen { [weak self] message in self?.diagnosticError=message }}
         reviewNotice=nil

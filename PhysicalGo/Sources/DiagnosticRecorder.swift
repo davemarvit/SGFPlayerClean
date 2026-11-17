@@ -26,6 +26,8 @@ enum CaptureFolders {
     @Published private(set) var savedFrames=0
     @Published private(set) var savedBytes:Int64=0
     @Published var limitGB=10
+    /// Explicit, session-only opt-in. Arming does not open a writer or save images.
+    @Published var startWithNextGame=false
     private let archiveStorage:DiagnosticArchiveStorage?
     var isCapturing:Bool {state == .capturing}
     var isOpen:Bool {worker != nil && (state == .capturing || state == .finishing)}
@@ -132,6 +134,7 @@ enum CaptureFolders {
         finishIfReady()
     }
     func stop(reason:String="Stopped by user",failure:Bool=false,cancelOperations:Bool=false) {
+        startWithNextGame=false
         guard worker != nil,!finishing else {return}
         endReason=reason
         event("capture stopping",details:["reason":reason,"pendingOperations":operations.count])
@@ -155,6 +158,7 @@ enum CaptureFolders {
     /// Called on application termination. Cancel unfinished analysis explicitly,
     /// then drain the bounded image queue before the process can exit.
     func closeForExit() {
+        startWithNextGame=false
         guard let writer=worker else {return}
         for op in operations.values {event("operation canceled",details:["operationID":op.id,"reason":"Application closing"])}
         operations=[:];state = .finishing
