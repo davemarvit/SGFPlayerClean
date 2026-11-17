@@ -1,0 +1,140 @@
+Automatic-hold accounting repair and continued offline recognition replay
+2026-11-16
+
+Clock behavior
+
+Start still starts the initial player's countdown: Black in an even game,
+White after handicap setup verification. Nothing makes the first move free.
+
+LocalGameClock now retains the current turn's starting balances and automatic
+hold intervals. When a verified press arrives late, accounting replays the
+running segments and excludes every stopped interval. This works for individual
+moves, multi-move catch-up and deferred live presses. The original press time
+remains attached to the move; increments and overtime resets occur once.
+
+An estimate inside a hold, overlapping its boundary, preceding the retained
+turn, or lying in the future cannot silently fall back to recognition time.
+Confirmed moves with such timing require explicit clock review. Candidate-only
+timestamps cannot backdate across a hold. Unsupported provisional candidates
+stay pending; they neither advance saved clock history nor prematurely require
+clock review. Their camera observations remain in the recorder.
+
+A press exactly at the hold's start is applied before suspension. Its running
+anchor is retained in the move record, and the clock remains stopped afterward.
+A press exactly at resume excludes all preceding hold time. Regression checks
+cover both boundary cases.
+
+Manual pauses, agreed clock corrections, undo, restore, and capture transitions
+remain separate boundaries. Manual pause/review discards retrospective authority.
+Automatic capture removal retains its existing free-removal-time policy, minimum
+capture threshold, completion timestamp and one-time increment/reset. A camera
+interruption during removal does not restart a clock or charge removal time.
+
+The Nov 16 startup incident
+
+StartupClockReplay.swift uses the original uptime values from the 85-move game.
+The protective hold still occurs: the freshness threshold and Start behavior
+were not relaxed. The previously silent allocation is now prevented. The first
+three estimates are preserved as unapplied, neither clock runs, and clock review
+is required. The old saved game is not rewritten, and 120/120 is a held display
+pending review, not a claim that no thinking time elapsed.
+
+This repairs the unsafe accounting path; it does not remove the startup callback
+stall that triggered the hold. That performance issue still needs profiling.
+Known presses wholly before a hold can now be recovered automatically. Moves
+inside an unresolved held interval need agreed times rather than invented ones.
+
+Validation
+
+Native checks compare delayed accounting against an independent chronological
+LocalClockEngine oracle over multiple holds, all six timed modes, single moves
+and multi-move catch-up. They cover open holds, both exact boundaries, duplicate
+presses, expiry uncertainty, byoyomi, manual pauses, provisional moves, capture
+removal and deferred history finalization.
+
+Recorder integration creates a real automatic hold, accepts a move during it,
+checks the timing-review gate, confirms agreed balances, supplies fresh board
+observations, and verifies that the correct player resumes without a review
+loop. Saving and restoring that corrected game preserves the agreed state.
+
+Final commands:
+  python3 PhysicalGo/build.py --processing-gap-test --hand-clock-test \
+    --capture-clock-test --clock-awaiting-turn-test --transient-clock-pause-test \
+    --missing-provisional-review-test --provisional-play-test --debug-tests
+  python3 PhysicalGo/Tools/run_startup_clock_replay.py --output /new/startup
+  python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py'
+
+The machine-readable result file records the final completed checks and source
+hashes. The app source before this clock change was verified to match the
+installed app exactly (hash c950974442e7cb4cec20954632066149fba9016b64f8d5edee1fb170efe0ac14).
+Unrelated working-tree changes were already part of that installed source;
+they are not included in this clock-fix commit. Live recognition is unchanged.
+
+All seven native suites passed on the final source, including 123 processing-gap
+and hold-accounting checks. All 55 offline Python tests passed. The recorded
+startup regression prevents the unsafe allocation and preserves all three
+unapplied estimates. All 2,679 preserved game files and 319 recognition replay
+inputs match their recorded hashes.
+
+The signed app was installed and relaunched. Its source hash is
+9b02ccc36ff2ba159ab01f9df195b81c6bed7df86e6dbb409337865db85cdba5.
+The previous app is backed up outside the installation folder. Accessibility
+inspection confirms the restored 85-move game is paused, White is next, and the
+camera is live. The original SGF and clock record are unchanged.
+
+Offline recognition continuation
+
+replay_outline_sampling.py applies the fixed outline-mask parameters to current
+frames only, preserving the original observation times, hand flags, delivery
+gaps and capture/turn constraints. It compares the original and masked features
+under the same frozen neutral and contrast policies. It does not search new
+thresholds, infer clock presses or promote a policy into the app.
+
+Older rapid-play fault replay: 1,300 paired decision rows per control, zero
+differences in selected moves, first-seen/support times, witnesses, confirmation
+times, original timing metadata, or guard reasons. There are 48 scenario/context
+combinations, including missed-hand and camera-gap injections. Neither variant
+has guard violations or wrong selected points in this replay. The known
+missed-hand weakness remains: 16 selections use witnesses that were originally
+hand-blocked before fault injection. This is unchanged, not a safety success.
+
+Longer captured-image windows:
+  Black 13 in the 85-move game: 50 analyzed observations. The original contrast
+    policy has zero strong clear observations; outline masking restores 19,
+    from frame 471 through frame 518. No original strong clear support is lost.
+  Black 21 in the 65-move game: all nine original strong clear observations
+    remain strong under masking.
+  The reviewed 65-game edge error remains rejected. The 85-game edge errors
+    that previously survived appearance weighting still survive. Masking does
+    not solve pre-hand edge shadows.
+
+These windows measure point support over time, not complete legal game decoding.
+The original 65/65 and improved 85/85 placement-snapshot results remain separate
+from this temporal replay. Both games are now development/regression evidence,
+so another untouched game will be needed before claiming generalization.
+
+Next recognition work: test a causal, reversible discount for pending confident
+edge candidates when later hand-entry evidence arrives. Preserve first-seen
+timestamps and distinguish discounted evidence from empty-board evidence.
+Explicitly retain missed-hand/camera-gap uncertainty. No new game is needed yet,
+and no recognition experiment is enabled in the installed app.
+
+Artifacts
+
+  /Users/dave/Documents/SGF PLayer/work/automatic-hold-accounting/
+    native-tests-final.log — seven native suite results
+    boundary-tests.log — focused exact-boundary regression
+    startup-shipping/ — original incident replay and source hashes
+    recognition-replay/ — both control traces, focused observations, manifests
+    pre-install-recording/ — current paused 85-move recording backup
+    app-build-final.log — signed application build
+    installation.json — source comparison, signature and restored-game checks
+    previous-app.app — prior signed application, retained for rollback
+
+Recognition reproduction (all output paths must be new external directories):
+  python3 PhysicalGo/Tools/replay_outline_sampling.py --output /new/replay \
+    --previous /path/to/placement-competition-stage6/evaluation-final \
+    --sequence PhysicalGo/Tests/Fixtures/RapidReplyShadow/sequence.json \
+    --corpus /path/to/recognizer-comparison \
+    --game85 /path/to/validation-game-85-moves \
+    --game65 /path/to/fresh-game-65-moves

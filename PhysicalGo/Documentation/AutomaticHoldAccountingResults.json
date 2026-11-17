@@ -1,0 +1,225 @@
+{
+  "status": "clock repair verified; recognition remains offline",
+  "clockSourceSHA256": "5338fd1f268c35cba2b8c62c0688023f9ea0dd6079cd6425b61fda0d7693a92b",
+  "nativeSuiteResults": [
+    "Running --missing-provisional-review-test",
+    "PASS: 22 missing provisional clock-review recovery checks",
+    "Running --clock-awaiting-turn-test",
+    "PASS: 24 recorded clock-resume and new-game checks",
+    "Running --transient-clock-pause-test",
+    "PASS: 122 recorded transient-clock-pause checks",
+    "Running --processing-gap-test",
+    "PASS: 123 processing-gap, timer-order, timeout, manual-pause and fresh-verification checks",
+    "Running --provisional-play-test",
+    "PASS: 74 provisional play checks",
+    "Running --hand-clock-test",
+    "PASS: 7 recorded Black65\u201367 clock regression checks",
+    "PASS: 59 clock catch-up checks: all timed modes, individual presses, increments, persistence, missing evidence, manual pause, timeout uncertainty and actual recorder hand re-entry",
+    "Running --capture-clock-test",
+    "PASS: 113 recorded capture uncertainty and conflicting-board checks",
+    "PASS: 103 capture conflict guidance checks",
+    "PASS: 75 local-clock checks: six modes, exact boundaries, overtime, increments, duplicate presses, frequency independence, pause, handicap, recognition, pass, undo, correction, persistence and SGF",
+    "PASS: 429 automatic capture and hand-clear timing checks"
+  ],
+  "pythonTests": 55,
+  "startup": {
+    "blackRemaining": 120,
+    "controls": {
+      "blackFirstTurnCharged": true,
+      "whiteFirstTurnCharged": true
+    },
+    "diagnosticOnly": true,
+    "firstMoveChargedZero": false,
+    "knownFailureReproduced": false,
+    "requiresReview": true,
+    "scope": "Native clock regression using recorded times. Unsafe allocation now requires review; original saved times are not rewritten. Start behavior unchanged.",
+    "startupGapHeld": true,
+    "unappliedEstimates": [
+      1,
+      2,
+      3
+    ],
+    "unsafeAccountingPrevented": true,
+    "whiteRemaining": 120
+  },
+  "dataVerification": {
+    "preservedFilesChecked": 2679,
+    "recognitionInputsChecked": 319,
+    "mismatches": []
+  },
+  "recognitionComparisons": {
+    "neutral": {
+      "rows": 1300,
+      "changedDecisionTimingRows": 0
+    },
+    "contrast_black": {
+      "rows": 1300,
+      "changedDecisionTimingRows": 0
+    }
+  },
+  "recognitionFocus": {
+    "game85": {
+      "real-black13": {
+        "point": 23,
+        "observations": 50,
+        "originalStrongClearFrames": [],
+        "maskedStrongClearFrames": [
+          471,
+          474,
+          475,
+          476,
+          478,
+          480,
+          481,
+          483,
+          484,
+          485,
+          486,
+          487,
+          498,
+          499,
+          501,
+          502,
+          514,
+          515,
+          518
+        ],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge341a": {
+        "point": 56,
+        "observations": 19,
+        "originalStrongClearFrames": [],
+        "maskedStrongClearFrames": [],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge341b": {
+        "point": 94,
+        "observations": 19,
+        "originalStrongClearFrames": [],
+        "maskedStrongClearFrames": [],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge605": {
+        "point": 189,
+        "observations": 23,
+        "originalStrongClearFrames": [],
+        "maskedStrongClearFrames": [],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge978": {
+        "point": 246,
+        "observations": 21,
+        "originalStrongClearFrames": [
+          978
+        ],
+        "maskedStrongClearFrames": [
+          978
+        ],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge1981": {
+        "point": 265,
+        "observations": 18,
+        "originalStrongClearFrames": [
+          1981
+        ],
+        "maskedStrongClearFrames": [
+          1981
+        ],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      }
+    },
+    "game65": {
+      "real-black21": {
+        "point": 73,
+        "observations": 37,
+        "originalStrongClearFrames": [
+          547,
+          548,
+          550,
+          551,
+          558,
+          559,
+          569,
+          570,
+          572
+        ],
+        "maskedStrongClearFrames": [
+          547,
+          548,
+          550,
+          551,
+          558,
+          559,
+          569,
+          570,
+          572
+        ],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      },
+      "edge1281": {
+        "point": 75,
+        "observations": 58,
+        "originalStrongClearFrames": [],
+        "maskedStrongClearFrames": [],
+        "lostStrongClearFrames": [],
+        "scope": "Point support over time; not a legal move decoder or timing authority."
+      }
+    }
+  },
+  "recognitionGuardTotals": {
+    "original": {
+      "neutral": {
+        "scenarioContexts": 48,
+        "guardViolations": 0,
+        "wrongSelectedPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "contrast_black": {
+        "scenarioContexts": 48,
+        "guardViolations": 0,
+        "wrongSelectedPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      }
+    },
+    "outline_mask": {
+      "neutral": {
+        "scenarioContexts": 48,
+        "guardViolations": 0,
+        "wrongSelectedPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "contrast_black": {
+        "scenarioContexts": 48,
+        "guardViolations": 0,
+        "wrongSelectedPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      }
+    }
+  },
+  "artifactsRoot": "/Users/dave/Documents/SGF PLayer/work/automatic-hold-accounting",
+  "installation": {
+    "installedApp": "/Users/dave/Applications/Physical Go.app",
+    "previousAppBackup": "/Users/dave/Documents/SGF PLayer/work/automatic-hold-accounting/previous-app.app",
+    "previousSourceHash": "c950974442e7cb4cec20954632066149fba9016b64f8d5edee1fb170efe0ac14",
+    "installedSourceHash": "9b02ccc36ff2ba159ab01f9df195b81c6bed7df86e6dbb409337865db85cdba5",
+    "onlyAppSourceChanged": "PhysicalGo/Sources/LocalGameClock.swift",
+    "signatureVerified": true,
+    "recognitionChanged": false,
+    "originalRecordedTimesRewritten": false,
+    "pausedGameRestored": true,
+    "savedMoves": 85,
+    "nextPlayer": "white",
+    "cameraLive": true,
+    "originalClockRecordUnchanged": true,
+    "originalSGFUnchanged": true
+  }
+}

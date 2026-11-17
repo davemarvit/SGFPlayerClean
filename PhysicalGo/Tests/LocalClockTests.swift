@@ -93,7 +93,7 @@ import Foundation
     check(lag.engine.expiredBlack==true,"Actually late move rescued timeout")
     lag.configure(.init(kind:.absolute,mainSeconds:10),blackToPlay:true);lag.ready(at:0)
     lag.pause(at:5);lag.resume(at:10);lag.recordMove(number:1,black:true,at:11,observedAt:4)
-    check(near(lag.engine.black.remaining,4),"Evidence crossed a pause boundary")
+    check(lag.requiresReview && !lag.running && lag.moves.isEmpty && near(lag.engine.black.remaining,4),"Evidence crossed a manual pause without timing review")
     lag.pause(at:11)
     // Exercise recorder integration, handicap start, automatic recognition, passes and SGF.
     let recorder=GameRecorder(storage:directory);recorder.clock.audible=false

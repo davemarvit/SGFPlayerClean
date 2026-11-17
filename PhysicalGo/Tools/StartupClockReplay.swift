@@ -1,6 +1,6 @@
 import Foundation
 
-/// Diagnostic reproduction, not a passing regression for the desired behavior.
+/// Recorded startup regression: unsafe accounting must become explicit review.
 /// No app UI, recording files, camera, or persisted clock state are accessed.
 @main struct StartupClockReplay {
     @MainActor static func main() throws {
@@ -22,7 +22,7 @@ import Foundation
         let recognized=[1326271.0435899585,1326275.609585125,1326278.4949239583]
         for index in 0..<3 {
             // Fresh observations between recognition calls prevent another hold;
-            // they do not rebuild the discarded uninterrupted-turn baseline.
+            // they cannot establish presses inside the unresolved hold.
             if index>0 {
                 var time=recognized[index-1]+0.5
                 while time<recognized[index] {
@@ -37,6 +37,7 @@ import Foundation
         let firstFree=clock.moves.first?.after.black.remaining==120
         let unapplied=clock.pressEvidence.filter{!$0.applied}.map(\.number)
         let hiddenTimingFailure=held && firstFree && unapplied == [1,2,3] && !clock.requiresReview
+        let unsafeAccountingPrevented=held && clock.requiresReview && !clock.running && clock.moves.isEmpty && unapplied == [1,2,3]
         // Controls: current Start semantics still charge first Black/White turns
         // when camera continuity is healthy (White represents handicap setup).
         var controls=[String:Bool]()
@@ -54,14 +55,16 @@ import Foundation
         }
         let result:[String:Any]=[
             "diagnosticOnly":true,"knownFailureReproduced":hiddenTimingFailure,
+            "unsafeAccountingPrevented":unsafeAccountingPrevented,
             "startupGapHeld":held,"firstMoveChargedZero":firstFree,
             "unappliedEstimates":unapplied,"requiresReview":clock.requiresReview,
             "blackRemaining":clock.engine.black.remaining,"whiteRemaining":clock.engine.white.remaining,
             "controls":controls,
-            "scope":"Native clock call-path reproduction using recorded times, not a full camera/recorder replay. No timing repair or first-move-free policy."
+            "scope":"Native clock regression using recorded times. Unsafe allocation now requires review; original saved times are not rewritten. Start behavior unchanged."
         ]
         clock.pause(at:recognized.last!)
         print(String(data:try JSONSerialization.data(withJSONObject:result,options:[.prettyPrinted,.sortedKeys]),encoding:.utf8)!)
         precondition(controls.values.allSatisfy{$0},"Existing Start countdown control failed")
+        precondition(unsafeAccountingPrevented,"Startup hold silently assigned unsupported clock times")
     }
 }
