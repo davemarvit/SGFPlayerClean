@@ -1,0 +1,1055 @@
+{
+  "status": "offline only; no live promotion",
+  "artifactRoot": "/Users/dave/Documents/SGF PLayer/work/prehand-stage9",
+  "verification": {
+    "status": "verified; no live promotion",
+    "appSourceHash": "9b02ccc36ff2ba159ab01f9df195b81c6bed7df86e6dbb409337865db85cdba5",
+    "installedAppSourceHash": "9b02ccc36ff2ba159ab01f9df195b81c6bed7df86e6dbb409337865db85cdba5",
+    "frozenPolicyHashes": {
+      "unavailable_shadow_lab.py": "1b1c596928568f7932c620249bfcb6ca31d7a996d6ee94f1f7faa13f2e1563f1",
+      "unavailable_shadow_protocol.json": "5be0e6b384955c3e07ce2bf43bd983a493225a01489bb336b30ca96367ccdd0c",
+      "placement_competition_lab.py": "116bb835f93252ba0978ae39175228a07dbb461b07e167f5d7b10f3326a581ff"
+    },
+    "preservedFiles": {
+      "fresh-game-65-moves": 2343,
+      "validation-game-85-moves": 2679
+    },
+    "uniqueInputHashesChecked": 5156,
+    "exactSparseDensePointVariantComparisons": {
+      "65": 152,
+      "85": 190
+    },
+    "scope": "Recognition timing remains observation timing. Native clock/capture suites are recorded separately."
+  },
+  "tests": {
+    "python": 68,
+    "nativeSuites": 2,
+    "nativeResults": [
+      "",
+      "Running --processing-gap-test",
+      "PASS: 123 processing-gap, timer-order, timeout, manual-pause and fresh-verification checks",
+      "",
+      "Running --capture-clock-test",
+      "PASS: 113 recorded capture uncertainty and conflicting-board checks",
+      "PASS: 103 capture conflict guidance checks",
+      "PASS: 75 local-clock checks: six modes, exact boundaries, overtime, increments, duplicate presses, frequency independence, pause, handicap, recognition, pass, undo, correction, persistence and SGF",
+      "PASS: 429 automatic capture and hand-clear timing checks",
+      "",
+      "2/2 suites passed"
+    ]
+  },
+  "games": {
+    "65": {
+      "endpointSupport": {
+        "original/control": {
+          "reviewedRealPoints": 65,
+          "strongReal": 65,
+          "reviewedEmptyPoints": 0,
+          "strongFalse": 0
+        },
+        "original/edge_shape": {
+          "reviewedRealPoints": 65,
+          "strongReal": 65,
+          "reviewedEmptyPoints": 0,
+          "strongFalse": 0
+        },
+        "outline_mask/control": {
+          "reviewedRealPoints": 65,
+          "strongReal": 65,
+          "reviewedEmptyPoints": 0,
+          "strongFalse": 0
+        },
+        "outline_mask/edge_shape": {
+          "reviewedRealPoints": 65,
+          "strongReal": 65,
+          "reviewedEmptyPoints": 0,
+          "strongFalse": 0
+        }
+      },
+      "retrospective": {
+        "retro_all": {
+          "uniqueRevised": 0,
+          "reviewedEmptyRevised": 0,
+          "reviewedRealRevised": [],
+          "unlabeledRevised": 0
+        },
+        "retro_edge": {
+          "uniqueRevised": 0,
+          "reviewedEmptyRevised": 0,
+          "reviewedRealRevised": [],
+          "unlabeledRevised": 0
+        },
+        "retro_edge_shape": {
+          "uniqueRevised": 0,
+          "reviewedEmptyRevised": 0,
+          "reviewedRealRevised": [],
+          "unlabeledRevised": 0
+        }
+      },
+      "temporal": {
+        "original/recorded": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/all_hands_missed": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 246,
+            "originallyObstructedSelections": 38,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 246,
+            "originallyObstructedSelections": 38,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/unknown_hand": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 496,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 496,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/hand_delayed_600ms": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 439,
+            "selectedContexts": 13,
+            "expectedSelectedContexts": 13,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0,
+            "originallyObstructedSelections": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 439,
+            "selectedContexts": 13,
+            "expectedSelectedContexts": 13,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0,
+            "originallyObstructedSelections": 0
+          }
+        },
+        "original/camera_gap": {
+          "control": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 281,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 281,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/gap_and_missed_hand": {
+          "control": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 278,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 278,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/outline_dropout": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/recorded": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/all_hands_missed": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 246,
+            "originallyObstructedSelections": 38,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 246,
+            "originallyObstructedSelections": 38,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/unknown_hand": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 496,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 496,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/hand_delayed_600ms": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 439,
+            "selectedContexts": 13,
+            "expectedSelectedContexts": 13,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0,
+            "originallyObstructedSelections": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 439,
+            "selectedContexts": 13,
+            "expectedSelectedContexts": 13,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0,
+            "originallyObstructedSelections": 0
+          }
+        },
+        "outline_mask/camera_gap": {
+          "control": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 281,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 281,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/gap_and_missed_hand": {
+          "control": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 278,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 281,
+            "guardRows": 278,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/outline_dropout": {
+          "control": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 65,
+            "frames": 496,
+            "guardRows": 306,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 49,
+            "expectedSelectedContexts": 49,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        }
+      }
+    },
+    "85": {
+      "endpointSupport": {
+        "original/control": {
+          "reviewedRealPoints": 85,
+          "strongReal": 84,
+          "reviewedEmptyPoints": 8,
+          "strongFalse": 5
+        },
+        "original/edge_shape": {
+          "reviewedRealPoints": 85,
+          "strongReal": 84,
+          "reviewedEmptyPoints": 8,
+          "strongFalse": 0
+        },
+        "outline_mask/control": {
+          "reviewedRealPoints": 85,
+          "strongReal": 85,
+          "reviewedEmptyPoints": 8,
+          "strongFalse": 5
+        },
+        "outline_mask/edge_shape": {
+          "reviewedRealPoints": 85,
+          "strongReal": 85,
+          "reviewedEmptyPoints": 8,
+          "strongFalse": 0
+        }
+      },
+      "retrospective": {
+        "retro_all": {
+          "uniqueRevised": 14,
+          "reviewedEmptyRevised": 8,
+          "reviewedRealRevised": [
+            {
+              "frame": 1303,
+              "point": 289,
+              "truth": "black"
+            },
+            {
+              "frame": 2496,
+              "point": 226,
+              "truth": "black"
+            }
+          ],
+          "unlabeledRevised": 4
+        },
+        "retro_edge": {
+          "uniqueRevised": 8,
+          "reviewedEmptyRevised": 8,
+          "reviewedRealRevised": [],
+          "unlabeledRevised": 0
+        },
+        "retro_edge_shape": {
+          "uniqueRevised": 8,
+          "reviewedEmptyRevised": 8,
+          "reviewedRealRevised": [],
+          "unlabeledRevised": 0
+        }
+      },
+      "temporal": {
+        "original/recorded": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 67,
+            "expectedSelectedContexts": 66,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 67,
+            "expectedSelectedContexts": 66,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/all_hands_missed": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 314,
+            "originallyObstructedSelections": 66,
+            "selectedContexts": 73,
+            "expectedSelectedContexts": 69,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 314,
+            "originallyObstructedSelections": 66,
+            "selectedContexts": 73,
+            "expectedSelectedContexts": 69,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/unknown_hand": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 732,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 732,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/hand_delayed_600ms": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 610,
+            "originallyObstructedSelections": 3,
+            "selectedContexts": 24,
+            "expectedSelectedContexts": 24,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 610,
+            "originallyObstructedSelections": 3,
+            "selectedContexts": 24,
+            "expectedSelectedContexts": 24,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/camera_gap": {
+          "control": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 414,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 414,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/gap_and_missed_hand": {
+          "control": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 410,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 410,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "original/outline_dropout": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 67,
+            "expectedSelectedContexts": 66,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 67,
+            "expectedSelectedContexts": 66,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/recorded": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 68,
+            "expectedSelectedContexts": 67,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 68,
+            "expectedSelectedContexts": 67,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/all_hands_missed": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 314,
+            "originallyObstructedSelections": 67,
+            "selectedContexts": 74,
+            "expectedSelectedContexts": 70,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 314,
+            "originallyObstructedSelections": 67,
+            "selectedContexts": 74,
+            "expectedSelectedContexts": 70,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/unknown_hand": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 732,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 732,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/hand_delayed_600ms": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 610,
+            "originallyObstructedSelections": 3,
+            "selectedContexts": 25,
+            "expectedSelectedContexts": 25,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 610,
+            "originallyObstructedSelections": 3,
+            "selectedContexts": 25,
+            "expectedSelectedContexts": 25,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/camera_gap": {
+          "control": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 414,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 414,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/gap_and_missed_hand": {
+          "control": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 410,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 424,
+            "guardRows": 410,
+            "selectedContexts": 0,
+            "expectedSelectedContexts": 0,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        },
+        "outline_mask/outline_dropout": {
+          "control": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 68,
+            "expectedSelectedContexts": 67,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          },
+          "edge_shape": {
+            "contexts": 89,
+            "frames": 732,
+            "guardRows": 439,
+            "originallyObstructedSelections": 0,
+            "selectedContexts": 68,
+            "expectedSelectedContexts": 67,
+            "wrongPointContexts": 0,
+            "captureContexts": 1,
+            "changedDecisionTimingRows": 0,
+            "revisions": 0
+          }
+        }
+      }
+    }
+  },
+  "legacy": {
+    "photos": {
+      "original/recorded_shapes/control": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "original/recorded_shapes/edge_shape": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "original/recorded_shapes/combined": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "original/outline_dropout/control": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "original/outline_dropout/edge_shape": {
+        "probes": 271,
+        "recognized": 220,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 0
+      },
+      "original/outline_dropout/combined": {
+        "probes": 271,
+        "recognized": 220,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 0
+      },
+      "outline_mask/recorded_shapes/control": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "outline_mask/recorded_shapes/edge_shape": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "outline_mask/recorded_shapes/combined": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "outline_mask/outline_dropout/control": {
+        "probes": 271,
+        "recognized": 230,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 10
+      },
+      "outline_mask/outline_dropout/edge_shape": {
+        "probes": 271,
+        "recognized": 220,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 0
+      },
+      "outline_mask/outline_dropout/combined": {
+        "probes": 271,
+        "recognized": 220,
+        "wrongLocations": 0,
+        "blackEdgeProbes": 12,
+        "blackEdgeRecognized": 0
+      }
+    },
+    "rapid": {
+      "original/control": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "original/retro_all": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "original/retro_edge": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "original/retro_edge_shape": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "original/edge_shape": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "original/combined": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/control": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/retro_all": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/retro_edge": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/retro_edge_shape": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/edge_shape": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      },
+      "outline_mask/combined": {
+        "contexts": 48,
+        "frames": 1300,
+        "changedDecisionTimingRows": 0,
+        "wrongPoints": 0,
+        "originallyBlockedWitnessSelections": 16
+      }
+    },
+    "nativeChangedPointReadings": 0,
+    "limitations": "Photos are two identical synthetic witnesses, not temporal validation. 12 Black edge point/frame probes represent two stones in one setup."
+  },
+  "probation": {
+    "status": "offline follow-up, fixed .8s sustained witness span; no clock authority",
+    "recentGames": {
+      "game65-cache": {
+        "rows": 6084,
+        "changedRows": 0
+      },
+      "game85-cache": {
+        "rows": 9016,
+        "changedRows": 0
+      }
+    },
+    "photoOutlineDropout": {
+      "probes": 271,
+      "controlRecognized": 230,
+      "probationRecognized": 230,
+      "delayedProbes": 10,
+      "maxAddedDelay": 0.6
+    },
+    "limitations": "Photo timing uses synthetic repeated images, not physical placement time. Recent games contain no true Black edge moves. No extra false-decision prevention demonstrated."
+  }
+}

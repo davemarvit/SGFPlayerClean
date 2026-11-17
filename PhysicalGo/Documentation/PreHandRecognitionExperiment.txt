@@ -1,0 +1,179 @@
+Pre-hand shadow experiments and bounded follow-ups
+2026-11-16 — OFFLINE ONLY, no policy promoted
+
+Decision
+
+Keep outline-aware background sampling as the leading candidate. It restores
+the real Black 13 evidence without losing any reviewed placement or previously
+selected move in these comparisons. Do not promote a hard outline requirement,
+or interpret a later hand as proof that earlier dark readings were shadows.
+Neither retrospective discounting nor extra edge persistence has demonstrated
+additional false-move prevention over the existing temporal gates.
+
+The current app, Start behavior, clock accounting and capture resolver are
+unchanged. Both recent games are development evidence, not untouched validation.
+
+Experiments
+
+Six fixed policies were crossed with original and outline-masked pixel features:
+control; retrospectively discount pending Black evidence; restrict that discount
+to the outer edge; additionally require missing eligible outline; immediately
+withhold outline-less Black edge evidence; combine the last two policies.
+
+The lookback is the existing .8 seconds, with no threshold search. Revisions
+become available only when the later hand observation arrives. Capture time,
+delivery time, original reading, original weight and prior decisions remain
+separate. Already emitted placements cannot be retracted. A camera gap breaks
+the retrospective link and retains the original review latch. Suppression never
+means an intersection is empty. These tools never calculate a clock press.
+
+Full recordings supply 1,385 and 1,658 analyzed frames. Pixel features were
+cached sparsely for every candidate relevant to the supplied test windows;
+unmeasured empty-point appearance stays unknown. There are 150 conditional turn
+contexts and four additional reviewed edge-error contexts. Original observations
+are retained, including hand-obstructed frames. Saved chronology supplies the
+prior board and turn; this is not an autonomous full-game decoder.
+
+Faults: recorded signals, suppressed hand-state detections, unknown hand state,
+600ms-delayed hand state, omitted 900ms camera intervals, gaps plus missed hands,
+and unavailable outline evidence. Outline dropout with original pixels tests
+complete outline loss; the masked-pixel/dropout arm isolates loss at the decision
+gate while retaining the cached feature. Faults change supplied signals, not the
+original native detector or its already-produced raw readings.
+
+Results
+
+Reviewed real placement snapshots:
+                         Original sampling    Outline-masked sampling
+  65-move game                  65/65                  65/65
+  85-move game                  84/85                  85/85
+
+Conditional temporal windows with an expected placement selected:
+                         Original sampling    Outline-masked sampling
+  65-move game                  49/65                  49/65
+  85-move game                  66/85                  67/85
+
+The sole newly selected move is Black 13, at frame475 (capture uptime
+1326323.0595669176; operation completion 1326323.6125461666), supported from
+frame474. This is an observation/decision time, not a physical placement or
+clock-press time. Every previously selected first decision retains its location,
+first-seen/support timestamps and confirmation time under masking.
+
+The other windows include latched camera gaps, retained-stone/capture guards,
+opposite-color additions and windows ending before two clear witnesses. Both
+actual capture turns remain with the existing capture resolver. The 116 selected
+windows are not a claim that the other 34 real moves were wrong or lost by the
+app. All 150 reviewed endpoint stones retain strong support under masking.
+
+Eight visually empty Black edge point/frame samples span four events in the
+85-move game. Five retain strong appearance support. Retrospective edge discount
+marks all eight on later hand arrival, but changes zero decisions or timings:
+the existing hand gate already resets support, and none of these single-frame
+phantoms becomes a selected move. The last edge window also contains a later
+actual move at point338; that is not counted as a false edge selection.
+
+Broad retrospective discount marks 14 distinct pending Black point/frame samples
+in the 85-game: the eight reviewed empty samples, TWO REVIEWED REAL STONES
+(move35/frame1303/point289 and move79/frame2496/point226), and four unlabeled
+samples. Those two source photographs were checked again. A hand entering soon
+after a stone is placed is insufficient evidence to discredit that stone.
+Edge-restricted discount avoids these two real-stone examples, but neither recent
+game contains a real Black placement on the outermost row or column.
+
+Older positive and failure coverage
+
+Twenty-two older photos supply 271 synthetic missing-one-stone placement probes.
+Original and masked sampling both select 230, with no wrong location and no
+regression. The corpus contains 12 Black edge point/frame examples, representing
+only TWO DISTINCT STONES in ONE setup across six frames. All 12 have eligible
+outlines; ten probes are selectable under the existing board guards.
+
+The hard outline gate removes the five strong false edge readings. With recorded
+outlines it retains 230/271 older probes, but with all outlines unavailable it
+drops to 220/271: all ten previously selectable Black edge probes are lost.
+Absent geometry can mean unavailable color correction, rejected/conflicting fits
+or occlusion; it does not establish absence of a stone. Do not promote this gate.
+
+The resulting follow-up replaces permanent rejection with .8 seconds of sustained
+current-run evidence for outline-less Black edge candidates. It recovers all
+230/271 synthetic probes, adding .6 seconds to ten of them. It changes zero of
+15,100 recent-game control decision rows across feature/fault combinations.
+There is no demonstrated extra false-decision benefit. A sustained shadow with a
+missed hand can still pass; a dedicated counterexample test records that limit.
+Synthetic repeated-photo delay is not measured game latency.
+
+Older real rapid-play replay covers 48 scenario/context combinations and 1,300
+decision rows per feature/policy, including missed-hand, camera-gap and missing
+Black timing-witness cases. All six policies and both feature variants preserve
+the control decisions and observation timing. There are no wrong selected points
+or guard violations. Sixteen selections involving originally hand-blocked
+witnesses remain under fault injection: an existing weakness, not a safety pass.
+
+Recent-game missed-hand injections likewise expose the unchanged weakness:
+38 selection rows in the 65-game and 67 in the masked 85-game occur on originally
+obstructed frames. These are repeated decision rows, not 105 distinct moves.
+The experiment does not infer absence of a hand from a missing signal.
+
+Verification
+
+68 Python tests pass, including causal revision, original timestamp preservation,
+gap boundaries, unknown hands, committed-evidence protection, capture/opposite
+guards, invalid delivery times, outline dropout and sustained-shadow counterexample.
+
+Native processing-gap and capture-clock suites pass (123 processing-gap checks;
+113 capture uncertainty, 103 conflict guidance, 75 local-clock and 429 automatic
+capture/hand-clear checks). Start behavior and automatic-hold accounting remain
+the previously installed implementation. Recent camera operations contain no
+clock-press estimate; the preserved recording journals remain the timing source.
+Older replay timing metadata is passed through unchanged.
+
+All 5,022 preserved files from both games match their original size/SHA256.
+Across preserved data and experiment manifests, 5,156 unique input hashes pass.
+342 shared point/variant feature comparisons exactly match the earlier dense
+extractor (152 from the 65-game, 190 from the 85-game).
+All three frozen policy hashes are unchanged. Current resolved app sources still
+match the installed source hash:
+9b02ccc36ff2ba159ab01f9df195b81c6bed7df86e6dbb409337865db85cdba5
+
+The app was neither rebuilt for installation nor relaunched. No game state,
+capture settings or recorded balances were changed. New artifacts occupy about
+17MB outside the capture budget and contain no duplicate camera-image archive.
+
+Next evidence needed
+
+More threshold tuning on these same games would not establish generalization.
+The useful next collection is an untouched normal game under a different light
+or camera angle, with some Black edge placements and ordinary captures. No exact
+sequence is required. Retain empty edge periods with hands near the board too.
+Until that exists, keep all new recognition rules offline. In particular, do
+not trade capture/timing guards for a higher conditional recognition count.
+
+Reproduction and artifacts
+
+Artifact root: /Users/dave/Documents/SGF PLayer/work/prehand-stage9
+  game65-cache/, game85-cache/ — source manifests, sparse observations, contexts
+  replay/ — six policies x two pixel variants x seven fault conditions
+  older-shapes.json — current native fits, no truth used by the Swift adapter
+  legacy/ — 271 photo probes and 48 older temporal/fault contexts per policy
+  probation/ — bounded follow-up after outline-dropout regression
+  verification.json — data, source and feature parity results
+  native-safeguards.log, python-tests-all.log — completed checks
+
+Tools (each has --help; outputs must use new external paths):
+  prepare_prehand_replay.py --snapshot SNAPSHOT --labels LABELS --prepared REVIEW
+    --output CACHE [--edge-labels game85_edge_labels.json]
+  run_prehand_experiment.py --cache CACHE65 --cache CACHE85 --output REPLAY
+  run_prehand_legacy.py --evidence POINT_EVIDENCE --shapes NATIVE_SHAPES
+    --corpus CORPUS --previous PLACEMENT_EVALUATION --sequence RAPID_SEQUENCE
+    --output LEGACY
+  run_edge_probation.py --cache CACHE65 --cache CACHE85 --replay REPLAY
+    --evidence POINT_EVIDENCE --output FOLLOWUP
+  verify_prehand_experiment.py --stage STAGE --snapshot SNAPSHOT65
+    --snapshot SNAPSHOT85 --geometry GEOMETRY65 --geometry GEOMETRY85
+    --output VERIFICATION_JSON
+
+PreHandShapeAudit.swift is compiled with the existing vision source bundle and
+takes the older corpus boards.json as its sole argument. It decodes image and
+calibration fields only, not truth labels. Its source manifest accompanies the
+native output. All 7,942 older photo occupancy/confidence readings match the
+earlier native baseline exactly.

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "scope": "Offline development experiment. No live imports, clock authority, promotion, or parameter search.",
+  "lookbackSeconds": 0.8,
+  "edgeWidth": 0,
+  "outlineMinimumQuality": 0.8,
+  "maximumAxisOffset": 0.5,
+  "radiusRange": [0.25, 0.75],
+  "policies": ["control", "retro_all", "retro_edge", "retro_edge_shape", "edge_shape", "combined"],
+  "safeguards": "Later hand evidence is applied only on arrival to still-pending observations. Never rewrite old decisions or first-seen timestamps. Unknown hand state is not clear. Gaps retain existing review behavior. No discount is proof of emptiness.",
+  "expectedLimitation": "Retrospective discounts may improve the evidence ledger without changing decisions: the existing hand gate already resets current support runs. Report this honestly. Recent games contain no real Black edge placements; older edge positives are required."
+}
