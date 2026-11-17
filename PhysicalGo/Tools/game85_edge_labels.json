@@ -1,0 +1,47 @@
+{
+  "status": "assistant-image-reviewed-points",
+  "sourceEventsSHA256": "ba313d3005985a9e956d477280fcc8f5dbcbfbcda09097fed2ef14de7bc8de2e",
+  "review": "Inspected rectified grayscale crops: board edge/grid visible; no stone at each target. These are 8 point samples across 4 hand-entry events, not 8 independent trials.",
+  "points": [
+    {
+      "frame": 341,
+      "point": 56,
+      "truth": "empty"
+    },
+    {
+      "frame": 341,
+      "point": 94,
+      "truth": "empty"
+    },
+    {
+      "frame": 605,
+      "point": 189,
+      "truth": "empty"
+    },
+    {
+      "frame": 978,
+      "point": 227,
+      "truth": "empty"
+    },
+    {
+      "frame": 978,
+      "point": 246,
+      "truth": "empty"
+    },
+    {
+      "frame": 978,
+      "point": 265,
+      "truth": "empty"
+    },
+    {
+      "frame": 1981,
+      "point": 246,
+      "truth": "empty"
+    },
+    {
+      "frame": 1981,
+      "point": 265,
+      "truth": "empty"
+    }
+  ]
+}

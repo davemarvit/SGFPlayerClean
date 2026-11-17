@@ -1,0 +1,194 @@
+85-move game: startup timing diagnosis and expanded recognition evidence
+2026-11-16
+
+Decision
+
+Keep the existing Start/countdown behavior. No first-move-free policy was
+implemented, for either an even or handicap game. No live app code, clock
+records, capture settings, or installed application changed in this work.
+The startup accounting defect below is reproduced, NOT repaired.
+
+The whole captured game now has an offline observation/candidate inventory,
+an 85-move timing ledger, six additional reviewed negative point samples,
+and a development experiment on stone-aware background sampling. The original
+frozen unavailable-shadow validation remains a failure; this later experiment
+does not retroactively turn that failure into a validation pass.
+
+Startup: two related problems
+
+The automatic pause lasted 6.722 seconds. Camera images continued arriving.
+At frame 190, the operation lasted 0.8747 seconds, but its recorder entry was
+only 0.0506 seconds after operation start. The remaining 0.8241 seconds occurred
+between recorder entry and operation completion. That interval includes the
+recorder callback, notifications, sound callbacks and diagnostic overhead;
+it is not an isolated vision inference measurement. The Start callback invokes
+NSSound("Pop") synchronously, but the logs do not isolate its cost. Profiling is
+needed before blaming sound, disk writes, or a particular subroutine.
+
+ready() started the clock at uptime 1326263.0938285 and advanced the camera
+freshness marker to that time. The next delivered frame was captured slightly
+earlier, at 1326263.0515002501, and was ignored for freshness. When frame 193's
+fresh observation arrived at 1326264.6754035417, the old freshness marker was
+1.582 seconds old, beyond the 1.5-second guard. noteCameraObservation checks
+that gap before installing the new observation, so the clock held. The guard
+protects unseen thinking time and must not simply be disabled or lengthened.
+
+The hold also cleared the uninterrupted-turn baseline. Move 1 was subsequently
+accepted while stopped; it switched the player without charging Black. Resume
+created a new White baseline after White's estimated physical press. Moves 2
+and 3 then had observed times earlier than their respective retained baselines.
+recordMove silently used recognition time instead of those estimates, without
+requiring clock review. The multi-move catch-up path is stricter; this sequence
+arrived as separately accepted single moves and bypassed that protection.
+
+StartupClockReplay.swift reproduces this call path with the recorded uptime
+values using the real LocalGameClock implementation. It reproduces the exact
+saved balances after move 3: Black 117.1146611667, White 115.4340048335, with
+estimates 1, 2 and 3 unapplied and requiresReview false. Healthy-continuity
+controls still charge the first turn for either Black or White. This is a
+diagnostic reproduction, not a regression claiming the defect is fixed, and
+not an end-to-end camera/recorder playback.
+
+White's first hand-clear-to-hand-clear interval is approximately 3.002 seconds
+(observed bracket endpoint range 2.788–3.216), whereas the recorded deduction
+is 4.566 seconds. Black's first turn is zero. These are evidence of allocation
+failure, not permission to rewrite saved times or a verified reconstruction
+of all thinking time across the hold.
+
+Full-game timing coverage
+
+Of 85 saved move records:
+  71 apply their stored estimate exactly at the engine boundary.
+   2 have estimates that were not applied (moves 2 and 3).
+   1 has an estimate but no running anchor (move 1).
+  11 use a candidate-time fallback without a stored hand-clear estimate:
+     4, 5, 11, 17, 18, 21, 40, 65, 70, 75 and 84.
+
+The eleven do have engine boundaries; they are not eleven completely untimed
+moves. They require separate confidence/uncertainty treatment. For example,
+move 4 shares move 3's engine boundary and therefore receives zero elapsed
+time. The fallback originates in appendVerifiedSequence's first retained
+candidate timestamp. A populated anchor is not proof of correct physical time.
+
+Stored estimates comprise 67 hand brackets, three hand-motion estimates and
+four clear-frame estimates. Among moves with the hand-clear timing scope,
+median recognition delay is 0.855 seconds, p90 1.854 seconds, maximum 5.262.
+Delay until recognition is distinct from the timestamp used for charging.
+No additional automatic pause occurred after startup. Eight long-hand warnings
+were logged while the clock continued running.
+
+Expanded image evidence
+
+Inventoried all 1,658 analyzed frames from 2,669 saved images. The 1,011 skipped
+analysis opportunities still have saved images. 910 analyzed frames have an
+explicit clear hand flag, delivered outcome, and no lighting/exposure block.
+The inventory preserves all capture times, operation times, uncertainty points,
+raw stone candidates and saved-position comparisons. Saved-position mismatches
+remain proposals, not labels: a genuine next move often precedes SGF acceptance.
+
+Eight strong clear-view candidate episodes at locations never present in the
+record were visually checked. All eight are empty intersections on the right
+camera edge, across FOUR hand-entry events:
+  frame 341:  raw points 56, 94;       hand detected 0.391 seconds later
+  frame 605:  raw point 189;          hand detected 0.186 seconds later
+  frame 978:  raw points 227,246,265;  hand detected 0.390 seconds later
+  frame 1981: raw points 246,265;      hand detected 0.205 seconds later
+
+Frame 1981 was already reviewed; the other six point samples are new. Each
+episode has just one strong clear observation. None became a saved phantom.
+Five of the eight still receive strong support from the existing appearance
+weighting, despite the visible absence of stones. All eight have native Black
+confidence at least 0.9; seven are 1.0. Higher raw confidence alone cannot
+separate these errors from real stones.
+
+This supports the proposed pre-hand-shadow mechanism. It does not prove a hand
+will always be detected, or that no hand means no move. Any retrospective
+discount must become available only when the later hand evidence arrives,
+preserve the original candidate timestamp, and leave missed-hand/camera-gap
+cases unknown where evidence is insufficient.
+
+Current ShadowEvidence lookback is already 0.8 seconds, but its eligibility
+requires uncertain/weak readings or sufficiently broad clusters. These events
+escape those assumptions: the one/two-point false readings are very confident;
+the three-point event has zero uncertain intersections. Merely lengthening the
+lookback would not fix that selection problem. Temporal persistence and legal
+move constraints are useful here; this is not evidence to replace them with a
+single-frame classifier.
+
+Stone-aware background sampling experiment
+
+The previous feature extractor excluded circles centered on ideal intersections
+from its wood sample. An off-center stone can extend beyond those circles and
+contaminate the supposed background. The development ablation additionally
+excludes current-frame fitted ellipses (quality >=0.8, radius 0.25–0.75 grid
+intervals, maximum axis offset 0.5, padding 0.08). One variant also centers the
+core sample on the fitted stone. No thresholds were optimized on this game.
+
+At Black 13, frame 476 / raw point 23:
+  75 of 216 original background pixels are excluded by the fitted outlines.
+  Background residual falls from 0.34282 to 0.01196.
+  Center darkening remains approximately 0.42467.
+  The previously rejected real stone regains strong support.
+
+At Black 21 from the earlier 65-move game:
+  Background residual falls from 0.20270 to 0.01750.
+  The true placement remains supported.
+
+With the unchanged contrast policy thresholds, the outline-mask variant
+supports all 85/85 reviewed placements, versus 84/85 with the original geometry,
+and preserves 65/65 from the earlier game. Moving the core adds no placement
+coverage benefit in these samples, so masking alone is the simpler candidate.
+The old 65-game false edge sample remains rejected. The two original 85-game
+false edge samples remain supported. Across all eight expanded edge negatives,
+five remain strongly supported, unchanged by either geometry variant.
+
+These are selected point/frame checks, NOT a validated full-game decoder or
+calibrated probability model. Outline-dependent sampling can itself trust a
+bad outline; older difficult fixtures, temporal windows, missed-hand faults,
+camera gaps and capture sequences still need evaluation before promotion.
+Both recent games are development/regression data for any subsequent tuning.
+An untouched game will eventually be needed for final validation, not yet.
+
+Safeguards and next action
+
+All 55 offline Python tests pass. The native diagnostic reproduces the bug
+and passes its ordinary first-turn controls. All 2,679 preservation-manifest
+entries still match their original sizes and SHA256 hashes. The frozen policy,
+protocol and placement model hashes are unchanged. The single captured-stone
+removal at move 35 and its reviewed before/after images remain intact.
+
+Priority: repair clock accounting across an automatic hold while retaining
+Start/countdown semantics. Retain the relevant timing segments and explicit
+uncertainty; apply delayed presses only when continuity is supported. A press
+that cannot be assigned safely must not silently become recognition time.
+Test manual pauses, genuine processing gaps, capture removal, byoyomi and
+expiry-boundary cases before installing that change. Separately profile the
+startup callback; reducing its stall would prevent some holds but would not
+repair the underlying accounting path.
+
+Recognition: extend the outline-mask ablation through temporal replay and
+older regressions, then test whether pending high-confidence edge candidates
+benefit from later hand-entry evidence without adding blanket move latency.
+Do not erase candidate histories or use future evidence as if it existed at
+the original observation time. No additional game is needed for this work.
+
+Artifacts and reproduction
+
+External root:
+  /Users/dave/Documents/SGF PLayer/work/game85-deep-audit
+  inventory-final/: all-frame inventory, candidate episodes, review crops,
+    reviewed point evidence, pre-hand timings, 85-move timing ledger
+  native-startup-replay-final/: native executable, source hashes and balances
+  geometry85-final/, geometry65-final/, geometry-edge85/: feature ablations
+  preservation-verification.json: full preserved-data hash check
+
+From the repository root, with new external output directories:
+  python3 PhysicalGo/Tools/run_startup_clock_replay.py --output /new/native-replay
+  python3 PhysicalGo/Tools/audit_captured_game.py --snapshot SNAPSHOT \
+    --labels PhysicalGo/Tools/game85_edge_labels.json --output /new/inventory
+  python3 PhysicalGo/Tools/outline_sampling_experiment.py --prepared PREPARED \
+    --labels-evidence POINT_EVIDENCE --case validation-85 --output /new/geometry
+  python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*.py'
+
+Exact input paths, hashes and numerical results accompany each output. These
+tools write only new external artifacts; they cannot update the running app.

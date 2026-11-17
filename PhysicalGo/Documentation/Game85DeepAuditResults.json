@@ -1,0 +1,548 @@
+{
+  "status": "offline-development-only; clock defect reproduced, not fixed",
+  "firstMoveFreePolicyImplemented": false,
+  "inventory": {
+    "status": "OFFLINE DIAGNOSTIC; record disagreements are NOT truth labels",
+    "events": {
+      "capture started": 1,
+      "frame": 2669,
+      "frame skipped": 1011,
+      "recorder": 1728,
+      "operation started": 1658,
+      "operation finished": 1658,
+      "capture failed": 1
+    },
+    "frames": 2669,
+    "analyzedFrames": 1658,
+    "inventoriedFrames": 1658,
+    "moves": 85,
+    "captures": [
+      {
+        "move": 35,
+        "points": [
+          288
+        ]
+      }
+    ],
+    "journalEvents": {
+      "start": 1,
+      "observation": 1380,
+      "vision interrupted: Checking that the physical board matches the recorded position before continuing.": 1,
+      "resumed": 1,
+      "game started": 1,
+      "clock automatically paused": 1,
+      "vision interrupted: Board processing fell behind. Checking a fresh view before continuing.": 1,
+      "hand obstruction began": 87,
+      "speech requested": 109,
+      "hand-clear clock boundary": 72,
+      "hand obstruction cleared": 74,
+      "clock automatically resumed": 1,
+      "speech cancelled before playback": 5,
+      "accepted move": 85,
+      "observed turn clock press": 64,
+      "recording warning: prolonged blocked view": 8,
+      "speech warning sound requested": 8,
+      "speech started": 104,
+      "speech finishing guidance": 4,
+      "speech interrupted": 85,
+      "speech finished": 19,
+      "paused": 1
+    },
+    "timingStates": {
+      "no-running-anchor": 1,
+      "estimate-not-applied": 2,
+      "no-estimate": 11,
+      "applied": 71
+    },
+    "noEstimateMoves": [
+      4,
+      5,
+      11,
+      17,
+      18,
+      21,
+      40,
+      65,
+      70,
+      75,
+      84
+    ],
+    "estimateMethods": {
+      "handBracket": 67,
+      "handMotion": 3,
+      "clearFrame": 4
+    },
+    "recognitionDelayByScope": {
+      "first hand-clear completed-board frame to recorded": {
+        "minimum": 0.28477683290839195,
+        "median": 0.8546173118520528,
+        "p90": 1.8540288540534677,
+        "p99": 4.256180233012413,
+        "maximum": 5.2615848537534475
+      },
+      "first retained candidate to recorded": {
+        "minimum": 0.5461990416515619,
+        "median": 0.8080925000831485,
+        "p90": 1.576095916563645,
+        "p99": 5.305418079183438,
+        "maximum": 5.719787208363414
+      }
+    },
+    "frameMetrics": {
+      "ageAtRecorder": {
+        "minimum": 0.09290941571816802,
+        "median": 0.29356081259902567,
+        "p90": 0.43684233312960713,
+        "p99": 0.7189325084420854,
+        "maximum": 1.4661057917401195
+      },
+      "operationSeconds": {
+        "minimum": 0.05044712498784065,
+        "median": 0.17192150000482798,
+        "p90": 0.2708138084039092,
+        "p99": 0.5407740692002699,
+        "maximum": 0.8746756250038743
+      },
+      "callbackSeconds": {
+        "minimum": 0.0,
+        "median": 0.0066234375117346644,
+        "p90": 0.013078274996951222,
+        "p99": 0.34250401631928995,
+        "maximum": 0.824055083328858
+      },
+      "analyzedCaptureGap": {
+        "minimum": 0.1669998336583376,
+        "median": 0.3719999580644071,
+        "p90": 0.4090001252479851,
+        "p99": 0.7804399300832302,
+        "maximum": 1.412999999942258
+      }
+    },
+    "clearFrames": 910,
+    "candidateEpisodesByRelation": {
+      "never-recorded": 2333,
+      "future-recorded": 276
+    },
+    "strongClearNeverRecordedEpisodes": 8,
+    "reviewProposals": 8,
+    "clockAuthority": false,
+    "limitations": [
+      "Correlated frames are not independent trials.",
+      "No fitted probability or verified full-game chronology.",
+      "No-estimate does not mean no timestamp: inspect fallback anchors separately.",
+      "Operation duration includes recorder callback and diagnostic work; it is not isolated vision inference time."
+    ]
+  },
+  "nativeClockReplay": {
+    "blackRemaining": 117.11466116667725,
+    "controls": {
+      "blackFirstTurnCharged": true,
+      "whiteFirstTurnCharged": true
+    },
+    "diagnosticOnly": true,
+    "firstMoveChargedZero": true,
+    "knownFailureReproduced": true,
+    "requiresReview": false,
+    "scope": "Native clock call-path reproduction using recorded times, not a full camera/recorder replay. No timing repair or first-move-free policy.",
+    "startupGapHeld": true,
+    "unappliedEstimates": [
+      1,
+      2,
+      3
+    ],
+    "whiteRemaining": 115.43400483345613
+  },
+  "preservation": {
+    "preservedFilesChecked": 2679,
+    "mismatches": [],
+    "frozenModels": {
+      "unavailable_shadow_lab.py": {
+        "matches": true,
+        "sha256": "1b1c596928568f7932c620249bfcb6ca31d7a996d6ee94f1f7faa13f2e1563f1"
+      },
+      "unavailable_shadow_protocol.json": {
+        "matches": true,
+        "sha256": "5be0e6b384955c3e07ce2bf43bd983a493225a01489bb336b30ca96367ccdd0c"
+      },
+      "placement_competition_lab.py": {
+        "matches": true,
+        "sha256": "116bb835f93252ba0978ae39175228a07dbb461b07e167f5d7b10f3326a581ff"
+      }
+    }
+  },
+  "pythonTests": 55,
+  "prehandCandidates": [
+    {
+      "id": "episode-251",
+      "episode": 251,
+      "frame": 341,
+      "point": 56,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326295.267533542,
+      "nextDetectedHandFrame": 343,
+      "secondsUntilDetectedHand": 0.3909999586176127,
+      "retrospectiveEvidenceAvailableBy": 1326295.8749091667,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-252",
+      "episode": 252,
+      "frame": 341,
+      "point": 94,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326295.267533542,
+      "nextDetectedHandFrame": 343,
+      "secondsUntilDetectedHand": 0.3909999586176127,
+      "retrospectiveEvidenceAvailableBy": 1326295.8749091667,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-491",
+      "episode": 491,
+      "frame": 605,
+      "point": 189,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326349.6616334587,
+      "nextDetectedHandFrame": 606,
+      "secondsUntilDetectedHand": 0.185966708464548,
+      "retrospectiveEvidenceAvailableBy": 1326350.2292175002,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-1061",
+      "episode": 1061,
+      "frame": 978,
+      "point": 227,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326425.266733542,
+      "nextDetectedHandFrame": 980,
+      "secondsUntilDetectedHand": 0.38999995798803866,
+      "retrospectiveEvidenceAvailableBy": 1326425.9001657502,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-1062",
+      "episode": 1062,
+      "frame": 978,
+      "point": 246,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326425.266733542,
+      "nextDetectedHandFrame": 980,
+      "secondsUntilDetectedHand": 0.38999995798803866,
+      "retrospectiveEvidenceAvailableBy": 1326425.9001657502,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-1063",
+      "episode": 1063,
+      "frame": 978,
+      "point": 265,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326425.266733542,
+      "nextDetectedHandFrame": 980,
+      "secondsUntilDetectedHand": 0.38999995798803866,
+      "retrospectiveEvidenceAvailableBy": 1326425.9001657502,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-2352",
+      "episode": 2352,
+      "frame": 1981,
+      "point": 246,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326620.0690004167,
+      "nextDetectedHandFrame": 1982,
+      "secondsUntilDetectedHand": 0.2049999174196273,
+      "retrospectiveEvidenceAvailableBy": 1326620.5381235,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    },
+    {
+      "id": "episode-2353",
+      "episode": 2353,
+      "frame": 1981,
+      "point": 265,
+      "truth": null,
+      "kind": "unreviewed-conflict",
+      "proposedColor": "black",
+      "clearSamples": 1,
+      "capturedAt": 1326620.0690004167,
+      "nextDetectedHandFrame": 1982,
+      "secondsUntilDetectedHand": 0.2049999174196273,
+      "retrospectiveEvidenceAvailableBy": 1326620.5381235,
+      "caution": "Future hand evidence is unavailable to the original frame decision."
+    }
+  ],
+  "geometry": {
+    "geometry85-final": {
+      "original": {
+        "neutral": {
+          "strongCorrect": 95,
+          "strongWrong": 2,
+          "afterPlacementStrong": 85
+        },
+        "hold_all": {
+          "strongCorrect": 87,
+          "strongWrong": 2,
+          "afterPlacementStrong": 78
+        },
+        "hold_black": {
+          "strongCorrect": 92,
+          "strongWrong": 2,
+          "afterPlacementStrong": 82
+        },
+        "outline_black": {
+          "strongCorrect": 92,
+          "strongWrong": 2,
+          "afterPlacementStrong": 82
+        },
+        "contrast_black": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        }
+      },
+      "outline_mask": {
+        "neutral": {
+          "strongCorrect": 95,
+          "strongWrong": 2,
+          "afterPlacementStrong": 85
+        },
+        "hold_all": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "hold_black": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "outline_black": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "contrast_black": {
+          "strongCorrect": 95,
+          "strongWrong": 2,
+          "afterPlacementStrong": 85
+        }
+      },
+      "outline_center_and_mask": {
+        "neutral": {
+          "strongCorrect": 95,
+          "strongWrong": 2,
+          "afterPlacementStrong": 85
+        },
+        "hold_all": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "hold_black": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "outline_black": {
+          "strongCorrect": 94,
+          "strongWrong": 2,
+          "afterPlacementStrong": 84
+        },
+        "contrast_black": {
+          "strongCorrect": 95,
+          "strongWrong": 2,
+          "afterPlacementStrong": 85
+        }
+      }
+    },
+    "geometry65-final": {
+      "original": {
+        "neutral": {
+          "strongCorrect": 76,
+          "strongWrong": 1,
+          "afterPlacementStrong": 65
+        },
+        "hold_all": {
+          "strongCorrect": 73,
+          "strongWrong": 0,
+          "afterPlacementStrong": 63
+        },
+        "hold_black": {
+          "strongCorrect": 75,
+          "strongWrong": 0,
+          "afterPlacementStrong": 64
+        },
+        "outline_black": {
+          "strongCorrect": 75,
+          "strongWrong": 0,
+          "afterPlacementStrong": 64
+        },
+        "contrast_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        }
+      },
+      "outline_mask": {
+        "neutral": {
+          "strongCorrect": 76,
+          "strongWrong": 1,
+          "afterPlacementStrong": 65
+        },
+        "hold_all": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "hold_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "outline_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "contrast_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        }
+      },
+      "outline_center_and_mask": {
+        "neutral": {
+          "strongCorrect": 76,
+          "strongWrong": 1,
+          "afterPlacementStrong": 65
+        },
+        "hold_all": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "hold_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "outline_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        },
+        "contrast_black": {
+          "strongCorrect": 76,
+          "strongWrong": 0,
+          "afterPlacementStrong": 65
+        }
+      }
+    },
+    "geometry-edge85": {
+      "original": {
+        "neutral": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_all": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "outline_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "contrast_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        }
+      },
+      "outline_mask": {
+        "neutral": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_all": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "outline_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "contrast_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        }
+      },
+      "outline_center_and_mask": {
+        "neutral": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_all": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "hold_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "outline_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        },
+        "contrast_black": {
+          "strongCorrect": 0,
+          "strongWrong": 5,
+          "afterPlacementStrong": 0
+        }
+      }
+    }
+  },
+  "artifactsRoot": "/Users/dave/Documents/SGF PLayer/work/game85-deep-audit"
+}
