@@ -21,6 +21,7 @@ struct ExperimentView: View {
     @State private var alignmentOptions=false
     @State private var diagnosticData=false
     @State private var changeMode:PhysicalPlayMode?
+    @State private var playClockHeight:CGFloat=260
     init(model:ExperimentModel) {
         self.model=model
         _reviews=ObservedObject(wrappedValue:model.reviewPresentation)
@@ -32,6 +33,7 @@ struct ExperimentView: View {
         VStack(spacing:0) {
             header
             Divider()
+            GeometryReader { viewport in
             ScrollView {
                 VStack(alignment:.leading,spacing:20) {
                     if workspace.activity == .play && model.playMode == .online {
@@ -39,9 +41,10 @@ struct ExperimentView: View {
                         else if model.lightingNeedsRecovery {LightingRecoveryBanner(model:model)}
                     }
                     if workspace.activity == .setup {setup}
-                    else {play}
+                    else {play(boardHeight:max(280,min(620,viewport.size.height-playClockHeight-78)))}
                     diagnostics
-                }.frame(maxWidth:1100).padding(24).frame(maxWidth:.infinity)
+                }.frame(maxWidth:1100).padding(workspace.activity == .play ? 16:24).frame(maxWidth:.infinity)
+            }
             }
         }.font(.system(size:13*model.interfaceScale))
             .background(Color(nsColor:.windowBackgroundColor))
@@ -108,7 +111,7 @@ struct ExperimentView: View {
                 Button("Reset text size") {model.interfaceScale=1.1}
             } label:{Image(systemName:"ellipsis.circle")}.menuStyle(.borderlessButton).frame(width:28)
                 .accessibilityLabel("More options")
-        }.padding(.horizontal,24).padding(.vertical,16)
+        }.padding(.horizontal,24).padding(.vertical,10)
     }
     private var setup:some View {
         VStack(alignment:.leading,spacing:18) {
@@ -181,14 +184,16 @@ struct ExperimentView: View {
             }
         }
     }
-    private var play:some View {
-        VStack(alignment:.leading,spacing:16) {
+    private func play(boardHeight:CGFloat)->some View {
+        VStack(alignment:.leading,spacing:12) {
+            if model.playMode != .local || !hasSession {
             HStack {
                 if model.playMode == .local {LocalPlayHeading(recorder:recorder,clock:recorder.clock)}
                 else {Text("Playing").font(.largeTitle.bold())}
                 Spacer()
                 Button("Check board photo…") {model.beginBoardCorrection()}
                     .disabled(model.observation == nil || model.calibration == nil || model.alignmentNeedsRecovery)
+            }
             }
             if !hasSession && model.playMode == .local {
                 ContentUnavailableView {
@@ -197,13 +202,9 @@ struct ExperimentView: View {
                 actions:{Button("Go to Setup") {workspace.activity = .setup}.buttonStyle(.borderedProminent)}
             } else if model.playMode == .local {
                 LocalClockHost(recorder:recorder,orientation:model.orientation,onReview:{model.reviewPresentation.open(recorder:recorder,id:$0,orientation:model.orientation,onCheckPhoto:{model.beginBoardCorrection()})})
-                PlaySessionControls(model:model,recorder:recorder)
-                HStack(alignment:.top,spacing:20) {
-                    RecordingView(model:model,recorder:recorder,showsRecordingControls:false)
-                        .frame(maxWidth:.infinity,alignment:.topLeading)
-                    GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
-                        .frame(width:300,alignment:.topLeading)
-                }
+                    .background(GeometryReader {geometry in Color.clear.preference(key:PlayClockHeight.self,value:geometry.size.height)})
+                    .onPreferenceChange(PlayClockHeight.self) {playClockHeight=$0}
+                RecordingView(model:model,recorder:recorder,showsRecordingControls:false,playBoardHeight:boardHeight)
             } else {
                 GameStatusBanner(model:model,recorder:recorder,bridge:bridge,textScale:model.interfaceScale)
                 PlaySessionControls(model:model,recorder:recorder)
@@ -613,6 +614,10 @@ struct DetectedBoard: View {
 }
 
 
+private struct PlayClockHeight:PreferenceKey {
+    static var defaultValue:CGFloat=260
+    static func reduce(value:inout CGFloat,nextValue:()->CGFloat) {value=nextValue()}
+}
 private struct LocalClockHost:View {
     @ObservedObject var recorder:GameRecorder
     let orientation:BoardOrientation
@@ -624,7 +629,7 @@ private struct LocalClockVisibility:View {
     @ObservedObject var recorder:GameRecorder
     let orientation:BoardOrientation
     let onReview:(UUID)->Void
-    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,showsStatus:false,onReview:onReview,orientation:orientation)}}
+    var body:some View {if clock.enabled {LocalClockPanel(clock:clock,recorder:recorder,compact:true,showsStatus:false,onReview:onReview,orientation:orientation)}}
 }
 
 /// Always visible during alignment loss, including when diagnostics are hidden.

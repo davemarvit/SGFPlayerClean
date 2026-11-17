@@ -280,7 +280,7 @@ import ImageIO
                     let host=NSHostingView(rootView:AutomaticCaptureInspection(recorder:boundary,orientation:.init(0),onReview:{}).background(Color(nsColor:.windowBackgroundColor)))
                     let preview=NSWindow(contentRect:NSRect(x:0,y:0,width:540,height:340),styleMask:[.titled],backing:.buffered,defer:false)
                     preview.appearance=NSAppearance(named:.darkAqua);host.appearance=preview.appearance
-                    preview.contentView=host;preview.orderFront(nil)
+                    preview.contentView=host;preview.setFrameOrigin(NSPoint(x:-10000,y:-10000));preview.orderFront(nil)
                     RunLoop.main.run(until:Date().addingTimeInterval(0.15));host.layoutSubtreeIfNeeded()
                     let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
                     host.cacheDisplay(in:host.bounds,to:bitmap)
@@ -332,7 +332,7 @@ import ImageIO
         try JSONEncoder().encode(history).write(to:file.deletingPathExtension().appendingPathExtension("reviews.json"))
         try model.recorder.restoreSavedGame(from:file)
         let window=NSWindow(contentRect:NSRect(x:0,y:0,width:1200,height:900),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
-        window.isReleasedWhenClosed=false;window.contentView=NSHostingView(rootView:ExperimentView(model:model));window.makeKeyAndOrderFront(nil)
+        window.isReleasedWhenClosed=false;window.contentView=NSHostingView(rootView:ExperimentView(model:model));window.setFrameOrigin(NSPoint(x:-10000,y:-10000));window.orderFront(nil)
         RunLoop.main.run(until:Date().addingTimeInterval(0.3))
         model.reviewPresentation.open(recorder:model.recorder,id:section.id,orientation:.init(0))
         RunLoop.main.run(until:Date().addingTimeInterval(0.5))

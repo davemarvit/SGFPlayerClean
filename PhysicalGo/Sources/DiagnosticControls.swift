@@ -40,25 +40,25 @@ struct DiagnosticControls:View {
                     Toggle("Record continuous camera images",isOn:Binding(get:{diagnostics.isCapturing},set:{enabled in
                         if enabled {model.startDiagnostics()} else {diagnostics.stop()}
                     })).toggleStyle(.switch).disabled(!model.diagnosticSettings.enabled || (!diagnostics.isCapturing && !diagnostics.canStart))
-                    Toggle("Start continuous capture with next game",isOn:Binding(
+                    Toggle("Start continuous recording with next game",isOn:Binding(
                         get:{diagnostics.startWithNextGame},set:{model.armDiagnosticsForNextGame($0)}))
                         .toggleStyle(.switch)
                         .disabled(!model.diagnosticSettings.enabled || !diagnostics.canStart || model.playMode != .local)
-                    Picker("Maximum continuous capture",selection:$diagnostics.limitGB) {
+                    Picker("Maximum continuous recording",selection:$diagnostics.limitGB) {
                         ForEach([1,5,10],id:\.self) {Text("\($0) GB").tag($0)}
                     }.disabled(!diagnostics.canStart)
-                    Text("Start capture now, or arm it for the next game's Start button. Saving game setup does not start an armed capture. Once started, capture continues while play is paused. Arming resets when the app closes.").font(.caption).foregroundStyle(.secondary)
-                    Text(diagnostics.startWithNextGame ? "Capture is ready. No continuous images are saved until you press Start for the new game." : diagnostics.status)
+                    Text("Start recording now, or arm it for the next game's Start button. Saving game setup does not start an armed recording. Once started, recording continues while play is paused. Arming resets when the app closes.").font(.caption).foregroundStyle(.secondary)
+                    Text(diagnostics.startWithNextGame ? "Recording is ready. No continuous images are saved until you press Start for the new game." : diagnostics.status)
                         .foregroundStyle(diagnostics.state == .failed ? Color.red:Color.secondary)
                     KeepDiagnosticCapture(folder:diagnostics.folder)
-                    Button("Show continuous captures") {
+                    Button("Show continuous recordings") {
                         let folder=diagnostics.folder ?? CaptureFolders.root
                         try? FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
                         NSWorkspace.shared.open(folder)
                     }
                 }.padding(6)
             }
-            Text("Camera archives share a 10 GB allowance. Oldest inactive clips rotate automatically. Keep a capture to exclude it from rotation.")
+            Text("Camera archives share a 10 GB allowance. Oldest inactive clips rotate automatically. Keep a recording to exclude it from rotation.")
                 .font(.caption).foregroundStyle(.secondary)
             Button(clearing ? "Clearing diagnostic data…":"Clear diagnostic data…",role:.destructive) {confirmClear=true}
                 .disabled(clearing)
@@ -66,7 +66,7 @@ struct DiagnosticControls:View {
                     Button("Cancel",role:.cancel) {}
                     Button("Delete camera archives",role:.destructive) {clearArchives()}
                 } message: {
-                    Text("Permanently delete completed automatic clips and continuous camera captures, including their diagnostic logs. Captures marked Keep and active captures stay. Saved games, game and clock history, calibration and photo samples stay. Diagnostics settings are unchanged; enabled collection can save new clips. This cannot be undone.")
+                    Text("Permanently delete completed automatic clips and continuous camera recordings, including their diagnostic logs. Recordings marked Keep and active recordings stay. Saved games, game and clock history, calibration and photo samples stay. Diagnostics settings are unchanged; enabled collection can save new clips. This cannot be undone.")
                 }
             if let clearMessage {Text(clearMessage).font(.callout).textSelection(.enabled)}
             Toggle("Show diagnostic data and detection tools in the main window",isOn:$model.showDiagnostics)
@@ -92,9 +92,9 @@ struct DiagnosticIndicator:View {
             Label("Saving diagnostics · \(diagnostics.savedFrames) images",systemImage:"circle.inset.filled")
                 .foregroundStyle(.orange).accessibilityLabel("Diagnostic image recording active")
         } else if diagnostics.startWithNextGame {
-            Label("Capture ready · starts with game",systemImage:"camera")
+            Label("Recording ready · starts with game",systemImage:"camera")
         } else if diagnostics.state == .failed {
-            Label("DIAGNOSTICS STOPPED",systemImage:"exclamationmark.triangle.fill").foregroundStyle(.red)
+            Label(diagnostics.status,systemImage:"exclamationmark.triangle.fill").foregroundStyle(.red).fixedSize(horizontal:false,vertical:true)
         } else if diagnostics.state == .finishing {
             Text("Finishing diagnostics…").foregroundStyle(.secondary)
         }
@@ -160,13 +160,13 @@ private struct KeepDiagnosticCapture:View {
     var body:some View {
         Group {
             if let folder {
-                Toggle("Keep this capture — exclude from rotation",isOn:Binding(get:{kept},set:{value in
+                Toggle("Keep this recording — exclude from rotation",isOn:Binding(get:{kept},set:{value in
                     do {
                         let marker=folder.appendingPathComponent("KEEP")
                         if value {try Data().write(to:marker,options:.atomic)}
                         else if FileManager.default.fileExists(atPath:marker.path) {try FileManager.default.removeItem(at:marker)}
                         kept=value;error=nil
-                    } catch {self.error="Could not change capture retention: \(error.localizedDescription)"}
+                    } catch {self.error="Could not change recording retention: \(error.localizedDescription)"}
                 })).disabled(!FileManager.default.fileExists(atPath:folder.path))
                 if let error {Text(error).foregroundStyle(.red)}
             }

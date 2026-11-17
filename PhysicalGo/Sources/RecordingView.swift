@@ -4,10 +4,11 @@ struct RecordingView: View {
     @ObservedObject var model: ExperimentModel
     @ObservedObject var recorder: GameRecorder
     @ObservedObject private var onlineBoard: PhysicalOnlineBoard
-    init(model: ExperimentModel, recorder: GameRecorder, showsRecordingControls:Bool=true,initialDisplay:Display = .live) {
-        self.model=model; self.recorder=recorder; self.onlineBoard=model.onlineBoard; self.showsRecordingControls=showsRecordingControls;_display=State(initialValue:initialDisplay)
+    init(model: ExperimentModel, recorder: GameRecorder, showsRecordingControls:Bool=true,initialDisplay:Display = .live,playBoardHeight:CGFloat?=nil) {
+        self.playBoardHeight=playBoardHeight;self.model=model; self.recorder=recorder; self.onlineBoard=model.onlineBoard; self.showsRecordingControls=showsRecordingControls;_display=State(initialValue:initialDisplay)
     }
     enum Display:Hashable {case live,saved,feed,inspect}
+    var playBoardHeight:CGFloat?
     var showsRecordingControls=true
     @State private var display=Display.live
     @State private var confirmNew=false
@@ -83,7 +84,10 @@ struct RecordingView: View {
     var body:some View {
         VStack(alignment:.leading,spacing:18) {
             if showsRecordingControls && !onlineBoard.enabled { recordingSection }
-            if !showsRecordingControls || model.playMode == .local || model.showDiagnostics {boardSection}
+            if !showsRecordingControls || model.playMode == .local || model.showDiagnostics {
+                if let height=playBoardHeight,!onlineBoard.enabled,recorder.hasGame {laptopBoardSection(height:height)}
+                else {boardSection}
+            }
         }
         .onChange(of:model.showDiagnostics) {_,visible in if !visible && display == .inspect {display = .live}}
         .onChange(of:display) {_,view in
@@ -184,9 +188,8 @@ struct RecordingView: View {
             }.frame(maxWidth:.infinity,alignment:.leading).padding(4)
         }
     }
-    private var boardSection:some View {
-        GroupBox {
-            VStack(alignment:.leading,spacing:10) {
+    private var interpretationControls:some View {
+        VStack(alignment:.leading,spacing:8) {
                 HStack {
                     Text("Board interpretation").font(.system(size:14*model.interfaceScale,weight:.semibold))
                     Spacer()
@@ -203,19 +206,14 @@ struct RecordingView: View {
                         Text("Saved moves").tag(Display.saved)
                         Text("Live feed").tag(Display.feed)
                         if model.showDiagnostics {Text("Inspect detection").tag(Display.inspect)}
-                    }.pickerStyle(.segmented)
+                    }.pickerStyle(.menu)
                     Text(recorder.hasDeferredMoves ? "\(recorder.moveCount) in SGF · \(recorder.reviewHistory.retainedMoveCount) later moves retained · \(recorder.reviewHistory.unresolved) reviews needed" : "\(recorder.moveCount) saved · \(recorder.pendingMoveCount) pending · \(unrecordedDetections) detected outside saved history")
                         .font(.system(size:14*model.interfaceScale,weight:.semibold)).monospacedDigit()
                 }
-                if display == .feed && !onlineBoard.enabled && recorder.hasGame {
-                    CameraCanvas(model:model).allowsHitTesting(false).frame(height:520)
-                    Text("Live camera · same orientation as the board. Switch to Live position to order missed moves.").font(.callout).foregroundStyle(.secondary)
-                } else if onlineBoard.enabled || !recorder.hasGame || display == .inspect {
-                    if model.showDiagnostics {DetectionInspectionView(model:model,recorder:recorder)}
-                    else {DetectedBoard(model:model,recorder:recorder).aspectRatio(1,contentMode:.fit).frame(maxWidth:520)}
-                } else {
-                    HStack(alignment:.top,spacing:16) {
-                        SquareBoardLayout {
+        }
+    }
+    private var interpretedBoard:some View {
+SquareBoardLayout {
                         RecordedBoard(recorder:recorder,orientation:model.orientation,showsLivePosition:display == .live,
                                       observation:display == .live ? model.visibleObservation : nil,
                                       allowsLiveSelection:display == .live && recorder.state != .finished,
@@ -226,27 +224,10 @@ struct RecordingView: View {
                                 else {beginRecovery(at:point)}
                             } else {manualPoint=point}
                         }
-                        }.frame(maxWidth:520)
-                        if !recorder.reviewHistory.reviews.isEmpty {
-                            ReviewQueueRail(recorder:recorder,onReview:openReview)
                         }
-                    }
-                    Text("Drag a wrongly recorded stone to its intended intersection. Use Saved moves to find earlier stones. Review and confirm several corrections together.").font(.callout)
-                    if let correctionError {Text(correctionError).foregroundStyle(.orange)}
-                    ZStack(alignment:.topLeading) {
-                        liveBoardActions.opacity(display == .live ? 1:0)
-                            .allowsHitTesting(display == .live).accessibilityHidden(display != .live)
-                        VStack(alignment:.leading,spacing:10) {
-                            reviewControls.frame(maxWidth:520)
-                            if recorder.canEdit {
-                                Text("To enter a missed move, click its empty intersection above. Undo removes the last move; browsing does not change history.")
-                                    .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
-                            }
-                        }.opacity(display == .saved ? 1:0)
-                            .allowsHitTesting(display == .saved).accessibilityHidden(display != .saved)
-                    }
-
-                }
+    }
+    private var recordingDetails:some View {
+        VStack(alignment:.leading,spacing:8) {
                 if recorder.hasGame && !onlineBoard.enabled {
                     if model.showDiagnostics {confidenceDetails}
                     HStack {
@@ -269,6 +250,82 @@ struct RecordingView: View {
                             .font(.system(size:12*model.interfaceScale))
                     }
                 }
+        }
+    }
+    private func laptopBoardSection(height:CGFloat)->some View {
+        GeometryReader { geometry in
+            let sidebarWidth=min(420,geometry.size.width*0.44)
+            let side=min(height,max(0,geometry.size.width-sidebarWidth-16))
+            HStack(alignment:.top,spacing:16) {
+                Group {
+                    if display == .feed {
+                        CameraCanvas(model:model).allowsHitTesting(false)
+                    } else if display == .inspect {
+                        ScrollView {DetectionInspectionView(model:model,recorder:recorder)}
+                    } else {interpretedBoard}
+                }.frame(width:side,height:side)
+            ScrollView {
+                VStack(alignment:.leading,spacing:12) {
+                    GameStatusBanner(model:model,recorder:recorder,bridge:onlineBoard,textScale:model.interfaceScale)
+                    PlaySessionControls(model:model,recorder:recorder,sidebar:true)
+                    GroupBox {
+                        VStack(alignment:.leading,spacing:10) {
+                            interpretationControls
+                            if let correctionError {Text(correctionError).foregroundStyle(.orange)}
+                            if display == .live {liveBoardActions}
+                            if display == .saved {reviewControls}
+                            if display == .feed {
+                                Text("Live camera · same orientation as the board.").font(.callout).foregroundStyle(.secondary)
+                            }
+                            recordingDetails
+                            if !recorder.reviewHistory.reviews.isEmpty {ReviewQueueRail(recorder:recorder,onReview:openReview)}
+                            DisclosureGroup("Board help & camera") {
+                                Text("Drag a wrongly recorded stone to its intended intersection. Use Saved moves to find earlier stones. Undo removes the last move; browsing does not change history.").font(.callout)
+                                Text("Red marks indicate pending or unrecorded stones. Orange marks indicate a camera disagreement or placement question. Confirming a move saves that decision; a later orange ring can still report a camera disagreement.").font(.callout)
+                                if model.showDiagnostics {DetectionTuningView(model:model,recorder:recorder)}
+                                CameraControlsView(model:model)
+                            }
+                        }.frame(maxWidth:.infinity,alignment:.leading).padding(4)
+                    }
+                }.padding(.trailing,4)
+            }.frame(width:sidebarWidth,height:height)
+            }.frame(maxWidth:.infinity,alignment:.center)
+        }.frame(height:height)
+    }
+    private var boardSection:some View {
+        GroupBox {
+            VStack(alignment:.leading,spacing:10) {
+                interpretationControls
+                if display == .feed && !onlineBoard.enabled && recorder.hasGame {
+                    CameraCanvas(model:model).allowsHitTesting(false).frame(height:520)
+                    Text("Live camera · same orientation as the board. Switch to Live position to order missed moves.").font(.callout).foregroundStyle(.secondary)
+                } else if onlineBoard.enabled || !recorder.hasGame || display == .inspect {
+                    if model.showDiagnostics {DetectionInspectionView(model:model,recorder:recorder)}
+                    else {DetectedBoard(model:model,recorder:recorder).aspectRatio(1,contentMode:.fit).frame(maxWidth:520)}
+                } else {
+                    HStack(alignment:.top,spacing:16) {
+                        interpretedBoard.frame(maxWidth:520)
+                        if !recorder.reviewHistory.reviews.isEmpty {
+                            ReviewQueueRail(recorder:recorder,onReview:openReview)
+                        }
+                    }
+                    Text("Drag a wrongly recorded stone to its intended intersection. Use Saved moves to find earlier stones. Review and confirm several corrections together.").font(.callout)
+                    if let correctionError {Text(correctionError).foregroundStyle(.orange)}
+                    ZStack(alignment:.topLeading) {
+                        liveBoardActions.opacity(display == .live ? 1:0)
+                            .allowsHitTesting(display == .live).accessibilityHidden(display != .live)
+                        VStack(alignment:.leading,spacing:10) {
+                            reviewControls.frame(maxWidth:520)
+                            if recorder.canEdit {
+                                Text("To enter a missed move, click its empty intersection above. Undo removes the last move; browsing does not change history.")
+                                    .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
+                            }
+                        }.opacity(display == .saved ? 1:0)
+                            .allowsHitTesting(display == .saved).accessibilityHidden(display != .saved)
+                    }
+
+                }
+                recordingDetails
                 if model.showDiagnostics {DetectionTuningView(model:model,recorder:recorder)}
                 Divider()
                 CameraControlsView(model:model)
@@ -290,19 +347,22 @@ struct RecordingView: View {
             if !checkPoints.isEmpty {
                 Button("Review highlighted stones…",systemImage:"checkmark.circle") {if let point=checkPoints.sorted().first {reviewMarkedStone(point)}}
                     .buttonStyle(.borderedProminent).tint(.orange)
-                Text("Click a marked stone to address its issue: confirm a location, review missing moves, or check a capture or recorded placement.")
-                    .font(.callout)
+                if playBoardHeight==nil {
+                    Text("Click a marked stone to address its issue: confirm a location, review missing moves, or check a capture or recorded placement.").font(.callout)
+                }
             }
             Button("Order missed moves…",systemImage:"list.number") {beginRecovery()}
                 .buttonStyle(.borderedProminent)
                 .actionAttention(unrecordedDetections>0 ? .required:.none)
                 .disabled(recorder.state == .finished)
-            Text("If moves are missing or their order is wrong, choose Order missed moves and approve their sequence.").font(.callout)
+            if playBoardHeight==nil {Text("If moves are missing or their order is wrong, choose Order missed moves and approve their sequence.").font(.callout)}
             }
+            if playBoardHeight==nil {
             Text("Red ring: pending move needs checking. Dashed red: detected stone outside the retained sequence. Orange: a persistent conflict or ambiguous placement to check. Center dot: last interpreted move.")
                 .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
             Text(recorder.hasDeferredMoves ? "Observed position · reviewed history is kept separately until finalized" : "Live position · \(recorder.moveCount+recorder.pendingConfidence.count) moves")
                 .font(.system(size:13*model.interfaceScale).monospacedDigit())
+            }
         }
     }
     private func beginUndo() {
@@ -324,7 +384,8 @@ struct RecordingView: View {
                 navigation("Previous move",icon:"chevron.left",target:recorder.reviewIndex-1).disabled(recorder.reviewIndex==0)
                 navigation("Next move",icon:"chevron.right",target:recorder.reviewIndex+1).disabled(recorder.reviewIndex==recorder.moveCount)
                 navigation("Latest move",icon:"forward.end.fill",target:recorder.moveCount).disabled(recorder.reviewIndex==recorder.moveCount)
-                Spacer()
+            }
+            HStack {
                 Text("Go to move")
                 TextField("Move number",value:Binding(get:{recorder.reviewIndex},set:{recorder.browse($0)}),format:.number)
                     .frame(width:50).accessibilityLabel("Go to saved move")

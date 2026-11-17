@@ -14,7 +14,7 @@ import SwiftUI
         defer {settings.removePersistentDomain(forName:suite)}
         let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,recordingStorage:root,settings:settings,diagnosticRoot:root.appendingPathComponent("diagnostics"))
         model.moveEvidenceCapture.enabled=false;model.recorder.clock.audible=false
-        model.recorder.start(size:19,clockSettings:.init(kind:.none));model.recorder.pause()
+        model.recorder.start(size:19,clockSettings:.init(kind:.byoyomi,mainSeconds:120,periodSeconds:15,periods:5));model.recorder.pause()
         model.recorder.manualMove(at:BoardPosition(3,3));model.recorder.manualMove(at:BoardPosition(15,15))
         let original=model.recorder.sgf()
         let output=try TestArtifacts.directory("physical-layout-voice")
@@ -22,7 +22,7 @@ import SwiftUI
             let host=NSHostingView(rootView:view.background(Color(nsColor:.windowBackgroundColor)))
             let window=NSWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleMask:[.titled],backing:.buffered,defer:false)
             window.appearance=NSAppearance(named:.darkAqua);host.appearance=window.appearance
-            window.contentView=host;window.orderFront(nil)
+            window.contentView=host;window.setFrameOrigin(NSPoint(x:-10000,y:-10000));window.orderFront(nil)
             RunLoop.main.run(until:Date().addingTimeInterval(0.2));host.layoutSubtreeIfNeeded()
             let bitmap=host.bitmapImageRepForCachingDisplay(in:host.bounds)!
             host.cacheDisplay(in:host.bounds,to:bitmap)
@@ -50,6 +50,29 @@ import SwiftUI
             print("Board bounds at \(width): live \(a), saved \(b)")
             check(a==b,"Live and saved boards moved or resized")
         }
+        for (width,height) in [(1280.0,800.0),(1440.0,900.0),(1060.0,740.0)] {
+            let bitmap=try render(ExperimentView(model:model),"laptop-\(Int(width))-\(Int(height))",width:width,height:height)
+            let bounds=boardBounds(bitmap)
+            let scale=CGFloat(bitmap.pixelsWide)/width
+            print("Laptop board at \(width)×\(height): \(bounds)")
+            check(abs(bounds.width-bounds.height)<4*scale,"Laptop board is clipped or stretched")
+            check(bounds.height>280*scale && bounds.maxY<CGFloat(bitmap.pixelsHigh)-8*scale,"Laptop board does not fit")
+        }
+        model.interfaceScale=1.5
+        let largeText=try render(ExperimentView(model:model),"laptop-large-text",width:1280,height:800)
+        let largeBounds=boardBounds(largeText)
+        check(abs(largeBounds.width-largeBounds.height)<8 && largeBounds.maxY<CGFloat(largeText.pixelsHigh)-16,"Large text clipped the laptop board")
+        model.interfaceScale=1.1
+        let held=GameRecorder(storage:nil);held.clock.audible=false
+        held.start(size:19,clockSettings:.init(kind:.byoyomi,mainSeconds:120,periodSeconds:15,periods:5))
+        let now=ProcessInfo.processInfo.systemUptime
+        held.clock.holdForUnobservedTurns(lastReliableAt:now,next:nil,at:now+1)
+        let beforePause=held.clock.engine
+        check(LocalPlayPresentation(recorder:held,clock:held.clock).showsIndependentPause,"Clock review hides manual pause")
+        held.pause()
+        check(!held.clock.running && held.clock.requiresReview,"Pause bypassed the required clock review")
+        check(held.clock.engine.black==beforePause.black && held.clock.engine.white==beforePause.white,"Pause altered held clock balances")
+        check(!LocalPlayPresentation(recorder:held,clock:held.clock).showsIndependentPause,"Already paused game offers another pause")
         let states=[
             SetupCameraMessage(alignment:true,needsFullBoard:true,exhausted:false,lighting:false,ready:false,detecting:false),
             SetupCameraMessage(alignment:true,needsFullBoard:false,exhausted:false,lighting:false,ready:false,detecting:true),

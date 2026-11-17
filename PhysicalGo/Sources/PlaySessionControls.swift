@@ -3,23 +3,36 @@ import SwiftUI
 struct PlaySessionControls:View {
     @ObservedObject var model:ExperimentModel
     @ObservedObject var recorder:GameRecorder
+    var sidebar=false
     @State private var confirmEnd=false
     @State private var endNeedsAttention=false
     var body:some View {
         VStack(alignment:.leading,spacing:8) {
-            HStack(spacing:16) {
+            let layout=sidebar ? AnyLayout(VStackLayout(alignment:.leading,spacing:8)):AnyLayout(HStackLayout(spacing:16))
+            layout {
                 if model.playMode == .local {
+                    let actions=AnyLayout(HStackLayout(spacing:sidebar ? 8:16))
+                    actions {
                     Button(recorder.hasDeferredMoves && recorder.tentativeNextPlayer == nil ? "Pass" : "\((recorder.tentativeNextPlayer ?? recorder.nextPlayer).rawValue.capitalized) pass") {recorder.pass()}.disabled(!recorder.canPass)
                     PhysicalScoreButton(scoring:model.scoring,recorder:recorder,orientation:model.orientation)
+                    }
+                    HStack(spacing:8) {
                     Button("End game…") {confirmEnd=true}.disabled(!recorder.hasGame || recorder.state == .finished)
                     Button("Rotate view",systemImage:"rotate.right") {model.rotateView()}
                         .help("Rotate the board and camera view 90° clockwise. The recorded game and clocks are preserved.")
+                    }
                 }
-                Spacer()
+                if !sidebar {Spacer()}
+                HStack {
                 if model.exportingSGF {ProgressView().controlSize(.small)}
                 Button("Save SGF file",systemImage:"square.and.arrow.up") {Task {await model.saveSGFFile()}}
                     .actionAttention(model.playMode == .local && recorder.saveError != nil ? .required:.none)
                     .disabled(model.exportingSGF || (model.playMode == .local && (!recorder.hasGame || recorder.hasUnfinishedReviews)))
+                if sidebar {
+                    Button("Check board photo…") {model.beginBoardCorrection()}
+                        .disabled(model.observation == nil || model.calibration == nil || model.alignmentNeedsRecovery)
+                }
+                }
             }
             if model.playMode == .online && !model.exportStatus.isEmpty {Text(model.exportStatus).font(.callout).textSelection(.enabled)}
         }.confirmationDialog("End this game?",isPresented:$confirmEnd,titleVisibility:.visible) {

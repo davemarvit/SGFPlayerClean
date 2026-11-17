@@ -21,7 +21,7 @@ enum CaptureFolders {
     struct Operation {let session:UUID;let id:Int;let frame:Int?}
     enum State {case idle,capturing,finishing,stopped,failed}
     @Published private(set) var state:State = .idle
-    @Published private(set) var status="Diagnostic capture is off."
+    @Published private(set) var status="Camera recording is off."
     @Published private(set) var folder:URL?
     @Published private(set) var savedFrames=0
     @Published private(set) var savedBytes:Int64=0
@@ -61,7 +61,7 @@ enum CaptureFolders {
         // Cheap validation stays synchronous; directory scans, rotation and
         // opening the archive run before writes on the writer's serial queue.
         if let archiveStorage,requested<=0 || requested+DiagnosticArchiveStorage.metadataAllowance>archiveStorage.limit {
-            throw NSError(domain:"PhysicalGo.Diagnostics",code:2,userInfo:[NSLocalizedDescriptionKey:"Diagnostic storage allowance is too small for this capture."])
+            throw NSError(domain:"PhysicalGo.Diagnostics",code:2,userInfo:[NSLocalizedDescriptionKey:"Diagnostic storage allowance is too small for this recording."])
         }
         let writer=DiagnosticWriter(folder:url,limit:requested,reserve:reserveBytes,context:context,
             archiveStorage:archiveStorage,minimumPayload:byteLimit==nil ? 64_000_000:nil)
@@ -70,14 +70,14 @@ enum CaptureFolders {
         savedFrames=0;savedBytes=0;state = .capturing;status="Saving diagnostic frames · game recording is separate."
         writer.onFailure={ [weak self] message in
             guard let self,self.sessionID==id else {return}
-            self.state = .failed;self.status="Diagnostic capture stopped: \(message). Saved files are retained; game recording continues."
+            self.state = .failed;self.status="Camera recording stopped: \(message). Saved files are retained; game recording continues."
             self.operations=[:];self.worker=nil;self.lastReference=nil
         }
     }
     func capture(_ image:CGImage,at time:Double,context:[String:Any],reference:CGImage?,anchor:AutoGridDetector.TrackingAnchor?,anchorRevision:Int)->Ticket? {
         guard isCapturing,let worker else {return nil}
         guard pendingWrites<maximumPendingFrames else {
-            stop(reason:"Disk writer could not keep up; capture ended before dropping a frame",failure:true,cancelOperations:true)
+            stop(reason:"Disk writer could not keep up; recording ended before dropping a frame",failure:true,cancelOperations:true)
             return nil
         }
         nextFrame += 1
@@ -138,7 +138,7 @@ enum CaptureFolders {
         guard worker != nil,!finishing else {return}
         endReason=reason
         event("capture stopping",details:["reason":reason,"pendingOperations":operations.count])
-        state = .finishing;status=failure ? "Diagnostic capture stopped: \(reason). Finishing saved files…" : "Finishing diagnostic files…"
+        state = .finishing;status=failure ? "Camera recording stopped: \(reason). Finishing saved files…" : "Finishing diagnostic files…"
         if cancelOperations {
             for op in operations.values {event("operation canceled",details:["operationID":op.id,"reason":reason])}
             operations=[:]
@@ -152,7 +152,7 @@ enum CaptureFolders {
             guard let self,self.sessionID==id,self.worker != nil else {return}
             self.worker=nil;self.lastReference=nil;self.finishing=false
             self.state=failure ? .failed : .stopped
-            self.status=failure ? "Diagnostic capture stopped: \(reason). Saved files are retained." : "Diagnostic capture saved."
+            self.status=failure ? "Camera recording stopped: \(reason). Saved files are retained." : "Camera recording saved."
         }
     }
     /// Called on application termination. Cancel unfinished analysis explicitly,
@@ -163,7 +163,7 @@ enum CaptureFolders {
         for op in operations.values {event("operation canceled",details:["operationID":op.id,"reason":"Application closing"])}
         operations=[:];state = .finishing
         writer.finishSynchronously(reason:"Application closing")
-        worker=nil;lastReference=nil;state = .stopped;status="Diagnostic capture saved."
+        worker=nil;lastReference=nil;state = .stopped;status="Camera recording saved."
     }
 }
 

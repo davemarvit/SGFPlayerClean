@@ -11,8 +11,13 @@ import AVFoundation
     let automaticHold:Bool
     let captureHold:Bool
     let transportTitle:String
+    let showsIndependentPause:Bool
     let title:String
     init(recorder:GameRecorder,clock:LocalGameClock) {
+        // A review or storage gate must not hide the ability to stop checking.
+        showsIndependentPause = recorder.hasGame && recorder.state != .finished &&
+            (clock.running || recorder.state == .recording || recorder.state == .verifying) &&
+            [.clockReview,.storageBlocked].contains(recorder.playFlow)
         if !clock.running,recorder.state != .finished,let plan=recorder.pendingCaptureReview {
             correction=Correction(id:plan.id,title:"Finish capture…",
                 guidance:"The capturing move has not been saved. Choose Finish capture to verify the removal and confirm it, then Resume. Clocks stay stopped until then.")
@@ -221,6 +226,7 @@ struct LocalClockPanel:View {
     @ObservedObject var clock:LocalGameClock
     @ObservedObject var recorder:GameRecorder
     var large=false
+    var compact=false
     var showsStatus=true
     var onReview:(UUID)->Void = {_ in}
     var orientation=BoardOrientation(0)
@@ -307,7 +313,8 @@ struct LocalClockPanel:View {
         let reviewing = recorder.playFlow == .clockReview
         let pausing = [.playing,.removingCapturedStones].contains(recorder.playFlow)
         let title=presentation.transportTitle
-        return HStack {
+        return VStack(spacing:4) {
+            HStack {
             Spacer(minLength:0)
             Button {
                 if let correction {onReview(correction.id)}
@@ -321,14 +328,14 @@ struct LocalClockPanel:View {
             } label: {
                 HStack(spacing:14) {
                     Image(systemName:correction != nil ? "checkmark.circle.fill":waiting || holding ? "hourglass.circle.fill":pausing ? "pause.circle.fill":"play.circle.fill")
-                        .font(.system(size:large ? 56:44,weight:.semibold))
+                        .font(.system(size:large ? 56:compact ? 28:44,weight:.semibold))
                     VStack(alignment:.leading,spacing:2) {
-                        Text(title).font(.system(size:large ? 28:24,weight:.semibold))
-                        Text(holding ? "Pause automatic checking":waiting || correction != nil ? "Clocks stay stopped":"Clock & recording").font(.callout)
+                        Text(title).font(.system(size:large ? 28:compact ? 20:24,weight:.semibold))
+                        Text(holding ? "Pause automatic checking":waiting || correction != nil || reviewing ? "Clocks stay stopped":"Clock & recording").font(.callout)
                     }
                     if reviewing {Image(systemName:"exclamationmark.triangle.fill").font(.title2)}
-                }.padding(.horizontal,20).padding(.vertical,8)
-                    .frame(minWidth:250,minHeight:64)
+                }.padding(.horizontal,compact ? 12:20).padding(.vertical,compact ? 4:8)
+                    .frame(minWidth:compact ? 210:250,minHeight:compact ? 44:64)
                     .contentShape(Rectangle())
             }.buttonStyle(.borderedProminent).tint(reviewing ? .red:waiting || holding || correction != nil ? .orange:.accentColor)
                 .actionAttention(reviewing || correction != nil ? .required:.none)
@@ -336,6 +343,11 @@ struct LocalClockPanel:View {
                 .accessibilityLabel(correction?.title ?? (holding ? "\(title). Pause automatic checking":waiting ? "Pause board checking and keep clocks stopped":reviewing ? "Review clocks and resume" : pausing ? "Pause clock and recording":recorder.awaitingFirstStart ? "Start game and clocks":"Resume clock and recording"))
                 .help(correction?.guidance ?? (holding ? "Both clocks are stopped for this capture. Removal is checked automatically. Click to pause checking and prevent automatic resumption.":waiting ? "Clocks are stopped while the board is checked. Pause checking prevents automatic resumption when the view recovers.":reviewing ? "Check both times before resuming." : "Pauses or resumes both the clock and recording. Recognized moves switch players automatically."))
             Spacer(minLength:0)
+            }
+            if presentation.showsIndependentPause {
+                Button(clock.running ? "Pause clocks & recording":"Pause board checking",systemImage:"pause.fill") {recorder.pause()}
+                    .help("Stop checking now and keep the clocks stopped. Clock review is still required before resuming.")
+            }
         }.padding(.vertical,4)
     }
     private func side(black:Bool)->some View {
@@ -343,24 +355,26 @@ struct LocalClockPanel:View {
         let active = !recorder.needsTurnConfirmation && clock.engine.blackToPlay==black
         let urgent=active && state.remaining<=10
         let player=black ? recorder.game.info.playerBlack:recorder.game.info.playerWhite
-        return VStack(alignment:.leading,spacing:12) {
+        return VStack(alignment:.leading,spacing:compact ? 4:12) {
             HStack {
                 Circle().fill(black ? Color.black:Color.white).overlay(Circle().stroke(.gray,lineWidth:1)).frame(width:22,height:22)
-                Text((black ? "Black":"White")+(player.map{ $0.isEmpty ? "":" · "+$0 } ?? "")).font(.system(size:large ? 28:22,weight:.semibold)).lineLimit(1).minimumScaleFactor(0.7)
+                Text((black ? "Black":"White")+(player.map{ $0.isEmpty ? "":" · "+$0 } ?? "")).font(.system(size:large ? 28:compact ? 17:22,weight:.semibold)).lineLimit(1).minimumScaleFactor(0.7)
                 Spacer()
                 Text(recorder.needsTurnConfirmation ? (LocalPlayPresentation(recorder:recorder,clock:clock).correction != nil ? "REVIEW PENDING":"CONFIRM TURN"):active ? (recorder.awaitingFirstStart ? "READY":clock.running ? "TO PLAY":"PAUSED"):"Waiting").font(.headline)
             }
             Text(LocalClockEngine.display(state.remaining))
-                .font(.system(size:large ? 180:160,weight:.bold,design:.rounded)).monospacedDigit()
+                .font(.system(size:large ? 180:compact ? 68:160,weight:.bold,design:.rounded)).monospacedDigit()
                 .minimumScaleFactor(0.5).lineLimit(1)
                 .foregroundStyle(urgent ? Color.red:Color.primary)
                 .accessibilityLabel("\(black ? "Black":"White") time \(LocalClockEngine.display(state.remaining))")
-            Text(detail(state)).font(.system(size:large ? 32:28,weight:.medium)).lineLimit(2,reservesSpace:true).minimumScaleFactor(0.7)
+            Text(compact ? detail(state).replacingOccurrences(of:"\n",with:" · "):detail(state))
+                .font(.system(size:large ? 32:compact ? 14:28,weight:.medium))
+                .lineLimit(compact ? 1:2,reservesSpace:true).minimumScaleFactor(0.7)
             if clock.engine.settings.kind == .byoyomi {
                 ByoyomiPeriodBars(settings:clock.engine.settings,side:state,active:active,large:large)
                     .accessibilityLabel("\(black ? "Black":"White") byoyomi periods")
             }
-        }.padding(large ? 24:20).frame(maxWidth:.infinity,alignment:.leading)
+        }.padding(large ? 24:compact ? 10:20).frame(maxWidth:.infinity,alignment:.leading)
             .background(active ? (urgent ? Color.red:Color.accentColor).opacity(0.15):Color.secondary.opacity(0.06),in:RoundedRectangle(cornerRadius:12))
             .overlay(RoundedRectangle(cornerRadius:12).stroke(active ? (urgent ? Color.red:Color.accentColor):Color.clear,lineWidth:urgent ? 4:3))
     }
@@ -369,14 +383,14 @@ struct LocalClockPanel:View {
         let countLabel=recorder.moveCountsNeedReview
             ? "\(count) recorded \(count==1 ? "move":"moves") · review pending"
             : "\(count) \(count==1 ? "move":"moves") played"
-        return VStack(spacing:8) {
+        return VStack(spacing:compact ? 3:8) {
             let ambiguities=recorder.placementAmbiguities.filter{$0.color==(black ? .black:.white)}.count
             Button("Ambiguities: \(ambiguities)") {ambiguityColor=black ? .black:.white}
-                .buttonStyle(.plain).font(.system(size:large ? 24:20,weight:.medium)).monospacedDigit()
+                .buttonStyle(.plain).font(.system(size:large ? 24:compact ? 13:20,weight:.medium)).monospacedDigit()
                 .foregroundStyle(ambiguities==0 ? Color.secondary:Color.orange).disabled(ambiguities==0)
                 .accessibilityLabel("\(black ? "Black":"White") ambiguities: \(ambiguities)")
                 .help("Review this player’s unresolved stone placements, including earlier positions.")
-            Text(countLabel).font(.system(size:large ? 24:20,weight:.medium)).monospacedDigit()
+            Text(countLabel).font(.system(size:large ? 24:compact ? 13:20,weight:.medium)).monospacedDigit()
                 .foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.65)
                 .frame(maxWidth:.infinity)
                 .accessibilityLabel("\(black ? "Black":"White"): \(countLabel)")
