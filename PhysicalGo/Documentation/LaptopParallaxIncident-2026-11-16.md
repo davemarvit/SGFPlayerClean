@@ -23,9 +23,13 @@ Local evidence folder:
 
 The running app was left paused with 17 saved moves. Its SGF, pending-history, and
 clock files remained byte-for-byte identical to the incident snapshot. The current
-photograph also appears to contain White B4 and Black E1 beyond those 17 moves.
-Their placement order and intended intersections have not been confirmed. The
-saved SGF is therefore **not complete ground truth for the final photograph**.
+photograph also contains White B4 and Black E1 beyond those 17 moves. The user
+subsequently confirmed both intended intersections. Given the saved Black move 17,
+their photographed colors and alternating play infer White B4 as move 18 and Black
+E1 as move 19. An offline extension records that inference without invented times;
+the live record remains unchanged. The saved 17-move SGF alone is therefore
+**not complete ground truth for the final photograph**. See
+[the follow-up experiment](OfflineHandParallax-2026-11-16.md).
 
 Continuous recording had stopped with “storage limit reached.” The selected 5 GB
 is a maximum: the shared 10 GB archive budget can allocate less when older evidence
