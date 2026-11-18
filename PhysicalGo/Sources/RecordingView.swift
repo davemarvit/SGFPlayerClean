@@ -60,7 +60,7 @@ struct RecordingView: View {
         guard from != to else {return}
         guard !onlineBoard.enabled else {correctionError="Leave online play before editing a local game record. This does not change moves on the server.";return}
         let through=display == .saved ? recorder.reviewIndex:recorder.moveCount
-        let shown=display == .saved ? recorder.reviewedBoard:recorder.interpretedBoard
+        let shown=display == .saved ? recorder.reviewedBoard:recorder.displayBoard
         let color=shown?.grid[from.row][from.col]
         guard color != nil else {return}
         correctionError=nil
@@ -465,7 +465,7 @@ struct RecordedBoard: View {
                 let n=recorder.game.boardSize, near=n==9 ? 2 : 3, far=n-1-near
                 let stars=n==19 ? [3,9,15].flatMap{r in [3,9,15].map{BoardPosition(r,$0)}} : [BoardPosition(near,near),BoardPosition(near,far),BoardPosition(far,near),BoardPosition(far,far),BoardPosition(n/2,n/2)]
                 for star in stars { let p=point(star); context.fill(Path(ellipseIn:CGRect(x:p.x-2,y:p.y-2,width:4,height:4)),with:.color(.black)) }
-                let board=boardOverride ?? (showsLivePosition ? recorder.interpretedBoard : recorder.reviewedBoard)
+                let board=boardOverride ?? (showsLivePosition ? recorder.displayBoard : recorder.reviewedBoard)
                 let rings=showsLivePosition && boardOverride==nil ? Set(RecordingClarity.issues(recorder:recorder).filter{$0.kind == .placement}.flatMap(\.markers)):Set<Int>()
                 for (position,color) in board?.stones ?? [:] {
                     let p=point(position),r=pitch*0.44
@@ -520,7 +520,7 @@ struct RecordedBoard: View {
                 if draggedFrom==nil {
                     let p=orientation.source(ImagePoint(x:(drag.startLocation.x-origin.x)/(side-2*margin),y:(drag.startLocation.y-origin.y)/(side-2*margin)))
                     let col=Int((p.x*Double(boardSize-1)).rounded()),row=Int((p.y*Double(boardSize-1)).rounded())
-                    let board=boardOverride ?? (showsLivePosition ? recorder.interpretedBoard:recorder.reviewedBoard)
+                    let board=boardOverride ?? (showsLivePosition ? recorder.displayBoard:recorder.reviewedBoard)
                     guard (0..<boardSize).contains(row),(0..<boardSize).contains(col),board?.grid[row][col] != nil else {return}
                     draggedFrom=BoardPosition(row,col)
                 }

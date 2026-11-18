@@ -1,0 +1,129 @@
+Connected deferred-location recording
+2026-11-17 — stage 16
+
+ARCHITECTURE AND RELEASE SCOPE
+GameRecorder still receives native, chronological turn evidence. LocalGameClock
+remains the only clock owner. RecordingStoneLedger copies its accepted receipts;
+location work cannot call a clock or create a move. Known turns survive exhaustion
+of complete candidate positions as ordered records with independent candidate sets.
+The existing native legal-position search remains useful when it can resolve
+locations, captures or move order. Its failure to choose an intersection does not
+by itself require a clock review when independent turn evidence is already valid.
+
+Stable IDs, colors, move order, original press estimates and their clock receipts
+are retained in the existing pending sidecar. Corrections update locations without
+replaying clock presses. Legacy untimed moves and passes keep unknown timing;
+handicap/setup stones are not turns. Undo archives removed identities. Historical
+coordinate corrections preserve IDs and measured times in the corrected copy.
+Damaged identity data protects the original files from further writes. Native
+clock/review persistence remains authoritative; this is not a second clock or a
+claim of atomic power-loss durability across all the existing recording files.
+
+CLEANUP AND CONTINUITY
+Three distinct clear observations spanning at least 0.8 seconds can retain an
+isolated physical-location proposal within 2.25 grid spacings. The historical
+intersection stays unresolved. The display uses the physical proposal separately
+from the canonical Go board, so the same token is not drawn twice. That proposal
+cannot authorize a capture or silently rewrite SGF.
+
+Same-color stones can be accounted for as a group without choosing their individual
+identities. A bounded bipartite matching check establishes that all group members
+can fit the observed locations; it stores no chosen permutation or history tree.
+All members retain the unresolved group. A missing member cannot be explained by
+counting the same surviving sighting twice. Independent subsequent turn evidence
+can advance play while the assignment remains unresolved.
+
+Hand coverage, unknown hand state, lighting failures and interruptions invalidate
+fresh observation runs. Clear absence alone is not a legal capture. Known capture
+removal debt remains excluded from new-turn candidates until sustained removal
+observations; the existing capture clock policy is unchanged. Unreliable surrounding
+stones do not become automatic evidence of cleanup. Timing gaps, contradictory turn
+order, uncertain expiry and manual pauses retain the native review requirements.
+Confidence thresholds are heuristics, not calibrated probabilities of identity.
+
+REVIEW
+Marked locations remain available for review. If complete candidate paths have
+been lost, a dedicated review accepts the intersections of the retained ordered
+turns, checks the resulting sequence with native Go rules, and finalizes the
+existing provisional clock receipts exactly once. Browsing does not pause play;
+explicitly applying a correction uses the existing review pause. Stale reviews are
+rejected. Existing placement review saves its updated candidate history and stone
+location state together in the same pending-sidecar replacement.
+
+VALIDATION SCOPE
+The full-game comparison replays original chronological cached observation readings,
+outline shapes, hand states and timestamps through the actual GameRecorder with
+the feature disabled and enabled. Saved move decisions are evaluation targets only.
+A supplied empty starting board is used to initialize both variants; it is not
+additional recorded evidence. Camera setup preceding the recorded Start action
+is excluded. Each recording retains its own saved camera/grid calibration.
+
+Both variants reproduce the exact 65- and 85-move saved sequences. The 85-move game
+retains all 85 measured presses with identical timestamps and no timing review.
+The 65-move replay reaches the same first-turn timing review in both variants:
+its reprocessed evidence crosses a native timing hold or lacks a retained boundary.
+It is therefore NOT counted as 65 independently validated live clock presses.
+The native guard is preserved; no saved timestamp is injected to make this test pass.
+
+Large cleanup and ambiguous same-color movement checks use explicitly constructed
+observations. The stage-15 translated controls are modified observations derived
+from real recordings, not additional real large-cleanup recordings. Existing
+recorded repositioning, crowded-board, rapid-reply, hand/clock and capture fixtures
+remain separate regressions. Results and source hashes belong to each saved run.
+
+CAMERAS AND UNRELATED WORK
+Detector geometry, calibration and the clock engine are unchanged. The AUSDOM AF660
+and older zoomed iPhone 11 Pro Max recordings retain their separate calibrations.
+The stage-11 grid/lens experiment is not promoted. Original recordings are read-only.
+Eleven pre-existing modified tracked files are checked against their initial hashes;
+unrelated modified and untracked files are excluded from this change's commits.
+The app build uses the existing working tree, including that preserved prior work.
+
+INSTALLATION
+The ordinary source build keeps this feature disabled. The release preparation tool
+requires a successful validation artifact matching the built executable, enables
+PhysicalGoDeferredLocations in the candidate's Info.plist, signs with the stable
+existing signing identity, and verifies the signature. Optional installation keeps
+a verified previous bundle and replaces the app for its next launch. It never quits
+or relaunches the running app and does not modify recording files.
+
+REPRODUCTION
+python3 PhysicalGo/Tools/validate_deferred_release.py \
+  --work '/Users/dave/Documents/SGF PLayer/work' --output NEW_DIRECTORY
+
+Individual checks:
+python3 PhysicalGo/Tools/test_recording_stone_ledger.py --output NEW_DIRECTORY
+python3 PhysicalGo/Tools/test_deferred_full_recordings.py \
+  --work '/Users/dave/Documents/SGF PLayer/work' --output NEW_DIRECTORY
+PHYSICAL_GO_DEFERRED_LOCATIONS=1 python3 PhysicalGo/build.py --debug-tests \
+  --provisional-play-test --capture-clock-test --observation-replay-test \
+  --storage-flow-test --historical-correction-test --undo-move-test \
+  --session-resume-test --repositioning-test --crowded-white-test \
+  --hand-clock-test --workflow-ui-test --clock-awaiting-turn-test \
+  --missing-provisional-review-test --transient-clock-pause-test
+python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*identity_lab.py' -v
+python3 PhysicalGo/build.py
+
+Artifacts: /Users/dave/Documents/SGF PLayer/work/deferred-live-stage16
+Release results are recorded in validation.json and release/release.json there.
+
+VERIFIED TEST RESULTS
+The frozen-source release-validation run passed 56 connected recorder assertions,
+all 14 enabled-feature regression suites, all four disabled-feature compatibility
+suites, and all 32 Python identity/occlusion tests. Both full recordings reproduced
+their complete saved move sequences; the 85-move replay retained identical measured
+presses, and the 65-move replay retained the baseline timing-review safeguard
+described above. Recorded capture, repositioning and crowded-board cases passed.
+
+The resume fixture without a retained press now tests the actual review workflow:
+location confirmation preserves the missing-time warning, the players explicitly
+agree clock balances, and fresh board verification resumes the correct player.
+The new total of retained turns is not mistaken for the number of known positions
+when reviewing an orphaned clock press. No native timing guard was waived.
+
+Earlier attempts and their failures remain in the artifact folder. They exposed
+a duplicate display, stale location markers after explicit review, the review
+count mismatch, and a post-game marker routing to the missed-move editor. The final
+checks cover the fixes. Superseded builds interrupted during editing are not
+counted as successful validation. The signed-build result, executable hash and
+installation/rollback paths are in validation.json and release/release.json.

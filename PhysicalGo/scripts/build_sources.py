@@ -18,7 +18,10 @@ DEPENDENCIES = {
     'Sources/PhysicalOnlineBoard.swift': (
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
+    'Sources/RecordingStoneLedger.swift': ('Sources/LocalClockEngine.swift', 'Sources/BoardVision.swift'),
+    'Sources/RecordingStore.swift': ('Sources/RecordingStoneLedger.swift',),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
+        'RecordingStoneLedger.swift',
         'ReviewRevision.swift', 'LivePositionIssue.swift', 'LocalPlayFlow.swift', 'PlacementAmbiguity.swift', 'ProvisionalPlay.swift', 'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
         'AutomaticCapture.swift', 'ShadowEvidence.swift', 'ObservationEvidence.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
         'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),

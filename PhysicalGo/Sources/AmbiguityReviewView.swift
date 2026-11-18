@@ -69,6 +69,12 @@ struct PendingPlacementReviewView:View {
         edits[offset ?? selected]=point.row*recorder.game.boardSize+point.col;error=nil
     }
     var body:some View {
+        if recorder.needsIndependentPlacementReview {
+            DeferredLocationsReviewView(recorder:recorder,orientation:orientation,number:number,
+                                        initialDestination:initialDestination,onClose:onClose)
+        } else { traditionalReview }
+    }
+    private var traditionalReview:some View {
         VStack(alignment:.leading,spacing:12) {
             Text("Confirm stone locations").font(.title2.bold())
             Text("Tracking continues while you inspect. Click the intended intersection or drag a stone. You can confirm several placements together.")

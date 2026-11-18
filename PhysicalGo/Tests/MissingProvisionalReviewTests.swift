@@ -29,7 +29,9 @@ import Foundation
             }
         }
         let incident=try restore("incident")
-        check(incident.moveCount==8 && incident.pendingMoveCount==0 && incident.clock.provisionalMoves.map(\.number)==[9],"Fixture lost the orphaned ninth clock press")
+        check(incident.moveCount==8 && incident.tentativeHistory.pendingCount==0 && incident.clock.provisionalMoves.map(\.number)==[9],"Fixture lost the orphaned ninth clock press")
+        check(incident.pendingMoveCount == (incident.deferredLocationsEnabled ? 1:0),
+              "Independent retained clock press was not reflected in the pending count")
         let board=DeferredMoveHistory.states(incident.positions.last!)
         let sgf=incident.sgf(),black=incident.clock.engine.black,white=incident.clock.engine.white
         let encoder=JSONEncoder();encoder.outputFormatting = .sortedKeys

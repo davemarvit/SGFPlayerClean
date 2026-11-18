@@ -9,6 +9,7 @@ import Foundation
         let signature: String
         let history: MoveObservationHistory.Checkpoint
         var awaitingFirstStart: Bool? = nil
+        var stoneLedger: RecordingStoneLedger? = nil
     }
     enum Sidecar: String { case pending = "pending.json", reviews = "reviews.json" }
     struct Failure: LocalizedError {
@@ -23,6 +24,7 @@ import Foundation
     init(writer: RecordingStorage = RecordingStorage()) { self.writer = writer }
     private var savedSignature: String?
     var isReadBlocked: Bool { !failedReads.isEmpty }
+    func failPendingRead(_ error: Error) { failedReads[.pending]=error.localizedDescription }
 
     func bind(to url: URL?, savedSignature: String? = nil) {
         self.savedSignature = savedSignature
@@ -91,19 +93,20 @@ import Foundation
         try writer.submit("review history",component:.reviews,coalescingKey:file.path) { try JSONEncoder().encode(history).write(to: file, options: .atomic) }
         if wait { try writer.flush() }
     }
-    func loadPending(game: SGFGame, now: Double) throws -> (awaitingStart: Bool, history: MoveObservationHistory?) {
+    func loadPending(game: SGFGame, now: Double) throws -> (awaitingStart: Bool, history: MoveObservationHistory?, stoneLedger: RecordingStoneLedger?) {
         try read(.pending) { file in
-            guard let file else { return (false, nil) }
+            guard let file else { return (false, nil, nil) }
             let saved = try writer.perform { try JSONDecoder().decode(PendingCheckpoint.self, from: Data(contentsOf: file)) }
             guard saved.version == 1, saved.signature == RecordingIdentity.signature(for: game) else {
                 throw Failure(message: "The pending-move checkpoint does not match this SGF. The original checkpoint has been preserved.")
             }
+            guard saved.stoneLedger.map({ $0.size == game.boardSize && $0.valid() }) ?? true else { throw RecordingStoneLedger.Failure.invalid }
             let awaitingStart = saved.awaitingFirstStart == true && game.moves.isEmpty
-            guard !saved.history.paths.isEmpty else { return (awaitingStart, nil) }
+            guard !saved.history.paths.isEmpty else { return (awaitingStart, nil, saved.stoneLedger) }
             guard let history = MoveObservationHistory.restore(saved.history, game: game, now: now) else {
                 throw Failure(message: "The pending-move checkpoint could not be validated. The original checkpoint has been preserved.")
             }
-            return (awaitingStart, history)
+            return (awaitingStart, history, saved.stoneLedger)
         }
     }
     func loadReviews(game: SGFGame) throws -> ReviewHistoryCoordinator.Restoration {

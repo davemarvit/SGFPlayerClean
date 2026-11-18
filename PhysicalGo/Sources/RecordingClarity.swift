@@ -34,11 +34,27 @@ import Foundation
                 result.append(.init(id:"placement:\(number)",kind:.placement,points:points,action:.pendingPlacement(number:number),evidence:.retainedPlacement))
             }
         }
+        for record in recorder.deferredPendingRecords where record.locationUnresolved && !result.contains(where:{$0.action == .pendingPlacement(number:record.number)}) {
+            result.append(.init(id:"placement:\(record.number)",kind:.placement,points:record.candidates,
+                action:.pendingPlacement(number:record.number),evidence:.retainedPlacement))
+        }
         var missing=Set<Int>()
+        for record in recorder.stoneLedger?.records ?? [] where recorder.deferredLocationsEnabled && record.number<=recorder.moveCount && record.locationUnresolved && record.capturedBy==nil {
+            if let p=record.physicalPoint,let old=record.historicalPoint,p != old {
+                result.append(.init(id:"cleanup:\(record.id)",kind:.displaced,points:[old,p],action:.recordedPlacement(number:record.number),evidence:.retainedPlacement))
+            }
+        }
         for point in recorder.adjustmentIssues.keys.sorted() {
+            if recorder.deferredLocationPoints.contains(point),
+               result.contains(where:{$0.points.contains(point)}) {continue}
             let position=BoardPosition(point/recorder.game.boardSize,point%recorder.game.boardSize)
             let saved=HistoricalMoveCorrection.moveNumber(at:position,through:recorder.moveCount,game:recorder.game,positions:recorder.positions) != nil
-            if !saved {missing.insert(point);continue}
+            if !saved {
+                if recorder.deferredLocationPoints.contains(point) {
+                    result.append(.init(id:"unresolved-cleanup:\(point)",kind:.disagreement,points:[point],action:.recognition(point:point)))
+                } else {missing.insert(point)}
+                continue
+            }
             let acknowledged=recorder.positionAcknowledgments[point] != nil
             result.append(.init(id:"discrepancy:\(point)",kind:recorder.adjustmentIssues[point] == .centering ? .nudged:.disagreement,points:[point],
                 action:acknowledged ? .recognition(point:point):.discrepancy(point:point)))
@@ -57,6 +73,19 @@ import Foundation
             return action
         }
         // Historical browsing can request a point without a current issue.
+        // Finished/paused recordings may still display a cleanup proposal. It
+        // belongs to its original identity, never to the missed-move workflow.
+        if recorder.deferredLocationsEnabled {
+            let records=(recorder.stoneLedger?.records ?? []).filter{!$0.pass && $0.capturedBy==nil}
+            let physical=records.filter{$0.physicalPoint==point || $0.physicalGroup?.contains(point)==true}
+            if physical.count==1,let record=physical.first,record.physicalGroup==nil {
+                return record.number<=recorder.moveCount ? .recordedPlacement(number:record.number):.pendingPlacement(number:record.number)
+            }
+            if !physical.isEmpty {return .recognition(point:point)}
+            if let pending=records.first(where:{$0.number>recorder.moveCount && $0.candidates.contains(point)}) {
+                return .pendingPlacement(number:pending.number)
+            }
+        }
         let position=BoardPosition(point/recorder.game.boardSize,point%recorder.game.boardSize)
         if let number=HistoricalMoveCorrection.moveNumber(at:position,through:recorder.moveCount,game:recorder.game,positions:recorder.positions) {return .recordedPlacement(number:number)}
         return .missedMoves(point:point)
@@ -65,7 +94,7 @@ import Foundation
         Set(BoardAdjustmentMonitor.evidence(readings:readings,base:base,after:after).keys)
     }
     static func checkPoints(recorder:GameRecorder,observation:BoardObservation?)->Set<Int> {
-        issues(recorder:recorder).reduce(into:Set<Int>()) {$0.formUnion($1.markers)}
+        issues(recorder:recorder).reduce(into:recorder.deferredLocationPoints) {$0.formUnion($1.markers)}
     }
     static func explanation(recorder:GameRecorder,observation:BoardObservation?,orientation:BoardOrientation)->String? {
         guard recorder.hasGame,recorder.state != .finished,!recorder.awaitingFirstStart else {return nil}
@@ -89,6 +118,9 @@ import Foundation
             return "Recorded stones are missing. Choose Check moved stones to restore accidental removals or review actual captures."
         }
         let issues=recorder.adjustmentIssues
+        if !recorder.deferredLocationPoints.isEmpty,!recorder.clock.requiresReview,!recorder.clock.automaticCapturePaused {
+            return "Marked stone locations are still being checked. Recorded turns and their original times are retained."
+        }
         let cameraOnly=InterpretationDetectionMarks.make(board:recorder.interpretedBoard,observation:observation,size:recorder.game.boardSize)
             .filter{$0.kind == .untracked && issues[$0.point] != nil}
         if !cameraOnly.isEmpty {

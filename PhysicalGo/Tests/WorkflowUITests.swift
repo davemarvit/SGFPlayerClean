@@ -591,7 +591,16 @@ import SwiftUI
     check(recorder.moveCount==173 && recorder.pendingMoveCount==0,"Actual clear pending move still stalls behind old uncertainty")
     check(acceptedAt != nil && acceptedAt!<=1.7,"Resumed clear move took longer than its fresh verification window")
     check(states(recorder.positions.last!)==after,"Acceptance changed a historical stone")
-    check(recorder.clock.running && !recorder.clock.engine.blackToPlay,"Confirmed move did not switch and resume the clock")
+    // This legacy fixture has no clock receipt for the pending move, and its
+    // resumed views contain no captured-at timestamp. Location confirmation can
+    // accept the SGF move, but cannot reconstruct a press before the pause.
+    check(!recorder.clock.running && recorder.clock.needsCorrection && !recorder.clock.engine.blackToPlay,
+          "Resume invented timing for a pending move without a retained clock boundary")
+    recorder.pause() // The clock-review UI pauses board checking before editing.
+    check(recorder.confirmClockReview(black:recorder.clock.engine.black,white:recorder.clock.engine.white,resume:true),
+          "Explicit agreement did not clear missing historical timing")
+    for i in 0..<8 {recorder.consume(actual,now:now+7+Double(i)*0.21)}
+    check(recorder.clock.running && !recorder.clock.engine.blackToPlay,"Confirmed balances and fresh board did not resume White")
     check(recorder.adjustmentIssues.isEmpty,"Accepted move left misleading orange rings")
     recorder.pause()
     // Replay distinct recorded frames and their actual spacing, not duplicated

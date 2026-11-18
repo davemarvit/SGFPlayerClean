@@ -26,6 +26,12 @@ extension GameRecorder {
                     number:moveCount+offset+1,offset:offset,reviewID:nil,board:path.boards[offset],points:points.sorted()))
             }
         }
+        if let board=positions.last {
+            for record in deferredPendingRecords where !result.contains(where:{$0.number==record.number}) && record.locationUnresolved {
+                result.append(.init(id:"move-\(record.number)",color:record.color,number:record.number,
+                    offset:record.number-moveCount-1,reviewID:nil,board:board,points:record.candidates.sorted()))
+            }
+        }
         for section in reviewHistory.sections where !section.committed && section.moves==nil {
             // Capture cleanup and restoring a bumped saved stone have their own
             // controls. Do not label them as uncertain new placements.
