@@ -1,0 +1,166 @@
+Continuing play while locations remain uncertain — offline experiment
+2026-11-17
+
+DECISION AND PURPOSE
+The main requirement is continuity: uncertain stone locations must not stop the
+clocks or prevent another reliably timed turn from being recorded. Locations can
+be checked during play and resolved after the game. This experiment supersedes
+the stage-12 choice to expand all combinations of ambiguous move locations.
+It does not replace live recognition or change the running application.
+
+The new model keeps one identity per stone, a separate immutable record of turns,
+and evidence for each candidate intersection. Five alternatives for each of 150
+stones mean 750 individual entries, not combinations of 150 alternative histories.
+The provisional display chooses a location but retains uncertainty markers. If
+two identities prefer the same intersection, that conflict remains explicit;
+neither identity is silently discarded or relocated to make the display fit.
+
+CONFIDENCE AND CLEANUP
+Tools/stone_identity_lab.py separates:
+- Whether a turn, its color and its timing have been certified upstream.
+- Whether the association with the same physical stone is still reliable.
+- Evidence for each possible intersection, including contradictory observations.
+- Current visibility and verified capture/removal status.
+
+Location scores summarize up to eight recent reliable observations, on a scale
+from -1 to +1. They are evidence scores, NOT probabilities or percentages. A
+location needs at least three consecutive supporting views over 0.8 seconds and
+a score of at least 0.8 to receive the supported label. Repeated delivery of one
+observation cannot manufacture persistence. The recording adapter retains the
+earlier confidence/outline gates; none of the pixel classifier thresholds changed.
+
+A hand, unknown hand state, bad lighting or a recording-observation gap interrupts
+the local evidence run. A verified camera outage remains an independent timing
+problem: it cannot be repaired by pretending that missing turns had known times.
+Location uncertainty, conflicting guesses, missing stones and an ambiguous movement
+association do not themselves request a clock pause in this model.
+
+When a tracked stone moves, its location evidence is reassessed. With independently
+supported identity continuity, fresh observations can change its provisional
+location without changing its move number, color, original timestamp or clock
+credit. Previous evidence is retained in the motion audit. Without identity
+continuity, disappearance/reappearance remains an association for later review;
+it is not automatically called either a cleanup or a new move. The prototype
+accepts motion/identity evidence through an explicit input contract; it does not
+yet detect physical movement or certify identity continuity from pixels itself.
+
+This distinction matters when two neighboring stones have the same color, or when
+a stone was captured and a later stone appears nearby. Competing identities prevent
+one visible stone from supplying strong location support for both identities.
+Observed location support is not proof of the player's original intended move:
+final historical locations still undergo explicit legal replay after resolution.
+
+BACKGROUND WORK
+Reassessment runs in bounded slices with fair scheduling across stones. Results
+are stamped with the stone's evidence revision and the shared context revision.
+A result prepared before another observation, motion or new turn is rejected as
+stale. The background interface has no clock command and cannot edit the turn
+ledger. The experiment simulates this scheduling serially; no background worker
+was installed in the app and no UI responsiveness claim is made.
+
+CAPTURES AND THE FINAL GAME RECORD
+A provisional guessed board never authorizes capture removal or a clock pause.
+The model accepts verified capture identities from the existing rules/capture
+authority. Those stones remain physically tracked while removal is delayed.
+Unreliable disappearance alone is not a capture. Confirmed removal does not create
+a new turn. If the earlier location remains uncertain, its historical alternatives
+remain available even after the stone is removed.
+
+At the end, a complete explicit mapping from move identity to intersection is
+replayed once. Occupancy, liberties, captures, suicide and simple ko are checked.
+Illegal or incomplete resolutions are rejected atomically; timestamps are never
+rewritten. The offline exporter produces a minimal Japanese-rules move SGF for
+verification, not a replacement for the application's metadata/clock-aware writer.
+Passes and other rulesets are outside this small prototype. Known gaps in turn
+continuity prevent claiming that the exported record is a complete game.
+
+RECORDED-GAME RESULTS
+The 65- and 85-move recordings supply the original turn identities, order, clock
+boundaries and verified capture context. This is a conditional location experiment,
+not a new end-to-end turn detector. It uses the original chronological observations
+and four controls per game:
+
+1. Only the saved location supplied.
+2. Alternatives injected at EVERY move, with background reassessment.
+3. Alternatives at every move and ALL location evidence withheld to the end.
+4. Alternatives at every move, with only four stones reassessed per observation.
+
+Every control accepts all 150 original turns across the two recordings, with zero
+location-induced timing reviews and identical original timestamps. Even control 3
+retains every turn while every move location stays unresolved. Candidate storage
+reaches 324 entries for game65 and 425 for game85, with no combination search or
+position-budget overflow. All background queues finish processing.
+
+With alternatives at every move and regular background reassessment:
+  game65: 27 supported locations, 38 still marked uncertain;
+  game85: 25 supported locations, 60 still marked uncertain.
+No supported location contradicts the supplied saved record. These figures are
+conservative development results, not calibrated accuracy. The provisional display
+still guesses 20 and 39 locations incorrectly respectively; those guesses are
+explicitly uncertain and cannot authorize captures or clock changes. Withholding
+all location evidence deliberately leaves all provisional guesses wrong in these
+test inputs, without losing turn timing or preventing final correction.
+
+Restricting background work to four stones per observation yields 26 and 25
+supported locations, while retaining every turn. The repeated controls share the
+same two recordings; they are not eight independent games or an unseen holdout.
+
+Final resolution uses the supplied saved locations as simulated user corrections.
+Tools/StoneIdentitySGFAudit.swift uses the app's actual SGF parser and Go rules
+engine to check every resulting move, intermediate board and capture. All eight
+exports agree with their original games. Tools/TurnLocationClockAudit.swift checks
+the unchanged clock engine: all saved checkpoints match, and duplicate delivery
+or correction gives no additional clock credit in all five timed modes.
+
+The actual RepositionedPending fixture contributes 41 chronological observations.
+It lacks explicit hand-clearance metadata and a certified placement time for this
+test. The new adapter therefore retains one supplied existing identity, creates
+zero timed moves, and leaves its location unresolved. This is an abstention control,
+not a claim that real cleanup was automatically recognized. Cleanup reassignment
+is currently verified in controlled tests with supplied identity continuity.
+
+VERIFICATION AND BOUNDARIES
+17 focused tests pass: all-turn ambiguity, location scores, cleanup, uncertain
+movement, same-color identity competition, stale background proposals, fair
+scheduling, hand/lighting interruption, camera gaps, duplicate observations,
+delayed/partial capture removal, atomic final correction and incomplete-game export.
+
+No app source or installed/running app changed. Original recordings, calibration,
+SGF files, clock sidecars and unrelated working-tree edits are preserved. Source
+and input hashes are recorded. Existing stage-12 native regression results remain
+separate: 17/18 suites passed, with the ResumeVerification test expecting clock
+restart while the native timing safeguard requests review. That test was not
+weakened, and no live timing safeguard was changed by this experiment.
+
+The AUSDOM AF660 and older zoomed iPhone 11 Pro Max calibration families remain
+separate. The replays use each recording's existing observations and setup; no
+calibration, lens correction or geometric model is transferred between cameras.
+
+REPRODUCTION
+From /Users/dave/SGFPlayerClean (Python standard library only):
+  python3 -m unittest discover -s PhysicalGo/Tools -p test_stone_identity_lab.py -v
+  python3 PhysicalGo/Tools/evaluate_stone_identity.py \
+    --work '/Users/dave/Documents/SGF PLayer/work' \
+    --output '/absolute/new/output-directory'
+
+Build the standalone native checks:
+  swiftc PhysicalGo/Sources/LocalClockEngine.swift \
+    PhysicalGo/Tools/TurnLocationClockAudit.swift -o /absolute/TurnLocationClockAudit
+  swiftc -D PHYSICAL_GO SGFPlayerClean/Models/OGSModels.swift \
+    SGFPlayerClean/Models/OGSScoringState.swift SGFPlayerClean/Models/SGFPlayerEngine.swift \
+    PhysicalGo/Tools/StoneIdentitySGFAudit.swift -o /absolute/StoneIdentitySGFAudit
+
+Pass the generated *-clock-input.json files as arguments to TurnLocationClockAudit.
+StoneIdentitySGFAudit accepts a JSON array of {"original": originalSGFPath,
+"resolved": newExportPath} pairs; the exact verified inputs are saved in
+sgf-audit-input.json in the artifact directory.
+
+Artifacts: /Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13
+Final run: verified-replay/; native checks: clock-audit.json and sgf-audit.json.
+Tracked compact results: StoneConfidenceResults.json.
+
+NEXT STEP
+Connect the per-stone model to a measured identity/movement association in offline
+recording replay, especially hand-covered cleanup, adjacent same-color stones,
+capture/replacement and camera gaps. Preserve the architectural rule already tested:
+uncertain location is deferred work, never a reason by itself to stop the game.

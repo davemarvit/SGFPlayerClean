@@ -1,0 +1,12 @@
+{
+  "scope": "Assistant visual review of original recording crops; not user-certified physical object identity. Labels are for evaluation only, never matching features.",
+  "cases": [
+    {"game": "game65", "point": 43, "before": 257, "handFirst": 259, "handLast": 268, "after": 272, "kind": "nearby placement control", "targetCovered": false, "reviewedFrames": [257,261,263,266,272]},
+    {"game": "game65", "point": 298, "before": 1037, "handFirst": 1039, "handLast": 1050, "after": 1055, "kind": "small adjustment during neighboring placement", "targetCovered": true, "reviewedFrames": [1037,1042,1044,1047,1055]},
+    {"game": "game65", "point": 233, "before": 1861, "handFirst": 1863, "handLast": 1883, "after": 1888, "kind": "small adjustment during neighboring placement", "targetCovered": true, "reviewedFrames": [1861,1868,1873,1878,1888]},
+    {"game": "game85", "point": 334, "before": 1100, "handFirst": 1102, "handLast": 1112, "after": 1116, "kind": "nearby placement control", "targetCovered": false, "reviewedFrames": [1100,1104,1107,1109,1116]},
+    {"game": "game85", "point": 290, "before": 1280, "handFirst": 1282, "handLast": 1295, "after": 1299, "kind": "nearby placement and capture control", "targetCovered": false, "reviewedFrames": [1280,1285,1288,1292,1299]},
+    {"game": "game85", "point": 307, "before": 1280, "handFirst": 1282, "handLast": 1295, "after": 1299, "kind": "small adjustment during neighboring placement and capture", "targetCovered": true, "reviewedFrames": [1280,1285,1288,1292,1299]},
+    {"game": "game85", "point": 79, "before": 1888, "handFirst": 1890, "handLast": 1912, "after": 1917, "kind": "hand-covered adjustment during neighboring placement", "targetCovered": true, "reviewedFrames": [1888,1895,1901,1906,1917]}
+  ]
+}

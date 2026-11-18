@@ -1,0 +1,936 @@
+{
+  "artifactDirectory": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13",
+  "clockAudit": [
+    {
+      "game": "game65-all_ambiguous",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 65
+    },
+    {
+      "game": "game65-no_location_evidence",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 65
+    },
+    {
+      "game": "game65-slow_background",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 65
+    },
+    {
+      "game": "game65-unique",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 65
+    },
+    {
+      "game": "game85-all_ambiguous",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 85
+    },
+    {
+      "game": "game85-no_location_evidence",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 85
+    },
+    {
+      "game": "game85-slow_background",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 85
+    },
+    {
+      "game": "game85-unique",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 85
+    }
+  ],
+  "focusedTestsPassed": 17,
+  "game65": {
+    "all_ambiguous": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 65,
+      "maximumCandidates": 324,
+      "physicalRemovedIdentities": [
+        "game65:saved-turn:49"
+      ],
+      "provisionalCellConflicts": {
+        "174": [
+          "game65:saved-turn:40",
+          "game65:saved-turn:52"
+        ],
+        "191": [
+          "game65:saved-turn:50",
+          "game65:saved-turn:55"
+        ],
+        "192": [
+          "game65:saved-turn:51",
+          "game65:saved-turn:53"
+        ],
+        "213": [
+          "game65:saved-turn:60",
+          "game65:saved-turn:61"
+        ],
+        "231": [
+          "game65:saved-turn:57",
+          "game65:saved-turn:58"
+        ],
+        "317": [
+          "game65:saved-turn:27",
+          "game65:saved-turn:34"
+        ],
+        "318": [
+          "game65:saved-turn:28",
+          "game65:saved-turn:36"
+        ],
+        "54": [
+          "game65:saved-turn:19",
+          "game65:saved-turn:21"
+        ],
+        "62": [
+          "game65:saved-turn:9",
+          "game65:saved-turn:11"
+        ],
+        "72": [
+          "game65:saved-turn:2",
+          "game65:saved-turn:24"
+        ]
+      },
+      "provisionalGuessErrors": [
+        5,
+        7,
+        10,
+        11,
+        12,
+        21,
+        24,
+        29,
+        34,
+        36,
+        37,
+        52,
+        53,
+        55,
+        58,
+        60,
+        62,
+        63,
+        64,
+        65
+      ],
+      "recordingObservations": 1291,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 27,
+      "turns": 65,
+      "unresolvedLocations": 38,
+      "verifiedCaptures": {
+        "game65:saved-turn:56": [
+          "game65:saved-turn:49"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "no_location_evidence": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 65,
+      "maximumCandidates": 324,
+      "physicalRemovedIdentities": [],
+      "provisionalCellConflicts": {},
+      "provisionalGuessErrors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "recordingObservations": 1291,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 0,
+      "turns": 65,
+      "unresolvedLocations": 65,
+      "verifiedCaptures": {
+        "game65:saved-turn:56": [
+          "game65:saved-turn:49"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "slow_background": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 65,
+      "maximumCandidates": 324,
+      "physicalRemovedIdentities": [
+        "game65:saved-turn:49"
+      ],
+      "provisionalCellConflicts": {
+        "154": [
+          "game65:saved-turn:41",
+          "game65:saved-turn:42"
+        ],
+        "174": [
+          "game65:saved-turn:40",
+          "game65:saved-turn:52"
+        ],
+        "191": [
+          "game65:saved-turn:50",
+          "game65:saved-turn:55"
+        ],
+        "194": [
+          "game65:saved-turn:48",
+          "game65:saved-turn:61"
+        ],
+        "231": [
+          "game65:saved-turn:57",
+          "game65:saved-turn:58"
+        ],
+        "317": [
+          "game65:saved-turn:27",
+          "game65:saved-turn:34"
+        ],
+        "318": [
+          "game65:saved-turn:28",
+          "game65:saved-turn:36"
+        ],
+        "54": [
+          "game65:saved-turn:19",
+          "game65:saved-turn:21"
+        ],
+        "62": [
+          "game65:saved-turn:9",
+          "game65:saved-turn:11"
+        ],
+        "70": [
+          "game65:saved-turn:16",
+          "game65:saved-turn:18"
+        ],
+        "72": [
+          "game65:saved-turn:2",
+          "game65:saved-turn:24"
+        ]
+      },
+      "provisionalGuessErrors": [
+        5,
+        7,
+        10,
+        11,
+        12,
+        18,
+        21,
+        24,
+        29,
+        34,
+        36,
+        37,
+        42,
+        43,
+        51,
+        52,
+        53,
+        55,
+        58,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65
+      ],
+      "recordingObservations": 1291,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 26,
+      "turns": 65,
+      "unresolvedLocations": 39,
+      "verifiedCaptures": {
+        "game65:saved-turn:56": [
+          "game65:saved-turn:49"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "timingSources": [
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate"
+    ],
+    "unique": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 65,
+      "maximumCandidates": 65,
+      "physicalRemovedIdentities": [
+        "game65:saved-turn:49"
+      ],
+      "provisionalCellConflicts": {},
+      "provisionalGuessErrors": [],
+      "recordingObservations": 1291,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 60,
+      "turns": 65,
+      "unresolvedLocations": 5,
+      "verifiedCaptures": {
+        "game65:saved-turn:56": [
+          "game65:saved-turn:49"
+        ]
+      },
+      "wrongSupportedLocations": []
+    }
+  },
+  "game85": {
+    "all_ambiguous": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 85,
+      "maximumCandidates": 425,
+      "physicalRemovedIdentities": [],
+      "provisionalCellConflicts": {
+        "148": [
+          "game85:saved-turn:72",
+          "game85:saved-turn:83"
+        ],
+        "156": [
+          "game85:saved-turn:39",
+          "game85:saved-turn:43"
+        ],
+        "186": [
+          "game85:saved-turn:32",
+          "game85:saved-turn:75"
+        ],
+        "193": [
+          "game85:saved-turn:45",
+          "game85:saved-turn:46"
+        ],
+        "207": [
+          "game85:saved-turn:77",
+          "game85:saved-turn:79"
+        ],
+        "21": [
+          "game85:saved-turn:10",
+          "game85:saved-turn:11"
+        ],
+        "225": [
+          "game85:saved-turn:65",
+          "game85:saved-turn:69"
+        ],
+        "243": [
+          "game85:saved-turn:66",
+          "game85:saved-turn:70"
+        ],
+        "245": [
+          "game85:saved-turn:78",
+          "game85:saved-turn:80"
+        ],
+        "290": [
+          "game85:saved-turn:20",
+          "game85:saved-turn:36"
+        ],
+        "294": [
+          "game85:saved-turn:7",
+          "game85:saved-turn:24"
+        ],
+        "295": [
+          "game85:saved-turn:25",
+          "game85:saved-turn:30"
+        ],
+        "307": [
+          "game85:saved-turn:1",
+          "game85:saved-turn:19"
+        ],
+        "308": [
+          "game85:saved-turn:18",
+          "game85:saved-turn:33"
+        ],
+        "316": [
+          "game85:saved-turn:23",
+          "game85:saved-turn:28"
+        ]
+      },
+      "provisionalGuessErrors": [
+        6,
+        10,
+        12,
+        13,
+        19,
+        24,
+        26,
+        27,
+        28,
+        30,
+        33,
+        36,
+        37,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        55,
+        56,
+        59,
+        60,
+        62,
+        67,
+        69,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        79,
+        80,
+        81,
+        82
+      ],
+      "recordingObservations": 1468,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 25,
+      "turns": 85,
+      "unresolvedLocations": 60,
+      "verifiedCaptures": {
+        "game85:saved-turn:35": [
+          "game85:saved-turn:16"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "no_location_evidence": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 85,
+      "maximumCandidates": 425,
+      "physicalRemovedIdentities": [],
+      "provisionalCellConflicts": {},
+      "provisionalGuessErrors": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85
+      ],
+      "recordingObservations": 1468,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 0,
+      "turns": 85,
+      "unresolvedLocations": 85,
+      "verifiedCaptures": {
+        "game85:saved-turn:35": [
+          "game85:saved-turn:16"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "slow_background": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 85,
+      "maximumCandidates": 425,
+      "physicalRemovedIdentities": [],
+      "provisionalCellConflicts": {
+        "148": [
+          "game85:saved-turn:72",
+          "game85:saved-turn:83"
+        ],
+        "186": [
+          "game85:saved-turn:32",
+          "game85:saved-turn:75"
+        ],
+        "193": [
+          "game85:saved-turn:45",
+          "game85:saved-turn:46"
+        ],
+        "21": [
+          "game85:saved-turn:10",
+          "game85:saved-turn:11"
+        ],
+        "225": [
+          "game85:saved-turn:65",
+          "game85:saved-turn:69"
+        ],
+        "243": [
+          "game85:saved-turn:66",
+          "game85:saved-turn:70"
+        ],
+        "245": [
+          "game85:saved-turn:78",
+          "game85:saved-turn:80"
+        ],
+        "290": [
+          "game85:saved-turn:20",
+          "game85:saved-turn:36"
+        ],
+        "294": [
+          "game85:saved-turn:7",
+          "game85:saved-turn:24"
+        ],
+        "295": [
+          "game85:saved-turn:25",
+          "game85:saved-turn:30"
+        ],
+        "307": [
+          "game85:saved-turn:1",
+          "game85:saved-turn:19"
+        ],
+        "308": [
+          "game85:saved-turn:18",
+          "game85:saved-turn:33"
+        ],
+        "316": [
+          "game85:saved-turn:23",
+          "game85:saved-turn:28"
+        ]
+      },
+      "provisionalGuessErrors": [
+        6,
+        10,
+        12,
+        13,
+        19,
+        24,
+        26,
+        27,
+        28,
+        30,
+        33,
+        34,
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        51,
+        55,
+        56,
+        58,
+        59,
+        60,
+        62,
+        67,
+        69,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        79,
+        80,
+        81,
+        82
+      ],
+      "recordingObservations": 1468,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 25,
+      "turns": 85,
+      "unresolvedLocations": 60,
+      "verifiedCaptures": {
+        "game85:saved-turn:35": [
+          "game85:saved-turn:16"
+        ]
+      },
+      "wrongSupportedLocations": []
+    },
+    "timingSources": [
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved estimate",
+      "saved clock anchor; physical uncertainty unavailable",
+      "saved estimate"
+    ],
+    "unique": {
+      "ledgerIdentical": true,
+      "ledgerIdenticalAfterFinalSGF": true,
+      "locationInducedTimingReviews": 0,
+      "maximumBackgroundQueue": 85,
+      "maximumCandidates": 85,
+      "physicalRemovedIdentities": [],
+      "provisionalCellConflicts": {},
+      "provisionalGuessErrors": [],
+      "recordingObservations": 1468,
+      "remainingBackgroundQueue": 0,
+      "supportedLocations": 68,
+      "turns": 85,
+      "unresolvedLocations": 17,
+      "verifiedCaptures": {
+        "game85:saved-turn:35": [
+          "game85:saved-turn:16"
+        ]
+      },
+      "wrongSupportedLocations": []
+    }
+  },
+  "repositioning": {
+    "identities": 1,
+    "observations": 41,
+    "scope": "Actual repositioning fixture, supplied existing identity, absent hand metadata means abstention.",
+    "timedTurnsCreated": 0
+  },
+  "scope": "Saved turn and capture certificates are supplied; alternative locations are injected. Confidence is heuristic evidence, not a probability. Background work is simulated in bounded serial slices, not installed in the app. No physical motion detector is added.",
+  "sgfAudit": [
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 65,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game65-all_ambiguous-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 65,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game65-no_location_evidence-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 65,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game65-slow_background-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 65,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game65-unique-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 85,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game85-all_ambiguous-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 85,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game85-no_location_evidence-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 85,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game85-slow_background-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    },
+    {
+      "allIntermediateBoardsAndCapturesMatch": true,
+      "moves": 85,
+      "resolved": "/Users/dave/Documents/SGF PLayer/work/stone-confidence-stage13/verified-replay/game85-unique-resolved.sgf",
+      "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+    }
+  ],
+  "sourcesUnchangedDuringRun": true
+}

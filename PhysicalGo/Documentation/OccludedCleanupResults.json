@@ -1,0 +1,341 @@
+{
+  "artifacts": "/Users/dave/Documents/SGF PLayer/work/occluded-cleanup-stage14",
+  "clockAudit": [
+    {
+      "game": "game65",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 65
+    },
+    {
+      "game": "game85",
+      "savedCheckpointDifferences": [],
+      "scope": "Saved checkpoint replay and duplicate delivery. No physical timing or capture-pause inference.",
+      "timedModesWithIdenticalDeduplicatedAccounting": 5,
+      "turns": 85
+    }
+  ],
+  "existingIdentityTestsPassed": 17,
+  "game65": {
+    "associationUpdatesInterleavedWithTurns": 749,
+    "captureExclusions": 0,
+    "clockCommandsFromAssociation": 0,
+    "faultControlsAbstained": 141,
+    "handVisitsWithStableAnchors": 47,
+    "interruptedVisits": 6,
+    "ledgerIdentical": true,
+    "preHandIdentityEpisodes": 1089,
+    "savedPointDisagreements": 0,
+    "supportedDuringRecordedHand": 0,
+    "supportedIdentityEpisodes": 772,
+    "turnsPreserved": 65
+  },
+  "game85": {
+    "associationUpdatesInterleavedWithTurns": 1329,
+    "captureExclusions": 1,
+    "clockCommandsFromAssociation": 0,
+    "faultControlsAbstained": 189,
+    "handVisitsWithStableAnchors": 63,
+    "interruptedVisits": 4,
+    "ledgerIdentical": true,
+    "preHandIdentityEpisodes": 1914,
+    "savedPointDisagreements": 0,
+    "supportedDuringRecordedHand": 0,
+    "supportedIdentityEpisodes": 1354,
+    "turnsPreserved": 85
+  },
+  "handCoveredAdjustmentCases": 4,
+  "handCoveredAdjustmentsAssociated": 4,
+  "nativeSuitesPassed": 6,
+  "newTestsPassed": 15,
+  "reviewedCases": 7,
+  "reviewedCasesDetail": [
+    {
+      "after": 272,
+      "anchoredIdentity": "game65:saved-turn:6",
+      "association": {
+        "candidatePoints": [
+          43
+        ],
+        "center": [
+          5.04,
+          1.88
+        ],
+        "clockAuthority": false,
+        "color": "white",
+        "confirmedAt": 1322573.6177001258,
+        "displacement": 0.12649110640673522,
+        "epoch": "game65:0x21420000bda0567:33",
+        "firstClearSupport": 1322572.59470025,
+        "identity": "game65:saved-turn:6",
+        "lastWitness": "game65:274",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game65:269",
+          "game65:270",
+          "game65:272",
+          "game65:274"
+        ]
+      },
+      "before": 257,
+      "game": "game65",
+      "handFirst": 259,
+      "handLast": 268,
+      "interruption": null,
+      "kind": "nearby placement control",
+      "point": 43,
+      "reviewedFrames": [
+        257,
+        261,
+        263,
+        266,
+        272
+      ],
+      "targetCovered": false
+    },
+    {
+      "after": 1055,
+      "anchoredIdentity": "game65:saved-turn:29",
+      "association": {
+        "candidatePoints": [
+          298
+        ],
+        "center": [
+          13,
+          15.08
+        ],
+        "clockAuthority": false,
+        "color": "black",
+        "confirmedAt": 1322734.6049334996,
+        "displacement": 0.16492422502470636,
+        "epoch": "game65:0x21420000bda0567:33",
+        "firstClearSupport": 1322733.619933542,
+        "identity": "game65:saved-turn:29",
+        "lastWitness": "game65:1057",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game65:1052",
+          "game65:1053",
+          "game65:1055",
+          "game65:1057"
+        ]
+      },
+      "before": 1037,
+      "game": "game65",
+      "handFirst": 1039,
+      "handLast": 1050,
+      "interruption": null,
+      "kind": "small adjustment during neighboring placement",
+      "point": 298,
+      "reviewedFrames": [
+        1037,
+        1042,
+        1044,
+        1047,
+        1055
+      ],
+      "targetCovered": true
+    },
+    {
+      "after": 1888,
+      "anchoredIdentity": "game65:saved-turn:59",
+      "association": {
+        "candidatePoints": [
+          233
+        ],
+        "center": [
+          5.04,
+          11.96
+        ],
+        "clockAuthority": false,
+        "color": "black",
+        "confirmedAt": 1322891.7641334997,
+        "displacement": 0.16000000000000014,
+        "epoch": "game65:0x21420000bda0567:33",
+        "firstClearSupport": 1322890.7781335833,
+        "identity": "game65:saved-turn:59",
+        "lastWitness": "game65:1890",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game65:1885",
+          "game65:1886",
+          "game65:1888",
+          "game65:1890"
+        ]
+      },
+      "before": 1861,
+      "game": "game65",
+      "handFirst": 1863,
+      "handLast": 1883,
+      "interruption": null,
+      "kind": "small adjustment during neighboring placement",
+      "point": 233,
+      "reviewedFrames": [
+        1861,
+        1868,
+        1873,
+        1878,
+        1888
+      ],
+      "targetCovered": true
+    },
+    {
+      "after": 1116,
+      "anchoredIdentity": null,
+      "association": null,
+      "before": 1100,
+      "game": "game85",
+      "handFirst": 1102,
+      "handLast": 1112,
+      "interruption": null,
+      "kind": "nearby placement control",
+      "point": 334,
+      "reviewedFrames": [
+        1100,
+        1104,
+        1107,
+        1109,
+        1116
+      ],
+      "targetCovered": false
+    },
+    {
+      "after": 1299,
+      "anchoredIdentity": "game85:saved-turn:20",
+      "association": {
+        "candidatePoints": [
+          290
+        ],
+        "center": [
+          5.2,
+          15
+        ],
+        "clockAuthority": false,
+        "color": "white",
+        "confirmedAt": 1326486.3528002088,
+        "displacement": 0.21540659228537953,
+        "epoch": "game85:0x21420000bda0567:1",
+        "firstClearSupport": 1326485.5528002086,
+        "identity": "game85:saved-turn:20",
+        "lastWitness": "game85:1300",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game85:1296",
+          "game85:1297",
+          "game85:1299",
+          "game85:1300"
+        ]
+      },
+      "before": 1280,
+      "game": "game85",
+      "handFirst": 1282,
+      "handLast": 1295,
+      "interruption": null,
+      "kind": "nearby placement and capture control",
+      "point": 290,
+      "reviewedFrames": [
+        1280,
+        1285,
+        1288,
+        1292,
+        1299
+      ],
+      "targetCovered": false
+    },
+    {
+      "after": 1299,
+      "anchoredIdentity": "game85:saved-turn:1",
+      "association": {
+        "candidatePoints": [
+          307
+        ],
+        "center": [
+          3.2,
+          16
+        ],
+        "clockAuthority": false,
+        "color": "black",
+        "confirmedAt": 1326486.3528002088,
+        "displacement": 0.16970562748477092,
+        "epoch": "game85:0x21420000bda0567:1",
+        "firstClearSupport": 1326485.5528002086,
+        "identity": "game85:saved-turn:1",
+        "lastWitness": "game85:1300",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game85:1296",
+          "game85:1297",
+          "game85:1299",
+          "game85:1300"
+        ]
+      },
+      "before": 1280,
+      "game": "game85",
+      "handFirst": 1282,
+      "handLast": 1295,
+      "interruption": null,
+      "kind": "small adjustment during neighboring placement and capture",
+      "point": 307,
+      "reviewedFrames": [
+        1280,
+        1285,
+        1288,
+        1292,
+        1299
+      ],
+      "targetCovered": true
+    },
+    {
+      "after": 1917,
+      "anchoredIdentity": "game85:saved-turn:8",
+      "association": {
+        "candidatePoints": [
+          79
+        ],
+        "center": [
+          3.04,
+          4.08
+        ],
+        "clockAuthority": false,
+        "color": "white",
+        "confirmedAt": 1326607.4839668341,
+        "displacement": 0.20000000000000018,
+        "epoch": "game85:0x21420000bda0567:1",
+        "firstClearSupport": 1326606.498966834,
+        "identity": "game85:saved-turn:8",
+        "lastWitness": "game85:1918",
+        "physicalIdentityProven": false,
+        "status": "supported association hypothesis",
+        "witnesses": [
+          "game85:1913",
+          "game85:1915",
+          "game85:1917",
+          "game85:1918"
+        ]
+      },
+      "before": 1888,
+      "game": "game85",
+      "handFirst": 1890,
+      "handLast": 1912,
+      "interruption": null,
+      "kind": "hand-covered adjustment during neighboring placement",
+      "point": 79,
+      "reviewedFrames": [
+        1888,
+        1895,
+        1901,
+        1906,
+        1917
+      ],
+      "targetCovered": true
+    }
+  ],
+  "scope": "Source turns and capture facts supplied; identity hypotheses use recorded fractional outlines across real hand visits. Neither physical object identity under complete occlusion nor physical clock accuracy is proven. Labels review existing recordings; no new recording or live recognition changes.",
+  "sourcesUnchanged": true
+}

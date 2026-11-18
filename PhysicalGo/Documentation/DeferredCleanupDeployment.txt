@@ -1,0 +1,211 @@
+Continuing play while cleanup locations remain uncertain
+Offline implementation and deployment assessment, 2026-11-17
+
+DECISION
+Implement the native state and matching boundary now, and keep it disconnected
+from live recognition. Deployment does not require knowing every stone's exact
+intersection. It does require accepting each reliably identified turn exactly
+once, preserving its original time through correction/restart, and preventing a
+location hypothesis from becoming a new move, a capture, or a clock instruction.
+
+The new native implementation satisfies those boundaries in the tests below.
+It is included by the normal app source glob but has no live caller. No existing
+recognition, recorder, clock, capture or calibration source was edited. No app
+installation or relaunch was performed. A compiled inactive implementation is
+not evidence that changing the live recorder's decisions is ready.
+
+WHAT WAS IMPLEMENTED FOR DEPLOYMENT
+Sources/DeferredStoneState.swift contains a typed immutable turn certificate and
+a separate mutable location record. A turn can have several candidate points or
+no known location at all. Location work cannot change its identity, color, order,
+original time or clock press. Duplicate delivery is a no-op; changed evidence
+under an existing identity is rejected. Widespread ambiguity uses independent
+candidate sets per stone rather than a tree of complete games.
+
+A current physical center is separate from the historical intersection that will
+eventually appear in SGF. Background proposals update the proposed display center
+and retain alternatives. They do not settle historical locations. A reviewed
+intersection can be supplied later without another move or clock change. Final
+move export refuses unresolved history. The offline exporter then uses the app's
+existing SGF parser and rules engine to check every resulting board and capture.
+
+Background proposals carry a state revision and process epoch. Accepting another
+turn, changing capture state, reviewing a location or invalidating a view makes
+old proposals unusable. Hand reentry explicitly clears fresh display support and
+invalidates in-flight work. Restoring a checkpoint retains alternatives and review
+decisions but clears claims of fresh visibility and gives workers a new epoch.
+
+DeferredTurnSession exercises transactional ledger/clock persistence using the
+unchanged LocalClockEngine: save one atomic replacement file, then publish the
+new in-memory state. Failed writes commit neither a turn nor a clock transition.
+Restoration replays certificates to verify the saved clock. Redelivery after
+restart cannot press twice. Monotonic clock origins must match; an arbitrary new
+process or reboot cannot reuse an old timing basis. This adapter is offline; it
+must not become a second clock beside the app's LocalGameClock. Atomic replacement
+is tested, not a claim of power-loss durability or multi-writer locking.
+
+Sources/DeferredCleanupAssociation.swift follows outlines across a hand visit.
+It considers moves up to 2.25 grid spacings and retains every plausible local
+association. A fresh outline must have one eligible old identity, and that old
+identity must have one eligible outline. The nearest same-color stone does not
+win a tie. Even a unique match remains a proposed association, not proof of a
+physical object's identity while hidden.
+
+The competition includes unreliable neighboring stones, newly placed same-color
+stones, and captured stones awaiting removal. An identity with unknown whereabouts
+can block a match without supplying a guessed position. A captured identity cannot
+revive; it remains a possible physical explanation until removal is independently
+verified. Removing one competitor permits fresh observations to support the
+survivor, but disappearance alone does not eliminate an identity.
+
+Anchors require sustained pre-hand evidence. A post-hand association requires at
+least three distinct clear observations over 0.8 seconds, within 0.12 spacings of
+the first post-hand center. Hand coverage/unknown hand state, lighting failure,
+camera/setup changes, missing observations and coherent board movement withdraw
+fresh support. Work limits defer location work only; they do not stop turn intake.
+The search radius and outline-quality values are heuristics, not calibrated
+probabilities. Association evidence has no authority to determine legal captures.
+
+RECORDED GAME RESULTS
+The source recordings are the same 65- and 85-move games used previously. Their
+saved turn identities/times and native capture outcomes are supplied separately
+from the original chronological outline observations. New turn detection is not
+inferred or validated by feeding those supplied decisions back into this replay.
+
+                               game65       game85
+Hand visits                       47           63
+Supplied original turns            65           85
+Display proposals at radius2.25   144          148
+Unresolved stone/visit updates    945        1,765
+Saved clock checkpoint errors      0            0
+
+The repeated stone/visit counts are not independent stones. The same stones
+appear across multiple visits. All 150 turns were accepted with their original
+timestamps even when every historical location remained unresolved. One third
+of turns deliberately had no candidate intersection at all. All five timed modes
+and untimed play preserved accounting through duplicate delivery, corrections,
+hand invalidations, captures, periodic save/restore and final review.
+
+Increasing the allowed displacement makes appropriate uncertainty more common:
+  radius0.65: 2,078 currently supported stone/visit proposals;
+  radius1.25: 1,227 currently supported proposals;
+  radius2.25:   292 currently supported proposals.
+There were no supported points contradicting the supplied saved intersections in
+these runs. This conditional agreement is not a physical identity accuracy rate.
+Unresolved alternatives stay unresolved; increased ambiguity never exhausted a
+global board-position budget or changed the next reliably supplied turn.
+
+LARGER MOVEMENTS AND SAME-COLOR CONTROLS
+Four previously visually reviewed hand-covered small adjustments supply original
+outline shapes and observation timing. Each is deliberately translated by one
+and two grid spacings, with the remaining scene removed to create an isolated
+identity control. All eight translated controls support a proposed association.
+Adding a competing same-color explanation makes all eight remain unresolved.
+These are modified observations, not eight real large-cleanup recordings.
+
+Native unit controls additionally exercise equal-distance alternatives, unequal-
+distance alternatives, same-color swaps, two identities explaining one outline,
+a missing neighbor, unknown whereabouts, a newly placed same-color stone, delayed
+capture removal, verified removal and fresh survivor reassessment. No identity is
+merged because its outline disappeared. A clock turn never originates from these
+association results.
+
+The actual RepositionedPending fixture contributes 41 original observations of
+the known relocation/double-display failure. Its missing hand history is kept
+unknown, so all 41 observations abstain from establishing continuity. A supplied
+hypothetical anchor in this negative control is explicitly not a recorded pre-hand
+observation. The existing native repositioning regression independently checks
+the known surviving sequence. Separate clips are not stitched into a trajectory.
+
+VERIFICATION
+The new standalone native executable passed 54 unit assertions and the combined
+replay passed 27,005 assertions. Most are repeated invariants across observations
+and clock modes, not independent test cases. The two reviewed minimal SGF exports
+match every intermediate board and captured-stone total through all 150 moves in
+the existing native rules engine. Original game metadata and sidecars are untouched.
+
+The 32 existing Python identity/occlusion tests passed. All six targeted application
+regression suites passed: observation replay, provisional play, capture/clock,
+established stone tracking, repositioning and crowded-white adjustment. The normal
+app build and signing also passed. Outcomes are recorded alongside this report in
+validation.json; their logs are retained. A first regression compilation overlapped an edit to a new file and
+was rejected by Swift's changed-input check; the affected suite is rerun after
+the source is frozen. That attempt is retained and is not counted as a passing run.
+
+Tests/DeferredRecorderReplayTests.swift closes part of the supplied-turn testing
+gap: it feeds the existing RapidReplyShadow recording observations into the actual
+unchanged GameRecorder, then consumes the newly produced native turn decisions in
+the new ledger. No saved acceptance decisions are supplied. The three actual
+recognized turns retain their independently expected times, with every new-ledger
+location unresolved, zero review transitions and the clock running. The state is
+serialized/restored after each observation without changing the native clock.
+Removing two intermediate sightings leaves only one timed turn and preserves the
+native timing review. That is missing turn evidence, not a location-only pause.
+This remains an offline shadow test: uncertain locations do not feed back into
+native recognition. It does not yet prove that replacing GameRecorder's pending
+position model would preserve its new-turn decisions during larger cleanups.
+
+WHAT REMAINS BEFORE LIVE ENABLEMENT
+This work removes the need for exhaustive history trees or perfect cleanup
+identification as release conditions. Unresolved cleanup locations are acceptable
+in a deployed system. The remaining integration work is specific:
+
+1. Connect the existing turn/timing authority to the immutable ledger and the
+   proposed display, with one owner for clock events. Keep that connection inactive
+   until full recorder replay shows that cleanup cannot create a turn or conceal
+   a real new placement. The two full-game tests here supply known turn certificates;
+   the additional three-turn recorder test exercises actual recognition into a
+   shadow ledger, without changing the recorder's pending-position model.
+2. Integrate the unresolved physical-position markers and post-game review/export
+   with GameRecorder's existing save/restore format. The new checkpoint format has
+   no migration from current pending/review sidecars. This implementation handles
+   alternating placement turns on an initially empty board; pass, handicap/setup,
+   undo, edited turn order and existing-game migration need explicit adapters and
+   tests before replacing the current recording path.
+3. Keep native capture legality and automatic capture timing authoritative, and
+   prove capture-start/removal/resume behavior with the connected recorder. The
+   new location state validates supplied capture identities and delayed removal;
+   it does not infer capture legality or decide when the existing capture clocks
+   should pause. Its isolated session adapter cannot backdate a press across a
+   timing hold or restore a missing timing boundary.
+
+These are implementation/integration requirements, not a request for the user to
+resolve every ambiguity or make another recording. The current recordings and
+native fixtures remain useful for the next connected offline tests. The earlier
+ResumeVerification test's timing-review behavior is not repaired by this work;
+location uncertainty must not be used as a reason to bypass genuinely missing
+turn-time evidence.
+
+CAMERAS AND PRESERVATION
+The two full games keep their own saved camera ID and grid-generation epochs.
+No geometry is fitted or transferred. The recent camera is the AUSDOM AF660;
+older zoomed iPhone 11 Pro Max recordings retain separate calibration. The known
+relocation fixture uses its own calibration and is not joined to either game.
+All pre-existing Swift sources and unrelated working-tree edits are hashed before
+and after this task. Original recordings, observation caches, clocks and SGF files
+are read-only inputs. Source and input hashes are in verified-replay/manifest.json.
+
+REPRODUCTION
+From /Users/dave/SGFPlayerClean:
+  python3 PhysicalGo/Tools/evaluate_deferred_cleanup.py \
+    --work '/Users/dave/Documents/SGF PLayer/work' \
+    --output '/absolute/new/output-directory'
+
+This builds the new native executable, runs its unit controls and chronological
+replays, writes results.json, checks final SGF with the existing rules engine, and
+records source/input hashes. It does not launch or install the app. The output
+directory must be new so an earlier experiment is not overwritten.
+
+  python3 -m unittest discover -s PhysicalGo/Tools -p 'test_*identity_lab.py' -v
+  python3 PhysicalGo/Tools/test_deferred_recorder.py \
+    --output '/absolute/new/recorder-test-directory'
+  python3 PhysicalGo/build.py --repositioning-test --crowded-white-test \
+    --stone-tracking-test --provisional-play-test --capture-clock-test \
+    --observation-replay-test
+  python3 PhysicalGo/build.py
+
+The last command builds/signs the local app bundle; it does not install or run it.
+Artifacts: /Users/dave/Documents/SGF PLayer/work/deferred-cleanup-stage15
+Final native replay: verified-replay/. Earlier replay-v1 and replay-v2 are retained;
+the latter exposed a missing dependency in the export-audit build command, fixed
+in the verified run. Compact results: DeferredCleanupResults.json.

@@ -1,0 +1,203 @@
+Offline turn identity and location experiment — stage 12
+2026-11-17
+
+DECISION
+Keep the prototype offline. It demonstrates that a certified turn can retain its
+identity, color and original clock boundary while several legal intersections
+remain possible. Sustained recording evidence improves location resolution in
+conditional chronological replays, without another turn or changed timestamp.
+It does not yet justify changing live recognition, clock policy or capture handling.
+
+ARCHITECTURE ASSESSMENT
+The requested separation already partly exists in the app:
+- CandidateMoveHistory derives candidate-specific episodes and timing witnesses
+  from retained observations. Its bounded episode identity includes location
+  alternatives, so it is not a permanent identity for a played turn.
+- ClearBoardTiming and GameRecorder certify turns independently of legal location
+  search; ProvisionalPlay separately checks retained paths and capture agreement.
+- LocalGameClock keeps provisional presses and promotes them into saved moves
+  without awarding increments again. Existing timing uncertainty, expiry, missing
+  turns, camera continuity and capture-pause checks remain authoritative.
+- MoveObservationHistory retains legal candidate sequences and permits later play
+  and corrections to resolve them. It has bounded search/retention, whole-position
+  verification, placement concerns and persistence requirements.
+- DeferredMoveHistory preserves chronology when a gap needs explicit review.
+
+The smallest useful new experiment is therefore a position resolver beside an
+immutable turn ledger, not another clock engine or a replacement pixel detector.
+No app source, build registry, installed app, running app, saved game, recording,
+calibration or clock sidecar was changed by this work. Existing working-tree edits
+were preserved. Live source hashes match those taken before the native regressions.
+
+IMPLEMENTATION
+Tools/turn_location_lab.py contains an offline-only model with three independent
+parts: certified turn evidence, a forest of legal positions, and physical stones
+awaiting removal. Turn identity excludes location. A reliable color, identity,
+ordered timing interval and distinct witnesses are required at the input boundary.
+These are supplied certifications, not new measurements from pixels. A location
+correction only filters retained paths. Duplicate delivery is idempotent; reused
+witnesses or a changed timestamp for the same identity require timing review.
+
+Legal boards are advanced using group liberties, opponent capture, suicide
+rejection and simple ko. This small rules implementation supports Japanese-style
+no-suicide placements only; it is not a replacement for SGFPlayer or all supported
+rulesets, passes, handicap setup and superko. Initial board context must be trusted.
+Unreliable surrounding readings never overwrite that context. Ambiguous earlier
+moves supply alternative legal boards rather than guessed surrounding stones.
+
+The resolver can eliminate a location when subsequent certified play is illegal
+there, or when repeated reliable local observations contradict its legal board.
+It requires three distinct observation IDs over at least 0.8 seconds, with no
+inter-observation gap above 0.75 seconds. Hand obstruction, unknown hand state,
+lighting failure and unreliable points interrupt the corresponding evidence runs.
+A declared camera gap latches timing review and preserves already certified turns.
+No missing placement time or increment is invented. Sparse recording samples also
+reset persistence; they are not themselves proof that the live camera stopped.
+
+Legal prisoners are tracked by their original stone identity. They may remain
+physically visible for an arbitrarily long removal delay. Visibility alone cannot
+disprove a capture. Repeated clear emptiness can establish removal and distinguish
+positions. Sustained surviving stones can reject a predicted capture only with a
+separately certified local removal-completion context. The prototype does not
+derive that context from a hand exit or timeout; the recorded replays do not supply
+it. This is a deliberate remaining limitation.
+
+Occupied evidence that no retained position yet explains is retained as unassigned
+evidence for the upstream turn detector. It cannot create a press or delete every
+position while a later turn certificate is still arriving. If all legal positions
+conflict with other sustained evidence, the previous forest is preserved for review.
+
+Unresolved locations are exposed by turn identity. The position budget is 256;
+overflow retains the entire previous forest and the complete turn ledger, without
+silently retaining only the highest-scored paths. Further position advancement and
+automatic correction are then unavailable. Location-only uncertainty recommends
+continued play. With automatic multi-stone capture pausing enabled, disagreeing
+capture plans require capture review and agreed incomplete captures require a hold.
+These are policy recommendations, not live clock commands or inferred pause times.
+
+EXPERIMENTS AND RESULTS
+Tools/evaluate_turn_location.py uses 1,385 chronological observations from the
+65-move recording and 1,658 from the 85-move recording. It retains their existing
+native readings, timestamps, hand flags and outlines. Saved turns and clock
+boundaries are supplied, not rediscovered. Adjacent alternative intersections are
+injected stress cases. The observations used to distinguish paths require heuristic
+confidence >= 0.98; occupied points also need outline quality >= 0.90 and center
+offset <= 0.24. These gates are not calibrated confidence probabilities or proof
+that historical placement warnings can be cleared.
+
+Each move is tested with its true saved location and legal adjacent alternatives,
+then all subsequent recorded turns and observations are processed chronologically.
+Two of the 150 moves have no legal adjacent alternative, leaving 148 injected
+ambiguities. The same two recordings are reused across all controls; these are
+correlated development probes, not 450 independent games or an unseen holdout.
+
+                          65-move recording      85-move recording
+Initially ambiguous       64                    84
+Legality alone resolved   10                    6
+Sustained evidence        61                    77
+Assignment delayed 5 s    61                    76
+
+Counts above exclude the two initially unique controls. Sustained evidence resolves
+138/148 ambiguities; 10 remain marked. Delaying assignment evidence five seconds
+resolves 137/148. All three policies retain the supplied true path, produce no wrong
+resolution, accept every supplied turn and preserve every ledger timestamp. All
+150 retained-location corrections per policy preserve the ledger exactly. The two
+recorded single-stone captures are reproduced: game65 move56 removes point172;
+game85 move35 removes point288. This does not validate removal-pause timing.
+
+The known game85 move56 at point33 remains unresolved. Nothing overrides its
+centering warning. Sixteen stage-11 fixture/point controls, including halfway and
+crowded placements, cannot certify turns from static evidence and remain untimed.
+These static controls test the input contract, not new discrimination of the images.
+
+A harder experiment injects alternatives at EVERY turn in each game. The forest
+overflows at turn7 of game65 and turn5 of game85, retaining 97 and 125 prior paths
+respectively. All 65/85 turn identities and original times still survive, but the
+position resolver cannot complete or accept batch correction. These stress runs
+explicitly disable automatic capture pauses; their continue recommendation must
+not be generalized to uncertain multi-stone captures with pausing enabled. With
+that policy enabled an unknown capture plan requires capture review. This result
+identifies a substantial scaling limit, not a successful full-game decoder.
+
+One development failure was informative: an opponent stone became visible before
+its recorded turn certificate arrived (game85 frame1300, near the move35 capture).
+The first draft treated it as a contradiction of every existing path. The final
+version preserves such globally unsupported occupied evidence as unassigned until
+turn certification. It does not infer a move from the observation. A focused test
+and the repeated chronological replay cover this change. Earlier draft outputs
+are retained for investigation; replay-final is the reproducible final result.
+
+CLOCK AND FAILURE CHECKS
+The journals provide 114 actual native candidate certifications (50 and 64), each
+with two distinct original observation IDs. Isolated ambiguity/correction probes
+preserve those exact press times. All 684 injected missing-witness, hand, gap,
+unreliable-color, unreliable-identity and unknown-time controls abstain. These are
+fault injections into supplied certifications, not a new hand or identity detector.
+
+Tools/TurnLocationClockAudit.swift links only the unchanged LocalClockEngine. It
+reproduces all 150 saved before/after clock checkpoints with zero differences.
+Duplicate delivery and correction leave accounting identical in all five timed
+modes. The saved full clock payloads remain unchanged. Saved clock anchors lacking
+an estimate are labeled as such; physical timing uncertainty is not invented.
+
+21 focused Python tests pass, including delayed and partial prisoner removal,
+capture disagreement/hold/completion, ko, suicide, multiple unresolved turns,
+atomic batch correction, hand/lighting interruption, camera gaps, duplicate image
+IDs, duplicate presses, overlapping times, false absence and bounded-search overflow.
+
+The existing recognition_benchmark.py ran seven build-registry checks and 18 native
+suites. Registry checks and 17 suites pass, including candidate histories, rapid
+reply/near-overtime replay, provisional play, placement timing, hand clocks,
+historical correction, capture uncertainty and automatic capture timing. Rapid
+reply retains zero timestamp/balance differences and no false holds in its supported
+cases; its missing-evidence control still requires review.
+
+workflow-ui-test fails reproducibly in the existing ResumeVerification scenario:
+the move advances from 172 to 173 with no pending move and an unchanged historical
+board, but the test expecting a running White clock fails. It fails both in the
+shared-runtime suite and when rebuilt separately. This prototype is not linked into
+either test; the unchanged native failure is retained as a promotion blocker.
+No production fix or weakened assertion was made in this offline task.
+An isolated copy of the scenario confirms that White is selected correctly, while
+needsCorrection is true and the clock reports: "Move timing crosses a clock hold
+or has no retained turn boundary. Check both times before resuming." The fixture
+constructs resumed views without camera timestamps. This distinguishes a timing
+review from a wrong-player switch; it does not establish whether the test expectation
+is stale or the resume path needs repair. ResumeClockProbe.swift and
+resume-clock-probe.json retain the offline reproduction and state.
+
+CAMERA BOUNDARIES
+The recent camera is the AUSDOM AF660. Older recordings made with a zoomed iPhone
+11 Pro Max remain a separate calibration family. The two full chronological replays
+use their own saved camera observations and setup metadata (camera ID
+0x21420000bda0567); no lens, focal-length, grid or parallax calibration is fitted or
+transferred. Static historical fixtures retain their original camera provenance.
+This experiment does not claim a full chronological iPhone validation.
+
+REPRODUCTION
+From /Users/dave/SGFPlayerClean, with Python 3.10+ (standard library only for this lab):
+  python3 -m unittest discover -s PhysicalGo/Tools -p test_turn_location_lab.py -v
+  python3 PhysicalGo/Tools/evaluate_turn_location.py \
+    --work '/Users/dave/Documents/SGF PLayer/work' \
+    --output '/absolute/new/output-directory'
+  swiftc PhysicalGo/Sources/LocalClockEngine.swift \
+    PhysicalGo/Tools/TurnLocationClockAudit.swift -o /absolute/TurnLocationClockAudit
+  /absolute/TurnLocationClockAudit \
+    /absolute/new/output-directory/game65-clock-audit-input.json \
+    /absolute/new/output-directory/game85-clock-audit-input.json
+  python3 PhysicalGo/Tools/recognition_benchmark.py --output /absolute/new/native-results
+
+Artifacts: /Users/dave/Documents/SGF PLayer/work/turn-location-stage12
+Final replay: replay-final/ (summaries, decisions, immutable certificates, input
+hashes, live source hashes, clock inputs). Native checks: native-regressions/,
+native-clock-audit.json, workflow-rerun.log. Compact tracked results are in
+TurnLocationResults.json. No extra recording is needed to reproduce this work.
+
+NEXT OFFLINE WORK
+Preserve shared subhistories/factor independent location choices to avoid the early
+combinatorial overflow without silently discarding plausible histories. Add a
+candidate identity adapter that survives changing location alternatives, with native
+timing/expiry authority retained. Validate local removal-completion evidence before
+using surviving prisoners to reject capture paths. Investigate the existing resume
+clock failure separately. Promotion needs end-to-end chronological recognition,
+capture-policy and clock tests, not merely these supplied-turn resolver results.

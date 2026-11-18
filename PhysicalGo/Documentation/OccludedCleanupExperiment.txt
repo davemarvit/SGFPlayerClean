@@ -1,0 +1,188 @@
+Following an existing stone across a hand-covered adjustment — offline results
+2026-11-17
+
+RESULT
+The new offline association code supports retaining the original stone identity
+in all four visually reviewed small adjustments where a hand covers the target.
+The targets belong to moves 29 and 59 of game65 and moves 1 and 8 of game85.
+New stones are placed during those same hand visits; one visit also includes a
+capture. The code waits for fresh clear outlines before updating a proposed center.
+It neither creates another turn nor changes the original turn time.
+
+The principal rule remains continuity: uncertainty about this association is
+deferred location work. It does not command a clock pause or prevent accepting
+another independently reliable turn. No live recognition or installed app changed.
+
+WHAT WAS FOUND IN THE EXISTING RECORDINGS
+The two full games contain suitable hand visits with original timestamps, raw
+readings, fractional outline centers, and recorded hand-state decisions. Seven
+candidate movement cases were selected from changes in outline centers and then
+visually inspected in the original recordings. Four show the target covered during
+a small adjustment; three are nearby-placement controls where coverage of the
+target is not established. These are development cases from recordings already
+used in earlier experiments, not an unseen holdout or independent accuracy sample.
+
+The four reviewed covered adjustments are:
+  game65, point298, move29: frames1037–1055; hand visit1039–1050.
+  game65, point233, move59: frames1861–1888; hand visit1863–1883.
+  game85, point307, move1: frames1280–1299; hand visit1282–1295.
+  game85, point79, move8: frames1888–1917; hand visit1890–1912.
+The changes in fitted centers are approximately 0.16–0.20 grid spacings. These
+measurements describe the outlines, not calibrated physical displacement. The
+stones retain their original intersections in these examples; this is not yet
+validation of moving a stone a whole intersection while hidden.
+
+The review labels are in Tools/occluded_cleanup_labels.json. They are used only
+to assess results, never to select an association. The preserved contact sheets
+show actual before, hand-covered and after observations. Original recording files
+and the selected observations are hashed in the replay manifest.
+
+Other saved data has useful limitations:
+- RepositionedPending contains a real relocation but lacks explicit hand-clearance
+  information for the retained observations. Stage13 already retains one supplied
+  identity without inventing timing; those missing fields were not filled in here.
+- The CrowdedWhiteAdjustment fixture contains real before/after adjustment evidence
+  and 16 consecutive clear observations, but the original full diagnostic timeline
+  is no longer at its recorded path. The existing native fixture test was rerun;
+  isolated before/after observations were not stitched into a fabricated hand visit.
+- The AF660 offset-attempt recording ends before the requested adjustment sequence.
+  Its 1,093 analyzed observations retain the centered stones and a persistent hand
+  outline flag. It is not counted as a successful cleanup sequence. Separately held
+  offset clips likewise are not joined across missing time to invent continuity.
+
+IMPLEMENTATION
+Tools/occluded_identity_lab.py adds a small independent association component.
+An anchor describes an already-known stone identity and its last stable outline,
+supported by at least three distinct pre-hand observations over 0.4 seconds.
+The actual replay uses four pre-hand clear observations and rejects unstable or
+duplicated anchors. It does not obtain an anchor's color from the saved game when
+the recording itself has an unknown color.
+
+During a recorded hand visit, the identity is retained but no association is
+confirmed. Afterward, each eligible fresh outline must have exactly one plausible
+old identity, and that identity must have exactly one plausible outline. Matching
+uses color, fractional center and outline radii. It does not select the nearest
+stone when more than one could fit. Duplicate fits of the same physical outline
+are merged before matching, without merging distinct nearby stones.
+
+The maximum supported center change is 0.65 grid spacings. Radius changes larger
+than 0.12 do not match. The post-hand outline must remain within 0.12 of its first
+clear center for at least three distinct observations over 0.8 seconds. Comparing
+against the first center prevents repeated small changes from accumulating into
+unbounded drift. Existing native outline quality/color gates are used; there is
+no new hard centering cutoff that discards a strong displaced outline.
+
+These thresholds define this experiment's conservative support rule. They are not
+probabilities. A supported result remains an association hypothesis: a camera
+cannot prove which identical stone is under a fully covering hand. The result
+explicitly says physicalIdentityProven=false and clockAuthority=false. It is never
+converted silently into certified identity continuity or a final historical edit.
+
+Native verified capture identities exclude captured stones from reassociation.
+Thus a same-color outline appearing where a captured stone used to be cannot
+revive that old identity. Delayed removal and game clock decisions remain with
+the existing capture logic. A gap longer than 0.75 seconds, changed camera/setup,
+or a coherent displacement of several independent anchors stops this association
+attempt and retains the identities unresolved. A hand reentry or unavailable
+view withdraws a previously fresh result; old evidence cannot masquerade as fresh.
+
+A gap in the saved observations is missing association evidence, not automatically
+proof that the live camera stopped. This component requests no clock action. The
+separate turn/timing authority must still handle genuinely unobserved moves; it
+cannot invent their times merely to avoid a pause.
+
+CHRONOLOGICAL RESULTS
+                         game65              game85
+Hand visits with anchors 47                  63
+Stone/visit anchors      1,089               1,914
+Supported at some point  772                 1,354
+Current updates at end   749                 1,329
+Interrupted visits       6                   4
+Real capture exclusions  0                   1
+Fault controls abstained 141                 189
+Supplied turns retained  65                  85
+
+The 3,003 stone/visit anchors include the same stones across many visits; they are
+not 3,003 independent stones. There are no supported associations conflicting with
+the supplied saved intersection and none supported during a recorded hand-covered
+observation. This agreement is conditional on saved identities and capture context;
+it is not independent ground truth for physical object identity.
+
+All four reviewed hand-covered adjustments are supported. Fresh support takes
+approximately 0.80–0.99 seconds from the first qualifying post-hand observation.
+This is background verification delay, not a new placement timestamp or a charge
+to the player who adjusted the stone. Two of the three nearby-placement controls
+are also associated; the other lacks a stable pre-hand anchor and remains unresolved.
+
+The 2,078 still-current association updates are interleaved with the actual saved
+turn-certification events. Proposed centers are journaled beside existing identities;
+no new stone identity is created. Every original turn number, color and timestamp
+remains unchanged. Clock checks through the actual LocalClockEngine reproduce all
+150 saved checkpoints with zero differences, including duplicate-delivery checks
+in five timed modes. These checks preserve existing timing; they do not establish
+new physical placement-time accuracy.
+
+For every eligible hand visit, three independent fault controls are tested:
+missing evidence during the hand visit; unknown hand state; and all anchored
+identities declared retired to simulate capture/replacement exclusion. All 330
+controls abstain from fresh reassociation. These injected faults apply to the
+association channel, not to the supplied turn ledger. They do not claim that play
+could safely continue if the timing authority itself lost the turns.
+
+VERIFICATION
+15 new tests pass, covering covered cleanup, same-color competition, duplicated
+observations, repeated drift, color/radius mismatch, captures and replacement,
+hand reentry, missing hand state, camera gaps, camera/setup changes, board motion,
+candidate preservation and unchanged original turn timing.
+All 17 existing per-stone tests also pass.
+
+Six existing application regression suites pass:
+  observation-replay-test: recorded rapid reply and timing/clock arithmetic;
+  provisional-play-test: 74 provisional-turn checks;
+  capture-clock-test: recorded capture uncertainty, conflict, local clocks and
+    429 automatic-capture/hand-clear checks;
+  stone-tracking-test: 82 checks including 47 historical observations;
+  repositioning-test: 30 checks;
+  crowded-white-test: 6,894 checks including the actual adjusted recordings and
+    complete 36-move sequence.
+These native tests are separate safeguards; they do not turn the new offline
+association component into live code. The earlier unrelated resume-test question
+is not repaired or hidden by this targeted test run.
+
+PRESERVATION AND CAMERA SCOPE
+The recent camera is the AUSDOM AF660. These two chronological games use their
+own saved geometry, camera ID and grid-generation context; no geometry is fitted
+or transferred. The older zoomed iPhone 11 Pro Max recordings remain a separate
+calibration family. The older fixture tests use their own reference/calibration.
+This experiment does not claim chronological iPhone cleanup validation.
+Original recordings, SGF and clock files, live Swift sources, and unrelated
+working-tree edits are unchanged. No app was installed or relaunched.
+
+REPRODUCTION
+From /Users/dave/SGFPlayerClean:
+  python3 -m unittest discover -s PhysicalGo/Tools -p test_occluded_identity_lab.py -v
+  python3 -m unittest discover -s PhysicalGo/Tools -p test_stone_identity_lab.py -v
+  python3 PhysicalGo/Tools/evaluate_occluded_identity.py \
+    --work '/Users/dave/Documents/SGF PLayer/work' \
+    --output '/absolute/new/output-directory'
+  python3 PhysicalGo/build.py --repositioning-test --crowded-white-test \
+    --stone-tracking-test --provisional-play-test --capture-clock-test \
+    --observation-replay-test
+
+The replay uses Python's standard library. Optional visual inspection sheets used
+OpenCV/Pillow to show original recording crops; no generated imagery supplied test
+evidence. The standalone TurnLocationClockAudit.swift consumes the two generated
+*-clock-input.json files as in the earlier experiment.
+
+Artifacts: /Users/dave/Documents/SGF PLayer/work/occluded-cleanup-stage14
+Final replay: verified-replay/; reviewed observations: cleanup-hand-review.jpg;
+native checks: native-regressions.log and clock-audit.json; compact tracked result:
+OccludedCleanupResults.json. Earlier draft replay is retained separately.
+
+NEXT OFFLINE QUESTIONS
+Apply these hypotheses to provisional display centers while keeping historical
+location confidence separate. Test larger movements and ambiguous same-color
+neighbors using the existing archived evidence where temporal coverage permits.
+Do not resolve ambiguity by stitching separate recordings, assuming hand clearance,
+or treating an apparently matching object as proof that no hidden move occurred.
+Keep unresolved identity/location work out of the reliable-turn clock path.

@@ -1,0 +1,190 @@
+{
+  "artifacts": "/Users/dave/Documents/SGF PLayer/work/deferred-cleanup-stage15",
+  "assertions": 27005,
+  "deploymentStatus": "Native code and offline recorder shadow tested; live feedback integration, saved-game migration and capture-hold integration remain required before enablement.",
+  "game65": {
+    "clockModesIncludingUntimed": 6,
+    "displayProposalsApplied": 144,
+    "handVisits": 47,
+    "ledgerPreserved": true,
+    "locationsKeptUnresolved": 945,
+    "radiusSweep": [
+      {
+        "everSupportedStoneVisits": 772,
+        "finalAmbiguousStoneVisits": 0,
+        "finalSupportedStoneVisits": 749,
+        "interruptedVisits": 6,
+        "radius": 0.65,
+        "savedPointDisagreements": 0
+      },
+      {
+        "everSupportedStoneVisits": 453,
+        "finalAmbiguousStoneVisits": 379,
+        "finalSupportedStoneVisits": 441,
+        "interruptedVisits": 6,
+        "radius": 1.25,
+        "savedPointDisagreements": 0
+      },
+      {
+        "everSupportedStoneVisits": 149,
+        "finalAmbiguousStoneVisits": 739,
+        "finalSupportedStoneVisits": 144,
+        "interruptedVisits": 6,
+        "radius": 2.25,
+        "savedPointDisagreements": 0
+      }
+    ],
+    "savedClockDifferences": [],
+    "turns": 65
+  },
+  "game85": {
+    "clockModesIncludingUntimed": 6,
+    "displayProposalsApplied": 148,
+    "handVisits": 63,
+    "ledgerPreserved": true,
+    "locationsKeptUnresolved": 1765,
+    "radiusSweep": [
+      {
+        "everSupportedStoneVisits": 1354,
+        "finalAmbiguousStoneVisits": 0,
+        "finalSupportedStoneVisits": 1329,
+        "interruptedVisits": 4,
+        "radius": 0.65,
+        "savedPointDisagreements": 0
+      },
+      {
+        "everSupportedStoneVisits": 795,
+        "finalAmbiguousStoneVisits": 757,
+        "finalSupportedStoneVisits": 786,
+        "interruptedVisits": 4,
+        "radius": 1.25,
+        "savedPointDisagreements": 0
+      },
+      {
+        "everSupportedStoneVisits": 152,
+        "finalAmbiguousStoneVisits": 1593,
+        "finalSupportedStoneVisits": 148,
+        "interruptedVisits": 4,
+        "radius": 2.25,
+        "savedPointDisagreements": 0
+      }
+    ],
+    "savedClockDifferences": [],
+    "turns": 85
+  },
+  "liveRecognitionEnabled": false,
+  "realRelocationObservationsAbstained": 41,
+  "scope": "Supplied native turns/captures. Larger displacements are injected controls; real relocation lacks complete hand evidence. No new physical identity or turn-time accuracy claim.",
+  "translatedRecordingControls": [
+    {
+      "injectedGridDisplacement": 1,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game65:1039"
+    },
+    {
+      "injectedGridDisplacement": 2,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game65:1039"
+    },
+    {
+      "injectedGridDisplacement": 1,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game65:1863"
+    },
+    {
+      "injectedGridDisplacement": 2,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game65:1863"
+    },
+    {
+      "injectedGridDisplacement": 1,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game85:1282"
+    },
+    {
+      "injectedGridDisplacement": 2,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game85:1282"
+    },
+    {
+      "injectedGridDisplacement": 1,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game85:1890"
+    },
+    {
+      "injectedGridDisplacement": 2,
+      "isolatedSupported": true,
+      "sameColorCompetitorRemainsUnresolved": true,
+      "sourceEpisode": "game85:1890"
+    }
+  ],
+  "validation": {
+    "appBuildAndSigningPassed": true,
+    "initialCompilationRejectedChangedInput": true,
+    "installedOrRelaunched": false,
+    "liveRecognitionChanged": false,
+    "nativeCombinedAssertions": 27005,
+    "nativeSuitesPassed": [
+      "observation-replay-test",
+      "provisional-play-test",
+      "capture-clock-test",
+      "stone-tracking-test",
+      "repositioning-test",
+      "crowded-white-test"
+    ],
+    "nativeUnitAssertions": 54,
+    "observationSuiteRerun": "observation-replay-rerun.log",
+    "preexistingSourcesAndWorkingChangesPreserved": true,
+    "pythonTestsPassed": 32,
+    "readyToEnableInLiveRecorder": false,
+    "recorderShadowReplay": [
+      {
+        "allLocationsUnresolved": true,
+        "clockRunning": true,
+        "pressTimes": [
+          1265045.9376668755,
+          1265050.6216669178,
+          1265052.620700167
+        ],
+        "recognizedTurns": 3,
+        "reviewTransitions": 0,
+        "savedAcceptanceDecisionsSupplied": false,
+        "scenario": "original rapid reply recording",
+        "scope": "Actual unchanged native recorder supplies accepted turns; new ledger is an offline shadow, not recognition feedback."
+      },
+      {
+        "allLocationsUnresolved": true,
+        "clockRunning": false,
+        "pressTimes": [
+          1265045.9376668755
+        ],
+        "recognizedTurns": 1,
+        "reviewTransitions": 1,
+        "savedAcceptanceDecisionsSupplied": false,
+        "scenario": "injected missing intermediate sightings",
+        "scope": "Actual unchanged native recorder supplies accepted turns; new ledger is an offline shadow, not recognition feedback."
+      }
+    ],
+    "sgfAudit": [
+      {
+        "allIntermediateBoardsAndCapturesMatch": true,
+        "moves": 65,
+        "resolved": "/Users/dave/Documents/SGF PLayer/work/deferred-cleanup-stage15/verified-replay/game65-reviewed.sgf",
+        "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+      },
+      {
+        "allIntermediateBoardsAndCapturesMatch": true,
+        "moves": 85,
+        "resolved": "/Users/dave/Documents/SGF PLayer/work/deferred-cleanup-stage15/verified-replay/game85-reviewed.sgf",
+        "scope": "Minimal offline move export; original game metadata and clock sidecars are untouched."
+      }
+    ]
+  }
+}
