@@ -2,7 +2,7 @@
 from pathlib import Path
 
 DEPENDENCIES = {
-    'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift'),
+    'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift','Sources/StoneTurnAppearance.swift'),
     'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
     'Sources/HandOutlineSampling.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
     'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),
@@ -18,7 +18,8 @@ DEPENDENCIES = {
     'Sources/PhysicalOnlineBoard.swift': (
         'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
-    'Sources/RecordingStoneLedger.swift': ('Sources/LocalClockEngine.swift', 'Sources/BoardVision.swift'),
+    'Sources/RecordingStoneLedger.swift': ('Sources/LocalClockEngine.swift', 'Sources/BoardVision.swift','Sources/StoneTurnAppearance.swift'),
+    'Sources/StoneTurnAppearance.swift': ('Sources/BoardVision.swift',),
     'Sources/RecordingStore.swift': ('Sources/RecordingStoneLedger.swift',),
     'Sources/GameRecorder.swift': tuple('Sources/' + name for name in (
         'RecordingStoneLedger.swift',

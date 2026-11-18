@@ -115,7 +115,7 @@ struct ClearBoardTiming {
               views.allSatisfy({v in locations.allSatisfy{v.position.indices.contains($0)}}) else {return nil}
         return .init(views:views,locations:locations,color:color,epoch:epoch,after:time,consumedUntil:consumedUntil)
     }
-    mutating func observe(_ observation:BoardObservation,now:Double,rawObservation:BoardObservation?=nil,observationID:String?=nil,shadowPoints:Set<Int>=[]) {
+    mutating func observe(_ observation:BoardObservation,now:Double,rawObservation:BoardObservation?=nil,observationID:String?=nil,shadowPoints:Set<Int>=[],allowWhiteOutlineEvidence:Bool=false) {
         guard let stamp=observation.capturedAt,
               stamp.isFinite,stamp<=now,now-stamp<1.5,!observation.lightingBlocked else {return}
         // Fresh frames establish camera continuity even while the hand detector
@@ -130,7 +130,8 @@ struct ClearBoardTiming {
         let raw=rawObservation.flatMap{$0.readings.count==observation.readings.count && $0.size==observation.size && $0.capturedAt==observation.capturedAt ? $0:nil} ?? observation
         views.append(.init(time:stamp,processedAt:now,observationID:observationID,rawPosition:raw.signature,
                            confidence:observation.readings.map(\.confidence),rawConfidence:raw.readings.map(\.confidence),estimate:estimate,
-                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count)),shadowSuspects:shadowPoints,position:observation.signature))
+                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count)),
+                           whiteOutlineCenters:allowWhiteOutlineEvidence ? observation.whiteTurnOutlineCenters:[:],shadowSuspects:shadowPoints,position:observation.signature))
         if views.count>1000 {views.removeFirst(views.count-1000)}
     }
     func estimate(target:[Occupancy],changed:Set<Int>,after epoch:Double)->ClockPressEstimate? {
@@ -160,7 +161,7 @@ struct ClearBoardTiming {
         func matches(_ view:View)->Bool {
             guard view.position.count==target.count,view.estimate.time>=epoch,view.estimate.time>consumedUntil else {return false}
             let present=locations.filter{view.position[$0].stone != nil}
-            guard present.count==1,let point=present.first,view.position[point].stone==color,view.confidence[point]>=0.9 else {return false}
+            guard present.count==1,let point=present.first,view.position[point].stone==color,view.supportsStone(at:point) else {return false}
             var values=view.position
             for group in aliases {
                 let actual=group.filter{values[$0].stone != nil},expected=group.filter{target[$0].stone != nil}
@@ -191,7 +192,7 @@ struct ClearBoardTiming {
     }
     func pendingTurn(base:[Occupancy],excluding:Set<Int>,color:Stone,after epoch:Double)->ClockPressEstimate? {
         guard let newest=views.last,newest.position.count==base.count else {return nil}
-        let points=base.indices.filter{base[$0] == .empty && !excluding.contains($0) && newest.position[$0].stone==color && newest.confidence[$0]>=0.9}
+        let points=base.indices.filter{base[$0] == .empty && !excluding.contains($0) && newest.position[$0].stone==color && newest.supportsStone(at:$0)}
         return points.compactMap {p in candidateHistory(locations:[p],color:color,after:epoch)?.pendingEstimate}.min{$0.time<$1.time}
     }
     /// Physical turn evidence is local. An unrelated uncertain intersection or

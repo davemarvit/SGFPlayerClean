@@ -13,11 +13,15 @@ struct CandidateMoveHistory {
         let rawConfidence:[Double]
         let estimate:ClockPressEstimate
         let aliases:[Int:Set<Int>]
+        var whiteOutlineCenters:[Int:ImagePoint]=[:]
         // Retrospective timing retractions and all quality suspicions differ:
         // immediate masks have already been applied to the effective position.
         var discounted=Set<Int>()
         var shadowSuspects=Set<Int>()
         private(set) var position:[Occupancy]
+        func supportsStone(at point:Int)->Bool {
+            confidence[point]>=0.9 || (position[point] == .white && whiteOutlineCenters[point] != nil)
+        }
         mutating func discount(_ points:Set<Int>) {
             discounted.formUnion(points);shadowSuspects.formUnion(points)
             for p in points where rawPosition.indices.contains(p) && rawPosition[p] == .black {position[p] = .uncertain}
@@ -53,6 +57,7 @@ struct CandidateMoveHistory {
         let capturedAt:Double
         let processedAt:Double
         let observationID:String?
+        var appearanceSupportedViews:Int?=nil
     }
     struct Snapshot:Codable {
         let episode:String
@@ -94,7 +99,7 @@ struct CandidateMoveHistory {
         eligible=views.filter {view in
             guard view.time>boundary,view.estimate.time>=time,view.estimate.time>consumedUntil else {return false}
             let occupied=locations.filter{view.position[$0].stone != nil}
-            return occupied.count==1 && occupied.contains{view.position[$0].stone==color && view.confidence[$0]>=0.9} && (matching?(view) ?? true)
+            return occupied.count==1 && occupied.contains{view.position[$0].stone==color && view.supportsStone(at:$0)} && (matching?(view) ?? true)
         }
     }
     /// Suspect evidence before the first independent sighting prevents unsafe
@@ -176,16 +181,22 @@ struct CandidateMoveHistory {
         return .unresolved
     }
     func confirmation(ignoring:Set<Int>)->Confirmation? {
-        guard let first=eligible.first,let newest=views.last,eligible.last?.time==newest.time else {return nil}
+        confirmation(ignoring:ignoring,allowAppearance:true)
+    }
+    private func confirmation(ignoring:Set<Int>,allowAppearance:Bool)->Confirmation? {
+        let supported=allowAppearance ? eligible:eligible.filter {view in
+            locations.contains {view.position[$0].stone==color && view.confidence[$0]>=0.9}
+        }
+        guard let first=supported.first,let newest=views.last,supported.last?.time==newest.time else {return nil}
         // Uncertainty interrupts confirmation, but does not erase the earlier
         // timestamp. Definite absence/opposite colour is retracted by callers.
         let unclear=views.last {view in
             view.time>=first.time && locations.filter{view.position[$0].stone != nil}.count != 1
         }?.time ?? -.infinity
-        let run=eligible.filter{$0.time>unclear}
+        let run=supported.filter{$0.time>unclear}
         guard let start=run.first,let last=run.last else {return nil}
         let scores=run.flatMap {view in locations.compactMap {p in view.position[p].stone != nil ? view.confidence[p]:nil}}
-        guard let score=scores.min(),score.isFinite,score>=0.9 else {return nil}
+        guard let score=scores.min(),score.isFinite,score>=0.8 else {return nil}
         let ignored=ignoring.union(locations)
         var previous=start.position
         let stable=run.allSatisfy {view in
@@ -199,6 +210,28 @@ struct CandidateMoveHistory {
             guard changes.count<=1,changes.allSatisfy({previous[$0] == .empty && view.position[$0].stone != nil}) else {return false}
             for p in previous.indices where view.position[p] != .uncertain {previous[p]=view.position[p]}
             return true
+        }
+        if score<0.9 {
+            // A low point-reading score never gets relabeled as high confidence.
+            // Instead require at least six recent, stable disk outlines over a
+            // full second. Confirm now but retain the FIRST supported timestamp.
+            // Faster camera delivery must not shorten the confirmation interval.
+            var recent=[View]()
+            for view in run.reversed() {
+                recent.insert(view,at:0)
+                if recent.count>=6,last.time-view.time>=1.0 {break}
+            }
+            guard color == .white,stable,recent.count>=6,let a=recent.first,let b=recent.last,
+                  b.time-a.time>=1.0,zip(recent,recent.dropFirst()).allSatisfy({$0.1.time-$0.0.time<=0.65}) else {
+                return confirmation(ignoring:ignoring,allowAppearance:false)
+            }
+            let centers=recent.compactMap {view in locations.compactMap{view.whiteOutlineCenters[$0]}.first}
+            guard centers.count==recent.count,let anchor=centers.first,
+                  centers.allSatisfy({hypot($0.x-anchor.x,$0.y-anchor.y)<=0.12}) else {
+                return confirmation(ignoring:ignoring,allowAppearance:false)
+            }
+            return .init(level:.cautious,clearViews:recent.count,span:b.time-a.time,minimumScore:score,
+                capturedAt:b.time,processedAt:b.processedAt,observationID:b.observationID,appearanceSupportedViews:recent.count)
         }
         let estimate=supportedEstimate(first,after:timingBoundary)
         let hand=estimate.method == .handMotion || estimate.method == .handBracket

@@ -1,0 +1,104 @@
+White-stone appearance and clock continuity
+2026-11-17 — stage 18
+
+RECORDED FAILURE
+The AUSDOM AF660 incident has two independent causes of clock review. Earlier,
+moves 4 and 5 reached the recorder without separate verified timing boundaries.
+That review remains appropriate. After a manual review/resume, white move 8 had
+a measured hand-exit estimate but was rejected because its intersection reading
+usually scored below 0.9. The older white move 2 was also marked unresolved even
+though it remained visible at its original location. Their measured disk outlines
+were strong. These heuristic scores are not calibrated probabilities.
+
+CHANGE
+With deferred locations enabled, independent white-disk evidence may support a
+turn when the point score is at least 0.80. It requires a measured footprint with
+quality at least 0.98, plausible radius/aspect ratio, a nearby assigned point,
+explicit hand clearance and unblocked lighting. Placement fits alone do not count.
+One outline cannot establish two stones or borrow a neighboring stone's outline.
+At least six supported observations must span a full second, with no gap greater
+than 0.65 seconds and centers remaining within 0.12 grid spacings. Faster camera
+delivery increases the number of observations required to cover that second.
+The existing surrounding-position consistency check still applies.
+If subsequent observations satisfy the ordinary high-score policy, that policy
+can confirm the turn even if outline support becomes unavailable. An early weaker
+point reading cannot veto those later strong observations or change the original
+supported placement time.
+
+The accepted turn retains the FIRST supported placement estimate. Neither the
+raw reading score nor the exact-position warning is rewritten. The stone ledger
+also uses these outlines to account for existing white stones; its sustained
+cleanup checks, unresolved identities and legal capture handling remain in force.
+The black/shadow policy, camera calibration, detector and clock engine are unchanged.
+Both AUSDOM AF660 and older zoomed iPhone 11 Pro Max calibration remain separate.
+
+REPRODUCTION AND LIMITS
+Tools/test_white_turn_appearance.py replays the incident's delivered observations,
+measured outlines, hand events and original clock estimates through GameRecorder.
+It supplies the seven-move position at the prior manual resume as initial setup;
+it does not supply a saved move-8 acceptance decision. This is an observation
+replay, not a fresh run of image recognition. The baseline run reproduces both
+the stopped clock and the older stone's false unresolved marker.
+
+The enabled replay must accept exactly one white move 8, keep Black's clock
+running, preserve the original hand-exit estimate, leave move 8's location marked,
+and stop marking the stationary older white stone. Later explicit location review
+and save/restore must preserve the original receipt. Negative controls reject low
+point scores without outlines, weak outlines, weak color evidence, black disks,
+unknown/obstructed hands, blocked lighting, overlapping outlines, implausible disk
+sizes, moving centers, insufficient observations and a camera gap. A fast-camera
+control verifies that confirmation still covers a full second.
+An improving-reading control verifies that strong subsequent readings can still
+confirm normally. White cleanup controls keep two same-color identities unresolved
+after hand coverage and refuse to count one surviving sighting as two stones.
+
+The full validation also compares the separate 65- and 85-move recordings with
+the feature disabled/enabled and runs native capture, cleanup, shadow, clock and
+persistence regressions. The 65-move replay has an existing first-turn timing
+review in both variants; it does not validate 65 measured clock presses. The
+85-move replay must retain all 85 original measured press times. Large cleanup
+controls constructed in earlier stages are still synthetic observations, not
+additional real cleanup recordings.
+
+LOCAL ARTIFACTS
+/Users/dave/Documents/SGF PLayer/work/white-turn-stage18
+Baseline: baseline/
+Final validation: release-validation-v3/validation.json
+Earlier release-validation/ and release-validation-v2/ runs were deliberately
+stopped while extending rate and improving-reading coverage. Neither is
+installation approval.
+
+Run:
+python3 PhysicalGo/Tools/validate_deferred_release.py --work WORK --output NEW_DIR \
+  --white-recording RECORDING_DIR --white-journal OBSERVATION_JOURNAL
+
+RECORDING RETENTION
+At the user's explicit request, removed only trailing images 750 through 1144
+from Diagnostic 2026-11-17 19-52-26 A2A2F60A. Kept 749 images, including all eight
+accepted moves, both clock stops and 20 seconds after the final accepted move.
+Freed 1,406,105,324 bytes. The complete events journal, game logs, calibration and
+assets remain. tail-trim.json records the deleted paths, sizes and hashes; the
+original session metadata is preserved beside it. No other recording was trimmed.
+Diagnostic image collection remains disabled.
+
+DEPLOYMENT
+The signed release preparation tool can now take an explicit version and build
+number. It still requires a successful validation artifact matching the executable
+and preserves the previous installed bundle for rollback. Updating the app cannot
+recover missing timing boundaries in the already stopped game and does not alter
+its clock balances. Pre-existing working-tree edits remain outside this commit.
+As in stage 16, the app build includes that preserved local work; the validation
+manifest records the exact source hashes rather than claiming a clean checkout.
+
+VERIFIED TEST RESULTS
+The final source version passed 27 focused white-appearance/cleanup assertions,
+56 connected identity/clock/persistence assertions, all 16 enabled-feature suites,
+all four disabled-feature compatibility suites and 32 Python identity tests. The
+crowded-white suite included 6,894 checks against real images, retained its
+displaced-stone control and recovered the exact 36-move sequence after adjustment.
+Both complete recorded-game comparisons passed: exact 65- and 85-move sequences,
+all 85 measured press times unchanged, and the original first-turn timing review
+retained for the 65-move replay. The incident's move-8 estimate remains
+1427989.6652668547; confirmation arrives later without replacing that estimate.
+The signed build and installation hashes are recorded in the validation and
+release artifacts alongside these test results.

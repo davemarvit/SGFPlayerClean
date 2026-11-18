@@ -30,6 +30,8 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--validation',type=Path,required=True)
     p.add_argument('--install',type=Path)
+    p.add_argument('--version',default='0.194')
+    p.add_argument('--build-number',default='195')
     a=p.parse_args()
     validation=json.loads(a.validation.read_text())
     if validation.get('readyForInstallation') is not True:
@@ -45,8 +47,8 @@ def main():
     data=plistlib.loads(info.read_bytes())
     data['PhysicalGoDeferredLocations']=True
     data['PhysicalGoReleaseCommit']=validation['commit']
-    data['CFBundleShortVersionString']='0.194'
-    data['CFBundleVersion']='195'
+    data['CFBundleShortVersionString']=a.version
+    data['CFBundleVersion']=a.build_number
     info.write_bytes(plistlib.dumps(data))
     signature=subprocess.run(['codesign','-d','--verbose=4',str(a.source_app)],capture_output=True,text=True,check=True)
     authority=re.search(r'^Authority=(.+)$',signature.stderr,re.MULTILINE)

@@ -1503,7 +1503,8 @@ enum LocalGameSetup {
         if let established=reviewHistory.latest ?? positions.last.map({DeferredMoveHistory.states($0)}),readings==established {
             lastEstablishedViewAt=observation.capturedAt ?? now
         }
-        clearBoardTiming.observe(observation,now:now,rawObservation:rawObservation,observationID:observationID,shadowPoints:shadowPoints)
+        clearBoardTiming.observe(observation,now:now,rawObservation:rawObservation,observationID:observationID,shadowPoints:shadowPoints,
+                                 allowWhiteOutlineEvidence:deferredLocationsEnabled)
         unclearPointCount=readings.filter{$0 == .uncertain}.count
         // Evaluate after acceptance so a move saved in this frame never gets a
         // failure sound. This runs even when global uncertainty blocks the move.

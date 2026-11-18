@@ -134,6 +134,7 @@ struct RecordingStoneLedger: Codable {
         guard observation.size == size, observation.readings.count == size*size,
               observation.handObstructed == false, !observation.lightingBlocked else { interrupt(); return [] }
         let stamp = observation.capturedAt ?? now
+        let outlined=observation.whiteTurnOutlineCenters
         var excluded: Set<Int> = []
         func currentPoints(_ r:Record)->Set<Int> {r.physicalGroup ?? r.physicalPoint.map{[$0]} ?? r.historicalPoint.map{[$0]} ?? r.candidates}
         let active=records.filter{!$0.pass && $0.capturedBy == nil}
@@ -160,7 +161,7 @@ struct RecordingStoneLedger: Codable {
             let known = currentPoints(record)
             if let group=record.physicalGroup {
                 records[i].locationUnresolved=true
-                if group.allSatisfy({observation.readings[$0].occupancy.stone==record.color && observation.readings[$0].confidence>=0.9}) {
+                if group.allSatisfy({observation.readings[$0].occupancy.stone==record.color && (observation.readings[$0].confidence>=0.9 || outlined[$0] != nil)}) {
                     excluded.formUnion(group)
                 } else {
                     // A partially hidden/moved group cannot let two identities
@@ -170,7 +171,7 @@ struct RecordingStoneLedger: Codable {
                 }
                 continue
             }
-            let visible = known.filter { observation.readings[$0].occupancy.stone == record.color && observation.readings[$0].confidence >= 0.9 }
+            let visible = known.filter { observation.readings[$0].occupancy.stone == record.color && (observation.readings[$0].confidence >= 0.9 || outlined[$0] != nil) }
             if visible.count == 1, let p = visible.first {
                 var run = clearRuns[record.id]
                 if run == nil || run!.point != p || stamp-run!.last > 0.75 || stamp <= run!.last {
@@ -205,7 +206,7 @@ struct RecordingStoneLedger: Codable {
                     continue
                 }
                 let occupiedByOthers=active.filter{$0.id != record.id}.reduce(into:Set(setupRemaining.keys)) {$0.formUnion(currentPoints($1))}
-                let available=nearby.subtracting(occupiedByOthers).filter{observation.readings[$0].confidence>=0.98}
+                let available=nearby.subtracting(occupiedByOthers).filter{observation.readings[$0].confidence>=0.98 || outlined[$0] != nil}
                 // A sustained one-to-one cleanup hypothesis can account for an
                 // old stone on later turns. It remains marked and cannot change
                 // the historical move or authorize a capture. Competing same-
@@ -234,7 +235,7 @@ struct RecordingStoneLedger: Codable {
             let otherPoints=records.filter{!ids.contains($0.id) && !$0.pass && ($0.capturedBy==nil || $0.removalVerified != true)}
                 .reduce(into:Set(setupRemaining.keys)) {$0.formUnion(currentPoints($1))}
             let options=members.map {member in Set(observation.readings.indices.filter {p in
-                !otherPoints.contains(p) && observation.readings[p].occupancy.stone==color && observation.readings[p].confidence>=0.98 &&
+                !otherPoints.contains(p) && observation.readings[p].occupancy.stone==color && (observation.readings[p].confidence>=0.98 || outlined[p] != nil) &&
                 currentPoints(member).contains{hypot(Double(p%size-$0%size),Double(p/size-$0/size))<=2.25}
             })}
             let points=options.reduce(into:Set<Int>()){$0.formUnion($1)}

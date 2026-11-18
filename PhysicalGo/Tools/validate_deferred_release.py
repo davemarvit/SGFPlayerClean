@@ -22,7 +22,10 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--work',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--white-recording',type=Path)
+    parser.add_argument('--white-journal',type=Path)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
+    if bool(args.white_recording)!=bool(args.white_journal):parser.error('Supply both white-incident paths.')
     sources=resolve_sources(ROOT,Suite('runtime','app',()).sources(ROOT))
     paths=set(sources+[ROOT/'Sources/PhysicalGoApp.swift',ROOT/'build.py'])
     paths.update((ROOT/'scripts').glob('*.py'))
@@ -43,10 +46,13 @@ def main():
         save();completed.check_returncode()
     py=sys.executable
     run('connected',[py,ROOT/'Tools/test_recording_stone_ledger.py','--output',args.output/'connected'])
+    if args.white_recording:
+        run('white-appearance',[py,ROOT/'Tools/test_white_turn_appearance.py','--recording',args.white_recording,
+            '--journal',args.white_journal,'--output',args.output/'white-appearance'])
     run('recordings',[py,ROOT/'Tools/test_deferred_full_recordings.py','--work',args.work,'--output',args.output/'recordings'])
     flags=['provisional-play','capture-clock','observation-replay','storage-flow','historical-correction',
            'undo-move','session-resume','repositioning','crowded-white','hand-clock','workflow-ui',
-           'clock-awaiting-turn','missing-provisional-review','transient-clock-pause']
+           'clock-awaiting-turn','missing-provisional-review','transient-clock-pause','candidate-history','shadow-recognition']
     run('enabled-regressions',[py,ROOT/'build.py','--debug-tests',*['--'+f+'-test' for f in flags]],enabled=True)
     run('disabled-regressions',[py,ROOT/'build.py','--debug-tests','--storage-flow-test',
         '--workflow-ui-test','--provisional-play-test','--missing-provisional-review-test'])
