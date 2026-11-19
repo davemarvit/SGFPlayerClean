@@ -22,14 +22,17 @@ struct StoneCenteringEvidence: Codable {
 enum StoneGeometry {
     struct Result { let readings:[IntersectionReading]; let footprints:[StoneFootprint]; var placementFits:[StoneFootprint]=[] }
     struct ColoredNeighbor { let shape:StoneFootprint; let color:Occupancy }
-    private struct Span { let y:Int, left:Int, right:Int }
+    // Offsets into a row-prefix buffer, relative to the candidate center.
+    // The right endpoint is exclusive. Precompute the row stride once per
+    // disk rather than repeating it for every fitted center in every image.
+    private struct Span { let left:Int, right:Int }
     private struct Disk {
         let spans:[Span]; let count:Double
         init(rx:Double,ry:Double,step:Double) {
             var rows=[Span](),count=0
             for y in -Int(ry/step)...Int(ry/step) {
                 let x=Int(rx/step*sqrt(max(0,1-pow(Double(y)*step/ry,2))))
-                rows.append(Span(y:y,left:-x,right:x));count += 2*x+1
+                rows.append(Span(left:y*(StoneGeometry.side+1)-x,right:y*(StoneGeometry.side+1)+x+1));count += 2*x+1
             }
             spans=rows;self.count=Double(count)
         }
@@ -89,9 +92,9 @@ enum StoneGeometry {
         } }
         func sum(_ disk:Disk,_ x:Int,_ y:Int,_ values:[Double])->Double {
             var total=0.0
+            let offset=y*(side+1)+x
             for span in disk.spans {
-                let offset=(y+span.y)*(side+1)
-                total += values[offset+x+span.right+1]-values[offset+x+span.left]
+                total += values[offset+span.right]-values[offset+span.left]
             }
             return total
         }

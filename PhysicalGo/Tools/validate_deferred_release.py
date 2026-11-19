@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--white-recording',type=Path)
     parser.add_argument('--white-journal',type=Path)
+    parser.add_argument('--geometry-comparison',type=Path)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     if bool(args.white_recording)!=bool(args.white_journal):parser.error('Supply both white-incident paths.')
     sources=resolve_sources(ROOT,Suite('runtime','app',()).sources(ROOT))
@@ -33,6 +34,11 @@ def main():
     paths.update((ROOT/'Tests').glob('*.swift'))
     hashes={str(p):sha(p) for p in sorted(paths)}
     result=dict(readyForInstallation=False,checks=[],sourceHashes=hashes)
+    if args.geometry_comparison:
+        comparison=json.loads(args.geometry_comparison.read_text())
+        assert comparison.get('passed') is True and comparison.get('differentEvidence')==[], 'Geometry comparison failed'
+        assert all(sha(Path(p))==h for p,h in comparison['sourceAndInputHashes'].items()), 'Geometry comparison inputs changed'
+        result['geometryComparison']=dict(path=str(args.geometry_comparison.resolve()),sha256=sha(args.geometry_comparison))
     validation=args.output/'validation.json'
     def save():validation.write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
     save()
@@ -53,12 +59,16 @@ def main():
     flags=['provisional-play','capture-clock','observation-replay','storage-flow','historical-correction',
            'undo-move','session-resume','repositioning','crowded-white','hand-clock','workflow-ui',
            'clock-awaiting-turn','missing-provisional-review','transient-clock-pause','candidate-history','shadow-recognition']
+    if args.geometry_comparison:
+        flags+=['faint-capture','shaded-white','jade-white','hand-stone-pipeline']
     run('enabled-regressions',[py,ROOT/'build.py','--debug-tests',*['--'+f+'-test' for f in flags]],enabled=True)
     run('disabled-regressions',[py,ROOT/'build.py','--debug-tests','--storage-flow-test',
         '--workflow-ui-test','--provisional-play-test','--missing-provisional-review-test'])
     run('identity-tests',[py,'-m','unittest','discover','-s',ROOT/'Tools','-p','test_*identity_lab.py','-v'])
     run('app-build',[py,ROOT/'build.py'])
     assert hashes=={p:sha(Path(p)) for p in hashes},'Sources changed during validation'
+    if args.geometry_comparison:
+        assert sha(args.geometry_comparison)==result['geometryComparison']['sha256'], 'Geometry comparison changed'
     result['appExecutableSHA256']=sha(ROOT/'.build/Physical Go.app/Contents/MacOS/PhysicalGo')
     result['baseCommit']=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT.parent,text=True).strip()
     result['readyForInstallation']=True

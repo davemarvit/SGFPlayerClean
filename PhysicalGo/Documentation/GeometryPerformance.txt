@@ -1,0 +1,110 @@
+Recognition processing efficiency — 2026-11-19, stage 19
+
+WHY THIS WORK
+Existing diagnostic recordings show that the sparse-board AF660 incident usually
+completed analysis in about 70 ms, below its 200 ms sampling interval. Earlier,
+fuller-board recordings often took about 170–220 ms, with slower observations
+above 300 ms. These are recorded operation durations, not new live measurements.
+A native sample identified outline fitting as a substantial computation cost.
+
+The earlier AF660 clock stop remains a separate evidence problem. White move 4
+and Black move 5 were both visible by the first globally cleared observation.
+Intermediate observations were blocked by uncertain or overlapping hands. They
+do not establish two verified clock boundaries. This optimization does not use
+those blocked observations to invent clock presses or remove that safeguard.
+
+CHANGE
+Every candidate outline sums horizontal spans from a row-prefix buffer. The
+disk shapes and buffer stride are fixed, but the old inner loop recalculated
+each span's row offset for every candidate center. Each span now stores its
+two linear offsets once, when the immutable disk shapes are initialized.
+
+The old addresses were (centerY+spanY)*stride+centerX+right+1 and
+(centerY+spanY)*stride+centerX+left. The new addresses are centerY*stride+centerX
+plus the corresponding precomputed offsets. They address the same samples in
+the same order, preserving every floating-point sum, radius, score, threshold,
+tie-breaking order and search range. Arrays remain bounds checked; no unsafe
+buffer access, cross-image cache, new mutable state or approximate arithmetic
+was introduced. Recognition and clock policies are unchanged.
+
+COMPARISON
+Tools/GeometryPerformanceAudit.swift runs the actual optimized native detector.
+Image decoding and result serialization are outside the measured interval. One
+warmup precedes each image's timed repetitions. Each repetition must return the
+same complete recognition evidence: all intersection labels/confidences/deltas,
+stone outlines, placement fits, centering evidence, lighting field and warnings.
+
+Tools/test_geometry_performance.py compiles the previous StoneGeometry.swift
+from the specified Git revision and the candidate with the same remaining
+sources and compiler. It compares complete outputs on every case, then measures
+17 selected cases in baseline/candidate/candidate/baseline order, with three
+timed repetitions per case per trial. The aggregate is the sum of per-case
+median detector times, averaged across the two trials of each version. A
+measured improvement of at least 5% and zero evidence differences are required.
+Inputs and source hashes must remain unchanged throughout the run.
+
+The corpus has 560 image/calibration cases: the previous 495 geometry cases,
+12 empty-point/capture controls, four older iPhone observations, and 49 recent
+AF660 observations including hands, rapid replies and the white-stone incident.
+There are 390 distinct image files, including previously generated lens-test
+images. These are not 560 independent games or all unmodified camera images.
+Each observation retains its own recorded calibration and reference. Testing
+previously generated grid/lens variants does not enable those experiments.
+
+Scope: this tests deterministic recognition and computation time. It is not a
+new accuracy improvement, a calibrated probability estimate, a demonstration
+that all clock stops disappear, or a live end-to-end latency measurement.
+
+RELEASE GATE
+validate_deferred_release.py accepts --geometry-comparison only when the report
+passes and its source/input hashes still match. It adds photographed faint
+capture, shaded-white, jade-white and hand/stone pipeline checks to the existing
+16 native suites, then checks disabled-feature compatibility, both complete
+recorded games, the AF660 white-turn incident, identity handling and the signed
+app build. The comparison file and build-source hashes are checked again before
+the candidate can be installed. The previous installed app remains available
+for rollback. Image collection stays off; saved games and unrelated edits are
+preserved. The installed app is not opened automatically.
+The complete-game clock tests replay the original chronological observations;
+the raw-image comparison covers selected images, not every image in both games.
+
+REPRODUCTION
+Artifact root: /Users/dave/Documents/SGF PLayer/work/performance-stage19
+prepare_inputs.py there reconstructs inputs.json from the existing recordings
+and the stage-11 case manifests. It also includes a fixed benchmark selection.
+
+python3 PhysicalGo/Tools/test_geometry_performance.py --inputs INPUTS_JSON \
+  --baseline-revision d2da57555676e18fa84b6536579c0eb202db6ed4 --output NEW_DIR
+
+python3 PhysicalGo/Tools/validate_deferred_release.py --work WORK --output NEW_DIR \
+  --white-recording AF660_RECORDING --white-journal AF660_OBSERVATIONS \
+  --geometry-comparison COMPARISON_JSON
+
+The measured results are in comparison/comparison.json; recorded operation
+durations are in recorded-processing-times.json. Final validation and signed
+installation results are retained in release-validation/ and release/.
+
+MEASURED RESULT
+Zero recognition-evidence differences across all 560 cases. The summed per-case
+median time fell from 0.8552 seconds to 0.6743 seconds, a 21.1% reduction. Both
+candidate trials beat both baseline trials (baseline 0.8516/0.8587 seconds;
+candidate 0.6781/0.6706 seconds). The 85-move endpoint fell from 135.7 to 93.5 ms;
+the 65-move endpoint fell from 113.8 to 85.3 ms. The two occupied recent AF660
+cases improved by about 14–15%, and the four iPhone cases by about 15–21%.
+The empty recent AF660 case was about 0.3 ms slower (1.8%); there is little
+outline-search work to save on an empty board. These numbers measure the
+detector on this Mac, not image decoding, camera delivery or total app latency.
+
+REGRESSION RESULTS
+The frozen source passed 56 connected identity/persistence checks, 27 white-turn
+incident checks, all 20 enabled-feature native suites, all four disabled-feature
+compatibility suites, and 32 Python identity tests. Both complete recorded move
+sequences were preserved. The 85-move replay retained all 85 measured press times
+unchanged; the 65-move replay retained its original first-turn timing review.
+The photographed hand/stone pipeline passed, as did faint-capture, shaded-white,
+jade-white and crowded-white controls. No missing clock boundary was filled in.
+
+As with the preceding release, the app build includes preserved local work that
+is outside this commit. The source manifest identifies the exact build inputs;
+this is not represented as a clean-checkout build. All 18 pre-existing modified
+or untracked files were checked against their starting hashes.
