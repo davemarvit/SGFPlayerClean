@@ -693,6 +693,12 @@ enum LocalGameSetup {
                 persist();saveReviewHistory()
             }
         } else {try restorePendingCheckpoint()}
+        // Load retained candidates before restoring the ended state: finished
+        // sessions must not skip their pending-move sidecar on reopening.
+        if reviewHistory.endRequested {
+            state = .finished
+            status="Game ended. Pending history is retained. Choose Review unfinished moves to check it; clocks remain stopped."
+        }
     }
     private var checkpointSignature:String {RecordingIdentity.signature(for:game)}
     private func signature(for game:SGFGame)->String {RecordingIdentity.signature(for:game)}
@@ -936,8 +942,28 @@ enum LocalGameSetup {
         persist()
         trace(event:"game info updated")
     }
-    func finish() {
+    var canEndKeepingPending:Bool {
+        hasGame && state != .finished && !recoveryReadBlocked &&
+        (pendingMoveCount>0 || !clock.provisionalMoves.isEmpty || hasDeferredMoves || automaticCapture != nil)
+    }
+    /// End play without certifying uncertain moves or discarding their receipts.
+    /// This is an explicit alternative to completing verification on the board.
+    func finish(retainingPending:Bool=false) {
         guard !recoveryReadBlocked else {return}
+        if retainingPending {
+            guard canEndKeepingPending else {return}
+            if automaticCapture != nil,prepareAutomaticCaptureReview()==nil {return}
+            pause();clock.finish()
+            reviewHistory.endRequested=true
+            if let error=saveSession() {
+                status="Game stopped, but the pending history could not be saved. Keep the app open and retry ending the game. \(error)"
+                return
+            }
+            state = .finished
+            status="Game ended. Pending history is retained. Choose Review unfinished moves to check it; clocks remain stopped."
+            trace(event:"finished with pending history")
+            return
+        }
         if automaticCapture != nil {
             if prepareAutomaticCaptureReview() != nil {status="Finish reviewing the capture before ending the game. Both clocks remain stopped."}
             return
@@ -951,13 +977,26 @@ enum LocalGameSetup {
         let unresolved=max(pendingMoveCount,unsavedStoneCount)
         if unresolved>0 {
             pause()
-            status="Not finished: \(unresolved) moves still need verification. Check the interpretation board and adjust red-ringed stones. Resume recording to verify them, then choose End game again. Pending history is retained."
+            status="Not finished: \(unresolved) move\(unresolved==1 ? "":"s") still need verification. Review the retained moves, or choose End and review later to stop this game without discarding them."
             trace(event:"finish needs unresolved moves")
             return
         }
         awaitingFirstStart=false;announceFirstStart=false
         clock.finish()
         state = .finished; resetPending(); resetObservationHistory(); resetWarningMonitor(); status="Recording finished. Review or save the game; no result has been inferred."; persist();trace(event:"finished")
+    }
+    /// Reopen only the review controls. Live recording still requires Resume
+    /// and the existing clock-review and fresh-board verification checks.
+    func reopenUnfinishedReview() {
+        guard state == .finished,hasUnfinishedReviews,!recoveryReadBlocked else {return}
+        let previous=reviewHistory.endRequested
+        reviewHistory.endRequested=false
+        saveReviewHistory(wait:true)
+        guard reviewSaveError==nil else {reviewHistory.endRequested=previous;return}
+        clock.pause("Reviewing unfinished moves · clocks stopped")
+        state = .paused;browsingHistory=false;reviewIndex=moveCount
+        status="Review the retained moves. Clocks remain stopped; Resume requires clock review and a fresh board check when needed."
+        trace(event:"unfinished review reopened")
     }
     func seek(_ index:Int) {
         guard hasGame else { return }
@@ -2334,7 +2373,6 @@ extension GameRecorder {
             reviewSaveError=nil;reviewLoadFailed=false
             if reviewHistory.active {
                 resetObservationHistory();clock.pause("Saved live clock restored · paused")
-                if reviewHistory.endRequested {state = .finished}
                 status="Restored \(reviewHistory.unresolved) reviews and \(reviewHistory.retainedMoveCount) later ordered moves. Resume recording to keep tracking."
             }
         } catch {reviewLoadFailed=true;reviewSaveError="Could not restore review history: \(error.localizedDescription)";throw error}

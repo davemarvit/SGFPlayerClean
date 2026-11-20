@@ -18,6 +18,10 @@ struct PlaySessionControls:View {
                     }
                     HStack(spacing:8) {
                     Button("End game…") {confirmEnd=true}.disabled(!recorder.hasGame || recorder.state == .finished)
+                    if recorder.state == .finished && recorder.hasUnfinishedReviews {
+                        Button("Review unfinished moves") {recorder.reopenUnfinishedReview()}
+                            .help("Open the retained moves for review. The clocks stay stopped.")
+                    }
                     Button("Rotate view",systemImage:"rotate.right") {model.rotateView()}
                         .help("Rotate the board and camera view 90° clockwise. The recorded game and clocks are preserved.")
                     }
@@ -39,7 +43,14 @@ struct PlaySessionControls:View {
             Button("End game") {recorder.finish();endNeedsAttention=recorder.state != .finished}
             Button("Cancel",role:.cancel) {}
         } message:{Text("Stop the clock and recording. The saved game remains available for scoring and export.")}
-        .alert("Some moves still need attention",isPresented:$endNeedsAttention) {Button("OK",role:.cancel) {}} message:{Text(recorder.status)}
+        .alert("Some moves still need attention",isPresented:$endNeedsAttention) {
+            if recorder.canEndKeepingPending {
+                Button("End and review later") {recorder.finish(retainingPending:true)}
+            }
+            Button("Keep reviewing",role:.cancel) {}
+        } message:{Text(recorder.canEndKeepingPending
+            ? "You can end the game now. Unverified moves and their clock evidence will be kept for later review. The complete SGF will remain unavailable until those moves are resolved."
+            : recorder.status)}
     }
 }
 
