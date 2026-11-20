@@ -76,12 +76,23 @@ struct HandOutlineTracker {
         guard frame.pixels.filter(\.valid).count>frame.pixels.count*3/5 else {
             reset();return .init(reason:"Insufficient visible image; clearance is unknown")
         }
-        let hand=pose?.obstructed(size:frame.cells)
+        var hand=pose?.obstructed(size:frame.cells)
+        // Hands beside the board must not seed the active hand's location or
+        // prevent visual clearance. Keep the existing rim allowance; filtering
+        // pose joints alone is never proof that the visible hand has left.
+        var boardHands=pose?.obstructingHands(size:frame.cells) ?? []
         if let baseline,baseline.width != frame.width {self.baseline=nil;references=[];initialization=0;active=false;timing.reset()}
         guard let background=baseline else {
             if hand==false {initialization+=1;if initialization>=3 {baseline=frame}}
             else {initialization=0}
             return .init(obstructed:hand==true ? true:nil,reason:"Establishing a clear visual reference")
+        }
+        if pose?.reliable==true {
+            boardHands.removeAll {points in
+                let confident=points.filter{$0.confidence>=0.25}
+                return unchangedRim(confident.map{($0.x,$0.y)},frame:frame,background:background)
+            }
+            hand = !boardHands.isEmpty
         }
         if !active {
             guard hand==true else {
@@ -97,7 +108,7 @@ struct HandOutlineTracker {
                 return .init(obstructed:hand,reason:hand==false ? "Clear visual reference":"Hand detector unavailable")
             }
             active=true;timing.reset();clearTimes=[];direction=nil;appearance=nil
-            let points=pose?.hands.flatMap{$0}.filter{$0.confidence>=0.5} ?? []
+            let points=boardHands.flatMap{$0}.filter{$0.confidence>=0.5}
             let wrist=points.first{$0.id=="VNHLKWRI"} ?? points.first
             if let wrist {
                 let n=Double(frame.cells-1)
@@ -105,10 +116,10 @@ struct HandOutlineTracker {
             }
             center=(points.map(\.x).reduce(0,+)/Double(max(1,points.count)),points.map(\.y).reduce(0,+)/Double(max(1,points.count)))
         }
-        guard (pose?.hands.count ?? 0)<=1 else {
+        guard boardHands.count<=1 else {
             clearTimes=[];timing.reset();return .init(obstructed:true,edge:edge,reason:"Multiple hands; waiting for a clear view")
         }
-        let points=pose?.hands.first?.filter{$0.confidence>=0.5} ?? []
+        let points=boardHands.first?.filter{$0.confidence>=0.5} ?? []
         if points.count>=8,points.contains(where:{depth(x:$0.x,y:$0.y,cells:frame.cells)>1}) {
             var changes=[(Double,Double,Double)](),colors=[(Double,Double)]()
             for p in points where p.x>=0 && p.y>=0 && p.x<Double(frame.cells) && p.y<Double(frame.cells) {
@@ -135,6 +146,12 @@ struct HandOutlineTracker {
         let candidates=components.filter {c in
             let lateral=edge%2==0 ? abs(c.x-center.x):abs(c.y-center.y)
             guard lateral<3.5 && (c.minimum<0 || points.contains{p in hypot(p.x-c.x,p.y-c.y)<2}) else {return false}
+            // A resting hand can touch the outer safety rim without covering
+            // any stone. Require its whole visible component to stay outside
+            // a stone-sized guard AND unchanged pixels along the nearby board
+            // edge. Never clear a fingertip from pose loss or elapsed time.
+            if hand==false,c.maximum>0,c.maximum<=0.1,
+               unchangedRim(c.indices.map{frame.grid($0)},frame:frame,background:background) {return false}
             // Moving light/shadow can have the learned hand color even after
             // withdrawal. Reject it only when the underlying texture remains
             // strongly visible throughout the component, with no detected hand.
@@ -167,6 +184,37 @@ struct HandOutlineTracker {
     private func depth(x:Double,y:Double,cells:Int)->Double {
         let high=Double(cells)-0.25
         return [y+0.75,high-x,high-y,x+0.75][edge]
+    }
+    private func unchangedRim(_ points:[(Double,Double)],frame:HandOutlineFrame,background:HandOutlineFrame)->Bool {
+        guard !points.isEmpty,points.allSatisfy({$0.0.isFinite && $0.1.isFinite}) else {return false}
+        let minX=points.map{$0.0}.min()!,maxX=points.map{$0.0}.max()!
+        let minY=points.map{$0.1}.min()!,maxY=points.map{$0.1}.max()!
+        let high=Double(frame.cells-1)
+        // Joints must all be beyond one outer line. A pose inside the grid
+        // always blocks, even if its color happens to resemble the background.
+        let side=maxY<0 ? 0:minX>high ? 1:minY>high ? 2:maxX<0 ? 3:nil
+        guard let side else {return false}
+        var count=0
+        for i in frame.pixels.indices {
+            let (x,y)=frame.grid(i)
+            // Covers a full edge stone plus fringe; the extra lateral cell
+            // includes fingers extending beyond their recognized joints.
+            guard x>=(-0.65),y>=(-0.65),x<=high+0.65,y<=high+0.65 else {continue}
+            let near:Bool
+            switch side {
+            case 0:near=y<=0.75 && x>=minX-1 && x<=maxX+1
+            case 1:near=x>=high-0.75 && y>=minY-1 && y<=maxY+1
+            case 2:near=y>=high-0.75 && x>=minX-1 && x<=maxX+1
+            default:near=x<=0.75 && y>=minY-1 && y<=maxY+1
+            }
+            guard near else {continue}
+            let p=frame.pixels[i],b=background.pixels[i]
+            guard p.valid,b.valid,abs(p.light-b.light)<=0.06 else {return false}
+            let r=p.red-b.red,g=p.green-b.green
+            guard r*r+g*g+(r+g)*(r+g)<=0.035*0.035 else {return false}
+            count+=1
+        }
+        return count>=50
     }
     private func preservesBackground(_ component:Component,frame:HandOutlineFrame,background:HandOutlineFrame)->Bool {
         guard component.indices.count>=100 else {return false}

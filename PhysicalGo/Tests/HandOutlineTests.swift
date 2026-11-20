@@ -3,7 +3,7 @@ import Foundation
     static func main() throws {
         setbuf(stdout,nil)
         var checks=0
-        func check(_ value:Bool,_ message:String) {checks+=1;precondition(value,message)}
+        func check(_ value:Bool,_ message:String) {checks+=1;if !value {print("FAIL \(checks): \(message)")};precondition(value,message)}
         let clear=HandMotionPose(hands:[]),size=9,n=121
         func frame(_ depth:Double?,edge:Int=0,stone:Bool=false)->HandOutlineFrame {
             var pixels=[HandOutlineFrame.Pixel]()
@@ -40,6 +40,53 @@ import Foundation
             check(done.estimate!.method == .handMotion && abs(done.estimate!.time-0.55)<0.02,"Outline motion did not interpolate crossing")
             check(done.estimate!.observedUpper==0.6 && done.estimate!.estimatedError!>0,"Confirmation delay replaced original press or erased error")
             check(tracker.observe(frame(nil,edge:edge),pose:clear,at:0.8,source:"test").estimate==nil,"One withdrawal emitted two presses")
+        }
+        // Resting hands outside the board remain visible throughout a move.
+        // Their order in the pose result must not select the wrong hand, and
+        // their presence must not bypass visual fingertip/exit confirmation.
+        for edge in 0..<4 {for reversed in [false,true] {
+            let playing=pose(edge:edge).hands[0]
+            let resting=playing.map{HandMotionPose.Point(id:$0.id,x:-5,y:$0.y,confidence:$0.confidence)}
+            let outside=HandMotionPose(hands:[resting,resting])
+            let entering=HandMotionPose(hands:reversed ? [resting,playing]:[playing,resting])
+            var tracker=HandOutlineTracker()
+            for t in [0.0,0.1,0.2] {_=tracker.observe(frame(nil,edge:edge),pose:outside,at:t,source:"resting")}
+            for (t,d) in [(0.3,4.0),(0.4,2.0)] {
+                let result=tracker.observe(frame(d,edge:edge),pose:entering,at:t,source:"resting")
+                check(result.obstructed==true && result.edge==edge,"Resting hand selected the wrong tracking edge")
+            }
+            check(tracker.observe(frame(0.5,edge:edge),pose:outside,at:0.5,source:"resting").obstructed==true,"Outside poses erased visible fingertips")
+            let first=tracker.observe(frame(-0.5,edge:edge),pose:outside,at:0.6,source:"resting")
+            check(first.obstructed==true && first.estimate==nil,"Outside hands bypassed visual confirmation")
+            let exit=tracker.observe(frame(nil,edge:edge),pose:outside,at:0.7,source:"resting")
+            check(exit.obstructed==false && exit.estimate?.observedUpper==0.6,"Resting hands prevented visual clearance or retimed the exit")
+            check(abs((exit.estimate?.time ?? 0)-0.55)<0.02,"Resting hands changed the original motion estimate")
+            check(tracker.observe(frame(nil,edge:edge),pose:outside,at:0.8,source:"resting").estimate==nil,"Resting hands duplicated a clock boundary")
+            var multiple=HandOutlineTracker()
+            for t in [0.0,0.1,0.2] {_=multiple.observe(frame(nil,edge:edge),pose:outside,at:t,source:"two")}
+            let both=HandMotionPose(hands:[playing,playing])
+            let blocked=multiple.observe(frame(4,edge:edge),pose:both,at:0.3,source:"two")
+            check(blocked.obstructed==true && blocked.estimate==nil,"Two hands over the board were cleared")
+            let unknown=HandMotionPose(hands:outside.hands,reliable:false)
+            for t in [0.4,0.5] {
+                check(multiple.observe(frame(nil,edge:edge),pose:unknown,at:t,source:"two").obstructed==true,"Unreliable poses proved clearance")
+            }
+        }}
+        for edge in 0..<4 {
+            let nearRim=HandMotionPose(hands:pose(edge:edge).hands.map{$0.map {p in
+                .init(id:p.id,x:edge==1 ? 8.4:edge==3 ? -0.4:p.x,
+                      y:edge==0 ? -0.4:edge==2 ? 8.4:p.y,confidence:p.confidence)
+            }})
+            var tracker=HandOutlineTracker()
+            for t in [0.0,0.1,0.2] {_=tracker.observe(frame(nil,edge:edge),pose:clear,at:t,source:"rim-rest")}
+            _=tracker.observe(frame(4,edge:edge),pose:pose(edge:edge),at:0.3,source:"rim-rest")
+            for t in [0.4,0.5,0.6] {
+                check(tracker.observe(frame(0.20,edge:edge),pose:nearRim,at:t,source:"rim-rest").obstructed==true,"Unchanged-rim check hid a remaining fingertip")
+            }
+            let first=tracker.observe(frame(0.05,edge:edge),pose:nearRim,at:0.7,source:"rim-rest")
+            check(first.obstructed==true && first.estimate==nil,"Resting rim hand skipped visual confirmation")
+            let done=tracker.observe(frame(0.05,edge:edge),pose:nearRim,at:0.8,source:"rim-rest")
+            check(done.obstructed==false && done.estimate?.observedUpper==0.7,"Hand outside the stone guard kept an unchanged board blocked")
         }
         var tracker=HandOutlineTracker()
         for t in [0.0,0.1,0.2] {_=tracker.observe(frame(nil),pose:clear,at:t,source:"test")}

@@ -37,9 +37,14 @@ struct HandMotionPose:Codable {
     struct Point:Codable {let id:String;let x:Double,y:Double,confidence:Double}
     var hands:[[Point]]
     var reliable:Bool=true
+    func obstructingHands(size:Int)->[[Point]] {
+        hands.filter {points in points.contains {
+            $0.confidence>=0.25 && (-0.75...Double(size)-0.25).contains($0.x) && (-0.75...Double(size)-0.25).contains($0.y)
+        }}
+    }
     func obstructed(size:Int)->Bool? {
         guard reliable else {return nil}
-        return hands.flatMap{$0}.contains{$0.confidence>=0.25 && (-0.75...Double(size)-0.25).contains($0.x) && (-0.75...Double(size)-0.25).contains($0.y)}
+        return !obstructingHands(size:size).isEmpty
     }
 }
 
