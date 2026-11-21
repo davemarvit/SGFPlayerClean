@@ -916,13 +916,16 @@ enum BoardDetector {
         let light = Double(lightVotes)/Double(deltas.count)
         let unchanged = Double(deltas.filter { abs($0) < min(threshold*0.55,whiteThreshold*0.8) }.count)/Double(deltas.count)
         // An offset stone may cover less than half the centered patch. Permit a
-        // search from partial support only when the other color is largely absent;
+        // search from partial support when that color dominates the sample;
         // promotion still requires 80% agreement at a nearby center and unique ownership.
         // Partial loss of the wood tint can seed a search even if the stone
         // covers too little of the intersection's cross. Acceptance still checks
         // reference ink beneath the displaced candidate, not just its color.
         let whiteHint = light >= 0.35 || Double(colorHintVotes)/Double(deltas.count) >= 0.25
-        let hint: Occupancy? = dark >= 0.35 && light < 0.15 ? .black : (whiteHint && dark < 0.15 ? .white : nil)
+        // A neighboring black stone can enter the centered patch of an offset
+        // white disk. It must not prevent searching for that disk. This only
+        // nominates a search; shifted coverage, rails and ownership still decide.
+        let hint: Occupancy? = dark >= 0.35 && light < 0.15 ? .black : (whiteHint && (dark < 0.15 || light > dark) ? .white : nil)
         if dark >= 0.8 { return Candidate(occupancy:.black,confidence:dark,delta:delta,stoneHint:hint) }
         if light >= 0.8 { return Candidate(occupancy:.white,confidence:light,delta:delta,stoneHint:hint) }
         if unchanged >= 0.8 { return Candidate(occupancy:.empty,confidence:unchanged,delta:delta,stoneHint:hint) }

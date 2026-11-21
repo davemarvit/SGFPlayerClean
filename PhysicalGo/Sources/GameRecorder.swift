@@ -1535,7 +1535,10 @@ enum LocalGameSetup {
         if deferredLocationsEnabled {
             do { try synchronizeStoneLedger() }
             catch { pendingSaveError=error.localizedDescription;clock.pause("Recording identity needs review",at:now);return }
-            cleanupExcludedPoints=stoneLedger?.observe(observation,now:now) ?? []
+            // Physical identity tracking must see the same single-disk evidence
+            // as the clock, or moving an old white disk between intersections
+            // could masquerade as a new turn. Capture/history use the raw view.
+            cleanupExcludedPoints=stoneLedger?.observe(observation.turnEvidenceObservation,now:now) ?? []
         }
         let visibilityBase=reviewHistory.latest ?? positions.last.map{DeferredMoveHistory.states($0)} ?? readings
         observeVisibility(blocked:BoardVisibilityWarning.blocked(readings,expected:visibilityBase),now:observation.capturedAt ?? now)

@@ -92,8 +92,30 @@ import ImageIO
             else {
                 allPassed = allPassed && !everReview && r.clock.running && presses.map(\.number)==Array(1...8) && !changedReceipts
                 allPassed = allPassed && points==Array(expected.prefix(points.count))
+                // White is visibly placed before the hand exit bracket in images
+                // 59–60. Images 74–81 show later cleanup of that same stone.
+                // Location uncertainty must not defer White's press to cleanup.
+                let lower=input.frames.first{$0.id==59}!.capturedAt
+                let upper=input.frames.first{$0.id==60}!.capturedAt
+                let white=presses.first{$0.number==2}?.estimate
+                allPassed = allPassed && white != nil && abs(white!.time-offset-(lower+upper)/2)<1e-6
                 allPassed = allPassed && rows.first{$0["frame"] as? Int==118}?["hand"] as? Bool==true
                 allPassed = allPassed && rows.first{$0["frame"] as? Int==150}?["hand"] as? Bool==false
+                // Earlier turn detection may leave its original location for
+                // review. Complete the SGF without creating or retiming turns.
+                r.pause()
+                let ids=r.stoneLedger!.records.map(\.id),pending=r.deferredPendingRecords
+                let correction=pending.isEmpty ? nil:r.resolveDeferredLocations(
+                    Dictionary(uniqueKeysWithValues:pending.map{($0.number,expected[$0.number-1])}),identities:pending.map(\.id))
+                let completed=r.game.moves.compactMap{$0.1.map{$0.1*19+$0.0}}
+                let corrected=r.clock.moves+r.clock.provisionalMoves
+                let preserved=presses.allSatisfy {before in corrected.contains {after in
+                    before.number==after.number && before.estimate==after.estimate && before.before==after.before && before.after==after.after
+                }}
+                allPassed = allPassed && correction==nil && completed==expected && preserved && r.stoneLedger!.records.map(\.id)==ids
+                reports[reports.count-1]["completedPoints"]=completed
+                reports[reports.count-1]["correctionPreservedReceipts"]=preserved
+                reports[reports.count-1]["correctionError"]=correction as Any? ?? NSNull()
             }
             r.pause()
         }

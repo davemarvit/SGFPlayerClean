@@ -128,10 +128,11 @@ struct ClearBoardTiming {
         let estimate=observation.clockPressEstimate.flatMap{$0.valid && $0.time<=stamp ? $0:nil}
             ?? ClockPressEstimate(time:stamp,method:.clearFrame)
         let raw=rawObservation.flatMap{$0.readings.count==observation.readings.count && $0.size==observation.size && $0.capturedAt==observation.capturedAt ? $0:nil} ?? observation
+        let evidence=allowWhiteOutlineEvidence ? observation.turnEvidenceObservation:observation
         views.append(.init(time:stamp,processedAt:now,observationID:observationID,rawPosition:raw.signature,
-                           confidence:observation.readings.map(\.confidence),rawConfidence:raw.readings.map(\.confidence),estimate:estimate,
-                           aliases:observation.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count)),
-                           whiteOutlineCenters:allowWhiteOutlineEvidence ? observation.whiteTurnOutlineCenters:[:],shadowSuspects:shadowPoints,position:observation.signature))
+                           confidence:evidence.readings.map(\.confidence),rawConfidence:raw.readings.map(\.confidence),estimate:estimate,
+                           aliases:evidence.placementAlternatives(base:Array(repeating:.empty,count:observation.readings.count)),
+                           whiteOutlineCenters:allowWhiteOutlineEvidence ? evidence.whiteTurnOutlineCenters:[:],shadowSuspects:shadowPoints,position:evidence.signature))
         if views.count>1000 {views.removeFirst(views.count-1000)}
     }
     func estimate(target:[Occupancy],changed:Set<Int>,after epoch:Double)->ClockPressEstimate? {
