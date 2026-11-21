@@ -7,5 +7,10 @@
   "capturedPoint": 73,
   "savedMoves": 23,
   "timedMoves": 58,
-  "notes": "Original saved state and final logged observation. Repeated views and simulated removal in tests are synthetic, not independent recording images."
+  "notes": "Original saved state and final logged observation. Repeated views and simulated removal in tests are synthetic, not independent recording images.",
+  "resumeRecording": "Diagnostic 2026-11-20 21-36-42 D7EE4681",
+  "resumeObservationCount": 204,
+  "resumeNotes": "The recording includes the original 58-turn position followed by two additional placements (Black 189, White 356). Version 0.203 left the clocks stopped, so those two placements have no saved presses. The regression replays the actual observations and hand callbacks to verify that the corrected Resume path starts clocks before these placements; two further placements and prisoner removal are synthetic.",
+  "resumeHandOnlyCallbacks": 11,
+  "handCallbackTiming": "Camera capture timestamps and operation completion times from the matching diagnostic recording; hand-only callbacks supply camera continuity, not stone evidence."
 }

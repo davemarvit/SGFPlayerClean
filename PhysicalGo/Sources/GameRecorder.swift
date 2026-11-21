@@ -818,6 +818,7 @@ enum LocalGameSetup {
         return pendingCount >= 5 && now-pendingSince >= 0.8
     }
     func suspendVision(_ reason:String, preserveObservations:Bool=false, preserveOrder:Bool=false,checkpoint:Bool=true) {
+        retainedTurnResumeViews=nil
         stoneLedger?.interrupt();cleanupExcludedPoints=[]
         // Restoration must validate sidecars before any checkpoint can replace them.
         defer {if checkpoint {checkpointPendingMoves()}}
@@ -1332,6 +1333,7 @@ enum LocalGameSetup {
         handOverBoard=false
     }
     func noteHandObstruction(now:Double = ProcessInfo.processInfo.systemUptime,capturedAt:Double?=nil) {
+        retainedTurnResumeViews=nil
         stoneLedger?.interrupt();cleanupExcludedPoints=[]
         clock.noteCameraObservation(at:capturedAt ?? now,now:now)
         if clock.takeObservationGapHold() {
@@ -1646,6 +1648,7 @@ enum LocalGameSetup {
             if handleProvisionalCapture(rawObservation,now:now) {return}
             if handleAutomaticCapture(rawObservation,now:now) {return}
         }
+        resumeRetainedTurns(observation,base:expected,now:now)
         if observation.handObstructed == false {recordObservedTurns(base:expected,readings:readings,now:now)}
         if hasDeferredMoves {
             let changed=retainDeferred(observation,now:now,allowStart:false)
@@ -1833,6 +1836,51 @@ enum LocalGameSetup {
     private var unobservedTurnView:(position:[Occupancy],first:Double,last:Double,count:Int)?
     private var captureTimingUnresolved=false
     private var hasIndependentTurnTiming:Bool {clock.provisionalMoves.contains{$0.observedLocations != nil}}
+    /// Shared presentation evidence. Never assigns intersections to history.
+    var retainedTimedPositionMatchesCamera:Bool {adjustmentObservation.map{retainedTimedPositionMatches($0)} ?? false}
+    func retainedTimedPositionMatches(_ readings:[Occupancy])->Bool {
+        guard deferredLocationsEnabled,let board=positions.last,
+              clock.provisionalMoves.first?.number==moveCount+1 else {return false}
+        let capture=AutomaticCapture.pendingGuidance(game:game,moves:clock.provisionalMoves,readings:readings,includingCompleted:true)
+        return RetainedTurnPosition.match(base:DeferredMoveHistory.states(board),moves:clock.provisionalMoves,
+            capture:capture,readings:readings) != nil
+    }
+    var additionalUntimedPoints:[Int] {
+        guard state == .recording,!clock.running,!clock.requiresReview,!handOverBoard,
+              let readings=adjustmentObservation,let board=positions.last,!clock.provisionalMoves.isEmpty else {return []}
+        let base=DeferredMoveHistory.states(board)
+        let known=Set(base.indices.filter{base[$0].stone != nil}).union(clock.provisionalMoves.flatMap{$0.observedLocations ?? []})
+        let extra=readings.indices.filter{!known.contains($0) && readings[$0].stone != nil}
+        guard !extra.isEmpty else {return []}
+        var projected=readings;for p in extra {projected[p] = .empty}
+        return retainedTimedPositionMatches(projected) ? extra:[]
+    }
+    private var retainedTurnResumeViews:(position:[Occupancy],lastTurn:Int,first:Double,last:Double,count:Int)?
+    private func resumeRetainedTurns(_ observation:BoardObservation,base:[Occupancy],now:Double) {
+        guard deferredLocationsEnabled,state == .recording,clock.enabled,!clock.running,!hasDeferredMoves,
+              !clock.requiresReview,!clock.awaitingTurn,!clock.automaticCapturePaused,
+              !recoveryReadBlocked,!captureTimingUnresolved,storageWriter.error==nil,
+              saveError==nil,pendingSaveError==nil,reviewSaveError==nil,
+              clock.provisionalMoves.first?.number==moveCount+1,
+              let last=clock.provisionalMoves.last,clock.engine.blackToPlay == !last.black,
+              observation.handObstructed == false,!observation.lightingBlocked,
+              let stamp=observation.capturedAt,stamp<=now,now-stamp<1.5 else {retainedTurnResumeViews=nil;return}
+        let capture=unheldCaptureGuidance ?? AutomaticCapture.pendingGuidance(game:game,moves:clock.provisionalMoves,
+            readings:observation.signature,includingCompleted:true)
+        if let capture,clock.engine.settings.capturePauseMinimum>=2,
+           capture.captured.count>=clock.engine.settings.capturePauseMinimum {retainedTurnResumeViews=nil;return}
+        guard let position=RetainedTurnPosition.match(base:base,moves:clock.provisionalMoves,capture:capture,readings:observation.signature) else {
+            retainedTurnResumeViews=nil;return
+        }
+        if var views=retainedTurnResumeViews,views.position==position,views.lastTurn==last.number,stamp-views.last<=0.5 {
+            guard stamp>views.last else {return}
+            views.last=stamp;views.count+=1;retainedTurnResumeViews=views
+        } else {retainedTurnResumeViews=(position,last.number,stamp,stamp,1)}
+        if let views=retainedTurnResumeViews,views.count>=5,stamp-views.first>=0.8 {
+            clock.ready(at:now);retainedTurnResumeViews=nil
+            trace(event:"retained timed position verified",now:now,extra:["timedMoves":last.number])
+        }
+    }
     private func recordObservedTurns(base:[Occupancy],readings:[Occupancy],now:Double) {
         // A resume/checking frame may show a stone being restored to its recorded
         // intersection. Only an uninterrupted turn can supply a new clock press.

@@ -52,7 +52,7 @@ import AVFoundation
     let title:String
     let detail:String
     let nextStep:String
-    init(recorder:GameRecorder) {
+    init(recorder:GameRecorder,orientation:BoardOrientation = .init(0)) {
         let clock=recorder.clock
         let presentation=LocalPlayPresentation(recorder:recorder,clock:clock)
         let clocks=clock.enabled ? (clock.running ? "Clock running.":"Clocks stopped."):""
@@ -98,6 +98,12 @@ import AVFoundation
                 : "\(turn) plays next. Press Resume when ready; the board is verified before play continues."
         } else if recorder.state == .idle {
             title="Camera preview";detail="No game is being recorded.";nextStep="Save a game setup to begin."
+        } else if !recorder.additionalUntimedPoints.isEmpty {
+            title="Check unrecorded turns";detail="\(clocks) Earlier move times are retained."
+            nextStep=recorder.spokenRecoveryInstruction(orientation:orientation)
+        } else if let instruction=recorder.captureRemovalInstruction(orientation:orientation) {
+            title="Remove captured stones";detail="\(clocks) Original move times are retained."
+            nextStep=instruction
         } else if clock.running && !clock.provisionalMoves.isEmpty && !recorder.needsAttention {
             title="Playing";detail="Clock running. \(recorder.moveCount) moves saved."
             nextStep="\(recorder.placementAmbiguities.count) ambiguous placements retained. Click an ambiguity count to review earlier positions."
@@ -278,7 +284,7 @@ struct LocalClockPanel:View {
                 DisclosureGroup("Earlier clock timing") {Text(note).font(.callout)}
             }
             if showsStatus {
-                let message=LocalPlayStatus(recorder:recorder)
+                let message=LocalPlayStatus(recorder:recorder,orientation:orientation)
                 VStack(alignment:.leading,spacing:6) {
                     Text(message.title).font(.headline)
                     Text(message.detail).font(.callout)

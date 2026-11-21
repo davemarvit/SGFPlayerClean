@@ -38,6 +38,16 @@ import Foundation
             return "\(prefix) \(action) Open Review \(reviewHistory.sections.last?.reviewNumber ?? 1) and choose Confirm capture when available."
         }
         if visibilityWarning {return "\(prefix) \(Self.visibilityGuidance)"}
+        let untimed=additionalUntimedPoints
+        if !untimed.isEmpty {
+            return "Clocks paused. Additional stones at \(locations(untimed)) have no recorded clock presses. Review their moves and clock times before resuming."
+        }
+        if !clock.requiresReview,!clock.awaitingTurn,let instruction=captureRemovalInstruction(orientation:orientation) {
+            return instruction
+        }
+        if clock.running,!handOverBoard,retainedTimedPositionMatchesCamera {
+            return "Play and clocks can continue. Recorded turns and original move times are retained; uncertain locations can be reviewed later."
+        }
         if let section=reviewHistory.sections.last(where:{!$0.committed && $0.moves==nil}) {
             let review="Review \(section.reviewNumber ?? 1)"
             let lead=clock.running ? "Move history needs review." : prefix

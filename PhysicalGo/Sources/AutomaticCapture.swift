@@ -40,7 +40,7 @@ import Foundation
     /// Presentation only: later independently timed placements must not erase
     /// the oldest pending capture's removal instruction. This projection is
     /// never supplied to recognition, move acceptance, or the clock.
-    static func pendingGuidance(game:SGFGame,moves:[LocalGameClock.Move],readings:[Occupancy])->Self? {
+    static func pendingGuidance(game:SGFGame,moves:[LocalGameClock.Move],readings:[Occupancy],includingCompleted:Bool=false)->Self? {
         guard let first=moves.first,first.number==game.moves.count+1,
               let locations=first.observedLocations,locations.count==1,
               let point=locations.first,readings.indices.contains(point),
@@ -61,7 +61,7 @@ import Foundation
                 }
             }
         }
-        guard let plan=find(game:game,readings:projected,minimum:1),plan.point==point,
+        guard let plan=find(game:game,readings:projected,minimum:1,includingCompleted:includingCompleted),plan.point==point,
               later.isDisjoint(with:plan.captured.union([point])) else {return nil}
         return plan
     }

@@ -717,7 +717,7 @@ struct RecordingStatusBanner: View {
         _clock=ObservedObject(wrappedValue:recorder.clock)
     }
     var body:some View {
-        let message=LocalPlayStatus(recorder:recorder)
+        let message=LocalPlayStatus(recorder:recorder,orientation:model.orientation)
         let warning=model.alignmentNeedsRecovery || model.lightingNeedsRecovery || recorder.state != .recording || !recorder.synchronized || recorder.needsAttention
         let tint:Color=recorder.saveError != nil || recorder.reviewSaveError != nil || recorder.pendingSaveError != nil || clock.saveError != nil ? .red:warning ? .orange:.green
         VStack(alignment:.leading,spacing:10) {

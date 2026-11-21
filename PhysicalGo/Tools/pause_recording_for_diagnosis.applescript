@@ -9,6 +9,10 @@ tell application "System Events"
         click radio button 2 of radio group 1 of group 1 of sheet 1 of window 1
         set s to scroll area 1 of group 1 of sheet 1 of window 1
         if value of checkbox "Diagnostics mode" of s is 1 then click checkbox "Diagnostics mode" of s
+        repeat 10 times
+            if value of checkbox 2 of group 2 of s is 0 and value of checkbox 1 of group 2 of s is 0 then exit repeat
+            delay 0.1
+        end repeat
         if value of checkbox 2 of group 2 of s is 1 then error "Next-game recording remains armed."
         if value of checkbox 1 of group 2 of s is 1 then error "Continuous recording is still active."
         click radio button 1 of radio group 1 of group 1 of sheet 1 of window 1
@@ -20,6 +24,10 @@ tell application "System Events"
         set p to pop up button 1 of g
         click p
         click menu item "Off" of menu 1 of p
+        repeat 10 times
+            if value of p is "Off" then exit repeat
+            delay 0.1
+        end repeat
         if value of p is not "Off" then error "Warning feedback is still enabled."
         click button 1 of group 1 of sheet 1 of window 1
     end tell
