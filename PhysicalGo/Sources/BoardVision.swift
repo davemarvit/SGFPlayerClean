@@ -88,6 +88,51 @@ struct GrayFrame {
     let height: Int
     let pixels: [UInt8]
     private let colorBytes: [UInt8]?
+    // Copies share an immutable image identity. Pixel transformations construct
+    // a new frame, so a prepared reference cannot survive a changed image.
+    let patchIdentity = UUID()
+    private var preparedPatches: PreparedPatches?
+    private struct PreparedPatches {
+        let luminance:[UInt16]
+        let red:[UInt16]?,green:[UInt16]?,blue:[UInt16]?
+    }
+
+    /// Work for an idle/background queue. Store exact integer 3x3 sums, never
+    /// recognition results. Calibration and live lighting are still evaluated
+    /// on every observation. Limit the optional cache to 32 MiB per reference.
+    func preparingPatchSamples() -> GrayFrame {
+        guard preparedPatches==nil,pixels.count<=4_194_304 else {return self}
+        func sums(_ sample:(Int)->UInt8)->[UInt16] {
+            var horizontal=[UInt16](repeating:0,count:pixels.count)
+            for y in 0..<height {
+                let row=y*width
+                var sum=Int(sample(row))+(width>1 ? Int(sample(row+1)):0)
+                for x in 0..<width {
+                    horizontal[row+x]=UInt16(sum)
+                    if x>0 {sum-=Int(sample(row+x-1))}
+                    if x+2<width {sum+=Int(sample(row+x+2))}
+                }
+            }
+            var result=[UInt16](repeating:0,count:pixels.count)
+            for y in 0..<height {for x in 0..<width {
+                let i=y*width+x
+                result[i]=horizontal[i]+(y>0 ? horizontal[i-width]:0)+(y+1<height ? horizontal[i+width]:0)
+            }}
+            return result
+        }
+        let luminance=sums{pixels[$0]}
+        var red:[UInt16]?,green:[UInt16]?,blue:[UInt16]?
+        if let colorBytes {
+            red=sums{colorBytes[$0*4]};green=sums{colorBytes[$0*4+1]};blue=sums{colorBytes[$0*4+2]}
+        }
+        var result=self
+        result.preparedPatches = .init(luminance:luminance,red:red,green:green,blue:blue)
+        return result
+    }
+    var preparedPatchBytes:Int {
+        guard let preparedPatches else {return 0}
+        return pixels.count*MemoryLayout<UInt16>.stride*(preparedPatches.red==nil ? 1:4)
+    }
 
     init(width: Int, height: Int, pixels: [UInt8], colorBytes: [UInt8]? = nil) {
         precondition(width > 0 && height > 0 && pixels.count == width*height)
@@ -154,6 +199,10 @@ struct GrayFrame {
     func patchMean(_ p: ImagePoint) -> Double? {
         guard p.x.isFinite, p.y.isFinite, (0...1).contains(p.x), (0...1).contains(p.y) else { return nil }
         let x = Int((p.x*Double(width-1)).rounded()), y = Int((p.y*Double(height-1)).rounded())
+        if let preparedPatches {
+            let count=(min(width-1,x+1)-max(0,x-1)+1)*(min(height-1,y+1)-max(0,y-1)+1)
+            return Double(preparedPatches.luminance[y*width+x])/Double(count*255)
+        }
         var sum = 0, count = 0
         for row in max(0,y-1)...min(height-1,y+1) { for col in max(0,x-1)...min(width-1,x+1) {
             sum += Int(pixels[row*width+col]); count += 1
@@ -165,6 +214,12 @@ struct GrayFrame {
         guard let colorBytes, p.x.isFinite, p.y.isFinite,
               (0...1).contains(p.x), (0...1).contains(p.y) else { return nil }
         let x = Int((p.x*Double(width-1)).rounded()), y = Int((p.y*Double(height-1)).rounded())
+        if let preparedPatches,let r=preparedPatches.red,let g=preparedPatches.green,let b=preparedPatches.blue {
+            let i=y*width+x,total=Double(Int(r[i])+Int(g[i])+Int(b[i]))
+            let count=(min(width-1,x+1)-max(0,x-1)+1)*(min(height-1,y+1)-max(0,y-1)+1)
+            guard total>Double(count)*255*0.12 else {return nil}
+            return BoardChroma(red:Double(r[i])/total-1.0/3.0,green:Double(g[i])/total-1.0/3.0)
+        }
         var red = 0, green = 0, blue = 0, count = 0
         for row in max(0,y-1)...min(height-1,y+1) { for col in max(0,x-1)...min(width-1,x+1) {
             let index = (row*width+col)*4

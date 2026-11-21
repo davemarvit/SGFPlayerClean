@@ -1,0 +1,71 @@
+Background preparation of the empty-board reference
+
+The camera pipeline prepares exact 3x3 pixel sums for the immutable empty-board
+reference on a utility queue after delivering a camera analysis result. Subsequent
+images reuse the prepared sums once available. Recognition never waits for the
+preparation: it uses the existing sampling path until the result is ready.
+
+This moves reference-image work away from the time when a new stone is placed.
+It does not reuse a previous stone label, outline, hand mask, confidence score,
+lighting result or clock decision. Every live image still receives full-board
+recognition, including captures and cleanup. Recognition thresholds, search
+ranges, tie order and timing rules are unchanged.
+
+Exactness and invalidation
+- Each cached value is the integer sum of the same pixels used by ordinary
+  sampling. The final division, edge sample count and dark-color cutoff are
+  unchanged. There is no approximate arithmetic or unsafe array indexing.
+- GrayFrame copies share an immutable image identity. Replacing the reference or
+  transforming luminance creates a new identity without prepared sums.
+- Calibration is applied to coordinates on every call. The cache contains image
+  pixels only, so it cannot transfer a grid, camera calibration or stone position.
+- Only one ready reference and one preparation job are retained. If the reference
+  changes during preparation, an obsolete result is discarded and the latest
+  reference is prepared. Clearing the reference clears the ready cache.
+- RGB plus grayscale sums require eight bytes per image pixel: about 15.8 MiB
+  for a 1920x1080 reference. The optional cache is capped at 32 MiB; larger images
+  use ordinary sampling. Temporary preparation arrays add transient memory.
+
+The outline fitter also hoists invariant color checks, permits inlining of its
+span sum helper, and reuses one already-computed body sum for contextual fits.
+The pixel evidence and floating-point operations on each result are identical.
+
+Validation
+Tools/test_reference_preparation.py exercises exact sampling, image boundaries,
+tiny images, missing color, dark-color rejection, invalid coordinates, luminance
+transform invalidation, the memory limit, and actual asynchronous pipeline cache
+replacement. It does not open the installed app or access the camera.
+
+Tools/test_geometry_performance.py compares the previous sources with the new
+sources, including every occupancy, confidence, delta, footprint, placement fit,
+centering warning and lighting field. With --prepare-reference, reference
+preparation is measured separately and excluded from steady-state detector time.
+The candidate's prepared and the baseline's ordinary sampling must agree exactly.
+Timing trials alternate baseline/candidate/candidate/baseline, with a warmup and
+three repetitions per image. Hashes bind the report to sources and image inputs.
+
+Example:
+python3 PhysicalGo/Tools/test_geometry_performance.py --inputs INPUTS_JSON \
+  --baseline-revision fb5c9fa8a69eb71c87d1b99d1cf88bd8681ea2ce \
+  --baseline-file Sources/BoardVision.swift --prepare-reference --output NEW_DIR
+python3 PhysicalGo/Tools/test_reference_preparation.py --output NEW_TEST_DIR
+
+The current corpus and machine measurements are retained under
+/Users/Dave/Documents/SGF PLayer/work/performance-stage35.
+Older iPhone recordings retain their own reference and calibration, separately
+from AUSDOM AF660 recordings. The corpus includes generated calibration variants;
+case counts are not counts of independent games. Detector computation time is
+not a measurement of total live camera-to-clock latency.
+
+Measured result (2026-11-21)
+The 20 benchmark cases used 14.97% less summed median detector time: 1.17070 s
+before versus 0.99545 s after. Both candidate trials were faster than both
+baseline trials. The recent capture-removal samples fell from 82.1/84.4/83.1 ms
+to 69.3/71.9/69.4 ms. The 85-move endpoint fell from 102.7 to 84.7 ms.
+All recognition evidence matched exactly across 596 cases and 426 distinct image
+files. These include 511 still-available earlier cases and 85 recent AF660 cases;
+49 older diagnostic images were already unavailable and were not claimed tested.
+Reference preparation had a median cost of 28.2 ms per image in the audit, outside
+the timed detector interval. The largest prepared cache was 15.8 MiB. Production
+prepares each retained reference once in the background, rather than per image.
+27,485 sampling and asynchronous-pipeline assertions passed.

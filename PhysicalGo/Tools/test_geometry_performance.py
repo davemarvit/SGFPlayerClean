@@ -19,6 +19,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--inputs',type=Path,required=True)
     p.add_argument('--baseline-revision',required=True)
+    p.add_argument('--baseline-file',action='append',default=[],help='Additional source relative to PhysicalGo to compare from the baseline revision')
+    p.add_argument('--prepare-reference',action='store_true',help='Prepare exact reference patch sums outside candidate detection timing')
     p.add_argument('--output',type=Path,required=True)
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
     cases=json.loads(a.inputs.read_text());assert cases and len({r['id'] for r in cases})==len(cases)
@@ -28,19 +30,25 @@ def main():
     inputs={a.inputs,Path(__file__),*sources}
     inputs.update(Path(r[k]) for r in cases for k in ['image','reference'])
     hashes={str(p):sha(p) for p in sorted(inputs)}
-    baseline=a.output/'StoneGeometry-baseline.swift'
-    baseline.write_bytes(subprocess.check_output(['git','show',a.baseline_revision+':PhysicalGo/Sources/StoneGeometry.swift'],cwd=ROOT.parent))
-    result=dict(passed=False,baselineRevision=a.baseline_revision,baselineGeometrySHA256=sha(baseline),sourceAndInputHashes=hashes)
+    replacements={}
+    for relative in ['Sources/StoneGeometry.swift',*a.baseline_file]:
+        original=(ROOT/relative).resolve()
+        assert original in sources,relative
+        baseline=a.output/(original.stem+'-baseline.swift')
+        baseline.write_bytes(subprocess.check_output(['git','show',a.baseline_revision+':PhysicalGo/'+relative],cwd=ROOT.parent))
+        replacements[original]=baseline
+    result=dict(passed=False,baselineRevision=a.baseline_revision,
+        baselineGeometrySHA256=sha(replacements[(ROOT/'Sources/StoneGeometry.swift').resolve()]),
+        baselineSources={str(p):sha(v) for p,v in replacements.items()},preparedReference=a.prepare_reference,sourceAndInputHashes=hashes)
     report=a.output/'comparison.json'
     def save():report.write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
     save()
     executables={}
     for variant in ['baseline','candidate']:
         executable=a.output/variant;executables[variant]=executable
-        selected=[baseline if variant=='baseline' and p==ROOT/'Sources/StoneGeometry.swift' else p for p in sources]
-        command=['xcrun','swiftc','-swift-version','5','-O','-D','PHYSICAL_GO',*map(str,selected),'-o',str(executable)]
-        # resolve_sources canonicalizes paths on case-insensitive macOS volumes.
-        if variant=='baseline':command=[str(baseline) if x==str((ROOT/'Sources/StoneGeometry.swift').resolve()) else x for x in command]
+        selected=[replacements.get(p,p) if variant=='baseline' else p for p in sources]
+        flags=['-D','PREPARED_REFERENCE'] if variant=='candidate' and a.prepare_reference else []
+        command=['xcrun','swiftc','-swift-version','5','-O','-D','PHYSICAL_GO',*flags,*map(str,selected),'-o',str(executable)]
         with (a.output/(variant+'-build.log')).open('w') as log:subprocess.run(command,check=True,stdout=log,stderr=subprocess.STDOUT)
     def run(variant,inputs,name,repetitions):
         output=a.output/(name+'.json');print('Running '+name,flush=True)
@@ -63,6 +71,7 @@ def main():
     result.update(benchmarkCases=len(benchmark),summedCaseMedianSecondsBefore=before,summedCaseMedianSecondsAfter=after,
         speedupFraction=1-after/before,alternatingTrialSeconds=totals,
         timingByCase={key:{variant:statistics.median(times[variant][key]) for variant in times} for key in times['baseline']})
+    result['referencePreparation']={r['id']:{'seconds':r['referencePreparationSeconds'],'bytes':r['preparedReferenceBytes']} for r in candidate}
     assert hashes=={p:sha(Path(p)) for p in hashes},'Inputs changed during validation'
     save();assert after<before*0.95,'No measured improvement of at least 5 percent'
     result['passed']=True;save();print(json.dumps({k:v for k,v in result.items() if k not in ['sourceAndInputHashes','timingByCase']},indent=2))

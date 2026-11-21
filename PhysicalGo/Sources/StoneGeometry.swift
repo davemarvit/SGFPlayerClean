@@ -58,6 +58,8 @@ enum StoneGeometry {
         // visible body shrinks, by the union of independently observed neighbors.
         // This avoids accepting a small shadow as an unusually small stone.
         let contextual = !occlusion.isEmpty
+        let blackStone = reading.occupancy == .black
+        let needsColor = contextual || !blackStone
         let radii=occlusion.map{$0.shape.radiusCol}.sorted()
         let expectedRadius=contextual ? radii[radii.count/2] : 0
         var prefix=[Double](repeating:0,count:side*(side+1))
@@ -68,13 +70,13 @@ enum StoneGeometry {
             var vote=0.0,black=false,white=false
             if let current=frame.patchMean(p),let base=reference.patchMean(q) {
                 black=current-correction<base-0.20 && current-correction<base*0.65
-                if contextual || reading.occupancy != .black,let a=frame.patchColor(p),let b=reference.patchColor(q) {
+                if needsColor,let a=frame.patchColor(p),let b=reference.patchColor(q) {
                     let expected=b+colorShift
                     let minimumWhite = shadedWhite ? base*0.75 : base-0.06
                     white=(a.supportsWhiteStone(comparedTo:expected) && current-correction>minimumWhite)
                         || current-correction>base+0.12
                 }
-                if reading.occupancy == .black ? black : white {vote=1}
+                if blackStone ? black : white {vote=1}
             }
             let offset=y*(side+1)+x
             prefix[offset+1]=prefix[offset]+vote
@@ -90,7 +92,7 @@ enum StoneGeometry {
                 maskedVotes[offset+1]=maskedVotes[offset]+(covered ? vote : 0)
             }
         } }
-        func sum(_ disk:Disk,_ x:Int,_ y:Int,_ values:[Double])->Double {
+        @inline(__always) func sum(_ disk:Disk,_ x:Int,_ y:Int,_ values:[Double])->Double {
             var total=0.0
             let offset=y*(side+1)+x
             for span in disk.spans {
@@ -107,7 +109,8 @@ enum StoneGeometry {
         for shape in shapes where shape.rx <= maximumRadius { for dy in -searchSteps...searchSteps { for dx in -searchSteps...searchSteps {
             if contextual && (abs(shape.rx-expectedRadius)>0.041 || abs(dx)>5 || abs(dy)>5) {continue}
             let x=origin+dx,y=origin+dy
-            var inside=sum(shape.disk,x,y,prefix)/shape.disk.count
+            let bodyVotes=sum(shape.disk,x,y,prefix)
+            var inside=bodyVotes/shape.disk.count
             // Ring penalties are nonnegative. This candidate cannot beat the
             // current fit even with a perfect ring; retain the original tie order.
             // Contextual fits first need their visible-body adjustment below.
@@ -121,7 +124,7 @@ enum StoneGeometry {
                 // remain visible. Multiple masks are a union, never double counted.
                 // The equivalent visible radius is fullRadius * sqrt(body/fullArea).
                 guard hidden>=shape.disk.count*0.02,body>=shape.disk.count*0.65 else {continue}
-                inside=(sum(shape.disk,x,y,prefix)-sum(shape.disk,x,y,maskedVotes))/body
+                inside=(bodyVotes-sum(shape.disk,x,y,maskedVotes))/body
                 guard inside>=0.92,inside>bestScore else {continue}
                 visible -= sum(shape.outer,x,y,maskedCount)-sum(shape.inner,x,y,maskedCount)
                 guard visible>=area*0.50 else {continue}

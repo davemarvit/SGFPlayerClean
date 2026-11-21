@@ -24,7 +24,15 @@ import ImageIO
         func value<T:Encodable>(_ v:T)throws->Any {try JSONSerialization.jsonObject(with:JSONEncoder().encode(v),options:.fragmentsAllowed)}
         var rows=[[String:Any]]()
         for f in frames {
-            let frame=try load(f.image),reference=try load(f.reference)
+            let frame=try load(f.image)
+            var reference=try load(f.reference)
+            var preparationSeconds=0.0,preparedBytes=0
+            #if PREPARED_REFERENCE
+            let preparationStart=ProcessInfo.processInfo.systemUptime
+            reference=reference.preparingPatchSamples()
+            preparationSeconds=ProcessInfo.processInfo.systemUptime-preparationStart
+            preparedBytes=reference.preparedPatchBytes
+            #endif
             var durations=[Double](),canonical:Data?,evidence:[String:Any]=[:]
             // One unmeasured warmup per image makes repeated before/after
             // comparisons less dependent on one-time runtime initialization.
@@ -41,7 +49,8 @@ import ImageIO
                 if let canonical {precondition(canonical==bytes,"Non-deterministic recognition for \(f.id)")} else {canonical=bytes}
                 if run>0 {durations.append(elapsed)}
             }
-            rows.append(["id":f.id,"seconds":durations,"evidence":evidence])
+            rows.append(["id":f.id,"seconds":durations,"evidence":evidence,
+                         "referencePreparationSeconds":preparationSeconds,"preparedReferenceBytes":preparedBytes])
             print(f.id,durations.sorted()[durations.count/2])
         }
         try JSONSerialization.data(withJSONObject:rows,options:[.sortedKeys]).write(to:URL(fileURLWithPath:CommandLine.arguments[2]))

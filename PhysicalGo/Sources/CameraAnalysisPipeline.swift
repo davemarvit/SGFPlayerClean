@@ -9,7 +9,7 @@ final class CameraAnalysisPipeline {
         let target: CGImage
         let calibration: BoardCalibration
         let threshold: Double
-        let reference: GrayFrame?
+        var reference: GrayFrame?
         let referenceCalibration: BoardCalibration?
         let straighten: Bool
         let longAxisRows: Bool
@@ -49,12 +49,38 @@ final class CameraAnalysisPipeline {
         let corrected: CGImage?
         let emptyLighting:KnownEmptyLighting
         let rawResult:BoardObservation?
+        let preparedReferenceBytes:Int
     }
     private let queue = DispatchQueue(label: "PhysicalGo.detection", qos: .userInitiated)
+    private let preparationQueue = DispatchQueue(label:"PhysicalGo.referencePreparation",qos:.utility)
+    // Accessed only on the detection queue. Keep one ready reference and at
+    // most one preparation job; a replacement supersedes stale queued work.
+    private var latestReference:GrayFrame?
+    private var preparedReference:GrayFrame?
+    private var preparationInFlight=false
     func submit(_ input: Input, completion: @escaping @MainActor (Output) -> Void) {
         queue.async {
+            var input=input
+            self.latestReference=input.reference
+            if self.preparedReference?.patchIdentity != input.reference?.patchIdentity {self.preparedReference=nil}
+            if let prepared=self.preparedReference {input.reference=prepared}
             let output = Self.process(input)
             DispatchQueue.main.async { completion(output) }
+            // The current camera result never waits for preparation. The next
+            // observations use ordinary exact sampling until the cache is ready.
+            self.prepareReferenceIfNeeded()
+        }
+    }
+    private func prepareReferenceIfNeeded() {
+        guard !preparationInFlight,preparedReference==nil,let reference=latestReference else {return}
+        preparationInFlight=true
+        preparationQueue.async {
+            let prepared=reference.preparingPatchSamples()
+            self.queue.async {
+                self.preparationInFlight=false
+                if self.latestReference?.patchIdentity==prepared.patchIdentity {self.preparedReference=prepared}
+                self.prepareReferenceIfNeeded()
+            }
         }
     }
     static func process(_ input: Input) -> Output {
@@ -135,6 +161,6 @@ final class CameraAnalysisPipeline {
         // recognition or recording from an unverified frame (both remain nil).
         let geometry = straighten ? BoardRectifiedGeometry(calibration:aligned ?? calibration,longAxisRows:displayRows) : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
-        return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult: trackingResult, stoneAspect: stoneAspect, applyAspect: applyAspect, geometry: geometry, corrected: corrected,emptyLighting:emptyLighting,rawResult:rawResult)
+        return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult:trackingResult, stoneAspect:stoneAspect, applyAspect:applyAspect, geometry:geometry, corrected:corrected,emptyLighting:emptyLighting,rawResult:rawResult,preparedReferenceBytes:reference?.preparedPatchBytes ?? 0)
     }
 }
