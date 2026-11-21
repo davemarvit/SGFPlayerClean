@@ -7,6 +7,7 @@ import ImageIO
         setbuf(stdout,nil);NSApplication.shared.setActivationPolicy(.accessory)
         let uncertaintyChecks=try CaptureUncertaintyTests.run()
         let captureSpeechChecks=try CaptureConflictGuidanceTests.run()
+        _=try DelayedCaptureGuidanceTests.run()
         var checks=0
         func check(_ value:Bool,_ reason:String) {checks += 1;precondition(value,reason)}
         func near(_ a:Double,_ b:Double)->Bool {abs(a-b)<0.00001}

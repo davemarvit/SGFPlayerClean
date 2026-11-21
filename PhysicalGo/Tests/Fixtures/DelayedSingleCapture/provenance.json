@@ -1,0 +1,11 @@
+{
+  "game": "Physical Go 476FFB35-74A4-4C97-84B6-52735B27881B",
+  "camera": "AUSDOM AF660",
+  "source": "Diagnostic 2026-11-20 21-04-27 C83734D7 and matching observation journal",
+  "captureMove": 24,
+  "capturingPoint": 92,
+  "capturedPoint": 73,
+  "savedMoves": 23,
+  "timedMoves": 58,
+  "notes": "Original saved state and final logged observation. Repeated views and simulated removal in tests are synthetic, not independent recording images."
+}

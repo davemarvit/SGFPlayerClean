@@ -110,7 +110,7 @@ struct AutomaticCaptureInspection:View {
                 Text("Captured intersections: \(coordinates(capture.captured)).")
                 let remaining=Set(recorder.captureProgressRemaining ?? [])
                 Text(remaining.isEmpty ? "Removal appears complete; keep hands clear for verification.":"Still to verify empty: \(coordinates(remaining)).")
-                Text(recorder.automaticCaptureStatus ?? "Remove the captured stones, keeping the capturing stone in place. The configured clock policy remains in effect.")
+                Text(recorder.automaticCaptureStatus ?? recorder.captureRemovalInstruction(orientation:orientation) ?? "Keep hands clear while capture removal is checked.")
             } else {
                 Text("This capture completed or changed. Return to the live position for current actions.")
             }

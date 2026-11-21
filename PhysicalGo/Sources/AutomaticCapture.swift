@@ -37,6 +37,34 @@ import Foundation
     func matchesCompleted(_ readings:[Occupancy])->Bool {
         ReviewBoardVerification.matches(readings,target:target,requiredClear:captured.union([point]))
     }
+    /// Presentation only: later independently timed placements must not erase
+    /// the oldest pending capture's removal instruction. This projection is
+    /// never supplied to recognition, move acceptance, or the clock.
+    static func pendingGuidance(game:SGFGame,moves:[LocalGameClock.Move],readings:[Occupancy])->Self? {
+        guard let first=moves.first,first.number==game.moves.count+1,
+              let locations=first.observedLocations,locations.count==1,
+              let point=locations.first,readings.indices.contains(point),
+              first.estimate?.valid == true || first.reviewed == true else {return nil}
+        let trial=SGFPlayer();trial.load(game:game);trial.seek(to:game.moves.count)
+        let before=DeferredMoveHistory.states(trial.board)
+        guard before.count==readings.count,first.black == (trial.turn == .black),
+              before[point] == .empty else {return nil}
+        var projected=readings,later=Set<Int>()
+        for (offset,move) in moves.dropFirst().enumerated() {
+            guard move.number==first.number+offset+1,move.black == (offset%2==0 ? !first.black:first.black),
+                  let points=move.observedLocations,!points.isEmpty,
+                  points.allSatisfy({before.indices.contains($0)}) else {return nil}
+            later.formUnion(points)
+            for p in points where before[p] == .empty && p != point {
+                if projected[p] == .uncertain || projected[p] == .empty || projected[p].stone == (move.black ? .black:.white) {
+                    projected[p]=before[p]
+                }
+            }
+        }
+        guard let plan=find(game:game,readings:projected,minimum:1),plan.point==point,
+              later.isDisjoint(with:plan.captured.union([point])) else {return nil}
+        return plan
+    }
     static func find(game:SGFGame,readings:[Occupancy],minimum:Int,includingCompleted:Bool=false)->Self? {
         guard minimum>=1,readings.count==game.boardSize*game.boardSize else {return nil}
         let trial=SGFPlayer();trial.load(game:game);trial.seek(to:game.moves.count)

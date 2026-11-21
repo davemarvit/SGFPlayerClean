@@ -309,14 +309,7 @@ enum LocalGameSetup {
         adjustmentObservation=readings
         // Read-only removal guidance also applies with capture pausing off.
         // It never establishes timing, accepts a move, or creates a clock hold.
-        if !hasDeferredMoves {
-            if let capture=unheldCaptureGuidance,capture.before==before,
-               capture.conflictingPoints(readings).isEmpty,!capture.matchesCompleted(readings) {
-                // Retain one identity through partial removals and obscuration.
-            } else {
-                unheldCaptureGuidance=AutomaticCapture.find(game:game,readings:readings,minimum:1)
-            }
-        } else {unheldCaptureGuidance=nil}
+        updateUnheldCaptureGuidance(observation,before:before,now:stamp)
         positionAcknowledgments=positionAcknowledgments.filter {point,ack in
             ack.position==issuePositionSignature && (readings[point]==ack.observed || readings[point] == .uncertain) && readings[point] != before[point]
         }
@@ -1249,6 +1242,46 @@ enum LocalGameSetup {
         return plan
     }
     private var unheldCaptureGuidance:AutomaticCapture?
+    private var unheldCaptureClearViews:[Double]=[]
+    private func updateUnheldCaptureGuidance(_ observation:BoardObservation,before:[Occupancy],now:Double) {
+        if hasDeferredMoves || unheldCaptureGuidance.map({$0.before != before}) == true {
+            unheldCaptureGuidance=nil;unheldCaptureClearViews=[]
+        }
+        guard !hasDeferredMoves else {return}
+        guard observation.handObstructed == false else {unheldCaptureClearViews=[];return}
+        let readings=observation.signature
+        if let capture=unheldCaptureGuidance {
+            let later=clock.provisionalMoves.filter{$0.number>moveCount+1}.flatMap{$0.observedLocations ?? []}
+            // A new identity on a captured intersection is not the old prisoner.
+            let reused = !Set(later).isDisjoint(with:capture.captured.union([capture.point]))
+            let conflict=capture.captured.contains{readings[$0] != .uncertain && readings[$0] != .empty && readings[$0] != capture.before[$0]}
+                || (readings[capture.point] != .uncertain && readings[capture.point] != capture.target[capture.point])
+            if reused {unheldCaptureGuidance=nil;unheldCaptureClearViews=[];return}
+            if conflict {unheldCaptureGuidance=nil;unheldCaptureClearViews=[]}
+            else if capture.captured.allSatisfy({readings[$0] == .empty && observation.readings[$0].confidence>=0.9}) {
+                if let last=unheldCaptureClearViews.last,now-last>1.5 {unheldCaptureClearViews=[]}
+                if unheldCaptureClearViews.last.map({now>$0}) ?? true {unheldCaptureClearViews.append(now)}
+                if unheldCaptureClearViews.count>=5,let first=unheldCaptureClearViews.first,now-first>=0.8 {
+                    unheldCaptureGuidance=nil;unheldCaptureClearViews=[]
+                }
+                return
+            } else {unheldCaptureClearViews=[];return}
+        }
+        if let plan=AutomaticCapture.find(game:game,readings:readings,minimum:1)
+            ?? AutomaticCapture.pendingGuidance(game:game,moves:clock.provisionalMoves,readings:readings),
+           observation.readings[plan.point].confidence>=0.9,
+           plan.captured.allSatisfy({observation.readings[$0].confidence>=0.9}) {
+            unheldCaptureGuidance=plan;unheldCaptureClearViews=[]
+        }
+    }
+    func captureRemovalInstruction(orientation:BoardOrientation)->String? {
+        guard let plan=captureProgressPlan else {return nil}
+        let remaining=Set(captureProgressRemaining ?? [])
+        let places=remaining.sorted().map{BoardCoordinates.name(point:$0,size:game.boardSize,orientation:orientation)}.joined(separator:", ")
+        let action=remaining.isEmpty ? "Captured intersections appear empty. Keep hands clear while removal is verified."
+            : "Remove the captured \(plan.color == .white ? "black":"white") \(remaining.count == 1 ? "stone":"stones") at \(places). If already removed, keep hands clear for verification."
+        return action + (clock.running ? " Play and clocks can continue. Original move times are retained.":" Original move times are retained.")
+    }
     var captureProgressPlan:AutomaticCapture? {
         if let held=automaticCapture ?? provisionalRemovalPlan {return held}
         guard let plan=unheldCaptureGuidance,let board=positions.last,

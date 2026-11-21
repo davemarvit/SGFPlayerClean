@@ -101,7 +101,7 @@ import Foundation
         let decisions=Self.issues(recorder:recorder)
         if decisions.contains(where:{$0.action == .automaticCapture}) {return recorder.automaticCaptureStatus}
         if decisions.contains(where:{$0.action == .captureProgress}) {
-            return "Remove the marked captured stones and keep the capturing stone in place. Click a ring to see capture progress; the configured clock policy remains in effect."
+            return recorder.captureRemovalInstruction(orientation:orientation)
         }
         if !recorder.positionAcknowledgments.isEmpty {
             return "Recognition still disagrees with a confirmed recorded stone. Clear the view and click a marked intersection to address its current issue."

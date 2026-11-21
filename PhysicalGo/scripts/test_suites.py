@@ -68,7 +68,7 @@ SUITES = {
     'archive-storage-test': Suite('ArchiveStorageTests', 'standalone', ('Tests/ArchiveStorageTests.swift',), extra=('Sources/DiagnosticArchiveStorage.swift',), optimized=False),
     'archive-review-test': Suite('ArchiveReviewCorrectionTests', 'app', ('Tests/ArchiveReviewCorrectionTests.swift',), optimized=False),
     'historical-correction-test': Suite('HistoricalCorrectionTests', 'app', ('Tests/HistoricalCorrectionTests.swift', 'Tests/BatchCorrectionTests.swift', 'Tests/FalseDetectionRemovalTests.swift'), optimized=False),
-    'capture-clock-test': Suite('CaptureClockTests', 'app', ('Tests/CaptureClockTests.swift', 'Tests/CaptureUncertaintyTests.swift', 'Tests/CaptureConflictGuidanceTests.swift', 'Tests/LocalClockTests.swift'), optimized=False),
+    'capture-clock-test': Suite('CaptureClockTests', 'app', ('Tests/CaptureClockTests.swift', 'Tests/CaptureUncertaintyTests.swift', 'Tests/CaptureConflictGuidanceTests.swift', 'Tests/DelayedCaptureGuidanceTests.swift', 'Tests/LocalClockTests.swift'), optimized=False),
     'recovery-lifecycle-test': Suite('RecoveryLifecycleTests', 'app', ('Tests/RecoveryLifecycleTests.swift',), optimized=False),
     'recovery-glare-test': Suite('RecoveryGlareTests', 'vision', ('Tests/RecoveryGlareTests.swift',)),
     'obstruction-feedback-test': Suite('ObstructionFeedbackTests', 'app', ('Tests/ObstructionFeedbackTests.swift', 'Tests/CoveredBorderTests.swift'), optimized=False),
