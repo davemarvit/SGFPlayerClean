@@ -204,7 +204,10 @@ struct ClearBoardTiming {
         for p in base.indices where base[p] == .empty && newest.position[p].stone != nil && !excluding.contains(p) {
             var group:Set<Int>=[p]
             for view in views {
-                for locations in view.aliases.values where locations.contains(p) {group.formUnion(locations)}
+                // An already accounted-for disk may once have covered this
+                // intersection as an alternative. Its old outline cannot merge
+                // a distinct later disk back into the earlier turn.
+                for (owner,locations) in view.aliases where !excluding.contains(owner) && locations.contains(p) {group.formUnion(locations)}
             }
             group=group.filter{base.indices.contains($0) && base[$0] == .empty}
             guard group.isDisjoint(with:excluding),group.allSatisfy({base.indices.contains($0) && base[$0] == .empty}) else {continue}

@@ -96,7 +96,12 @@ struct RecordingStoneLedger: Codable {
                 if next.records[i].press == nil { next.records[i].press = input.press }
                 next.records[i].pass = input.pass
                 next.records[i].historicalPoint = input.point
-                next.records[i].candidates.formUnion(input.candidates)
+                // Placement alternatives belong to this turn's history. A
+                // nearby sighting from a later turn must not accumulate here
+                // and then become evidence that the later turn is old.
+                next.records[i].candidates = input.candidates
+                if let point=next.records[i].physicalPoint {next.records[i].candidates.insert(point)}
+                if let group=next.records[i].physicalGroup {next.records[i].candidates.formUnion(group)}
                 let capturedBy=captures[input.number] ?? next.records[i].capturedBy.flatMap { $0>committed && $0<=inputs.count ? $0 : nil }
                 if capturedBy != next.records[i].capturedBy {next.records[i].removalVerified=nil}
                 next.records[i].capturedBy = capturedBy
@@ -137,6 +142,30 @@ struct RecordingStoneLedger: Codable {
         let outlined=observation.whiteTurnOutlineCenters
         var excluded: Set<Int> = []
         func currentPoints(_ r:Record)->Set<Int> {r.physicalGroup ?? r.physicalPoint.map{[$0]} ?? r.historicalPoint.map{[$0]} ?? r.candidates}
+        func visible(_ p:Int,_ color:Stone)->Bool {
+            observation.readings[p].occupancy.stone==color && (observation.readings[p].confidence>=0.9 || outlined[p] != nil)
+        }
+        // Distinct accepted turns cannot occupy the same physical intersection.
+        // Only a separately accounted-for, currently visible singleton supplies
+        // this constraint; uncertain alternatives never reserve all their points.
+        // Captured stones still awaiting removal retain physical ownership.
+        let occupants=records.filter{!$0.pass && ($0.capturedBy==nil || $0.removalVerified != true)}
+        for i in records.indices where records[i].historicalPoint==nil && !records[i].pass && records[i].capturedBy==nil && records[i].physicalGroup==nil {
+            let record=records[i]
+            var occupied=Set(setupRemaining.compactMap{visible($0.key,$0.value) ? $0.key:nil})
+            for other in occupants where other.id != record.id {
+                let points=currentPoints(other)
+                if points.count==1,let p=points.first,visible(p,other.color) {occupied.insert(p)}
+            }
+            let remaining=record.candidates.subtracting(occupied)
+            if !remaining.isEmpty,remaining != record.candidates {
+                records[i].candidates=remaining
+                if let p=record.physicalPoint,occupied.contains(p) {records[i].physicalPoint=nil;clearRuns[record.id]=nil}
+                // This constrains physical ownership, not the original SGF
+                // placement. Cleanup may have changed the physical location.
+                records[i].locationUnresolved=true
+            }
+        }
         let active=records.filter{!$0.pass && $0.capturedBy == nil}
         let missing=active.filter {r in !currentPoints(r).contains {observation.readings[$0].occupancy.stone==r.color} }
         for i in records.indices where records[i].capturedBy != nil && records[i].removalVerified != true {
@@ -178,7 +207,16 @@ struct RecordingStoneLedger: Codable {
                     run = .init(point:p,first:stamp,last:stamp,count:0)
                 }
                 run!.last = stamp; run!.count += 1; clearRuns[record.id] = run
-                if run!.count >= 3 && stamp-run!.first >= 0.8 {establishedInThisRun.insert(record.id)}
+                if run!.count >= 3 && stamp-run!.first >= 0.8 {
+                    establishedInThisRun.insert(record.id)
+                    // Track the one visible disk without resolving its original
+                    // intersection. A later disk at an alternative point must
+                    // not erase this established physical identity.
+                    if record.historicalPoint==nil,
+                       !active.contains(where:{$0.id != record.id && currentPoints($0).contains(p)}) {
+                        records[i].physicalPoint=p
+                    }
+                }
                 if run!.count >= 3 && stamp-run!.first >= 0.8 && record.historicalPoint == p {
                     records[i].locationUnresolved = false
                 }
@@ -189,12 +227,11 @@ struct RecordingStoneLedger: Codable {
                 let alternatives = Set(observation.readings.enumerated().compactMap { p,r in
                     r.occupancy.stone == record.color ? p : nil
                 })
-                // Keep plausible local display alternatives; an unknown distant
-                // displacement still blocks a false new turn of the same color.
+                // Nearby sightings are cleanup hypotheses only after positive
+                // evidence that the old physical position became empty.
                 let nearby = alternatives.filter { p in known.contains { q in
                     hypot(Double(p%size-q%size),Double(p/size-q/size)) <= 2.25
                 } }
-                records[i].candidates.formUnion(nearby)
                 let definitelyEmpty=known.allSatisfy{observation.readings[$0].occupancy == .empty && observation.readings[$0].confidence>=0.98}
                 if !definitelyEmpty {
                     // An unreliable surrounding stone is not evidence it moved.
@@ -205,6 +242,7 @@ struct RecordingStoneLedger: Codable {
                     clearRuns[record.id]=nil
                     continue
                 }
+                records[i].candidates.formUnion(nearby)
                 let occupiedByOthers=active.filter{$0.id != record.id}.reduce(into:Set(setupRemaining.keys)) {$0.formUnion(currentPoints($1))}
                 let available=nearby.subtracting(occupiedByOthers).filter{observation.readings[$0].confidence>=0.98 || outlined[$0] != nil}
                 // A sustained one-to-one cleanup hypothesis can account for an

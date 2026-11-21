@@ -170,6 +170,101 @@ import Foundation
         let incomplete=restoredGroup.observe(.init(readings:groupBoard.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:$0.element == .uncertain ? 0:1,delta:0)},size:9,capturedAt:groupTime+0.21,handObstructed:false),now:groupTime+0.21)
         check(incomplete.contains(79),"One surviving sighting accounted for two hidden group identities")
         grouped.pause()
+        // Two accepted identities constrain each other. A later stone at one
+        // alternative cannot become another possibility for the earlier token.
+        var constrained=RecordingStoneLedger(size:9)
+        let distinct:[RecordingStoneLedger.Input] = [
+            .init(number:1,color:.white,pass:false,point:nil,candidates:[10,11],press:nil),
+            .init(number:2,color:.black,pass:false,point:80,candidates:[80],press:nil),
+            .init(number:3,color:.white,pass:false,point:11,candidates:[11],press:nil)]
+        try constrained.reconcile(distinct,captures:[:])
+        var distinctBoard=Array(repeating:Occupancy.empty,count:81)
+        distinctBoard[10] = .white;distinctBoard[11] = .white;distinctBoard[80] = .black
+        let distinctIDs=constrained.records.map(\.id)
+        for i in 0..<8 {
+            try constrained.reconcile(distinct,captures:[:])
+            _=constrained.observe(.init(readings:distinctBoard.enumerated().map{
+                .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)
+            },size:9,capturedAt:Double(i)*0.21,handObstructed:false),now:Double(i)*0.21)
+            check(constrained.records[0].candidates == [10],"A separately accepted later stone failed to narrow the earlier alternatives")
+        }
+        check(constrained.records.map(\.id)==distinctIDs && constrained.records[0].historicalPoint==nil,
+              "Ownership constraint changed turn identity or invented a historical placement")
+        let constrainedBytes=try JSONEncoder().encode(constrained)
+        let constrainedRestored=try JSONDecoder().decode(RecordingStoneLedger.self,from:constrainedBytes)
+        check(constrainedRestored.records[0].candidates == [10] && constrainedRestored.records[0].locationUnresolved,
+              "Ownership constraint lost unresolved historical location on restart")
+
+        // One surviving same-color sighting cannot locate two accepted tokens.
+        // When the hidden disk returns it must not become a third White turn.
+        var overlapping=RecordingStoneLedger(size:9)
+        try overlapping.reconcile([
+            .init(number:1,color:.white,pass:false,point:nil,candidates:[10,11],press:nil),
+            .init(number:2,color:.black,pass:false,point:80,candidates:[80],press:nil),
+            .init(number:3,color:.white,pass:false,point:nil,candidates:[10,11],press:nil)],captures:[:])
+        distinctBoard[11] = .uncertain
+        for i in 0..<8 {
+            _=overlapping.observe(.init(readings:distinctBoard.enumerated().map{
+                .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:$0.element == .uncertain ? 0:1,delta:0)
+            },size:9,capturedAt:Double(i)*0.21,handObstructed:false),now:Double(i)*0.21)
+        }
+        check(overlapping.records.filter{$0.color == .white}.allSatisfy{$0.physicalPoint==nil},
+              "One sighting established two same-color identities")
+        distinctBoard[11] = .white
+        let reappeared=overlapping.observe(.init(readings:distinctBoard.enumerated().map{
+            .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)
+        },size:9,capturedAt:2,handObstructed:false),now:2)
+        check(reappeared.contains(10) && reappeared.contains(11),"A returning ambiguous old stone became a new-turn candidate")
+
+        // Continuing close play: the original disk is visibly stable, but its
+        // intersection is ambiguous. A distinct same-color disk appears at an
+        // old alternative. Historical outline aliases must not merge the turns.
+        let continuous=GameRecorder(storage:nil,deferredLocations:true);continuous.clock.audible=false
+        var ct=ProcessInfo.processInfo.systemUptime,cb=Array(repeating:Occupancy.empty,count:81)
+        var cs=[StoneFootprint]()
+        continuous.start(size:9,now:ct,clockSettings:.init(kind:.fischer,mainSeconds:1000,incrementSeconds:2))
+        func continueFeed(_ count:Int,hand:Bool=false) {
+            for _ in 0..<count {
+                ct+=0.21
+                continuous.consume(.init(readings:cb.enumerated().map{
+                    .init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:$0.element == .uncertain ? 0:1,delta:0)
+                },size:9,footprints:cs,capturedAt:ct,handObstructed:hand),now:ct)
+                continuous.clock.tick(at:ct)
+            }
+        }
+        continueFeed(8)
+        cb[10] = .black
+        cs=[.init(row:1,col:1,center:.init(x:1.49,y:1),radiusCol:0.46,radiusRow:0.46,quality:0.99)]
+        continueFeed(12)
+        let firstReceipt=continuous.clock.provisionalMoves.first!
+        let firstID=continuous.stoneLedger!.records[0].id
+        cb[70] = .white;continueFeed(10)
+        continueFeed(3,hand:true)
+        cb[11] = .black
+        cs.append(.init(row:1,col:2,center:.init(x:2.49,y:1),radiusCol:0.46,radiusRow:0.46,quality:0.99))
+        let thirdBoundary=ct+0.21
+        continueFeed(12)
+        check(continuous.clock.lastTimedMove==3 && continuous.clock.running,"Historical alternative swallowed a distinct later same-color turn")
+        check(abs(continuous.clock.provisionalMoves.last!.estimate!.time-thirdBoundary)<0.001,"Location ambiguity delayed the new turn's original timestamp")
+        for (p,color) in [(69,Occupancy.white),(30,.black),(68,.white),(40,.black),(67,.white)] {
+            continueFeed(2,hand:true);cb[p]=color;continueFeed(12)
+        }
+        check(continuous.clock.lastTimedMove==8 && continuous.clock.running && !continuous.clock.requiresReview,
+              "Later close play stopped behind unresolved placements")
+        let savedFirst=(continuous.clock.moves+continuous.clock.provisionalMoves).first{$0.number==1}!
+        check(savedFirst.estimate==firstReceipt.estimate && savedFirst.after==firstReceipt.after && continuous.stoneLedger!.records[0].id==firstID,
+              "Later evidence changed the original receipt or identity")
+        // Removing the old disk under a hand is cleanup, not a new Black turn,
+        // even with two neighboring black stones and unresolved original places.
+        continueFeed(3,hand:true);cb[10] = .empty;cb[12] = .black
+        cs.removeAll{$0.row==1 && $0.col==1}
+        continueFeed(12)
+        check(continuous.clock.lastTimedMove==8 && continuous.clock.running,"Cleanup behind ambiguous turns created another move or stopped clocks")
+        cb[80] = .black;continueFeed(12)
+        check(continuous.clock.lastTimedMove==9 && continuous.clock.running,"Cleanup prevented a distinct later turn")
+        check(continuous.stoneLedger!.records[0].id==firstID && continuous.stoneLedger!.records[0].press?.estimate==firstReceipt.estimate,
+              "Cleanup changed the original ambiguous stone's identity or time")
+        continuous.pause()
         print("PASS: \(checks) connected recording identity, cleanup, review, migration and persistence checks")
     }
 }
