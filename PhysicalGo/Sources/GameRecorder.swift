@@ -299,7 +299,7 @@ enum LocalGameSetup {
     private func updateAdjustmentGuidance(_ observation:BoardObservation,now:Double) {
         guard hasGame,state != .finished,!awaitingFirstStart,!observation.lightingBlocked,
               observation.size==game.boardSize,observation.readings.count==game.boardSize*game.boardSize,
-              let base=positions.last,let after=interpretedBoard else {return}
+              let base=positions.last,let after=displayBoard else {return}
         func states(_ board:BoardSnapshot)->[Occupancy] {board.grid.flatMap{$0}.map { stone -> Occupancy in
             if stone == .black {return .black};if stone == .white {return .white};return .empty
         }}
@@ -449,8 +449,10 @@ enum LocalGameSetup {
         var result=(pausedTentativeHistory ?? observationHistory).moveConfidence
         if deferredLocationsEnabled {
             for r in stoneLedger?.records.filter({$0.number>moveCount}) ?? [] where r.number-moveCount>result.count {
-                result.append(.init(point:r.candidates.sorted().first,level:"unresolved",clearSightings:0,requiredSightings:3,
-                    orderSupported:true,alternatives:r.candidates.sorted(),placementUncertain:true))
+                let uncertain=r.locationUnresolved || r.candidates.count != 1
+                let point=r.physicalPoint ?? r.candidates.sorted().first
+                result.append(.init(point:point,level:uncertain ? "unresolved":"high",clearSightings:0,requiredSightings:3,
+                    orderSupported:true,alternatives:r.candidates.filter{$0 != point}.sorted(),placementUncertain:uncertain))
             }
         }
         return result
@@ -471,6 +473,14 @@ enum LocalGameSetup {
     var displayBoard:BoardSnapshot? {
         guard deferredLocationsEnabled,let board=interpretedBoard else {return interpretedBoard}
         var values=DeferredMoveHistory.states(board)
+        // With no candidate history, the fallback board still contains saved
+        // stones captured by a uniquely located, independently timed prefix.
+        // Its legal capture facts affect presentation without finalizing SGF.
+        if tentativeHistory.bestCandidate==nil,!hasDeferredMoves {
+            for r in stoneLedger?.records ?? [] where (r.capturedBy ?? 0)>moveCount {
+                if let p=r.historicalPoint,values[p].stone==r.color {values[p] = .empty}
+            }
+        }
         let active=(stoneLedger?.records ?? []).filter{$0.capturedBy==nil && !$0.pass}
         for group in Set(active.compactMap(\.physicalGroup)) {
             let members=active.filter{$0.physicalGroup==group}
@@ -728,6 +738,26 @@ enum LocalGameSetup {
         // Native legal candidates can supply capture facts only when ALL retained
         // positions agree. A guessed physical center never authorizes removal.
         let paths=tentativeHistory.candidates
+        if paths.isEmpty {
+            let trial=SGFPlayer();trial.load(game:game);trial.seek(to:moveCount)
+            var number=moveCount+1
+            // No tree or best-guess capture: stop at the first ambiguous turn.
+            // Every preceding move must have one original location and be legal.
+            for press in clock.provisionalMoves.sorted(by:{$0.number<$1.number}) {
+                guard press.number==number,press.estimate?.valid == true || press.reviewed == true,
+                      let choices=press.observedLocations,choices.count==1,let p=choices.first,
+                      (0..<game.boardSize*game.boardSize).contains(p),
+                      trial.turn == (press.black ? .black:.white) else {break}
+                let before=DeferredMoveHistory.states(trial.board)
+                guard trial.tryPlayMove(color:trial.turn,x:p%game.boardSize,y:p/game.boardSize)==nil else {break}
+                let after=DeferredMoveHistory.states(trial.board)
+                for victim in before.indices where before[victim].stone != nil && after[victim] == .empty {
+                    if let old=owners.removeValue(forKey:victim) {captures[old]=number}
+                    setup.removeValue(forKey:victim)
+                }
+                owners[p]=number;number+=1
+            }
+        }
         for p in clock.provisionalMoves.sorted(by:{$0.number<$1.number}) {
             let offset=p.number-moveCount-1
             guard offset>=0,!paths.isEmpty,paths.allSatisfy({$0.boards.indices.contains(offset)}) else {continue}
@@ -1528,6 +1558,12 @@ enum LocalGameSetup {
         reconcileRestoredMissingStones(observation,now:now)
         // Let this fresh frame clear a resolved contradiction before deciding
         // whether the same frame confirms a move. Each timestamp is counted once.
+        if deferredLocationsEnabled,hasGame,state != .finished {
+            do {try synchronizeStoneLedger()}
+            catch {pendingSaveError=error.localizedDescription;clock.pause("Recording identity needs review",at:now);return}
+            let originalLocations=Dictionary(uniqueKeysWithValues:clock.provisionalMoves.map{($0.number,Set($0.observedLocations ?? []))})
+            cleanupExcludedPoints=stoneLedger?.observe(observation.turnEvidenceObservation,now:now,originalLocations:originalLocations) ?? []
+        }
         updateAdjustmentGuidance(observation,now:now)
         defer {
             checkpointPendingMoves()
@@ -1567,14 +1603,6 @@ enum LocalGameSetup {
         }
         lastTime=now;lastCameraTime=now
         let readings=observation.signature
-        if deferredLocationsEnabled {
-            do { try synchronizeStoneLedger() }
-            catch { pendingSaveError=error.localizedDescription;clock.pause("Recording identity needs review",at:now);return }
-            // Physical identity tracking must see the same single-disk evidence
-            // as the clock, or moving an old white disk between intersections
-            // could masquerade as a new turn. Capture/history use the raw view.
-            cleanupExcludedPoints=stoneLedger?.observe(observation.turnEvidenceObservation,now:now) ?? []
-        }
         let visibilityBase=reviewHistory.latest ?? positions.last.map{DeferredMoveHistory.states($0)} ?? readings
         observeVisibility(blocked:BoardVisibilityWarning.blocked(readings,expected:visibilityBase),now:observation.capturedAt ?? now)
         if let established=reviewHistory.latest ?? positions.last.map({DeferredMoveHistory.states($0)}),readings==established {

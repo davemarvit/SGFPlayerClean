@@ -479,10 +479,10 @@ struct RecordedBoard: View {
                         case .untracked:
                             context.fill(circle,with:.color((mark.occupancy == .black ? Color.black : .white).opacity(0.45)))
                             context.stroke(circle,with:.color(.red),style:StrokeStyle(lineWidth:2,dash:[3,3]))
-                        case .disagreement:
-                            context.stroke(circle,with:.color(.orange),style:StrokeStyle(lineWidth:1.5,dash:[2,3]))
-                        case .uncertain:
-                            context.fill(Path(ellipseIn:CGRect(x:p.x-pitch*0.10,y:p.y-pitch*0.10,width:pitch*0.2,height:pitch*0.2)),with:.color(.orange))
+                        case .disagreement,.uncertain:
+                            // Actionable issues have the full ring below.
+                            // Cleared issues leave no muted camera-only marker.
+                            break
                         }
                     }
                 }

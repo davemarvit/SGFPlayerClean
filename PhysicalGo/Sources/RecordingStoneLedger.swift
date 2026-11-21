@@ -41,6 +41,7 @@ struct RecordingStoneLedger: Codable {
     private(set) var setupRemaining: [Int: Stone] = [:]
     // Runtime observation evidence is deliberately not in the durable schema.
     private var clearRuns: [UUID: ClearRun] = [:]
+    private var originalLocationRuns: [UUID: ClearRun] = [:]
     private var establishedInThisRun: Set<UUID> = []
     private var groupRuns: [String: ClearRun] = [:]
     private struct ClearRun { let point: Int; let first: Double; var last: Double; var count: Int }
@@ -117,6 +118,7 @@ struct RecordingStoneLedger: Codable {
     }
     mutating func interrupt() {
         clearRuns.removeAll()
+        originalLocationRuns.removeAll()
         groupRuns.removeAll()
     }
     /// User-reviewed intersections update location state only. The enclosing
@@ -130,15 +132,32 @@ struct RecordingStoneLedger: Codable {
             records[number-1].physicalGroup=nil
             records[number-1].locationUnresolved=false
             clearRuns[records[number-1].id]=nil
+            originalLocationRuns[records[number-1].id]=nil
         }
     }
     /// Existing identities that could explain a fresh same-color outline are
     /// excluded from turn detection. Missing stones are NOT captures. Distance
     /// bounds may help display work; they never prove a distant outline is new.
-    mutating func observe(_ observation: BoardObservation, now: Double) -> Set<Int> {
+    mutating func observe(_ observation: BoardObservation, now: Double, originalLocations:[Int:Set<Int>] = [:]) -> Set<Int> {
         guard observation.size == size, observation.readings.count == size*size,
               observation.handObstructed == false, !observation.lightingBlocked else { interrupt(); return [] }
         let stamp = observation.capturedAt ?? now
+        // A long, consistent return to the one original location clears an old
+        // attention flag. This is not a new stone or a cleanup reassignment:
+        // keep the stronger visibility gate below for tracking identities.
+        for i in records.indices {
+            let r=records[i]
+            let original=r.historicalPoint.map{Set([$0])} ?? originalLocations[r.number] ?? []
+            guard r.capturedBy==nil,!r.pass,r.physicalGroup==nil,original.count==1,
+                  let p=original.first,r.candidates==original,
+                  r.physicalPoint==nil || r.physicalPoint==p,
+                  observation.readings[p].occupancy.stone==r.color,
+                  observation.readings[p].confidence>=0.8 else {originalLocationRuns[r.id]=nil;continue}
+            var run=originalLocationRuns[r.id]
+            if run==nil || run!.point != p || stamp-run!.last>0.5 || stamp<=run!.last {run = .init(point:p,first:stamp,last:stamp,count:0)}
+            run!.last=stamp;run!.count+=1;originalLocationRuns[r.id]=run
+            if run!.count>=8 && stamp-run!.first>=1.5 {records[i].locationUnresolved=false}
+        }
         let outlined=observation.whiteTurnOutlineCenters
         var excluded: Set<Int> = []
         func currentPoints(_ r:Record)->Set<Int> {r.physicalGroup ?? r.physicalPoint.map{[$0]} ?? r.historicalPoint.map{[$0]} ?? r.candidates}
@@ -172,7 +191,7 @@ struct RecordingStoneLedger: Codable {
             let record=records[i],points=currentPoints(record)
             for p in points where observation.readings[p].occupancy.stone==record.color {excluded.insert(p)}
             if !points.isEmpty,points.allSatisfy({observation.readings[$0].occupancy != .uncertain &&
-                observation.readings[$0].occupancy.stone != record.color && observation.readings[$0].confidence>=0.98}) {
+                observation.readings[$0].occupancy == .empty && observation.readings[$0].confidence>=0.9}) {
                 var run=clearRuns[record.id]
                 if run==nil || stamp-run!.last>0.75 || stamp<=run!.last {run = .init(point:-1,first:stamp,last:stamp,count:0)}
                 run!.last=stamp;run!.count += 1;clearRuns[record.id]=run
@@ -217,13 +236,15 @@ struct RecordingStoneLedger: Codable {
                         records[i].physicalPoint=p
                     }
                 }
-                if run!.count >= 3 && stamp-run!.first >= 0.8 && record.historicalPoint == p {
+                if run!.count >= 3 && stamp-run!.first >= 0.8 &&
+                    (record.historicalPoint == p || (record.historicalPoint==nil && originalLocations[record.number]==[p] && record.candidates==[p])) {
                     records[i].locationUnresolved = false
                 }
                 // Exactly one sighting of the existing token accounts for it.
                 excluded.insert(p)
             } else {
-                records[i].locationUnresolved = true
+                let originalRun=originalLocationRuns[record.id]
+                records[i].locationUnresolved = !(originalRun.map{$0.count>=8 && stamp-$0.first>=1.5} ?? false)
                 let alternatives = Set(observation.readings.enumerated().compactMap { p,r in
                     r.occupancy.stone == record.color ? p : nil
                 })

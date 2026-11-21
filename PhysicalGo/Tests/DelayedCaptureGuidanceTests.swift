@@ -89,6 +89,7 @@ import Foundation
         check(try receipts(live)==beforeRemoval,"Delayed removal changed a timestamp, balance, increment, or original turn")
         live.pause()
         checks += try RetainedTurnResumeTests.run()
+        checks += try ClearedLocationMarkerTests.run()
         print("PASS: \(checks) delayed single-capture guidance checks (recorded state plus synthetic continuity)")
         return checks
     }
@@ -198,6 +199,121 @@ import Foundation
         check(LocalPlayStatus(recorder:late).title=="Check unrecorded turns","Main status hid the actual timing problem")
         late.pause()
         print("PASS: \(checks) actual reopen/resume, spoken capture guidance and subsequent-play checks")
+        return checks
+    }
+}
+
+@MainActor private enum ClearedLocationMarkerTests {
+    static func run() throws -> Int {
+        var checks=0
+        func check(_ value:Bool,_ message:String) {checks+=1;precondition(value,message)}
+        let fixture=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClearedLocationMarkers")
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent("cleared-markers-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer {try? FileManager.default.removeItem(at:root)}
+        for suffix in ["sgf","clock.json","pending.json"] {
+            try FileManager.default.copyItem(at:fixture.appendingPathComponent("game."+suffix),to:root.appendingPathComponent("game."+suffix))
+        }
+        struct Frame:Decodable {
+            let position:String,readingConfidence:[Double],captureUptime:Double,uptime:Double
+            let handObstructed:Bool?,lightingBlocked:Bool?
+        }
+        let frames=try JSONDecoder().decode([Frame].self,from:Data(contentsOf:fixture.appendingPathComponent("observations.json")))
+        let r=GameRecorder(storage:root,deferredLocations:true);r.clock.audible=false
+        try r.restoreSavedGame(from:root.appendingPathComponent("game.sgf"))
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        func receipts()throws->Data {try encoder.encode((r.clock.moves+r.clock.provisionalMoves).sorted{$0.number<$1.number})}
+        let original=try receipts(),engine=r.clock.engine,sgf=r.sgf(),identities=r.stoneLedger!.records.map(\.id)
+        check(r.clock.lastTimedMove==68 && r.moveCount==23,"Wrong cleared-marker recording extent")
+        let offset=ProcessInfo.processInfo.systemUptime+2-frames[0].captureUptime
+        for f in frames {
+            let stamp=f.captureUptime+offset,now=f.uptime+offset
+            if f.handObstructed == true {r.noteHandObstruction(now:now,capturedAt:stamp)} else {r.noteHandClear()}
+            let values=f.position.map{$0 == "B" ? Occupancy.black:$0 == "W" ? .white:$0 == "?" ? .uncertain:.empty}
+            r.consume(.init(readings:values.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:f.readingConfidence[$0.offset],delta:0)},size:19,lightingBlocked:f.lightingBlocked ?? false,capturedAt:stamp,handObstructed:f.handObstructed),now:now)
+            check(try receipts()==original && r.clock.engine==engine,"Background verification changed original timing")
+        }
+        let unresolved=r.stoneLedger!.records.filter{$0.locationUnresolved && $0.capturedBy==nil}
+        print("TRACE cleared markers",unresolved.map(\.number),r.adjustmentIssues,r.pendingConfidence.filter(\.placementUncertain).count)
+        check(unresolved.map(\.number)==[35],"Stable original locations retained stale uncertainty flags")
+        check(r.pendingConfidence.filter(\.placementUncertain).count==1,"SGF backlog was labeled location uncertainty")
+        check(r.stoneLedger!.records[6].capturedBy==24 && r.stoneLedger!.records[6].removalVerified==true,"Known captured stone retained removal debt")
+        check(r.displayBoard!.grid[73/19][73%19]==nil && !r.adjustmentIssues.keys.contains(73),"Removed prisoner retained a board marker")
+        check(Set(r.adjustmentIssues.keys)==[36,51,61,112],"Cleared pending locations or unmatched detections were marked incorrectly")
+        check([36,51,112].allSatisfy{p in !r.stoneLedger!.records.contains{$0.candidates.contains(p)}},"Expected camera-only detections belong to retained moves")
+        check(r.deferredLocationPoints==[61,80],"Genuine historical ambiguity was silently resolved")
+        check(r.sgf()==sgf && r.stoneLedger!.records.map(\.id)==identities && !r.clock.running,"Background verification changed saved moves or resumed a paused clock")
+        try r.flushStorage()
+        let reopened=GameRecorder(storage:root,deferredLocations:true);reopened.clock.audible=false
+        try reopened.restoreSavedGame(from:root.appendingPathComponent("game.sgf"))
+        check(reopened.stoneLedger!.records[6].capturedBy==24 && reopened.stoneLedger!.records[6].removalVerified==true,"Restart lost proven capture removal")
+        check(reopened.stoneLedger!.records.filter{$0.locationUnresolved && $0.capturedBy==nil}.map(\.number)==[35],"Restart resurrected cleared location flags")
+        check(RecordingClarity.checkPoints(recorder:r,observation:nil)==[36,51,61,80,112],"Cleared markers remained or genuine unmatched detections disappeared")
+        for locations in [[92,93],[73]] {
+            let blocked=root.appendingPathComponent("blocked-\(locations.count)")
+            try FileManager.default.createDirectory(at:blocked,withIntermediateDirectories:true)
+            for suffix in ["sgf","clock.json","pending.json"] {
+                try FileManager.default.copyItem(at:fixture.appendingPathComponent("game."+suffix),to:blocked.appendingPathComponent("game."+suffix))
+            }
+            let file=blocked.appendingPathComponent("game.clock.json")
+            var object=try JSONSerialization.jsonObject(with:Data(contentsOf:file)) as! [String:Any]
+            var moves=object["provisionalMoves"] as! [[String:Any]]
+            moves[0]["observedLocations"]=locations;object["provisionalMoves"]=moves
+            try JSONSerialization.data(withJSONObject:object).write(to:file)
+            let uncertain=GameRecorder(storage:blocked,deferredLocations:true);uncertain.clock.audible=false
+            try uncertain.restoreSavedGame(from:blocked.appendingPathComponent("game.sgf"))
+            check(uncertain.stoneLedger!.records[6].capturedBy==nil,"Ambiguous or illegal capturing move authorized removal")
+        }
+
+        // Synthetic edge cases isolate confidence, hand/gap resets and identity
+        // ambiguity. They are not claimed as additional recorded observations.
+        let input=RecordingStoneLedger.Input(number:1,color:.black,pass:false,point:nil,candidates:[10],press:nil)
+        var ledger=RecordingStoneLedger(size:9);try ledger.reconcile([input],captures:[:])
+        func view(_ time:Double,confidence:Double=0.82,hand:Bool=false,point:Int=10)->BoardObservation {
+            var values=Array(repeating:Occupancy.empty,count:81);values[point] = .black
+            return .init(readings:values.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:$0.offset==point ? confidence:1,delta:0)},size:9,capturedAt:time,handObstructed:hand)
+        }
+        func observe(_ time:Double,confidence:Double=0.82,hand:Bool=false,point:Int=10) {
+            _=ledger.observe(view(time,confidence:confidence,hand:hand,point:point),now:time,originalLocations:[1:[10]])
+        }
+        observe(0,confidence:0.6)
+        for i in 1...7 {observe(Double(i)*0.21)}
+        check(ledger.records[0].locationUnresolved,"Brief weak sightings cleared an uncertainty flag")
+        observe(1.6,hand:true)
+        for i in 0..<7 {observe(1.8+Double(i)*0.21)}
+        check(ledger.records[0].locationUnresolved,"Hand interruption did not reset confidence")
+        observe(4)
+        for i in 1..<7 {observe(4+Double(i)*0.21)}
+        check(ledger.records[0].locationUnresolved,"Camera gap did not reset confidence")
+        observe(5.47);observe(5.68)
+        check(!ledger.records[0].locationUnresolved && ledger.records[0].candidates==[10],"Sustained original location failed to clear its flag")
+        observe(6,confidence:0.7)
+        check(ledger.records[0].locationUnresolved,"Fresh unreliable evidence was hidden")
+        try ledger.reconcile([.init(number:1,color:.black,pass:false,point:nil,candidates:[10,11],press:nil)],captures:[:])
+        for i in 0..<12 {observe(7+Double(i)*0.21)}
+        check(ledger.records[0].locationUnresolved && ledger.records[0].candidates==[10,11],"Moderate confidence erased a historical alternative")
+        for i in 0..<12 {observe(10+Double(i)*0.21,point:12)}
+        check(ledger.records[0].locationUnresolved,"A different intersection silently resolved historical identity")
+        var debt=RecordingStoneLedger(size:9)
+        try debt.reconcile([.init(number:1,color:.black,pass:false,point:10,candidates:[10],press:nil),
+            .init(number:2,color:.white,pass:false,point:11,candidates:[11],press:nil)],captures:[1:2])
+        func removed(_ time:Double,occupancy:Occupancy = .empty,confidence:Double=0.93,hand:Bool=false) {
+            var values=Array(repeating:Occupancy.empty,count:81);values[10]=occupancy;values[11] = .white
+            _=debt.observe(.init(readings:values.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:$0.offset==10 ? confidence:1,delta:0)},size:9,capturedAt:time,handObstructed:hand),now:time)
+        }
+        for i in 0..<6 {removed(Double(i)*0.21,occupancy:.white)}
+        check(debt.records[0].removalVerified != true,"Opposite-color reading proved an empty captured point")
+        for i in 0..<6 {removed(2+Double(i)*0.21,confidence:0.85)}
+        check(debt.records[0].removalVerified != true,"Weak empty readings released capture debt")
+        removed(4);removed(4.4);removed(4.6,hand:true);removed(4.8)
+        check(debt.records[0].removalVerified != true,"Hand interruption verified prisoner removal")
+        removed(6);removed(6.4)
+        check(debt.records[0].removalVerified != true,"Camera gap verified prisoner removal")
+        removed(6.81)
+        check(debt.records[0].removalVerified==true,"Sustained clear empty readings did not release capture debt")
+        let newStone=debt.observe(view(7,confidence:1),now:7)
+        check(!newStone.contains(10),"A new stone at a cleared capture point was consumed as old removal debt")
+        print("PASS: \(checks) recorded cleared-marker and confidence-boundary checks")
         return checks
     }
 }
