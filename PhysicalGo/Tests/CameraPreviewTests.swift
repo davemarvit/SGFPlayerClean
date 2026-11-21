@@ -1,5 +1,7 @@
 import AppKit
 import ImageIO
+import SwiftUI
+import UniformTypeIdentifiers
 
 @main struct CameraPreviewTests {
     @MainActor static func main() throws {
@@ -33,6 +35,7 @@ import ImageIO
         model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime)
         wait("first clear preview") {model.image === clear && model.rectifiedImage != nil}
         check(model.alignmentCheck == .passed,"Fresh accepted alignment retained a failed search message")
+        check(model.cameraPreviewImage === model.rectifiedImage && model.cameraPreviewGeometry != nil,"Verified board lost its optional perspective view")
         check(model.rawCameraPreview==nil,"Hidden raw view retained camera images")
         model.showsRawCameraView=true
         let before=model.rectifiedImage!,engine=model.recorder.clock.engine
@@ -67,6 +70,49 @@ import ImageIO
         check(model.calibration==calibrationBeforeRetry && model.recorder.clock.engine==engine,"Startup retry reset a current game's grid or clocks")
         model.showsRawCameraView=false
         check(model.rawCameraPreview==nil,"Closing raw view retained its extra image")
+        model.detectingGrid=true
+        check(model.rectifiedImage != nil && model.cameraPreviewImage === clear && model.cameraPreviewGeometry==nil,"Grid checking displayed a crop based on the retained grid")
+        model.receiveCameraFrame(hand,capturedAt:ProcessInfo.processInfo.systemUptime)
+        check(model.cameraPreviewImage === hand && model.cameraPreviewGeometry==nil,"Grid search froze the preview or retained a stale crop")
+        model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime-3)
+        check(model.cameraPreviewImage === hand,"Grid-search preview accepted stale camera pixels")
+        check(model.recorder.clock.engine==engine && model.recorder.moveCount==0,"Preview during grid search changed clocks or history")
+
+        // Native rendering at the setup panel's shallow height must retain all
+        // four image corners. Bright corner markers also detect a covering banner.
+        let source=CGContext(data:nil,width:clear.width,height:clear.height,bitsPerComponent:8,bytesPerRow:clear.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
+        source.setFillColor(CGColor(gray:0.25,alpha:1));source.fill(CGRect(x:0,y:0,width:clear.width,height:clear.height))
+        let marker=Double(min(clear.width,clear.height))*0.09
+        for (i,color) in [NSColor.red,NSColor.green,NSColor.blue,NSColor.yellow].enumerated() {
+            source.setFillColor(color.cgColor)
+            source.fill(CGRect(x:i%2==0 ? 0:Double(clear.width)-marker,y:i<2 ? 0:Double(clear.height)-marker,width:marker,height:marker))
+        }
+        model.receiveCameraFrame(source.makeImage()!,capturedAt:ProcessInfo.processInfo.systemUptime)
+        let output=try TestArtifacts.directory("FullCameraPreview")
+        for turn in 0..<4 {
+            let renderer=ImageRenderer(content:CameraCanvas(model:model).frame(width:1060,height:280).background(Color.black))
+            renderer.scale=1
+            let rendered=renderer.cgImage!
+            let bitmap=CGContext(data:nil,width:rendered.width,height:rendered.height,bitsPerComponent:8,bytesPerRow:rendered.width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
+            bitmap.draw(rendered,in:CGRect(x:0,y:0,width:rendered.width,height:rendered.height))
+            let pixels=bitmap.data!.assumingMemoryBound(to:UInt8.self)
+            var markers=[0,0,0,0],rightmostMarker=0
+            for i in 0..<(rendered.width*rendered.height) {
+                let r=pixels[i*4],g=pixels[i*4+1],b=pixels[i*4+2]
+                let color:Int?=r>200 && g<70 && b<70 ? 0:g>200 && r<70 && b<70 ? 1:b>200 && r<70 && g<70 ? 2:r>200 && g>200 && b<70 ? 3:nil
+                if let color {markers[color]+=1;rightmostMarker=max(rightmostMarker,i%rendered.width)}
+            }
+            check(markers.allSatisfy{$0>20},"Native preview clipped or covered an image corner at rotation \(turn): \(markers)")
+            check(rightmostMarker<856,"Image entered the reserved status column")
+            let destination=CGImageDestinationCreateWithURL(output.appendingPathComponent("checking-\(turn).png") as CFURL,UTType.png.identifier as CFString,1,nil)!
+            CGImageDestinationAddImage(destination,rendered,nil);check(CGImageDestinationFinalize(destination),"Could not save native preview rendering")
+            model.rotateView()
+        }
+        model.detectingGrid=false
+        model.detectGrid()
+        check(model.alignmentNeedsRecovery && model.cameraPreviewGeometry==nil,"Alignment recovery used an unverified crop")
+        model.stop()
+        check(!model.detectingGrid && model.alignmentNeedsRecovery && model.cameraPreviewGeometry==nil,"Canceling search restored an unverified crop")
         model.alignmentCheck = .failed
         model.undoCorner()
         check(model.alignmentCheck == .idle,"Manual corner edit retained the old alignment result")

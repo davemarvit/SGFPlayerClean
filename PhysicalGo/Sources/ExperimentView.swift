@@ -451,10 +451,10 @@ struct CameraCanvas: View {
         context.stroke(reticle, with:.color(.white), lineWidth:1)
     }
     var body: some View {
+        HStack(spacing:12) {
         GeometryReader { geometry in
-            if let rawImage = model.image {
-                let image = model.rectifiedImage ?? rawImage
-                let rectification = model.rectifiedImage == nil ? nil : model.rectifiedGeometry
+            if let image = model.cameraPreviewImage {
+                let rectification = model.cameraPreviewGeometry
                 let orientation = model.orientation
                 let edgePadding:CGFloat = model.calibration == nil ? 0 : 14
                 let available=CGSize(width:max(1,geometry.size.width-2*edgePadding),height:max(1,geometry.size.height-2*edgePadding))
@@ -473,7 +473,7 @@ struct CameraCanvas: View {
                         let displayed = orientation.display(rectification?.normalizedPoint(from:p) ?? p)
                         return CGPoint(x:rect.minX+displayed.x*rect.width,y:rect.minY+displayed.y*rect.height)
                     }
-                    if let calibration = model.calibration, !model.alignmentNeedsRecovery {
+                    if let calibration = model.calibration, !model.alignmentNeedsRecovery, !model.detectingGrid, !model.awaitingReferenceFrame {
                         for label in BoardCoordinates.labels(size:calibration.size,orientation:orientation,margin:0.30) {
                             let p=project(calibration.point(col:label.grid.x,row:label.grid.y))
                             let q=project(calibration.point(col:label.grid.x+1,row:label.grid.y))
@@ -525,21 +525,13 @@ struct CameraCanvas: View {
                             context.stroke(ring, with: .color(reading.occupancy == .black ? .black : reading.occupancy == .white ? .white : .orange), lineWidth: 3)
                         }
                     }
-                    for (i, corner) in model.displayedCorners.enumerated() where model.showGridOverlay && !model.hasReference && !model.alignmentNeedsRecovery {
+                    for (i, corner) in model.displayedCorners.enumerated() where model.showGridOverlay && !model.hasReference && !model.alignmentNeedsRecovery && !model.detectingGrid && !model.awaitingReferenceFrame {
                         let p = project(corner)
                         context.fill(Path(ellipseIn: CGRect(x: p.x-5, y: p.y-5, width: 10, height: 10)), with: .color(.cyan))
                         context.draw(Text("\(i+1)").font(.system(size:14*model.interfaceScale,weight:.semibold)).foregroundColor(.cyan), at: CGPoint(x: p.x+12, y: p.y-12))
                     }
                     if model.selectingCorners, let pointer, rect.contains(pointer) {
                         drawMagnifier(in:context,at:pointer,bounds:geometry.size,drawImage:drawImage)
-                    }
-                }.overlay(alignment:.bottom) {
-                    if model.alignmentNeedsRecovery || model.detectingGrid {
-                        Text("Checking grid alignment · recognition paused")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.white).padding(8)
-                            .background(.black.opacity(0.8),in:RoundedRectangle(cornerRadius:8))
-                            .padding(8).allowsHitTesting(false)
                     }
                 }.contentShape(Rectangle())
                     .onContinuousHover { phase in
@@ -558,6 +550,14 @@ struct CameraCanvas: View {
                     Text("Connect a webcam and start the camera,\nor open a saved board photo.").multilineTextAlignment(.center).foregroundStyle(.secondary)
                 }.foregroundStyle(.white).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }
+        if model.alignmentNeedsRecovery || model.detectingGrid {
+            VStack(alignment:.leading,spacing:8) {
+                Label("Checking grid alignment",systemImage:"viewfinder").font(.callout.weight(.semibold))
+                Text("Recognition paused").font(.callout)
+                Text("Showing the full camera view. Keep all four corners visible.").font(.caption).foregroundStyle(.white.opacity(0.8))
+            }.foregroundStyle(.white).frame(width:180,alignment:.leading).padding(.trailing,12)
+        }
         }
     }
 }

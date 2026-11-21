@@ -264,6 +264,13 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published var straightenBoard = true
     @Published private(set) var rectifiedImage: CGImage?
     private(set) var rectifiedGeometry: BoardRectifiedGeometry?
+    // A retained grid is useful for recovery, but is not a trustworthy crop.
+    // Keep the full camera field visible until that grid is verified again.
+    var cameraPreviewGeometry:BoardRectifiedGeometry? {
+        guard !alignmentNeedsRecovery,!detectingGrid,!awaitingReferenceFrame,rectifiedImage != nil else {return nil}
+        return rectifiedGeometry
+    }
+    var cameraPreviewImage:CGImage? {cameraPreviewGeometry == nil ? image:rectifiedImage}
     @Published private(set) var rectifiedLongAxisRows = true
     @Published private(set) var viewQuarterTurns = 0
     @Published var automaticViewOrientation = true {
@@ -1158,9 +1165,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             resetCalibration(allowAutomatic: true); message = "Image dimensions changed. Finding the grid again."
         }
         // Keep the displayed frame and its overlay paired while processing.
-        if calibration == nil {
+        if calibration == nil || detectingGrid {
             image = newImage; rectifiedImage = nil; rectifiedGeometry = nil
-            if let diagnosticTicket {diagnostics.event("frame skipped",ticket:diagnosticTicket,details:["reason":"Grid not yet established"])}
+            if let diagnosticTicket {diagnostics.event("frame skipped",ticket:diagnosticTicket,details:["reason":detectingGrid ? "Grid search in progress":"Grid not yet established"])}
         }
         else { analyze(newImage,diagnosticTicket:diagnosticTicket,captureUptime:capturedAt,frameTimestamp:frameTimestamp) }
         if automaticGridArmed && calibration == nil && corners.isEmpty && !detectingGrid
