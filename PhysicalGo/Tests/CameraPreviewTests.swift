@@ -33,9 +33,12 @@ import ImageIO
         model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime)
         wait("first clear preview") {model.image === clear && model.rectifiedImage != nil}
         check(model.alignmentCheck == .passed,"Fresh accepted alignment retained a failed search message")
+        check(model.rawCameraPreview==nil,"Hidden raw view retained camera images")
+        model.showsRawCameraView=true
         let before=model.rectifiedImage!,engine=model.recorder.clock.engine
         model.alignmentCheck = .failed
         model.receiveCameraFrame(hand,capturedAt:ProcessInfo.processInfo.systemUptime)
+        check(model.rawCameraPreview?.image === hand,"On-demand raw view waited for recognition or used rectified pixels")
         wait("hand obstruction") {model.recorder.handOverBoard}
         check(model.image === hand,"Raw preview failed to show current hand frame")
         check(model.rectifiedImage !== before,"Flattened preview froze on the previous clear frame")
@@ -47,14 +50,23 @@ import ImageIO
         let held=model.rectifiedImage!
         model.frozen=true;model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime);settle()
         check(model.rectifiedImage === held,"Explicit Freeze stopped freezing the preview")
+        check(model.rawCameraPreview?.image === clear,"Analysis Freeze hid the live raw camera view")
+        let rawTime=model.rawCameraPreview?.capturedAt
         model.frozen=false;model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime-3);settle()
         check(model.rectifiedImage === held,"A stale camera buffer replaced current pixels")
+        check(model.rawCameraPreview?.capturedAt==rawTime,"Raw view accepted a stale camera image")
         check(model.alignmentCheck == .failed,"Frozen or stale frames incorrectly cleared alignment failure")
         // A fresh clear frame must release the hand gate and restore observations.
         for _ in 0..<8 {model.receiveCameraFrame(clear,capturedAt:ProcessInfo.processInfo.systemUptime);settle(0.35)}
         check(!model.recorder.handOverBoard && model.observation != nil,"Clear board did not recover after the hand")
         check(model.alignmentCheck == .passed,"Clear live recovery retained obsolete alignment failure")
         check(model.recorder.moveCount==0 && model.recorder.clock.engine==engine,"Clear preview resumed paused play or saved fixture stones")
+        let calibrationBeforeRetry=model.calibration
+        check(!model.canRetryStartupSetup,"Empty-board setup reset was offered during an existing game")
+        model.retryStartupSetup()
+        check(model.calibration==calibrationBeforeRetry && model.recorder.clock.engine==engine,"Startup retry reset a current game's grid or clocks")
+        model.showsRawCameraView=false
+        check(model.rawCameraPreview==nil,"Closing raw view retained its extra image")
         model.alignmentCheck = .failed
         model.undoCorner()
         check(model.alignmentCheck == .idle,"Manual corner edit retained the old alignment result")

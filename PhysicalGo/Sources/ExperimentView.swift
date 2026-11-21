@@ -74,6 +74,7 @@ struct ExperimentView: View {
                     }
                 }.frame(width:650,height:720)
             }
+            .sheet(isPresented:$model.showsRawCameraView) {RawCameraView(model:model)}
             .sheet(isPresented:Binding(get:{model.stoneCalibrationSession != nil},set:{if !$0 {model.closeStoneCalibration()}})) {StoneCalibrationView(model:model)}
             .sheet(isPresented:$model.inspectingStoneAppearance) {StoneAppearanceInspector(model:model)}
             .sheet(isPresented:Binding(get:{model.boardCorrections.isEditing},set:{if !$0 {model.cancelBoardCorrection()}})) {
@@ -100,6 +101,8 @@ struct ExperimentView: View {
             Spacer()
             ClockVolumeControl(clock:recorder.clock)
             Button("Info & settings",systemImage:"info.circle") {showsInfo=true}
+            Button("Raw camera view",systemImage:"camera") {model.showsRawCameraView=true}
+                .help("See the live camera image without grid overlays or perspective correction. Viewing does not save images or change play.")
             Menu {
                 Button("Calibrate stones…") {model.beginStoneCalibration()}.disabled(!model.canBeginStoneCalibration)
                 if model.resumableStoneCalibrationFolder != nil {
@@ -346,6 +349,35 @@ struct ExperimentView: View {
     private var draftDate:Binding<Date> {
         let formatter=DateFormatter();formatter.locale=Locale(identifier:"en_US_POSIX");formatter.dateFormat="yyyy-MM-dd"
         return Binding(get:{formatter.date(from:model.newGameInfo.date ?? "") ?? Date()},set:{model.newGameInfo.date=SGFGame.Info.formattedGameDate($0)})
+    }
+}
+
+private struct RawCameraView:View {
+    @ObservedObject var model:ExperimentModel
+    var body:some View {
+        VStack(alignment:.leading,spacing:12) {
+            HStack {
+                Text("Raw camera view").font(.title2.bold())
+                Spacer()
+                Button("Done") {model.showsRawCameraView=false}.keyboardShortcut(.cancelAction)
+            }
+            TimelineView(.periodic(from:.now,by:0.5)) {_ in
+                let fresh=model.rawCameraPreview.map{ProcessInfo.processInfo.systemUptime-$0.capturedAt<=1.5} ?? false
+                ZStack {
+                    Color.black
+                    if let preview=model.rawCameraPreview {
+                        Image(decorative:preview.image,scale:1).resizable().scaledToFit()
+                    }
+                    if !fresh || model.cameraState != .live {
+                        Text("Waiting for a fresh camera image…").padding().background(.regularMaterial,in:RoundedRectangle(cornerRadius:8))
+                    }
+                }
+            }.frame(minHeight:360)
+            Text("Live camera image · no overlays or perspective correction. This view does not save images.")
+                .font(.callout).foregroundStyle(.secondary)
+            if model.frozen {Text("Recognition is frozen; this camera view stays live.").font(.callout)}
+            Text(model.cameraStatus).font(.caption).foregroundStyle(.secondary)
+        }.padding(20).frame(width:860,height:610)
     }
 }
 

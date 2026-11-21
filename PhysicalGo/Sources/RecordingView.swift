@@ -611,8 +611,11 @@ struct StartupReferenceControl:View {
                 }
             }.font(.system(size:13*model.interfaceScale,weight:.semibold))
                 .frame(height:30*model.interfaceScale,alignment:.leading)
+            Button("Retry grid & reference") {model.retryStartupSetup()}
+                .disabled(!model.canRetryStartupSetup)
+                .help("With the board empty, discard this grid/reference and check a fresh camera image. Available before a game starts or after it ends.")
             Text(model.startupReferenceCaptured
-                 ? "No need to capture again. Wait for Ready to record, then start recording."
+                 ? "Check the camera view. If the grid or reference is wrong, retry with an empty board. Wait for Ready before starting."
                  : "Remove all stones and hands before clicking. Then keep the board empty until Ready.")
                 .font(.system(size:12*model.interfaceScale)).foregroundStyle(.secondary)
                 .lineLimit(3,reservesSpace:true)

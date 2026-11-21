@@ -21,7 +21,7 @@ final class DiagnosticArchiveLock {
 /// Only recognized archive directories are eligible; recordings and photo labels
 /// live elsewhere. KEEP files pin important captures without changing their data.
 final class DiagnosticArchiveStorage {
-    nonisolated static let defaultLimit:Int64=10_000_000_000
+    nonisolated static let defaultLimit:Int64=20_000_000_000
     nonisolated static let metadataAllowance:Int64=1_000_000
     let roots:[URL]
     let limit:Int64
@@ -127,7 +127,7 @@ final class DiagnosticArchiveStorage {
         let protectedBytes=used-eligible.reduce(0,{$0+$1.bytes})
         var granted=payload
         // Continuous capture uses the available remainder up to its selected
-        // maximum; Finder metadata or another writer must not defeat a 10 GB
+        // maximum; Finder metadata or another writer must not defeat the shared
         // request. Automatic clips still require their entire reserved budget.
         if let minimumPayload {
             granted=min(payload,max(0,limit-protectedBytes-Self.metadataAllowance))

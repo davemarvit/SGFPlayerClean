@@ -36,6 +36,27 @@ import SwiftUI
                 precondition(!model.startupReferenceCaptured,"Removed reference retained completion")
             }
         }
+        // A retry must clear the mistaken setup, reject its old analysis, and
+        // wait for fresh camera pixels without opening a game or starting clocks.
+        model.receive(image)
+        for point in [ImagePoint(x:0.1,y:0.1),ImagePoint(x:0.9,y:0.1),ImagePoint(x:0.9,y:0.9),ImagePoint(x:0.1,y:0.9)] {model.addCorner(point)}
+        model.captureReference()
+        model.running=true;model.handleCameraStatus("Live · retry test",state:.live)
+        precondition(model.canRetryStartupSetup,"Completed reference removed the retry action")
+        model.frozen=true
+        precondition(!model.canRetryStartupSetup,"Frozen pixels were offered as a fresh setup retry")
+        model.frozen=false
+        let clock=model.recorder.clock.engine
+        model.retryStartupSetup()
+        precondition(model.calibration==nil && !model.hasReference && !model.startupReferenceCaptured && model.image==nil,"Retry retained the mistaken grid/reference or reused stale pixels")
+        RunLoop.main.run(until:Date().addingTimeInterval(0.3))
+        precondition(model.calibration==nil && !model.hasReference,"Old in-flight analysis restored a discarded setup")
+        precondition(!model.recorder.hasGame && model.recorder.clock.engine==clock,"Setup retry created a game or changed clock balances")
+        // A fresh delivery, not a UI redraw, launches the replacement search.
+        model.frameCount=8
+        model.receiveCameraFrame(image,capturedAt:ProcessInfo.processInfo.systemUptime)
+        precondition(model.detectingGrid && model.image === image,"Retry did not search fresh camera pixels")
+        model.stop()
         print("PASS: successful capture, failure without false success, disabled repeated capture, completion survives camera status changes, reference invalidation, and stable native layout at both text sizes and widths.")
     }
 }

@@ -25,6 +25,7 @@ enum CaptureFolders {
     @Published private(set) var folder:URL?
     @Published private(set) var savedFrames=0
     @Published private(set) var savedBytes:Int64=0
+    @Published private(set) var omittedImages=0
     @Published var limitGB=10
     /// Explicit, session-only opt-in. Arming does not open a writer or save images.
     @Published var startWithNextGame=false
@@ -35,7 +36,8 @@ enum CaptureFolders {
     private let root:URL
     private var worker:DiagnosticWriter?
     private var sessionID=UUID()
-    private var nextFrame=0,nextOperation=0,nextAsset=0,pendingWrites=0
+    private var nextFrame=0,nextOperation=0,nextAsset=0
+    private var writingGap:(first:Double,last:Double,count:Int)?
     private var operations=[Int:Operation]()
     private var finishing=false
     private var endReason="Stopped by user"
@@ -46,7 +48,7 @@ enum CaptureFolders {
     private var anchorInfo:[String:Any]?
     private let maximumPendingFrames:Int
     init(root:URL=CaptureFolders.diagnostics,maximumPendingFrames:Int=12,archiveStorage:DiagnosticArchiveStorage?=nil) {
-        self.root=root;self.maximumPendingFrames=maximumPendingFrames
+        self.root=root;self.maximumPendingFrames=max(1,maximumPendingFrames)
         self.archiveStorage=archiveStorage ?? (root==CaptureFolders.diagnostics ? .shared:nil)
     }
     static func value<T:Encodable>(_ value:T?)->Any {
@@ -65,9 +67,9 @@ enum CaptureFolders {
         }
         let writer=DiagnosticWriter(folder:url,limit:requested,reserve:reserveBytes,context:context,
             archiveStorage:archiveStorage,minimumPayload:byteLimit==nil ? 64_000_000:nil)
-        worker=writer;sessionID=id;folder=url;nextFrame=0;nextOperation=0;nextAsset=0;pendingWrites=0
+        worker=writer;sessionID=id;folder=url;nextFrame=0;nextOperation=0;nextAsset=0;writingGap=nil
         operations=[:];finishing=false;endReason="Stopped by user";lastReference=nil;referencePath=nil;lastAnchorRevision=nil;anchorPath=nil;anchorInfo=nil
-        savedFrames=0;savedBytes=0;state = .capturing;status="Saving diagnostic frames · game recording is separate."
+        savedFrames=0;savedBytes=0;omittedImages=0;state = .capturing;status="Saving camera recording · game recording is separate."
         writer.onFailure={ [weak self] message in
             guard let self,self.sessionID==id else {return}
             self.state = .failed;self.status="Camera recording stopped: \(message). Saved files are retained; game recording continues."
@@ -76,10 +78,17 @@ enum CaptureFolders {
     }
     func capture(_ image:CGImage,at time:Double,context:[String:Any],reference:CGImage?,anchor:AutoGridDetector.TrackingAnchor?,anchorRevision:Int)->Ticket? {
         guard isCapturing,let worker else {return nil}
-        guard pendingWrites<maximumPendingFrames else {
-            stop(reason:"Disk writer could not keep up; recording ended before dropping a frame",failure:true,cancelOperations:true)
+        guard worker.reserveFrame(maximum:maximumPendingFrames) else {
+            // Never wait on disk from the camera/main queue or retain an
+            // unbounded image backlog. Coalesce omissions until recovery, so
+            // even a stalled writer gets only one small gap record.
+            omittedImages += 1
+            writingGap=(writingGap?.first ?? time,time,(writingGap?.count ?? 0)+1)
+            status="Image writing is catching up. Recording remains on; \(omittedImages) images omitted and logged."
             return nil
         }
+        flushWritingGap()
+        status=omittedImages==0 ? "Saving camera recording · game recording is separate." : "Saving camera recording · \(omittedImages) omitted images logged."
         nextFrame += 1
         let ticket=Ticket(session:sessionID,frame:nextFrame)
         var assets=[DiagnosticWriter.Asset]()
@@ -104,12 +113,16 @@ enum CaptureFolders {
         entry["width"]=image.width;entry["height"]=image.height
         entry["referenceImage"]=referencePath.map{$0 as Any} ?? NSNull()
         entry["trackingAnchor"]=anchorInfo.map{$0 as Any} ?? NSNull()
-        pendingWrites += 1
         worker.frame(image,entry:entry,assets:assets) { [weak self] frames,bytes in
             guard let self,self.sessionID==ticket.session else {return}
-            self.pendingWrites=max(0,self.pendingWrites-1);self.savedFrames=frames;self.savedBytes=bytes
+            self.savedFrames=frames;self.savedBytes=bytes
         }
         return ticket
+    }
+    private func flushWritingGap() {
+        guard let gap=writingGap,let worker else {return}
+        worker.gap(first:gap.first,last:gap.last,count:gap.count)
+        writingGap=nil
     }
     func event(_ name:String,ticket:Ticket?=nil,details:@autoclosure ()->[String:Any]=[:]) {
         guard isOpen,let worker,ticket.map({$0.session==sessionID}) ?? true else {return}
@@ -136,6 +149,7 @@ enum CaptureFolders {
     func stop(reason:String="Stopped by user",failure:Bool=false,cancelOperations:Bool=false) {
         startWithNextGame=false
         guard worker != nil,!finishing else {return}
+        flushWritingGap()
         endReason=reason
         event("capture stopping",details:["reason":reason,"pendingOperations":operations.count])
         state = .finishing;status=failure ? "Camera recording stopped: \(reason). Finishing saved files…" : "Finishing diagnostic files…"
@@ -152,7 +166,7 @@ enum CaptureFolders {
             guard let self,self.sessionID==id,self.worker != nil else {return}
             self.worker=nil;self.lastReference=nil;self.finishing=false
             self.state=failure ? .failed : .stopped
-            self.status=failure ? "Camera recording stopped: \(reason). Saved files are retained." : "Camera recording saved."
+            self.status=failure ? "Camera recording stopped: \(reason). Saved files are retained." : "Camera recording saved."+(self.omittedImages>0 ? " \(self.omittedImages) omitted images are logged.":"")
         }
     }
     /// Called on application termination. Cancel unfinished analysis explicitly,
@@ -160,6 +174,7 @@ enum CaptureFolders {
     func closeForExit() {
         startWithNextGame=false
         guard let writer=worker else {return}
+        flushWritingGap()
         for op in operations.values {event("operation canceled",details:["operationID":op.id,"reason":"Application closing"])}
         operations=[:];state = .finishing
         writer.finishSynchronously(reason:"Application closing")
@@ -173,11 +188,24 @@ private final class DiagnosticWriter {
     enum Asset {case png(String,CGImage),bytes(String,Data)}
     let folder:URL
     private let queue=DispatchQueue(label:"PhysicalGo.diagnostic-writer",qos:.utility)
+    private let pendingLock=NSLock()
+    private var pendingFrames=0
+    // Capacity is released on the writer queue, independent of a busy main
+    // thread's progress publishing counters. UI lag is not a disk backlog.
+    func reserveFrame(maximum:Int)->Bool {
+        pendingLock.lock();defer {pendingLock.unlock()}
+        guard pendingFrames<maximum else {return false}
+        pendingFrames += 1;return true
+    }
+    private func releaseFrame() {
+        pendingLock.lock();defer {pendingLock.unlock()}
+        pendingFrames -= 1
+    }
     private var limit:Int64
     private let reserve:Int64
     private var lease:DiagnosticArchiveLock?
     private var handle:FileHandle?
-    private var bytes:Int64=0,frames=0,closed=false
+    private var bytes:Int64=0,frames=0,omittedImages=0,closed=false
     private var context:[String:Any]
     private var lastSync=0.0
     var onFailure:((String)->Void)?
@@ -205,12 +233,14 @@ private final class DiagnosticWriter {
         self.context["schemaVersion"]=1;self.context["startedAt"]=Date().timeIntervalSince1970
         self.context["byteLimit"]=limit;self.context["reserveBytes"]=reserve
         if self.context["capturePolicy"] == nil {
-            self.context["capturePolicy"]="Lossless PNG for every frame delivered to the app (~5 fps); includes skipped, frozen and rejected frames. Native camera frames between app deliveries are not captured."
+            self.context["capturePolicy"]="Lossless PNG for camera images delivered to the app (~5 fps), including skipped, frozen and rejected analysis. A bounded writer backlog can omit images; image writing gap events record their count and capture uptime range. Recording resumes automatically. Native camera frames between app deliveries are not captured."
         }
+        self.context["writerBackpressurePolicy"]="Bounded queue; omit and log images while full, resume when capacity returns. Recognition and clocks continue independently."
         try manifest(status:"recording",reason:nil)
     }
     private func manifest(status:String,reason:String?) throws {
         var entry=context;entry["status"]=status;entry["framesSaved"]=frames;entry["bytesWritten"]=bytes
+        entry["omittedImages"]=omittedImages
         entry["updatedAt"]=Date().timeIntervalSince1970
         if let reason {entry["reason"]=reason}
         try JSONSerialization.data(withJSONObject:entry,options:[.prettyPrinted,.sortedKeys]).write(to:folder.appendingPathComponent("session.json"),options:.atomic)
@@ -252,11 +282,26 @@ private final class DiagnosticWriter {
             do {try self.append(entry)}catch {self.abort(error)}
         }
     }
-    func frame(_ image:CGImage,entry:[String:Any],assets:[Asset],completion:@escaping(Int,Int64)->Void) {
+    func gap(first:Double,last:Double,count:Int) {
         queue.async {
+            guard !self.closed else {return}
+            do {
+                self.omittedImages += count
+                try self.append(["event":"image writing gap","reason":"Writer queue full",
+                    "firstCaptureUptime":first,"lastCaptureUptime":last,"omittedImages":count,
+                    "time":Date().timeIntervalSince1970])
+                try self.manifest(status:"recording",reason:nil)
+            } catch {self.abort(error)}
+        }
+    }
+    func frame(_ image:CGImage,entry:[String:Any],assets:[Asset],completion:@escaping(Int,Int64)->Void) {
+        let enqueued=ProcessInfo.processInfo.systemUptime
+        queue.async {
+            defer {self.releaseFrame()}
             autoreleasepool {
                 guard !self.closed else {return}
                 do {
+                    let started=ProcessInfo.processInfo.systemUptime
                     for asset in assets {
                         switch asset {
                         case .png(let path,let image):try self.save(self.png(image),path:path)
@@ -264,6 +309,9 @@ private final class DiagnosticWriter {
                         }
                     }
                     try self.save(self.png(image),path:entry["image"] as! String)
+                    var entry=entry
+                    entry["writerQueueSeconds"]=started-enqueued
+                    entry["imageWriteSeconds"]=ProcessInfo.processInfo.systemUptime-started
                     try self.append(entry);self.frames += 1
                     if self.frames%25==0 {try self.manifest(status:"recording",reason:nil)}
                     let frames=self.frames,bytes=self.bytes

@@ -245,6 +245,9 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published var cameraStatus = "Choose a camera, or open a photo to begin."
     @Published var running = false
     @Published var cameraState: CameraState = .failed
+    struct RawCameraPreview {let image:CGImage;let capturedAt:Double}
+    @Published var showsRawCameraView=false {didSet {if !showsRawCameraView {rawCameraPreview=nil}}}
+    @Published private(set) var rawCameraPreview:RawCameraPreview?
     // Busy camera frames need not rebuild the entire SwiftUI board. Publish the
     // counter at most once per second; analyzed views still publish immediately.
     var frameCount = 0
@@ -1137,6 +1140,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             diagnostics.event("frame skipped",details:["reason":"Stale camera frame","captureUptime":capturedAt.isFinite ? capturedAt:NSNull() as Any,"arrivalUptime":arrival])
             return
         }
+        // On-demand preview bypasses recognition, rectification, overlays and
+        // analysis Freeze. It owns only the latest fresh delivered image.
+        if showsRawCameraView {rawCameraPreview=RawCameraPreview(image:image,capturedAt:capturedAt)}
         if capturedAt-lastCounterPublication>=1 {lastCounterPublication=capturedAt;objectWillChange.send()}
         moveEvidenceCapture.offer(image,at:capturedAt,online:onlineBoard.enabled || (playMode == .local && recorder.state == .recording),context:diagnosticContext,
                                   reference:referenceImage,anchor:trackingAnchor,anchorRevision:diagnosticAnchorRevision)
@@ -1479,6 +1485,19 @@ enum PhysicalPlayMode: String, CaseIterable {
         guard canCaptureStartupReference else {return}
         captureReference()
         message="Reference captured. Keep the board empty while readiness is checked."
+    }
+    var canRetryStartupSetup:Bool {
+        showsStartupReferenceControl && running && cameraState == .live && !frozen && !detectingGrid
+            && image != nil && stoneCalibrationSession == nil && !boardCorrections.isEditing
+    }
+    func retryStartupSetup() {
+        guard canRetryStartupSetup else {return}
+        resetCalibration(allowAutomatic:true)
+        // Do not search again using the possibly stale image that led the user
+        // to retry. The next fresh camera delivery starts a new grid search.
+        image=nil;automaticGridArmed=true;nextAutomaticGridAttempt=0
+        gridStatus="Waiting for a fresh camera image to find the grid again…"
+        message="Keep the board empty and all four corners visible while setup is checked again."
     }
     var recordingReadiness:String {
         if recorder.awaitingFirstStart {return recorder.status}

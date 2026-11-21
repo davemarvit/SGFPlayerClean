@@ -12,7 +12,7 @@ import AppKit
             _=try! store.allocate(payload:1_000_000) {_,_ in entered.signal();release.wait();return true}
         }
         check(entered.wait(timeout:.now()+2) == .success,"Storage blocker did not start")
-        let recorder=DiagnosticRecorder(root:root,archiveStorage:store)
+        let recorder=DiagnosticRecorder(root:root,maximumPendingFrames:2,archiveStorage:store)
         let start=ProcessInfo.processInfo.systemUptime
         try recorder.start(context:["test":"blocked allocation"],byteLimit:1_000_000,reserveBytes:0)
         check(ProcessInfo.processInfo.systemUptime-start<0.1,"Archive allocation blocked live processing")
@@ -23,14 +23,44 @@ import AppKit
         let context=CGContext(data:nil,width:16,height:16,bitsPerComponent:8,bytesPerRow:64,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
         context.setFillColor(CGColor(gray:0.5,alpha:1));context.fill(CGRect(x:0,y:0,width:16,height:16))
         let ticket=recorder.capture(context.makeImage()!,at:100,context:[:],reference:nil,anchor:nil,anchorRevision:0)
-        recorder.event("queued during startup",ticket:ticket);recorder.stop()
-        check(!recorder.canStart,"Stop released an uninitialized writer prematurely")
+        recorder.event("queued during startup",ticket:ticket)
+        check(recorder.capture(context.makeImage()!,at:101,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"Bounded queue rejected available capacity")
+        for i in 0..<100 {
+            check(recorder.capture(context.makeImage()!,at:102+Double(i)*0.2,context:[:],reference:nil,anchor:nil,anchorRevision:0)==nil,"Blocked writer retained images beyond its bound")
+        }
+        check(recorder.isCapturing && recorder.omittedImages==100,"Writer slowdown ended recording or concealed omissions")
         release.signal()
         let deadline=Date().addingTimeInterval(5)
+        while recorder.savedFrames<2 && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
+        check(recorder.capture(context.makeImage()!,at:200,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"Recording did not recover after writer caught up")
+        recorder.stop()
+        check(!recorder.canStart,"Stop released a writer prematurely")
         while !recorder.canStart && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
-        check(recorder.state == .stopped && recorder.savedFrames==1,"Startup/stop race lost its frame")
+        check(recorder.state == .stopped && recorder.savedFrames==3,"Writer recovery or stop lost accepted images")
         let rows=try String(contentsOf:recorder.folder!.appendingPathComponent("events.jsonl"))
         check(rows.contains("queued during startup") && rows.contains("capture ended"),"Startup queue lost event ordering or close")
+        let events=try rows.split(separator:"\n").map{try JSONSerialization.jsonObject(with:Data($0.utf8)) as! [String:Any]}
+        let gaps=events.filter{$0["event"] as? String == "image writing gap"}
+        check(gaps.count==1 && gaps[0]["omittedImages"] as? Int==100 && gaps[0]["firstCaptureUptime"] as? Double==102 && gaps[0]["lastCaptureUptime"] as? Double==121.8,"Missing images were not recorded as one exact bounded gap")
+        let frameTimes=events.filter{$0["event"] as? String == "frame"}.compactMap{$0["captureUptime"] as? Double}
+        check(frameTimes==[100,101,200],"Writer recovery renumbered or changed camera timestamps")
+        let manifest=try JSONSerialization.jsonObject(with:Data(contentsOf:recorder.folder!.appendingPathComponent("session.json"))) as! [String:Any]
+        check(manifest["omittedImages"] as? Int==100 && recorder.status.contains("100"),"Completion concealed recording gaps")
+
+        // Hold back main-queue publications while the real writer finishes.
+        // A completed image must free capacity without waiting for its UI update.
+        let delayedUI=DiagnosticRecorder(root:root,maximumPendingFrames:1)
+        try delayedUI.start(context:[:],reserveBytes:0)
+        check(delayedUI.capture(context.makeImage()!,at:300,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"Initial image was rejected")
+        let journal=delayedUI.folder!.appendingPathComponent("events.jsonl")
+        let writerDeadline=Date().addingTimeInterval(5)
+        while !( (try? String(contentsOf:journal))?.contains("imageWriteSeconds") ?? false) && Date()<writerDeadline {Thread.sleep(forTimeInterval:0.01)}
+        Thread.sleep(forTimeInterval:0.05)
+        check(delayedUI.savedFrames==0,"Test inadvertently drained main-queue publications")
+        check(delayedUI.capture(context.makeImage()!,at:301,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"UI publication delay was mistaken for a full disk queue")
+        delayedUI.closeForExit()
+        check(delayedUI.omittedImages==0,"Delayed UI discarded an image after the writer finished")
+        check(DiagnosticArchiveStorage.shared.limit==20_000_000_000,"Shared camera allowance is not 20 GB")
         let badRoot=root.appendingPathComponent("not-a-directory");try Data([0]).write(to:badRoot)
         let failed=DiagnosticRecorder(root:badRoot);try failed.start(context:[:],reserveBytes:0)
         let end=Date().addingTimeInterval(5)

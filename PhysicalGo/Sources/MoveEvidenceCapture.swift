@@ -71,7 +71,7 @@ import CoreGraphics
     private(set) var droppedSamples=0
     var bufferedFrames:Int {frames.count}
     var bufferedImageBytes:Int {frames.reduce(0){$0+$1.bytes}}
-    init(root:URL=MoveEvidenceCapture.directory,byteLimit:Int64=10_000_000_000,
+    init(root:URL=MoveEvidenceCapture.directory,byteLimit:Int64=DiagnosticArchiveStorage.defaultLimit,
          memoryLimit:Int=256*1024*1024,scheduleDeadlines:Bool=true) {
         self.root=root;self.byteLimit=byteLimit;self.memoryLimit=memoryLimit;self.scheduleDeadlines=scheduleDeadlines
         let archiveStorage = root==Self.directory && byteLimit==DiagnosticArchiveStorage.defaultLimit

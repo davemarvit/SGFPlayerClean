@@ -58,7 +58,7 @@ struct DiagnosticControls:View {
                     }
                 }.padding(6)
             }
-            Text("Camera archives share a 10 GB allowance. Oldest inactive clips rotate automatically. Keep a recording to exclude it from rotation.")
+            Text("Camera archives share a 20 GB allowance. Oldest inactive clips rotate automatically. Keep a recording to exclude it from rotation. If image writing falls behind, recording resumes after a logged gap; play and clocks are unaffected.")
                 .font(.caption).foregroundStyle(.secondary)
             Button(clearing ? "Clearing diagnostic data…":"Clear diagnostic data…",role:.destructive) {confirmClear=true}
                 .disabled(clearing)
