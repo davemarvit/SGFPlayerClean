@@ -744,8 +744,9 @@ enum LocalGameSetup {
             // No tree or best-guess capture: stop at the first ambiguous turn.
             // Every preceding move must have one original location and be legal.
             for press in clock.provisionalMoves.sorted(by:{$0.number<$1.number}) {
+                let resolved=ledger.records.first(where:{$0.number==press.number})?.resolvedPoint
                 guard press.number==number,press.estimate?.valid == true || press.reviewed == true,
-                      let choices=press.observedLocations,choices.count==1,let p=choices.first,
+                      let choices=resolved.map{[$0]} ?? press.observedLocations,choices.count==1,let p=choices.first,
                       (0..<game.boardSize*game.boardSize).contains(p),
                       trial.turn == (press.black ? .black:.white) else {break}
                 let before=DeferredMoveHistory.states(trial.board)
@@ -774,6 +775,33 @@ enum LocalGameSetup {
         }
         try ledger.reconcile(inputs,captures:captures,setup:setup)
         stoneLedger=ledger
+    }
+    /// Native candidate history resolves its own alternatives. When that history
+    /// is unavailable, sustained physical evidence can resolve the retained
+    /// ledger's alternatives without requiring a user review or another press.
+    private func resolveObservedLocations(at time:Double) throws {
+        guard deferredLocationsEnabled,!hasDeferredMoves,tentativeHistory.candidates.isEmpty,
+              !clock.requiresReview,var ledger=stoneLedger,!ledger.locationProposals.isEmpty else {return}
+        let trial=SGFPlayer();trial.load(game:game);trial.seek(to:moveCount)
+        var number=moveCount+1,edits=[Int:Int](),affected=Set<Int>()
+        for press in clock.provisionalMoves.sorted(by:{$0.number<$1.number}) {
+            guard press.number==number,press.estimate?.valid == true || press.reviewed == true,
+                  let record=ledger.records.first(where:{$0.number==number}),
+                  trial.turn == record.color else {break}
+            let choices=(record.resolvedPoint ?? ledger.locationProposals[number]).map{[$0]} ?? press.observedLocations ?? []
+            guard choices.count==1,let point=choices.first,
+                  trial.tryPlayMove(color:trial.turn,x:point%game.boardSize,y:point/game.boardSize)==nil else {break}
+            if ledger.locationProposals[number]==point {
+                edits[number]=point;affected.formUnion(record.candidates)
+            }
+            number+=1
+        }
+        guard !edits.isEmpty else {return}
+        try ledger.resolveOriginalLocations(edits,at:time)
+        stoneLedger=ledger
+        resolveAdjustmentGuidance(affected)
+        trace(event:"stone locations resolved by sustained observation",now:time,
+            extra:["locations":Dictionary(uniqueKeysWithValues:edits.map{(String($0.key),$0.value)}),"originalTimesPreserved":true])
     }
     /// A separate internal file; pending moves never enter SGF prematurely.
     func savePendingCheckpoint(wait:Bool=true)throws {
@@ -1563,6 +1591,8 @@ enum LocalGameSetup {
             catch {pendingSaveError=error.localizedDescription;clock.pause("Recording identity needs review",at:now);return}
             let originalLocations=Dictionary(uniqueKeysWithValues:clock.provisionalMoves.map{($0.number,Set($0.observedLocations ?? []))})
             cleanupExcludedPoints=stoneLedger?.observe(observation.turnEvidenceObservation,now:now,originalLocations:originalLocations) ?? []
+            do {try resolveObservedLocations(at:observation.capturedAt ?? now)}
+            catch {pendingSaveError=error.localizedDescription;clock.pause("Recording identity needs review",at:now);return}
         }
         updateAdjustmentGuidance(observation,now:now)
         defer {

@@ -25,6 +25,10 @@ struct RecordingStoneLedger: Codable {
         // at which point. Every member retains the whole unresolved group.
         var physicalGroup: Set<Int>? = nil
         var removalVerified: Bool? = nil
+        // Later location evidence is separate from the immutable press receipt.
+        // Cleanup can move the physical stone again without rewriting this fact.
+        var resolvedPoint: Int? = nil
+        var locationResolvedAt: Double? = nil
     }
     struct Input {
         let number: Int
@@ -42,6 +46,8 @@ struct RecordingStoneLedger: Codable {
     // Runtime observation evidence is deliberately not in the durable schema.
     private var clearRuns: [UUID: ClearRun] = [:]
     private var originalLocationRuns: [UUID: ClearRun] = [:]
+    private var resolutionRuns: [UUID: ClearRun] = [:]
+    private(set) var locationProposals: [Int:Int] = [:]
     private var establishedInThisRun: Set<UUID> = []
     private var groupRuns: [String: ClearRun] = [:]
     private struct ClearRun { let point: Int; let first: Double; var last: Double; var count: Int }
@@ -59,6 +65,8 @@ struct RecordingStoneLedger: Codable {
             r.number == i+1 && r.candidates.allSatisfy { (0..<size*size).contains($0) } &&
             (r.historicalPoint.map { (0..<size*size).contains($0) } ?? true) &&
             (r.physicalPoint.map { (0..<size*size).contains($0) } ?? true) &&
+            (r.resolvedPoint.map { (0..<size*size).contains($0) } ?? true) &&
+            (r.locationResolvedAt.map(\.isFinite) ?? true) &&
             (r.physicalGroup.map { !$0.isEmpty && $0.allSatisfy{(0..<size*size).contains($0)} } ?? true) &&
             (r.press?.time.map(\.isFinite) ?? true) && (r.press?.estimate?.valid ?? true) &&
             (!r.pass || r.historicalPoint == nil) && (r.capturedBy.map { $0 > r.number && $0 <= records.count } ?? true)
@@ -101,6 +109,12 @@ struct RecordingStoneLedger: Codable {
                 // nearby sighting from a later turn must not accumulate here
                 // and then become evidence that the later turn is old.
                 next.records[i].candidates = input.candidates
+                if let point=next.records[i].resolvedPoint {
+                    if input.point==nil,input.candidates.contains(point) {next.records[i].candidates=[point]}
+                    else if input.point != point {
+                        next.records[i].resolvedPoint=nil;next.records[i].locationResolvedAt=nil
+                    }
+                }
                 if let point=next.records[i].physicalPoint {next.records[i].candidates.insert(point)}
                 if let group=next.records[i].physicalGroup {next.records[i].candidates.formUnion(group)}
                 let capturedBy=captures[input.number] ?? next.records[i].capturedBy.flatMap { $0>committed && $0<=inputs.count ? $0 : nil }
@@ -119,6 +133,7 @@ struct RecordingStoneLedger: Codable {
     mutating func interrupt() {
         clearRuns.removeAll()
         originalLocationRuns.removeAll()
+        resolutionRuns.removeAll();locationProposals.removeAll()
         groupRuns.removeAll()
     }
     /// User-reviewed intersections update location state only. The enclosing
@@ -131,8 +146,25 @@ struct RecordingStoneLedger: Codable {
             records[number-1].physicalPoint=nil
             records[number-1].physicalGroup=nil
             records[number-1].locationUnresolved=false
+            records[number-1].resolvedPoint=point
             clearRuns[records[number-1].id]=nil
             originalLocationRuns[records[number-1].id]=nil
+            resolutionRuns[records[number-1].id]=nil
+        }
+    }
+    /// Called after the recorder checks chronological Go legality. This does
+    /// not change a press, its original alternatives, or append a move.
+    mutating func resolveOriginalLocations(_ points:[Int:Int],at time:Double) throws {
+        guard time.isFinite,points.allSatisfy({number,point in
+            records.indices.contains(number-1) && records[number-1].candidates.contains(point) &&
+            records[number-1].historicalPoint==nil && records[number-1].capturedBy==nil &&
+            records[number-1].physicalGroup==nil && locationProposals[number]==point
+        }) else {throw Failure.invalid}
+        for (number,point) in points {
+            records[number-1].resolvedPoint=point;records[number-1].locationResolvedAt=time
+            records[number-1].candidates=[point];records[number-1].physicalPoint=point
+            records[number-1].locationUnresolved=false
+            resolutionRuns[records[number-1].id]=nil;locationProposals[number]=nil
         }
     }
     /// Existing identities that could explain a fresh same-color outline are
@@ -147,7 +179,7 @@ struct RecordingStoneLedger: Codable {
         // keep the stronger visibility gate below for tracking identities.
         for i in records.indices {
             let r=records[i]
-            let original=r.historicalPoint.map{Set([$0])} ?? originalLocations[r.number] ?? []
+            let original=(r.historicalPoint ?? r.resolvedPoint).map{Set([$0])} ?? originalLocations[r.number] ?? []
             guard r.capturedBy==nil,!r.pass,r.physicalGroup==nil,original.count==1,
                   let p=original.first,r.candidates==original,
                   r.physicalPoint==nil || r.physicalPoint==p,
@@ -322,6 +354,31 @@ struct RecordingStoneLedger: Codable {
             }
         }
         groupRuns=groupRuns.filter{seenGroups.contains($0.key)}
+        // Resolve a retained alternative only when one original candidate is
+        // consistently occupied and all the others are clearly empty. Missing
+        // views, hand occlusion and competing identities never count as absence.
+        locationProposals=[:]
+        let offsets=observation.assignmentOffsets
+        for record in records {
+            let original=originalLocations[record.number] ?? []
+            guard original.allSatisfy({observation.readings.indices.contains($0)}) else {resolutionRuns[record.id]=nil;continue}
+            let occupied=original.filter{observation.readings[$0].occupancy.stone==record.color}
+            guard record.historicalPoint==nil,record.resolvedPoint==nil,record.capturedBy==nil,
+                  !record.pass,record.physicalGroup==nil,original.count>1,
+                  record.candidates.isSubset(of:original),occupied.count==1,let point=occupied.first,
+                  record.physicalPoint==point,observation.readings[point].confidence>=0.98,
+                  (offsets[point] ?? 0)<=0.24,
+                  original.subtracting([point]).allSatisfy({observation.readings[$0].occupancy == .empty && observation.readings[$0].confidence>=0.94}),
+                  !records.contains(where:{$0.id != record.id && !$0.pass && ($0.capturedBy==nil || $0.removalVerified != true) &&
+                      ($0.physicalPoint==point || $0.historicalPoint==point || $0.physicalGroup?.contains(point)==true || $0.candidates==[point])}),
+                  setupRemaining[point]==nil else {resolutionRuns[record.id]=nil;continue}
+            var run=resolutionRuns[record.id]
+            if run==nil || run!.point != point || stamp-run!.last>0.5 || stamp<=run!.last {
+                run = .init(point:point,first:stamp,last:stamp,count:0)
+            }
+            run!.last=stamp;run!.count+=1;resolutionRuns[record.id]=run
+            if run!.count>=12 && stamp-run!.first>=2 {locationProposals[record.number]=point}
+        }
         return excluded
     }
 }

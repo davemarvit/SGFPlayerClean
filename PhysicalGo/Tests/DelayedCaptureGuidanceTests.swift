@@ -90,6 +90,7 @@ import Foundation
         live.pause()
         checks += try RetainedTurnResumeTests.run()
         checks += try ClearedLocationMarkerTests.run()
+        checks += try AutomaticLocationResolutionTests.run()
         print("PASS: \(checks) delayed single-capture guidance checks (recorded state plus synthetic continuity)")
         return checks
     }
@@ -235,20 +236,21 @@ import Foundation
         }
         let unresolved=r.stoneLedger!.records.filter{$0.locationUnresolved && $0.capturedBy==nil}
         print("TRACE cleared markers",unresolved.map(\.number),r.adjustmentIssues,r.pendingConfidence.filter(\.placementUncertain).count)
-        check(unresolved.map(\.number)==[35],"Stable original locations retained stale uncertainty flags")
-        check(r.pendingConfidence.filter(\.placementUncertain).count==1,"SGF backlog was labeled location uncertainty")
+        check(unresolved.isEmpty,"Sustained unique original location remained unresolved")
+        check(r.stoneLedger!.records[34].resolvedPoint==61 && r.stoneLedger!.records[34].candidates==[61],"Q15 did not resolve the P15/Q15 alternatives")
+        check(r.pendingConfidence.filter(\.placementUncertain).isEmpty,"SGF backlog was labeled location uncertainty")
         check(r.stoneLedger!.records[6].capturedBy==24 && r.stoneLedger!.records[6].removalVerified==true,"Known captured stone retained removal debt")
         check(r.displayBoard!.grid[73/19][73%19]==nil && !r.adjustmentIssues.keys.contains(73),"Removed prisoner retained a board marker")
-        check(Set(r.adjustmentIssues.keys)==[36,51,61,112],"Cleared pending locations or unmatched detections were marked incorrectly")
+        check(Set(r.adjustmentIssues.keys)==[36,51,112],"Cleared pending locations or unmatched detections were marked incorrectly")
         check([36,51,112].allSatisfy{p in !r.stoneLedger!.records.contains{$0.candidates.contains(p)}},"Expected camera-only detections belong to retained moves")
-        check(r.deferredLocationPoints==[61,80],"Genuine historical ambiguity was silently resolved")
+        check(r.deferredLocationPoints.isEmpty,"The empty P15 alternative retained its ring")
         check(r.sgf()==sgf && r.stoneLedger!.records.map(\.id)==identities && !r.clock.running,"Background verification changed saved moves or resumed a paused clock")
         try r.flushStorage()
         let reopened=GameRecorder(storage:root,deferredLocations:true);reopened.clock.audible=false
         try reopened.restoreSavedGame(from:root.appendingPathComponent("game.sgf"))
         check(reopened.stoneLedger!.records[6].capturedBy==24 && reopened.stoneLedger!.records[6].removalVerified==true,"Restart lost proven capture removal")
-        check(reopened.stoneLedger!.records.filter{$0.locationUnresolved && $0.capturedBy==nil}.map(\.number)==[35],"Restart resurrected cleared location flags")
-        check(RecordingClarity.checkPoints(recorder:r,observation:nil)==[36,51,61,80,112],"Cleared markers remained or genuine unmatched detections disappeared")
+        check(reopened.stoneLedger!.records.filter{$0.locationUnresolved && $0.capturedBy==nil}.isEmpty,"Restart resurrected cleared location flags")
+        check(RecordingClarity.checkPoints(recorder:r,observation:nil)==[36,51,112],"Cleared markers remained or genuine unmatched detections disappeared")
         for locations in [[92,93],[73]] {
             let blocked=root.appendingPathComponent("blocked-\(locations.count)")
             try FileManager.default.createDirectory(at:blocked,withIntermediateDirectories:true)
@@ -263,6 +265,15 @@ import Foundation
             let uncertain=GameRecorder(storage:blocked,deferredLocations:true);uncertain.clock.audible=false
             try uncertain.restoreSavedGame(from:blocked.appendingPathComponent("game.sgf"))
             check(uncertain.stoneLedger!.records[6].capturedBy==nil,"Ambiguous or illegal capturing move authorized removal")
+            if locations==[73] {
+                let originalEngine=uncertain.clock.engine
+                for f in frames {
+                    let stamp=f.captureUptime+offset,now=f.uptime+offset
+                    let values=f.position.map{$0 == "B" ? Occupancy.black:$0 == "W" ? .white:$0 == "?" ? .uncertain:.empty}
+                    uncertain.consume(.init(readings:values.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:f.readingConfidence[$0.offset],delta:0)},size:19,capturedAt:stamp,handObstructed:f.handObstructed),now:now)
+                }
+                check(uncertain.stoneLedger!.records[34].resolvedPoint==nil && uncertain.clock.engine==originalEngine,"Location resolution crossed an illegal earlier move or changed clocks")
+            }
         }
 
         // Synthetic edge cases isolate confidence, hand/gap resets and identity
@@ -314,6 +325,107 @@ import Foundation
         let newStone=debt.observe(view(7,confidence:1),now:7)
         check(!newStone.contains(10),"A new stone at a cleared capture point was consumed as old removal debt")
         print("PASS: \(checks) recorded cleared-marker and confidence-boundary checks")
+        return checks
+    }
+}
+
+@MainActor private enum AutomaticLocationResolutionTests {
+    static func run() throws -> Int {
+        var checks=0
+        func check(_ value:Bool,_ why:String) {checks+=1;precondition(value,why)}
+        let fixture=URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClearedLocationMarkers")
+        let object=try JSONSerialization.jsonObject(with:Data(contentsOf:fixture.appendingPathComponent("game.pending.json"))) as! [String:Any]
+        let saved=try JSONDecoder().decode(RecordingStoneLedger.self,from:JSONSerialization.data(withJSONObject:object["stoneLedger"]!))
+        // Synthetic continuous clear views of the recorded 68-turn position
+        // isolate location resolution while a real recorder clock is running.
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent("live-resolution-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
+        defer {try? FileManager.default.removeItem(at:root)}
+        for suffix in ["sgf","clock.json","pending.json"] {
+            try FileManager.default.copyItem(at:fixture.appendingPathComponent("game."+suffix),to:root.appendingPathComponent("game."+suffix))
+        }
+        let live=GameRecorder(storage:root,deferredLocations:true);live.clock.audible=false
+        try live.restoreSavedGame(from:root.appendingPathComponent("game.sgf"))
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        let beforePresses=try encoder.encode(live.clock.moves+live.clock.provisionalMoves),beforeSGF=live.sgf()
+        let frames=try JSONSerialization.jsonObject(with:Data(contentsOf:fixture.appendingPathComponent("observations.json"))) as! [[String:Any]]
+        var board=(frames.last!["position"] as! String).map{$0 == "B" ? Occupancy.black:$0 == "W" ? .white:.empty}
+        for p in [36,51,112] {board[p] = .empty}
+        var liveTime=ProcessInfo.processInfo.systemUptime+1
+        func liveFeed(_ count:Int) {
+            for _ in 0..<count {
+                liveTime+=0.21
+                live.consume(.init(readings:board.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:1,delta:0)},size:19,capturedAt:liveTime,handObstructed:false),now:liveTime)
+                live.clock.tick(at:liveTime)
+            }
+        }
+        _=live.resume();liveFeed(6)
+        check(live.clock.running && live.stoneLedger!.records[34].resolvedPoint==nil,"Location confirmation happened before sustained evidence or blocked resume")
+        let beforeEngine=live.clock.engine,beforeTime=liveTime
+        liveFeed(16)
+        check(live.clock.running && live.stoneLedger!.records[34].resolvedPoint==61,"Automatic location resolution stopped the live clock")
+        check(abs(live.clock.engine.black.remaining-(beforeEngine.black.remaining-(liveTime-beforeTime)))<0.001 && live.clock.engine.white==beforeEngine.white,"Location confirmation charged a turn again")
+        check(try encoder.encode(live.clock.moves+live.clock.provisionalMoves)==beforePresses && live.sgf()==beforeSGF,"Location confirmation created a turn or changed a receipt")
+        live.pause()
+        let receipt=saved.records[34].press!
+        let input=RecordingStoneLedger.Input(number:1,color:.black,pass:false,point:nil,candidates:[10,11],press:receipt)
+        var ledger=RecordingStoneLedger(size:9);try ledger.reconcile([input],captures:[:])
+        var now=0.0
+        func feed(_ count:Int,alternative:Occupancy = .empty,hand:Bool=false,offset:Double=0.02,repeated:Bool=false,selected:Int=10) {
+            for _ in 0..<count {
+                if !repeated {now+=0.21}
+                var board=Array(repeating:Occupancy.empty,count:81);board[selected] = .black
+                if selected==10 {board[11]=alternative}
+                let shape=StoneFootprint(row:selected/9,col:selected%9,center:.init(x:Double(selected%9)+offset,y:Double(selected/9)),radiusCol:0.44,radiusRow:0.44,quality:1)
+                _=ledger.observe(.init(readings:board.enumerated().map{.init(row:$0.offset/9,col:$0.offset%9,occupancy:$0.element,confidence:1,delta:0)},size:9,footprints:[shape],capturedAt:now,handObstructed:hand),now:now,originalLocations:[1:[10,11]])
+            }
+        }
+        feed(20,alternative:.uncertain)
+        check(ledger.locationProposals.isEmpty,"An obscured alternative was treated as empty")
+        feed(20,alternative:.black)
+        check(ledger.locationProposals.isEmpty,"Two same-color stones were resolved as one identity")
+        feed(20,offset:0.48)
+        check(ledger.locationProposals.isEmpty,"An off-center stone resolved its ambiguous intersection")
+        feed(11)
+        check(ledger.locationProposals.isEmpty,"A short clear glimpse resolved location")
+        feed(1,hand:true);feed(11)
+        check(ledger.locationProposals.isEmpty,"Hand occlusion did not interrupt location confirmation")
+        now+=2;feed(11)
+        check(ledger.locationProposals.isEmpty,"A camera gap did not interrupt location confirmation")
+        feed(20,repeated:true)
+        check(ledger.locationProposals.isEmpty,"Repeated timestamps counted as independent confirmation")
+        feed(12)
+        check(ledger.locationProposals==[1:10],"Centering on an original candidate failed to resolve it")
+        try ledger.resolveOriginalLocations([1:10],at:now)
+        check(ledger.records[0].press==receipt && ledger.records[0].resolvedPoint==10 && !ledger.records[0].locationUnresolved,"Resolution changed timing or kept its red marker")
+        try ledger.reconcile([input],captures:[:])
+        ledger=try JSONDecoder().decode(RecordingStoneLedger.self,from:JSONEncoder().encode(ledger))
+        check(ledger.records[0].candidates==[10] && ledger.records[0].resolvedPoint==10 && ledger.records[0].press==receipt,"Reopening resurrected the discarded alternative or changed the original press")
+        feed(15,selected:11)
+        check(ledger.records[0].resolvedPoint==10 && ledger.records[0].locationUnresolved && ledger.records[0].press==receipt,"Later cleanup rewrote the resolved original move")
+
+        // Replay actual observations through physical identity exclusion. The
+        // first run reproduces the old missing capture fact; the second supplies
+        // the legally established White 24 capture. Neither invents clock times.
+        let rows=try JSONSerialization.jsonObject(with:Data(contentsOf:fixture.appendingPathComponent("missing-turn-sequence.json"))) as! [[String:Any]]
+        for captureKnown in [false,true] {
+            var ledger=RecordingStoneLedger(size:19),count=58,appeared=Set<Int>()
+            func sync()throws {try ledger.reconcile(saved.records.prefix(count).map{.init(number:$0.number,color:$0.color,pass:$0.pass,point:$0.historicalPoint,candidates:$0.candidates,press:$0.press)},captures:captureKnown ? [7:24]:[:])}
+            try sync()
+            for row in rows {
+                if row["event"] as? String == "observed turn clock press" {count=row["number"] as! Int;try sync();continue}
+                if row["event"] as? String == "hand obstruction began" {ledger.interrupt();continue}
+                let values=(row["position"] as! String).map{$0 == "B" ? Occupancy.black:$0 == "W" ? .white:$0 == "?" ? .uncertain:.empty}
+                let scores=row["readingConfidence"] as! [Double],stamp=row["captureUptime"] as! Double
+                let excluded=ledger.observe(.init(readings:values.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:$0.element,confidence:scores[$0.offset],delta:0)},size:19,capturedAt:stamp,handObstructed:row["handObstructed"] as? Bool),now:row["uptime"] as! Double)
+                for p in [112,36,51] where values[p].stone != nil && appeared.insert(p).inserted {
+                    check(excluded.contains(p)==(!captureKnown && p==112),"Recorded missed-turn exclusion did not match the diagnosed capture-removal cause")
+                }
+            }
+            check(appeared==[112,36,51],"Recorded unmatched-stone sequence was not fully replayed")
+            if captureKnown {check(ledger.records[6].removalVerified==true,"Recorded prisoner removal did not release its identity")}
+        }
+        print("PASS: \(checks) automatic location resolution and recorded unmatched-stone checks")
         return checks
     }
 }
