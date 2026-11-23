@@ -8,6 +8,17 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Interior pilot 01 stopped during the first motor probe.** Reviewed/pushed
+  host `5b3880d` passed fresh geometry and spot admission (0.095px residual),
+  observed [1720, 2274] at board [1.88073, 9.12296], then issued PTO1728.
+  Before SETTLED, the 250ms poll-cache deadline expired. A status-file read/parse
+  took 228.623ms; the full refresh gap was 255.566ms. Camera age was 0.411s,
+  and the app lease remained valid. Serial writes and heartbeat continued with
+  no serial failures. Full OFF confirmed Unix1795472563.6018767; no controller
+  fault, sources unchanged. Last telemetry was [1720, 2274], but the next run
+  must measure actual pose before illumination. No diagnostic landing yet.
+  An explicit stationary-experiment cache allowance of 0.5s is being reviewed,
+  capped by unchanged camera, lease and run deadlines. No automatic retry.
 - **Latest physical run stopped fully OFF.** `validation-resume-02` on pushed
   `6cf3c99` passed fresh position admission and both independent motor probes
   (candidate displacement residuals 1.207 and 2.154 pixels). All 93 combined

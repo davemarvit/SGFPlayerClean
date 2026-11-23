@@ -3961,3 +3961,42 @@ Serial-delay cause unresolved; no automatic transport retry enabled. Remaining
 physical work is fresh qualification and allnine validation targets, then the
 short bidirectional first-landing pilot before expanding distance. Root owns
 hardware; laser and motor power fullyOFF, port closed, game/clocks preserved.
+
+November 23 — requested large-move restart and timeout investigation
+Dave explicitly requested resuming the larger-move experiment and diagnosing the
+previous timeout. Correct broker camera is fresh, empty board visually inspected,
+no hand and aligned; original stream epoch persists, saved game SHA unchanged.
+Root OFF-only serial probe01 passed96 STATUS replies in15seconds; worst reply
+2.356ms. Only STATUS/HB/OFF permitted, no torque/light requested. Final fullOFF
+1795471865.586275, no controller/cleanup fault. No large movement yet.
+Offline exact steering replay:1000 calls max4.53ms;50 reconstructed checkpoints
+max42.70ms; no100ms simulated write failure. Original failure remains a host-side
+100ms completion check, likely thermal ACK769 which firmware received. Evidence
+does not identify USB blocking versus scheduling. Bounded diagnostics are ready.
+Pilot author and independent reviewer are preparing explicit SHA-bound manual
+restart, fresh pose/spot/two-axis checks and conservative interior out/back moves.
+Ordinary3px linear-response agreement inherently shrinks curved-map large moves;
+separate named diagnostic proposal uses[3,15] interior predictions/path,25px
+maximum model disagreement and unchanged108/58 motor envelope. No automatic
+transport retry, model training or calibration/binding approval is implied.
+
+November 23 — interior pilot01 physical result: separate poll-cache expiry
+Host5b3880d passed9 independent actual-artifact tests and51 existing tests, then
+root ran interior-pilot01. Fresh camera/geometry/pose/spot admission passed;
+position residual0.09527px, model residual2.241motorcounts. PTO1728 began but no
+SETTLED was received. Poll-cache expiry caused fullOFF1795472563.6018767 with
+no controllerfault and unchanged source inventory. Last telemetry1720/2274;
+actual next pose must be queried before any illumination. One new opticalsample,
+no completed steering probes or diagnostic legs. Parent exit1 reaped.
+Last successfulpoll finished1910571.718266666, cachedeadline.968266666. Nextread
+started.745209166 andfinished.973832541:228.623ms read/UTF8/JSON interval, BEFORE
+validatorwork; totalrefreshgap255.566ms. Cameraage.411s andleasevaliduntil
+1910572.297; firstOFF.97301625. SerialHB/TA continued and diagnosticsrecorded no
+failedwrites. This differs from prior100ms serialcompletionfailure.
+Root is preparing an explicit0.5s stationary cache allowance, preservingminof
+camera/lease/run deadlines and immediate invalid-evidence revocation; normal
+0.25s default unchanged. Passive per-read-stage profiling runs withhardwareOFF.
+Earlier timeout replay and safe checkpoint copy removalce1b36b are pushed;
+optimization not merged into pilot and not claimed to fix the original timeout.
+Systemlog shows the same OpenRB request-abort message near both failed-run and
+successful-OFF-probe shutdown, so that message alone is not evidence of a USB cause.
