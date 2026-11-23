@@ -23,9 +23,12 @@ flags and test entry points. [build_sources.py](../../scripts/build_sources.py)
 resolves shared source dependencies. Multiple selected suites use a
 content-addressed shared test runtime via
 [shared_regressions.py](../../scripts/shared_regressions.py), avoiding a complete
-app rebuild for every suite. Run aggregate builds serially and keep their source
-snapshot coherent; competing agents must not edit sources during a frozen build
-or race the same build outputs.
+app rebuild for every suite. Shared builds now serialize cache publication and
+compile private source snapshots; identified runner paths prevent another build
+from replacing the executable about to run. Use isolated worktrees for coherent
+changes. Runtime fixtures/resources are still live, and GUI or hardware tests
+still need a single execution owner. See [build provenance](../BuildProvenance.md)
+for cache receipts, release-source checks and the precise isolation limits.
 
 | Change area | Useful initial suites |
 |---|---|

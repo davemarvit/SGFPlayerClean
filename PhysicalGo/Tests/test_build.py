@@ -63,15 +63,17 @@ class BuildTests(unittest.TestCase):
     def test_all_tests_includes_registry_checks_and_all_suites(self):
         code, calls, _ = self.invoke(['--all-tests'])
         self.assertEqual(0, code)
-        self.assertEqual(len(SUITES) + 1, len(calls))
+        self.assertEqual(len(SUITES) + 3, len(calls))
         self.assertEqual(str(ROOT / 'Tests/test_build.py'), calls[0][1])
-        self.assertEqual({'--' + name for name in SUITES}, {call[2] for call in calls[1:]})
+        self.assertEqual(str(ROOT / 'Tests/test_build_provenance.py'), calls[1][1])
+        self.assertEqual(str(ROOT / 'Tests/test_build_provenance_review.py'), calls[2][1])
+        self.assertEqual({'--' + name for name in SUITES}, {call[2] for call in calls[3:]})
 
     def test_aggregate_uses_tracked_shared_runtime(self):
         code, calls, _ = self.invoke(['--all-tests'])
         self.assertEqual(0, code)
         self.assertTrue(all(env.get('PHYSICAL_GO_SHARED_REGRESSIONS') == '1'
-                            for env in self.environments[1:]))
+                            for env in self.environments[3:]))
 
     def test_invalid_tool_combinations_do_not_build(self):
         for arguments in [ ['--test', '--preview'], ['--test', '--camera-test', '--saved-observations'] ]:

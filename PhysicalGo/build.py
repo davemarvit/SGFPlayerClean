@@ -33,10 +33,12 @@ if args.all_tests or len(selected) > 1:
     failures = []
     total = len(selected)
     if args.all_tests:
-        total += 1
-        result = subprocess.run([sys.executable, str(root / 'Tests/test_build.py')])
-        if result.returncode:
-            failures.append('build registry')
+        build_checks = ('test_build.py', 'test_build_provenance.py', 'test_build_provenance_review.py')
+        total += len(build_checks)
+        for check in build_checks:
+            result = subprocess.run([sys.executable, str(root / 'Tests' / check)])
+            if result.returncode:
+                failures.append(check)
     for name in selected:
         print(f'\nRunning --{name}', flush=True)
         result = subprocess.run([sys.executable, str(Path(__file__).resolve()), '--' + name, *(['--debug-tests'] if args.debug_tests else [])], env={**os.environ, 'PHYSICAL_GO_SHARED_REGRESSIONS': '1'})
@@ -75,6 +77,8 @@ elif args.preview:
     executable = build / 'PhysicalGoPreview'
     sources = shared + [root.parent / 'SGFPlayerClean/Models/SGFPlayerEngine.swift'] + [p for p in sorted((root / 'Sources').glob('*.swift')) if p.name != 'PhysicalGoApp.swift'] + [root / 'Tests/Preview.swift']
 else:
+    from scripts.build_provenance import acquire_release_lock
+    release_build_lock = acquire_release_lock(build)
     app = build / 'Physical Go.app'
     (app / 'Contents/MacOS').mkdir(parents=True, exist_ok=True)
     (app / 'Contents/Resources').mkdir(exist_ok=True)
@@ -110,11 +114,19 @@ if root/'Sources/KokoroSpeech.swift' in sources:
         plist['PhysicalGoSourceHash']=hashlib.sha256(b''.join(p.read_bytes() for p in sources)).hexdigest()
         (app/'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 target = subprocess.check_output(['uname','-m'],text=True).strip()+'-apple-macosx14.0'
+release_source_state = None
+if executable.name == 'PhysicalGo':
+    from scripts.build_provenance import SourceState
+    release_source_state = SourceState.capture(sources)
+    if release_source_state.content_hash != plist['PhysicalGoSourceHash']:
+        raise RuntimeError('Application source changed after plist preparation; refusing to build')
 if selected_suite and os.environ.get('PHYSICAL_GO_SHARED_REGRESSIONS') == '1':
     from scripts.shared_regressions import compile_suite
-    compile_suite(root, selected_suite, sources, executable, target, debug=args.debug_tests)
+    executable = compile_suite(root, selected_suite, sources, executable, target, debug=args.debug_tests)
 else:
     subprocess.run(['xcrun','swiftc','-swift-version','5','-D','PHYSICAL_GO','-Onone' if selected_suite and (args.debug_tests or not selected_suite.optimized) else '-O','-target',target, *map(str,sources), '-o',str(executable)],check=True)
+if release_source_state is not None:
+    release_source_state.assert_unchanged(resolve_sources(root, shared + [root.parent / 'SGFPlayerClean/Models/SGFPlayerEngine.swift'] + sorted((root / 'Sources').glob('*.swift'))))
 if args.voice_assets:
     subprocess.run([str(executable),str(root/"Resources/Kokoro")],check=True,cwd=root.parent)
     raise SystemExit(0)
