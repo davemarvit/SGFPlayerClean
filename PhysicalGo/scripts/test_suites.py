@@ -116,6 +116,7 @@ SUITES = {
     'reference-preparation-test': Suite('ReferencePreparationTests', 'app', ('Tests/ReferencePreparationTests.swift',)),
     'ai-laser-test': Suite('PhysicalAILaserTests', 'app', ('Tests/PhysicalAILaserTests.swift',)),
     'guidance-reducer-test': Suite('PhysicalGuidanceRecoveryTests', 'standalone', ('Tests/PhysicalGuidanceRecoveryTests.swift','Tests/Support/GuidanceRecoveryBaseline.swift'), extra=('Sources/PhysicalGuidanceRecovery.swift',), optimized=False),
+    'guidance-reducer-review-test': Suite('PhysicalGuidanceRecoveryReviewTests', 'standalone', ('Tests/PhysicalGuidanceRecoveryReviewTests.swift',), extra=('Sources/PhysicalGuidanceRecovery.swift',), optimized=False),
     'capture-state-test': Suite('PhysicalCaptureStateTests', 'standalone', ('Tests/PhysicalCaptureStateTests.swift',), extra=('Sources/PhysicalCaptureGuidance.swift',)),
     'capture-laser-test': Suite('PhysicalCaptureLaserTests', 'app', ('Tests/PhysicalCaptureLaserTests.swift',), optimized=False),
     'capture-controller-test': Suite('PhysicalCaptureControllerTests', 'app', ('Tests/PhysicalCaptureControllerTests.swift',), optimized=False),
