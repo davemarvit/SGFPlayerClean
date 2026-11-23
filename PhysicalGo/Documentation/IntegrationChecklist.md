@@ -15,8 +15,12 @@ offline verification, installation and physical validation.
   then stopped at T19's 120-second target limit after passing K10 (1.56px) and
   A19 (2.78px). All 37 staged A/B prelight checks passed; no motor/thermal fault.
   Full OFF confirmed at Unix1795463029.7635274. Peak temperatures14/15°C.
-  No map/binding activated; game/clocks unchanged. Next: offline route/correction
-  timing review before another physical attempt. Artifacts and run-summary.json
+  No map/binding activated; game/clocks unchanged. Dave subsequently authorized
+  a longer experimental retry: up to two hours overall, no per-target timer,
+  ordinary defaults and all safety/correction-count checks retained. Independent
+  review and153 checks pass; code `faa2230` is pushed on
+  `codex/calibration-experiment-budget`. Hardware remains
+  OFF pending a comfortably interior starting spot (re-aim requested). Artifacts and run-summary.json
   are in the session's `calibration-resume-20261123/` directory.
 - Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.

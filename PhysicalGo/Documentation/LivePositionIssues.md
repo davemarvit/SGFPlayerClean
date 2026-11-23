@@ -3716,3 +3716,21 @@ Next: offline interior-route and intermediate-waypoint accuracy review without
 weakening final3px checks or motor/camera safeguards. No unattended automatic
 retry. Saved summary: calibration-resume-20261123/run-summary.json. Full calibration
 and independent nine-target validation still required before gameplay.
+
+November 23 — explicit longer experimental allowance ready, not run
+Dave asked to retry without the two-minute target timer, then authorized beyond
+30minutes while away for a couplehours, explicitly excluding ordinary runs.
+Separate branch codex/calibration-experiment-budget commitfaa2230 adds
+--experimental-long-run --seconds7200 --target-seconds0. Normal defaults600/120
+and whole-run maximum900 unchanged. The flag gates two-hour whole-run maximum
+and disabled target timer.35corrections/stage, accuracy and all camera/hand/motor/
+thermal/command/heartbeat limits and OFF cleanup remain unchanged. Exact options
+are recorded in result.json. Independent review153tests pass (128calibration,
+25dark), mocked fullrunner default/experimental reportforwarding verified; source
+SHA8bf34fea10cef6bb45cebd32209d58f9f0cb111b1b7c6c6be64bd8dd5790fbdd.
+No new hardware command or retry performed. Last spot[15.9992,1.9603] is outside
+the unchanged initial[2,16] margin. Dave was asked to switch physical power off,
+coarsely re-aim toward center, restore power and confirm ifstillpresent; reply
+pending. If alreadygone, keep hardwareOFF and wait for physical setup correction.
+Do not weaken initialmargin, use oldmap, or repeatedlyretryborderlineobservations.
+Review evidence saved in calibration-resume-20261123/experiment-budget-review.json.

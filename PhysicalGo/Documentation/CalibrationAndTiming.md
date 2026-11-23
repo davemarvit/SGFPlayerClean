@@ -57,8 +57,8 @@ calibration-only change does not permit old hand or stone evidence during play.
 
 | Check or operation | Current limit | Meaning |
 |---|---|---|
-| Entire attended calibration run | **600 seconds by default**; configurable **60–900 seconds**. | Finite run deadline, not the maximum age of an image. This deadline was **not** the cause of the recent early stops. |
-| Correct one named calibration target | **120 seconds**; at most **35 corrections per navigation stage**. | Bounds a target search/correction attempt. Individual motor and evidence safeguards still apply throughout. |
+| Entire calibration run | **600 seconds by default**; configurable **60–900 seconds** normally. Explicit `--experimental-long-run` permits up to **7,200 seconds**. | Finite run deadline, not the maximum age of an image. This deadline was **not** the cause of the recent early stops. |
+| Correct one named calibration target | **120 seconds by default**; explicit experimental `--target-seconds 0` disables only this timer. At most **35 corrections per navigation stage** remains. | Bounds a target search/correction attempt. Individual motor and evidence safeguards still apply throughout. |
 | Refresh commissioning safety metadata | Poll every **20 ms**; cached validation allowance at most **250 ms**. | The allowance is shortened by the remaining app lease, all four actual 600-ms camera-age budgets and the run deadline. Invalid observations revoke permission immediately. It is not a 250-ms extension of those budgets. |
 | Actual camera evidence consumed by hardware | **600 ms** age budget. | Remains current for calibration clearance and the existing gameplay frame reader. The staged A exception is for geometric analysis only; B remains live evidence. |
 | New post-OFF reference frame | Bounded wait of **3 seconds**. | Waits for a genuinely newer qualifying frame; the wait does not make stale frames acceptable. |
@@ -121,3 +121,16 @@ Sources: laser [calibration plan](</Users/dave/Personal/Fab Files/DYNAMIXEL Go P
 [firmware](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/AimControl/AimControl.ino>),
 [app guidance](../Sources/PhysicalLaserGuidance.swift) and
 [capture evidence](../Sources/PhysicalCaptureGuidance.swift).
+
+## Longer experimental allowance (November 23)
+
+Dave explicitly authorized a retry lasting beyond30minutes while away for a
+couple of hours, with ordinary calibration unchanged. The separate branch
+`codex/calibration-experiment-budget` adds an explicit per-invocation experimental
+gate for `--seconds 7200 --target-seconds 0`. This disables only the per-target
+elapsed timer; it does not disable the finite overall run limit,35-correction
+cap, live camera/hand evidence, movement bounds, temperatures, serial/heartbeat
+checks or full-OFF cleanup. Timing options are recorded in the run result.
+Review/test and actual-run status belong to the checklist. The previous stopped
+spot was too close to an edge for the unchanged fresh-start margin; extra time
+is not a substitute for a valid starting spot.
