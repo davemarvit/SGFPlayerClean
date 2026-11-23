@@ -4000,3 +4000,46 @@ Earlier timeout replay and safe checkpoint copy removalce1b36b are pushed;
 optimization not merged into pilot and not claimed to fix the original timeout.
 Systemlog shows the same OpenRB request-abort message near both failed-run and
 successful-OFF-probe shutdown, so that message alone is not evidence of a USB cause.
+
+November 23 — workflow timing model delegated; pilot02 stopped before light
+Dave requested a separate agent to model the whole workflow and relevant timing
+options, then generate a timestamp/event data structure. workflow_timing_model
+owns an isolated offline model/generator/schema/coverage inventory. Root continues
+physical work; no runtime changes or hardware access delegated to that agent.
+Pilot02 on9841f0 with explicit0.5s cache ended before illumination: measuredPOSE
+1725/2274 exceeded the saved1720/2274 anchor's3-count start envelope. This confirms
+partial movement from the interrupted first probe. No PREPARE/SWEEP writes, clean
+fullOFF1795472997.1711957, no controller/supervisor fault, sources unchanged.
+A narrow explicit dark-return-to-anchor option is being prepared/reviewed for
+this5-count difference, within8/5counts, using provisional candidate bounds and
+ordinarypath/settlement checks. No light until returned within3counts, followed
+by fresh optical admission and two independent probes. Default rejection remains.
+
+November 23 — workflow timing contract complete; interior pilot resumed
+Pushed/reviewed7737129 provides64 workflow stages across eight parallel lanes,
+37 timing options, generated event schema/selected-path plans, legacy inventory
+and20 passing tests. No runtime instrumentation enabled or timing policy changed.
+Distinct clocks, requested/settled/measured positions, image acquisition, sound
+dispatch/onset, fault origin and OFF/close/persistence boundaries are explicit.
+Pilot03 on3202fe3 reached interior without timing/serial faults; stopped before
+second interior probe because the actual first-probe pose drifted one count,
+requiring nine counts to return to baseline against the eight-count cap. Latest
+observed1828/2257 at board[4.12182,8.94954];134 samples preserved, fullOFF
+1795473507.3676848, no controllerfault and unchanged sources.
+Reviewed/pushed094ddfd clips that return to the unchanged eight-count cap and
+preserves the latest clean observed anchor separately from the inherited123
+checkpoint. Six independent actual-recording tests and relevant existing checks
+passed. Root launched pilot04 from that interior anchor, with explicit10s camera
+age/0.5s cache,7200s finite limit and attention beep. No automatic retry; fixed
+95-fit model and all nine pending validation targets remain unchanged.
+
+November 23 — pilot04 stopped on measured probe independence, not timing
+094ddfd passed fresh geometry/position admission (0.830px). Actual observed
+probe poses1828/2257→1836/2257→1829/2254; second target1828/2252 settled
+1829/2254. The measured two-axis basis failed its unchanged minimum travel
+criterion. No outbound diagnostic leg.137 samples retained, latest board
+[4.198813,9.031403]. FullOFF1795474158.026998, no controller/supervisor fault,
+no cancellation, source hashes/inventory and savedgameSHAunchanged; exit1 reaped.
+ReportSHA416473721b04c8f588125686b2cd8505ed9bcaa120cbf7491296c3b8d5daab10.
+Root requested offline design review for bounded additional probing without
+weakening measured qualification. Hardware/serial port released, no auto retry.
