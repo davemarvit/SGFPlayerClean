@@ -285,11 +285,36 @@ No live threshold or classifier changed. Evidence is
 
 ## Per-intersection appearance evidence — November 23
 
-Dave requested an additional agent to assess expected empty, black and white
-appearance at each intersection as complementary evidence. `intersection_appearance`
-is actively reviewing existing implementation and historical data offline.
+Completed offline study integrated as `8212400`; independent root replay agrees
+with the stored-feature audit. See [intersection appearance study](../Experiments/IntersectionAppearance/README.md).
 BoardVision already uses an intersection-specific empty reference; the learned
-StoneAppearanceModel is inspector-only. An existing historical study improved
-empty decisions but incorrectly resolved one obstruction to empty. Those measurements alone do not justify enabling the model in live recognition. The study will
-identify genuine gaps, camera/setup-specific coverage and an explicit uncertain
-outcome, avoiding duplicate confidence from correlated image features.
+StoneAppearanceModel is inspector-only. The confirmed November 4 archive has
+144 samples but only six points observed in all three states; it is separate
+from the current moved setup. The historical proposal's occluded-to-empty error
+prevents treating appearance agreement as hand clearance. No runtime change.
+Dave additionally requested confidence for downstream combination. The completed design and illustrative JSON preserve class scores,
+confidence/calibration status, visibility/abstention reason and shared-source
+provenance for fusion. This is a documented contract, not an activated runtime API.
+
+## Camera-age experiment and recovery — November 23
+
+Dave explicitly clarified that the 0.6-second camera limit must not apply to
+this stationary experimental run, and that transient camera delays should not
+repeatedly destroy calibration progress. The prior long-run override covered only
+overall/target deadlines, not this independent check; that implementation was
+incomplete for his intended experiment.
+
+- `calibration_readiness` is implementing an explicit experimental camera-age
+  override on an isolated branch, planned 10 seconds for this run. It must reach
+  all metadata, optical and PNG reader paths; ordinary defaults remain 0.6 seconds.
+  App lease, polling cache, causal post-movement/post-light frames, geometry,
+  controller and thermal checks remain. Accepting older frames necessarily
+  increases potential unseen-hand latency; observed obstruction still rejects.
+- `architecture_review` owns independent review. `fast_calibration` separately
+  owns full-OFF recovery and progress-preserving requalification, using new
+  workers/session and actual pose/spot; poisoned cancellation state is not reset.
+  Interrupted motor commands must not be replayed from assumed positions.
+- These changes are in progress, not installed or physically tested. Hardware
+  remains full OFF. A 45-second passive audit recorded 756 metadata observations,
+  448 unique frames, median capture age 0.233 seconds and maximum 0.545 seconds;
+  this does not negate the recorded earlier 0.615-second expiry under active work.

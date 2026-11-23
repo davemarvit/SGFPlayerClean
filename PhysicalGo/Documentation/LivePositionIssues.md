@@ -3820,3 +3820,17 @@ BoardVision empty-reference and inspector-only StoneAppearanceModel features.
 Hardware OFF notice sent before agent starts heavier historical replay.
 Scene-change edge follow-up a7286f7 pushed, eight tests pass; complementary edge
 and local texture evidence remains diagnostic only. Root remains hardware owner.
+
+November 23 — explicit camera-age override and confidence requirement
+Dave clarified the stationary experimental run should not use the0.6-second
+camera age cutoff, then emphasized that repeated run-ending delays are unacceptable.
+calibration_readiness owns a separate experimental age override; architecture_review
+independently reviews all age paths. fast_calibration owns separate full-OFF recovery
+with preserved progress and fresh actual pose/spot; interruptedcommands are not
+replayed. These remain in progress, no hardware activated. Planned explicit10s
+camera allowance is distinct from unchanged leases/heartbeat/thermal protections
+and increases possible unseen-hand delay. Normal defaults remain unchanged.
+Appearance report and reproducible144-sample audit integrated as8212400; root
+independent replay agrees. Dave requests per-intersection confidence in addition
+to black/white/empty/uncertain for downstream fusion. Agent is adding class scores,
+confidence semantics/calibration status and correlated-source provenance.
