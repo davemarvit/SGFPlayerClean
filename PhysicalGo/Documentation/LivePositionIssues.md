@@ -3482,3 +3482,58 @@ Reference-side registration caching preserves all feature/ECC/movement gates and
 The first expired-image cause remains unproven; saved timings show improved margin.
 Dave notes occupied boards may process differently. An offline agent is measuring
 saved sparse/crowded/capture/hand recordings, separately from empty calibration.
+
+November 22 — audible repeat passed; full calibration stopped at grid fit
+Dave missed initial-spot-02 visually, requested repeat, then confirmed hearing
+and seeing initial-spot-03. Repeat passed with spot board (11.803,14.826), no
+travel, prelight image age .302s, registration .106s, audio dispatch .00747s after
+light command. Final clean v44 full OFF at 1795417222.4390912.
+Full-calibration-01 then stopped before session engagement/light/travel with
+Printed grid and app grid disagree. Clean full OFF at 1795417247.9939082.
+No fitted map or full-board qualification. Original failed grid image was not
+retained; candidate fix now saves exact image/manifest before fitting and reports
+numeric errors without changing limits.
+Passive subsequent grid audit captured eight images under
+gameplay-holding-validation/grid-after-full-calibration-01. One fit exceeded
+4px bottom-left error (4.0277), five were near3.7–3.98px, two below1px there.
+Native corners were unchanged; a separate earlier image-registration comparison
+showed only.06–.10px displacement. Do not infer equipment movement or repeatedly
+retry to select a lucky fit. Author and independent reviewer investigating fit
+variation using saved pixels. Root hardware remains OFF; app/game paused unchanged.
+
+November 22 — occupied-board timing and grid-fit diagnosis
+Offline ten-pair host timing report is PhysicalGo/Documentation/OccupiedBoardTiming.md:
+79 usable observations; one explicit process suspension excluded. Sparse two-stone
+pair~1.3s, crowded matched-reference pair~.15s; no monotonic stone-count claim.
+Reference caching preserves accepted transforms/rejections and saves~25–35ms on
+fast paths but does not solve slow ECC cases. Native pipeline was inspected, not
+timed. Existing gameplay obtains a newer clear frame after some alignment work;
+these timings do not prove every gameplay request violates the new calibration's
+same-image prelight lifetime. Freshness and safety thresholds remain unchanged.
+Grid diagnosis: RANSAC excludes all left-edge points on several saved frames,
+causing extrapolation variation. Deterministic all-point fit is steadier but has
+only6–9/19 left-edge points within1.5px. Investigating direct printed-line centers,
+edge-junction localization and fitting objective rather than lowering limits.
+No full calibration, map activation or gameplay test completed. Root hardwareOFF.
+
+November 22 — balanced grid passes; next stop is measured prelight timing
+Frozen gameplay_calibration.py22064c37902bc1739a20f07f9c502e298ead6159215e94b3a75a41f805e2acff
+uses deterministic fixed boundary/interior weighting, original251/<1.5px support
+and<4px native-corner guards, plus all72 actual printed-boundary points<3px.
+51tests and independent moved/misindexed/erased-edge cases pass. All8 recorded
+frames pass actualfresh_grid; worst trueboundaryerror2.005px. Fresh livepassive
+preflight334inliers,.166s,maxboundary1.915px; emptyboard visually confirmed.
+full-calibration-02 passed that grid, initial visible spot, and first dark PTO2440
+move (2422/2143 to measured2439/2143) with no motor fault. Next prelight check
+stopped: collection.432943s, registration.277273s, capturedage.630870s vs.600limit.
+Clean full OFF at1795418406.4329135; last paired temperatures14/14C, no supervisor
+or controller fault. No model/binding/target qualification completed.
+Root authorized bounded fullyNEW prelight image acquisition whilealreadydarkREADY:
+max3attempts and2s total, no additionalPREPARE/travel/reenergization, everynewimage
+fullyregistered with unchanged age/admissionlimits; only specificimageexpiry can
+retry. Hand/context/geometry/telemetry/cancellation faults stopimmediately. Author
+and independentreviewer implementing/testing; no hardware retry untilreviewclear.
+Dave asked about4Kwebcam. Root recommends fixing softwarefirst: currentimage has
+40–60px gridspacing and adequate printed-line evidence. 4K may improve detail
+but increasespixelwork4x; lens/focus/exposure and distortion are separate issues.
+No purchase or camera/configuration change was requested/performed.
