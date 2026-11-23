@@ -8,17 +8,25 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest continuation stopped:** `validation-resume-01` admitted fresh geometry
-  and measured pose using the fixed candidate (3.386 motor-count residual), then
-  reached [1.99883, 9.00813] at actual pose [1728, 2275]. Its next A10 approach
-  settled at [1625, 2321], where five- and seven-frame spot detection failed.
-  Full OFF confirmed Unix1795468415.5879025, no supervisor/controller fault;
-  sources unchanged. Failed spot images were not retained. The candidate predicts
-  this pose outside the printed grid, but that is not an observed location.
-  **Keep the laser OFF at this pose.** A reviewed dark-only return to the last
-  optically observed pose is being prepared. The carried local movement model
-  was not independently requalified after global position admission; two-axis
-  probe and finite-step agreement checks are being implemented before retry.
+- **Dark return passed; fresh optical qualification is next.** After the
+  ambiguous spot in `validation-resume-01`, `dark-return-01` made one dark move
+  from measured [1625, 2321] toward the last observed [1728, 2275], settling at
+  [1728, 2277]. No illumination was requested. Full OFF confirmed
+  Unix1795469498.7246559 without a controller or supervisor fault. Source
+  `65e5fd4` and the return report are preserved; the new pose has not yet been
+  optically remeasured. Independent review of combined steering qualification
+  and failed-image retention passed at `bc713f8`; combined tests exposed three
+  outdated mock-collector errors, being repaired before physical use.
+  The next run must freshly measure position and both independent motor axes;
+  it cannot reuse the old local steering response as authority. All five fit
+  targets remain preserved and all nine independent validation targets remain.
+- **Large-move diagnostics are planned, not yet run.** Record the first visible
+  landing before correction, with the camera fixed, and compare distance,
+  direction, diagonals and repeats. Begin with a six-move pilot after steering
+  qualification; the larger optional campaign is not a gameplay prerequisite.
+  See the saved [protocol](</Users/dave/DYNAMIXEL-Go-Pointer-worktrees/overnight-adaptive-calibration/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md>)
+  at pushed source `86bf0b9`. Failed or merely predicted landings are not training
+  observations.
 - **Latest physical result:** `full-calibration-04` ran for 702 seconds with
   explicit 10-second camera age, 7200-second overall allowance and target timer
   disabled. All five fit targets passed: K10 2.21px, A19 1.76px, T19 2.31px,
@@ -81,7 +89,7 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** validation-resume-01 confirmed fresh v44 OFF.
+- **Hardware is fully OFF:** dark-return-01 confirmed fresh v44 OFF.
   Production bridge and calibration are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest

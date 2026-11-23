@@ -3904,3 +3904,18 @@ Separateauthorspreparerevieweddark-onlyreturnto1728/2275, independentaxisprobe+
 finiteendpointagreementchecks, andfailedimagebufferflushedonlyafterconfirmedOFF.
 Daveadditionallyrequestslarge-movelandingexperiments; adaptiveagentownsdata-only
 bidirectional/distance/diagonal/repeat/heldouttransitionplan, firstlandingbeforecorrection.
+
+November 23 — dark return passed; combined steering review and large-move plan
+The reviewed dark-only return (host65e5fd4) moved actual1625/2321 toward the last
+observed1728/2275 and settled1728/2277. Exactly one GOTO, no illumination, clean
+full OFF1795469498.7246559. Return report SHA256:
+30c491901017fcb67243f52f9c00aaf9a25aa4c56bc03aa4c8b0a9442cba2fbf.
+Fresh optical/two-axis qualification remains mandatory before further travel.
+Combined steering and failed-image retention atbc713f8 passed independent code
+review. Focused93-test integration run has3 errors from outdated MagicMock
+collector returns; tests are being corrected to the real collector contract.
+Runtime guards are not being weakened. Failed images will be buffered in memory
+and flushed only after full OFF and worker shutdown. No new physical run yet.
+Large-move first-landing protocol86bf0b9 is pushed: fixed camera, six-move pilot,
+then optional distance/direction/diagonal/repeat/held-out transition campaign.
+It is a proposal, not an executor or physical validation. Root owns hardware.
