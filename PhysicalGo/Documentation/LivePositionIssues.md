@@ -3761,3 +3761,18 @@ not sethandflag. No threshold or hardware change. Proposed follow-up: bounded
 beam-off waiting and fresh requalification before resuming after temporarylighting,
 rather than aborting all calibrationprogress. Currentcode still aborts. Evidence:
 full-calibration-02/shadow-diagnosis.json and ../full-calibration-02-summary.json.
+
+November 23 — distinguish smooth illumination from localized changes
+Dave proposed lower significance for gentle changes over a large area, versus
+waiting for localized stone/hand-scale changes. Current registrar compensates a
+global gain/offset and masks some localized residuals but still gates globalECC.
+Root offline diagnostic fitted a robust quadratic log-gain field in rectified
+board coordinates, with no spatialwarp fit: saved rejectedmedian correlation
+0.9578→0.9762, gradientcorrelation0.9800. Syntheticgentleillumination normalized;
+stone/ellipseocclusion/5pxgridshift retained changes. Smallstone retained a high
+wholeboard score, so localshape/edge/gridvisibility evidence is necessary;
+residualarea alone is insufficient. These diagnostic scores differ from liveECC.
+No production code/threshold/activation changed, no hardware commands. Proposed
+architecture separates geometry, smoothlighting and localizedforeground, followed
+by bounded darkwait/requalification for ambiguous views. DiagnosticJSON retained
+at full-calibration-02/lighting-separation-diagnostic.json. Not a validated classifier.

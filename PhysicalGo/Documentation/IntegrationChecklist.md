@@ -246,3 +246,18 @@ and motor-pose qualification before any relight. A changed setup, stale stream,
 controller/thermal fault or uncertain pose must still stop. A similarity score
 is not a probability; the0.94775 observed score does not justify lowering0.95.
 This recovery behavior is proposed, not implemented or physically validated.
+
+Dave refined the lighting requirement: give broad, gentle illumination changes
+less weight than localized stone/hand-sized changes. Separate geometric grid
+alignment, spatially smooth lighting and localized residual/edge changes rather
+than replacing one global cutoff with a lower one. Broad area alone is insufficient:
+large obstructions must not be normalized into lighting. Small objects must remain
+visible to local checks even when whole-board scores look good.
+An offline robust quadratic log-gain diagnostic on the saved rejected median
+improved rectified correlation0.9578→0.9762, gradient correlation0.9800. Simple
+synthetic stone/occlusion and shifted-grid controls retained residual changes;
+the stone still had high global correlation, illustrating the need for local
+connected-region/grid-visibility tests. These are different preprocessing/scores
+from productionECC, not proof the original0.95 gate should accept this image.
+No live threshold or classifier changed. Evidence is
+`full-calibration-02/lighting-separation-diagnostic.json` in the session directory.
