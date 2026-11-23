@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "proposed-1",
+  "purpose": "Illustrative contract only; invented measurements, no runtime activation",
+  "point": 180,
+  "decision": {
+    "label": "white",
+    "bestSupportedClass": "white",
+    "selectedClassConfidence": {
+      "supportScore": 0.7827045382,
+      "supportMeaning": "appearance compatibility; not probability of correctness",
+      "calibrationStatus": "uncalibrated",
+      "classProbability": null,
+      "calibrationID": null
+    },
+    "abstentionReasons": []
+  },
+  "classEvidence": {
+    "empty": {
+      "rawSupport": {"metric": "pooledNormalizedFeatureDistance-v1", "value": 2.2, "units": "dimensionless", "higherIsBetter": false},
+      "confidence": {"supportScore": 0.0889216175, "transform": "exp(-0.5*distance^2)", "calibrationStatus": "uncalibrated", "classProbability": null, "calibrationID": null}
+    },
+    "black": {
+      "rawSupport": {"metric": "pooledNormalizedFeatureDistance-v1", "value": 6.0, "units": "dimensionless", "higherIsBetter": false},
+      "confidence": {"supportScore": 0.0000000152, "transform": "exp(-0.5*distance^2)", "calibrationStatus": "uncalibrated", "classProbability": null, "calibrationID": null}
+    },
+    "white": {
+      "rawSupport": {"metric": "pooledNormalizedFeatureDistance-v1", "value": 0.7, "units": "dimensionless", "higherIsBetter": false},
+      "confidence": {"supportScore": 0.7827045382, "transform": "exp(-0.5*distance^2)", "calibrationStatus": "uncalibrated", "classProbability": null, "calibrationID": null}
+    }
+  },
+  "visibilityQuality": {
+    "status": "usable",
+    "qualityScore": null,
+    "scoreMeaning": null,
+    "reason": "Illustrative categorical admission; no numeric visibility estimator specified"
+  },
+  "contextSupport": {
+    "status": "compatible",
+    "supportScore": null,
+    "checks": {"camera": "match", "geometry": "match", "reference": "known-empty", "appearanceDomain": "same-setup"},
+    "missingOrMismatched": [],
+    "calibratorApplicable": false,
+    "reason": "No calibrated probability model exists in this example"
+  },
+  "provenance": {
+    "cameraID": "illustrative-camera",
+    "setupID": "illustrative-setup",
+    "streamEpoch": "illustrative-epoch",
+    "frameID": 42,
+    "captureTime": "illustrative-time",
+    "referenceID": "illustrative-empty-reference",
+    "geometryRevision": "illustrative-grid-revision",
+    "featureModelRevision": "StoneAppearanceModel-descriptive-ranges-v1",
+    "temporalEpisodeID": "illustrative-placement-episode",
+    "labelSource": "none: runtime evidence does not use expected moves as labels",
+    "dependencies": ["current-frame-pixels", "empty-reference-pixels", "board-geometry", "confirmed-calibration-examples"]
+  },
+  "correlationFamilies": [
+    "pixels:illustrative-epoch/frame-42",
+    "reference:illustrative-empty-reference",
+    "geometry:illustrative-grid-revision",
+    "features:wood-relative-appearance",
+    "episode:illustrative-placement-episode"
+  ]
+}
