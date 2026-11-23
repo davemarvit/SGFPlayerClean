@@ -1,0 +1,1373 @@
+{
+  "schema": 1,
+  "purpose": "Offline coverage / existing feature model sanity check; no live activation",
+  "provenance": {
+    "profile": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/profile.json",
+    "profile_sha256": "7712771cbcd16a1a328a65c43dd854f1ac2538385b55dafd77ad31c6a88994e9",
+    "captures": [
+      {
+        "id": "7E4C81F4-D45E-43BD-A910-B670A9E01667",
+        "stage": 0,
+        "cameraID": null,
+        "capturedAt": "2026-11-04T18:35:54Z",
+        "appVersion": "0.66",
+        "labelSource": "user-confirmed calibration diagram and frozen photo",
+        "calibration": {
+          "corners": [
+            {
+              "x": 0.2425702270958268,
+              "y": 0.0768008850988728
+            },
+            {
+              "x": 0.7314749823536819,
+              "y": 0.06365092743426694
+            },
+            {
+              "x": 0.8110111954879008,
+              "y": 0.9021616149593801
+            },
+            {
+              "x": 0.18547448112254397,
+              "y": 0.9198625383420272
+            }
+          ],
+          "h": [
+            0.4895004257638295,
+            -0.09762694782702859,
+            0.2425702270958268,
+            -0.013098124066649432,
+            0.6420467535459473,
+            0.0768008850988728,
+            0.0008143415979281511,
+            -0.21852710738663086
+          ],
+          "size": 19
+        },
+        "metadata": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/7E4C81F4-D45E-43BD-A910-B670A9E01667/capture.json",
+        "metadata_sha256": "2e9a03fab281379dc9b1be3af5f5b828d56a9b3f0e582b3aa594b8aafbb47c9a",
+        "image": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/7E4C81F4-D45E-43BD-A910-B670A9E01667/camera.png",
+        "image_sha256": "8c604089a7ab7e5cb101b49cd4adaf6b62f3582c9f04a54d7259e0fa200dd59e"
+      },
+      {
+        "id": "04B45002-06AE-428C-887E-6B822CFD17A8",
+        "stage": 1,
+        "cameraID": "0x21440000bda0567",
+        "capturedAt": "2026-11-04T18:55:23Z",
+        "appVersion": "0.67",
+        "labelSource": "user-confirmed calibration diagram and frozen photo",
+        "calibration": {
+          "corners": [
+            {
+              "x": 0.24257036793169356,
+              "y": 0.07680226868387015
+            },
+            {
+              "x": 0.7318593933662471,
+              "y": 0.062251356917666374
+            },
+            {
+              "x": 0.811010889955759,
+              "y": 0.9021614970326309
+            },
+            {
+              "x": 0.18547367971698153,
+              "y": 0.9198626871616512
+            }
+          ],
+          "h": [
+            0.4886761669159398,
+            -0.09747503553101641,
+            0.24257036793169356,
+            -0.014603041006776576,
+            0.6428027047029811,
+            0.07680226868387015,
+            -0.0008373992657180183,
+            -0.2177039209979477
+          ],
+          "size": 19
+        },
+        "metadata": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/04B45002-06AE-428C-887E-6B822CFD17A8/capture.json",
+        "metadata_sha256": "c056a90421e6b5d5c00977b1af3652df4c748bd284e156fba6e79f433e6e3bbd",
+        "image": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/04B45002-06AE-428C-887E-6B822CFD17A8/camera.png",
+        "image_sha256": "9a8f81ab86cab1317f834893c5cbe8e59e7947a5a24624437de64b38ba2a69aa"
+      },
+      {
+        "id": "6ECFE0D1-251C-4209-8323-2878F977F880",
+        "stage": 2,
+        "cameraID": "0x21440000bda0567",
+        "capturedAt": "2026-11-04T18:55:54Z",
+        "appVersion": "0.67",
+        "labelSource": "user-confirmed calibration diagram and frozen photo",
+        "calibration": {
+          "corners": [
+            {
+              "x": 0.24257036793169356,
+              "y": 0.07680226868387015
+            },
+            {
+              "x": 0.7318593933662471,
+              "y": 0.062251356917666374
+            },
+            {
+              "x": 0.811010889955759,
+              "y": 0.9021614970326309
+            },
+            {
+              "x": 0.18547367971698153,
+              "y": 0.9198626871616512
+            }
+          ],
+          "h": [
+            0.4886761669159398,
+            -0.09747503553101641,
+            0.24257036793169356,
+            -0.014603041006776576,
+            0.6428027047029811,
+            0.07680226868387015,
+            -0.0008373992657180183,
+            -0.2177039209979477
+          ],
+          "size": 19
+        },
+        "metadata": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/6ECFE0D1-251C-4209-8323-2878F977F880/capture.json",
+        "metadata_sha256": "39fd174b79eb5799b510ca4b3af889886c8c74bc5714027c1d3b71ada08a3f21",
+        "image": "/Users/dave/Library/Application Support/Physical Go/Stone Calibration/EF139BC6-9185-4854-AA0E-47C81E439CE3/6ECFE0D1-251C-4209-8323-2878F977F880/camera.png",
+        "image_sha256": "a5a8fd3e54d80d2c71b7dec5c78e9ffaac94de1c6719937e85a70b2cb506de6b"
+      }
+    ]
+  },
+  "board_size": 19,
+  "samples": 144,
+  "classes": {
+    "empty": {
+      "examples": 132,
+      "unique_points": 48,
+      "brightness_relative_to_wood": {
+        "min": -0.016557734204793007,
+        "median": 0,
+        "max": 0.015250544662309351
+      },
+      "internal_spatial_holdout": {
+        "correct": 131,
+        "unknown": 1
+      }
+    },
+    "black": {
+      "examples": 6,
+      "unique_points": 6,
+      "brightness_relative_to_wood": {
+        "min": -0.6583877995642702,
+        "median": -0.6230936819172113,
+        "max": -0.5507625272331155
+      },
+      "internal_spatial_holdout": {
+        "correct": 5,
+        "unknown": 1
+      }
+    },
+    "white": {
+      "examples": 6,
+      "unique_points": 6,
+      "brightness_relative_to_wood": {
+        "min": 0.012200435729847414,
+        "median": 0.058387799564270204,
+        "max": 0.09019607843137245
+      },
+      "internal_spatial_holdout": {
+        "correct": 6
+      }
+    }
+  },
+  "coverage": {
+    "sampled_intersections": 48,
+    "all_three_classes": 6,
+    "no_explicit_labels": 313,
+    "neighborhoods": {
+      "open": 56,
+      "one black": 40,
+      "one white": 40,
+      "several black": 4,
+      "several white": 4
+    }
+  },
+  "pooled_ranges_match_archived_swift_model": true,
+  "per_intersection": {
+    "40": [
+      "empty"
+    ],
+    "41": [
+      "empty"
+    ],
+    "42": [
+      "empty"
+    ],
+    "52": [
+      "empty"
+    ],
+    "53": [
+      "empty"
+    ],
+    "54": [
+      "empty"
+    ],
+    "59": [
+      "empty"
+    ],
+    "60": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "61": [
+      "empty"
+    ],
+    "71": [
+      "empty"
+    ],
+    "72": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "73": [
+      "empty"
+    ],
+    "78": [
+      "empty"
+    ],
+    "79": [
+      "empty"
+    ],
+    "80": [
+      "empty"
+    ],
+    "90": [
+      "empty"
+    ],
+    "91": [
+      "empty"
+    ],
+    "92": [
+      "empty"
+    ],
+    "160": [
+      "empty"
+    ],
+    "161": [
+      "empty"
+    ],
+    "162": [
+      "empty"
+    ],
+    "163": [
+      "empty"
+    ],
+    "179": [
+      "empty"
+    ],
+    "180": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "181": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "182": [
+      "empty"
+    ],
+    "198": [
+      "empty"
+    ],
+    "199": [
+      "empty"
+    ],
+    "200": [
+      "empty"
+    ],
+    "201": [
+      "empty"
+    ],
+    "268": [
+      "empty"
+    ],
+    "269": [
+      "empty"
+    ],
+    "270": [
+      "empty"
+    ],
+    "280": [
+      "empty"
+    ],
+    "281": [
+      "empty"
+    ],
+    "282": [
+      "empty"
+    ],
+    "287": [
+      "empty"
+    ],
+    "288": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "289": [
+      "empty"
+    ],
+    "299": [
+      "empty"
+    ],
+    "300": [
+      "black",
+      "empty",
+      "white"
+    ],
+    "301": [
+      "empty"
+    ],
+    "306": [
+      "empty"
+    ],
+    "307": [
+      "empty"
+    ],
+    "308": [
+      "empty"
+    ],
+    "318": [
+      "empty"
+    ],
+    "319": [
+      "empty"
+    ],
+    "320": [
+      "empty"
+    ]
+  },
+  "spatial_holdout_rows": [
+    {
+      "point": 40,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 40,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 40,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 41,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 41,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 41,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 42,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 42,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 42,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 52,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 52,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 52,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 53,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 53,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 53,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 54,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 54,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 54,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 59,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 59,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 59,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 60,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 60,
+      "stage": 1,
+      "truth": "black",
+      "call": "black",
+      "outcome": "correct"
+    },
+    {
+      "point": 60,
+      "stage": 2,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 61,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 61,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 61,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 71,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 71,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 71,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 72,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 72,
+      "stage": 1,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 72,
+      "stage": 2,
+      "truth": "black",
+      "call": "black",
+      "outcome": "correct"
+    },
+    {
+      "point": 73,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 73,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 73,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 78,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 78,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 78,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 79,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 79,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 79,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 80,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 80,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 80,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 90,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 90,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 90,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 91,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 91,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 91,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 92,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 92,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 92,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 160,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 160,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 160,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 161,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 161,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 161,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 162,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 162,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 162,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 163,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 163,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 163,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 179,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 179,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 179,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 180,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 180,
+      "stage": 1,
+      "truth": "black",
+      "call": "black",
+      "outcome": "correct"
+    },
+    {
+      "point": 180,
+      "stage": 2,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 181,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 181,
+      "stage": 1,
+      "truth": "black",
+      "call": "black",
+      "outcome": "correct"
+    },
+    {
+      "point": 181,
+      "stage": 2,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 182,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 182,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 182,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 198,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 198,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 198,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 199,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 199,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 199,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 200,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 200,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 200,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 201,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 201,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 201,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 268,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 268,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 268,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 269,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 269,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 269,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 270,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 270,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 270,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 280,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 280,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 280,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 281,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 281,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 281,
+      "stage": 2,
+      "truth": "empty",
+      "call": "unknown",
+      "outcome": "unknown"
+    },
+    {
+      "point": 282,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 282,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 282,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 287,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 287,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 287,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 288,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 288,
+      "stage": 1,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 288,
+      "stage": 2,
+      "truth": "black",
+      "call": "black",
+      "outcome": "correct"
+    },
+    {
+      "point": 289,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 289,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 289,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 299,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 299,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 299,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 300,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 300,
+      "stage": 1,
+      "truth": "white",
+      "call": "white",
+      "outcome": "correct"
+    },
+    {
+      "point": 300,
+      "stage": 2,
+      "truth": "black",
+      "call": "unknown",
+      "outcome": "unknown"
+    },
+    {
+      "point": 301,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 301,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 301,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 306,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 306,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 306,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 307,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 307,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 307,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 308,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 308,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 308,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 318,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 318,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 318,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 319,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 319,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 319,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 320,
+      "stage": 0,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 320,
+      "stage": 1,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    },
+    {
+      "point": 320,
+      "stage": 2,
+      "truth": "empty",
+      "call": "empty",
+      "outcome": "correct"
+    }
+  ],
+  "limitations": [
+    "One Nov4 calibration setup. No independent setup/episode holdout; no accuracy claim.",
+    "Spatial holdout shares frames, lighting and camera with training; points are correlated.",
+    "Legacy empty stage lacks camera ID; associated by confirmed archive, not asserted current-camera identity.",
+    "Only explicit calibration sample labels count; omitted positions are not ground truth empties.",
+    "Stored features are not recomputed here; image, metadata and feature-profile hashes preserve provenance.",
+    "Pooled feature model only; does not test neighbor-conditioned, new template or live production detector.",
+    "No hand, glare, severe-shadow or occupied-reference challenge labels in these confirmed captures.",
+    "Nov4 camera-port ID differs from Nov21-23; this profile is not applied to those setups.",
+    "Compatibility is correlated with existing pixel/shape evidence and is not an independent probability."
+  ]
+}
