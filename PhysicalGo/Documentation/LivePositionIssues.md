@@ -3620,3 +3620,18 @@ recommended after a supervised baseline, not an automatic rewrite. Source-hash
 manifest coverage and camera-failure clock policy remain documented follow-ups.
 Signed0.254 build is running; prepare the candidate offline without replacing
 or relaunching the installed application tonight.
+
+November 23 — signed candidate and pushed checkpoints ready for tomorrow
+Full optimized Physical Go0.254/build255 build passed; signature verified before
+and after copying to gameplay-holding-validation/app-0254-candidate/Physical Go.app.
+Source hash c03914ec09b7de194b7ede5707ee266699a9c60dfff2bc1abe882346e5d03a9b;
+binary hash 7cdf9b886835d9ddcb6f4e6a4fc371bff0351f9fccc1ea4212fb9387d44bc5f6.
+source-manifest.json records160 exact app inputs,117 laser source/test files,
+checks and source commits. Source snapshots and unchanged paused-game backup
+are beside the candidate. Code checkpoints pushed: app64a1b77 and laser11d3855
+on codex/monitored-gameplay-holding. Installed app remains0.253; no relaunch,
+serial access, light or motor action performed during this offline closeout.
+Tomorrow: restore lighting, install/visually verify candidate preserving game
+and clocks, verify camera/grid/setup and finish full laser calibration with
+beeps. Final reference/context/binding and production route validation still
+precede gameplay; current-point success is not a full-board qualification.

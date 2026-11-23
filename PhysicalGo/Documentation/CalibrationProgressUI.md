@@ -82,3 +82,8 @@ passes **104 calibration/progress tests plus 24 dark tests**, including both
 retained-image cases and four complete runner/route tests with a deliberately
 broken progress publisher. Full app build, installation and visual/physical
 validation are not implied by these results.
+
+Root integration: registered `--calibration-progress-test` passes all26 checks;
+the four-suite final app regression and8 build-registry checks pass. Full signed
+0.254/build255 candidate builds and verifies successfully. It remains uninstalled;
+visual and physical validation are deferred until the user returns.
