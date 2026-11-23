@@ -8,7 +8,20 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest physical result:** bounded automatic recentering passed: eight small
+- **Latest physical result:** `full-calibration-04` ran for 702 seconds with
+  explicit 10-second camera age, 7200-second overall allowance and target timer
+  disabled. All five fit targets passed: K10 2.21px, A19 1.76px, T19 2.31px,
+  T1 2.58px, A1 2.86px. After 106 observations, the first validation leg stopped
+  on the independent 250ms polling-cache watchdog: approximately 322ms elapsed
+  between polls while camera and app lease remained valid. Full OFF confirmed
+  Unix1795467167.9429295 without controller fault; source inventories unchanged.
+  Maximum reported temperatures were 15/17 C. Camera evidence never exceeded
+  0.538 seconds, so this run did not physically exercise over-0.6-second evidence.
+  The 95 fit-stage samples produce a **fit-only, unvalidated** candidate (median
+  residual 2.49, p95 5.19 motor counts). No binding activated. Recovery must
+  requalify actual pose and preserve those measurements; all nine validation
+  checks remain. Root owns hardware, currently fully OFF.
+- **Previous full-run result:** bounded automatic recentering passed: eight small
   dark moves with optical checks brought the spot to board coordinates
   [3.05686, 3.09366], followed by confirmed full OFF. Host `8fd0630` has
   179 passing targeted checks. Subsequent `full-calibration-03` passed K10
@@ -57,9 +70,8 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** latest calibration finished with fresh v44 OFF
-  acknowledgement. Calibration and production bridge are stopped; root remains
-  sole hardware owner.
+- **Hardware is fully OFF:** full-calibration-04 confirmed fresh v44 OFF.
+  Calibration and production bridge are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
   internal temperatures were 16°C/17°C; no motor or thermal fault was reported.
@@ -304,9 +316,12 @@ repeatedly destroy calibration progress. The prior long-run override covered onl
 overall/target deadlines, not this independent check; that implementation was
 incomplete for his intended experiment.
 
-- `calibration_readiness` is implementing an explicit experimental camera-age
-  override on an isolated branch, planned 10 seconds for this run. It must reach
-  all metadata, optical and PNG reader paths; ordinary defaults remain 0.6 seconds.
+- Experimental camera-age override is implemented as `98a2fb6` on an isolated
+  pushed branch; 219 targeted checks and independent review pass. Explicit
+  10-second policy reaches metadata, optical and PNG reader paths; ordinary
+  defaults remain 0.6 seconds. Physical initial-spot-05 passed and confirmed
+  full OFF. Its maximum observed age was 0.367 seconds, so physical validation
+  of an over-0.6-second frame remains outstanding (offline replay covers it).
   App lease, polling cache, causal post-movement/post-light frames, geometry,
   controller and thermal checks remain. Accepting older frames necessarily
   increases potential unseen-hand latency; observed obstruction still rejects.
@@ -314,7 +329,31 @@ incomplete for his intended experiment.
   owns full-OFF recovery and progress-preserving requalification, using new
   workers/session and actual pose/spot; poisoned cancellation state is not reset.
   Interrupted motor commands must not be replayed from assumed positions.
-- These changes are in progress, not installed or physically tested. Hardware
-  remains full OFF. A 45-second passive audit recorded 756 metadata observations,
+- Recovery remains in progress, not physically tested. The camera-age experiment
+  is run directly from its reviewed host branch; installed app/firmware unchanged.
+  The explicit 16-step recenter allowance (`424f3a5`) passed independent review
+  and 171 calibration checks; physical recenter-02 succeeded in 12 steps.
+  Per-step caps remain unchanged. Hardware is fully OFF pending recovery review.
+  A 45-second passive audit recorded 756 metadata observations,
   448 unique frames, median capture age 0.233 seconds and maximum 0.545 seconds;
   this does not negate the recorded earlier 0.615-second expiry under active work.
+
+### Polling-cache interruption and speed follow-up
+
+The 10-second camera experiment did not fail on camera age. A separate 250ms
+polling-cache deadline expired during a shared-process scheduling gap; camera
+and app lease remained valid. Serial/thermal/heartbeat threads also show a gap,
+so thread separation alone does not establish independent supervision. The exact
+blocking function is not yet proven. `occupied_board_timing` is investigating
+this offline; `fast_calibration` is implementing reviewed progress-preserving
+full-OFF recovery and historical validation-only resumption. New sessions/workers
+and fresh actual pose/spot are mandatory; interrupted commands are not replayed.
+
+[Calibration speed proposal](CalibrationSpeedProposal.md) recommends freezing a
+fit-only candidate after the five fit targets and using bounded predictions to
+reduce later validation travel. It also identifies excessive precision at
+transit waypoints as a possible first-stage cost. These are proposals, not live
+changes or measured speedups. Full-calibration-04 timing evidence is saved beside
+the run: median spot collection 1.008s, median aggregation 0.233s, registration
+0.362s (p95 2.808s), detection 0.309s; these are separate observed stage durations,
+not an additive end-to-end latency breakdown.

@@ -3834,3 +3834,45 @@ Appearance report and reproducible144-sample audit integrated as8212400; root
 independent replay agrees. Dave requests per-intersection confidence in addition
 to black/white/empty/uncertain for downstream fusion. Agent is adding class scores,
 confidence semantics/calibration status and correlated-source provenance.
+
+November 23 — experimental camera-age policy physically exercised
+Host98a2fb6 oncodex/calibration-experiment-camera-age explicitly propagates
+--experimental-camera-max-age-seconds10 through metadata/permit and alloptical
+readers/admission paths, gated by--experimental-long-run.219targeted checks pass,
+independent failure-snapshot replay passes; normal0.6sdefaults unchanged.
+Root initial-spot-05 used explicit10s and passed: pose1813/2406, spotboard
+[1.16140,1.02257], fullOFF1795466083.6103785, nofaults, sourcehashesunchanged.
+Largest observedcameraage0.3674s, so this short physicalrun didnot itself exercise
+an over600ms frame; that case was covered by replay/tests. The actualpose matches
+the last accepted sample, not the interrupted TTO2396 command. It remainswithin
+5pan/3tiltcounts ofa cleanrun02anchor, allowing existing fresh requalification.
+A boundedexperimental16-step recenter allowance is being reviewed because this
+start isfartherfromcenter thanprevious8-step run; per-step movement andfresh
+opticalchecks unchanged. HardwareOFF whilecode isprepared. No fullmap yet.
+Confidence contract followup integrated as5b30e0d; design/example only,no liveAPI.
+
+November 23 — recenter02 passed; full-calibration04 active
+Reviewed424f3a5 adds explicit experimental16-step allowance (default8), independent
+review+171calibrationtests pass. Physicalrecenter02 passed12steps, finalpose
+1853/2364, board[3.05908,3.08168], cleanfullOFF1795466437.5372622; sourceinventory
+unchanged. Maximumguardcameraage0.371s, noover600msobservations. Rootthenstarted
+full-calibration04 fromverifiedinterior, explicitcameraage10s/run7200s/target0.
+Rootsolehardwareowner; otheragentsheavytests paused. Resultwillfollow.
+
+November 23 — all fit targets passed; independent cache watchdog stopped validation
+Full-calibration04 host424f3a5 usedcamera10s/run7200s/target0 for702.277seconds.
+106samples; all5fit targets passed K10=2.21,A19=1.76,T19=2.31,T1=2.58,A1=2.86px.
+Firstvalidationlegstopped on250ms polling-cache expiry, notcameraage. Pre-gap
+poll finished1905175.957824, cachedeadline1905176.207824; nextpoll started
+1905176.279739, firstOFF.279812. Appleasewasvalidto1905176.528499; oldcamera
+snapshotstill~0.516sold atOFF. Newpollreturnedfreshframe45622,age0.223s.
+Supervisorlatchedcancelbeforethatfreshpollcompleted. FullOFF1795467167.9429295,
+no controllerfault, sourcehashesunchanged. Cameraage max0.5376, temperaturesmax
+15/17C. Concurrentserial/HB/thermalgap suggests sharedprocessscheduling, not
+proof oftheblockingfunction. Offlineinvestigation andprogressrecovery assigned.
+Root fitted95fit-stagesamples offline: median2.493/p955.188motorcounts, saved
+fit-only-candidate.json SHA1b083a14534d79d45ad23c5dd35109bb667e5cb2fb2d5641789e9e47cbfaa7e9.
+Unvalidated: no held-outtargetscomplete, no activebinding. Recoverymust freshly
+measure actualPOSE/spot; lastsample1679/2243 preceded settleddarkmove1726/2272.
+Do notreplayorassume commandedpose. Allninevalidationchecks remain. HardwareOFF.
+Speedproposal andtimingreport preserved; exactstagecosts do notestablishspeedup.
