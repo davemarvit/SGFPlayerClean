@@ -304,7 +304,7 @@ import Foundation
     camera(pl);pl.verifyMoveTarget(capturedAt:now,now:now)
     check(try paused.phase == .placing && !pl.gameFaultNeedsRecheck && !pl.holdingInterrupted && request(pl).action=="point","Explicit Resume uses new OFF/camera admission without manufacturing a permanent transient latch")
 
-    for mutation in ["session","context","epoch","setup","hard-controller","stone-seen"] {
+    for mutation in ["session","context","epoch","setup","hard-controller","stone-seen","target-session","target-source","target-size"] {
      let ai=try fixture("blocked-recovery-"+mutation,pending:true),l=ai.laser
      l.setStandbyEnabled(true);l.setEnabled(true);camera(l);try v2status(l);try v2status(l);try v2status(l,state:"holding")
      l.verifyMoveTarget(capturedAt:now,now:now);try deliver(rebound(chain.faultFile,l),l)
@@ -315,6 +315,9 @@ import Foundation
      case "epoch":healthy["streamEpoch"]=UUID().uuidString
      case "setup":healthy["setupId"]="wrong-setup"
      case "hard-controller":healthy["state"]="fault";healthy["reasonCode"]="controller_fault";healthy["requiresNewRevision"]=true
+     case "target-session","target-source","target-size":
+      l.setTarget(.init(source:mutation=="target-source" ? "online":"ai",session:mutation=="target-session" ? UUID():ai.snapshot!.id,
+          moveNumber:1,size:mutation=="target-size" ? 19:9,row:4,col:4,black:true,decisionReceivedAtUnix:wall))
      default:l.suppress("stone_seen_at_target")
      }
      now+=0.35;wall+=0.35

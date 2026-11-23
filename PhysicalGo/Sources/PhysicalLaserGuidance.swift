@@ -133,22 +133,15 @@ import CoreGraphics
         let wall: Double
     }
     private var manualDarkBarrier: ManualDarkBarrier?
-    private static let transientReasons=["hand_obstructed","camera_evidence_unavailable","camera_frame_stale","request_lease_expired"]
-    private struct TransientRecovery {
-        let schema:Int
-        let session:PlaySession?
-        var target:Target?
-        let context:String
-        let epoch:UUID
-        let setup:String?
-        var began:Double
-        var offSince:Double?
-        var watermark:EvidenceAfter?
-        var first:Double?
-        var last:Double?
-        var count=0
+    private typealias Recovery=PhysicalGuidanceRecovery<PlaySession,Target,EvidenceAfter>
+    private static let transientReasons=Recovery.Cause.allCases.map(\.rawValue)
+    private var transientRecovery=Recovery()
+    private var recoveryScope:Recovery.Scope {
+        .init(schema:wireSchema,session:playSession,context:cameraContext,epoch:frames.streamEpoch)
     }
-    private var transientRecovery:TransientRecovery?
+    private func recoveryOperation(_ target:Target?)->Recovery.Operation {
+        .init(target:target,owner:target.map {PlaySession(source:$0.source,session:$0.session,size:$0.size)})
+    }
     private(set) var playSession: PlaySession?
     private(set) var mayHaveMotorSession=false
     private var wireSchema=1
@@ -161,7 +154,7 @@ import CoreGraphics
     private var lastRetainOnly: Bool?
     private var cameraAt: Double?
     private var cameraHand: Bool?
-    var recoveringCamera:Bool {enabled && (transientRecovery != nil || target != nil && suppressed && ["camera_frame_stale","request_lease_expired"].contains(reason))}
+    var recoveringCamera:Bool {enabled && (transientRecovery.isPending || target != nil && suppressed && ["camera_frame_stale","request_lease_expired"].contains(reason))}
     var interrupted:Bool {enabled && target != nil && suppressed && ["driver_interrupted","driver_link_lost"].contains(reason)}
     private(set) var target: Target?
     private(set) var alignmentPreparation: AlignmentPreparation?
@@ -217,8 +210,8 @@ import CoreGraphics
         if wireSchema==2 {closingStandby=true}
         // Explicit game suspension revokes transient proof. It is not a
         // contradictory camera scope or a retry of any retained hard fault.
-        if value==nil,transientRecovery != nil {
-            transientRecovery=nil
+        if value==nil,transientRecovery.isPending {
+            transientRecovery.reduce(.cancel)
             if Self.transientReasons.contains(reason) {suppressed=false;reason="game_suspended"}
         }
         // A new game revokes the old lease, but is not a hardware-fault retry.
@@ -227,7 +220,7 @@ import CoreGraphics
         targetEmptyAt=nil;emptyEvidenceAfter=uptime();sequence+=1;tick()
     }
     func setEnabled(_ value: Bool) {
-        transientRecovery=nil
+        transientRecovery.reduce(.cancel)
         if value {manualDarkBarrier=nil}
         resetHandRecoveryEvidence()
         targetEmptyAt=nil;emptyEvidenceAfter=uptime()
@@ -240,19 +233,11 @@ import CoreGraphics
     }
     func setTarget(_ value: Target?) {
         guard target != value else {return}
-        if var recovery=transientRecovery,Self.transientReasons.contains(reason),
-           !gameFaultNeedsRecheck,!controllerResetRequired,standbyFault==nil,
-           recovery.session==playSession,recovery.context==cameraContext,recovery.epoch==frames.streamEpoch {
-            let owner=recovery.session ?? recovery.target.map {PlaySession(source:$0.source,session:$0.session,size:$0.size)}
-            let sameGame=value.map {t in owner.map {$0.source==t.source && $0.session==t.session && $0.size==t.size} ?? false} ?? true
-            if sameGame {
-                // An authoritative AI decision can arrive during targetless
-                // recovery. Revoke every old proof and obtain a new OFF receipt.
-                recovery.target=value;recovery.began=uptime();recovery.first=nil;recovery.last=nil;recovery.count=0
-                recovery.offSince=nil;recovery.watermark=nil;transientRecovery=recovery
-                target=value;suppressed=value != nil;targetEmptyAt=nil;emptyEvidenceAfter=uptime()
-                resetHandRecoveryEvidence();sequence+=1;tick();return
-            }
+        let retarget=transientRecovery.reduce(.retarget(recoveryScope,recoveryOperation(value),
+            cause:Recovery.Cause(rawValue:reason),permitted:!gameFaultNeedsRecheck && !controllerResetRequired && standbyFault==nil,at:uptime()))
+        if retarget == .requestOFF {
+            target=value;suppressed=value != nil;targetEmptyAt=nil;emptyEvidenceAfter=uptime()
+            resetHandRecoveryEvidence();sequence+=1;tick();return
         }
         if suppressed,let old=target,
            !(["hand_entered_board","stone_seen_at_target","capture_evidence_changed"]+Self.transientReasons).contains(reason) {
@@ -320,12 +305,12 @@ import CoreGraphics
         verifyTarget(capturedAt:capturedAt,now:now)
     }
     private func verifyTarget(capturedAt:Double,now:Double) {
-        if let recovery=transientRecovery {
-            guard enabled,target != nil,recovery.count>=3,let first=recovery.first,let last=recovery.last,
-                  last-first>=0.45,abs(last-capturedAt)<0.000001,(0..<0.5).contains(now-capturedAt),
-                  clearAt.map({abs($0-capturedAt)<0.000001})==true,let driver,fullOff(driver,wall:wallTime()),
-                  acceptsObservation(capturedAt:capturedAt,now:now,requireDarkEvidence:true) else {return}
-            finishTransientRecovery(at:capturedAt)
+        if transientRecovery.isPending {
+            let effect=transientRecovery.reduce(.verify(.init(enabled:enabled,hasTarget:target != nil,
+                capturedAt:capturedAt,clearAt:clearAt,healthyOFF:driver.map {fullOff($0,wall:wallTime())}==true,
+                frameAdmissible:enabled && acceptsObservation(capturedAt:capturedAt,now:now,requireDarkEvidence:true),now:now)))
+            guard case .recovered=effect else {return}
+            finishTransientRecovery(effect)
             targetEmptyAt=capturedAt;tick();return
         }
         let recovering=suppressed && (["hand_entered_board","camera_frame_stale","request_lease_expired"].contains(reason) || (target?.purpose=="capture" && reason=="capture_evidence_changed"))
@@ -384,7 +369,7 @@ import CoreGraphics
             controllerResetRequired=false;gameFaultNeedsRecheck=false;gameFaultRecheckReason=nil
         }
         if standbyFault != nil {standbyFault=nil;holdingInterrupted=false;standbyReady=false;closingStandby=wireSchema==2}
-        transientRecovery=nil;targetEmptyAt=nil;emptyEvidenceAfter=uptime()
+        transientRecovery.reduce(.cancel);targetEmptyAt=nil;emptyEvidenceAfter=uptime()
         resetHandRecoveryEvidence()
         blockedMove=nil;suppressed=false;reason="explicit_show_again";sequence+=1;tick()
     }
@@ -438,7 +423,7 @@ import CoreGraphics
         return session
     }
     private func latchStandby(_ why: String) {
-        transientRecovery=nil
+        transientRecovery.reduce(.cancel)
         if why=="controller_fault" {standbyFault=why;controllerResetRequired=true}
         else if standbyFault == nil {standbyFault=why}
         holdingInterrupted=true;standbyReady=false
@@ -520,13 +505,13 @@ import CoreGraphics
               ["hardware","simulation"].contains(d.mode),(0..<0.75).contains(wall-d.updatedAtUnix),
               let code=d.reasonCode,Self.transientReasons.contains(code),
               d.state=="fault" || d.requiresNewRevision==true || (d.state=="off" && (reason=="driver_link_lost" || standbyFault=="driver_link_lost")),
-              let context=cameraContext,blockedMove==nil,
+              cameraContext != nil,blockedMove==nil,
               standbyFault==nil || standbyFault=="driver_link_lost",
               !suppressed || (["hand_entered_board","capture_evidence_changed","driver_link_lost"]+Self.transientReasons).contains(reason) else {return}
         if wireSchema==2 {guard currentHardFaultScope(d,wall:wall) != nil else {return}}
         guard playSession != nil || target != nil else {return}
-        transientRecovery = .init(schema:wireSchema,session:playSession,target:target,context:context,
-            epoch:frames.streamEpoch,setup:d.setupId,began:now)
+        transientRecovery.reduce(.begin(recoveryScope,recoveryOperation(target),setup:d.setupId,
+            cause:Recovery.Cause(rawValue:code)!,at:now))
         standbyFault=nil;holdingInterrupted=false;suppressed=target != nil;reason=code
         targetEmptyAt=nil;emptyEvidenceAfter=now;resetHandRecoveryEvidence()
         // A rejected revision cannot be renewed. This one-time OFF revision
@@ -534,46 +519,25 @@ import CoreGraphics
         sequence+=1
     }
     private func advanceTransientRecovery(now:Double,wall:Double) {
-        guard var recovery=transientRecovery else {return}
-        guard enabled,wireSchema==recovery.schema,playSession==recovery.session,target==recovery.target,
-              cameraContext==recovery.context,frames.streamEpoch==recovery.epoch else {
-            transientRecovery=nil;suppressed=target != nil;reason="recovery_scope_changed"
+        guard transientRecovery.isPending else {return}
+        var receipt:Recovery.Receipt?
+        if !gameFaultNeedsRecheck,!controllerResetRequired,standbyFault==nil,
+           let d=driver,fullOff(d,wall:wall),d.requiresNewRevision != true,
+           d.reasonCode==nil || Self.transientReasons.contains(d.reasonCode!) {
+            receipt = .init(scope:.init(schema:d.schemaVersion,session:d.playSession,context:d.cameraContext,
+                epoch:d.streamEpoch),setup:d.setupId,offSince:d.offSinceUnix,watermark:d.evidenceAfter)
+        }
+        let effect=transientRecovery.reduce(.observe(.init(scope:recoveryScope,target:target,enabled:enabled,
+            cause:Recovery.Cause(rawValue:reason),receipt:receipt,clearAt:clearAt,
+            frameAdmissible:enabled && clearAt.map {acceptsObservation(capturedAt:$0,now:now,requireDarkEvidence:true)}==true,now:now)))
+        if effect == .scopeChanged {
+            suppressed=target != nil;reason="recovery_scope_changed"
             if wireSchema==2 {latchStandby("recovery_scope_changed")}
-            return
-        }
-        guard Self.transientReasons.contains(reason) else {transientRecovery=nil;return}
-        guard !gameFaultNeedsRecheck,!controllerResetRequired,standbyFault==nil,
-              let d=driver,fullOff(d,wall:wall),d.requiresNewRevision != true,
-              d.reasonCode==nil || Self.transientReasons.contains(d.reasonCode!),d.setupId==recovery.setup,
-              recovery.schema==1 || (d.playSession==recovery.session && d.cameraContext==recovery.context && d.streamEpoch==recovery.epoch),
-              let stamp=clearAt,stamp>recovery.began,(0..<0.5).contains(now-stamp) else {
-            recovery.first=nil;recovery.last=nil;recovery.count=0;transientRecovery=recovery;return
-        }
-        if recovery.offSince != d.offSinceUnix || recovery.watermark != d.evidenceAfter {
-            recovery.first=nil;recovery.last=nil;recovery.count=0
-            recovery.offSince=d.offSinceUnix;recovery.watermark=d.evidenceAfter
-        }
-        // noteFrame may advance before its camera verdict. A duplicate already
-        // counted verdict adds no proof and does not invalidate prior witnesses.
-        if let last=recovery.last,stamp<=last {transientRecovery=recovery;return}
-        guard acceptsObservation(capturedAt:stamp,now:now,requireDarkEvidence:true) else {
-            recovery.first=nil;recovery.last=nil;recovery.count=0;transientRecovery=recovery;return
-        }
-        if let last=recovery.last,stamp-last>0.6 {recovery.first=nil;recovery.count=0}
-        if recovery.first==nil {recovery.first=stamp}
-        recovery.last=stamp;recovery.count+=1
-        guard recovery.count>=3,stamp-recovery.first!>=0.45 else {transientRecovery=recovery;return}
-        if target != nil {
-            // Keep the same healthy OFF revision until the purpose-specific
-            // target verifier runs. An intermediate standby would invalidate
-            // this receipt and restart cold admission before the actual point.
-            transientRecovery=recovery;return
-        }
-        finishTransientRecovery(at:stamp)
+        } else {finishTransientRecovery(effect)}
     }
-    private func finishTransientRecovery(at stamp:Double) {
-        transientRecovery=nil;suppressed=false
-        reason=reason=="camera_frame_stale" ? "fresh_after_camera_delay":reason=="request_lease_expired" ? "fresh_after_lease_expiry":"fresh_after_transient"
+    private func finishTransientRecovery(_ effect:Recovery.Effect) {
+        guard case let .recovered(stamp,cause)=effect else {return}
+        suppressed=false;reason=cause.recoveredReason
         targetEmptyAt=nil;emptyEvidenceAfter=stamp;resetHandRecoveryEvidence()
     }
     func tick() {
@@ -603,9 +567,9 @@ import CoreGraphics
         if wireSchema==2 {
             if connected,driver?.sequence==sequence,
                driver?.state=="fault" || driver?.requiresNewRevision==true {latchStandby(driver?.reasonCode ?? "driver_interrupted")}
-            if transientRecovery==nil,mayHaveMotorSession,!connected {latchStandby("driver_link_lost")}
+            if !transientRecovery.isPending,mayHaveMotorSession,!connected {latchStandby("driver_link_lost")}
             if mayHaveMotorSession,connected,driver?.sequence==sequence,!standbyAvailable {hardHealth("standby_capability_lost")}
-            if transientRecovery==nil,mayHaveMotorSession,let began=armingStartedAt,now-began>=12,
+            if !transientRecovery.isPending,mayHaveMotorSession,let began=armingStartedAt,now-began>=12,
                !coldAdmissionConfirmed || driver?.state=="arming" {hardHealth("arming_timeout")}
             if connected,let d=driver,d.sequence==sequence,d.state=="arming",
                d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
@@ -670,7 +634,7 @@ import CoreGraphics
         if target?.purpose=="capture" {
             if captureWireSupported != capable {sequence+=1;captureWireSupported=capable}
         } else {captureWireSupported=nil}
-        var action=enabled && transientRecovery==nil && connected && capable && !gameFaultNeedsRecheck && !controllerResetRequired && standbyFault==nil && target != nil && !suppressed && clear && empty ? "point":"off"
+        var action=enabled && !transientRecovery.isPending && connected && capable && !gameFaultNeedsRecheck && !controllerResetRequired && standbyFault==nil && target != nil && !suppressed && clear && empty ? "point":"off"
         var retainOnly: Bool?
         if wireSchema==1,wantsStandby,standbyAvailable {
             action="off"
@@ -682,7 +646,7 @@ import CoreGraphics
         if wireSchema==2 {
             let cameraFresh=cameraAt.map {(0..<0.7).contains(now-$0)}==true
             let matchedTarget=target.map {$0.source==playSession?.source && $0.session==playSession?.session && $0.size==playSession?.size} ?? true
-            let admitted=wantsStandby && transientRecovery==nil && !gameFaultNeedsRecheck && !controllerResetRequired && !closingStandby && standbyReady && standbyAvailable && standbyFault==nil && cameraFresh && matchedTarget
+            let admitted=wantsStandby && !transientRecovery.isPending && !gameFaultNeedsRecheck && !controllerResetRequired && !closingStandby && standbyReady && standbyAvailable && standbyFault==nil && cameraFresh && matchedTarget
             if !admitted {action="off"}
             else if action != "point" {
                 // A hand may retain an already held pose only. The host also
