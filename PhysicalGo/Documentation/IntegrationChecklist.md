@@ -8,18 +8,18 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest physical result:** after Dave re-aimed toward center, initial-spot-03
-  passed. Extended experimental run `full-calibration-02` used host `faa2230`,
-  7200-second whole-run allowance and disabled target timer. K10 (2.90px) and
-  A19 (2.27px) passed; after14 spot measurements it stopped on an image texture
-  mismatch, not a timer. Full OFF confirmed Unix1795463793.625718, no controller
-  or supervisor fault. No map/binding activated; game/clocks unchanged.
-  Dave reported moving near the board and suspected a shadow. Saved-image replay
-  reproduces score0.94775 below0.95 after localized masking, with only0.20px
-  maximum fitted corner displacement and darker lower-left board. This supports
-  temporary lighting change, not a proven physical cause. Next: design bounded
-  dark pause/requalification for transient lighting without lowering admission
-  thresholds. See session `calibration-resume-20261123/full-calibration-02/`.
+- **Latest physical result:** bounded automatic recentering passed: eight small
+  dark moves with optical checks brought the spot to board coordinates
+  [3.05686, 3.09366], followed by confirmed full OFF. Host `8fd0630` has
+  179 passing targeted checks. Subsequent `full-calibration-03` passed K10
+  (2.45px) and A19 (2.73px), then stopped after 17 observations when camera
+  evidence exceeded its unchanged 0.6-second lifetime. The supervisor cancelled
+  the session; this was not the experimental overall/target timeout. Final
+  v44 full OFF confirmed Unix1795465259.8695755, with no controller fault.
+  Source inventories and saved game/clocks are unchanged; no map/binding activated.
+  Calibration is incomplete. Review of safe full-OFF pause and requalification
+  is active offline; hardware remains off. The preceding run's image mismatch
+  remains consistent with Dave's reported nearby movement/shadow.
 - Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.
   Staged calibration, progress UI and gameplay recovery changes are included.
@@ -239,6 +239,27 @@ firmware starts its timer before the first possible power edge.
 
 ## Transient lighting during calibration — November 23 follow-up
 
+**Completed study:** at Dave's explicit request, `scene_change_detection` examined
+16 historical comparisons and12 synthetic controls on isolated branch
+`codex/scene-change-diagnostics`, latest commit `a7286f7` (pushed). Eight offline
+tests pass; the follow-up compares edge direction and magnitude on historical
+images and nine additional synthetic controls.
+Its report separates camera/setup provenance and records limits: similar-colored
+obstructions can defeat scalar residual tests. Recommended next work is structured
+rejection diagnostics and dark pause/requalification, with complementary local
+texture/occupancy and grid evidence. See
+[scene-change study](/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/scene-change-diagnostics/Firmware/Experiments/SceneChangeDiagnostics/README.md). Diagnostic results do not constitute physical validation; the existing live
+checks remain unchanged during this study.
+
+**Recenter physically validated:** initial-spot-04 was outside the unchanged
+fresh-start interior margin. At Dave's request, `codex/calibration-recenter`
+commit `8fd0630` adds fresh dual-reference/pose/spot qualification, measured K10
+as direction evidence, up to eight dark steps capped at eight pan/five tilt counts,
+and remeasurement after each. Independent targeted checks: 179 pass. Physical
+`recenter-01` reached [3.05686, 3.09366] and confirmed full OFF. It does not create
+or activate a calibration map. The subsequent full run stopped on stale camera
+input, as recorded above; no further hardware run is active.
+
 A single rejected optical measurement currently ends the full calibration.
 The desired improvement is beam-off waiting with bounded attempts/time and
 preserved valid progress, followed by genuinely fresh full scene/hand/identity
@@ -261,3 +282,14 @@ connected-region/grid-visibility tests. These are different preprocessing/scores
 from productionECC, not proof the original0.95 gate should accept this image.
 No live threshold or classifier changed. Evidence is
 `full-calibration-02/lighting-separation-diagnostic.json` in the session directory.
+
+## Per-intersection appearance evidence — November 23
+
+Dave requested an additional agent to assess expected empty, black and white
+appearance at each intersection as complementary evidence. `intersection_appearance`
+is actively reviewing existing implementation and historical data offline.
+BoardVision already uses an intersection-specific empty reference; the learned
+StoneAppearanceModel is inspector-only. An existing historical study improved
+empty decisions but incorrectly resolved one obstruction to empty. Those measurements alone do not justify enabling the model in live recognition. The study will
+identify genuine gaps, camera/setup-specific coverage and an explicit uncertain
+outcome, avoiding duplicate confidence from correlated image features.

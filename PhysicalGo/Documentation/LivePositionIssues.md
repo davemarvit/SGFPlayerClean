@@ -3776,3 +3776,47 @@ No production code/threshold/activation changed, no hardware commands. Proposed
 architecture separates geometry, smoothlighting and localizedforeground, followed
 by bounded darkwait/requalification for ambiguous views. DiagnosticJSON retained
 at full-calibration-02/lighting-separation-diagnostic.json. Not a validated classifier.
+
+November 23 — delegated scene-change study; current-point recheck
+Dave explicitly requested another agent to classify/detect relevant scene changes,
+including historical data, while root continues calibration. scene_change_detection
+is assigned offline historical recordings, source review, diagnostic prototype and
+negative controls in an isolated worktree; no hardware/live source changes.
+Root initial-spot-04 passed onboard observation at[1.95675,1.83198] but failed the
+initial[2,16] interior-margin prerequisite. Full OFF1795464228.406652 confirmed
+without controller fault. Re-aim towardcenter withphysicalpoweroff requested if
+Dave stillpresent; no fullrun or repeatedborderline retry started. History study
+continues independently. Correct camera/epoch/clearance/pausedOFFlease verified.
+
+November 23 — measured-pose recenter implemented, reviewed and physically passed
+Dave suggested small automaticinward movement and recalling measuredK10motorpose.
+Separate branch codex/calibration-recenter commit8fd0630 adds explicit preparation:
+fresh dual-reference/pose/spot qualification, K10direction, max8darksteps <=8pan/
+5tiltcounts with5pxprintedboard clearance, remeasure each, stop inside[3,15].
+Independent179tests pass withoutskips, including partialfailure/fullOFFcleanup.
+Physical recenter-01 passed8steps/9observations fromnearcorner to[3.05686,3.09366],
+pose1853/2364, freshanchor residual1.9439px and recent-spotresidual0.6520px.
+Full OFF1795465128.0599422 confirmed nofault; inventoriesunchanged. No map/binding.
+Root then started full-calibration-03 fromthe verifiedinterior with7200seconds,
+targettimer0 and allotherguardsunchanged. Root solehardwareowner; result follows.
+Sceneagent completed16historicalcomparison study andedgefollowup; separateoffline
+branch, no classifier activation or live threshold change.
+
+November 23 — full calibration stopped on camera evidence age; appearance study active
+full-calibration-03 used reviewed host8fd0630 and the explicit7200-second overall,
+target0 experiment. K10 passed2.44693px, A19 passed2.73264px;17 measurements.
+The supervision thread raised External evidence permit expired, then set the
+shared cancellation event. Thus the top-level Commissioning cancelled message
+was a consequence, not evidence of a user cancellation. Last successful poll
+saw frame26550 aged0.582566s, with only17.434ms of evidence lifetime remaining;
+next poll saw0.615428s, beyond0.6s. The final poll gap was30.693ms, maximum
+recorded gap86.186ms. Full OFF1795465259.8695755 confirmed, no controller fault,
+source hashes unchanged, game SHA unchanged. No map/binding activated.
+architecture_review owns an offline assessment of safe full-OFF pause/fresh
+requalification with progress preservation. No live timing checks weakened.
+At Dave's explicit request, intersection_appearance is reviewing per-intersection
+empty/black/white evidence and historical coverage, first avoiding duplication of
+BoardVision empty-reference and inspector-only StoneAppearanceModel features.
+Hardware OFF notice sent before agent starts heavier historical replay.
+Scene-change edge follow-up a7286f7 pushed, eight tests pass; complementary edge
+and local texture evidence remains diagnostic only. Root remains hardware owner.
