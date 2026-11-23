@@ -5,7 +5,9 @@ Updated November 23, 2026 (Pacific time). See the
 Physical Go 0.253 and v44 firmware are installed; the game is paused and a fresh
 full-board laser binding is not yet active. The staged calibration policy below
 is implemented and independently reviewed, with 117 offline checks passing,
-but **has not been physically validated**.
+and the resumed moved-setup run passed **37 physical staged prelight checks**.
+Full-board calibration remains incomplete: that run stopped at the separate
+120-second target correction limit while approaching T19. See the latest checklist.
 
 There are two initial calibrations: locating the printed board in the camera
 image, then learning where motor positions place the laser on that board.
@@ -23,10 +25,10 @@ aim during play currently does not rewrite the saved motor map.
 | **Per-move aiming and correction** | Where is the spot now, and what small correction reaches this target? | Each indicated move or marker. | The saved map supplies an initial aim; optical feedback corrects that indication. The saved map remains unchanged. |
 | **Stone recognition and game acceptance** | What stones are physically present, and does that evidence establish a legal move or completed cleanup? | During normal play, using admitted clear/dark observations. | Separate game-state evidence. Calibration success, a laser acknowledgement or a temperature reading cannot accept a stone or switch clocks. |
 
-Continuous map learning during gameplay is **deferred**, checklist item 18. It
-would use reliable measured poses and spots to improve later initial aims, with
-bounded, versioned updates and independent validation. Current corrective aiming
-should not be described as that learning feature.
+Continuous map learning during gameplay remains **inactive**, checklist item18.
+A separate reviewed offline prototype and cleared-board survey now exist; see
+[overnight results](OvernightSoftwareResults.md). Current corrective aiming does
+not update the active map.
 
 ## Longer static analysis, followed by a fresh clearance check
 

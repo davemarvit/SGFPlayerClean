@@ -8,11 +8,16 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Overnight pause:** Dave plans to turn off the lights and return tomorrow.
-  Software/offline work only until he returns. He was asked to switch off the
-  laser's physical power; that switch position has not been independently
-  confirmed. Last commanded hardware state was full OFF. Restore lighting and
-  verify camera/grid and laser calibration before any new physical use.
+- **Latest physical result:** Dave restored lighting; camera and pointer both
+  moved. Empty board, power and initial pointing were confirmed with him. Correct
+  camera/grid and spot-only check passed; Dave saw the spot and heard the beep.
+  He explicitly authorized automatic continuation after leaving. The finite run
+  then stopped at T19's 120-second target limit after passing K10 (1.56px) and
+  A19 (2.78px). All 37 staged A/B prelight checks passed; no motor/thermal fault.
+  Full OFF confirmed at Unix1795463029.7635274. Peak temperatures14/15°C.
+  No map/binding activated; game/clocks unchanged. Next: offline route/correction
+  timing review before another physical attempt. Artifacts and run-summary.json
+  are in the session's `calibration-resume-20261123/` directory.
 - Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.
   Staged calibration, progress UI and gameplay recovery changes are included.
@@ -50,8 +55,9 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Laser and motor power are OFF. Reviewed v44 firmware is installed and fresh
-  OFF confirmed.** Production bridge remains stopped. Root alone owns hardware.
+- **Hardware is fully OFF:** fresh v44 receipt confirmed beam off and motor
+  power released after the latest run. Calibration and production bridge are
+  stopped. Root remains the sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
   internal temperatures were 16°C/17°C; no motor or thermal fault was reported.
@@ -79,15 +85,14 @@ offline verification, installation and physical validation.
    host runtime is implemented, offline-tested and stopped pending calibration.
 2. Short physical dark holding/reuse/full-OFF check passed. Physical gameplay
    Pause/Resume and cooling recovery remain to test; two-hour endurance is optional.
-3. Grid-fit variation is corrected and independently checked. Complete fresh
-   laser calibration before playing. Latest run04 verified K10 within 1.86px,
-   then stopped when prelight alignment took about 1.2s under the old 600ms
-   same-image rule. The replacement separates dark geometry analysis from a
-   genuinely newer, lightweight scene/clearance check. Independent review and
-   117 offline checks pass; physical validation remains pending. The reviewed
-   250ms commissioning metadata allowance is implemented. See
-   [calibration and timing](CalibrationAndTiming.md) for the separate limits.
-   Existing motion faults must still stop the attempt; no guard relaxation.
+3. Complete fresh full-board laser calibration before playing. After both camera
+   and pointer moved, the resumed run passed37 physical staged A/B prelight checks
+   and reached K10/A19 within3px, but exhausted T19's120-second target allowance
+   while crossing via inset points. Full OFF confirmed; no map activated. Review
+   interior routing and intermediate correction overhead before retrying. The
+   former same-image600ms prelight failure did not recur in this run. Existing
+   movement, clearance, temperature and final3px accuracy limits remain in force.
+   See [calibration and timing](CalibrationAndTiming.md) and latest history.
 4. Play several ordinary moves with fast AI and recognition checks. Start without
    centering hints, so ordinary hand/stone acceptance and cue timing are clear.
    Check a lingering hand, slow withdrawal, correct placement and Pause/Resume.

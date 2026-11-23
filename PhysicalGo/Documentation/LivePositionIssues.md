@@ -3681,3 +3681,38 @@ or mechanical cause; sparse local learning remains limited. No executor, map
 activation, firmware change or hardware/camera use. Separate experimental branch
 preserves signed0.254 and optional0.255. Checklist and OvernightSoftwareResults.md
 record the final offline checkpoint and later attended comparison requirements.
+
+November 23 — resumed physical setup after equipment movement
+Dave restored lights and confirmed empty board, camera and pointer both moved,
+and physical power on. Correct app camera restarted (0x11000000bda0567); app
+remains0.253 with game paused and SHA unchanged. Fresh grid qualified. First
+spot-only attempt stopped before light/motor engagement for insufficient printed
+boundary evidence; full OFF confirmed. A fresh second attempt passed: measured
+spot near H8/H9, pose1973/2213, seven-frame consensus, final full OFF without
+controller fault. Dave confirmed seeing the spot and hearing the beep.
+Dave explicitly requested automatic continuation after leaving. Root owns one
+finite600-second full calibration using reviewed host45ed952 with existing
+camera/motion/thermal guards, no automatic fault retries or binding activation.
+This updates the earlier attended-only operating plan for this specific run;
+physical prerequisites were checked with Dave. Artifacts: session directory
+calibration-resume-20261123, including authorization.json and full-calibration-01.
+Do not open a competing serial client. Full-run result will follow.
+
+November 23 — automatic calibration stopped cleanly at target time limit
+full-calibration-01 (reviewed host45ed952, installed app0.253) completed37 spot
+measurements and37 staged A/B prelight admissions. K10 passed1.5625px and A19
+2.7839px. T19 exhausted its120-second target correction budget after21 moves;
+last spot reached the intermediate inset[15.9992,1.9603], before the final corner.
+Confirmed full OFF1795463029.7635274, controller_error null, no supervisor fault,
+source inventories unchanged, peak temperatures14/15°C. No model/binding created.
+Game SHA remains6ca3728c88fa9fc7aeba9675715543a1b02f37dafd5b134daa9ebeec8a972f09.
+Near-edge40px step caps led to repeated approximately one-intersection moves;
+full correction cycles cost roughly5–6seconds. Each target's120seconds includes
+both inset waypoints and its final corner. Later fine adjustments also added
+cycles. This is a route/budget/convergence issue, not the previous stale-prelight
+failure or a reported motor fault. A analysis median0.223s; B proof0.121s;
+SWEEP command roundtrip0.119s (not optical latency). All raw evidence retained.
+Next: offline interior-route and intermediate-waypoint accuracy review without
+weakening final3px checks or motor/camera safeguards. No unattended automatic
+retry. Saved summary: calibration-resume-20261123/run-summary.json. Full calibration
+and independent nine-target validation still required before gameplay.
