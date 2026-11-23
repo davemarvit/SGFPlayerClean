@@ -1,6 +1,6 @@
 # Camera, AI and laser integration — current checklist
 
-Updated: November 22, 2026 (Pacific time).
+Updated: November 23, 2026 (Pacific time).
 
 Maintain this document after meaningful changes or tests. Keep investigation
 history in [LivePositionIssues.md](LivePositionIssues.md). Distinguish source,
@@ -8,8 +8,15 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- Implementation checkpoints are also pushed: app `d5d84ef`, laser `ed8ba32`,
+- **Overnight pause:** Dave plans to turn off the lights and return tomorrow.
+  Software/offline work only until he returns. He was asked to switch off the
+  laser's physical power; that switch position has not been independently
+  confirmed. Last commanded hardware state was full OFF. Restore lighting and
+  verify camera/grid and laser calibration before any new physical use.
+- Latest pushed checkpoints: app `50f28df`, laser `98298a4`,
   both on `codex/monitored-gameplay-holding`.
+  Subsequent staged calibration and gameplay recovery changes are local;
+  verification and the next paired checkpoint are in progress.
 - Both projects have pushed Git checkpoints before gameplay-holding changes.
   App baseline: `e8b2b14` on `codex/physical-go-confidence-validation` in
   [SGFPlayerClean](https://github.com/davemarvit/SGFPlayerClean).
@@ -55,14 +62,21 @@ offline verification, installation and physical validation.
 
 ## Immediate next steps
 
+0. Finish the signed 0.254 candidate/checkpoint offline. Install and visually
+   verify it when returning to the board; installed app is still 0.253. Preserve
+   the paused game/clocks and verify the restored lighting/setup before testing.
 1. Temperature-protected holding is implemented and installed in app/firmware;
    host runtime is implemented, offline-tested and stopped pending calibration.
 2. Short physical dark holding/reuse/full-OFF check passed. Physical gameplay
    Pause/Resume and cooling recovery remain to test; two-hour endurance is optional.
 3. Grid-fit variation is corrected and independently checked. Complete fresh
-   laser calibration before playing. Latest run passed its grid, initial spot and
-   first small dark movement, then stopped before light on a .631s old image.
-   Bounded fully fresh prelight acquisition passed 64 offline checks and independent review; next attended attempt is pending, limits unchanged.
+   laser calibration before playing. Latest run04 verified K10 within 1.86px,
+   then stopped when prelight alignment took about 1.2s under the old 600ms
+   same-image rule. The replacement separates dark geometry analysis from a
+   genuinely newer, lightweight scene/clearance check. Independent review and
+   117 offline checks pass; physical validation remains pending. The reviewed
+   250ms commissioning metadata allowance is implemented. See
+   [calibration and timing](CalibrationAndTiming.md) for the separate limits.
    Existing motion faults must still stop the attempt; no guard relaxation.
 4. Play several ordinary moves with fast AI and recognition checks. Start without
    centering hints, so ordinary hand/stone acceptance and cue timing are clear.
@@ -97,10 +111,22 @@ offline verification, installation and physical validation.
 | 12 | Complete online-opponent integration | Pending. Protocol accepts online source, but native camera publication/observation is AI-only and lacks an authoritative online target producer. Wire moves/orientation and preserve server clocks before separately validating online placement, captures and timing. |
 | 13 | Illegal-move feedback | Tested proposal ready: [design](IllegalMoveMarkerDesign.md) and tracked [experiment](../Experiments/IllegalMoveMarkers/README.md), 83 checks against actual engine sources. Existing suicide observations can fall through to generic mismatch before the specific illegal-move diagnostic. Candidate adds a separate diagnostic path without accepting illegal moves, guessing ambiguous placements, or mistaking prisoners for new moves. Specific screen feedback is recommended first; a distinct silent laser pattern remains a proposal. No production integration or physical validation; does not block the core test. |
 | 14 | Modular project onboarding documentation | Created [AgentGuide](AgentGuide/README.md): nine focused pages with start/resume instructions, capability/subsystem/problem routes, source entry points and targeted validation. All 157 local link targets were checked. Linked from both AGENTS files and project READMEs. Scope is inspected code, durable handoffs and current conversation context; other historical chats were not available through tools. This checklist remains the live status authority. |
-| 15 | Faster new-setup calibration | Newly requested for Go-club use. Broker-only v44 fresh-calibration runner and timing plan implemented; 36 offline checks passed. Nonblocking beep and no-travel initial-check mode added; 43 checks pass. First check stopped before light on expired prelight evidence. Reference-only caching preserves guards; 48 calibration checks pass. Second stationary check passed with seven agreeing spot samples, no travel, beep dispatch and clean full OFF. Repeated stationary check passed and Dave confirmed beep/spot. Full calibration stopped before light/travel on a grid-fit disagreement. Balanced deterministic fit now passes all eight saved images and all72 boundary points<3px; original global/native guards preserved. Full run02 passed grid, firstspot and firstdarkmove, then stopped on .631s prelightimageage. Bounded fresh-image reacquisition passed 64 checks and independent review; no completed full-board calibration yet. The old external fresh helper is v39-only; repository legacy tools open a second hardcoded camera and must not be reused with the app feed. Preserve independent coverage/accuracy checks; partial samples and old binding are not current full-board approval. No physical speedup has been measured. |
-| 16 | Occupied-board processing latency | [Measured report](OccupiedBoardTiming.md) ready: ten archived pairs, 79 usable timing observations. A sparse two-stone pair takes ~1.3s while a crowded matched-reference pair takes ~0.15s; lighting/reference/convergence matter, not stone count alone. Cache preserves acceptance/transforms but does not resolve slow paths. Native pipeline inspected, not timed; live image age remains separately gated. Offline optimization prototype underway. |
+| 15 | Dependable new-setup calibration | Staged implementation independently reviewed: 93 calibration plus 24 dark tests pass, including actual retained images and movement/occlusion rejection. Geometry A may be analyzed dark for up to 3s; distinct fresh B verifies all 72 boundary points against A and the original reference. A expires 5s after capture; B retains 600ms freshness. Offline B proof took about 117ms. Physical validation pending. v44 run04 previously verified K10 within 1.86px; no full-board map is active. Commissioning metadata allowance is 250ms. Beep and stationary spot checks passed. No end-to-end setup speedup claimed. Use only the app broker. |
+| 16 | Occupied-board processing latency | [Measured report](OccupiedBoardTiming.md): ten archived pairs, 79 usable observations. A two-stone pair takes ~1.3s while a crowded matched-reference pair takes ~0.15s; reference/lighting/convergence matter more than stone count alone. Isolated cropped-image prototype roughly halves slow positive cases, but some rejections become slower; no production gameplay integration. Empty-calibration verifier takes ~0.16–0.23s on the exact failed images and is being reviewed separately. Native camera pipeline remains untimed. |
+| 17 | Gameplay continuity on device faults | Candidate 0.254 is implemented and independently reviewed; not installed. Final 492 continuity checks consume 68 actual host statuses and full recovery sequences, including delayed OFF, AI retargeting, hand waits, Pause/Resume and scope/hard-fault rejection. Final source also passes 225 standby, 278 laser lifecycle and 47 capture-contract checks. Scoped hard-fault pause preserves history/placements/prisoners/clocks; explicit recovery and physically confirmed camera-only fallback are implemented. Ordinary hand/camera transient recovery no longer invents a hard fault or leaves guidance latched. Physical validation pending. Installed 0.253 can still stop guidance while local AI clocks continue; online clocks remain authoritative. |
+| 18 | Continuous laser-map refinement during play | **Deferred at Dave’s request.** Current production feedback corrects each aim but leaves the saved motor map unchanged. Later, use reliable observed motor poses and actual spot locations to improve subsequent initial aims and reduce corrective travel. Keep calibration/setup provenance, confidence gating, bounded updates and rollback; distinguish bare-board observations from raised-stone markers, and reject hands, uncertain spots or moved equipment. Validate on separate observations before activating a versioned update at a dark boundary; do not mutate the actively supervised model file in place. This follows reliable initial calibration and gameplay recovery. |
+| 19 | Initial-calibration progress UI | Implemented and independently reviewed; not installed. Actual stage/target, five calibration plus nine accuracy checks, elapsed/stage time and stale/stopped/shutdown-unconfirmed/review-required states. No unsupported ETA. Passive asynchronous publishing cannot interrupt shutdown; injected publisher-failure tests pass. 26 native checks, SwiftUI typecheck and 128 calibration/progress/dark tests pass. Registered as `--calibration-progress-test`; final four-suite app regression and eight build-registry checks pass. Signed full app build underway; visual/physical validation pending. See [progress UI](CalibrationProgressUI.md). |
+| 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. Recommendations are not implemented merely by this review; take incremental changes after the supervised baseline. |
 
 ## Accepted behavior
+
+- Dave prioritizes reliable gameplay over fast setup. Longer calibration is
+  acceptable; test failure recovery and clock/history preservation before play.
+- Initial calibration may analyze a stationary scene for longer than the live
+  clearance budget. Keep geometric-measurement lifetime separate from current
+  hand/movement evidence; changed scenes invalidate old results. The staged
+  calibration-only policy is implemented and independently reviewed, not yet
+  physically validated.
 
 - Dave authorizes unattended **dark** heat testing while away, after software
   checks and a short monitored hold pass. Presence is not another approval gate.

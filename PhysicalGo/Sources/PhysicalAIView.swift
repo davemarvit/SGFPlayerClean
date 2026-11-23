@@ -43,6 +43,7 @@ struct PhysicalAISetupView: View {
                 }
             }
             Text("Play your stones on the physical board. Place the AI’s stones at the blue ring and remove captures. The camera confirms the board before the next turn.")
+            PhysicalCalibrationProgressView()
             PhysicalAILaserControls(laser:ai.laser)
             PhysicalAICenteringControls(ai:ai)
         }.disabled(ai.hasGame && ai.phase != .finished)
@@ -55,6 +56,7 @@ struct PhysicalAIPlayView: View {
     let orientation: BoardOrientation
     var cameraNotice:String?=nil
     @State private var ending=false
+    @State private var confirmingLaserOff=false
     @State private var exportError: String?
     private func coordinate(_ p: Int)->String {
         let displayed=PhysicalMoveInference.displayedPoint(row:p/ai.size,col:p%ai.size,size:ai.size,quarterTurns:orientation.turns)
@@ -89,6 +91,7 @@ struct PhysicalAIPlayView: View {
             if ai.clockPausedForCaptureCleanup {
                 Text("Clock paused for capture cleanup — complete the move and remove captured stones.").foregroundStyle(.orange)
             }
+            PhysicalCalibrationProgressView()
             PhysicalAILaserControls(laser:ai.laser,clockRunning:ai.timing.anchor != nil)
             PhysicalAICenteringControls(ai:ai)
             PhysicalAITestModeControls(ai:ai)
@@ -102,6 +105,9 @@ struct PhysicalAIPlayView: View {
                 HStack {
                     if ai.active {Button("Pause") {ai.pause()}}
                     if ai.phase == .paused || ai.phase == .failed {Button(ai.phase == .failed ? "Retry":"Resume") {ai.resume()}}
+                    if ai.phase == .paused,ai.snapshot?.guidanceInterruption != nil {
+                        Button("Continue without laser") {confirmingLaserOff=true}
+                    }
                     Button("Pass") {ai.pass()}.disabled(!ai.canPass)
                     Button("End game…") {ending=true}.disabled(ai.phase == .finished)
                     Spacer()
@@ -115,6 +121,12 @@ struct PhysicalAIPlayView: View {
                 Text("Center dot: last move. Blue ring: AI move to place. Red ×: remove or correct. Games save automatically; two passes finish without assigning a score.").font(.caption).foregroundStyle(.secondary)
             } else {Text("Choose your settings in Setup, then Start AI game.")}
             if let exportError {Text(exportError).foregroundStyle(.red)}
+        }
+        .confirmationDialog("Switch the laser’s physical power switch OFF",isPresented:$confirmingLaserOff,titleVisibility:.visible) {
+            Button("I switched it off") {ai.confirmLaserPhysicallyOff()}
+            Button("Cancel",role:.cancel) {}
+        } message: {
+            Text("Keep the stones in place. A fresh clear camera view is required before Resume. This confirmation does not claim the driver acknowledged OFF or clear its fault.")
         }
         .confirmationDialog("End this AI game?",isPresented:$ending,titleVisibility:.visible) {
             Button("Resign") {ai.finish(resign:true)}
@@ -222,8 +234,8 @@ struct PhysicalAILaserControls: View {
             HStack {
                 Toggle("Connect laser bridge",isOn:Binding(get:{laser.enabled},set:{laser.setEnabled($0)}))
                     .toggleStyle(.switch).fixedSize()
-                if laser.enabled,laser.suppressed || laser.holdingInterrupted {
-                    Button(laser.controllerResetRequired ? "Recheck after reset":laser.holdingInterrupted ? "Retry laser":"Show point again") {laser.showAgain()}
+                if laser.enabled,laser.suppressed || laser.holdingInterrupted || laser.gameFaultNeedsRecheck {
+                    Button(laser.controllerResetRequired ? "Recheck after reset":laser.holdingInterrupted || laser.gameFaultNeedsRecheck ? "Retry laser":"Show point again") {laser.showAgain()}
                 }
             }
             if laser.enabled {

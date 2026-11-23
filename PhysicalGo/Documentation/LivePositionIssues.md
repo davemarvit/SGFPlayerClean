@@ -3537,3 +3537,86 @@ Dave asked about4Kwebcam. Root recommends fixing softwarefirst: currentimage has
 40–60px gridspacing and adequate printed-line evidence. 4K may improve detail
 but increasespixelwork4x; lens/focus/exposure and distortion are separate issues.
 No purchase or camera/configuration change was requested/performed.
+
+November 22 — priorities and commissioning poll tolerance reviewed
+Dave explicitly prioritizes dependable gameplay over short calibration: extra
+setup time is acceptable; failures during a game are unacceptable. Test degraded
+operation and recovery as well as normal moves, preserving game history/clocks.
+full-calibration-03 reached eight spot measurements and seven movements near
+center before the commissioning metadata permit expired. Its actual image and
+app lease remained fresh. A153.794ms read/parse span exceeded the150ms cached
+refresh budget; clean full OFF followed expiry by19.72ms, at1795418887.5419178.
+398 paired thermal samples, max16/16C, maxcausalage170.70ms, no controllerfault.
+Source hashes and saved game SHA6ca3728c88fa9fc7aeba9675715543a1b02f37dafd5b134daa9ebeec8a972f09 unchanged.
+Root's30s passive probe:1103polls,no invalid evidence,max refreshgap75.99ms;
+longest steps were opens with little threadCPU. Subsequent1080-per-method A/B
+showed no useful tail benefit from directory-descriptor reads; no I/O rewrite.
+After user's timing challenge and independent review, root authorized250ms for
+the extra commissioning cache allowance, still capped by remaining600ms image
+ages, actual app lease and total deadline.20ms polling, immediate bad-evidence
+revocation and separate150ms fresh optical ticket remain. Explicit tradeoff:
+a stalled polling worker could allow up to100ms more before shutdown; this is
+not a certified end-to-end hand-response bound. Production gameplay already
+uses its actual600ms data/cache ages and does not have this150ms test-only cap.
+Implementation/tests for250ms pending final review; no further hardware run yet.
+Continuity audit found installed0.253 stops guidance on a hard laser fault but
+can leave local AI clocks running. App agent is implementing scoped automatic
+pause for genuine current hard guidance faults with explicit recovery; normal
+hand waits/arming/status acknowledgments must not pause play. Independent review
+assigned. No app update installed yet, and no camera-outage timer invented.
+
+November 23 — calibration meaning, stationary analysis and future learning
+Dave clarified that initial calibration has no expected board activity: geometric
+analysis may take longer than the live clearance freshness budget. Root accepted
+that distinction. Proposed implementation: bounded dark analysis of frame A,
+then a distinct fresh frame B proving unchanged measured boundaries/texture and
+current hand/identity; geometric evidence is not relabeled fresh. Staged policy
+under review; no new hardware run or full-board calibration completed.
+Dave requested a table distinguishing camera-to-grid calibration, laser motor-map
+calibration, ongoing scene checks, per-move aiming corrections and stone recognition.
+He also requested a deferred continuous map-refinement task. Current gameplay
+bridge uses saved model parameters/offsets for each new target; camera feedback
+corrects the current pose but does not persist improved motor-map parameters.
+Checklist item18 records later learning from high-confidence pose/spot observations,
+separate bare-board/raised-stone geometry, bounded candidate updates, validation,
+versioned activation and rollback. No adaptive-map implementation started.
+
+November 23 — staged calibration reviewed; gameplay recovery edge cases
+The staged calibration implementation passed independent review: 93 calibration
+checks including both retained-image cases, plus 24 dark checks. Fresh B proof
+took .117–.118s in independent replay; shifted/rotated/perspective-changed scenes
+and interior occlusion were rejected. Runner94bdda22/helper0eb1bde7 are frozen.
+No new physical run; last run04 ended with clean full OFF1795419902.9484515.
+App candidate0.254 passed ten regression suites, alongside133 focused continuity
+checks and302 native checks consuming56 actual host status fixtures. Independent
+review then identified transient hand/camera recovery latches and a false hard
+thermal diagnosis on unknown output during startup. Native author and reviewer
+are repairing/testing actual fault-to-OFF-to-fresh-clear transitions before
+installation. Current installed app remains0.253; game/clocks preserved/paused.
+Deferred continuous map refinement remains checklist item18; no learning code
+started. CalibrationAndTiming.md now explains both calibrations, ongoing checks
+and distinct timing budgets in tables.
+
+November 23 — offline overnight boundary and final software checks
+Dave plans to go to bed and turn off room lights. Root advised switching off the
+laser physical power; physical switch state is not independently confirmed.
+No further light, travel, camera qualification or physical tests until Dave
+returns. Last commanded state remains clean full OFF from run04. Saved game
+SHA6ca3728c88fa9fc7aeba9675715543a1b02f37dafd5b134daa9ebeec8a972f09
+remains unchanged. Restore lighting and verify setup before tomorrow's tests.
+Final recovery suite passes492 checks with68 actual host statuses. It includes
+full transient recovery, same-game AI retargeting, Pause/Resume and strict
+scope/hard-fault rejection. Final root rerun passes225 standby,278 laser
+lifecycle,47 capture-contract and26 progress checks (4/4 suites), plus8 registry
+checks. No physical recovery claim yet; installed app remains0.253.
+Progress UI and passive publisher independently reviewed:104 calibration/progress
+and24 dark checks pass, including injected reporting failures that cannot skip
+OFF. Reports5 fitting targets and9 independent check targets, stage and elapsed
+time; successful candidate still requires setup review/binding activation.
+Architecture review is complete in ArchitectureReview.md. Existing app/host/MCU
+boundaries are appropriate; overlapping native recovery/admission logic is the
+main structural hotspot. Incremental reducer/protocol/IO/build-snapshot work is
+recommended after a supervised baseline, not an automatic rewrite. Source-hash
+manifest coverage and camera-failure clock policy remain documented follow-ups.
+Signed0.254 build is running; prepare the candidate offline without replacing
+or relaunching the installed application tonight.

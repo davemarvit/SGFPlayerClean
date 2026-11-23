@@ -35,6 +35,7 @@ facts.
 | Immediate concern | Read |
 |---|---|
 | Where decisions live; how components connect | [Architecture and state ownership](Architecture.md) |
+| Structural weaknesses and incremental improvement priorities | [Independent architecture/process review](../ArchitectureReview.md) |
 | Wrong camera, hand not clearing, missed stone, glare, stale image | [Camera and recognition](CameraRecognition.md) |
 | AI speed, legal moves, turn transitions, clocks, saved games | [Game, AI and clocks](GameAIClocks.md) |
 | Local recording, unresolved chronology, corrections, scoring | [Recording, review and scoring](RecordingReviewScoring.md) |

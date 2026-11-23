@@ -53,6 +53,10 @@ struct PhysicalAIGuidanceTarget: Equatable {
         var result: String?
         var timing: PhysicalAITiming?
         var verifiedPosition: VerifiedPosition?
+        // Recovery must survive relaunch; ordinary manual pauses remain distinct.
+        var guidanceInterruption: String?
+        // Independent of being paused; survives deliberate camera-only play.
+        var laserRecheckReason: String?
     }
     typealias Generate = @MainActor (SGFGame, PhysicalAISettings) async throws -> String
     @Published var draft = PhysicalAISettings()
@@ -144,6 +148,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
             return try await Self.kataMove(game,visits:settings.strength.visits,rank:settings.humanRank)
         }
         if persistSettings {centeringEnabled=UserDefaults.standard.bool(forKey:"PhysicalGo.laserCentering")}
+        self.laser.onHardFault = { [weak self] event in self?.pauseForGuidanceFault(event) }
         let url=self.directory.appendingPathComponent("current.json")
         if FileManager.default.fileExists(atPath:url.path) {
             do {
@@ -155,13 +160,16 @@ struct PhysicalAIGuidanceTarget: Equatable {
                     guard !player.lastTwoMovesWerePasses, player.tryPlayMove(color:player.turn,x:move.point.map{$0%saved.settings.size} ?? -1,y:move.point.map{$0/saved.settings.size} ?? -1) == nil else {throw Failure(message:"The saved AI game has invalid history.")}
                 }
                 snapshot=saved;draft=saved.settings;refreshBoard()
+                if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {self.laser.restoreGameFaultRequirement(reason)}
                 if let verified=saved.verifiedPosition,verified.cells.count==cells.count,
                    verified.cells.allSatisfy({["empty","black","white"].contains($0)}),!verified.cameraContext.isEmpty {
                     verifiedCells=verified.cells;verifiedCameraContext=verified.cameraContext
                 }
                 timing=saved.timing?.saved ?? PhysicalAITiming(blackToPlay:player.turn == .black)
                 phase=saved.ended ? .finished:.paused
-                status=saved.ended ? "Game ended. SGF saved.":"AI game restored. Resume to verify the physical board."
+                status=saved.ended ? "Game ended. SGF saved.":saved.guidanceInterruption != nil
+                    ? "AI game preserved after a laser interruption. Resolve the issue and recheck the laser before Resume."
+                    : "AI game restored. Resume to verify the physical board."
             } catch {self.error="Could not open saved AI game: \(error.localizedDescription)";loadFailed=true;phase = .failed}
         }
     }
@@ -180,6 +188,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
     }
     private func save(_ value: Snapshot)throws {
         var s=value;s.timing=timing.saved(at:uptime())
+        s.laserRecheckReason=laser.gameFaultRecheckReason
         s.verifiedPosition=verifiedCells.flatMap {cells in verifiedCameraContext.map {VerifiedPosition(cells:cells,cameraContext:$0)}}
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         // current.json is authoritative. SGF is a derived export and can be retried.
@@ -209,14 +218,37 @@ struct PhysicalAIGuidanceTarget: Equatable {
         do {try save(Snapshot(id:UUID(),settings:draft));phase = .checking;status="Clear the board. Waiting for a verified empty position.";return true}
         catch {fail(error.localizedDescription);return false}
     }
+    private func pauseForGuidanceFault(_ event:PhysicalLaserGuidance.HardFault) {
+        guard active,laser.enabled,event.session.source=="ai",var saved=snapshot,
+              event.session.session==saved.id,event.session.size==saved.settings.size else {return}
+        // Freeze at detection, before process cancellation or file IO can add
+        // downtime. Phase changes first prevent reentrant laser ticks pausing twice.
+        phase = .paused;timing.pause(at:event.detectedAtUptime)
+        saved.guidanceInterruption=event.reason
+        cancel()
+        do {try save(saved)} catch {fail(error.localizedDescription);return}
+        status="AI game paused after a laser interruption. History, placement and clocks are preserved. Resolve the issue, recheck the laser, then Resume."
+    }
     func pause() {
         defer {syncGuidance()}
         guard active else {return}
         cancel();timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
     }
+    func confirmLaserPhysicallyOff() {
+        guard phase == .paused,let saved=snapshot,saved.guidanceInterruption != nil else {return}
+        laser.setEnabled(false) // User confirmation is distinct from a driver OFF receipt.
+        if laser.confirmPhysicalLaserOff(session:.init(source:"ai",session:saved.id,size:saved.settings.size)) {
+            status="Laser power-off confirmed by you. Waiting for a new clear camera frame before Resume; driver OFF remains unconfirmed."
+        } else {status="Camera view is unavailable. Keep laser power switched off, restore the camera, then confirm again. The game remains paused."}
+    }
     func resume() {
         defer {syncGuidance()}
         guard var s=snapshot,[.paused,.failed].contains(phase),!loadFailed else {return}
+        if s.guidanceInterruption != nil,!laser.readyToResumeFaultPausedGame(session:s.id) {
+            status="AI game remains paused. Resolve and recheck the laser before Resume, or explicitly continue without laser guidance."
+            return
+        }
+        s.guidanceInterruption=nil
         cancel();error=nil
         if s.moves.count>=2,s.moves.suffix(2).allSatisfy({$0.point == nil}) {s.ended=true}
         if s.pendingCaptureCleanup == true,lastCapturePoints.count<2 {s.pendingCaptureCleanup=false}
@@ -308,6 +340,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func consume(_ observation: BoardObservation, now: Double) {
         defer {syncGuidance()}
         guard active else {return}
+        let observationGeneration=generation
         let stamp=observation.capturedAt ?? now
         // Retain only previously observed cells in the same camera/grid context.
         // Fresh positive contradictions still override this history below;
@@ -333,6 +366,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
             // is still required before removal is accepted or another target wins.
             laser.suppress("capture_evidence_changed")
         }
+        guard active,generation==observationGeneration else {return}
         guard laser.acceptsObservation(capturedAt:stamp,now:now) else {outcome="waiting_for_dark_laser_evidence";interruptObservation(reason:outcome);return}
         guard stamp.isFinite,now-stamp>=0,now-stamp<1.5,
               observation.size==size,!observation.lightingBlocked,observation.handObstructed == false,
@@ -362,8 +396,11 @@ struct PhysicalAIGuidanceTarget: Equatable {
         if pendingMoveCue {
             laser.verifyMoveTarget(capturedAt:stamp,now:now)
         } else if laser.target?.purpose==nil {laser.resetHandRecoveryEvidence()}
+        guard active,generation==observationGeneration else {return}
         observeCaptures(observation,ambiguous:ambiguous,stamp:stamp,now:now)
+        guard active,generation==observationGeneration else {return}
         observeCentering(observation,ambiguous:ambiguous,stamp:stamp,now:now)
+        guard active,generation==observationGeneration else {return}
         for r in observation.readings {
             let index=r.row*size+r.col
             if ambiguous.contains(index),r.occupancy.stone != nil,r.confidence>=0.8,
@@ -527,7 +564,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
                captureGuidance.placementConfirmed,let color=captureGuidance.prisoners[point] {
                 laser.setTarget(.init(source:"ai",session:s.id,moveNumber:s.moves.count,size:size,
                     row:point/size,col:point%size,black:color=="black",decisionReceivedAtUnix:saved.acceptedAtUnix,purpose:"capture"))
-                status="Remove captured stones · \(captureGuidance.remainingCount) remaining."
+                if active {status="Remove captured stones · \(captureGuidance.remainingCount) remaining."}
             } else {laser.setTarget(nil)}
             return
         }

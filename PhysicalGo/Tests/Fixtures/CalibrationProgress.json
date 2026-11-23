@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runID": "99a2b9cf-5650-43a5-ab8a-b30fe6b67dad",
+  "sequence": 1,
+  "startedAtUnix": 1000,
+  "startedAtUptime": 50,
+  "updatedAtUnix": 1010,
+  "elapsedSeconds": 10,
+  "stageElapsedSeconds": 2,
+  "bindingActivated": false,
+  "state": "running",
+  "stage": "validation",
+  "target": "K10",
+  "fitCompleted": 5,
+  "fitTotal": 5,
+  "validationCompleted": 3,
+  "validationTotal": 9,
+  "mode": "full_calibration",
+  "error": null
+}

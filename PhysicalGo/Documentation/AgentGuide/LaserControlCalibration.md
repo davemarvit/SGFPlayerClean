@@ -51,14 +51,16 @@ The legacy contract is documented in [laser-bridge.md](../laser-bridge.md).
 Some historical sections there describe earlier milestones; use its current
 extension note and the checklist to distinguish those from current behavior.
 
-## Monitored holding: schema-2 contract under development
+## Monitored holding: schema-2 contract
 
 The exact agreement lives in the laser repository's
 [Gameplay standby protocol.md](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/Gameplay standby protocol.md>).
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
-New gameplay firmware v44 and its app/host integration must be validated and
-installed explicitly.
+Gameplay firmware v44 provides the new contract. The November 23 checklist records
+Physical Go 0.253/v44 installed and the short dark check passed; fresh full-board
+calibration and gameplay validation remain separate. Consult that checklist for
+later installation and physical results.
 
 The new capability is `darkMotorStandbyV1`. Discovery uses schema-1 full OFF,
 then a new schema-2 OFF revision and matching confirmation before active use.
@@ -86,6 +88,11 @@ The cached USB core's `availableForWrite()` alone does not prove a nonblocking
 write. The new protocol documents its endpoint-ready bounded output path.
 
 ## Calibration has three distinct parts
+
+See [Calibration and timing limits](../CalibrationAndTiming.md) for the two
+initial fits, ongoing checks, and the staged separation between longer static
+geometry analysis and fresh final clearance. Its tables distinguish computation
+deadlines from camera, lease, motor and temperature evidence limits.
 
 1. Select and verify the actual app camera and its advancing stream.
 2. Verify the app's board grid/reference geometry for the current board position.
@@ -117,3 +124,10 @@ check, fresh calibration, ordinary fast-AI recognition, centering, then controll
 captures. Formal two-hour endurance is optional. The partial private thermal run
 is useful evidence but did not establish a two-hour pass, thermal plateau,
 physical cooling recovery, case temperature or seated noise performance.
+
+## Initial calibration progress
+
+The passive [calibration progress panel](../CalibrationProgressUI.md) reads the
+external runner's versioned status. It shows actual stage, completed target
+checks and elapsed time, with explicit stale/stopped/review-required states.
+It cannot command hardware or activate a calibration binding.
