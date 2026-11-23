@@ -8,53 +8,59 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest run: interior pilot 04 stopped fully OFF before its large move.**
-  Reviewed/pushed `094ddfd` reused the latest interior observation and passed
-  fresh geometry/position admission (0.830px residual). Its actual probe poses
-  were [1828,2257] → [1836,2257] → [1829,2254]. The tilt command targeted2252,
-  but settled at2254. The resulting independent measured travel was too small
-  for the unchanged qualification threshold. All137 observations are preserved.
-  Full OFF confirmed Unix1795474158.026998; no controller/supervisor fault,
-  cancellation or source change; process reaped. Game/clocks remain byte-identical.
-  Latest measured board point [4.19881,9.03140], pose [1829,2254]. Offline review
-  is considering bounded additional probing; no automatic retry.
-- **Pilot03 reached the interior without timing or communication faults.**
-  Its one-count observed drift made an exact baseline return nine counts against
-  an eight-count cap. Reviewed094ddfd clips that proposal within the unchanged
-  cap and preserves clean observed progress separately from inherited evidence.
-  Six independent actual-recording tests and relevant existing checks passed.
-  Pilot04 exercised the clipped proposal but did not complete qualification.
+- **Interior pilot05 completed both larger-move legs, then stopped fully OFF.**
+  Reviewed/pushed `44aeb5e` passed fresh position and steering qualification. Its
+  requested 2.5-intersection outbound span measured 2.322; return measured 2.148.
+  First landing errors were 0.190 and 0.188 intersections before optical correction.
+  Model residuals at actual motor positions were 3.700/2.115 px; motor goal errors
+  were (+1,+2) and(−1,−2) counts. Return missed the optical origin by 7.276 px,
+  so this is a diagnostic completion, **not an accuracy pass**. All 144 observations
+  retained; source inventories/game/clocks unchanged. Full OFF confirmed
+  Unix 1795474672.1551886; exit 0 reaped, no controller/supervisor fault. Latest
+  observed pose [1820,2248], board [4.169881,9.453444]. Maximum temperatures 14/14°C.
+  See the [result and timing table](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/fresh-board-20261122-133741/calibration-resume-20261123/interior-pilot-05-summary.md>).
+- **The bounded extra-probe fix was exercised physically.** A weak but optically
+  consistent interior tilt observation received one additional ≤5-count probe.
+  Measured basis and all unchanged residual checks then passed. Seven independent
+  focused tests passed; 36 selected regressions passed with two optional older
+  fixtures skipped. The pilot-only change does not relax 8/5 movement limits or
+  measured qualification. Pilot04 remains preserved separately; pilot05 reused
+  admitted pilot03 evidence with mandatory new pose/spot checks and no new stop adapter.
 - **Two distinct timing stops are identified; the original host delay remains
-  unresolved.** Validation-resume02 hit a100ms serial completion check; firmware
+  unresolved.** Validation-resume02 hit a 100 ms serial completion check; firmware
   evidence indicates the likely thermal ACK arrived. Exact steering replay did
-  not reproduce it (1000 calls max4.53ms;50 checkpoints max42.70ms). A separate
-  OFF-only serial check passed96 replies, worst2.356ms. Pilot01 then expired its
-  250ms poll-cache deadline:228.623ms file-read/parse window,255.566ms refresh gap,
-  camera age0.411s and app lease still valid. Serial service continued normally.
+  not reproduce it (1000 calls max 4.53 ms; 50 checkpoints max 42.70 ms). A separate
+  OFF-only serial check passed 96 replies, worst 2.356 ms. Pilot01 then expired its
+  250ms poll-cache deadline: 228.623 ms file-read/parse window, 255.566 ms refresh gap,
+  camera age 0.411 s and app lease still valid. Serial service continued normally.
   Passive profiling observed occasional file-open waits but did not reproduce
-  that228ms outlier. Root uses the reviewed explicit0.5s cache option only for
+  that 228 ms outlier. Root uses the reviewed explicit 0.5 s cache option only for
   stationary experiments, still capped by camera/lease/run deadlines. Normal
-  cache remains0.25s. Pilot03/04 had no timing failure; no automatic fault retry.
-- **Large-move first-landing diagnostics remain incomplete.** The bounded pilot
-  performs fresh two-axis qualification, one interior2–3-intersection outbound
-  move and one return, recording actual first landings before correction. No
-  diagnostic leg has completed. The separate recording audit found maximum
-  optical intervals of2.965 intersections during fitting and2.548 during
-  validation, possibly spanning multiple commands; these do not validate a
-  single long jump. See the [protocol](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/86bf0b9/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md).
+  cache remains 0.25 s. Pilot03–05 had no timing failure; no automatic fault retry.
+  Pilot05 captured
+  a 279 ms refresh gap during arming, dominated by 159 ms request and 94 ms manifest
+  read windows; parsing was below 0.03 ms each. Camera and lease remained valid.
+- **One interior out-and-back diagnostic is complete; wider coverage remains.**
+  Both first accepted landings were recorded before optical correction. The
+  fixed candidate was not trained or activated. Repeat directions, distances and
+  distributed board positions before inferring map distortion or backlash. Each
+  coarse leg includes the normal second GOTO to its reported settled pose before
+  fine-profile preparation; it is not literally one serial command. See the
+  [larger campaign protocol](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/86bf0b9/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md).
 - **Five fit targets passed; all nine validation targets remain.**
-  Full-calibration04 ran702seconds: K10 2.21px, A19 1.76px, T19 2.31px,
-  T1 2.58px, A1 2.86px. The frozen95-sample candidate has median2.49/p95 5.19
+  Full-calibration04 ran 702 seconds: K10 2.21px, A19 1.76px, T19 2.31px,
+  T1 2.58px, A1 2.86px. The frozen 95-sample candidate has median 2.49/p95 5.19
   motor-count fit residual, but is **unvalidated** and no binding is active.
-  Explicit experimental camera age10s, run7200s and disabled target timer do
+  Explicit experimental camera age 10 s, run 7200 s and disabled target timer do
   not disable other deadlines. Later small-step profile repairs and serial/poll
   diagnostics are reviewed and have now run physically. Earlier detailed
   results, source checkpoints and timeout evidence remain in the issue history.
-- **Unified timing model is complete offline.** Pushed7737129 defines64 stages,
-  eight concurrent lanes and37 timing options; it generates event schemas and
-  path-specific collection requirements. Twenty tests and independent review
-  pass. No runtime instrumentation, adapter or timing-policy change is enabled;
-  checklist item21 tracks adoption.
+- **Unified timing model is complete offline.** Pushed `a4867ea` defines 64 stages,
+  eight concurrent lanes and 37 timing options; it generates event schemas and
+  path-specific collection requirements. Twenty-three tests and independent review
+  pass, including seven user-facing outcome definitions. No runtime instrumentation,
+  adapter or timing-policy change is enabled;
+  checklist item 21 tracks adoption.
 - Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.
   Staged calibration, progress UI and gameplay recovery changes are included.
@@ -92,7 +98,7 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** interior-pilot-04 confirmed fresh v44 OFF.
+- **Hardware is fully OFF:** interior-pilot-05 confirmed fresh v44 OFF.
   Production bridge and calibration are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
@@ -168,7 +174,7 @@ offline verification, installation and physical validation.
 | 18 | Continuous laser-map refinement during play | Dave authorized advance software/literature work overnight after initially deferring this. An isolated offline/shadow prototype now compares baseline, global offset and bounded local residual correction using actual measured poses/spots, confidence/provenance and chronological validation. Separate reviewed branch; no live learning or map activation. Retain baseline model and rollback; distinguish raised stones, outliers and changed equipment. Independent algorithm and campaign reviews complete; 56 tests pass. Cleared-board survey plan covers 25 fit + 24 reserved locations (130 episodes with approaches/anchors), optionally all361. First aim and final metrology remain separate; no hardware executor. Physical validation follows initial calibration/gameplay baseline. |
 | 19 | Initial-calibration progress UI | Implemented and independently reviewed; not installed. Actual stage/target, five calibration plus nine accuracy checks, elapsed/stage time and stale/stopped/shutdown-unconfirmed/review-required states. No unsupported ETA. Passive asynchronous publishing cannot interrupt shutdown; injected publisher-failure tests pass. 26 native checks, SwiftUI typecheck and 128 calibration/progress/dark tests pass. Registered as `--calibration-progress-test`; final four-suite app regression and eight build-registry checks pass. Signed full app build and signature/source-hash verification passed; visual/physical validation pending. See [progress UI](CalibrationProgressUI.md). |
 | 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. At Dave’s subsequent authorization, reducer extraction, build/source provenance and paired acceptance are implemented and reviewed on isolated overnight branches; optional0.255 integrates them. Remaining recommendations include measured I/O isolation and explicit camera-failure clock policy. |
-| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `7737129`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 20 tests pass. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/7737129c846cbf8b4960ca0dbd3cdbc999204f2f/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. No runtime adapter, instrumentation activation or timeout changes; adoption remains pending. |
+| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. No runtime adapter, instrumentation activation or timeout changes; adoption remains pending. |
 
 ## Isolated overnight improvements (November 23)
 

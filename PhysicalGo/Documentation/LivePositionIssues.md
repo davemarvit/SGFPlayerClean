@@ -4043,3 +4043,26 @@ no cancellation, source hashes/inventory and savedgameSHAunchanged; exit1 reaped
 ReportSHA416473721b04c8f588125686b2cd8505ed9bcaa120cbf7491296c3b8d5daab10.
 Root requested offline design review for bounded additional probing without
 weakening measured qualification. Hardware/serial port released, no auto retry.
+
+November 23 — interior pilot05 completed; timing outcomes model reviewed
+Pushed44aeb5e passed fresh position/two-axis qualification and exercised one
+bounded extra tilt probe. Outbound requested2.5intersections, measured2.322;
+return measured2.148. First target misses0.190/0.188intersections, model-at-actual
+residual3.700/2.115px, actual motor goal residual(+1,+2)/(−1,−2)counts. Return
+optical error7.276px: useful diagnostic, not accuracy approval. No camera-directed
+correction/model update;144samples retained. Coarse legs each include normal
+secondGOTOactualsettled beforePREPARE, so single_goal is not one wire command.
+Host travel-to-light dispatch3.410/3.324s: travel receipt1.241/1.228s, goal-prime
+receipt0.625/0.550s, PREPAREreceipt0.568/0.471s, READY-to-light0.965/1.070s.
+Lightack0.107/0.137s; these are not physical onset measurements.
+Arming captured279.048ms polling gap:159ms request readwindow +94ms manifest
+readwindow, JSONonly0.029/0.021ms. Original camera/lease valid; explicit0.5cache
+run continued. Exact filesystem/schedulingcause remains unresolved.
+FullOFF1795474672.1551886, no controller/supervisorfault/cancellation, source
+inventories and game/clocks unchanged; exit0 reaped. Latest actual1820/2248 at
+board[4.169881,9.453444], maxreportedtemps14/14C. Caffeinate stopped/reaped.
+ReportSHA034883c595c2f4a6fc4cc66f974b233e2535de3e8e290799a54428a66ea2356c.
+Allnine fullboard validation targets remain; no bindingactive.
+Workflow followupa4867ea pushed: seven outcome definitions added,23 tests and
+independent review pass. Missing acceptance/exposure/onset/correlation/clock
+evidence remains explicit. No runtime adapter or timeout changes enabled.

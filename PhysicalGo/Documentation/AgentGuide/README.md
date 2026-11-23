@@ -42,7 +42,7 @@ facts.
 | Local recording, unresolved chronology, corrections, scoring | [Recording, review and scoring](RecordingReviewScoring.md) |
 | Laser doesn't appear, holding/cooling, firmware, calibration | [Laser control and calibration](LaserControlCalibration.md) |
 | Ambiguous stone, captured stone, wrong/illegal placement | [Markers and physical corrections](Markers.md) |
-| Workflow stages, duration policies, timestamp schema and logging gaps | [Workflow timing contract](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/7737129c846cbf8b4960ca0dbd3cdbc999204f2f/Firmware/Experiments/WorkflowTiming/README.md) — reviewed offline model; runtime adoption pending. |
+| Workflow stages, duration policies, timestamp schema and logging gaps | [Workflow timing contract](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md) — reviewed offline model; runtime adoption pending. |
 | Build, targeted tests, source hash, repository workflow | [Development and validation](DevelopmentValidation.md) |
 | A specific failure or unresolved investigation | [Troubleshooting and known problems](Troubleshooting.md) |
 
