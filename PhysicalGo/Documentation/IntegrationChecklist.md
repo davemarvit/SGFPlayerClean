@@ -17,12 +17,20 @@ offline verification, installation and physical validation.
   write completion deadline stopped the run after 123 total observations;
   full OFF confirmed Unix1795470112.9394574, no controller fault, source inventory
   unchanged. Last observed pose was [1720, 2274], board [1.88144, 9.12087].
-  The small-step profile fix and transport diagnosis are active offline.
+  The small-step profile fix is independently reviewed and pushed as `0e7434a`
+  (four focused and 51 existing checks passed); not physically retested.
+  Bounded serial timing diagnostics are integrated as `bbc7f72`; the final
+  combined 112 checks pass without skips. Neither follow-up change has been
+  physically retested; the communication delay cause remains unresolved.
   Automatic retry correctly refused a transport fault. The original five fit
   targets remain preserved, all nine accuracy targets remain, no binding active.
 - **Large-move diagnostics are planned, not yet run.** Record the first visible
   landing before correction, with the camera fixed, and compare distance,
-  direction, diagonals and repeats. Begin with a six-move pilot after steering
+  direction, diagonals and repeats. The recording audit found a largest observed
+  span of 2.965 intersections
+  during fitting and 2.548 during validation; these are intervals between optical
+  observations and can contain multiple commands. No board-width jump was tested.
+  Begin with one qualified 2–3 intersection span in both directions after steering
   qualification; the larger optional campaign is not a gameplay prerequisite.
   See the saved [protocol](</Users/dave/DYNAMIXEL-Go-Pointer-worktrees/overnight-adaptive-calibration/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md>)
   at pushed source `86bf0b9`. Failed or merely predicted landings are not training

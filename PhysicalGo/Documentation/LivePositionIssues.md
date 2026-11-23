@@ -3934,3 +3934,30 @@ target completed. Automatic retry correctly refused the transport failure.
 ReportSHA4f5c7dc44dad52a9f42fd390e879e9b6b9f8f2aae42a860c6a6dc2918d1b5589.
 Fast-calibration agent owns isolated profile fix; transport reviewer investigates
 actualdeadline evidence offline. No new hardware attempt pending those findings.
+
+November 23 — reviewed fine dispatch repair and existing move coverage
+Reviewed small-step source91df4a7 integrated and pushed as0e7434a. Four targeted
+and51 existing checks passed; independent four-case review passed. Final guarded
+steps within the existing18/10count fine envelope usePTO/TTO, with fine-axis
+intermediate path checks repeated. No accuracy/deadline/step-limit relaxation.
+Not physically retested. Offline move audit found largest measured opticalinterval
+2.965intersections in full04 fitting,2.548 in validation; intervals can contain
+multiple commands. Thus no long-jump validation exists. Smallest nextpilot is one
+qualified interior2–3intersection span in both directions, firstlanding preserved.
+Transport review infers lateTA769 reachedfirmware becauseGT770 acknowledges769;
+failedwriteitself wasnotrecorded. Overlapping137.9ms permitread window supports
+hostdelay aspossible, notprovenUSBblocking. Bounded diagnostic patch underreview.
+Hardware fullyOFF, serialportunowned, savedgameSHAunchanged. Caffeinate stopped.
+
+November 23 — follow-up software checkpoint complete; hardware remains OFF
+Bounded serial-write diagnostics6dd292b integrated asbbc7f72 alongside small-step
+fix0e7434a. Final combined112 tests pass with no skips after the optical shutdown
+mock gained the real snapshot return contract. Diagnostics preserve the100ms
+write deadline and transport behavior, retain64 in-memory records including
+failedcommand/bytecounts/observed timing windows, and serialize afterOFF/close.
+Independent review passed; optionalCPU instrumentation was removed. No further
+physical retry: small-step repair and diagnostics remain offline-tested only.
+Serial-delay cause unresolved; no automatic transport retry enabled. Remaining
+physical work is fresh qualification and allnine validation targets, then the
+short bidirectional first-landing pilot before expanding distance. Root owns
+hardware; laser and motor power fullyOFF, port closed, game/clocks preserved.
