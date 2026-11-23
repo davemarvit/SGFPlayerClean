@@ -8,20 +8,18 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest physical result:** Dave restored lighting; camera and pointer both
-  moved. Empty board, power and initial pointing were confirmed with him. Correct
-  camera/grid and spot-only check passed; Dave saw the spot and heard the beep.
-  He explicitly authorized automatic continuation after leaving. The finite run
-  then stopped at T19's 120-second target limit after passing K10 (1.56px) and
-  A19 (2.78px). All 37 staged A/B prelight checks passed; no motor/thermal fault.
-  Full OFF confirmed at Unix1795463029.7635274. Peak temperatures14/15°C.
-  No map/binding activated; game/clocks unchanged. Dave subsequently authorized
-  a longer experimental retry: up to two hours overall, no per-target timer,
-  ordinary defaults and all safety/correction-count checks retained. Independent
-  review and153 checks pass; code `faa2230` is pushed on
-  `codex/calibration-experiment-budget`. Hardware remains
-  OFF pending a comfortably interior starting spot (re-aim requested). Artifacts and run-summary.json
-  are in the session's `calibration-resume-20261123/` directory.
+- **Latest physical result:** after Dave re-aimed toward center, initial-spot-03
+  passed. Extended experimental run `full-calibration-02` used host `faa2230`,
+  7200-second whole-run allowance and disabled target timer. K10 (2.90px) and
+  A19 (2.27px) passed; after14 spot measurements it stopped on an image texture
+  mismatch, not a timer. Full OFF confirmed Unix1795463793.625718, no controller
+  or supervisor fault. No map/binding activated; game/clocks unchanged.
+  Dave reported moving near the board and suspected a shadow. Saved-image replay
+  reproduces score0.94775 below0.95 after localized masking, with only0.20px
+  maximum fitted corner displacement and darker lower-left board. This supports
+  temporary lighting change, not a proven physical cause. Next: design bounded
+  dark pause/requalification for transient lighting without lowering admission
+  thresholds. See session `calibration-resume-20261123/full-calibration-02/`.
 - Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.
   Staged calibration, progress UI and gameplay recovery changes are included.
@@ -59,9 +57,9 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** fresh v44 receipt confirmed beam off and motor
-  power released after the latest run. Calibration and production bridge are
-  stopped. Root remains the sole hardware owner.
+- **Hardware is fully OFF:** latest calibration finished with fresh v44 OFF
+  acknowledgement. Calibration and production bridge are stopped; root remains
+  sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
   internal temperatures were 16°C/17°C; no motor or thermal fault was reported.
@@ -89,14 +87,14 @@ offline verification, installation and physical validation.
    host runtime is implemented, offline-tested and stopped pending calibration.
 2. Short physical dark holding/reuse/full-OFF check passed. Physical gameplay
    Pause/Resume and cooling recovery remain to test; two-hour endurance is optional.
-3. Complete fresh full-board laser calibration before playing. After both camera
-   and pointer moved, the resumed run passed37 physical staged A/B prelight checks
-   and reached K10/A19 within3px, but exhausted T19's120-second target allowance
-   while crossing via inset points. Full OFF confirmed; no map activated. Review
-   interior routing and intermediate correction overhead before retrying. The
-   former same-image600ms prelight failure did not recur in this run. Existing
-   movement, clearance, temperature and final3px accuracy limits remain in force.
-   See [calibration and timing](CalibrationAndTiming.md) and latest history.
+3. Complete fresh full-board laser calibration before playing. The earlier
+   120-second target timeout now has an explicit experimental override (normal
+   defaults unchanged,153 offline checks pass). The longer retry instead stopped
+   on an image-similarity rejection consistent with Dave's reported nearby
+   movement/shadow. Investigate dark pause and full requalification for transient
+   lighting; do not lower the0.95 threshold merely to admit this image. The
+   earlier staged A/B prelight timing fix is working in these partial runs.
+   No full-board model is qualified. See latest history and calibration timing.
 4. Play several ordinary moves with fast AI and recognition checks. Start without
    centering hints, so ordinary hand/stone acceptance and cue timing are clear.
    Check a lingering hand, slow withdrawal, correct placement and Pause/Resume.
@@ -238,3 +236,13 @@ began after the cached OpenRB library had already raised motor power. Its actual
 powered duration was source-inferred at about 3.54s, not the earlier claimed 3s.
 No torque or light was commanded. Raw evidence remains unchanged. Later thermal
 firmware starts its timer before the first possible power edge.
+
+## Transient lighting during calibration — November 23 follow-up
+
+A single rejected optical measurement currently ends the full calibration.
+The desired improvement is beam-off waiting with bounded attempts/time and
+preserved valid progress, followed by genuinely fresh full scene/hand/identity
+and motor-pose qualification before any relight. A changed setup, stale stream,
+controller/thermal fault or uncertain pose must still stop. A similarity score
+is not a probability; the0.94775 observed score does not justify lowering0.95.
+This recovery behavior is proposed, not implemented or physically validated.

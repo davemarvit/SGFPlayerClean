@@ -3734,3 +3734,30 @@ coarsely re-aim toward center, restore power and confirm ifstillpresent; reply
 pending. If alreadygone, keep hardwareOFF and wait for physical setup correction.
 Do not weaken initialmargin, use oldmap, or repeatedlyretryborderlineobservations.
 Review evidence saved in calibration-resume-20261123/experiment-budget-review.json.
+
+November 23 — longer experimental calibration started after re-aim
+Dave said Try now. Correct camera/clear aligned fresh broker and paused OFF lease
+verified; game SHA unchanged. initial-spot-03 measured[8.7775,8.9375] nearK10,
+comfortably within initialmargin, and finished fullOFF1795463663.4061315 without
+fault. Started full-calibration-02 on reviewedfaa2230 with explicit experimental
+7200-second overall allowance,target timerdisabled,35corrections/stage and all
+safety unchanged. Root solehardwareowner; no competingserialclient. Result follows.
+
+November 23 — extended run stopped on image match; shadow hypothesis supported
+full-calibration-02 used reviewedfaa2230 with7200whole-run,target0 explicitly
+recorded. K10 passed2.9017px, A19 passed2.2654px,14spot measurements. Next
+measurement raised LaserOpticalFault: Unreliable board registration texture match.
+Full OFF1795463793.625718 confirmed without controller/supervisor fault; source
+inventory unchanged, no candidate/binding activated. Saved game unchanged.
+Dave reported moving near the board and suggested a shadow. The exact rejected
+five-frame median and newestcontributingframe metadata were preserved. Root
+replayed the actual registrar offline without changing its thresholds: firstECC
+0.9197929, localized-mask retry0.9477494 below0.95. Rejectedfit estimated corner
+motion0.102–0.203px; median brightness changes on0..255scale were topLeft-4,
+topRight-2,bottomLeft-8,bottomRight-3. Reference/rejected comparison and report
+are consistent with local lighting/shadow, not proof of cause or acceptedgeometry.
+The app's newestmetadata indicated aligned/handclear; a person outsideboard need
+not sethandflag. No threshold or hardware change. Proposed follow-up: bounded
+beam-off waiting and fresh requalification before resuming after temporarylighting,
+rather than aborting all calibrationprogress. Currentcode still aborts. Evidence:
+full-calibration-02/shadow-diagnosis.json and ../full-calibration-02-summary.json.
