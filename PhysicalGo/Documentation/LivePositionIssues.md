@@ -3456,3 +3456,29 @@ Motor telemetry is not an independently calibrated ambient thermometer.
 Dave requests an audible beep whenever asked to locate a laser spot, dispatched
 with illumination without waiting for playback. Calibration cue support is being
 added before the first visible check. Absolute thermal policy remains unchanged.
+
+November 22 — initial optical check stopped before light
+initial-spot-01 stopped with Registered prelight image expired after PREPARE,
+before any SWEEP or travel command. Final fresh AimControl v44 OFF confirmed at
+1795416782.7954059, with no controller or supervisor fault. No beep was dispatched
+because no illumination was admitted. Source 3dedc18463bf515dcd344022b64875a173b1181bfa09048604e0e81a2c1af8cc.
+Investigating board-registration processing cost; camera freshness guards remain
+unchanged. A separate Ping sound check succeeded and Dave confirmed hearing it
+clearly. Root remains hardware owner; production bridge stopped/app paused.
+Implementation checkpoints pushed: app d5d84ef and laser ed8ba32, both on
+codex/monitored-gameplay-holding. No full-board calibration is claimed.
+
+November 22 — stationary visible check passed with attention beep
+initial-spot-02 completed initial_spot_verified with no commanded travel, 74
+thermal pairs and clean fresh v44 full OFF at 1795417137.0143986. Seven camera
+samples agreed on spot reference (1165.53,725.11), board (11.796,14.813), safely
+inside the two-intersection initial margin. This is current-pose observation,
+not a fitted map or full-board qualification. Source hashes unchanged during run.
+Prelight collection .228s, registration .119s, captured-image age .304s;
+beep process dispatch followed SWEEP command by .00844s. Actual acoustic/optical
+synchrony is unmeasured. Dave previously confirmed separate Ping audible.
+Reference-side registration caching preserves all feature/ECC/movement gates and
+0.6s image/0.15s admission limits. 48 calibration and 14 registration checks pass.
+The first expired-image cause remains unproven; saved timings show improved margin.
+Dave notes occupied boards may process differently. An offline agent is measuring
+saved sparse/crowded/capture/hand recordings, separately from empty calibration.

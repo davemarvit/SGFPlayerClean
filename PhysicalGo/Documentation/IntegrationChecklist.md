@@ -8,7 +8,9 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- Both projects now have pushed Git checkpoints before gameplay-holding changes.
+- Implementation checkpoints are also pushed: app `d5d84ef`, laser `ed8ba32`,
+  both on `codex/monitored-gameplay-holding`.
+- Both projects have pushed Git checkpoints before gameplay-holding changes.
   App baseline: `e8b2b14` on `codex/physical-go-confidence-validation` in
   [SGFPlayerClean](https://github.com/davemarvit/SGFPlayerClean).
   Laser baseline: `1060bef` on `main` in the new private
@@ -92,7 +94,9 @@ offline verification, installation and physical validation.
 | 12 | Complete online-opponent integration | Pending. Protocol accepts online source, but native camera publication/observation is AI-only and lacks an authoritative online target producer. Wire moves/orientation and preserve server clocks before separately validating online placement, captures and timing. |
 | 13 | Illegal-move feedback | Tested proposal ready: [design](IllegalMoveMarkerDesign.md) and tracked [experiment](../Experiments/IllegalMoveMarkers/README.md), 83 checks against actual engine sources. Existing suicide observations can fall through to generic mismatch before the specific illegal-move diagnostic. Candidate adds a separate diagnostic path without accepting illegal moves, guessing ambiguous placements, or mistaking prisoners for new moves. Specific screen feedback is recommended first; a distinct silent laser pattern remains a proposal. No production integration or physical validation; does not block the core test. |
 | 14 | Modular project onboarding documentation | Created [AgentGuide](AgentGuide/README.md): nine focused pages with start/resume instructions, capability/subsystem/problem routes, source entry points and targeted validation. All 157 local link targets were checked. Linked from both AGENTS files and project READMEs. Scope is inspected code, durable handoffs and current conversation context; other historical chats were not available through tools. This checklist remains the live status authority. |
-| 15 | Faster new-setup calibration | Newly requested for Go-club use. Broker-only v44 fresh-calibration runner and timing plan implemented; 36 offline checks passed. Attended current-position optical check is next, with nonblocking beep support being added. The old external fresh helper is v39-only; repository legacy tools open a second hardcoded camera and must not be reused with the app feed. Preserve independent coverage/accuracy checks; partial samples and old binding are not current full-board approval. No physical speedup has been measured. |
+| 15 | Faster new-setup calibration | Newly requested for Go-club use. Broker-only v44 fresh-calibration runner and timing plan implemented; 36 offline checks passed. Nonblocking beep and no-travel initial-check mode added; 43 checks pass. First check stopped before light on expired prelight evidence. Reference-only caching preserves guards; 48 calibration checks pass. Second stationary check passed with seven agreeing spot samples, no travel, beep dispatch and clean full OFF. Full calibration remains next. Separate sound check audible to Dave. The old external fresh helper is v39-only; repository legacy tools open a second hardcoded camera and must not be reused with the app feed. Preserve independent coverage/accuracy checks; partial samples and old binding are not current full-board approval. No physical speedup has been measured. |
+
+| 16 | Occupied-board processing latency | Offline agent measuring saved sparse/crowded positions, captures and hands. Empty-board calibration does not establish gameplay latency. Keep processing time, live image age and rejection behavior distinct; guards unchanged. |
 
 ## Accepted behavior
 
