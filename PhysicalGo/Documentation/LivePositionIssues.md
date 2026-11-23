@@ -3635,3 +3635,49 @@ Tomorrow: restore lighting, install/visually verify candidate preserving game
 and clocks, verify camera/grid/setup and finish full laser calibration with
 beeps. Final reference/context/binding and production route validation still
 precede gameplay; current-point success is not a full-board qualification.
+
+November 23 — user authorizes isolated overnight improvements
+After the signed0.254 checkpoint, Dave authorized using the remaining hours for
+reversible software work. Separate worktrees/branches preserve appc39e7e0 and
+laser6dec0c9 primary code. Workstreams: pure transient-recovery reducer; immutable
+build inputs/ownership; mandatory paired contract acceptance; complete calibration
+source inventory; optional bounded latency diagnostics; adaptive-map literature
+and offline/shadow prototype. Root checklist records branches and validation gates.
+Adaptive calibration is item18 (item19 is progress UI); it is now authorized for
+advance development, but no live learning/map activation or physical tests.
+Each implementation has independent review/targeted tests; full Swift builds are
+serialized. Primary installed app, signedcandidate, saved game and hardware are
+untouched. Successful experiments remain optional separate candidates until root
+reviews evidence; uncertain work must not displace tomorrow's tested baseline.
+
+November 23 — optional integrated0.255 software checkpoint
+Paired experimental app939fe27 and host45ed952 on codex/overnight-reviewed-candidate
+pass11app suites,344host tests(no skips),69tooling tests(no skips), and mandatory
+fresh app→host→app acceptance with exact source/linked-runtime provenance.
+A pre-existing fake-device float timestamp race was fixed ONLY in its testfixture;
+real parser/firmware rules unchanged. Full0.255/build256 optimized build and
+strict signature/source verification passed. Candidate, manifests and snapshots
+are in overnight-software-20261123/candidate-0.255.
+Sourcehash e63bdbb90964f08cc336e60fff7fdac3190af0412750ff2f0782462913151112;
+binaryhash e8057cc4546b8ce3b7f37c58f953d8db0fcfd0912f69353e853ebf3cf391df56.
+Not installed/physically tested. Originalsigned0.254 and primaryinstalled0.253
+remain unchanged. No physical actions, camera use or firmware upload overnight.
+Adaptive core is separate branchcodex/overnight-adaptive-calibration dc03dc9,
+35tests and syntheticpositive/negativeaudits pass; currentarchivesquarantined
+for missing time-paired settled-pose evidence. Dave's later spatial-distortion
+suggestion is extending only thatofflineexperiment with25fit+24edge/interior
+validation locations, optional361 and repeatedanchors. No hardwareexecutor or
+adaptiveactivation. See OvernightSoftwareResults.md for pairedbranches/rollback.
+
+November 23 — cleared-board distortion campaign reviewed and saved
+Adaptive branch f47f36c adds an offline plan/analyzer: 49 locations (25 fit,
+24 reserved including8 edges),130 episodes including approaches/anchors; optional
+361 locations/832 episodes. First aim before correction and final settled evidence
+are separate. Compare motor bias, translation, rotation, affine and local residual;
+missing first aims remain failures. Independent review fixed heldout leakage from
+misconverged final spots. Total56 author/reviewer tests pass; original adaptive
+core/candidate hashes unchanged. Synthetic results do not establish physical gain
+or mechanical cause; sparse local learning remains limited. No executor, map
+activation, firmware change or hardware/camera use. Separate experimental branch
+preserves signed0.254 and optional0.255. Checklist and OvernightSoftwareResults.md
+record the final offline checkpoint and later attended comparison requirements.

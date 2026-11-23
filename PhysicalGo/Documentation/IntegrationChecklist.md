@@ -13,13 +13,19 @@ offline verification, installation and physical validation.
   laser's physical power; that switch position has not been independently
   confirmed. Last commanded hardware state was full OFF. Restore lighting and
   verify camera/grid and laser calibration before any new physical use.
-- Latest pushed code checkpoints: app `64a1b77`, laser `11d3855`,
+- Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
   both on `codex/monitored-gameplay-holding`.
   Staged calibration, progress UI and gameplay recovery changes are included.
   Signed **0.254/build 255** candidate is built and verified, but not installed.
   Candidate and source/game snapshots are under the session artifact directory
   `gameplay-holding-validation/app-0254-candidate/`.
   Source hash: `c03914ec09b7de194b7ede5707ee266699a9c60dfff2bc1abe882346e5d03a9b`.
+- **Optional 0.255/build256 candidate is also built, signed and verified**, with
+  reviewed recovery extraction, opt-in tracing and improved provenance/tooling.
+  App `939fe27`, host `45ed952`, both on separate
+  `codex/overnight-reviewed-candidate` worktrees. Eleven app suites,344 host
+  tests,69 tooling checks and mandatory paired acceptance pass. Not installed or
+  physically validated; 0.254 remains available. See [overnight results](OvernightSoftwareResults.md).
 - Both projects have pushed Git checkpoints before gameplay-holding changes.
   App baseline: `e8b2b14` on `codex/physical-go-confidence-validation` in
   [SGFPlayerClean](https://github.com/davemarvit/SGFPlayerClean).
@@ -65,8 +71,9 @@ offline verification, installation and physical validation.
 
 ## Immediate next steps
 
-0. Signed 0.254 candidate and code checkpoints are ready. Install and visually
-   verify it when returning to the board; installed app is still 0.253. Preserve
+0. Signed 0.255 candidate and paired checkpoints are ready, with 0.254 retained
+   as a fallback. Install and visually verify the selected candidate when returning
+   to the board; installed app is still 0.253. Preserve
    the paused game/clocks and verify the restored lighting/setup before testing.
 1. Temperature-protected holding is implemented and installed in app/firmware;
    host runtime is implemented, offline-tested and stopped pending calibration.
@@ -117,9 +124,32 @@ offline verification, installation and physical validation.
 | 15 | Dependable new-setup calibration | Staged implementation independently reviewed: 93 calibration plus 24 dark tests pass, including actual retained images and movement/occlusion rejection. Geometry A may be analyzed dark for up to 3s; distinct fresh B verifies all 72 boundary points against A and the original reference. A expires 5s after capture; B retains 600ms freshness. Offline B proof took about 117ms. Physical validation pending. v44 run04 previously verified K10 within 1.86px; no full-board map is active. Commissioning metadata allowance is 250ms. Beep and stationary spot checks passed. No end-to-end setup speedup claimed. Use only the app broker. |
 | 16 | Occupied-board processing latency | [Measured report](OccupiedBoardTiming.md): ten archived pairs, 79 usable observations. A two-stone pair takes ~1.3s while a crowded matched-reference pair takes ~0.15s; reference/lighting/convergence matter more than stone count alone. Isolated cropped-image prototype roughly halves slow positive cases, but some rejections become slower; no production gameplay integration. Empty-calibration verifier takes ~0.16–0.23s on the exact failed images and is being reviewed separately. Native camera pipeline remains untimed. |
 | 17 | Gameplay continuity on device faults | Candidate 0.254 is implemented and independently reviewed; not installed. Final 492 continuity checks consume 68 actual host statuses and full recovery sequences, including delayed OFF, AI retargeting, hand waits, Pause/Resume and scope/hard-fault rejection. Final source also passes 225 standby, 278 laser lifecycle and 47 capture-contract checks. Scoped hard-fault pause preserves history/placements/prisoners/clocks; explicit recovery and physically confirmed camera-only fallback are implemented. Ordinary hand/camera transient recovery no longer invents a hard fault or leaves guidance latched. Physical validation pending. Installed 0.253 can still stop guidance while local AI clocks continue; online clocks remain authoritative. |
-| 18 | Continuous laser-map refinement during play | **Deferred at Dave’s request.** Current production feedback corrects each aim but leaves the saved motor map unchanged. Later, use reliable observed motor poses and actual spot locations to improve subsequent initial aims and reduce corrective travel. Keep calibration/setup provenance, confidence gating, bounded updates and rollback; distinguish bare-board observations from raised-stone markers, and reject hands, uncertain spots or moved equipment. Validate on separate observations before activating a versioned update at a dark boundary; do not mutate the actively supervised model file in place. This follows reliable initial calibration and gameplay recovery. |
+| 18 | Continuous laser-map refinement during play | Dave authorized advance software/literature work overnight after initially deferring this. An isolated offline/shadow prototype now compares baseline, global offset and bounded local residual correction using actual measured poses/spots, confidence/provenance and chronological validation. Separate reviewed branch; no live learning or map activation. Retain baseline model and rollback; distinguish raised stones, outliers and changed equipment. Independent algorithm and campaign reviews complete; 56 tests pass. Cleared-board survey plan covers 25 fit + 24 reserved locations (130 episodes with approaches/anchors), optionally all361. First aim and final metrology remain separate; no hardware executor. Physical validation follows initial calibration/gameplay baseline. |
 | 19 | Initial-calibration progress UI | Implemented and independently reviewed; not installed. Actual stage/target, five calibration plus nine accuracy checks, elapsed/stage time and stale/stopped/shutdown-unconfirmed/review-required states. No unsupported ETA. Passive asynchronous publishing cannot interrupt shutdown; injected publisher-failure tests pass. 26 native checks, SwiftUI typecheck and 128 calibration/progress/dark tests pass. Registered as `--calibration-progress-test`; final four-suite app regression and eight build-registry checks pass. Signed full app build and signature/source-hash verification passed; visual/physical validation pending. See [progress UI](CalibrationProgressUI.md). |
-| 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. Recommendations are not implemented merely by this review; take incremental changes after the supervised baseline. |
+| 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. At Dave’s subsequent authorization, reducer extraction, build/source provenance and paired acceptance are implemented and reviewed on isolated overnight branches; optional0.255 integrates them. Remaining recommendations include measured I/O isolation and explicit camera-failure clock policy. |
+
+## Isolated overnight improvements (November 23)
+
+Dave authorized reversible software improvements while away, including extra
+latency logging and adaptive-calibration research/prototyping. Hardware work is
+still deferred. The signed 0.254 candidate and primary code branches remain the
+physical-test baseline; experimental branches are not automatically promoted.
+Root maintains this table and serializes full Swift builds. Each experiment has
+its own worktree, review and targeted acceptance checks.
+
+| Work | Experimental branch | Gate before considering adoption |
+|---|---|---|
+| Pure transient-recovery state machine | app `codex/overnight-guidance-reducer` | Passed independent review,495 actual-host continuity checks, legacy suites and16,825 parity/105 independent checks; included in optional0.255. |
+| Immutable regression inputs and build ownership | app `codex/overnight-build-provenance` | Passed mutation/concurrency/failure tests, Unicode/compiler probes and final combined full build; included in optional0.255 tooling. |
+| Mandatory paired app/host contract acceptance | app `codex/overnight-contract-acceptance` | Passed fresh actual native→host→native acceptance with exact source/runtime output pins; missing/mismatched coverage fails. Included in candidate tooling. |
+| Complete calibration source provenance | laser `codex/overnight-source-manifest` | Reviewed startup/final-only bounded inventory passes transitive/add/remove/modified-source tests and combined344-case host suite; optional hostcandidate. |
+| Optional bounded latency diagnostics | both repos `codex/overnight-latency-tracing` | Reviewed/tested, default off; final combined native and344 host tests pass. Explicit clock/loss/ACK semantics, no training-eligible observations claimed. |
+| Adaptive-map offline prototype | laser `codex/overnight-adaptive-calibration` | Core and postgame49/361-point diagnostic extension reviewed:56 tests, synthetic comparisons and positive/negative numerical audits; commit f47f36c. No executor or activation; physical benefits unmeasured. See overnight results for plan/review links. |
+
+App worktrees: `/Users/dave/SGFPlayerClean-worktrees/`.
+Laser worktrees: `/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/`.
+No camera-continuity policy changes, new firmware limits or physical actions are
+part of these experiments. Adaptive learning remains separate from the optional integrated candidate; physical validation remains pending. Unfinished or uncertain candidates remain separate.
 
 ## Accepted behavior
 
