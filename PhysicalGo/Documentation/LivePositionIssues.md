@@ -3408,3 +3408,15 @@ single/multiple capture markers with partial-removal and clock checks.
 Retain 45C cooling, both below40C for30s before persistent-hold recovery, 50C hard
 trip, failed/stale-reading shutdown, fullOFF for pause/fault/disconnect, and all
 optical camera/hand gates. No hardware action or software installation this update.
+
+November 22 — version-control baseline before gameplay holding
+At Dave's request, committed and pushed the app checkpoint e8b2b14 (including
+11 previously unpushed commits) to codex/physical-go-confidence-validation.
+Created private GitHub repository https://github.com/davemarvit/DYNAMIXEL-Go-Pointer
+at the existing laser project root; baseline 1060bef pushed to main. Firmware,
+bridge, tests, CAD and project documentation are tracked. Camera checks recordings
+(~9.6 GB) remain local and ignored, along with generated caches/builds. No files
+were deleted. A separate verified firmware archive is retained under
+pre-gameplay-hold-checkpoint in the integration session directory.
+No hardware operation, software installation, or gameplay-holding code change
+was part of these checkpoints. Laser remains in the previously confirmed OFF state.

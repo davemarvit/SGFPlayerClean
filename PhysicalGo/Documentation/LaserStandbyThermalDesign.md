@@ -364,4 +364,3 @@ shutdown-register fixtures. Do not test a trip by deliberately heating real moto
 
 Standby is not ready merely because the design is written. Implementation, offline
 fault tests, fresh calibration and root-owned physical validation remain pending.
-

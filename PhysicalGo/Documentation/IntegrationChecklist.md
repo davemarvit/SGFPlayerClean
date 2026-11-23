@@ -8,6 +8,14 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- Both projects now have pushed Git checkpoints before gameplay-holding changes.
+  App baseline: `e8b2b14` on `codex/physical-go-confidence-validation` in
+  [SGFPlayerClean](https://github.com/davemarvit/SGFPlayerClean).
+  Laser baseline: `1060bef` on `main` in the new private
+  [DYNAMIXEL-Go-Pointer](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer)
+  repository, rooted at the existing laser project folder. Future laser code
+  and tests belong there. Large `Camera checks/` recordings remain local and
+  ignored; the repository includes firmware, bridge, tests, CAD and documentation.
 - Physical Go **0.252/build 253 is installed and signature verified**. It adds
   captured-stone indication, fixes ended AI games constraining grid recovery,
   and prevents cached camera pixels crossing a stream restart. Seven application
