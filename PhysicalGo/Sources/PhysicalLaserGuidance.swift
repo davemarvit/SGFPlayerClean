@@ -179,6 +179,8 @@ import CoreGraphics
     private var emptyEvidenceAfter=0.0
     private(set) var cameraContext: String?
     private var lastAction="off"
+    private var lastLatencyDriverKey:String?
+    private var lastLatencyRequestKey:String?
     private var reason="disabled"
     private var blockedMove:(session:UUID,number:Int,reason:String)?
     private var mayHaveIlluminated=false
@@ -581,8 +583,22 @@ import CoreGraphics
         // Read one status snapshot before sampling its age. The driver can
         // atomically publish a newer timestamp during our IO; comparing that
         // to an earlier clock sample falsely looks like a future/dropped driver.
+        let trace=PhysicalLatencyTrace.shared
+        let readBegan=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
         driver=try? JSONDecoder().decode(DriverStatus.self,from:Data(contentsOf:directory.appendingPathComponent("status.json")))
         let now=uptime(),wall=wallTime()
+        if let trace {
+            let d=driver
+            let key="\(d?.producer.uuidString ?? "none")/\(d?.sequence ?? -1)/\(d?.state ?? "unavailable")/\(d?.reasonCode ?? "")/\(d?.illuminationConfirmed == true)"
+            let duration=ProcessInfo.processInfo.systemUptime-readBegan
+            if key != lastLatencyDriverKey || duration>=0.02 {
+                trace.record("driver_status_observed",fields:["producer":d?.producer.uuidString ?? producer.uuidString,
+                    "sequence":String(d?.sequence ?? -1),"state":d?.state ?? "unavailable",
+                    "reason":d?.reasonCode ?? "none","illuminationConfirmed":String(d?.illuminationConfirmed == true)],
+                    metrics:["readSeconds":duration,"statusWallAgeSeconds":d.map {wall-$0.updatedAtUnix} ?? -1])
+                lastLatencyDriverKey=key
+            }
+        }
         let faultScope=currentHardFaultScope(driver,wall:wall)
         let statusAtEntry=driver
         var currentHealthFault:String?
@@ -716,8 +732,24 @@ import CoreGraphics
                             alignmentPreparation:enabled && !(wireSchema==2 && action=="off") ? alignmentPreparation:nil,
                             playSession:wireSchema==2 ? playSession:nil,retainOnly:retainOnly)
         do {
+            let writeBegan=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
             try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
             try JSONEncoder().encode(request).write(to:directory.appendingPathComponent("request.json"),options:.atomic)
+            if let trace {
+                let key="\(request.sequence)/\(request.action)/\(request.reason)"
+                let duration=ProcessInfo.processInfo.systemUptime-writeBegan
+                if key != lastLatencyRequestKey || duration>=0.02 {
+                    var fields=["producer":producer.uuidString,"sequence":String(request.sequence),
+                        "action":request.action,"reason":request.reason,"streamEpoch":frames.streamEpoch.uuidString]
+                    if let target=request.target {
+                        fields["session"]=target.session.uuidString;fields["moveNumber"]=String(target.moveNumber)
+                        fields["row"]=String(target.row);fields["col"]=String(target.col);fields["purpose"]=target.purpose ?? "placement"
+                        fields["decisionReceipt"]=String(target.decisionReceivedAtUnix)
+                    } else if let session=playSession {fields["session"]=session.session.uuidString}
+                    trace.record("request_published",fields:fields,metrics:["writeSeconds":duration])
+                    lastLatencyRequestKey=key
+                }
+            }
             onRequestPublished?(request)
             if let driver,driver.schemaVersion==wireSchema,driver.producer==producer,driver.sequence==sequence,
                (0..<0.75).contains(wall-driver.updatedAtUnix) {
