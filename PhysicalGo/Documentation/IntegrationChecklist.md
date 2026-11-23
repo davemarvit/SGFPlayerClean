@@ -199,3 +199,18 @@ began after the cached OpenRB library had already raised motor power. Its actual
 powered duration was source-inferred at about 3.54s, not the earlier claimed 3s.
 No torque or light was commanded. Raw evidence remains unchanged. Later thermal
 firmware starts its timer before the first possible power edge.
+
+### Overnight offline contract-acceptance experiment — November 23
+
+The isolated `codex/overnight-contract-acceptance` branch adds a
+[mandatory paired app/host command](PairedContractAcceptance.md). No production
+behavior, primary repository, installation, game, camera or laser was changed.
+It requires fresh Swift exports, actual Python runtime publications with fake
+hardware, complete coverage/provenance and native status/recovery consumers.
+34 cheap command/adversarial tests pass. The complete command passes with explicit
+reviewed0.254 baseline binaries:229 export checks,16 host tests,241 native status
+checks and492 continuity checks; control runs prove fixture blocks added16/359
+checks. A fresh format2 build also passed before the final exact-runtime-output
+pin was added. The strengthened receipt adapter passes independent negative tests;
+the root-owned combined fresh build is the next validation of that final field.
+These are offline results, not physical calibration or gameplay validation.
