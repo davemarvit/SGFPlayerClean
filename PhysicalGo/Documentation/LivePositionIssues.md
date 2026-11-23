@@ -3876,3 +3876,31 @@ Unvalidated: no held-outtargetscomplete, no activebinding. Recoverymust freshly
 measure actualPOSE/spot; lastsample1679/2243 preceded settleddarkmove1726/2272.
 Do notreplayorassume commandedpose. Allninevalidationchecks remain. HardwareOFF.
 Speedproposal andtimingreport preserved; exactstagecosts do notestablishspeedup.
+
+November 23 — reviewed validation-only recovery started; fresh admission passed
+Host983ef924 reviewedandpushed;194calibrationchecks(1optionalfixturegroupskipped),
+25darkchecks;independent31focusedactual03/04tests passwithoutskips. Rootstarted
+validation-resume01 with2boundedprocessrestarts,10scameraage,7200soverall,target0.
+Fresh originalreferencegeometrypassed. Actualpose1726/2272,spot[2.00797,9.15147].
+LocalJresidual6.608pxfailed3pxbranch; explicitfixedmodelconsistency passed3.386
+motorcounts(<8). CandidateSHAunchanged; firstfreshcheckpoint/travelstarted.
+All5fit targetsretained; all9validationtargetsnewlyrequired. Rootsolehardwareowner.
+Schedulingprobesfinishedoffline: normalimageoperationsgaps<40ms,forcedGC<47ms;
+largeFINALreportencoding350msgap excludedaslivecause becauseafterOFF. Exactcause
+unproven; phase/CPU/loopgap/GCdiagnosticrecommendations archived. GameSHAunchanged.
+
+November 23 — validation continuation stopped on spot detection; steering gap identified
+validation-resume01 attempt000 passedfreshgeometry/model-positionadmission, then
+observed1728/2275 at[1.99883,9.00813]. NextA10movecommand1626/2323 settled1625/2321;
+fiveandsevenframes returnedSpotUnreliable Ambiguousspot. Detectorwordingincludes
+zerocandidates; itdoesnotnecessarilymeanmultiplebrightspots. FullOFF1795468415.5879025,
+no supervisor/controllerfault; inventoriesunchanged. Rawfailedimageswerenotsaved;
+brokercontributors58056/58084expiredbeforeinspection. Original5fit targets preserved.
+Offlinefixedmodelinversepredictsactualfailedposeat[-1.1257,8.1610], outsideboardmask;
+64.49pxfromlocalprediction. Thisishypothesis,notphysicalobservation. KeepbeamOFF.
+ReviewfoundglobalpositionadmissionretainedoldlocalJacobianforsteering; onetiny
+combinedaxisupdatecannotindependentlyvalidatebothaxes. Earlierreviewmissedthisgap.
+Separateauthorspreparerevieweddark-onlyreturnto1728/2275, independentaxisprobe+
+finiteendpointagreementchecks, andfailedimagebufferflushedonlyafterconfirmedOFF.
+Daveadditionallyrequestslarge-movelandingexperiments; adaptiveagentownsdata-only
+bidirectional/distance/diagonal/repeat/heldouttransitionplan, firstlandingbeforecorrection.

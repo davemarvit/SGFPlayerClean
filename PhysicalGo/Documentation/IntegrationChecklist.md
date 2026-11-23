@@ -8,6 +8,17 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Latest continuation stopped:** `validation-resume-01` admitted fresh geometry
+  and measured pose using the fixed candidate (3.386 motor-count residual), then
+  reached [1.99883, 9.00813] at actual pose [1728, 2275]. Its next A10 approach
+  settled at [1625, 2321], where five- and seven-frame spot detection failed.
+  Full OFF confirmed Unix1795468415.5879025, no supervisor/controller fault;
+  sources unchanged. Failed spot images were not retained. The candidate predicts
+  this pose outside the printed grid, but that is not an observed location.
+  **Keep the laser OFF at this pose.** A reviewed dark-only return to the last
+  optically observed pose is being prepared. The carried local movement model
+  was not independently requalified after global position admission; two-axis
+  probe and finite-step agreement checks are being implemented before retry.
 - **Latest physical result:** `full-calibration-04` ran for 702 seconds with
   explicit 10-second camera age, 7200-second overall allowance and target timer
   disabled. All five fit targets passed: K10 2.21px, A19 1.76px, T19 2.31px,
@@ -70,8 +81,8 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** full-calibration-04 confirmed fresh v44 OFF.
-  Calibration and production bridge are stopped; root remains sole hardware owner.
+- **Hardware is fully OFF:** validation-resume-01 confirmed fresh v44 OFF.
+  Production bridge and calibration are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
   internal temperatures were 16°C/17°C; no motor or thermal fault was reported.
@@ -357,3 +368,36 @@ changes or measured speedups. Full-calibration-04 timing evidence is saved besid
 the run: median spot collection 1.008s, median aggregation 0.233s, registration
 0.362s (p95 2.808s), detection 0.309s; these are separate observed stage durations,
 not an additive end-to-end latency breakdown.
+
+### Recovery candidate reviewed and physical continuation started
+
+`983ef924` is isolated on `codex/calibration-recovery` and pushed. Author checks:
+194 calibration tests (one unrelated optional fixture group skipped) and 25 dark
+tests; independent review: 31 focused tests with actual calibration-03/04 evidence,
+no skips/failures. Mixed transport/cleanup errors cannot be silently treated as
+camera interruptions; failure classification retains the actual deadline snapshot.
+The historical continuation and fresh admission are now physically exercised;
+automatic interruption/restart and complete nine-target validation remain unproven.
+See [recovery design and command](/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-recovery/Firmware/Calibration%20recovery.md).
+
+Offline scheduling probes did not reproduce the live 322ms pause: image operations
+kept synthetic heartbeat gaps below 40ms; forced garbage collection below 47ms.
+Encoding the final large report produced a 350ms gap, but happens after shutdown
+and therefore does not explain the live stop. Exact cause remains unproven.
+The archived probe report recommends bounded stage/CPU/loop-gap/GC diagnostics.
+
+### Larger-move prediction experiment — requested November 23
+
+Dave requested larger moves to expose and model landing errors. Add a controlled
+interior-point campaign after the dark return and steering requalification:
+record the **first observed landing before correction**, predicted versus actual
+position, measured settled motors, move length/direction and subsequent correction.
+Use horizontal, vertical and diagonal spans, both directions, repeated endpoints
+and approaches from different origins. Hold out complete directed transitions
+from fitting; distinguish spatial distortion, directional bias and repeatability.
+The camera stays fixed. The data-only plan is complete as `86bf0b9` on the
+isolated adaptive branch: [large-move proposal](/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/overnight-adaptive-calibration/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md).
+Start with six short directed pilot moves; expand only if useful. The optional
+larger matrix is not a requirement before gameplay. No new hardware executor or
+physical movement was added by this proposal. The failed edge prediction is
+explicitly excluded from training because no spot was observed.
