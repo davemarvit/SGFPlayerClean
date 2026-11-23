@@ -2,6 +2,9 @@
 from pathlib import Path
 
 DEPENDENCIES = {
+    'Sources/AIRecognitionTrace.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
+    'Sources/PhysicalAI.swift': ('Sources/AIRecognitionTrace.swift','Sources/PhysicalCaptureGuidance.swift'),
+    'Sources/ExperimentModel.swift': ('Sources/StonePlacementAudio.swift',),
     'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift','Sources/StoneTurnAppearance.swift'),
     'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
     'Sources/HandOutlineSampling.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
@@ -25,7 +28,7 @@ DEPENDENCIES = {
         'RecordingStoneLedger.swift',
         'ReviewRevision.swift', 'LivePositionIssue.swift', 'LocalPlayFlow.swift', 'PlacementAmbiguity.swift', 'ProvisionalPlay.swift', 'RecordingRecoveryGuidance.swift', 'ReviewObservationEdit.swift', 'HistoricalMoveCorrection.swift', 'RecordingIdentity.swift', 'RecordingStore.swift', 'ReviewHistoryCoordinator.swift',
         'AutomaticCapture.swift', 'ShadowEvidence.swift', 'ObservationEvidence.swift', 'HandOutlineTracker.swift', 'AccidentalStoneWithdrawal.swift', 'CaptureReviewPlan.swift', 'CheckedReviewPhoto.swift', 'BoardRestorationPlan.swift', 'BoardAdjustmentMonitor.swift', 'LocalClockEngine.swift',
-        'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift')),
+        'LocalGameClock.swift', 'LocalClockAudio.swift', 'DeferredMoveHistory.swift', 'ReviewOrderRecovery.swift', 'RetainedTurnPosition.swift')),
     'Sources/LocalGameClock.swift': ('Sources/DiagnosticSettings.swift','Sources/RecordingStorage.swift'),
     'Sources/LocalClockAudio.swift': ('Sources/KokoroSpeech.swift',),
     'Sources/PhysicalScoring.swift': tuple('../SGFPlayerClean/' + name for name in (

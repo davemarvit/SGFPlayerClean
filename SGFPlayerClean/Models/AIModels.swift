@@ -40,6 +40,7 @@ struct AIAnalysis: Codable {
     let rootInfo: AIRootInfo?
     var ownership: [Double]? = nil
     var ownershipStdev: [Double]? = nil
+    var humanPolicy: [Double]? = nil
 }
 
 /// A conservative visual estimate of stones expected to be lost, not a death
@@ -483,5 +484,45 @@ enum HistoricalMoveHints {
         } else if !result.contains(where: { $0.move.uppercased() == coordinate }),
                   let played = moves.first(where: { $0.move.uppercased() == coordinate }) { result.append(played) }
         return result
+    }
+}
+
+/// Shared by SGF Player review and Physical Go's scoring window.
+enum AIGameQuality {
+    static func evaluate(analyses: [Int: AIAnalysis], upTo maxIndex: Int, engine: SGFPlayer) -> [Int: MoveEvaluation] {
+        var evaluations: [Int: MoveEvaluation] = [:]
+
+        // We need data for turn N and N+1 to evaluate the move made at N.
+        for t in 0..<max(0, min(maxIndex, engine.maxIndex)) {
+            guard let cur = analyses[t]?.rootInfo,
+                  let next = analyses[t+1]?.rootInfo,
+                  let player = engine.moveColor(at: t),
+                  cur.visits > 0, next.visits > 0,
+                  cur.winrate.isFinite, next.winrate.isFinite,
+                  (0...1).contains(cur.winrate), (0...1).contains(next.winrate),
+                  cur.scoreLead.isFinite, next.scoreLead.isFinite else { continue }
+
+            let wPrev = cur.winrate
+            let wNext = next.winrate
+
+            // KataGo winrate is strictly from the perspective of the player to move.
+            // At turn `t`, player `t` is about to move. Winrate for `t` is wPrev.
+            // At turn `t+1`, player `t+1` (opponent) is about to move. Winrate for opponent is wNext.
+            // So after player `t` moves, their resulting winrate is (1.0 - wNext).
+            // The value of their move is (1.0 - wNext) - wPrev.
+            let samePlayer = engine.playerToMove(at: t + 1) == player
+            let winDelta = (samePlayer ? wNext : 1.0 - wNext) - wPrev
+
+            let sPrev = cur.scoreLead
+            let sNext = next.scoreLead
+            // Same perspective inversion logic for score.
+            let scoreDelta = (samePlayer ? sNext : -sNext) - sPrev
+
+            let quality = MoveQuality.classify(winDelta: winDelta, scoreDelta: scoreDelta)
+
+            evaluations[t] = MoveEvaluation(turn: t, quality: quality, winDelta: winDelta, scoreDelta: scoreDelta, player: player)
+        }
+
+        return evaluations
     }
 }

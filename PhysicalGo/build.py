@@ -80,7 +80,7 @@ else:
     (app / 'Contents/Resources').mkdir(exist_ok=True)
     executable = app / 'Contents/MacOS/PhysicalGo'
     sources = shared + [root.parent / 'SGFPlayerClean/Models/SGFPlayerEngine.swift'] + sorted((root / 'Sources').glob('*.swift'))
-    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.191', CFBundleVersion='192', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
+    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.252', CFBundleVersion='253', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
     (app / 'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 sources = resolve_sources(root, sources)
 if executable.name == 'PhysicalGo':
@@ -90,8 +90,13 @@ if executable.name == 'PhysicalGo':
     if not icon_file.exists() or icon_file.stat().st_mtime < max(icon_master.stat().st_mtime,icon_builder.stat().st_mtime):
         subprocess.run(['python3',str(icon_builder)],check=True)
     shutil.copy2(icon_file,app/'Contents/Resources/PhysicalGo.icns')
+    shutil.copy2(root.parent/'SGFPlayerClean/Assets/Audio/Stone_click_1.mp3',app/'Contents/Resources/Stone_click_1.mp3')
     for name in ['analysis.cfg','kata1-b18.bin.gz']:
         shutil.copy2(root.parent/'SGFPlayerClean/Resources'/name,app/'Contents/Resources'/name)
+    human_model=root/'Resources/AI/b18c384nbt-humanv0.bin.gz'
+    if not human_model.is_file():
+        raise SystemExit('Missing HumanSL model: run python3 PhysicalGo/scripts/prepare_human_model.py')
+    shutil.copy2(human_model,app/'Contents/Resources'/human_model.name)
     plist['PhysicalGoSourceHash']=hashlib.sha256(b''.join(p.read_bytes() for p in sources)).hexdigest()
     (app/'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 if root/'Sources/KokoroSpeech.swift' in sources:

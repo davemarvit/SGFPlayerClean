@@ -263,6 +263,9 @@ struct BoardObservation {
     var handObstructed:Bool?=nil
     var clockPressEstimate:ClockPressEstimate?=nil
     var centeringEvidence:[StoneCenteringEvidence]=[]
+    /// Both previously visible printed rails disappeared, with no live wood
+    /// or surviving-rail contradiction. This is evidence, not a stone label.
+    var coveredGridPoints:Set<Int>=[]
     func centeringPoints(confirmedBoard:[Occupancy])->Set<Int> {
         guard !lightingBlocked,handObstructed != true,manualPoints.isEmpty,
               size>0,readings.count==size*size,confirmedBoard.count==readings.count else {return []}
@@ -326,13 +329,33 @@ struct BoardObservation {
             }
             return true
         }
+        // A clearly nearest crossing can remain identifiable even when it is
+        // near the rim of the disk. Require a stronger fit, actual coverage of
+        // that crossing, no coverage of a competing crossing, and a center
+        // distance advantage greater than two 0.04-cell fitting steps.
+        // This assigns an intersection; it does not assert physical centering.
+        func clearlyNearest(_ shape:StoneFootprint,index:Int)->Bool {
+            let point=ImagePoint(x:Double(shape.col),y:Double(shape.row))
+            guard shape.quality>=0.95,readings[index].confidence>=0.95,
+                  (0.36...0.65).contains(shape.radiusCol),(0.36...0.65).contains(shape.radiusRow),
+                  shape.contains(point) else {return false}
+            let distance=hypot(shape.center.x-point.x,shape.center.y-point.y)
+            for r in max(0,shape.row-1)...min(size-1,shape.row+1) {
+                for c in max(0,shape.col-1)...min(size-1,shape.col+1) where r != shape.row || c != shape.col {
+                    let other=ImagePoint(x:Double(c),y:Double(r))
+                    guard !shape.contains(other),
+                          hypot(shape.center.x-other.x,shape.center.y-other.y)-distance>=0.10 else {return false}
+                }
+            }
+            return true
+        }
         return Dictionary(shapes.compactMap { shape -> (Int,Double)? in
             let index=shape.row*size+shape.col
             guard shape.quality>=0.86,readings.indices.contains(index),readings[index].occupancy.stone != nil else {return nil}
             let dx = shape.center.x - Double(shape.col)
             let dy = shape.center.y - Double(shape.row)
             let displacement = max(abs(dx), abs(dy))
-            if forAssignment,uniquelyCovers(shape,index:index) {return (index,0)}
+            if forAssignment,uniquelyCovers(shape,index:index) || clearlyNearest(shape,index:index) {return (index,0)}
             // Outward displacement cannot favor another playable point. The
             // stone still has to cover the actual intersection with a strong fit.
             guard forAssignment, shape.quality >= 0.90, readings[index].confidence >= 0.90,
@@ -795,6 +818,23 @@ enum BoardDetector {
                 return trustedShape && abs(shape.row-reading.row)<=1 && abs(shape.col-reading.col)<=1
                     && stone.occupancy == .black
             }
+            // For excluding outer dark probes, an ordinary accepted outline
+            // plus strong black pixels suffices. Inner wood and both rails are
+            // still mandatory, and the mask checks each excluded pixel is dark.
+            // This avoids a second outline cutoff flickering under exposure noise.
+            let bodyNeighbors=geometry.footprints.filter {shape in
+                let stone=geometry.readings[shape.row*calibration.size+shape.col]
+                return shape.quality>=0.78 && stone.occupancy == .black && stone.confidence>=0.95
+                    && abs(shape.row-reading.row)<=1 && abs(shape.col-reading.col)<=1
+            }
+            if !bodyNeighbors.isEmpty,
+               let confidence=BoardAppearanceDetector.exposedWoodConfidence(frame:frame,calibration:calibration,
+                col:reading.col,row:reading.row,shadowNeighbors:bodyNeighbors) {
+                resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.empty,
+                    confidence:confidence,delta:reading.delta)
+                liveWood[index]=confidence
+                continue
+            }
             guard !neighbors.isEmpty else {continue}
             var colors=[BoardChroma]()
             for r in max(0,reading.row-2)..<min(gapSide,reading.row+2) {
@@ -814,6 +854,7 @@ enum BoardDetector {
         // the same brightness as the reference wood. Color remains unassigned
         // unless an independent bounded stone outline supports it.
         var recoveredShapes=[StoneFootprint]()
+        var coveredGridPoints=Set<Int>()
         for (index,reading) in resolved.enumerated() where reading.occupancy == .empty ||
             (reading.occupancy == .uncertain && !geometryBlocked.contains(index) && !disputed.contains(index)) {
             let cross=gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
@@ -825,6 +866,8 @@ enum BoardDetector {
             let partialWhite=cross.partlyCovered && whiteHints.contains(index)
                 && exposedWood[index]==nil && liveWood[index]==nil
             guard cross.covered || partialWhite else {continue}
+            if cross.covered,!geometryBlocked.contains(index),!disputed.contains(index),
+               exposedWood[index]==nil,liveWood[index]==nil {coveredGridPoints.insert(index)}
             let recovered=StoneGeometry.coveredStone(reading,frame:frame,reference:reference,
                 calibration:calibration,referenceCalibration:referenceCalibration,correction:globalCorrection,
                 colorShift:globalColorCorrection,neighbors:geometry.footprints+recoveredShapes,
@@ -861,6 +904,36 @@ enum BoardDetector {
             resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.white,confidence:shape.quality,delta:reading.delta)
             recoveredShapes.append(shape)
         }
+        // A specular patch in the empty reference can already be pale, so a
+        // real White need not lose additional wood tint. Recover only a strong
+        // independent current-image White where BOTH reference rails disappeared
+        // and neither current rail nor exposed wood contradicts the stone.
+        // An independently fitted live rim supplies the missing outline proof,
+        // including provisional White labels that the tint check below would reject.
+        for index in whiteHints.sorted() where (resolved[index].occupancy == .uncertain || resolved[index].occupancy == .white)
+            && !geometryBlocked.contains(index) && !disputed.contains(index)
+            && exposedWood[index]==nil && liveWood[index]==nil {
+            let reading=resolved[index]
+            let cross=gridCrossEvidence(frame:frame,reference:reference,calibration:calibration,
+                referenceCalibration:referenceCalibration,col:Double(reading.col),row:Double(reading.row))
+            guard cross.covered,!cross.survives else {continue}
+            let liveCross=BoardAppearanceDetector.gridEvidence(frame:frame,calibration:calibration,
+                col:Double(reading.col),row:Double(reading.row),relativeContrast:true)
+            guard liveCross.horizontal<=0.25,liveCross.vertical<=0.25 else {continue}
+            if independentAppearance==nil {
+                independentAppearance=BoardAppearanceDetector.detect(frame:frame,calibration:calibration,threshold:threshold)
+            }
+            let live=independentAppearance!.readings[index]
+            guard live.occupancy == .white,live.confidence>=0.95,
+                  let shape=BoardAppearanceDetector.whiteRimFootprint(frame:frame,calibration:calibration,col:reading.col,row:reading.row),
+                  !(geometry.footprints+recoveredShapes).contains(where: {
+                      hypot((shape.center.x-$0.center.x)/(shape.radiusCol+$0.radiusCol),
+                            (shape.center.y-$0.center.y)/(shape.radiusRow+$0.radiusRow))<0.90
+                  }) else {continue}
+            resolved[index] = .init(row:reading.row,col:reading.col,occupancy:.white,
+                confidence:min(live.confidence,shape.quality),delta:reading.delta)
+            recoveredShapes.append(shape)
+        }
         let outlined=Set((geometry.footprints+geometry.placementFits+recoveredShapes).filter{$0.quality>=0.80}.map{$0.row*calibration.size+$0.col})
         for (index,reading) in resolved.enumerated() where reading.occupancy.stone != nil && !outlined.contains(index) {
             if (reading.occupancy == .white && !BoardAppearanceDetector.boundedWhite(frame:frame,calibration:calibration,col:Double(reading.col),row:Double(reading.row))) ||
@@ -891,7 +964,7 @@ enum BoardDetector {
         let validShape:(StoneFootprint)->Bool = {liveWood[$0.row*calibration.size+$0.col] == nil}
         return BoardObservation(readings: resolved, size: calibration.size,
             footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape),
-            centeringEvidence:centeringEvidence)
+            centeringEvidence:centeringEvidence,coveredGridPoints:coveredGridPoints)
     }
 
     /// Bright or shaded wood is not a stone merely because its brightness

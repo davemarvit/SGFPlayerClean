@@ -87,6 +87,27 @@ final class KataGoEngineTests: XCTestCase {
             "isDuringSearch": false, "rootInfo": ["winrate": 0.7, "scoreLead": 2.5, "visits": visits]])
     }
 
+    func testHumanRankQueriesRequestPolicyPreserveHistoryAndSeparateRankContexts() throws {
+        try hold(); engine.start()
+        engine.analyzeGame(id:"game-a",initialStones:[],moves:[],size:19,maxVisits:60,
+                           backgroundTimeLimit:2,humanSLProfile:"rank_5k")
+        let first=queries(1)[0]
+        XCTAssertEqual(first["includePolicy"] as? Bool,true)
+        let settings=try XCTUnwrap(first["overrideSettings"] as? [String:Any])
+        XCTAssertEqual(settings["humanSLProfile"] as? String,"rank_5k")
+        XCTAssertEqual(settings["ignorePreRootHistory"] as? Bool,false)
+        XCTAssertEqual(settings["maxTime"] as? Double,2)
+        engine.analyzeGame(id:"game-a",initialStones:[],moves:[],size:19,maxVisits:60,humanSLProfile:"rank_1d")
+        let positions=queries(2).filter {$0["moves"] != nil}
+        let second=try XCTUnwrap(positions.last)
+        XCTAssertNotEqual(first["id"] as? String,second["id"] as? String)
+        XCTAssertEqual((second["overrideSettings"] as? [String:Any])?["humanSLProfile"] as? String,"rank_1d")
+        engine.receiveAnalysisLine(try response(first,visits:60))
+        XCTAssertNil(engine.currentAnalysisData[0])
+        engine.receiveAnalysisLine(try response(second,visits:60))
+        XCTAssertEqual(engine.currentAnalysisData[0]?.rootInfo?.visits,60)
+    }
+
     func testLegacyAnalysisCanAcquireOwnershipWithoutDiscardingDepthAndPersistsIt() throws {
         try hold(); engine.start(); analyze(visits: 500)
         engine.receiveAnalysisLine(try response(queries(1)[0], visits: 500))

@@ -26,6 +26,10 @@ class BuildTests(unittest.TestCase):
                 executables.add(suite.executable)
                 self.assertEqual(1, sum(bool(re.search(r'@main\b', p.read_text())) for p in sources))
 
+    def test_ai_dependency_closure_includes_capture_guidance(self):
+        sources = resolve_sources(ROOT, [ROOT / 'Sources/PhysicalAI.swift'])
+        self.assertIn((ROOT / 'Sources/PhysicalCaptureGuidance.swift').resolve(), sources)
+
     def test_all_regression_entry_points_are_registered(self):
         registered = {ROOT / name for suite in SUITES.values() for name in suite.tests}
         tools = {'InspectSample.swift', 'KokoroVoiceTests.swift', 'Preview.swift'}

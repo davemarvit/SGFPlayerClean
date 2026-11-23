@@ -78,34 +78,64 @@ enum AutoGridDetector {
         let n=calibration.size
         guard expected.count==n*n else {return nil}
         var tested=0,matched=0,borders=[Int](repeating:0,count:4),quadrants=[Int](repeating:0,count:4)
+        var quadrantTests=[Int](repeating:0,count:4)
         for vertical in [false,true] {for rail in 0..<n {for segment in 0..<(n-1) {
             let first=vertical ? segment*n+rail:rail*n+segment
             let second=first+(vertical ? n:1)
             guard expected[first] == .empty,expected[second] == .empty else {continue}
             let col=vertical ? Double(rail):Double(segment)+0.5
             let row=vertical ? Double(segment)+0.5:Double(rail)
-            var contrast = -1.0
-            for shift in [-0.12,-0.08,-0.04,0,0.04,0.08,0.12] {
-                let c=col+(vertical ? shift:0),r=row+(vertical ? 0:shift)
-                guard let center=sample(frame,calibration.point(col:c,row:r)),
-                      let a=sample(frame,calibration.point(col:c-(vertical ? 0.16:0),row:r-(vertical ? 0:0.16))),
-                      let b=sample(frame,calibration.point(col:c+(vertical ? 0.16:0),row:r+(vertical ? 0:0.16))) else {continue}
-                contrast=max(contrast,min(a,b)-center)
+            var contrasts=[Double]()
+            // A single midpoint is fragile on a faint rail. Verify a line at
+            // two of three distinct positions within this same empty segment.
+            // Each still needs a dark center with brighter wood on both sides.
+            for along in [-0.25,0,0.25] {
+                var contrast = -1.0
+                for shift in [-0.12,-0.08,-0.04,0,0.04,0.08,0.12] {
+                    let c=col+(vertical ? shift:along),r=row+(vertical ? along:shift)
+                    guard let center=sample(frame,calibration.point(col:c,row:r)),
+                          let a=sample(frame,calibration.point(col:c-(vertical ? 0.16:0),row:r-(vertical ? 0:0.16))),
+                          let b=sample(frame,calibration.point(col:c+(vertical ? 0.16:0),row:r+(vertical ? 0:0.16))) else {continue}
+                    contrast=max(contrast,min(a,b)-center)
+                }
+                contrasts.append(contrast)
             }
             tested += 1
-            guard contrast>0.045 else {continue}
+            let quadrant=(row<Double(n)/2 ? 0:2)+(col<Double(n)/2 ? 0:1)
+            quadrantTests[quadrant] += 1
+            guard contrasts.filter({$0>0.045}).count>=2 else {continue}
             matched += 1
             if rail==0 {borders[vertical ? 0:2] += 1}
             if rail==n-1 {borders[vertical ? 1:3] += 1}
-            quadrants[(row<Double(n)/2 ? 0:2)+(col<Double(n)/2 ? 0:1)] += 1
+            quadrants[quadrant] += 1
         }}}
-        debug("Known grid segments \(matched)/\(tested), borders \(borders), quadrants \(quadrants)")
+        debug("Known grid segments \(matched)/\(tested), borders \(borders), quadrants \(quadrants), available \(quadrantTests)")
         // Only the live tracker with independently matched stone landmarks may
         // tolerate one covered edge. Acquisition still requires all four rails.
         let bordersSupported=borders.allSatisfy({$0>=3}) ||
             (allowSingleCoveredBorder && borders.filter({$0>=max(3,n/2)}).count>=3)
         guard tested>=n*4,matched>=n*4,Double(matched)>=Double(tested)*0.65,
-              bordersSupported,quadrants.allSatisfy({$0>=n/2}) else {return nil}
+              bordersSupported else {return nil}
+        for quadrant in 0..<4 where quadrants[quadrant]<n/2 {
+            // A crowded quadrant may have fewer eligible empty-to-empty
+            // segments than the usual minimum. Require a stronger local match
+            // fraction; only occupancy can reduce the available sample count.
+            guard quadrantTests[quadrant]<n/2,quadrantTests[quadrant]>=3,
+                  Double(quadrants[quadrant])>=Double(quadrantTests[quadrant])*0.85 else {return nil}
+            let localExpected=expected.enumerated().map { i,value -> Occupancy in
+                let q=(Double(i/n)<Double(n)/2 ? 0:2)+(Double(i%n)<Double(n)/2 ? 0:1)
+                return q==quadrant ? value:.empty
+            }
+            // History chooses locations, but fresh disk/color contrast must
+            // independently verify a distributed pattern in this same quadrant.
+            let stones=landmarkEvidence(frame:frame,size:n,expected:localExpected) {
+                calibration.point(col:$0,row:$1)
+            }
+            // Use the occupied-recovery fraction here. Requiring the stricter
+            // whole-board tracking fraction again inside a glare-heavy quarter
+            // makes one low-contrast disk revoke otherwise distributed evidence.
+            guard stones.supported,stones.matched>=max(6,n/2),stones.fraction>=0.8 else {return nil}
+        }
         return Double(matched)/Double(tested)
     }
     /// Small scale/pose changes can leave stone identities obvious while moving
@@ -176,6 +206,34 @@ enum AutoGridDetector {
         return .init(fraction:Double(matched.count)/Double(max(1,count)),matched:matched.count,
                      distributed:xx>=1 && yy>=1 && xx*yy-xy*xy>=2)
     }
+    /// A densely occupied board need not expose empty intersections or grid
+    /// segments. Verify a distributed pattern of actual stone bodies and their
+    /// surrounding contrast, then reject ambiguous spatial registrations.
+    /// History selects the expected pattern; every vote comes from this frame.
+    static func occupiedPatternSupport(frame:GrayFrame,calibration:BoardCalibration,expected:[Occupancy])->Double? {
+        let n=calibration.size
+        guard expected.count==n*n else {return nil}
+        let whole=landmarkEvidence(frame:frame,size:n,expected:expected) {calibration.point(col:$0,row:$1)}
+        guard whole.supported,whole.matched>=24,whole.fraction>=0.85 else {return nil}
+        for quadrant in 0..<4 {
+            let local=expected.enumerated().map {i,value -> Occupancy in
+                let q=(Double(i/n)<Double(n)/2 ? 0:2)+(Double(i%n)<Double(n)/2 ? 0:1)
+                return q==quadrant ? value:.empty
+            }
+            let evidence=landmarkEvidence(frame:frame,size:n,expected:local) {calibration.point(col:$0,row:$1)}
+            guard evidence.supported,evidence.matched>=6,evidence.fraction>=0.8 else {return nil}
+        }
+        // Repetitive colors alone can alias a neighboring row/column. The
+        // retained pose must beat both half-cell and full-cell alternatives.
+        // If the image cannot distinguish them, retain uncertainty, not history.
+        let alternatives:[(Double,Double)]=[(-1,0),(1,0),(0,-1),(0,1),
+            (-0.5,0),(0.5,0),(0,-0.5),(0,0.5),(-0.5,-0.5),(-0.5,0.5),(0.5,-0.5),(0.5,0.5)]
+        for (dx,dy) in alternatives {
+            let other=landmarkEvidence(frame:frame,size:n,expected:expected) {calibration.point(col:$0+dx,row:$1+dy)}
+            guard whole.fraction-other.fraction>=0.025 else {return nil}
+        }
+        return whole.fraction
+    }
     /// Recovery is deliberately separate from cheap per-frame tracking. The prior layout
     /// proposes translations; independently verified grid fits supply the homography.
     static func recover(image:CGImage,size:Int,previous:BoardCalibration?,expected:[Occupancy]) throws -> RecoveryResult {
@@ -186,6 +244,10 @@ enum AutoGridDetector {
         }
         var candidates=[Result]()
         if let previous,previous.size==size {
+            if let support=occupiedPatternSupport(frame:frame,calibration:previous,expected:expected) {
+                return .init(result:Result(calibration:previous,quality:support),usedStones:true,needsFullBoard:false,
+                             reason:"Existing grid verified from distributed occupied stone geometry")
+            }
             let evidence=landmarkEvidence(frame:frame,size:size,expected:expected) {previous.point(col:$0,row:$1)}
             if evidence.supported,evidence.fraction>=0.8,
                let support=knownGridSupport(frame:frame,calibration:previous,expected:expected) {
@@ -303,6 +365,11 @@ enum AutoGridDetector {
                 return previous
             }
         }
+        if let support=occupiedPatternSupport(frame:frame,calibration:previous,expected:expected) {
+            details["occupiedPatternSupport"]=support
+            details["outcome"]="existing grid supported by occupied stone pattern"
+            return previous
+        }
         guard let result=fit(frame:frame,proposal:anchor.calibration) else {
             let error=trackingError(frame:frame,calibration:previous,anchor:anchor)
             details["profileError"]=finite(error);details["profileErrorLimit"]=0.04
@@ -356,7 +423,7 @@ enum AutoGridDetector {
             // retaining three DISTINCT segments on every border and the same
             // contrast, normalized-profile and distributed-support thresholds.
             var eligible=false,accepted=false
-            for along in (rail==0 || rail==n-1) ? [0.5,0.2,0.35,0.65,0.8]:[0.5] {
+            for along in (rail==0 || rail==n-1) ? [0.5,0.2,0.35,0.65,0.8,0.1,0.3,0.4,0.6,0.7,0.9]:[0.5] {
                 var a=[Double](),b=[Double]()
                 for across in [-0.18,-0.12,-0.06,0,0.06,0.12,0.18] {
                     let c=vertical ? Double(rail)+across : Double(segment)+along

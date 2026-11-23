@@ -21,14 +21,16 @@ struct ExperimentView: View {
     @State private var alignmentOptions=false
     @State private var diagnosticData=false
     @State private var changeMode:PhysicalPlayMode?
+    @ObservedObject private var ai:PhysicalAI
     @State private var playClockHeight:CGFloat=260
     init(model:ExperimentModel) {
         self.model=model
+        _ai=ObservedObject(wrappedValue:model.ai)
         _reviews=ObservedObject(wrappedValue:model.reviewPresentation)
         _recorder=ObservedObject(wrappedValue:model.recorder)
         _bridge=ObservedObject(wrappedValue:model.onlineBoard)
     }
-    private var hasSession:Bool {model.playMode == .local ? recorder.hasGame:!bridge.cells.isEmpty}
+    private var hasSession:Bool {model.playMode == .ai ? ai.hasGame : model.playMode == .local ? recorder.hasGame:!bridge.cells.isEmpty}
     var body:some View {
         VStack(spacing:0) {
             header
@@ -70,6 +72,7 @@ struct ExperimentView: View {
                     }.pickerStyle(.segmented).labelsHidden().padding([.horizontal,.top],20)
                     ScrollView {
                         if advancedSettings {DiagnosticControls(model:model,diagnostics:model.diagnostics).padding(20)}
+                        else if model.playMode == .ai {PhysicalAISetupView(model:model,ai:ai).padding(20)}
                         else {GameInfoView(model:model,recorder:recorder).padding(20)}
                     }
                 }.frame(width:650,height:720)
@@ -84,7 +87,7 @@ struct ExperimentView: View {
             .confirmationDialog("Switch play mode?",isPresented:Binding(get:{changeMode != nil},set:{if !$0 {changeMode=nil}}),titleVisibility:.visible) {
                 if let mode=changeMode {Button("Switch to \(mode.title)") {model.playMode=mode;changeMode=nil}}
                 Button("Cancel",role:.cancel) {changeMode=nil}
-            } message: {Text("Local recording and its clock will pause. Switching away from online play disconnects the physical board; the server clock continues.")}
+            } message: {Text("Local recording, its clock, and AI play will pause. Switching away from online play disconnects the physical board; the server clock continues.")}
     }
     private var header:some View {
         HStack(spacing:20) {
@@ -129,12 +132,12 @@ struct ExperimentView: View {
             if hasSession {
                 Label("The current game is preserved. Opening Setup does not pause it.",systemImage:"info.circle").font(.callout).foregroundStyle(.secondary)
             }
-            WorkflowCard(number:1,title:"Game",summary:model.playMode == .local ? "Two players at this board":"Play through SGF Player / OGS") {
+            WorkflowCard(number:1,title:"Game",summary:model.playMode == .local ? "Two players at this board":model.playMode == .ai ? "Practice against KataGo on your physical board":"Play through SGF Player / OGS") {
                 Picker("Play mode",selection:Binding(get:{model.playMode},set:{mode in
                     if hasSession && mode != model.playMode {changeMode=mode} else {model.playMode=mode}
                 })) {
                     ForEach(PhysicalPlayMode.allCases,id:\.self) {Text($0.title).tag($0)}
-                }.pickerStyle(.segmented).frame(maxWidth:340)
+                }.pickerStyle(.segmented).frame(maxWidth:480)
                     .disabled(model.exportingSGF || model.stoneCalibrationSession != nil || model.boardCorrections.isEditing)
                 if model.playMode == .local {
                     HStack(spacing:20) {
@@ -154,6 +157,8 @@ struct ExperimentView: View {
                             NewGameSettings(model:model)
                         }.padding(.top,12).frame(maxWidth:650)
                     }
+                } else if model.playMode == .ai {
+                    PhysicalAISetupView(model:model,ai:ai)
                 } else {
                     Text("Create or accept a game in SGF Player, then enable Use physical board there. Keep this camera view aligned with the online board.").foregroundStyle(.secondary)
                 }
@@ -169,7 +174,7 @@ struct ExperimentView: View {
                 }
                 cameraDetails
             }
-            WorkflowCard(number:3,title:model.playMode == .local ? "Ready to play":"Connect & play",summary:"Save setup, then press Start when both players are ready") {
+            WorkflowCard(number:3,title:model.playMode == .online ? "Connect & play":"Ready to play",summary:"Save setup, then press Start when both players are ready") {
                 if model.playMode == .local {
                     if model.showsStartupReferenceControl {StartupReferenceControl(model:model)}
                     HStack(alignment:.center,spacing:24) {
@@ -179,6 +184,17 @@ struct ExperimentView: View {
                             model.startRecording(startPaused:true)
                             if recorder.awaitingFirstStart {workspace.gameBecameAvailable()}
                         }.buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canStartNewRecording)
+                    }
+                } else if model.playMode == .ai {
+                    if let error=ai.error {Text(error).foregroundStyle(.red)}
+                    Text(ai.status)
+                    if !ai.hasGame || ai.phase == .finished {
+                        Button("Start AI game") {
+                            if model.size != ai.draft.size {model.size=ai.draft.size;model.boardSizeChanged()}
+                            if ai.start() {workspace.gameBecameAvailable()}
+                        }.buttonStyle(.borderedProminent).disabled(!ai.draft.valid)
+                    } else {
+                        Button("Open AI game") {workspace.activity = .play}.buttonStyle(.borderedProminent)
                     }
                 } else {
                     Text(bridge.status).foregroundStyle(.secondary).lineLimit(3,reservesSpace:true)
@@ -198,7 +214,10 @@ struct ExperimentView: View {
                     .disabled(model.observation == nil || model.calibration == nil || model.alignmentNeedsRecovery)
             }
             }
-            if !hasSession && model.playMode == .local {
+            if model.playMode == .ai {
+                PhysicalAIPlayView(ai:ai,orientation:model.orientation,cameraNotice:model.aiCameraNotice)
+                OccupiedReferenceControls(model:model)
+            } else if !hasSession && model.playMode == .local {
                 ContentUnavailableView {
                     Label("Ready for a game?",systemImage:"circle.grid.3x3")
                 } description:{Text("Set up the camera and game before recording moves.")}

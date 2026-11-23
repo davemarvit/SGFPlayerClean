@@ -1,15 +1,15 @@
 import Foundation
 
-struct HandOutlineFrame {
+struct HandOutlineFrame:Codable {
     struct WhiteStone:Codable {
         let x:Double,y:Double,radiusX:Double,radiusY:Double
         func contains(x:Double,y:Double)->Bool {
-            // Include the fitted outline's antialiasing/shadow fringe, not a
-            // whole intersection where an adjacent fingertip could remain.
-            pow((x-self.x)/(radiusX+0.15),2)+pow((y-self.y)/(radiusY+0.15),2)<=1
+            // Mask only the fitted stone itself. Expanding into its shadow
+            // can erase a narrow fingertip beside an otherwise visible stone.
+            pow((x-self.x)/radiusX,2)+pow((y-self.y)/radiusY,2)<=1
         }
     }
-    struct Pixel {
+    struct Pixel:Codable {
         var red:Float,green:Float,light:Float
         static let invalid=Pixel(red:0,green:0,light:-1)
         var valid:Bool {light>=0}
@@ -46,6 +46,27 @@ struct HandOutlineFrame {
 /// Missing joints never constitute clearance. Two visual clear views confirm
 /// an exit while the original first-clear time remains available for the clock.
 struct HandOutlineTracker {
+    /// Saved at recording start and on a prolonged pose/outline disagreement.
+    /// Captures the frozen background so a stuck track can be replayed offline.
+    struct Checkpoint:Codable {
+        var background:HandOutlineFrame?
+        var active:Bool
+        var edge:Int
+        var center:[Double]
+        var direction:[Double]?
+        var appearance:[Double]?
+    }
+    var checkpoint:Checkpoint {
+        .init(background:baseline,active:active,edge:edge,center:[center.x,center.y],
+              direction:direction.map{[$0.0,$0.1,$0.2]},appearance:appearance.map{[$0.0,$0.1]})
+    }
+    init() {}
+    init(checkpoint c:Checkpoint) {
+        baseline=c.background;active=c.active;edge=c.edge
+        if c.center.count==2 {center=(c.center[0],c.center[1])}
+        if let d=c.direction,d.count==3 {direction=(d[0],d[1],d[2])}
+        if let a=c.appearance,a.count==2 {appearance=(a[0],a[1])}
+    }
     struct Result:Codable {
         var obstructed:Bool?
         var depth:Double?
@@ -53,8 +74,24 @@ struct HandOutlineTracker {
         var poseLost=false
         var estimate:ClockPressEstimate?
         var reason:String
+        var clearanceDelayed=false
     }
-    private struct Component {var indices:[Int];var x:Double;var y:Double;var minimum:Double;var maximum:Double}
+    /// A suspected stall is a diagnostic condition, never proof of clearance.
+    /// Store the exact sampled view and pre-observation state for offline replay.
+    struct StallEvidence:Codable {
+        let checkpoint:Checkpoint
+        let frame:HandOutlineFrame
+        let pose:HandMotionPose?
+        let result:Result
+        let time:Double
+        let source:String
+        let disagreementSeconds:Double
+    }
+    private(set) var stallEvidence:StallEvidence?
+    private var clearPoseSince:Double?
+    private var clearPoseSamples=0
+    private var stallReported=false
+    private struct Component {var indices:[Int];var x:Double;var y:Double;var minimum:Double;var maximum:Double;var coreInside=false}
     private var baseline:HandOutlineFrame?
     private var references=[(time:Double,frame:HandOutlineFrame)]()
     private var lastTime:Double?
@@ -69,6 +106,30 @@ struct HandOutlineTracker {
     private var initialization=0
     mutating func reset() {self=Self()}
     mutating func observe(_ frame:HandOutlineFrame,pose:HandMotionPose?,at time:Double,source:String)->Result {
+        stallEvidence=nil
+        let before=checkpoint,previousTime=lastTime
+        var result=observeFrame(frame,pose:pose,at:time,source:source)
+        // Gaps/source changes reset this state inside observeFrame. Duplicates
+        // cannot build a duration or provide additional independent evidence.
+        guard time.isFinite,previousTime.map({time>$0}) ?? true else {return result}
+        guard active,result.obstructed==true,pose?.obstructed(size:frame.cells)==false else {
+            clearPoseSince=nil;clearPoseSamples=0;stallReported=false
+            return result
+        }
+        if clearPoseSince==nil {clearPoseSince=time}
+        clearPoseSamples+=1
+        let elapsed=time-clearPoseSince!
+        if elapsed>=5,clearPoseSamples>=10 {
+            result.clearanceDelayed=true
+            if !stallReported {
+                stallReported=true
+                stallEvidence = .init(checkpoint:before,frame:frame,pose:pose,result:result,
+                    time:time,source:source,disagreementSeconds:elapsed)
+            }
+        }
+        return result
+    }
+    private mutating func observeFrame(_ frame:HandOutlineFrame,pose:HandMotionPose?,at time:Double,source:String)->Result {
         guard time.isFinite else {return .init(reason:"Invalid frame time")}
         if let lastTime,time<=lastTime {return .init(obstructed:active ? true:nil,reason:"Duplicate frame")}
         if let lastTime,time-lastTime>0.65 || self.source != source {reset()}
@@ -142,10 +203,28 @@ struct HandOutlineTracker {
         }
         let mask=foreground(frame,background:background,direction:direction,
                             whiteStones:hand==false ? frame.verifiedWhiteStones:[])
+        let solidComponents=hand==false ? components(mask.core,core:mask.core,frame:frame):[]
+        let crossingCore=Set(solidComponents.filter {c in
+            guard c.minimum<0 else {return false}
+            var inside=0
+            for i in c.indices {
+                let p=frame.grid(i),high=Double(frame.cells)-0.25
+                let depth=min(p.0+0.75,p.1+0.75,high-p.0,high-p.1)
+                // Retain a narrow fingertip with a full core pixel inside the
+                // guard, or a broad shallow intrusion. A few half-pixel edge
+                // samples cannot borrow an off-board object's solid area.
+                if depth>=1/HandOutlineFrame.scale {return true}
+                if depth>0 {inside+=1;if inside>=9 {return true}}
+            }
+            return false
+        }.flatMap(\.indices))
         let components=components(mask.closed,core:mask.core,frame:frame)
         let candidates=components.filter {c in
             let lateral=edge%2==0 ? abs(c.x-center.x):abs(c.y-center.y)
             guard lateral<3.5 && (c.minimum<0 || points.contains{p in hypot(p.x-c.x,p.y-c.y)<2}) else {return false}
+            // Off-board clutter must not lend its solid-core evidence to
+            // thin changes on the board after the actual hand has withdrawn.
+            if hand==false,c.maximum>0,!c.indices.contains(where:{crossingCore.contains($0)}) {return false}
             // A resting hand can touch the outer safety rim without covering
             // any stone. Require its whole visible component to stay outside
             // a stone-sized guard AND unchanged pixels along the nearby board
@@ -155,9 +234,43 @@ struct HandOutlineTracker {
             // Moving light/shadow can have the learned hand color even after
             // withdrawal. Reject it only when the underlying texture remains
             // strongly visible throughout the component, with no detected hand.
-            return hand != false || !preservesBackground(c,frame:frame,background:background)
+            return hand != false || !(preservesBackground(c,frame:frame,background:background) ||
+                                     preservesEntryRim(c,frame:frame,background:background))
         }
         let component=candidates.min{hypot($0.x-center.x,$0.y-center.y)<hypot($1.x-center.x,$1.y-center.y)}
+        // A fast withdrawal can leave the learned color/location before the
+        // pose detector reacquires it. Require independent boundary clearance
+        // before allowing that lost track to disappear.
+        if hand==false,component == nil || component!.maximum<=0 {
+            let broad=direction==nil ? mask:foreground(frame,background:background,direction:nil,
+                                                       whiteStones:frame.verifiedWhiteStones)
+            let high=Double(frame.cells)-0.25
+            for c in self.components(broad.core,core:broad.core,frame:frame) where c.coreInside {
+                // Only a continuous solid path from outside the rim into the
+                // grid, beyond the footprint of a single edge stone, can override
+                // a lost color/location track. Thin links
+                // to an interior stone or a nearby bowl do not qualify.
+                let interior=c.indices.lazy.filter {i in
+                    let p=frame.grid(i),last=Double(frame.cells-1)
+                    return p.0>0.65 && p.1>0.65 && p.0<last-0.65 && p.1<last-0.65
+                }.prefix(9).count
+                guard interior>=9 else {continue}
+                let entries=(0..<4).filter {side in
+                    c.indices.contains {i in
+                        let p=frame.grid(i)
+                        return [p.1+0.75,high-p.0,high-p.1,p.0+0.75][side]<0
+                    }
+                }
+                guard !entries.isEmpty,!preservesBackground(c,frame:frame,background:background),
+                      !entries.allSatisfy({preservesEntryRim(c,frame:frame,background:background,entryEdge:$0)}) else {continue}
+                clearTimes=[];center=(c.x,c.y)
+                // Cross-edge reacquisition cannot extend the old velocity fit.
+                // Retain an observed interval for the clock instead.
+                timing.reset();timing.observe(depth:max(0.01,c.maximum),at:time)
+                return .init(obstructed:true,depth:c.maximum,edge:edge,poseLost:true,
+                             reason:"Changed board edge; waiting for visual clearance")
+            }
+        }
         if let component {
             center=(component.x,component.y)
             let depth=component.maximum
@@ -270,12 +383,39 @@ struct HandOutlineTracker {
         }
         return tiles.values.allSatisfy{$0.count<12 || $0.squared/Double($0.count)<=tileLimit}
     }
+    private func preservesEntryRim(_ component:Component,frame:HandOutlineFrame,background:HandOutlineFrame,entryEdge:Int?=nil)->Bool {
+        // An interior stone can change while a hand's shadow remains connected
+        // to the rim in the color mask. Prove clearance on the entire entry
+        // strip, independently of interior stone changes. Missing poses alone
+        // never qualify, and the existing pixel/texture checks retain fingers.
+        let sideIndex=entryEdge ?? edge
+        guard entryEdge != nil || component.minimum<0 && component.maximum>0.5 else {return false}
+        let lateral=component.indices.map {i -> Double in
+            let p=frame.grid(i);return sideIndex%2==0 ? p.0:p.1
+        }
+        guard let lo=lateral.min(),let hi=lateral.max() else {return false}
+        var indices=[Int]()
+        for i in frame.pixels.indices {
+            let p=frame.grid(i),d=[p.1+0.75,Double(frame.cells)-0.25-p.0,Double(frame.cells)-0.25-p.1,p.0+0.75][sideIndex]
+            let side=sideIndex%2==0 ? p.0:p.1
+            if (-0.4...0.5).contains(d),side>=lo-0.3,side<=hi+0.3 {
+                guard frame.pixels[i].valid,background.pixels[i].valid else {return false}
+                indices.append(i)
+            }
+        }
+        let rim=Component(indices:indices,x:component.x,y:component.y,minimum:-0.4,maximum:0.5)
+        return preservesBackground(rim,frame:frame,background:background)
+    }
     private func foreground(_ frame:HandOutlineFrame,background:HandOutlineFrame,direction:(Double,Double,Double)?,whiteStones:[HandOutlineFrame.WhiteStone])->(closed:[Bool],core:[Bool]) {
         let raw=frame.pixels.indices.map {i->Bool in
             let p=frame.pixels[i],b=background.pixels[i]
-            guard p.valid,b.valid,p.light>0.08,b.light>0.08 else {return false}
+            guard p.valid,b.valid else {return false}
             let point=frame.grid(i)
-            if whiteStones.contains(where:{$0.contains(x:point.0,y:point.1)}) {return false}
+            let neutral=sqrt(p.red*p.red+p.green*p.green+(p.red+p.green)*(p.red+p.green))<=0.12
+            if p.light>=0.65,neutral,whiteStones.contains(where:{$0.contains(x:point.0,y:point.1)}) {return false}
+            // Chroma is unreliable near black, but a hand covering a black
+            // stone (or a dark sleeve over wood) still changes luminance.
+            if p.light<=0.08 || b.light<=0.08 {return abs(p.light-b.light)>0.10}
             let r=Double(p.red-b.red),g=Double(p.green-b.green)
             if let d=direction {
                 if let appearance {
@@ -306,15 +446,15 @@ struct HandOutlineTracker {
         let n=frame.width
         var seen=Array(repeating:false,count:mask.count),result=[Component]()
         for start in mask.indices where mask[start] && !seen[start] {
-            var indices=[start],cursor=0,sx=0.0,sy=0.0,lo=Double.infinity,hi = -Double.infinity
+            var indices=[start],cursor=0,sx=0.0,sy=0.0,lo=Double.infinity,hi = -Double.infinity,coreInside=false
             seen[start]=true
             while cursor<indices.count {
                 let i=indices[cursor];cursor+=1
                 let (x,y)=frame.grid(i),d=depth(x:x,y:y,cells:frame.cells)
                 // Crossing the tracked edge's infinite line is not enough:
                 // a patch beyond either corner is outside the board too.
-                let lateral=edge%2==0 ? x:y
-                let boardDepth=min(d,lateral+0.75,Double(frame.cells)-0.25-lateral)
+                let boardDepth=min(x+0.75,y+0.75,Double(frame.cells)-0.25-x,Double(frame.cells)-0.25-y)
+                if core[i],boardDepth>0 {coreInside=true}
                 sx+=x;sy+=y;lo=min(lo,d);hi=max(hi,boardDepth)
                 for dy in -1...1 {for dx in -1...1 where dy != 0 || dx != 0 {
                     let xx=i%n+dx,yy=i/n+dy
@@ -326,8 +466,22 @@ struct HandOutlineTracker {
             }
             // Require a solid core to reject thin grid/shadow remnants, while
             // retaining the original boundary pixels of a real component.
-            if indices.count>=10,indices.filter({core[$0]}).count>=9 {result.append(.init(indices:indices,x:sx/Double(indices.count),y:sy/Double(indices.count),minimum:lo,maximum:hi))}
+            if indices.count>=10,indices.filter({core[$0]}).count>=9 {result.append(.init(indices:indices,x:sx/Double(indices.count),y:sy/Double(indices.count),minimum:lo,maximum:hi,coreInside:coreInside))}
         }
         return result
+    }
+}
+
+// Older diagnostic archives predate the delayed-clearance flag.
+extension HandOutlineTracker.Result {
+    init(from decoder:Decoder)throws {
+        let values=try decoder.container(keyedBy:CodingKeys.self)
+        obstructed=try values.decodeIfPresent(Bool.self,forKey:.obstructed)
+        depth=try values.decodeIfPresent(Double.self,forKey:.depth)
+        edge=try values.decodeIfPresent(Int.self,forKey:.edge)
+        poseLost=try values.decodeIfPresent(Bool.self,forKey:.poseLost) ?? false
+        estimate=try values.decodeIfPresent(ClockPressEstimate.self,forKey:.estimate)
+        reason=try values.decode(String.self,forKey:.reason)
+        clearanceDelayed=try values.decodeIfPresent(Bool.self,forKey:.clearanceDelayed) ?? false
     }
 }

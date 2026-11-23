@@ -5,19 +5,106 @@ import ImageIO
 import Combine
 
 enum PhysicalPlayMode: String, CaseIterable {
-    case local, online
-    var title: String { self == .local ? "Local game" : "Online play" }
+    case local, online, ai
+    var title: String { self == .local ? "Local game" : self == .online ? "Online play" : "Play AI" }
 }
 
 @MainActor final class ExperimentModel: ObservableObject {
+    private var occupiedReference=OccupiedReference()
+    private var occupiedReferenceLoaded=false
+    private let opponentStoneAudio=StonePlacementAudio()
+    private var occupiedReferenceFrame:(frame:GrayFrame,calibration:BoardCalibration,time:Double,identity:String,raw:BoardObservation)?
+    @Published var occupiedReferenceStatus="No occupied reference captured."
+    @Published private(set) var aiCameraNotice:String?
+    @Published var refreshOccupiedReference=true {
+        didSet {if persistViewSettings {settings.set(refreshOccupiedReference,forKey:"PhysicalGo.refreshOccupiedReference")}}
+    }
+    private var occupiedReferenceDirectory:URL {
+        FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
+            .appendingPathComponent("Physical Go/Occupied References",isDirectory:true)
+    }
+    private var occupiedReferenceIdentity:String {
+        cameraID+"/"+(ai.snapshot?.id.uuidString ?? "no-game")+"/\(size)"
+    }
+    var canCaptureOccupiedReference:Bool {
+        guard playMode == .ai,ai.hasGame,
+              [.paused,.checking,.human,.placing].contains(ai.phase),running,!frozen,cameraState == .live,
+              !alignmentNeedsRecovery,!lightingNeedsRecovery,boardCorrections.values.isEmpty,
+              let sample=occupiedReferenceFrame,sample.identity==occupiedReferenceIdentity else {return false}
+        // A pending AI move may be included only after the camera positively
+        // sees its stone; explicit whole-board review is still required.
+        if let point=ai.pendingPoint {
+            guard sample.raw.readings.indices.contains(point),
+                  sample.raw.readings[point].occupancy.rawValue==ai.cells[point],
+                  sample.raw.readings[point].confidence>=0.9 else {return false}
+        }
+        let now=ProcessInfo.processInfo.systemUptime
+        return now-sample.time>=0 && now-sample.time<1.5 && ai.laser.acceptsObservation(capturedAt:sample.time,now:now)
+    }
+    func captureOccupiedReference(confidentAreasOnly:Bool=false) {
+        guard canCaptureOccupiedReference,let sample=occupiedReferenceFrame else {
+            occupiedReferenceStatus="Wait for a fresh, clear board view with the laser off.";return
+        }
+        let expected=ai.cells.compactMap(Occupancy.init(rawValue:))
+        var excluded=OccupiedReference.uncertainLocations(sample.raw,expected:expected)
+        if confidentAreasOnly {
+            let uncertain=Set(sample.raw.readings.indices.filter {
+                sample.raw.readings[$0].occupancy != expected[$0] || sample.raw.readings[$0].confidence<0.9
+            })
+            excluded.formUnion(OccupiedReference.neighborhood(uncertain,size:size))
+        }
+        var captured=OccupiedReference()
+        guard captured.captureConfirmed(frame:sample.frame,calibration:sample.calibration,
+            position:expected,identity:sample.identity,now:sample.time,excluding:excluded) else {
+            occupiedReferenceStatus="No clear areas to capture yet. Existing reference preserved.";return
+        }
+        occupiedReference=captured
+        occupiedReferenceLoaded=true
+        ai.interruptObservation()
+        persistOccupiedReference()
+        occupiedReferenceStatus="Occupied reference captured. Checking fresh frames; automatic updates every 10 seconds when stable."
+    }
+    private func persistOccupiedReference() {
+        do {
+            try FileManager.default.createDirectory(at:occupiedReferenceDirectory,withIntermediateDirectories:true)
+            try JSONEncoder().encode(occupiedReference).write(to:occupiedReferenceDirectory.appendingPathComponent("current.json"),options:.atomic)
+        } catch {occupiedReferenceStatus="Occupied reference works for this session, but saving failed: \(error.localizedDescription)"}
+    }
+    private func applyOccupiedReference(_ delivered:BoardObservation,raw:BoardObservation,frame:GrayFrame,
+                                       calibration:BoardCalibration,now:Double,valid:Bool)->BoardObservation {
+        if !occupiedReferenceLoaded {
+            occupiedReferenceLoaded=true
+            if let data=try? Data(contentsOf:occupiedReferenceDirectory.appendingPathComponent("current.json")),
+               let saved=try? JSONDecoder().decode(OccupiedReference.self,from:data) {occupiedReference=saved}
+        }
+        let expected=ai.referenceCells.compactMap(Occupancy.init(rawValue:))
+        let result=occupiedReference.observe(delivered,independent:raw,frame:frame,calibration:calibration,
+            expected:expected,identity:occupiedReferenceIdentity,now:now,valid:valid,
+            allowRefresh:refreshOccupiedReference && ai.active,stoneThreshold:threshold)
+        if !occupiedReference.report.refreshed.isEmpty || !occupiedReference.report.retainedOrigins.isEmpty ||
+            !occupiedReference.report.quarantined.isEmpty || !occupiedReference.report.restored.isEmpty ||
+            !occupiedReference.report.anchored.isEmpty {persistOccupiedReference()}
+        if occupiedReference.hasReference,occupiedReference.identity==occupiedReferenceIdentity {
+            let status="Occupied reference \(occupiedReference.generation) · \(occupiedReference.report.available) labeled patches · \(occupiedReference.report.resolved.count) readings supported · \(occupiedReference.report.excluded) patches excluded for uncertain locations. " +
+                (refreshOccupiedReference ? "Refreshes stable, independently verified patches every 10 seconds.":"Automatic refresh off.")
+            if occupiedReferenceStatus != status {occupiedReferenceStatus=status}
+        } else if occupiedReferenceStatus.hasPrefix("Occupied reference ") {
+            occupiedReferenceStatus="No occupied reference for this camera, grid and game."
+        }
+        return result
+    }
     @Published var playMode: PhysicalPlayMode = .local {
         didSet {
             guard oldValue != playMode else { return }
             // Preserve the local game's checkpoints; returning requires an explicit Resume.
+            ai.pause()
             recorder.pause()
             recorder.clock.pause("Local clock paused while switching play mode")
             onlineBoard.enabled = playMode == .online
-            if playMode == .online {scoring.stopForOnlinePlay()}
+            camera.setTimingClock(playMode == .local ? recorder.clock.engine:nil,laserGuidance:playMode == .ai && ai.laser.enabled)
+            if playMode != .local {scoring.stopForOnlinePlay()}
+            if playMode == .ai && size != ai.size {size=ai.size;boardSizeChanged()}
+            if playMode == .local && recorder.hasGame && size != recorder.game.boardSize {size=recorder.game.boardSize;boardSizeChanged()}
             if playMode == .local { moveEvidenceCapture.stop(reason:"Switched to local game") }
             clearBoardCorrections("Manual corrections cleared because the play mode changed.")
             exportStatus = ""
@@ -31,7 +118,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published private(set) var stoneTrackingReport=EstablishedStoneTracker.Report()
     @Published private(set) var trackedBoardObservation:BoardObservation?
     private var stoneTrackingExpected:[Occupancy] {
-        if playMode == .online {return recoveryExpected}
+        if playMode != .local {return recoveryExpected}
         guard recorder.hasGame,let board=recorder.positions.last,board.size==size else {return []}
         return board.grid.flatMap{$0}.map {stone -> Occupancy in
             if stone == Stone.black {return .black}
@@ -41,11 +128,11 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     private var stoneTrackingContext:String {
         "\(revision)/\(playMode.rawValue)/\(viewQuarterTurns)/" +
-        (playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
+        (playMode == .ai ? ai.snapshot?.id.uuidString ?? "ai" : playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
     }
     private var lightingContext:String {
         "\(lightingRevision)/\(cameraID)/\(playMode.rawValue)/\(viewQuarterTurns)/" +
-        (playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
+        (playMode == .ai ? ai.snapshot?.id.uuidString ?? "ai" : playMode == .online ? onlineBoard.stoneTrackingIdentity : recorder.autosaveURL?.path ?? "local")
     }
     @Published private(set) var latestAlignmentReport = "No camera analysis yet."
     @Published private(set) var exportingSGF = false
@@ -70,12 +157,18 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published var soundMode: RecordingSounds = .adjustments {
         didSet {
             if persistViewSettings { settings.set(soundMode.rawValue,forKey:"PhysicalGo.soundMode") }
-            configurePlacementChime()
+            ai.laser.$enabled.sink { [weak self] enabled in
+            guard let self else {return}
+            self.camera.setTimingClock(self.playMode == .local ? self.recorder.clock.engine:nil,
+                                       laserGuidance:self.playMode == .ai && enabled)
+        }.store(in:&clockSubscriptions)
+        configurePlacementChime()
         }
     }
     func resizeText(_ delta:Double) { interfaceScale=min(1.5,max(0.9,((interfaceScale+delta)*100).rounded()/100)) }
     let scoring=PhysicalScoring()
     let onlineBoard = PhysicalOnlineBoard()
+    let ai = PhysicalAI()
     let moveEvidenceCapture:MoveEvidenceCapture
     @Published var diagnosticSettings=DiagnosticSettings() {
         didSet {
@@ -279,7 +372,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             if automaticViewOrientation {orientBoardForPlayer()}
         }
     }
-    var orientationLocked:Bool {onlineBoard.enabled || recorder.state != .idle}
+    var orientationLocked:Bool {onlineBoard.enabled || (playMode == .ai && ai.hasGame) || recorder.state != .idle}
     var orientationStatus:String {
         if !automaticViewOrientation {return "View set manually"}
         if orientationLocked {return "View held for this game"}
@@ -287,7 +380,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     func orientBoardForPlayer() {
         guard calibration != nil, stoneCalibrationSession == nil,
-              BoardViewOrientationPolicy.canAdjust(automatic:automaticViewOrientation,online:onlineBoard.enabled,recording:recorder.state != .idle) else {return}
+              BoardViewOrientationPolicy.canAdjust(automatic:automaticViewOrientation,online:onlineBoard.enabled || (playMode == .ai && ai.hasGame),recording:recorder.state != .idle) else {return}
         setViewTurns(BoardViewOrientationPolicy.preferredTurns(current:viewQuarterTurns,longAxisRows:rectifiedLongAxisRows))
     }
     private func setViewTurns(_ turns:Int) {
@@ -370,6 +463,11 @@ enum PhysicalPlayMode: String, CaseIterable {
     @Published private(set) var recoveryNeedsFullBoard=false {didSet {updateRecoverySpeech()}}
     @Published private(set) var recoveryDetail=""
     var recoveryExpected:[Occupancy] {
+        if playMode == .ai {
+            // Ended games retain their history, but no longer anchor the physical grid.
+            guard ai.snapshot?.ended == false,ai.size == size else {return []}
+            return ai.cells.map {Occupancy(rawValue:$0) ?? .uncertain}
+        }
         if playMode == .online {
             guard onlineBoard.size==size,onlineBoard.cells.count==size*size else {return []}
             return (0..<size*size).map {raw in
@@ -419,6 +517,21 @@ enum PhysicalPlayMode: String, CaseIterable {
     private var handOutlineTracking=HandOutlineTracker()
     private var emptyLighting=KnownEmptyLighting()
     private var processingBusy = false
+    private struct WaitingLaserAnalysis {
+        let image:CGImage
+        let ticket:DiagnosticRecorder.Ticket?
+        let capturedAt:Double
+        let timestamp:CameraFrameTimestamp?
+        let laserFrame:PhysicalLaserFrameBroker.Frame
+    }
+    private var waitingLaserAnalysis=LatestAnalysisInput<WaitingLaserAnalysis>()
+    private func drainWaitingLaserAnalysis() {
+        guard let next=waitingLaserAnalysis.take(now:ProcessInfo.processInfo.systemUptime,revision:revision),
+              playMode == .ai,running,!frozen,cameraState == .live,
+              next.laserFrame.streamEpoch==ai.laser.frames.streamEpoch else {return}
+        analyze(next.image,diagnosticTicket:next.ticket,captureUptime:next.capturedAt,
+                frameTimestamp:next.timestamp,laserFrame:next.laserFrame)
+    }
     @Published private(set) var lastVerifiedLiveFrameAt:Double?
     private var revision = 0 {didSet {
         handOutlineTracking.reset()
@@ -427,6 +540,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     }}
     private var lightingRevision=0
     private func invalidateAnalysis(preservingLighting:Bool=false) {
+        ai.laser.invalidateCamera()
         revision += 1
         if preservingLighting {emptyLighting.suspend()}
         else {lightingRevision += 1;emptyLighting.reset()}
@@ -486,6 +600,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         }.store(in:&clockSubscriptions)
         if restoreViewSettings {
             if settings.object(forKey:"PhysicalGo.recoverySpeech") != nil {recoverySpeechEnabled=settings.bool(forKey:"PhysicalGo.recoverySpeech")}
+            if settings.object(forKey:"PhysicalGo.refreshOccupiedReference") != nil {refreshOccupiedReference=settings.bool(forKey:"PhysicalGo.refreshOccupiedReference")}
             preferredCameraID=settings.string(forKey:"PhysicalGo.lastCameraID")
             preferredCameraName=settings.string(forKey:"PhysicalGo.lastCameraName") ?? ""
             if let value=settings.object(forKey:"PhysicalGo.interfaceScale") as? Double, value.isFinite { interfaceScale=min(1.5,max(0.9,value)) }
@@ -503,7 +618,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         onlineBoard.enabled = playMode == .online
         recorder.clock.$engine.sink { [weak self] clock in
             guard let self else {return}
-            self.camera.setTimingClock(self.playMode == .local ? clock:nil)
+            self.camera.setTimingClock(self.playMode == .local ? clock:nil,laserGuidance:self.playMode == .ai && self.ai.laser.enabled)
         }.store(in:&clockSubscriptions)
         configurePlacementChime()
         onlineBoard.onEvidenceCapture = { [weak self] event in
@@ -528,6 +643,10 @@ enum PhysicalPlayMode: String, CaseIterable {
             diagnosticSettings=DiagnosticSettings.load(settings)
             let limit=settings.integer(forKey:"PhysicalGo.diagnosticLimitGB")
             if [1,5,10].contains(limit) {diagnostics.limitGB=limit}
+        }
+        ai.laser.onTargetIndicated = { [weak self] _ in
+            guard let self else {return}
+            self.opponentStoneAudio.play(volume:self.recorder.clock.sounds.volume)
         }
         configureDiagnosticCollection()
         recorder.clock.onByoyomiPeriodChange = { [weak self] change in self?.capturePeriodChange(change) }
@@ -691,7 +810,7 @@ enum PhysicalPlayMode: String, CaseIterable {
          "tracksCameraMotion":tracksCameraMotion,"alignmentNeedsRecovery":alignmentNeedsRecovery,
          "revision":revision,"gridGeneration":gridGeneration,"frozen":frozen,
          "cameraFrameNumber":frameCount,"recorder":diagnosticRecorderState,
-         "targetProcessingFPS":1/CameraProcessingCadence.interval(clock:playMode == .local ? recorder.clock.engine:nil,at:ProcessInfo.processInfo.systemUptime),
+         "targetProcessingFPS":1/CameraProcessingCadence.interval(clock:playMode == .local ? recorder.clock.engine:nil,at:ProcessInfo.processInfo.systemUptime,laserGuidance:playMode == .ai && ai.laser.enabled),
          "manualCorrections":boardCorrections.values.sorted{$0.key<$1.key}.map {["point":$0.key,"occupancy":$0.value.rawValue] as [String:Any]},
          "editingCorrections":boardCorrections.isEditing]
     }
@@ -708,6 +827,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         context["appBuild"]=Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "development"
         context["sourceHash"]=Bundle.main.object(forInfoDictionaryKey:"PhysicalGoSourceHash") as? String ?? "development"
         context["initialSGF"]=recorder.sgf();context["timezone"]=TimeZone.current.identifier
+        context["handOutlineCheckpoint"]=DiagnosticRecorder.value(handOutlineTracking.checkpoint)
         do {
             try diagnostics.start(context:context);lastDiagnosticSGF=recorder.sgf()
             diagnostics.event("capture started",details:context)
@@ -780,6 +900,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             settings.set(selected.name,forKey:"PhysicalGo.lastCameraName")
         }
         if state != .live {
+            ai.laser.cameraStreamChanged()
             boardViewFeedback.reset()
             recoverySpeech.finishCurrent(reason:"camera stream interrupted")
             recorder.suspendVision("Camera interrupted. Recording waits for the board to match the accepted position.",preserveOrder:true)
@@ -910,6 +1031,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         prepareCameraStart(); camera.start(deviceID: cameraID)
     }
     func stop() {
+        ai.pause()
         boardViewFeedback.reset()
         recoverySpeech.finishCurrent(reason:"camera stopped")
         moveEvidenceCapture.stop(reason:"Camera stopped")
@@ -922,6 +1044,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         invalidateAnalysis(preservingLighting:true); cancelGridDetection(); automaticGridArmed = false
     }
     func toggleFreeze() {
+        ai.pause()
         boardViewFeedback.reset()
         recorder.suspendVision("Frozen or resumed camera. Checking the accepted position before recording continues.",preserveOrder:true)
         frozen.toggle(); emptyBoardVerifier.reset(); invalidateAnalysis(preservingLighting:true); labels = [:]; stability.reset(); stable = false
@@ -1157,11 +1280,15 @@ enum PhysicalPlayMode: String, CaseIterable {
             if let ticket=diagnosticFrame(image,at:capturedAt,source:"camera") {
                 diagnostics.event("frame skipped",ticket:ticket,details:["reason":"View is frozen"])
             }
-        } else {receive(image,capturedAt:capturedAt,frameTimestamp:frameTimestamp)}
+        } else {
+            let laserFrame=playMode == .ai ? ai.laser.frames.frame(capturedAt:capturedAt,timestamp:frameTimestamp,now:arrival,wall:Date().timeIntervalSince1970):nil
+            receive(image,capturedAt:capturedAt,frameTimestamp:frameTimestamp,laserFrame:laserFrame)
+        }
     }
-    func receive(_ newImage: CGImage,capturedAt:Double = ProcessInfo.processInfo.systemUptime,frameTimestamp:CameraFrameTimestamp?=nil) {
+    func receive(_ newImage: CGImage,capturedAt:Double = ProcessInfo.processInfo.systemUptime,frameTimestamp:CameraFrameTimestamp?=nil,laserFrame:PhysicalLaserFrameBroker.Frame?=nil) {
         let diagnosticTicket=diagnosticFrame(newImage,at:capturedAt,source:running ? "camera" : "photo/test input")
         if let old = image ?? referenceImage, old.width != newImage.width || old.height != newImage.height {
+            ai.laser.cameraStreamChanged()
             resetCalibration(allowAutomatic: true); message = "Image dimensions changed. Finding the grid again."
         }
         // Keep the displayed frame and its overlay paired while processing.
@@ -1169,13 +1296,19 @@ enum PhysicalPlayMode: String, CaseIterable {
             image = newImage; rectifiedImage = nil; rectifiedGeometry = nil
             if let diagnosticTicket {diagnostics.event("frame skipped",ticket:diagnosticTicket,details:["reason":detectingGrid ? "Grid search in progress":"Grid not yet established"])}
         }
-        else { analyze(newImage,diagnosticTicket:diagnosticTicket,captureUptime:capturedAt,frameTimestamp:frameTimestamp) }
+        else { analyze(newImage,diagnosticTicket:diagnosticTicket,captureUptime:capturedAt,frameTimestamp:frameTimestamp,laserFrame:laserFrame) }
         if automaticGridArmed && calibration == nil && corners.isEmpty && !detectingGrid
             && ProcessInfo.processInfo.systemUptime >= nextAutomaticGridAttempt && (!running || frameCount >= 8) {
             detectGrid(retryAutomatically:running && !frozen)
         }
     }
-    func analyze(_ supplied: CGImage? = nil,diagnosticTicket suppliedTicket:DiagnosticRecorder.Ticket?=nil,captureUptime:Double?=nil,frameTimestamp:CameraFrameTimestamp?=nil) {
+    func analyze(_ supplied: CGImage? = nil,diagnosticTicket suppliedTicket:DiagnosticRecorder.Ticket?=nil,captureUptime:Double?=nil,frameTimestamp:CameraFrameTimestamp?=nil,laserFrame:PhysicalLaserFrameBroker.Frame?=nil) {
+        if processingBusy,playMode == .ai,running,!frozen,cameraState == .live,
+           let supplied,let captureUptime,let laserFrame {
+            waitingLaserAnalysis.offer(.init(image:supplied,ticket:suppliedTicket,capturedAt:captureUptime,
+                timestamp:frameTimestamp,laserFrame:laserFrame),capturedAt:captureUptime,revision:revision)
+            return
+        }
         guard !(awaitingReferenceFrame && supplied == nil), !(running && cameraState != .live), !detectingGrid, !processingBusy, let target = supplied ?? image, let calibration else {
             let reason=processingBusy ? "Analysis busy" : detectingGrid ? "Grid search in progress" : "Camera or grid not ready"
             if supplied != nil {onlineBoard.recordCameraWait(reason)}
@@ -1186,6 +1319,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         let diagnosticTicket=suppliedTicket ?? diagnosticFrame(target,source:"analysis/redraw input")
         let diagnosticOperation=diagnostics.begin("analysis",ticket:diagnosticTicket,details:diagnosticContext)
         processingBusy = true
+        if playMode == .ai,let laserFrame {ai.laser.frames.prepare(target,frame:laserFrame)}
         let token = revision, threshold = threshold
         let reference = reference, referenceCalibration = referenceCalibration
         let straighten=straightenBoard,longAxisRows=rectifiedLongAxisRows
@@ -1220,9 +1354,20 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingContext:trackingContext,
             trackingManualPoints:trackingManualPoints,
             trackingFresh:trackingFresh,
-            trackingTime:trackingTime,checkHands:self.playMode == .local && self.recorder.clock.enabled && supplied != nil,
+            trackingTime:trackingTime,checkHands:(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
-            emptyLighting:emptyLighting,lightingContext:lightingContext)) { [weak self] analysis in
+            emptyLighting:emptyLighting,lightingContext:lightingContext),safety:{ [weak self] evidence in
+                guard let self,self.revision==token,self.playMode == .ai,let captureUptime,
+                      supplied != nil,self.running,self.cameraState == .live,!self.frozen,
+                      ProcessInfo.processInfo.systemUptime-captureUptime<=1.5 else {return}
+                let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+                let geometryID=(try? encoder.encode(referenceCalibration ?? calibration).base64EncodedString()) ?? "unknown"
+                let context=self.cameraID+"/"+geometryID
+                let valid=evidence.aligned != nil && !evidence.exposureFailure &&
+                    !self.alignmentNeedsRecovery && evidence.lightingBlocked == false
+                self.ai.laser.publishFrame(target,frame:laserFrame,cameraID:self.cameraID,context:context,
+                    reference:referenceCalibration,current:evidence.aligned,hand:evidence.handObstructed,aligned:valid)
+            }) { [weak self] analysis in
             let frame=analysis.frame
             let exposureFailure=analysis.exposureFailure
             let alignmentReport=analysis.alignmentReport
@@ -1236,6 +1381,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             guard let self else { return }
             var result=analysis.result
             self.processingBusy = false
+            defer {self.drainWaitingLaserAnalysis()}
             if let data=try? JSONSerialization.data(withJSONObject:alignmentReport,options:[.prettyPrinted,.sortedKeys]),
                let report=String(data:data,encoding:.utf8) {self.latestAlignmentReport=report}
             var diagnosticOutcome="analyzed without recording",recorderTime:Double?
@@ -1263,6 +1409,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                     "lightingField":DiagnosticRecorder.value(result?.lightingField),
                     "stoneTracking":DiagnosticRecorder.value(trackingResult.report),
                     "knownEmptyLighting":DiagnosticRecorder.value(analysis.emptyLighting.report),
+                    "occupiedReference":DiagnosticRecorder.value(self.occupiedReference.report),
                     "unadaptedReadings":DiagnosticRecorder.value(analysis.rawResult?.readings),
                     "physicalStoneTracks":DiagnosticRecorder.value(trackingResult.tracks.values.sorted{$0.point<$1.point}),
                     "frameDecoded":frame != nil,"checkAlignment":checkAlignment,"recorderUptime":recorderTime ?? NSNull() as Any,
@@ -1279,17 +1426,33 @@ enum PhysicalPlayMode: String, CaseIterable {
             // Recognition gates must not freeze the camera preview. The worker
             // rectifies current pixels using the retained grid even when a hand
             // or a marginal alignment prevents accepting a board observation.
+            if self.playMode == .ai {self.ai.laser.noteFrame(laserFrame)}
+            let darkForEvidence=self.playMode != .ai || self.ai.laser.acceptsObservation(
+                capturedAt:alignmentTime,now:ProcessInfo.processInfo.systemUptime)
             self.image=target
             self.rectifiedGeometry=corrected == nil ? nil : geometry
             self.rectifiedImage=corrected
-            if self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected {
-                self.emptyLighting=analysis.emptyLighting
-            } else {self.emptyLighting.reset()}
+            if darkForEvidence {
+                if self.stoneTrackingContext==trackingContext && self.stoneTrackingExpected==trackingExpected {
+                    self.emptyLighting=analysis.emptyLighting
+                } else {self.emptyLighting.reset()}
+            }
             defer {
                 self.boardViewFeedback.observe(clear:aligned != nil && analysis.handObstructed != true && result?.lightingBlocked == false && !self.alignmentNeedsRecovery,
                     fresh:freshView,now:alignmentTime,enabled:self.recoverySpeechEnabled && self.recorder.clock.audible,
                     clocksEnabled:self.playMode == .local && self.recorder.clock.enabled,
                     clockRunning:self.recorder.clock.running,settings:self.recorder.clock.sounds)
+            }
+            if self.playMode == .ai {
+                // Geometry is canonical camera-grid order; display rotation is unrelated.
+                let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+                let geometryID=(try? encoder.encode(self.referenceCalibration ?? calibration).base64EncodedString()) ?? "unknown"
+                let context=self.cameraID+"/"+geometryID
+                let valid=freshView && aligned != nil && !exposureFailure && !self.alignmentNeedsRecovery && result?.lightingBlocked == false
+                self.ai.laser.publishFrame(target,frame:laserFrame,cameraID:self.cameraID,context:context,
+                    reference:self.referenceCalibration,current:aligned,hand:analysis.handObstructed,aligned:valid)
+                self.ai.laser.observeCamera(hand:analysis.handObstructed,valid:valid,
+                    capturedAt:alignmentTime,now:ProcessInfo.processInfo.systemUptime,context:context)
             }
             let handEstimate:ClockPressEstimate?
             if freshView,self.playMode == .local,self.recorder.state == .recording,
@@ -1310,17 +1473,43 @@ enum PhysicalPlayMode: String, CaseIterable {
                     at:alignmentTime,source:frameTimestamp?.source ?? "callback",visual:valid ? analysis.handOutline:nil)
             } else {handEstimate=nil}
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
+            if freshView {
+                if analysis.handOutline?.clearanceDelayed == true {
+                    self.aiCameraNotice="Hand clearance is taking longer than expected. If the board is clear, use Camera & setup → Restart camera."
+                } else {
+                    self.aiCameraNotice=analysis.handObstructed == true ? "Possible hand obstruction — waiting for a clear board view.":nil
+                }
+                if self.playMode == .ai,let evidence=analysis.handTracking.stallEvidence {
+                    self.ai.noteHandClearanceStall(evidence,calibration:aligned ?? calibration)
+                }
+            }
             if freshView,analysis.handObstructed == true {
+                self.ai.interruptObservation(reason:"camera_hand_obstruction")
                 self.recorder.noteHandObstruction(now:ProcessInfo.processInfo.systemUptime,capturedAt:captureUptime)
                 self.observation=nil;self.trackedBoardObservation=nil
                 self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
                 diagnosticOutcome="hand over board; waiting for clear frame"
                 return
             }
+            if !darkForEvidence {
+                // Keep hand detection/live preview, but never adopt lighting,
+                // stone tracking, reference, aspect or grid evidence from lit frames.
+                // A raw candidate may only request OFF; consume still requires dark proof.
+                if var raw=analysis.rawResult {
+                    raw.capturedAt=alignmentTime;raw.handObstructed=analysis.handObstructed
+                    self.ai.consume(raw,now:ProcessInfo.processInfo.systemUptime)
+                }
+                self.ai.interruptObservation(reason:"camera_waiting_for_dark_evidence")
+                self.observation=nil;self.trackedBoardObservation=nil
+                self.lastVerifiedLiveFrameAt=nil;self.stable=false;self.stability.reset();self.emptyBoardVerifier.reset()
+                diagnosticOutcome="laser guidance; waiting for confirmed dark camera evidence"
+                return
+            }
             if freshView,aligned==nil,BoardAlignmentGate.likelyObstruction(alignmentReport) {
                 self.recoveryLikelyObstruction=true
             }
             if aligned==nil && !exposureFailure {
+                self.ai.interruptObservation(reason:"camera_alignment_rejected")
                 let allowGrace=supplied != nil && self.running && self.cameraState == .live && !self.frozen &&
                     self.playMode == .local && self.recorder.state == .recording && self.recorder.synchronized && !self.alignmentNeedsRecovery
                 let hold=self.boardAlignmentGate.shouldHold(report:alignmentReport,now:alignmentTime,allowGrace:allowGrace)
@@ -1436,6 +1625,14 @@ enum PhysicalPlayMode: String, CaseIterable {
                 }
                 var delivered=trackingCurrent && self.stoneTrackingContext==trackingContext && !result.lightingBlocked ? (trackedObservation ?? result):result
                 delivered.capturedAt=captureUptime;delivered.handObstructed=analysis.handObstructed;delivered.clockPressEstimate=handEstimate
+                if self.playMode == .ai,let frame,let raw=analysis.rawResult,let captureUptime {
+                    let valid=trackingFresh && analysis.handObstructed == false && darkForEvidence &&
+                        !self.alignmentNeedsRecovery && !self.lightingNeedsRecovery && self.boardCorrections.values.isEmpty
+                    if valid {self.occupiedReferenceFrame=(frame,aligned,captureUptime,self.occupiedReferenceIdentity,raw)}
+                    else {self.occupiedReferenceFrame=nil}
+                    delivered=self.applyOccupiedReference(delivered,raw:raw,frame:frame,calibration:aligned,now:captureUptime,valid:valid)
+                    self.trackedBoardObservation=delivered
+                }
                 self.deliverLiveObservation(delivered,now:now)
             }
             if let result, newObservation {
@@ -1543,7 +1740,10 @@ enum PhysicalPlayMode: String, CaseIterable {
     /// Mode routing is independent of camera acquisition and diagnostic visibility.
     func deliverLiveObservation(_ result:BoardObservation, now:Double) {
         guard stoneCalibrationSession == nil else {return}
-        if playMode == .online {
+        if playMode == .ai {
+            if boardCorrections.isEditing {ai.interruptObservation(reason:"manual_corrections")}
+            else {ai.consume(boardCorrections.apply(to:result),now:now)}
+        } else if playMode == .online {
             onlineBoard.consume(result,quarterTurns:viewQuarterTurns,corrections:boardCorrections)
         } else if !boardCorrections.isEditing {
             recorder.consume(boardCorrections.apply(to:result),now:now)

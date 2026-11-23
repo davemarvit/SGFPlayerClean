@@ -22,3 +22,11 @@ misreading the board, failing setup, or otherwise malfunctioning:
 
 Use “recording” for camera images. Preserve unrelated working-tree changes.
 Keep AUSDOM AF660 calibration separate from older zoomed iPhone 11 Pro Max data.
+
+# Camera/AI/laser work tracking
+
+Maintain `PhysicalGo/Documentation/IntegrationChecklist.md` as the current work
+list, as requested by Dave. Read it when continuing integration work and update
+it after meaningful changes or tests. Distinguish implemented, offline-tested,
+installed and physically validated work. A shared handoff request is not an active
+dependency unless the other agent has acknowledged ownership.

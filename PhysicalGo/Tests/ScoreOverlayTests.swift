@@ -39,7 +39,7 @@ import SwiftUI
         check(white==owners,"Side-to-move changed ownership colors")
         for bad in [analysis(values,deviations:Array(repeating:1,count:81)),analysis(Array(repeating:Double.nan,count:81)),analysis(values,visits:1)] {
             check(scoring.receiveAnalysis(bad),"Fixture root rejected unexpectedly")
-            check(scoring.ownership.isEmpty && scoring.likelyDead.isEmpty,"Unreliable ownership painted territory or death")
+            check(scoring.ownership.isEmpty && scoring.projectedOwnership.isEmpty && scoring.likelyDead.isEmpty,"Unreliable ownership painted territory or death")
         }
         _=scoring.receiveAnalysis(analysis(values))
         func render<V:View>(_ view:V,_ name:String,width:CGFloat=500,height:CGFloat=500)throws->NSBitmapImageRep {
@@ -52,6 +52,42 @@ import SwiftUI
             try bitmap.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent(name+".png"))
             window.orderOut(nil);return bitmap
         }
+        // Moderate and isolated expectations survive on the forecast board, with
+        // confidence fading continuously; they must not become awarded territory.
+        var moderate=Array(repeating:0.0,count:81)
+        moderate[40]=0.4;moderate[41] = -0.2;moderate[42]=0.8
+        let forecast=PhysicalScoring.territoryForecast(analysis(moderate),size:9,playerToMove:.black)
+        check(forecast[BoardPosition(4,4)] == AIOwnershipEstimate(color:.black,strength:0.4),"Moderate isolated Black expectation disappeared")
+        check(forecast[BoardPosition(4,5)] == AIOwnershipEstimate(color:.white,strength:0.2),"Moderate White expectation disappeared")
+        check(forecast[BoardPosition(0,0)]==nil,"Zero ownership should be unshaded")
+        check(PhysicalScoring.territoryForecast(analysis(moderate.map {-$0}),size:9,playerToMove:.white)==forecast,"Forecast perspective reversed")
+        let softened=PhysicalScoring.territoryForecast(analysis(moderate,deviations:Array(repeating:0.5,count:81)),size:9,playerToMove:.black)
+        check(softened[BoardPosition(4,4)]?.strength==0.2,"Search disagreement did not soften confidence")
+        for bad in [analysis(Array(repeating:Double.nan,count:81)),analysis(moderate,deviations:[0]),analysis(moderate,visits:1)] {
+            check(PhysicalScoring.territoryForecast(bad,size:9,playerToMove:.black).isEmpty,"Invalid forecast painted territory")
+        }
+        let regression=URL(fileURLWithPath:#filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/UnfinishedScoring")
+        let regressionFile=root.appendingPathComponent("unfinished.sgf")
+        try FileManager.default.copyItem(at:regression.appendingPathComponent("game.sgf"),to:regressionFile)
+        let unfinished=GameRecorder(storage:root);unfinished.clock.audible=false
+        try unfinished.restoreSavedGame(from:regressionFile);unfinished.pause()
+        let unfinishedSGF=unfinished.sgf(),unfinishedClock=unfinished.clock.engine
+        let cached=try JSONDecoder().decode(AIAnalysis.self,from:Data(contentsOf:regression.appendingPathComponent("analysis.json")))
+        let estimate=PhysicalScoring();estimate.open(recorder:unfinished,analyzeImmediately:false)
+        check(estimate.receiveAnalysis(cached,allowInProgress:true),"Recorded unfinished analysis rejected")
+        check(unfinished.moveCount==65 && estimate.visits==35682,"Regression does not match the reported game")
+        check(estimate.projectedScoreDescription=="Black ahead by 1.6 points","Unfinished score replaced AI forecast or reversed perspective")
+        check(estimate.projectedOwnership.count>estimate.ownership.count,"Forecast still hides all moderate territory")
+        check(!estimate.canAccept && !estimate.finalReview,"Estimating an unfinished game enabled saving a result")
+        _=try render(PhysicalScoringView(scoring:estimate,recorder:unfinished,orientation:BoardOrientation(1)),"unfinished-65-estimate",width:930,height:800)
+        check(unfinished.sgf()==unfinishedSGF && unfinished.clock.engine.black==unfinishedClock.black && unfinished.clock.engine.white==unfinishedClock.white,"Forecast changed moves, result or clock balances")
+        unfinished.finish();estimate.open(recorder:unfinished,analyzeImmediately:false);_=estimate.receiveAnalysis(cached,allowInProgress:true)
+        check(estimate.countedResult!.black.total==16 && estimate.countedResult!.white.total==31.5 && estimate.unassignedEmptyPoints==257,"Regression no longer reproduces misleading partial tally")
+        check(estimate.projectedScoreDescription=="Black ahead by 1.6 points" && !estimate.canAccept,"Ending recording replaced forecast with partial count")
+        _=try render(PhysicalScoringView(scoring:estimate,recorder:unfinished,orientation:BoardOrientation(1)),"unfinished-65-ended",width:930,height:800)
+        _=try render(PhysicalAgreedScoreView(scoring:estimate,recorder:unfinished,orientation:BoardOrientation(1)),"unfinished-65-agreement",width:930,height:860)
+        check(unfinished.game.info.result==nil,"Rendering the estimate or agreement screen wrote a result")
+        estimate.shutdown()
         func red(_ image:NSBitmapImageRep,at point:BoardPosition,orientation:BoardOrientation)->CGFloat {
             let p=orientation.display(ImagePoint(x:Double(point.col)/8,y:Double(point.row)/8))
             // Sample slightly off the grid line at an unoccupied point.
@@ -77,13 +113,11 @@ import SwiftUI
         recorder.finish();scoring.open(recorder:recorder,analyzeImmediately:false)
         _=scoring.receiveAnalysis(analysis(values,visits:1000))
         scoring.session=PhysicalScoring.suggestedSession(fixtureSession,analysis:analysis(values,visits:1000),playerToMove:.black)
-        check(scoring.finalReview && !scoring.showsCountedTerritory,"Finished game must default to AI shading")
+        check(scoring.finalReview && scoring.projectedScoreDescription=="Black ahead by 2.5 points","Finished game lost the AI forecast")
         _=try render(PhysicalScoringView(scoring:scoring,recorder:recorder,orientation:BoardOrientation(1)),"finished-estimate-screen",width:930,height:740)
-        scoring.boardDisplay = .counted
-        check(scoring.showsCountedTerritory,"Final-count switch did not select editable territory")
         check(scoring.finalReview && scoring.session!.deadStones.contains(BoardPosition(1,1)),"Final score lacks proposed dead group")
         check(scoring.session!.territory[BoardPosition(1,1)] == .black && scoring.session!.territory[BoardPosition(7,7)] == .white,"Final territory disagrees with dead groups")
-        _=try render(PhysicalScoringView(scoring:scoring,recorder:recorder,orientation:BoardOrientation(1)),"final-screen",width:930,height:740)
+        _=try render(PhysicalAgreedScoreView(scoring:scoring,recorder:recorder,orientation:BoardOrientation(1)),"final-screen",width:930,height:740)
         let final=try render(PhysicalScoreBoard(session:scoring.session!,ownership:owners,likelyDead:scoring.likelyDead,finalReview:true,orientation:BoardOrientation(0)),"final-board")
         let noAI=try render(PhysicalScoreBoard(session:scoring.session!,ownership:[:],likelyDead:[:],finalReview:true,orientation:BoardOrientation(0)),"final-no-ai")
         check(final.representation(using:.png,properties:[:])==noAI.representation(using:.png,properties:[:]),"AI ownership overrides reviewed final territory")
@@ -95,9 +129,10 @@ import SwiftUI
         let fresh=GameRecorder(storage:nil);fresh.clock.audible=false;fresh.start(size:19);fresh.pause()
         scoring.open(recorder:fresh,analyzeImmediately:false)
         check(scoring.ownership.isEmpty && scoring.likelyDead.isEmpty,"New game shows stale previous ownership")
-        check(!scoring.showsCountedTerritory && scoring.boardDisplay == .estimate,"Reopening must reset to AI shading")
+        check(scoring.projectedOwnership.isEmpty && scoring.projectedScoreDescription==nil,"Reopening retained a stale forecast")
         scoring.shutdown()
         print("PASS: \(checks) scoring-overlay checks including player perspective, uncertain gaps, invalid data, all four native board rotations, manual final-score corrections and new-position reset")
+        try await runGameReviewTests()
         try runScoreApprovalTests()
         try await runTerritoryAuditTests()
         try await runPhysicalScoringTests()

@@ -134,6 +134,28 @@ import Foundation
             check(done.obstructed==false && done.estimate?.observedUpper==0.6,"Lighting change prolonged a completed withdrawal")
         }
         let disk=HandOutlineFrame.WhiteStone(x:3.5,y:0,radiusX:0.44,radiusY:0.47)
+        // Shadow plus a newly placed interior stone must not keep a withdrawn
+        // hand latched. The entry strip still exposes the original texture.
+        for edge in 0..<4 {
+            func crowded(_ finger:Bool)->HandOutlineFrame {
+                let base=textured(finger ? 0.3:nil,shadow:true,edge:edge)
+                var pixels=base.pixels
+                for i in pixels.indices {
+                    let p=base.grid(i),d=[p.1+0.75,8.75-p.0,8.75-p.1,p.0+0.75][edge]
+                    let side=edge%2==0 ? p.0:p.1
+                    if hypot(side-3.5,d-2.0)<0.45 {pixels[i] = .init(red:0.12,green:-0.02,light:0.9)}
+                }
+                return .init(width:n,cells:size,pixels:pixels)
+            }
+            var t=HandOutlineTracker()
+            for time in [0.0,0.1,0.2] {_=t.observe(textured(nil,shadow:false,edge:edge),pose:clear,at:time,source:"crowded")}
+            _=t.observe(textured(4,shadow:false,edge:edge),pose:pose(edge:edge),at:0.3,source:"crowded")
+            // Checkpoint round trip preserves a frozen track for reproduction.
+            t=HandOutlineTracker(checkpoint:try JSONDecoder().decode(HandOutlineTracker.Checkpoint.self,from:JSONEncoder().encode(t.checkpoint)))
+            for time in [0.4,0.5] {check(t.observe(crowded(true),pose:clear,at:time,source:"crowded").obstructed==true,"Rim texture proof hid an actual fingertip")}
+            check(t.observe(crowded(false),pose:clear,at:0.6,source:"crowded").obstructed==true,"Rim proof bypassed two-frame clearance")
+            check(t.observe(crowded(false),pose:clear,at:0.7,source:"crowded").obstructed==false,"Interior stone prevented verified rim clearance")
+        }
         var covered=frame(0.5);covered.whiteStones=[disk]
         check(covered.verifiedWhiteStones.isEmpty,"A visible fingertip inherited a stone's clearance mask")
         var wood=frame(nil);wood.whiteStones=[disk]
@@ -162,6 +184,53 @@ import Foundation
         _=rim.observe(frame(4),pose:pose(edge:0),at:0.3,source:"rim")
         for t in [0.4,0.5,0.6] {
             check(rim.observe(rimFinger,pose:clear,at:t,source:"rim").obstructed==true,"White-stone fringe hid a narrow fingertip at the rim")
+        }
+        for light:Float in [0.75,0.85,0.95] {for red:Float in [0,0.04,0.08] {
+            var pale=narrow
+            for i in pale.indices where pale[i].red==0.12 && pale[i].green == -0.02 {pale[i] = .init(red:red,green:0,light:light)}
+            let paleFrame=HandOutlineFrame(width:n,cells:size,pixels:pale,whiteStones:[disk])
+            var t=HandOutlineTracker(checkpoint:.init(background:frame(nil),active:true,edge:0,center:[3.5,0],direction:nil,appearance:nil))
+            for time in [0.0,0.2,0.4] {check(t.observe(paleFrame,pose:clear,at:time,source:"pale").obstructed==true,"Pale/neutral fingertip erased by white-stone mask")}
+        }}
+        // A solid bowl outside the guard can join an interior stone through a
+        // one-pixel shadow/noise bridge. Neither object is a hand crossing the
+        // boundary. Exercise each edge independently of learned skin color.
+        for edge in 0..<4 {
+            let background=frame(nil)
+            var pixels=background.pixels
+            for i in pixels.indices {
+                let p=background.grid(i),d=[p.1+0.75,8.75-p.0,8.75-p.1,p.0+0.75][edge]
+                let lateral=edge%2==0 ? p.0:p.1
+                let bowl=(-1.2 ... -0.15).contains(d) && (2.5...4.5).contains(lateral)
+                let bridge=abs(lateral-3.5)<0.01 && (-0.3...3).contains(d)
+                let stone=hypot(lateral-3.5,d-2.5)<0.4
+                if bowl || bridge || stone {pixels[i] = .init(red:0.18,green:-0.02,light:0.45)}
+            }
+            let changed=HandOutlineFrame(width:n,cells:size,pixels:pixels)
+            var t=HandOutlineTracker(checkpoint:.init(background:background,active:true,edge:edge,
+                center:edge%2==0 ? [3.5,edge==0 ? 0:8]:[edge==1 ? 8:0,3.5],direction:nil,appearance:nil))
+            check(t.observe(changed,pose:clear,at:0,source:"clutter").obstructed==true,"Clutter skipped confirmation")
+            let exit=t.observe(changed,pose:clear,at:0.2,source:"clutter")
+            check(exit.obstructed==false && exit.estimate==nil,"Off-board solid pixels lent evidence to a thin bridge/isolated stone")
+            // Darkness invalidates chroma, not luminance. A hand over black
+            // stones and a dark sleeve over wood must both remain visible.
+            for coveringBlack in [false,true] {
+                let darkPixel=HandOutlineFrame.Pixel(red:0,green:0,light:0.03)
+                let base=coveringBlack ? HandOutlineFrame(width:n,cells:size,pixels:Array(repeating:darkPixel,count:n*n)):background
+                var hand=base.pixels
+                for i in hand.indices {
+                    let p=base.grid(i),d=[p.1+0.75,8.75-p.0,8.75-p.1,p.0+0.75][edge]
+                    let lateral=edge%2==0 ? p.0:p.1
+                    if d<2 && (2...5).contains(lateral) {hand[i]=coveringBlack ? .init(red:0.12,green:-0.02,light:0.55):darkPixel}
+                }
+                let visible=HandOutlineFrame(width:n,cells:size,pixels:hand)
+                var darkTracker=HandOutlineTracker(checkpoint:.init(background:base,active:true,edge:edge,
+                    center:edge%2==0 ? [3.5,edge==0 ? 0:8]:[edge==1 ? 8:0,3.5],direction:nil,appearance:nil))
+                for time in [0.0,0.2,0.4] {
+                    let result=darkTracker.observe(visible,pose:clear,at:time,source:"dark")
+                    check(result.obstructed==true && result.estimate==nil,"Near-black pixels hid a visible obstruction")
+                }
+            }
         }
         func rimGrain(shadow:Bool,finger:Bool)->HandOutlineFrame {
             var pixels=[HandOutlineFrame.Pixel]()
@@ -193,7 +262,40 @@ import Foundation
         check(corner.observe(cornerPatch(outside:false),pose:cornerPose,at:0.3,source:"corner").obstructed==true,"Actual corner hand was not blocked")
         _=corner.observe(cornerPatch(outside:true),pose:clear,at:0.4,source:"corner")
         check(corner.observe(cornerPatch(outside:true),pose:clear,at:0.5,source:"corner").obstructed==false,"A patch beyond the corner counted as over the board")
+        // A clear-pose/outline disagreement is detectable, but a real stationary
+        // fingertip can cause exactly that disagreement. Never clear on time.
+        var delayed=HandOutlineTracker()
+        for t in [0.0,0.1,0.2] {_=delayed.observe(frame(nil),pose:clear,at:t,source:"delay")}
+        _=delayed.observe(frame(4),pose:pose(edge:0),at:0.3,source:"delay")
+        let legacy=try JSONDecoder().decode(HandOutlineTracker.Result.self,from:Data(#"{"obstructed":true,"reason":"legacy"}"#.utf8))
+        check(legacy.obstructed==true && !legacy.clearanceDelayed,"Older hand diagnostics no longer decode")
+        var saved:HandOutlineTracker.StallEvidence?
+        for step in 0...35 {
+            let t=0.4+Double(step)*0.2
+            let result=delayed.observe(frame(0.5),pose:clear,at:t,source:"delay")
+            check(result.obstructed==true && result.estimate==nil,"Delay watchdog cleared a real missed fingertip or fabricated timing")
+            check(result.clearanceDelayed == (step>=25),"Disagreement warning did not follow consecutive fresh evidence")
+            if let evidence=delayed.stallEvidence {
+                check(saved==nil,"Persistent hold wrote another full snapshot")
+                saved=evidence
+            }
+        }
+        check(saved != nil && saved!.disagreementSeconds>=5,"Long disagreement did not retain diagnostic state")
+        let evidence=try JSONDecoder().decode(HandOutlineTracker.StallEvidence.self,from:JSONEncoder().encode(saved!))
+        var replay=HandOutlineTracker(checkpoint:evidence.checkpoint)
+        check(replay.observe(evidence.frame,pose:evidence.pose,at:evidence.time,source:evidence.source).obstructed==true,"Saved stall state cannot reproduce the obstruction")
+        let duplicate=delayed.observe(frame(0.5),pose:clear,at:7.4,source:"delay")
+        check(duplicate.obstructed==true && delayed.stallEvidence==nil,"Duplicate frame emitted another snapshot")
+        _=delayed.observe(frame(nil),pose:clear,at:7.6,source:"delay")
+        let recovered=delayed.observe(frame(nil),pose:clear,at:7.8,source:"delay")
+        check(recovered.obstructed==false && !recovered.clearanceDelayed,"Verified visual exit retained the delayed warning")
+        _=delayed.observe(frame(4),pose:pose(edge:0),at:8,source:"delay")
+        let newHand=delayed.observe(frame(0.5),pose:clear,at:8.2,source:"delay")
+        check(newHand.obstructed==true && !newHand.clearanceDelayed,"New hand inherited the previous stall timer")
+        let newGap=delayed.observe(frame(nil),pose:clear,at:10,source:"delay")
+        check(newGap.obstructed==nil && !newGap.clearanceDelayed && delayed.stallEvidence==nil,"Gap fabricated stall recovery or retained disagreement")
         print("PASS: \(checks) outline checks: four edges, lost poses, visual confirmation, original press/error, gaps, timestamp epochs, stationary motion and white-stone mask safety")
+        try HandBoundaryPhotoTests.run()
         _=try HandOutlineRecordedTests.run()
         _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/ClockCatchUpLoss/Outline"))
         _=try HandOutlineRecordedTests.run(folder:URL(fileURLWithPath:"PhysicalGo/Tests/Fixtures/A18HandOutline"))

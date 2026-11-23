@@ -134,6 +134,48 @@ import CoreGraphics
         tracker.reset();train(2)
         position[109] = .white
         check(observe(0).signature[109] == .uncertain,"Expected-position change retained an old empty prior")
+        // Confidence refresh uses independently trained pixels, never the
+        // expected empty label alone or a new stone's changed appearance.
+        position[109] = .empty
+        func weakEmpty(_ source:BoardObservation,_ p:Int)->BoardObservation {
+            var readings=source.readings;let r=readings[p]
+            readings[p] = .init(row:r.row,col:r.col,occupancy:.empty,confidence:0.77,delta:r.delta)
+            return .init(readings:readings,size:source.size)
+        }
+        tracker.reset()
+        check(observe(0,override:weakEmpty(raw[0],109)).readings[109].confidence==0.77,
+              "Expected empty alone raised confidence")
+        train(2)
+        check(observe(0,override:weakEmpty(raw[0],109)).readings[109].confidence==0.85,
+              "Independent matching wood baseline did not refresh weak empty confidence")
+        check(observe(1,override:weakEmpty(raw[1],185)).readings[185].confidence==0.77,
+              "Empty baseline hid a weak new stone")
+        tracker.reset();train(2)
+        check(observe(0,override:weakEmpty(raw[0],109),valid:false).readings[109].confidence==0.77,
+              "Invalid frame refreshed weak empty confidence")
+        // Real four-stone pixels: its White is only 0.82 confidence, so the
+        // occupied-context gate must refuse learning, even after move acceptance.
+        tracker.reset();train(2);position[185] = .white
+        let afterMove=observe(1)
+        check(afterMove.signature[185] == .white,"Position refresh erased the new White")
+        for _ in 0..<3 {_=observe(1)}
+        check(tracker.report.learned==0,"Weak occupied anchor authorized learning")
+        // Exercise the strong-anchor policy using the SAME real White pixels
+        // with a synthetic confidence of one; not a new live camera observation.
+        position[185] = .empty;tracker.reset();train(2);position[185] = .white
+        let strongWhite=changed(raw[1],185,.white)
+        _=observe(1,override:strongWhite)
+        check(tracker.report.learned==0,"Position change skipped revalidation")
+        _=observe(1,override:strongWhite)
+        check(tracker.report.learned==0,"Two frames revalidated a position change")
+        _=observe(1,override:strongWhite)
+        check(tracker.report.learned>200,"Ordinary move discarded distant independently learned wood")
+        // Captured/removed intersections must train anew, not reuse pre-stone wood.
+        position[185] = .empty
+        _=observe(2)
+        check(tracker.report.learned==0,"Removal skipped revalidation")
+        check(observe(2,override:weakEmpty(raw[2],185)).readings[185].confidence==0.77,
+              "Removed stone reused a stale empty patch before retraining")
         // Independently enumerated occupied fixture also includes the grained
         // White at 311, which older captured raw readings had missed.
         struct Occupied:Decodable {let calibration:BoardCalibration;let threshold:Double}

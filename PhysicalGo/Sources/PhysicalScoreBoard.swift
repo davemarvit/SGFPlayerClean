@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Uses the same ownership field, strength scale and territory dots as SGF Player Clean.
-/// The selected display determines whether to show the AI field or the editable count.
+/// Renders continuous projected ownership, or the separately reviewed agreement map.
 struct PhysicalScoreBoard:View {
     let session:LocalScoringSession
     let ownership:[BoardPosition:AIOwnershipEstimate]
@@ -69,7 +68,7 @@ struct PhysicalScoreBoard:View {
                 let v=orientation.source(ImagePoint(x:(tap.location.x-margin)/(side-2*margin),y:(tap.location.y-margin)/(side-2*margin)))
                 let col=Int((v.x*Double(session.board.size-1)).rounded()),row=Int((v.y*Double(session.board.size-1)).rounded())
                 if (0..<session.board.size).contains(row),(0..<session.board.size).contains(col) {onTap(BoardPosition(row,col))}
-            }).accessibilityLabel(finalReview ? "Final scoring board, oriented like the playing board. Black and white dots mark counted territory. Unmarked empty intersections are neutral. Click groups to mark dead or alive." : "AI ownership estimate, oriented like the playing board. Black and white shading shows likely control. Unshaded areas are unsettled or neutral. Faded stones with crosses are likely to be lost.")
+            }).accessibilityLabel(finalReview ? "Final scoring board, oriented like the playing board. Black and white dots mark counted territory. Unmarked empty intersections are neutral. Click groups to mark dead or alive." : "Expected territory after continued play, oriented like the playing board. Black and white shading shows expected ownership; stronger shading means greater confidence. Faint or unshaded areas are uncertain or neutral. Faded stones with crosses are likely to be lost.")
         }
     }
 }

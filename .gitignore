@@ -10,3 +10,6 @@ __pycache__/
 
 # Local investigation outputs; regression fixtures live with their tests.
 /work/
+
+# Official HumanSL weights are fetched and verified by prepare_human_model.py.
+/PhysicalGo/Resources/AI/*.bin.gz

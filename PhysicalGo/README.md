@@ -8,6 +8,10 @@ Do not rely on it as your only tournament game record yet.
 
 ## Structure and maintenance
 
+The current camera/AI/laser work list and test checkpoint are maintained in
+[Integration checklist](Documentation/IntegrationChecklist.md). Update it after
+meaningful implementation changes and physical tests.
+
 The agreed next behavior for automatic reconciliation, actionable board markers,
 issue-specific review, and clock/capture holds is documented in
 [Live position issues, reviews, and clocks](Documentation/LivePositionIssues.md).
@@ -3478,3 +3482,178 @@ The main toolbar now exposes **Voice & clock volume**, with a 0–100% slider an
 percentage readout. It uses the same saved setting as the detailed clock sound
 controls and adjusts clock tones and spoken guidance without changing system
 volume or game timing.
+
+
+## Projected final score (0.192)
+
+**Score game** now opens one **Estimated final score** view for both ongoing
+and ended recordings. The headline uses KataGo’s score lead with strong continued
+play, including komi. Ending a recording does not substitute the partial territory
+count for that forecast. Expected territory uses continuous ownership shading:
+moderate and isolated expectations remain visible, and search disagreement softens
+confidence. The displayed intensity is not a calibrated probability. Existing
+stone-loss markers remain conservative.
+
+The former AI territory / Final count tabs are removed. For ended recordings,
+**Review agreed result…** opens a separate manual agreement sheet; it does not
+announce a winner until all scoring components are approved. Saved SGF results
+still use the explicitly agreed territory/prisoner count, never a rounded AI
+forecast. End an ongoing recording with the main **End game…** control when needed.
+
+`--score-overlay-test` includes the November 16 move-65 recording and its cached
+35,682-visit analysis. It verifies Black’s 1.6-point forecast despite the old partial
+count of White +15.5 and 257 unassigned points, before and after ending recording;
+continuous shading, perspective, confidence, native renders, manual agreement,
+result persistence and live KataGo integration are also covered.
+
+## Player assessments and game graph (0.193)
+
+The scoring window now includes a **Game review** section below the territory
+board. It shows each player's difficulty-weighted accuracy, average point loss,
+analyzed-move coverage, and Excellent / Good / Mediocre / Poor / Disastrous move
+counts and percentages, with stacked distribution bars. The calculations use the
+same `AIPlayerPerformance`, `MoveQuality`, and shared `AIGameQuality` evaluation
+as SGFPlayer Clean; missing candidate priors leave accuracy unavailable.
+
+The graph follows SGFPlayer Clean: a blue Black win-probability line, dashed green
+Black point lead, and loss-colored markers for moves losing at least two points.
+Left and right axes label points and probability separately. Hover or click to
+inspect a position without changing the recorded board or the final-score estimate.
+Missing positions create gaps instead of interpolating fabricated assessments.
+
+After the current-position score is ready, a serial 100-visit history sweep fills
+missing positions. Matching cache entries are reused after the shared engine
+validates move history, rules, komi, and model identity. Current-session background
+analysis can supply its cache as well. Partial coverage is explicit, empty games
+have no ratings, and unresolved move-history reviews withhold player assessments.
+Closing scoring cancels the history worker; retry resumes after failures without
+changing moves, clocks or SGF results.
+
+`--score-overlay-test` now includes history-sweep, gap/perspective, weighted
+accuracy, legacy metadata, pass, cancellation, failure/retry, and recorded-game
+rendering regressions alongside the existing scoring and real-KataGo checks.
+
+## Physical AI practice (0.207)
+
+Setup → Play AI adds a separate, untimed game against local KataGo. Choose a
+9×9, 13×13 or 19×19 board, Black or White, Japanese or Chinese rules, komi,
+and either a HumanSL rank (20 kyu–9 dan) or Quick / Standard / Deep search effort.
+The default is approximate 5-kyu KGS-style play. Start verifies the empty physical
+board; human moves require fresh settled observations. The AI's pending move is
+shown with a blue ring and a coordinate in the current display orientation.
+The next turn waits for placement and capture removal. Positive board conflicts,
+ambiguous new locations, hands and stale frames cannot confirm a move. Limited
+uncertainty at previously verified, unchanged intersections can retain history.
+Ko, superko and suicide use the shared SGF engine with the chosen rules.
+
+Pause, pass, resign, end-without-result, restore and SGF export are supported.
+Two passes end without inventing a score. Games are independent of local camera
+recordings and OGS; each move checkpoints to Application Support/Physical Go/AI
+Games/current.json and a UUID-named SGF. The JSON is authoritative if export fails.
+Restart and mode changes require Resume and physical verification. Save errors
+pause play with Retry. A corrupted checkpoint is preserved and blocks replacement.
+
+`PhysicalAI.guidanceTarget` exposes session, move number, canonical camera-grid
+row/column, size and color while an AI placement is pending. Display rotation does
+not change its coordinates. It clears after confirmation, pause or game end.
+No servo transport or beam control is connected in this release. A future pointer
+adapter must separately enforce fresh camera alignment and hardware interlocks;
+a pending target by itself is not authorization to energize hardware.
+
+### Rank evidence and limits
+
+KataGo's [profile implementation](https://github.com/lightvector/KataGo/blob/v1.18.2/cpp/neuralnet/sgfmetadata.cpp#L196-L214)
+uses KGS as its source. Modern `rank_*` profiles use March 2020 metadata;
+`preaz_*` uses September 2016. These describe a model's reference population,
+not a certification of this opponent's present-day playing strength.
+
+The app follows the official [HumanSL play recipe](https://github.com/lightvector/KataGo/blob/master/docs/Analysis_Engine.md#human-sl-analysis-guide):
+load the normal and human models, request `rank_*` with real history and policy,
+sample legal non-pass moves from the raw human policy at temperature 1, and use
+normal KataGo (60 visits) only to decide when to pass. Search effort does not get
+relabeled as kyu/dan. Human mode does not select the normal engine's best placement.
+
+A [2024 experimental study](https://dspace.jaist.ac.jp/dspace/bitstream/10119/20012/1/T-IKEDA-K-0930-9.pdf)
+compared HumanSL profiles with GNU Go and Pachi. Always taking the highest-policy
+move was too strong, while proportional sampling was weaker than nominal ranks
+in the tested matchups. This app therefore labels rank as approximate, including
+high-dan profiles. It does not claim a calibrated tournament rating.
+
+The [2024 cross-system survey](https://forums.online-go.com/t/go-rankings-survey-feb-2024/50803)
+had 119 responses and includes KGS, Pandanet, AGA and EGF. Its fitted table is a
+rough historical guide: for example KGS 5k aligns with Pandanet 7k / AGA 7k,
+while KGS 1d aligns with Pandanet 1k / AGA 1d. These are survey estimates, not bot
+measurements or a universal fixed offset. The [2020 survey](https://ntust-mitlab.github.io/go-rank-survey-2020/go-rank-survey-results-2020)
+includes Japan but has only seven Japanese-rank responses; no automatic Japanese
+conversion is presented. The setup disclosure links these sources.
+
+### Model and verification
+
+Run `python3 PhysicalGo/scripts/prepare_human_model.py` to download/verify the
+94 MB official `b18c384nbt-humanv0.bin.gz` release asset. The pinned SHA-256 is
+`637746e44f0efe00ad1245a50aa9bbf0716efe364c43965ead97bd6835d84ab5`.
+The binary is ignored by Git and copied into the app by build.py. No API key or
+cloud inference is needed. Existing SGF Player engine/model preferences supply
+the normal KataGo configuration.
+
+Run `python3 PhysicalGo/build.py --ai-play-test --play-mode-test --online-test`
+for game lifecycle, physical confirmation, capture holds, stale results, save and
+restore, UI rendering and real KataGo/HumanSL smoke tests. These use synthetic
+observations and native rendering; they do not establish live camera recognition
+or laser accuracy on the user's physical board.
+
+
+### AI laser bridge and move-receipt timing (0.211)
+
+AI practice now shows elapsed time for each side. The AI's clock stops and the
+human's starts when the valid engine decision reaches the game; aiming and physically
+placing that stone consume the human's elapsed time. Placement confirmation does
+not reset the clock. These remain untimed practice games, without time-loss rules.
+
+Connect laser bridge opts into a local target/acknowledgement protocol. Hand entry
+or seeing either stone color at the target requests OFF, while stable stone/capture confirmation
+still controls progression. OFF acknowledgements and fresh dark frames are required
+before illuminated observations can be used as move evidence. The default is off;
+no hardware driver is auto-launched. A hardware-free simulator is included.
+Pointing first requires a positive empty-target reading captured after selecting
+that target. Replacement and re-show requests require fresh confirmed-dark evidence;
+prior targets cannot authorize pointing at a newly chosen intersection.
+The app also publishes a bounded feed of immutable, unrotated camera frames with
+matching timestamps and hand/alignment metadata. Hardware OFF replies must supply
+a frame watermark; callback-only timestamps additionally require a measured buffer
+allowance before stone evidence can be accepted.
+
+See [laser integration handoff](Documentation/laser-bridge.md) for commands,
+coordinates, positioning feedback, leases, camera ownership and the remaining
+laser-agent work. Current hardware commissioning demonstrates selected center and full-board sample
+points. Arbitrary-target calibrated gameplay is not yet enabled. The same handoff
+is copied into the authoritative DYNAMIXEL project's Firmware folder.
+
+Lights-on integration now has a live pilot: a real AI opening was communicated to
+AimControl v36 through the app-owned frame broker, optically refined to about
+1–2 pixels, and held until app Pause. Matching OFF confirmation, saved pending
+move, receipt-based elapsed clock, and controlled restart/resume were verified.
+Physical hand/stone/capture checks and broader target coverage remain pending.
+Version 0.211 also fixes a driver-status publication race that could falsely show
+a lost connection; its 53 laser/clock regression checks pass.
+
+
+### 0.252: capture guidance and camera restart consistency
+
+AI capture guidance now indicates legally captured stones individually and silently,
+after physical AI placement is confirmed. It retains placement/clock gates and
+requires positive dark observations; partial cleanup cannot turn a remaining
+prisoner into a new move. Complete cleanup plus an immediate legal human reply
+still works, including when the laser is disabled. The bridge explicitly advertises
+capture support; old backends receive OFF instead of an unsupported target.
+
+Ended AI games no longer constrain grid recovery with their archived stones.
+Unfinished/paused games retain their protection. Prepared camera pixels are keyed
+by stream epoch and frame ID, preventing old-stream pixels being paired with new
+metadata after a restart.
+
+Seven full application regression suites (590 checks), eight build-registry checks
+and 29 host tests pass. The signed update is installed; game/clocks were preserved
+and the selected camera was verified. Optical capture/centering and moved-setup
+laser calibration remain physically unvalidated. See the current
+[integration checklist](Documentation/IntegrationChecklist.md).

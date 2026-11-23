@@ -39,6 +39,13 @@ import SwiftUI
         let empty=BoardObservation(readings:(0..<361).map {IntersectionReading(row:$0/19,col:$0%19,occupancy:.empty,confidence:1,delta:0)},size:19)
         model.deliverLiveObservation(empty,now:10)
         precondition(model.onlineBoard.cells.isEmpty)
+        model.ai.draft.size=9
+        model.playMode = .ai
+        precondition(!model.onlineBoard.enabled && model.size==9 && model.recorder.sgf()==localSGF)
+        model.deliverLiveObservation(empty,now:11)
+        precondition(model.recorder.sgf()==localSGF)
+        model.playMode = .local
+        precondition(model.size==19 && model.recorder.sgf()==localSGF)
         model.playMode = .online;model.showDiagnostics=true
         let restored=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,recordingStorage:nil,settings:settings,diagnosticRoot:root)
         precondition(restored.playMode == .online && restored.onlineBoard.enabled && restored.showDiagnostics)

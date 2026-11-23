@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "purpose": "Offline regression for boundary-connected hand clearance; no exact original active checkpoint was retained.",
+  "limitations": [
+    "Tracker edge, center and absent learned color in the test are reconstructed sensitivity cases, not the historical runtime state.",
+    "beforeH11 is a laser dark photograph roughly 14 seconds before R13 placement and lacks Black H11; it is resampled using failure-photo calibration, not an archived frame-specific calibration.",
+    "replayBefore is much later than blockedPhoto and tests stale-reference sensitivity, not exact incident causality.",
+    "Test repeats sampled photographs with synthetic monotonic timestamps to isolate classification; it does not establish camera latency or historical clock times.",
+    "blur143 visibly contains a motion-blurred hand despite a missing pose. It must not be labeled clear."
+  ],
+  "samples": {
+    "replayBefore": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 120,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-120.json",
+      "label": "clear"
+    },
+    "replayClear": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 144,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-144.json",
+      "label": "clear"
+    },
+    "hand133": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 133,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-133.json",
+      "label": "visible hand (including blurred withdrawal)"
+    },
+    "hand135": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 135,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-135.json",
+      "label": "visible hand (including blurred withdrawal)"
+    },
+    "hand140": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 140,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-140.json",
+      "label": "visible hand (including blurred withdrawal)"
+    },
+    "hand142": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 142,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-142.json",
+      "label": "visible hand (including blurred withdrawal)"
+    },
+    "blur143": {
+      "recording": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332",
+      "frameIndex": 143,
+      "numericSource": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/export/sample-143.json",
+      "label": "visible hand (including blurred withdrawal)"
+    },
+    "beforeH11": {
+      "source": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/clearance-cause/before-h11/board.png",
+      "sha256": "1019848d0b710ed97fa8c029ab1b047e3abb47109bed025c48516584d270a6b9",
+      "label": "clear board; no hand intruding into the playing area"
+    },
+    "blockedPhoto": {
+      "source": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/board.png",
+      "sha256": "24269e6fd1d922924cd306681e9944a2f83737467424ef077fc699b9bdf2970f",
+      "label": "clear board; no hand intruding into the playing area"
+    }
+  },
+  "sha256": "cd0ddde4ff1d25eade6bcb7bb3d97c437c4932ff87efd983f4b1c0b1f13c36e8",
+  "learnedCheckpoint": {
+    "source": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/offline-replay/before-exit-checkpoint.json",
+    "description": "Checkpoint from retained-state offline replay after frame143, before frame144; the old tracker had not updated center/direction at missed blur143. Re-present blur143 to test retained learned appearance. Checkpoint does not store timing history or pending-clear times; test timestamps are synthetic."
+  }
+}

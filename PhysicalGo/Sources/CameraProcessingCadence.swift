@@ -4,7 +4,11 @@ import Foundation
 /// Clock snapshots are advanced on a copy so crossing five seconds does not
 /// depend on the next main-thread clock publication arriving in time.
 struct CameraProcessingCadence {
-    static func interval(clock:LocalClockEngine?,at now:Double)->Double {
+    static func interval(clock:LocalClockEngine?,at now:Double,laserGuidance:Bool=false)->Double {
+        guard now.isFinite else {return 0.2}
+        // The optical feedback stream needs fresh frames throughout AI play,
+        // including dark preparation. Recognition still retains only one latest input.
+        if laserGuidance {return 0.1}
         guard var clock,clock.running,now.isFinite else {return 0.2}
         clock.advance(to:now)
         guard clock.running else {return 0.2}

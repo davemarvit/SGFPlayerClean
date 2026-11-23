@@ -10,10 +10,8 @@ import Combine
     @Published private(set) var estimate:AIPositionSummary?
     @Published var session:LocalScoringSession?
     @Published private(set) var ownership:[BoardPosition:AIOwnershipEstimate]=[:]
+    @Published private(set) var projectedOwnership:[BoardPosition:AIOwnershipEstimate]=[:]
     @Published private(set) var likelyDead:[BoardPosition:Double]=[:]
-    enum BoardDisplay:String,CaseIterable {case estimate="AI territory",counted="Final count"}
-    @Published var boardDisplay:BoardDisplay = .estimate
-    var showsCountedTerritory:Bool {finalReview && boardDisplay == .counted}
     @Published private(set) var finalReview=false
     @Published private(set) var accepted=false
     @Published private(set) var visits=0
@@ -82,7 +80,31 @@ import Combine
     var displayedScoreLead:Double? {
         estimate?.blackScoreLead
     }
+    var projectedScoreDescription:String? {
+        guard let lead=displayedScoreLead else {return nil}
+        return lead==0 ? "Even game":"\(lead>0 ? "Black":"White") ahead by \(Self.points(abs(lead))) points"
+    }
+    /// Continuous ownership for the forecast board. Do not reuse the conservative
+    /// territory-count filter: moderate expectations must remain visible here.
+    /// Search disagreement softens the shading; this is not a calibrated probability.
+    static func territoryForecast(_ analysis:AIAnalysis,size:Int,playerToMove:Stone)->[BoardPosition:AIOwnershipEstimate] {
+        guard (2...19).contains(size),(analysis.rootInfo?.visits ?? 0)>=50,
+              let values=analysis.ownership,values.count==size*size,
+              values.allSatisfy({$0.isFinite && (-1...1).contains($0)}) else {return [:]}
+        let spread=analysis.ownershipStdev
+        if let spread,spread.count != values.count || !spread.allSatisfy({$0.isFinite && (0...1).contains($0)}) {return [:]}
+        var result:[BoardPosition:AIOwnershipEstimate]=[:]
+        for (index,value) in values.enumerated() {
+            let strength=abs(value)*(1-(spread?[index] ?? 0))
+            guard strength>0 else {continue}
+            result[BoardPosition(index/size,index%size)]=AIOwnershipEstimate(
+                color:value>0 ? playerToMove:playerToMove.opponent,strength:strength)
+        }
+        return result
+    }
     let background:PhysicalBackgroundAnalysis
+    let review=PhysicalGameReview()
+    private var reviewRequested=false
     init(background:PhysicalBackgroundAnalysis? = nil) {self.background=background ?? PhysicalBackgroundAnalysis()}
     private var lastAnalysis:AIAnalysis?
     private var requestedVisits:Int {finalReview ? 1000:300}
@@ -118,13 +140,19 @@ import Combine
     func open(recorder:GameRecorder,analyzeImmediately:Bool=true) {
         guard recorder.canScorePosition else {return}
         let cached=background.cachedAnalysis(for:recorder)
+        let historyCacheID=background.historyCacheID(for:recorder)
         let warm=background.takeWorker(for:recorder)
         background.stop();cancel()
-        finalReview=recorder.state == .finished;boardDisplay = .estimate
+        finalReview=recorder.state == .finished
         recorder.pause();recorder.clock.pause("Clock paused for scoring")
         usesLivePosition=recorder.hasDeferredMoves;approvedComponents=[]
         territoryCorrections=[:];markingTool = .deadGroups
         let position=recorder.scoringGame
+        review.prepare(game:recorder.game,
+                       cacheID:"physical-review-"+(recorder.autosaveURL?.path ?? recorder.scoringPositionKey),
+                       relatedIDs:historyCacheID.map {[$0]} ?? [],
+                       unavailableReason:recorder.hasUnfinishedReviews ? "Complete the move-history reviews to assess player accuracy and move quality." : nil)
+        reviewRequested=analyzeImmediately
         player=SGFPlayer();player.load(game:position);player.seek(to:position.moves.count)
         sourcePositionKey=recorder.scoringPositionKey
         sourceURL=recorder.autosaveURL;sourceMoves=recorder.moveCount
@@ -133,13 +161,13 @@ import Combine
         if usesLivePosition {
             session?.capturesByBlack=recorder.knownPrisoners.black;session?.capturesByWhite=recorder.knownPrisoners.white
         }
-        estimate=nil;lastAnalysis=nil;ownership=[:];likelyDead=[:];error=nil;accepted=false;visits=0;presented=true
+        estimate=nil;lastAnalysis=nil;ownership=[:];projectedOwnership=[:];likelyDead=[:];error=nil;accepted=false;visits=0;presented=true
         if let cached {receiveAnalysis(cached,allowInProgress:true)}
         // A continuous-search snapshot is already a valid score proposal. Do
         // not discard it merely because KataGo was still searching on AC.
         if analyzeImmediately && (!aiAvailable || visits<requestedVisits) {
             if let warm {continueSearch(warm)} else {analyze()}
-        } else {warm?.stop()}
+        } else {warm?.stop();if analyzeImmediately && aiAvailable {review.start()}}
     }
     func reviewFinal(recorder:GameRecorder) {
         guard matches(recorder),recorder.pendingMoveCount==0 else {return}
@@ -163,7 +191,8 @@ import Combine
                 guard let self,self.generation==identity else {return}
                 if let result=worker.analysis(at:index),let root=result.rootInfo,
                    root.visits>=target,self.receiveAnalysis(result,allowInProgress:true) {
-                    self.busy=false;worker.stop();self.warmWorker=nil;return
+                    self.busy=false;worker.stop();self.warmWorker=nil
+                    if self.reviewRequested {self.review.start()};return
                 }
                 if let failure=worker.failure {
                     self.error=failure;self.busy=false;worker.stop();self.warmWorker=nil;return
@@ -193,7 +222,8 @@ import Combine
             while !Task.isCancelled {
                 guard let self,self.generation==identity else {return}
                 if let analysis=worker.currentAnalysisData[index],self.receiveAnalysis(analysis) {
-                    self.busy=false;worker.stop();return
+                    self.busy=false;worker.stop()
+                    if self.reviewRequested {self.review.start()};return
                 }
                 if let error=worker.analysisError ?? worker.engineStartupError {
                     self.error=error;self.busy=false;worker.stop();return
@@ -211,13 +241,15 @@ import Combine
               analysis.ownership?.count==player.board.size*player.board.size else {return false}
         approvedComponents=[]
         lastAnalysis=analysis;estimate=summary;visits=root.visits
+        review.receive([player.currentIndex:analysis])
         ownership=AILikelyDeadStones.ownershipEstimates(analysis:analysis,size:player.board.size,playerToMove:player.turn)
+        projectedOwnership=Self.territoryForecast(analysis,size:player.board.size,playerToMove:player.turn)
         likelyDead=AILikelyDeadStones.strengths(analysis:analysis,stones:player.board.stones,size:player.board.size,playerToMove:player.turn)
         background.remember(analysis,positionKey:sourcePositionKey)
         if finalReview || usesLivePosition {applySuggestions(analysis)}
         return true
     }
-    static func makeWorker()->KataGoEngine {
+    static func makeWorker(humanModelURL: URL? = nil)->KataGoEngine {
         let defaults=UserDefaults(suiteName:"com.davemarvit.SGFPlayerClean")
         let executable=URL(fileURLWithPath:defaults?.string(forKey:"customKataGoPath") ?? "/opt/homebrew/bin/katago")
         let configuredModel=defaults?.string(forKey:"customAIModelPath").map {URL(fileURLWithPath:$0)}
@@ -227,7 +259,7 @@ import Combine
         let config=Bundle.main.url(forResource:"analysis",withExtension:"cfg")
             ?? URL(fileURLWithPath:#filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("SGFPlayerClean/Resources/analysis.cfg")
         let cache=FileManager.default.urls(for:.cachesDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/Scoring")
-        return KataGoEngine(executableURL:executable,modelURL:model,configURL:config,cacheDirectory:cache,legacyImportDirectories:[])
+        return KataGoEngine(executableURL:executable,modelURL:model,configURL:config,cacheDirectory:cache,humanModelURL:humanModelURL,legacyImportDirectories:[])
     }
     static func suggestedSession(_ original:LocalScoringSession,analysis:AIAnalysis,playerToMove:Stone)->LocalScoringSession {
         var proposed=original
@@ -303,5 +335,5 @@ import Combine
         session?.capturesByBlack=black;session?.capturesByWhite=white;approvedComponents.remove(.prisoners)
     }
     static func points(_ value:Double)->String {String(format:value.rounded()==value ? "%.0f":"%.1f",locale:Locale(identifier:"en_US_POSIX"),value)}
-    func cancel() {warmWorker?.stop();warmWorker=nil;task?.cancel();task=nil;engine?.stop();engine=nil;busy=false;generation=UUID()}
+    func cancel() {review.cancel();reviewRequested=false;warmWorker?.stop();warmWorker=nil;task?.cancel();task=nil;engine?.stop();engine=nil;busy=false;generation=UUID()}
 }

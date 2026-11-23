@@ -19,14 +19,17 @@ enum PhysicalPowerSource {
 }
 
 @MainActor protocol PhysicalBackgroundWorker:AnyObject {
+    var cacheID:String? {get}
     var failure:String? {get}
     func analyze(_ player:SGFPlayer)
     func analysis(at index:Int)->AIAnalysis?
     func stop()
 }
+extension PhysicalBackgroundWorker {var cacheID:String? {nil}}
 
 @MainActor private final class PhysicalKataGoBackgroundWorker:PhysicalBackgroundWorker {
     let engine=PhysicalScoring.makeWorker()
+    var cacheID:String? {engine.currentGameId}
     var failure:String? {engine.analysisError ?? engine.engineStartupError}
     init() {engine.currentGameId="physical-background-"+UUID().uuidString;engine.start()}
     func analyze(_ player:SGFPlayer) {
@@ -49,6 +52,7 @@ enum PhysicalPowerSource {
     private var failedKey:String?
     private var index=0
     private var latest:AIAnalysis?
+    private var historyCacheID:String?
     init(makeWorker:(()->any PhysicalBackgroundWorker)?=nil) {
         self.makeWorker=makeWorker ?? {PhysicalKataGoBackgroundWorker()}
     }
@@ -58,6 +62,10 @@ enum PhysicalPowerSource {
     func cachedAnalysis(for recorder:GameRecorder)->AIAnalysis? {
         guard key==Self.positionKey(recorder) else {return nil}
         return best(worker?.analysis(at:index))
+    }
+    func historyCacheID(for recorder:GameRecorder)->String? {
+        guard key==Self.positionKey(recorder) else {return nil}
+        return worker?.cacheID ?? historyCacheID
     }
     private func best(_ incoming:AIAnalysis?)->AIAnalysis? {
         guard let incoming else {return latest}
@@ -73,6 +81,7 @@ enum PhysicalPowerSource {
     func takeWorker(for recorder:GameRecorder)->(any PhysicalBackgroundWorker)? {
         guard key==Self.positionKey(recorder) else {return nil}
         if let value=worker?.analysis(at:index) {latest=best(value)}
+        if let id=worker?.cacheID {historyCacheID=id}
         let result=worker;worker=nil;running=false;return result
     }
     func refresh(recorder:GameRecorder,local:Bool,foreground:Bool,power:PhysicalPowerSource) {
@@ -114,5 +123,8 @@ enum PhysicalPowerSource {
         running=true
         status="Plugged in · AI analyzes the current position in the background."
     }
-    func stop() {worker?.stop();worker=nil;running=false}
+    func stop() {
+        if let id=worker?.cacheID {historyCacheID=id}
+        worker?.stop();worker=nil;running=false
+    }
 }

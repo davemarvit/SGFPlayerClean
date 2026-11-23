@@ -13,13 +13,14 @@ import ImageIO
             return .init(readings:readings,size:9,footprints:[.init(row:4,col:4,center:.init(x:4+dx,y:4+dy),radiusCol:radius,radiusRow:radius,quality:quality)])
         }
         for color in [Occupancy.black,.white] {
-            for (dx,dy) in [(0.32,0.0),(-0.36,0),(0,0.32),(0,-0.36),(0.28,0.28)] {
+            for (dx,dy) in [(0.32,0.0),(-0.36,0),(0,0.32),(0,-0.36),(0.28,0.28),(0.32,0.32),(0.44,0)] {
                 let observation=view(dx:dx,dy:dy,color:color)
                 check(observation.assignmentOffsets[40]==0,"Unique off-center disk was blocked")
                 check(abs(observation.placementOffsets[40]!-max(abs(dx),abs(dy)))<1e-8,"Raw displacement was hidden")
             }
         }
-        for observation in [view(dx:0.49),view(dx:0.42,radius:0.46),view(dx:0.32,dy:0.32),view(dx:0.32,quality:0.91),view(dx:0.32,confidence:0.9),view(dx:0.32,radius:0.3)] {
+        check(view(dx:0.42,radius:0.46).assignmentOffsets[40]==0,"Clearly nearest crossing near a strong disk rim was blocked")
+        for observation in [view(dx:0.49),view(dx:0.46),view(dx:0.44,radius:0.6),view(dx:0.44,quality:0.94),view(dx:0.44,confidence:0.94),view(dx:0.32,quality:0.91),view(dx:0.32,confidence:0.9),view(dx:0.32,radius:0.3)] {
             check((observation.assignmentOffsets[40] ?? 1)>=0.30,"Ambiguous or unsupported placement was cleared")
         }
         var conflict=view(dx:0.32);conflict.placementFits=view(dx:0.49).footprints

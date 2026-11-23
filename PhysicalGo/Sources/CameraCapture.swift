@@ -12,6 +12,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private let logger = Logger(subsystem: "com.davemarvit.PhysicalGo", category: "Camera")
     private var cadence=CameraProcessingCadence()
     private var timingClock:LocalClockEngine?
+    private var laserGuidance=false
     private var deliveryPending=false
     private var lastPTS: CMTime?
     private var health = CameraHealth()
@@ -30,9 +31,9 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private var observers = [NSObjectProtocol]()
     private var wakeObserver:NSObjectProtocol?
 
-    func setTimingClock(_ clock:LocalClockEngine?) {
+    func setTimingClock(_ clock:LocalClockEngine?,laserGuidance:Bool=false) {
         dispatchPrecondition(condition:.onQueue(.main))
-        queue.async { [weak self] in self?.timingClock=clock }
+        queue.async { [weak self] in self?.timingClock=clock;self?.laserGuidance=laserGuidance }
     }
 
     override init() {
@@ -201,7 +202,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let timestamp=CameraFrameTimestamp.make(sampleBuffer,clock:session?.synchronizationClock,arrival:now)
         if pts.isValid && !pts.isIndefinite, let previous = lastPTS, CMTimeCompare(pts, previous) <= 0 { return }
-        guard cadence.accept(at:now,interval:CameraProcessingCadence.interval(clock:timingClock,at:now)) else {return}
+        guard cadence.accept(at:now,interval:CameraProcessingCadence.interval(clock:timingClock,at:now,laserGuidance:laserGuidance)) else {return}
         let ci = CIImage(cvPixelBuffer: buffer)
         // Detach CGImage storage from the camera's buffer pool before retaining it in the UI.
         guard let image = context.createCGImage(ci, from: ci.extent, format: .BGRA8,

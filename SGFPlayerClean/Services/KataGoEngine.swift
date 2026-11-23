@@ -48,6 +48,7 @@ class KataGoEngine: ObservableObject {
     private let scheduler: OGSConnectionScheduler
     private let executableOverride: URL?
     private let modelOverride: URL?
+    private let humanModelOverride: URL?
     private let configOverride: URL?
     private let cacheDirectory: URL
     private let legacyImportDirectories: [URL]
@@ -56,10 +57,11 @@ class KataGoEngine: ObservableObject {
     private var assetSignature: String?
     private var assetIdentity: String?
 
-    init(executableURL: URL? = nil, modelURL: URL? = nil, configURL: URL? = nil, cacheDirectory: URL? = nil,
+    init(executableURL: URL? = nil, modelURL: URL? = nil, configURL: URL? = nil, cacheDirectory: URL? = nil, humanModelURL: URL? = nil,
          scheduler: OGSConnectionScheduler = OGSMainQueueScheduler(), legacyImportDirectories: [URL]? = nil) {
         executableOverride = executableURL
         modelOverride = modelURL
+        humanModelOverride = humanModelURL
         configOverride = configURL
         self.scheduler = scheduler
         #if SGF_OGS_REVIEW
@@ -92,7 +94,7 @@ class KataGoEngine: ObservableObject {
     /// Hash contents once per asset change, including replacements at the same path.
     /// Captured at process launch so an on-disk replacement cannot relabel old results.
     private func configuredEngineIdentity() -> String? {
-        let urls = [executableURL, modelURL, configURL]
+        let urls = [executableURL, modelURL, configURL] + (humanModelOverride.map {[$0]} ?? [])
         var signature = ""
         for url in urls {
             guard let url else { signature += "none;"; continue }
@@ -138,6 +140,7 @@ class KataGoEngine: ObservableObject {
         catch { engineStartupError = error.localizedDescription; return }
         p.currentDirectoryURL = work
         p.arguments = ["analysis", "-model", model]
+        if let humanModelOverride {p.arguments! += ["-human-model",humanModelOverride.path]}
         if let config = configURL {
             p.arguments! += ["-config", config.path]
         }
@@ -449,7 +452,7 @@ class KataGoEngine: ObservableObject {
     func analyzeGame(id: String, initialStones: [(color: String, x: Int, y: Int)],
                      moves: [(color: String, x: Int, y: Int)], size: Int = 19,
                      komi: Double = 6.5, maxVisits: Int = 100, settings: GameAnalysisSettings? = nil,
-                     backgroundTimeLimit: Double? = nil, continuous: Bool = false, requireOwnership: Bool = false) {
+                     backgroundTimeLimit: Double? = nil, continuous: Bool = false, requireOwnership: Bool = false, humanSLProfile: String? = nil) {
         dispatchPrecondition(condition: .onQueue(.main))
         let settings = settings ?? GameAnalysisSettings(rules: "chinese", komi: komi)
         guard id == currentGameId else { return }
@@ -464,6 +467,10 @@ class KataGoEngine: ObservableObject {
         // Automatic sweeps yield to an explicitly requested foreground search.
         guard continuous || continuousAnalysisTurn == nil else { return }
         guard var query = positionQuery(initialStones: initialStones, moves: moves, size: size, settings: settings) else { return }
+        if let humanSLProfile {
+            query["includePolicy"] = true
+            query["overrideSettings"] = ["humanSLProfile":humanSLProfile,"ignorePreRootHistory":false]
+        }
         let turn = moves.count
         var context = query
         context.removeValue(forKey: "moves"); context.removeValue(forKey: "analyzeTurns")
@@ -515,7 +522,8 @@ class KataGoEngine: ObservableObject {
             query["priority"] = 10
             query["reportDuringSearchEvery"] = 0.25
         } else if let seconds = backgroundTimeLimit {
-            query["overrideSettings"] = ["maxTime": max(0.1, min(12, seconds))]
+            var overrides=query["overrideSettings"] as? [String:Any] ?? [:]
+            overrides["maxTime"]=max(0.1,min(12,seconds));query["overrideSettings"]=overrides
             query["priority"] = -100
             query["reportDuringSearchEvery"] = 1.0
         }
@@ -760,42 +768,7 @@ private final class KataGoLineReader {
 }
 
 extension KataGoEngine {
-    /// Computes the winrate and score deltas for all historical moves analyzed so far to rank their quality
     func evaluateGameQuality(upTo maxIndex: Int, engine: SGFPlayer) -> [Int: MoveEvaluation] {
-        var evaluations: [Int: MoveEvaluation] = [:]
-        
-        // We need data for turn N and N+1 to evaluate the move made at N.
-        for t in 0..<max(0, min(maxIndex, engine.maxIndex)) {
-            guard let cur = currentAnalysisData[t]?.rootInfo,
-                  let next = currentAnalysisData[t+1]?.rootInfo,
-                  let player = engine.moveColor(at: t),
-                  cur.visits > 0, next.visits > 0,
-                  cur.winrate.isFinite, next.winrate.isFinite,
-                  (0...1).contains(cur.winrate), (0...1).contains(next.winrate),
-                  cur.scoreLead.isFinite, next.scoreLead.isFinite else { continue }
-            
-            let wPrev = cur.winrate
-            let wNext = next.winrate
-            
-            // KataGo winrate is strictly from the perspective of the player to move.
-            // At turn `t`, player `t` is about to move. Winrate for `t` is wPrev.
-            // At turn `t+1`, player `t+1` (opponent) is about to move. Winrate for opponent is wNext.
-            // So after player `t` moves, their resulting winrate is (1.0 - wNext).
-            // The value of their move is (1.0 - wNext) - wPrev.
-            let samePlayer = engine.playerToMove(at: t + 1) == player
-            let winDelta = (samePlayer ? wNext : 1.0 - wNext) - wPrev
-            
-            let sPrev = cur.scoreLead
-            let sNext = next.scoreLead
-            // Same perspective inversion logic for score.
-            let scoreDelta = (samePlayer ? sNext : -sNext) - sPrev
-            
-            let quality = MoveQuality.classify(winDelta: winDelta, scoreDelta: scoreDelta)
-            
-            evaluations[t] = MoveEvaluation(turn: t, quality: quality, winDelta: winDelta, scoreDelta: scoreDelta, player: player)
-        }
-        
-        return evaluations
+        AIGameQuality.evaluate(analyses: currentAnalysisData, upTo: maxIndex, engine: engine)
     }
 }
-

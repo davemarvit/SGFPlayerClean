@@ -227,10 +227,47 @@ enum BoardAppearanceDetector {
         return tested>=3 && supported*2>tested
     }
 
+    /// A current-image rim fit for a White whose reference pixels are already
+    /// pale. Requires a sharp, stone-sized boundary in all four quadrants;
+    /// smooth brightness changes and a few printed lines cannot supply it.
+    static func whiteRimFootprint(frame:GrayFrame,calibration:BoardCalibration,col:Int,row:Int)->StoneFootprint? {
+        var best:StoneFootprint?,bestScore = -Double.infinity
+        for dy in [-0.08,0,0.08] {for dx in [-0.08,0,0.08] {
+            var radii=[Double](),quadrants=[Int](repeating:0,count:4)
+            for sector in 0..<12 {
+                let angle=(Double(sector)+0.5)*Double.pi/6
+                var levels=[Double]()
+                for step in 2...6 {
+                    let c=Double(col)+dx+cos(angle)*Double(step)/10,r=Double(row)+dy+sin(angle)*Double(step)/10
+                    guard c>=0,r>=0,c<=Double(calibration.size-1),r<=Double(calibration.size-1),
+                          let level=frame.patchMean(calibration.point(col:c,row:r)) else {continue}
+                    levels.append(level)
+                }
+                guard levels.count==5 else {continue}
+                let drops=(1..<4).map {levels[$0]-levels[$0+1]}
+                let peak=drops.indices.max {drops[$0]<drops[$1]}!
+                let threshold=max(0.035,min(0.06,median(Array(levels.prefix(2)))*0.065))
+                if drops[peak]>threshold {
+                    radii.append(0.35+Double(peak)*0.1);quadrants[sector/3]+=1
+                }
+            }
+            guard radii.count>=10,quadrants.allSatisfy({$0>=2}) else {continue}
+            let radius=median(radii)
+            guard radii.allSatisfy({abs($0-radius)<=0.12}) else {continue}
+            let quality=Double(radii.count)/12,score=quality-0.1*hypot(dx,dy)
+            if score>bestScore {
+                bestScore=score
+                best = .init(row:row,col:col,center:.init(x:Double(col)+dx,y:Double(row)+dy),
+                    radiusCol:radius,radiusRow:radius,quality:quality)
+            }
+        }}
+        return best
+    }
+
     /// Positive current-image evidence: two printed rails cross a wood-colored
     /// interior. Unlike a reference contrast ratio, this survives a moved glare
     /// patch or different camera exposure. It never uses accepted game labels.
-    static func exposedWoodConfidence(frame:GrayFrame,calibration:BoardCalibration,col:Int,row:Int,bodyCenter:ImagePoint?=nil)->Double? {
+    static func exposedWoodConfidence(frame:GrayFrame,calibration:BoardCalibration,col:Int,row:Int,bodyCenter:ImagePoint?=nil,shadowNeighbors:[StoneFootprint]=[])->Double? {
         let cross=gridEvidence(frame:frame,calibration:calibration,col:Double(col),row:Double(row),relativeContrast:true)
         guard cross.horizontal>=0.75,cross.vertical>=0.75 else {return nil}
         var wood=[BoardChroma](),levels=[Double]()
@@ -248,22 +285,52 @@ enum BoardAppearanceDetector {
         // rails while leaving all four outer diagonal samples on exposed wood.
         guard !levels.isEmpty else {return nil}
         let minimumBody=median(levels)*0.75
+        // Only independently fitted neighboring bodies can exclude outer probes.
+        // The inner cross remains mandatory even when an adjacent stone leans in.
+        func neighborCovers(_ c:Double,_ r:Double)->Bool {
+            guard !shadowNeighbors.isEmpty else {return false}
+            let p=calibration.point(col:c,row:r)
+            guard let level=frame.patchMean(p),level<median(levels)*0.65 else {return false}
+            // patchMean averages a rounded 3x3 pixel area. An edge pixel can
+            // touch the neighboring body even when the patch center is outside.
+            let x=(p.x*Double(frame.width-1)).rounded(),y=(p.y*Double(frame.height-1)).rounded()
+            for dx in [-1.0,1] {for dy in [-1.0,1] {
+                if let g=calibration.gridPoint(for:.init(x:(x+dx)/Double(frame.width-1),y:(y+dy)/Double(frame.height-1))),
+                   shadowNeighbors.contains(where:{$0.contains(g,padding:0.04)}) {return true}
+            }}
+            return false
+        }
+        var maskedOuter=false
         let nominal=ImagePoint(x:Double(col),y:Double(row))
         let centers=(center.x==nominal.x && center.y==nominal.y) ? [nominal]:[nominal,center]
         for bodyCenter in centers {for radius in [0.12,0.18] {
             var body=[Double]()
             for dx in [-radius,radius] {for dy in [-radius,radius] {
-                if let level=frame.patchMean(calibration.point(col:bodyCenter.x+dx,row:bodyCenter.y+dy)) {body.append(level)}
+                let c=bodyCenter.x+dx,r=bodyCenter.y+dy
+                if radius==0.18,neighborCovers(c,r) {maskedOuter=true;continue}
+                if let level=frame.patchMean(calibration.point(col:c,row:r)) {body.append(level)}
             }}
-            guard body.count==4,body.filter({$0>=minimumBody}).count>=3 else {return nil}
+            let minimumCount=radius==0.18 && maskedOuter ? 2:4
+            guard body.count>=minimumCount,
+                  body.filter({$0>=minimumBody}).count>=min(3,body.count) else {return nil}
         }}
-        var matches=0
-        for dx in [-0.18,0.18] {for dy in [-0.18,0.18] {
-            if let color=frame.patchColor(calibration.point(col:Double(col)+dx,row:Double(row)+dy)),
-               color.magnitude>=0.035,wood.contains(where:{($0-color).magnitude<0.045 && color.magnitude >= $0.magnitude*0.65}) {matches+=1}
-        }}
-        return matches>=3 ? min(cross.horizontal,cross.vertical):nil
+        var matches=0,sampled=0
+        for radius in maskedOuter ? [0.12,0.18]:[0.18] {
+            for dx in [-radius,radius] {for dy in [-radius,radius] {
+                let c=Double(col)+dx,r=Double(row)+dy
+                if radius==0.18,neighborCovers(c,r) {continue}
+                sampled+=1
+                if let color=frame.patchColor(calibration.point(col:c,row:r)),
+                   color.magnitude>=0.035,wood.contains(where:{($0-color).magnitude<0.045 && color.magnitude >= $0.magnitude*0.65}) {matches+=1}
+            }}
+        }
+        guard sampled>=4,Double(matches)/Double(sampled)>=0.75 else {return nil}
+        // Both axes independently passed >=75%; the usable inner/outer body
+        // probes also passed. Score their combined rail support, not a missing
+        // outer probe covered by the independently observed neighboring stone.
+        return maskedOuter ? min(cross.fraction,Double(matches)/Double(sampled)) : min(cross.horizontal,cross.vertical)
     }
+
     struct GridEvidence {
         let horizontal:Double
         let vertical:Double

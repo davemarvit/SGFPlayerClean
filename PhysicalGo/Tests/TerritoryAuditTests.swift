@@ -30,9 +30,8 @@ import SwiftUI
     check(!scoring.canAccept,"Prisoner confirmation bypassed marking agreement")
     scoring.markingsConfirmed=true
     check(scoring.canAccept,"Agreed count cannot be saved")
-    scoring.boardDisplay = .counted
     // Actual 19x19 case, in the user's playing orientation.
-    let view=PhysicalScoringView(scoring:scoring,recorder:r,orientation:BoardOrientation(3))
+    let view=PhysicalAgreedScoreView(scoring:scoring,recorder:r,orientation:BoardOrientation(3))
     let host=NSHostingView(rootView:view.background(Color(nsColor:.windowBackgroundColor)))
     let window=NSWindow(contentRect:NSRect(x:0,y:0,width:930,height:860),styleMask:[.titled],backing:.buffered,defer:false)
     window.appearance=NSAppearance(named:.darkAqua);host.appearance=window.appearance;window.contentView=host;window.orderFront(nil);host.layoutSubtreeIfNeeded()

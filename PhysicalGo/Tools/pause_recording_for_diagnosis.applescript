@@ -15,6 +15,14 @@ tell application "System Events"
         end repeat
         if value of checkbox 2 of group 2 of s is 1 then error "Next-game recording remains armed."
         if value of checkbox 1 of group 2 of s is 1 then error "Continuous recording is still active."
+        -- AI setup has no local-game sound picker. The model persists this
+        -- setting immediately; avoid navigating a control that is absent when
+        -- warning feedback is already off.
+        set persistedSound to do shell script "/usr/bin/defaults read com.davemarvit.PhysicalGo PhysicalGo.soundMode 2>/dev/null || true"
+        if persistedSound is "off" then
+            click button 1 of group 1 of sheet 1 of window 1
+            return "Image saving and warning feedback are off. Game and clock state were not changed."
+        end if
         click radio button 1 of radio group 1 of group 1 of sheet 1 of window 1
         set g to group 1 of scroll area 1 of group 1 of sheet 1 of window 1
         if not (exists pop up button 1 of g) then

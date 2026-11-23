@@ -37,6 +37,11 @@ import Foundation
         check(rate(nil,0)==5 && rate(LocalClockEngine(),0)==5,"Disabled/local-clock-free capture should use normal cadence")
         check(rate(short,.nan)==5,"Nonfinite time entered urgent mode")
 
+        check(CameraProcessingCadence.interval(clock:nil,at:0,laserGuidance:true)==0.1,"AI laser feedback must request ten frames even without a local clock")
+        check(CameraProcessingCadence.interval(clock:LocalClockEngine(),at:0,laserGuidance:true)==0.1,"Dark/paused laser preparation must retain fresh cadence")
+        check(CameraProcessingCadence.interval(clock:nil,at:0,laserGuidance:false)==0.2,"Disconnecting laser must restore ordinary cadence")
+        check(CameraProcessingCadence.interval(clock:nil,at:.nan,laserGuidance:true)==0.2,"Laser cadence must reject invalid time")
+
         // A slightly jittered 30 fps source should yield the requested cadence,
         // not lose one whole source frame after each sampling deadline.
         for interval in [0.2,0.1] {

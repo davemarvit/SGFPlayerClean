@@ -3013,3 +3013,398 @@ Five-move SGF and exact held clock engine verified unchanged after normal shutdo
 and relaunch. Existing clock review remains for user confirmation, White next.
 Backup, original journal/sidecars, before-fix probe, regression logs and verification:
 `/Users/dave/Documents/SGF PLayer/work/clock-pause-2026-11-15`.
+
+### 2026-11-22 — OPEN: AI R13 false hand-obstruction latch
+
+Major reliability issue; camera restart was recovery only, not a fix. At move265
+White R13 (raw44) was visible but continuous `camera_hand_obstruction` prevented
+move inference. Saved photo has no hands; independent Vision replay returns a
+reliable empty hand list. White R13 is detected at confidence .8333 with circular
+fit quality .8333. The active outline tracker was the blocking layer. Its frozen
+background/checkpoint was not retained, so the exact foreground component and
+reason for failure to clear remain unproven. Do not relax hand interlocks or
+clear based solely on elapsed time or missing poses.
+
+Paused, restarted camera through existing controls, resumed: fresh frames were
+hand-clear/aligned, R13 accepted as move266, Black S8 replied as move267 with
+confirmed laser tracking. All preceding moves/timestamps were preserved. At
+user bedtime, paused game and disconnected laser; position saved for offline
+work. Evidence: /Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand.
+
+Next: persist bounded diagnostic tracker checkpoint/reason/component evidence
+without continuous image recording; reproduce the latch with actual before/after
+frames; fix clearance with positive visual evidence and regression tests that
+retain genuine stationary hands/fingertips. Test dense-board shadows and new
+stones together. Keep this issue open until that fix is demonstrated.
+
+AI end-game UI currently offers Resign (human resigns) or End without a result;
+there is no AI scoring UI. Two passes also save without an agreed score. Needed
+follow-up: optional KataGo position estimate, clearly distinct from an agreed
+final score, plus AI resignation support.
+
+#### R13 replay and delayed-clearance detection (0.248 candidate)
+
+Fresh 1920×1080 sample and a short placement recording were collected with game267
+paused and laser disabled. Only S8 and R13 were temporarily removed; the remembered
+S5/S4/S6 exchange was moves189–191 and remained in place. R13 was replaced. Saved
+game and clock JSON stayed identical. App/camera then closed; Dave is free to
+move equipment. Recalibration is required before further physical/laser tests.
+
+Replay archive (marked KEEP): `PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-22 03-21-22 4A607332`.
+It includes the starting frozen-reference checkpoint. Live replay cleared, but
+alignment disruption reset the tracker before withdrawal. Offline replay with
+retained state also cleared (frame143 first clear, frame144 confirmation).
+Replacing its final view with the original failure photograph also cleared.
+Thus the exact original incident has NOT been reproduced.
+
+A reconstructed-state sweep using the same clear failure photo and recorded
+background produced12 persistent false holds in56 combinations of remembered
+edge/lateral position and learned/unlearned hand appearance; all12 lacked a
+learned hand-color direction. This demonstrates a plausible failure mechanism
+in the conservative image-difference fallback, not proof of the original state.
+Do not describe this as an established root cause or permanent clearance fix.
+
+Added a suspected-stall detector: at least5seconds and10 fresh observations with
+a reliable clear hand pose while the active outline still obstructs. It changes
+only the warning and saves two bounded numeric replay snapshots (current/previous)
+on a background queue, independent of continuous image recording. Snapshots include
+frozen background, current samples, pose, outline state, calibration, game ID and
+move number. No automatic reset, move acceptance, clock change or laser enable is
+authorized by the timer. Genuine missed fingertips produce the same discrepancy;
+blind timeout/restart cannot be treated as proof of clearance. Current manual
+recovery is Camera & setup / camera controls / Restart camera after checking the
+board is clear. A positive visual recovery rule remains to be developed and tested.
+
+Validation/update: installed signed0.248/build249 without launching the app.
+269 outline checks,67 recorded-hand checks,28 photographed pipeline checks,
+bounded snapshot storage/rotation,148 AI checks including real KataGo/HumanSL,
+and7 build-registry checks passed. No game/clock JSON changes; laser confirmedOFF.
+Source backups, build/test logs and signature/source-hash verification are in
+`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/r13-hand/watchdog`.
+Clearance bug remains OPEN; this release detects/records the condition and provides
+manual restart guidance. It does not automatically clear an obstruction.
+
+### 2026-11-22 overnight R13 investigation: demonstrated boundary defect
+
+Further offline work found a concrete defect in the outline segmentation. A
+connected changed region needed nine solid-core pixels anywhere in that region.
+Those pixels could all belong to a bowl outside the board. Closing one-pixel gaps
+then joined that outside region to thin noise inside the guard, or to an isolated
+new stone. The region's deepest changed pixel kept an active hand track latched
+even when its solid evidence was entirely outside the playing area. A frozen
+background persists throughout an active track, so the same error repeats until
+something changes or restarting the camera discards the track/reference.
+
+A laser dark photograph saved roughly 14 seconds before the R13 placement gives
+a useful near-time comparison. With the original blocked photo and reconstructed
+unlearned appearance/right-edge states, the old code falsely holds two cases.
+Its false component has 11 solid pixels, all outside the board, with only a
+0.05-grid-unit incursion from thin boundary pixels. This demonstrates the defect
+on actual incident photographs. The exact original active tracker checkpoint was
+not retained, so this is evidence for the failure mechanism, not an exact forensic
+reproduction of that runtime state. The pre-H11 image also lacks H11 and is sampled
+using the failure image's calibration. The fixture records these limitations.
+
+The correction requires a continuous solid component crossing the relevant
+boundary, with its own support inside all four board bounds. A full core pixel
+inside the guard retains a narrow fingertip; a broad shallow intrusion can instead
+supply nine inside-core pixels. A few marginal pixels cannot borrow a bowl's
+outside solid area, and thin links cannot borrow an isolated stone's core.
+Two visual clear observations remain required. No elapsed-time reset or automatic
+camera restart proves clearance. The diagnostic watchdog remains in place.
+
+Safety checks exposed two additional weaknesses while testing that correction:
+
+- A verified white stone's expanded mask could hide a fingertip next to it. The
+  exclusion now stays within the actual fitted ellipse and requires each excluded
+  pixel to be bright and neutral; a visible white center alone does not exclude
+  adjacent hand-colored pixels. Pale/neutral fingertip variants are covered too.
+- Replay frame143 visibly contains a motion-blurred withdrawing hand although
+  its pose is empty. Contrary to the earlier replay interpretation above, this
+  frame is **not clear**. A lost color/location track now checks independent solid
+  paths from any boundary into the grid. This fallback requires support beyond a
+  single edge stone's footprint, preserving the older captured-corner-stone
+  removal test. Reacquisition drops the stale velocity fit and retains an observed
+  interval for clock timing. Near-black pixels still provide luminance evidence
+  when their chroma is unusable, retaining hands over black stones/dark sleeves.
+
+Permanent regression data are in `PhysicalGo/Tests/Fixtures/R13Clearance` with
+provenance and hashes. They cover the nearby pre-H11 reference, the much later
+replay reference as a stale-background stress case, the clear blocked photograph,
+five visible-hand/blurred-hand photographs, and actual clear withdrawal. Checkpoint
+edges/centers and timestamps in the sensitivity tests are deliberately synthetic.
+The old code fails 13 of the initial 137 photo checks; corrected code passes all
+144, including seven further retained-appearance/clock-bracket checks. All 328
+synthetic outline checks, 67 existing recorded-hand checks, and 28 complete
+photographed hand/stone pipeline checks also pass. Genuine fingertips, captured
+stone removal, camera gaps, duplicate frames, unreliable poses, and original clock
+uncertainty checks remain covered. No recording tail was trimmed: the short R13
+replay and its final withdrawal/clear-board evidence are retained under KEEP.
+
+The full retained-state replay now blocks visibly blurred frame143, records
+frame144 as the first clear view and confirms at frame145. Its clock estimate is
+the observed143-to144 bracket, not a stale extrapolation. Tracker processing alone
+took at most3.4ms across these36 replay observations (not a whole-camera-pipeline
+benchmark). The replay used saved images only and did not reopen the camera.
+
+Installed signed0.249/build250 without launch; source hash
+`294859bf7497df9b66dc15c7a997c4a0a7442cf31024f44642f26a6d2c125a76`.
+The demonstrated segmentation defect is fixed. Physical validation after
+recalibration remains required; do not describe this as proof
+that every possible clearance stall is eliminated. Game267, its timestamps and
+paused clocks must remain untouched. Dave is away and may rearrange equipment:
+leave the app/camera closed and laser disabled; install without launching.
+
+Final verification: 275 AI/laser protocol checks, 148 AI checks including real
+KataGo/HumanSL, bounded snapshot storage and seven build-registry checks passed.
+Installed signature/source hash verified; unrelated source files and saved game/
+clock JSON unchanged. App is not running, bridge reports laserOn=false/state=off,
+request=off/reason=disabled. No controller/firmware change. Evidence and installation
+verification are under `work/ai-laser-integration/r13-hand/clearance-cause` and
+`work/ai-laser-integration/installation-verification-0249.json`. Shared laser
+handoff updated; its response file has no new reply after Nov21 12:48:56.
+
+
+### 2026-11-22 fresh-board session: calibration and broker preparation backlog
+
+Dave cleared the board and moved equipment. Preserved the previous267-move game,
+clock snapshot and recognition trace in `work/ai-laser-integration/fresh-board-20261122-133741/saved-ai-game` before ending it without a result. New test game
+`3D20B55B-DBE7-42E1-847E-3B82E60FF65A` is paused at move0. Grid recovery initially
+continued to use the old AI stones even after ending the game; resetting the grid
+and starting the separate empty game allowed fresh automatic detection. This is
+not a hand-clearance failure. Independent printed-crossing refinement matched315
+points (median0.608px,p951.198px), visually checked against the empty board.
+
+Old bridge97644 had a stale USB handle after equipment reconnection. Stopped it,
+opened a fresh exclusively locked connection and confirmed v39OFF. First stationary
+PEEK was invisible because Dave's physical switch was OFF; after switching ON,
+a second4sPEEK was visibly around G13. Both ended in fresh OFF/STATUS confirmation;
+no motion was commanded. This is visibility only, not pointing calibration.
+
+Fresh broker-based commissioning then stopped before light when frame age exceeded
+600ms. Native0.249 displayed1.2–1.5s publication gaps; a2s profile sampled the
+laserFrames queue713/715times in prepare/PNG encoding. prepare() queued every
+analyzed frame independently, while the publication drain could encode those same
+frames itself. Old preparation closures accumulated and recompressed already
+published frames, delaying fresh manifests. Camera restart helped only briefly.
+
+Candidate0.250 bounds preparation to one newest pending frame, shares one drain
+with approved publications taking priority, and skips preparation already covered
+by a published frame. Same-frame safety verdict pairing, immutable images, epochs,
+hand/lighting gates,600ms age limit and hardware leases remain unchanged. A blocked
+encoder regression submits30newer frames and requires bounded encoding work plus
+the newest frame's own obstructed/invalid verdict. Full tests/build and live cadence
+verification are pending at this entry. Laser is OFF; optical calibration and0.249
+physical clearance validation remain pending. Session scripts/evidence are in
+`work/ai-laser-integration/fresh-board-20261122-133741` outside the repository.
+
+0.250/build251 installed with signed sourcehash
+`385057542a69db0a05d64072e635ba4a69f81dfcc913431f894e521aa08f44d2`.
+Deterministic30frame congestion reproduction: old32encodes,new2; newest frame and
+its own safety verdict retained.278laser lifecycle/protocol,328hand-outline,
+13Python bridge and7build-registry checks pass. Swift6.2.4 also required splitting
+the existing Checkpoint grouped property declaration; serialized fields and hand
+behavior unchanged. Saved new-game snapshot byte-identical through installation.
+Live0.250:147distinct frames in15seconds, max observed age0.256s, no stale/hand/
+alignment rejects (previous max1.516s). Physical laser calibration resumed with
+fresh broker frames; broader gameplay/clearance validation still pending.
+
+Nov22 optical commissioning update: center03 slow-mode K10 passed(2.015px).
+board01 passed D16/Q16/Q4 then stopped DARK with base_during_move; final v39OFF
+confirmed. Full new physical calibration/binding not yet admitted. Fast center02
+had tilt_moving2.545s after SETTLED; helper omitted the production bridge's measured
+hold recenter before PREPARE gain change. This is a plausible script-specific
+cause, not proof of hardware defect or general fast-mode unreliability. No motion
+guards changed. Dave prioritizes AI/online decision-to-first-light latency with
+fast approach then fine correction. Existing gameplay already uses this sequence;
+measure first-light and verified accuracy separately before optimizing.
+
+Nov22 timing preferences: Dave requests fast coarse gameplay movement followed by
+bounded fine correction, cue simultaneous with laser activation (no pre-cue wait),
+and accepts engaged motors during active play. Laser host candidate now dispatches
+preloaded audio with TRACK/SWEEP after all dark checks; no firmware/native changes
+for cue.61offline audio/adapter/measurement/runtime checks passed; acoustic/optical
+synchrony not yet physically verified. Production service remains stopped.
+Persistent dark holding needs a distinct app/bridge/firmware contract; existing
+OFF must remain a full shutdown.2hour thermal/current/noise validation pending.
+Historical86AI move timing audit median receipt-to-ON-ack~5.17s, only~.73s coarse
+travel,~1.80s ARM+HOLD. These are Nov21 historical data, not currentsetup latency.
+
+### November 22: maintained checklist and faster AI testing
+
+Dave requested a current document for the integration work list. Canonical status
+is now `IntegrationChecklist.md`, linked from README and AGENTS.md. No laser-agent
+acknowledgment is pending as a prerequisite: shared requests are advisory until
+ownership is acknowledged. Added centering-hint physical tests, capture-indicator
+implementation/tests (no capture target type exists yet), and a proposed45C warning/
+50C full-OFF thermal-test gate that must be implemented/verified before endurance.
+
+Fast AI test-mode candidate preserves selected opponent settings while using the
+existing Quick8visit realKataGo search without HumanSL and retaining its worker
+between replies. One-visit prototype returned no move in the actualengine test;
+changed to8visits before installation. Pause/fault/end release the worker; game
+history and physical confirmation/clock gates are unchanged. Mode is saved with
+the game and changed only while inactive/paused.0.251build252 verification pending.
+
+0.251/build252 installed and signature verified; sourcehash
+20f9afb79af5290a32457e01528784f01a58011ec234a60dc9cbd212f216b431.
+162AI checks including real8visit cold/warm moves and four HumanSL ranks passed;
+7build-registry tests and full signed build passed. Test19x19 replies: cold9.090s,
+warm0.170s; normal5kyu18.206s in same run. Testmode enabled through appUI on saved
+empty game; gameUUID, moves and clock JSON values unchanged. No gameplay resumed;
+bridge disabled and hardware off. Prior0.250bundle retained in session artifacts.
+Three offline agents now investigate motor faults, standby/thermal design and
+capture/centering guidance. Root remains sole hardware operator.
+
+Root dark-transition-zero-01 failed duringFASTARM beforeHOLD/anymovement:
+base_moving, gpio_high_ms0; freshOFFconfirmed. DIAG captured lastfirmwaresample
+base2422 tilt2143 v1=2 v2=0. Dave confirms untouchedequipment. Investigate startup/
+released-axis velocity before anothermovement test; no fast-mode-only conclusion.
+All3parallel offline reports complete; motoragent reviewingnewstartup evidence.
+Checklist adds online laserwiring gap discovered bycaptureaudit; no onlinephysical
+support claim merely from protocolaccepting sourceonline.
+
+Nov22 basic empty-board hand check: first45swindow notperformed (Daveconfirmed
+notyet). Secondguidedtest saw handObstructedtrue atframe6291, age.188s; later
+withdrawalcheck saw aligned/handfalse stable2s, clearimage visuallyverified.
+Gamepaused, beamOFF throughout. Evidence hand-entry-02.json,hand-withdrawal-02.json,
+hand-clear-02.{png,json} in sessionroot. No latencyclaim because observations were
+not continuous across operatorinstruction/polling gap. Still need stone-placement
+clearance and actual laser hand-shutoff test aftercalibration.
+
+Nov22 bounded read-only startup sampling completed (startup-readonly-01): temporary
+v40 returned30 complete axis samples, no drops, torque/startup/error/current all0,
+laser gpio_high_ms0. Acquisition windows0.574–2.541s after power-on. Base reported
+position2421–2422 and velocity0–2; tilt position2143/velocity0 throughout. This
+supports investigating low-speed measurement noise or tiny released-axis motion,
+but does not independently prove physical stillness or justify relaxing guards.
+Exact saved v39 binary restored with successful upload verification; fresh
+AimControl v39 OFF receipt saved in motor-startup-instrumentation/restore-v39.json.
+Production bridge remains stopped; game unchanged/paused; no further hardware
+run started. Dave requests plain-language explanations of diagnostic work.
+
+Nov22 stone-clearance-01 physical check: Dave placed a black center stone, held
+hand over board, withdrew, then removed it and withdrew again. Continuous broker
+observation saw handtrue at24.06s, clear31.71s with stone visible; handtrue41.36s,
+clear43.00s with board empty. Clear persisted afterward. This paused-game/beamOFF
+check passes the single-stone false-hand scenario; no live move/clock/beam-shutoff
+or exact physical withdrawal latency claim. Evidence stone-clearance-01 folder.
+Dave authorizes unattended heat work after software/short monitored hold gates;
+no further human-presence approval gate. Four-hour temporary caffeinate assertion
+started on AC; normal lock/screensaver settings unchanged. Hardware remainsOFF.
+
+Nov22 correction to startup-readonly-01 timing: actual cached D2A0.8.2/OpenRB
+SerialPortHandler::begin sets pin31HIGH and delays500ms. v40 then waited450ms
+before its explicitHIGH/timestamp. Thus recorded0.574–2.541s sample windows are
+relative to that later software timestamp, not first motor-power edge. Source
+path implies about3.54s powered for this completed run; no physical power-edge
+instrumentation exists. Prior3s bound claim was inaccurate. Raw evidence retained.
+No torque/goal/light commands were sent and v39 restoration/OFF remain verified.
+v41 heat candidate models actual libraryHIGH and starts absolute deadline before
+first powerHIGH. Source-ID correlation hardening also underway before admission.
+
+Nov22 thermal commissioning-01: independently reviewed privatev41 image
+7b53c37d.../binarydc169587... installed with upload verification.225native checks,
+25actual-library sanitized cases,17host tests and137pair simulated transcript
+passed before attempt. Actualhost stopped after~2.22s: thermal reports stopped
+advancing. Seq1complete at~1.452s (12/13C,0current/torque); seq3header~1.787s,
+axis1~2.051s, axis2notreceived before750ms complete-report deadline. No firmware
+fault reported; finalv41OFF clean. NoHOLD declaration or meaningful heat result.
+Exactv39rollback restored/verified and freshOFF saved thermal-host/
+restore-after-commissioning-01.json. Suspected delivery scheduling across slow
+real monitor/enable operations; offline reproduction with6ms bus transactions
+and70ms USB bounds underway. Do not increase freshness limits to force a run.
+
+Nov22 commissioning-02 privatev42 passed60.014s;184 validated pairs, heldphase
+54.85s; positions2422/2143 fixed throughoutheldsamples, max14C both axes,
+reportedcurrent max0/5mA; normalP2000/I0/D600 profile, cleanv42OFFreceipt.
+Source8397c408... binary3928df192...;225native+10timing+27reviewburst+17host checks,
+132pair realistic6msbus/70msUSB replay maxgap/sampleage510ms under750ms limit.
+Thermal-endurance-01 started16:16:08Pacific, finite7200s, expectedend18:16:08.
+RootrunnerPID21217, laserintrinsicallydisabled, productionbridgeSTOPPED,
+game0paused/preserved. Two-hour result pending; root monitors and restoresv39after.
+
+Nov22 endurance-01 finalizedstopped278.361s,864acceptedpairs, Hphase273.68s,
+maxreported16Cbothaxes,currentmax3/1mA,positions2422/2143fixed. No firmwarefault.
+Hosterror Thermal sample age invalid:-0.014s; fixed conversion from independent
+MCUelapsed to Macmonotonic drifted. Finalv42OFFconfirmed; exactv39rollback
+restored/verified and freshOFFreceipt thermal-host/restore-after-endurance-01.json.
+No2hresult, no coolingtransition. Do not widenfutureage tolerance; causalACK
+acquisition provenance design/review underway. Actualv42host/firmware artifacts
+archived separately before changes. Camera game/history/clocks unchanged.
+
+Nov22 v43 source01ac8652... binary9512cbab... reviewed independently;225native,
+37host andeight2h causal-clock simulations pass (worst670msunder750ms).
+Commissioning-03 passed60.022s/533pairs/504heldpairs,max14Cbothaxes,current0/1mA,
+heldpositions2422/2143fixed,maxhostcausalbound257.8ms,cleanv43OFF.
+Endurance-02 startedabout16:42Pacific,finite7200s,rootPID26775,execsession42915.
+Beam intrinsically disabled, productionbridgeSTOPPED,appgamepaused/preserved.
+Physical2hresult pending; restoreexactv39andfreshOFF afterward. No sourceedits
+or additional serialclients while active. Capturecandidate separatelyprepared,
+78Swift/29hostcheckspass; unapplied/uninstalled/unvalidatedphysically.
+
+Nov22 endurance-02 ended917.235s/8458pairs; observedheldphase911.834s,
+maximum16/17C,measuredcurrent3/11mAmax. Baseencoder2422fixed,tilt2143–2144;
+heldrawvelocities0/1only. Maxcausalage269.293ms/maxpairgap268.686ms, so clock
+correctionworkedthroughthisrun. Stop: genericcamera agegate (any4timestampages
+outside0–600ms); failedmanifest/whichage notretained, so producerdelay versus
+readerpreemption or inconsistenttime notyetestablished. No firmwarefault or
+coolingphase; no2hpass. Freshv43OFFthenexactv39rollback/uploadverified/freshOFF
+saved thermal-host/restore-after-endurance-02.json. HardwareOFF, gamepreserved.
+Rootnowpassivelylogsbrokeragefields, nohardwaretestorretry. Exacttestedhost
+archived thermal-host-tested-v43-endurance-02 beforeaddingdetailedgatefailurelogs.
+Capture/endedgamecandidatepatchesnowappliedtosource; fullappsuitesrunning,
+installedappremains0.251. No beamactivation.
+
+Nov22 passivecameraaudit afterendurance-02:600.06s/6000recordedobservations,
+zero failedpolls underunchanged0–600msagechecks. Maximumrecordedcaptureage
+514.3ms; samplingkeptnewframe/errorobservations, so thisis notmaxofallpolls.
+No hardwareinthisaudit. Heatstopnotreproducedandcauseunresolved; noidenticalretry.
+Separatelydeterministicbrokerresetcachebugreproducedandfixedinsource: cachekey
+nowstreamEpoch+frameID, so newepochmetadata cannotreuseoldepochpixels. Thisis
+notclaimedascauseofsame-epochheatstop. Fullappregressionrunsunderwayfor0.252.
+
+Nov22 PhysicalGo0.252/build253 signed/installed,sourcehash
+3c48d83c3f5bff55bc412be84e90aa05574c232d612b2ca906098b2430df55c7.
+Sevenfullappsuites/590checks passed:162AIincludingrealengine,278laser,16recovery,
+42capturestate,47capturecontract,37capturecontroller,8brokerepoch. Eightregistry
+and29hostchecks pass. Capturedstonepurpose/capability nowimplemented, silent,
+placementfirst, stablepositiveevidence andclocks preserved. Fullsuite caught
+blanketcapturepending blockingvalidcombinedcleanup+reply; fixedwithcurrent
+positiveprisoneremptyproof/priorremovalforreplyonprisonerpoint. Physicaltestspending.
+EndedAIgridrecoveryguard andepoch+frameIDpixelcachefix installed; no claimthat
+cachebugcausedsame-epochthermalstop. Postinstall151frames/15.07s,maxage.2446s,
+correct0x11000000bda0567camera,newstream5ED3968B-9FBA-4143-9DF3-3A026A3F0FBB,
+aligned/handclear/emptyboardvisuallyverified. CurrentgameJSONexactlyunchanged.
+Finalstate:gamepaused,fastmodeON,bridgecheckboxOFF/consumerSTOPPED,
+recording/warningsOFF,exactv39firmwarefreshOFF(final-v39-off.json).
+TemporarycaffeinatePID9545released. 0.251rollbackbundle retained insessionroot.
+Maintained IntegrationChecklist.md rewritteninreadablecurrentform; thermal2h,
+fullmovedsetuplasercalibration/liveclearance/capture/centering/online stillpending.
+
+Nov22 follow-up: Dave asks whether camera timestamp shutdown can be overridden.
+Verified endurance-02 elapsed917.235s (15m17s), holding~912s; no override occurred.
+Prepared explicit --stationary-dark-no-camera host option for private v43 only.
+Default still checks camera; opt-in omits camera loading/identity/alignment/hand/age
+checks, retaining current app OFF/no-target lease, cancellation/deadline, exactv43
+identity, fresh paired motor telemetry/ACKs and all intrinsic firmware protections.
+No production bridge or firmware changes. 20host +20independent protocol/transport
+tests pass. No hardware run started with this option; current v39 remainsOFF.
+Camera-gated optical gameplay still requires fresh camera evidence. The generic
+old camera error cannot establish which age check failed; ten-minute passiveaudit
+had zero failures, so this is neither a known periodic timeout nor proven resolved.
+
+November 22 — testing direction updated at Dave's request
+Dave prefers monitored gameplay with continuous holding and automatic cooling
+fallback; formal two-hour endurance is no longer a prerequisite. Track both
+motor temperatures during actual use and assess the observed trend/plateau.
+Immediate implementation gap remains gameplay standby + temperature supervision
+across firmware/bridge/app; private v43 heat firmware cannot play/illuminate and
+installed v39 has no equivalent runtime thermal monitoring. Do not claim hold
+is enabled merely because fast AI/capture guidance are installed.
+Next physical sequence: short hold/stop validation, fresh moved-setup calibration,
+ordinary fast-AI hand/stone recognition, ambiguous/off-center wiggle, controlled
+single/multiple capture markers with partial-removal and clock checks.
+Retain 45C cooling, both below40C for30s before persistent-hold recovery, 50C hard
+trip, failed/stale-reading shutdown, fullOFF for pause/fault/disconnect, and all
+optical camera/hand gates. No hardware action or software installation this update.

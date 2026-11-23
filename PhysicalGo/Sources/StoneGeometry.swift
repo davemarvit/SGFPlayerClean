@@ -242,10 +242,22 @@ enum StoneGeometry {
                        referenceCalibration:BoardCalibration,readings:[IntersectionReading],
                        blocked:Set<Int>,correction:Double,colorShift:BoardChroma?,samplingCenters:[ImagePoint]?=nil)->Result {
         guard let colorShift else { return Result(readings:readings,footprints:[]) }
-        var footprints=readings.filter{$0.occupancy.stone != nil}.compactMap {
-            fit($0,frame:frame,reference:reference,calibration:calibration,
-                referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift)
+        // Initial fits are independent immutable image calculations. Merge by
+        // original index so candidate order and tie-breaking remain identical.
+        // Bound concurrency; masks and contextual refinements below stay serial.
+        let candidates=readings.filter{$0.occupancy.stone != nil}
+        var fittedSlots=[StoneFootprint?](repeating:nil,count:candidates.count)
+        let workers=candidates.count>=8 ? min(4,ProcessInfo.processInfo.activeProcessorCount):1
+        let lock=NSLock()
+        DispatchQueue.concurrentPerform(iterations:workers) { worker in
+            var local=[(Int,StoneFootprint?)]()
+            for i in stride(from:worker,to:candidates.count,by:workers) {
+                local.append((i,fit(candidates[i],frame:frame,reference:reference,calibration:calibration,
+                    referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift)))
+            }
+            lock.lock();for (i,shape) in local {fittedSlots[i]=shape};lock.unlock()
         }
+        var footprints=fittedSlots.compactMap{$0}
         // Conflicting outlines are unsuitable as evidence about surrounding wood.
         let fitted=footprints
         footprints=fitted.enumerated().filter { i,a in

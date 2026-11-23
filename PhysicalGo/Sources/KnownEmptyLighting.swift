@@ -68,7 +68,22 @@ struct KnownEmptyLighting {
               position.count==raw.size*raw.size,raw.readings.count==position.count,
               raw.readings.enumerated().allSatisfy({$0.element.row==$0.offset/raw.size && $0.element.col==$0.offset%raw.size})
         else {reset();return raw}
-        if context != identity || expected != position {reset();context=identity;expected=position}
+        if context != identity || expected.count != position.count {reset();context=identity;expected=position}
+        else if expected != position {
+            // A legal move need not discard independent wood evidence across
+            // the board. Discard changed intersections and their immediate
+            // neighbors (stone edges/shadows); revalidate every retained patch.
+            let changed=position.indices.filter {expected[$0] != position[$0]}
+            func unchangedEmpty(_ p:Int)->Bool {
+                position[p] == .empty && expected[p] == .empty && !changed.contains {
+                    abs($0/raw.size-p/raw.size)<=1 && abs($0%raw.size-p%raw.size)<=1
+                }
+            }
+            entries=entries.filter {unchangedEmpty($0.key)}
+            challenged=challenged.filter {unchangedEmpty($0)}
+            expected=position
+            suspend()
+        }
         guard valid,!raw.lightingBlocked else {suspend();return raw}
         if let lastTime {
             guard now>lastTime else {return raw}
@@ -135,7 +150,8 @@ struct KnownEmptyLighting {
                     else {entries[p]=nil;challenged.insert(p)}
                 } else {entries[p]=Entry(patch:current,first:now,last:now)}
             }
-            if reading.occupancy == .uncertain,let entry=entries[p],entry.ready {
+            if (reading.occupancy == .uncertain || (reading.occupancy == .empty && reading.confidence<0.8)),
+               let entry=entries[p],entry.ready {
                 let difference=current.distance(to:entry.patch)
                 if difference.level<=entry.tolerance && difference.color<=0.012 && difference.center<=0.04 {
                     readings[p] = .init(row:reading.row,col:reading.col,occupancy:.empty,confidence:0.85,delta:reading.delta)
