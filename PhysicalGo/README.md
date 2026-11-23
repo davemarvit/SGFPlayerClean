@@ -8,6 +8,10 @@ Do not rely on it as your only tournament game record yet.
 
 ## Structure and maintenance
 
+Start a new chat or find the relevant subsystem in the
+[modular project guide](Documentation/AgentGuide/README.md). It covers capabilities,
+source entry points, rules and clocks, validation, and specific known problems.
+
 The current camera/AI/laser work list and test checkpoint are maintained in
 [Integration checklist](Documentation/IntegrationChecklist.md). Update it after
 meaningful implementation changes and physical tests.

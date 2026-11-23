@@ -222,9 +222,23 @@ struct PhysicalAILaserControls: View {
             HStack {
                 Toggle("Connect laser bridge",isOn:Binding(get:{laser.enabled},set:{laser.setEnabled($0)}))
                     .toggleStyle(.switch).fixedSize()
-                if laser.enabled,laser.suppressed {
-                    Button("Show point again") {laser.showAgain()}
+                if laser.enabled,laser.suppressed || laser.holdingInterrupted {
+                    Button(laser.controllerResetRequired ? "Recheck after reset":laser.holdingInterrupted ? "Retry laser":"Show point again") {laser.showAgain()}
                 }
+            }
+            if laser.enabled {
+                Toggle("Keep motors ready during play",isOn:Binding(get:{laser.standbyEnabled},set:{laser.setStandbyEnabled($0)}))
+                    .toggleStyle(.switch)
+                if laser.standbyEnabled {
+                    Text(laser.standbyAvailable ? "Active games only. Motors cool automatically; pausing releases them.":"Waiting for a driver with monitored motor holding.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text(laser.motorMessage).font(.caption)
+                    Text(laser.temperatureMessage).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+            if laser.controllerResetRequired {
+                Text("Controller stopped; reset required. Reset the controller and verify calibration before continuing. Rechecking does not reset the controller.")
+                    .font(.caption).foregroundStyle(.orange)
             }
             Text(laser.message).font(.caption).foregroundStyle(.secondary)
             if laser.recoveringCamera || laser.interrupted {

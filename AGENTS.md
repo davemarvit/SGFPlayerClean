@@ -25,6 +25,11 @@ Keep AUSDOM AF660 calibration separate from older zoomed iPhone 11 Pro Max data.
 
 # Camera/AI/laser work tracking
 
+Use `PhysicalGo/Documentation/AgentGuide/README.md` to get oriented in a new chat.
+Its task routes point to focused capability, subsystem and troubleshooting pages.
+Keep architecture/entry-point changes in the relevant guide page; the checklist
+below remains the authority for current implementation, installation and tests.
+
 Maintain `PhysicalGo/Documentation/IntegrationChecklist.md` as the current work
 list, as requested by Dave. Read it when continuing integration work and update
 it after meaningful changes or tests. Distinguish implemented, offline-tested,

@@ -3420,3 +3420,39 @@ were deleted. A separate verified firmware archive is retained under
 pre-gameplay-hold-checkpoint in the integration session directory.
 No hardware operation, software installation, or gameplay-holding code change
 was part of these checkpoints. Laser remains in the previously confirmed OFF state.
+
+November 22 — monitored gameplay candidate, root-owned commissioning
+Physical Go0.253/build254 is installed and signature/sourcehash verified
+(ce241953f14c58738578888ccd7ec9fb62b367f9644ed135ab999435510c0aba).
+Game JSON remains byte-identical, move0/clocks0, fastmodeON/paused. Broker enabled
+only to publish OFF/no-target evidence; production bridge remains STOPPED. Correct
+camera0x11000000bda0567/newstream15BBD21C-000D-471D-A8E2-F57D4EDE74F7, fresh
+aligned hand-clear empty-board image visually verified. No new optical binding.
+Root uploaded exact reviewed v44 binary83b04d6653e7f8b2fde1a5e98a8eeab5c32bee050a5f19273a3c0a37b5c63dc7
+withverify; freshv44OFF and exactCAPS confirmed. Originalv39 rollback verified.
+Root now owns finite dark-commissioning-01 (max40s), GA/SB hold/RS(no travel)/SB/OFF.
+No other serial clients or core-source edits permitted during this run. No beam
+or travel commands authorized by its fixedallowlist. Result pending in session
+gameplay-holding-validation/dark-commissioning-01; finalOFF proof required.
+Offline:8app suites+4finaltargeted suites passed; actualnative/host JSON bothways
+pass. v44 6686nativeassertions/24independentcases/567actualcoreCDCchecks and
+normal/cooling/±1% actualhostreplay pass without750ms widening.
+Faster broker-only v44 freshcalibration tool remains under independent review;
+legacy camera0/raw-v39 calibration paths must not be reused.
+
+November 22 — dark commissioning passed; attended calibration next
+Installed Physical Go 0.253/build 254 and reviewed v44 firmware. Dark commissioning
+completed in 19.3598 seconds: 143 paired reports, reported motor temperatures
+11–12°C, maximum causal sample age 148.183ms, fixed positions 2422/2143.
+Fresh final full OFF confirmed, no controller error; saved game byte-identical.
+This validates the short dark hold/reuse/stop sequence, not optical gameplay.
+The broker-only fresh calibration candidate passed 36 offline checks. Root owns
+all hardware. Dave confirmed presence for visible calibration; production bridge
+remains stopped and app paused. No fresh optical binding is active.
+Dave reports room temperature 61°F (16.1°C) and just raised the heating setpoint
+to 68°F (20°C). This is an environmental change, not a measured 68°F room reading;
+recorded motor temperature rise cannot be attributed solely to motor heating.
+Motor telemetry is not an independently calibrated ambient thermometer.
+Dave requests an audible beep whenever asked to locate a laser spot, dispatched
+with illumination without waiting for playback. Calibration cue support is being
+added before the first visible check. Absolute thermal policy remains unchanged.

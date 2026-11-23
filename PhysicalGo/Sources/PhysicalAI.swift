@@ -203,6 +203,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         } else {captureGuidance.clear()}
     }
     @discardableResult func start()->Bool {
+        defer {syncGuidance()}
         guard draft.valid,!loadFailed, !hasGame || phase == .finished else {return false}
         cancel();timing=PhysicalAITiming();verifiedCells=nil;verifiedCameraContext=nil;error=nil
         do {try save(Snapshot(id:UUID(),settings:draft));phase = .checking;status="Clear the board. Waiting for a verified empty position.";return true}
@@ -254,7 +255,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         recognitionTrace?.record(event)
     }
     private func clearCentering() {centeringStone=nil;centeringTarget=nil;centeringWitness=nil}
-    private func cancel() {captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering();generation=UUID();task?.cancel();task=nil;testWorker.stop();laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()}
+    private func cancel() {laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering();generation=UUID();task?.cancel();task=nil;testWorker.stop();laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()}
     private func observeCentering(_ observation:BoardObservation,ambiguous:Set<Int>,stamp:Double,now:Double) {
         guard centeringEnabled,laser.enabled,[.human,.checking].contains(phase),pendingPoint==nil,
               !captureCleanupPending,!captureGuidance.pending,let snapshot,!snapshot.moves.isEmpty else {clearCentering();return}
@@ -508,6 +509,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
     }
     private func syncGuidance() {
+        laser.setPlaySession(active ? snapshot.map {.init(source:"ai",session:$0.id,size:$0.settings.size)}:nil)
         if let s=snapshot,phase == .thinking {
             laser.prepareAlignment(session:s.id,moveNumber:s.moves.count+1,size:s.settings.size)
         } else if phase != .placing {laser.clearAlignmentPreparation()}

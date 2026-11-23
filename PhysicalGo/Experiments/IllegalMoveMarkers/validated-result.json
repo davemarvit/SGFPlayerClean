@@ -1,0 +1,38 @@
+{
+  "atUtc": "2026-11-23T06:15:57.810294+00:00",
+  "result": "PASS",
+  "checks": 83,
+  "hardware": false,
+  "productionEdits": false,
+  "installed": false,
+  "experimental": true,
+  "compiler": "Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)\nTarget: arm64-apple-macosx15.0",
+  "command": [
+    "xcrun",
+    "swiftc",
+    "-swift-version",
+    "5",
+    "-D",
+    "PHYSICAL_GO",
+    "-Onone",
+    "SGFPlayerClean/Models/OGSModels.swift",
+    "SGFPlayerClean/Models/OGSScoringState.swift",
+    "SGFPlayerClean/Models/SGFPlayerEngine.swift",
+    "PhysicalGo/.build/Experiments/IllegalMoveMarkers/PhysicalMoveInferenceFromSource.swift",
+    "PhysicalGo/Experiments/IllegalMoveMarkers/PhysicalIllegalMoveWarning.swift",
+    "PhysicalGo/Experiments/IllegalMoveMarkers/IllegalMoveWarningTests.swift",
+    "-o",
+    "PhysicalGo/.build/Experiments/IllegalMoveMarkers/IllegalMoveWarningTests"
+  ],
+  "sha256": {
+    "SGFPlayerClean/Models/OGSModels.swift": "cc4f3341d2a6ecea9902ac486e61cbb11ae96a47f21f760da66ee670adeee87d",
+    "SGFPlayerClean/Models/OGSScoringState.swift": "fb6b453bef99f5f80d1d869b9e3659d552a191462def526f78ad920085397373",
+    "SGFPlayerClean/Models/SGFPlayerEngine.swift": "824fa18cca8d452bbe96084c8866f644a26afa09f40cd0361abd8b7d3d5cdabe",
+    "PhysicalGo/.build/Experiments/IllegalMoveMarkers/PhysicalMoveInferenceFromSource.swift": "cce1d7fe08f0721c1655d84fa3002d4da4894dbb4596b80a67632d2afb974114",
+    "PhysicalGo/Experiments/IllegalMoveMarkers/PhysicalIllegalMoveWarning.swift": "fd341d226b31176d85cb9ef5cde971d30a2853e92fc434bd672dd036893fce91",
+    "PhysicalGo/Experiments/IllegalMoveMarkers/IllegalMoveWarningTests.swift": "24c1f70d8544dff7ae6fd676ee68852b5731a8961a24ed677e4cb1f6b696d465",
+    "PhysicalGo/Sources/PhysicalOnlineBoard.swift": "49d314b922b45f25de5bf2c52393f1810f4b03ca7d34e5f10e1484bca1ed2d6b",
+    "PhysicalGo/Experiments/IllegalMoveMarkers/run_tests.py": "2f4d020e1247bbd15c5ea8aee44ab3c207fe529434418f54498239ecd79d39da"
+  },
+  "inferenceExtraction": "Exact prefix before the Compact local history declaration; no model stubs."
+}
