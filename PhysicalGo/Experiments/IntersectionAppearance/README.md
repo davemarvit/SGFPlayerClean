@@ -109,7 +109,9 @@ and spatial coverage, not evidence that a new classifier should be deployed.
    low-contrast object. Separate grid-line visibility, chromaticity, shape,
    clipping/blur and local residuals. Broad smooth changes can be consistent
    with illumination; they do not prove absence of a hand or stone.
-5. Return `empty / black / white / unknown` plus visibility/context status.
+5. Return `empty / black / white / uncertain`, per-class confidence and the
+   selected-class confidence, plus visibility/context status. The historical
+   audit calls abstention `unknown`; the proposed contract uses `uncertain`.
    Explicit states should include occluded, clipped/glare, blurred, unsupported
    geometry and missing reference. Poor quality blocks a decision and learning.
    An expected or legal move may prioritize inspection, never provide its label.
@@ -125,10 +127,83 @@ and spatial coverage, not evidence that a new classifier should be deployed.
 
 A useful diagnostic row would contain `contextID, frameID, point, referenceID,
 referenceStateKnown, appearanceActuallyObserved, woodCorrection, featureVector,
-classDistances, visibility, abstentionReason, baselineCall, baselineScore,
-proposedCall, neighborEvidenceSource`. Record where features were sampled relative
+classEvidence, selectedClassConfidence, visibilityQuality, contextSupport,
+abstentionReason, baselineCall, baselineScore, proposedCall,
+neighborEvidenceSource, correlationFamilies`. Record where features were sampled relative
 to the fitted stone body and printed intersection. This makes a displaced stone,
 a changed light and a wrong class distinguishable in analysis.
+
+## Confidence contract for downstream combination
+
+Dave explicitly requested confidence in addition to the class. Include it from
+stage one; the fact that the present model is uncalibrated changes its meaning,
+not whether downstream receives useful graded evidence.
+
+| Field | Meaning now | Meaning after calibration |
+|---|---|---|
+| `classEvidence.empty/black/white.rawSupport` | Original feature distance, metric/version, units and direction. Preserve the actual measurement before any confidence transform. | Unchanged; retained for diagnosis and recalibration. |
+| `classEvidence.<class>.confidence` | A 0–1 **appearance-support score**, explicitly `uncalibrated`. For the existing model, `exp(-0.5 * distance²)` is its compatibility score. Higher means a closer feature match, not an observed correctness rate. | May additionally contain a calibrated class probability with calibration ID, target population and evaluation provenance. Never silently change the meaning of the existing support score. |
+| `selectedClassConfidence` | The selected class's confidence object, including support score and calibration status. | Also exposes its calibrated probability when applicable to this setup/domain. |
+| `bestSupportedClass` | Highest-support class, even when the final label is `uncertain`. | Still distinct from a decision that passes visibility/context requirements. |
+| `abstentionReasons` | Explicit reasons for `uncertain`: alternatives overlap, weak support, occlusion, insufficient context, invalid geometry, glare or stale data. | Retained; a strong class probability does not override inadmissible visibility/context. |
+| `visibilityQuality` | Separate status and a named quality score when measured; `null` if unmeasured. It describes whether pixels can support this decision, not which color is present. | Any calibrated visibility confidence has its own target and calibration. |
+| `contextSupport` | Whether reference, camera, geometry, exposure and appearance domain apply; include missing/mismatched fields and optional named support score. | Controls whether a fitted calibrator is applicable. Out-of-domain results lose calibrated-probability claims. |
+| `provenance` / `correlationFamilies` | Capture identity, epoch/frame/time, reference, setup, feature/model revision, dependencies and temporal episode. | Also identify calibration dataset/split/version, preserving shared dependencies. |
+
+A future `classProbability` should name its target explicitly: physical class
+conditional on an admissible view and the validated setup domain. Only a jointly
+calibrated three-class model may promise a normalized probability vector; a
+separate visibility or context score is not a fourth occupancy probability.
+
+The three current appearance-support scores **need not sum to one**. Several
+classes can fit poorly, or more than one can fit well. Normalizing those scores
+to sum to one would hide those cases; it would not calibrate them. Missing
+measurements are `null` with a reason, rather than zero, because missing evidence
+is different from evidence against a class.
+
+`uncertain` is an abstention, not a fourth physical stone state. Keep all measured
+class confidences when abstaining. `selectedClassConfidence` is then `null`, with
+an abstention reason, while the best-supported class and its confidence remain
+available. Do not invent a probability of being “uncertain.” A separate future
+confidence that the view is unusable would belong to visibility, with its own
+labels and calibration.
+
+[confidence-example.json](confidence-example.json) is an **illustrative design
+example**, not a measured frame or an implemented runtime API. It shows white
+appearance support of about 0.783 from distance 0.7, with class probabilities still
+`null`. In the same measurement, an occlusion finding would change the final
+label to `uncertain` and selected-class confidence to `null`; the three measured
+supports would remain in the log, visibility would say `occluded`, and downstream
+would receive `abstentionReasons: ["occluded"]`. A calibration failure that makes
+the sampling location invalid would instead mark the class measurements missing;
+old scores must not survive as if they described the current intersection.
+
+### How downstream can use it
+
+Initially, consumers can compare relative support, preserve weak alternatives,
+prioritize a new observation, or record disagreement. A score of 0.8 cannot be
+reported as “80% likely correct.” Selection thresholds and any downstream use
+remain separately evaluated; this contract does not activate a new move rule.
+
+Treat feature vectors derived from the same image/reference as a correlated
+family. Keep the production detector, appearance model, grid evidence and any
+other shared-pixel inputs together for a future jointly evaluated fusion model;
+do not multiply their confidences as though they came from independent sensors.
+Repeated adjacent frames also share a temporal episode. Explicitly retained
+provenance lets consumers deduplicate the same capture and recognize common
+reference or model failures. Disagreement is useful evidence, but agreement does
+not automatically increase confidence.
+
+For empirical calibration, split by complete episodes and camera/setup families:
+fit appearance parameters on training groups, fit confidence mapping/fusion on
+separate labeled calibration groups, and evaluate on untouched groups including
+a moved setup. No adjacent-frame random split or expected-move labels. For each
+class, retain reliability by score band, class errors, abstention coverage and
+occlusion failures, with episode-level uncertainty estimates and domain metadata.
+If there is too little independent evidence in a regime, keep its status
+`uncalibrated` or `unsupported` rather than publishing an unsupported probability.
+A later fused probability must itself be calibrated/evaluated; individually
+calibrated inputs do not make their arbitrary combination calibrated.
 
 ## Validation before any live use
 

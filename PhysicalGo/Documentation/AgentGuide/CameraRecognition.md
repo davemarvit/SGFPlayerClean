@@ -88,3 +88,9 @@ for the capability map, historical findings, November 4 archive coverage audit
 and proposed provenance/occlusion requirements. Historical gains do not establish
 hand clearance: the earlier offline proposal also resolved an occluded example
 to empty. Keep setup-specific references and unknown visibility explicit.
+
+The [proposed confidence contract](../../Experiments/IntersectionAppearance/README.md#confidence-contract-for-downstream-combination)
+includes raw per-class support, graded confidence with explicit calibration
+status, selected-class confidence and abstention reasons. Visibility/context
+quality and shared-image/reference provenance remain separate for downstream
+combination. The example is documentation only; no classifier is activated.
