@@ -25,6 +25,7 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'latency-trace-test': Suite('PhysicalLatencyTraceTests','standalone',('Tests/PhysicalLatencyTraceTests.swift',),extra=('Sources/PhysicalLatencyTrace.swift',),optimized=False),
     'calibration-progress-test': Suite('PhysicalCalibrationProgressTests','standalone',('Tests/PhysicalCalibrationProgressTests.swift',),extra=('Sources/PhysicalCalibrationProgress.swift',),optimized=False),
     'guidance-continuity-test': Suite('PhysicalAIGuidanceContinuityTests','app',('Tests/PhysicalAIGuidanceContinuityTests.swift',),optimized=False),
     'marker-scenarios-test': Suite('PhysicalMarkerScenarioTests','app',('Tests/PhysicalMarkerScenarioTests.swift',),optimized=False),

@@ -506,11 +506,18 @@ struct PhysicalAIGuidanceTarget: Equatable {
         timing.resume(at:now)
         if turn == human {phase = .human;status="Your turn · \(human.rawValue.capitalized) to play.";return}
         phase = .thinking;status=s.settings.fastTestMode == true ? "KataGo test move…":"KataGo is thinking…";let token=UUID();generation=token
+        let trace=PhysicalLatencyTrace.shared
+        let traceFields=["session":s.id.uuidString,"moveNumber":String(s.moves.count+1),"source":"ai","generation":token.uuidString]
+        trace?.record("ai_thinking_requested",fields:traceFields)
         task=Task { [weak self, generate] in
+            let began=ProcessInfo.processInfo.systemUptime
+            trace?.record("ai_engine_started",fields:traceFields)
             do {
                 let move=try await generate(Self.game(s),s.settings)
+                trace?.record("ai_engine_returned",fields:traceFields,metrics:["durationSeconds":ProcessInfo.processInfo.systemUptime-began])
                 guard let self,!Task.isCancelled,self.generation==token,self.phase == .thinking else {return}
                 let received=self.uptime(),receivedWall=self.wallTime()
+                trace?.record("ai_decision_received",fields:traceFields.merging(["decisionReceipt":String(receivedWall)],uniquingKeysWith:{$1}))
                 if move.lowercased()=="pass" {self.commit(nil,ai:true,at:received,receivedAt:receivedWall);return}
                 guard let point=Self.point(move,size:s.settings.size) else {self.fail("KataGo returned an invalid coordinate: \(move)");return}
                 self.commit(point,ai:true,at:received,receivedAt:receivedWall)
