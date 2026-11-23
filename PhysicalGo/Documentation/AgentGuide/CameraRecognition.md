@@ -77,3 +77,14 @@ Targeted suites include `--hand-outline-test`, `--hand-stall-storage-test`,
 and incident-specific fixture suites in [test_suites.py](../../scripts/test_suites.py).
 Use the recording that reproduced the defect rather than a visually similar
 unrelated image. Offline clearance success still requires a live hand/stone test.
+
+## Expected appearance at individual intersections
+
+The detector already compares local patches with an empty reference. The separate
+`StoneAppearanceModel` learns empty/black/white feature ranges from confirmed
+calibration photos and is currently an inspector, not a live recognition input.
+See the [offline appearance study](../../Experiments/IntersectionAppearance/README.md)
+for the capability map, historical findings, November 4 archive coverage audit
+and proposed provenance/occlusion requirements. Historical gains do not establish
+hand clearance: the earlier offline proposal also resolved an occluded example
+to empty. Keep setup-specific references and unknown visibility explicit.
