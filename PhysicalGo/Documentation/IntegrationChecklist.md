@@ -8,18 +8,18 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Dark return passed; fresh optical qualification is next.** After the
-  ambiguous spot in `validation-resume-01`, `dark-return-01` made one dark move
-  from measured [1625, 2321] toward the last observed [1728, 2275], settling at
-  [1728, 2277]. No illumination was requested. Full OFF confirmed
-  Unix1795469498.7246559 without a controller or supervisor fault. Source
-  `65e5fd4` and the return report are preserved; the new pose has not yet been
-  optically remeasured. Independent review of combined steering qualification
-  and failed-image retention passed at `bc713f8`; combined tests exposed three
-  outdated mock-collector errors, being repaired before physical use.
-  The next run must freshly measure position and both independent motor axes;
-  it cannot reuse the old local steering response as authority. All five fit
-  targets remain preserved and all nine independent validation targets remain.
+- **Latest physical run stopped fully OFF.** `validation-resume-02` on pushed
+  `6cf3c99` passed fresh position admission and both independent motor probes
+  (candidate displacement residuals 1.207 and 2.154 pixels). All 93 combined
+  offline tests passed without skips. Guarded A10 approach shrank to four/two
+  motor counts while still selecting the fast profile; repeated measured poses
+  showed no useful progress. No validation target completed. A separate serial
+  write completion deadline stopped the run after 123 total observations;
+  full OFF confirmed Unix1795470112.9394574, no controller fault, source inventory
+  unchanged. Last observed pose was [1720, 2274], board [1.88144, 9.12087].
+  The small-step profile fix and transport diagnosis are active offline.
+  Automatic retry correctly refused a transport fault. The original five fit
+  targets remain preserved, all nine accuracy targets remain, no binding active.
 - **Large-move diagnostics are planned, not yet run.** Record the first visible
   landing before correction, with the camera fixed, and compare distance,
   direction, diagonals and repeats. Begin with a six-move pilot after steering
@@ -89,7 +89,7 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** dark-return-01 confirmed fresh v44 OFF.
+- **Hardware is fully OFF:** validation-resume-02 confirmed fresh v44 OFF.
   Production bridge and calibration are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest

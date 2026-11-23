@@ -3919,3 +3919,18 @@ and flushed only after full OFF and worker shutdown. No new physical run yet.
 Large-move first-landing protocol86bf0b9 is pushed: fixed camera, six-move pilot,
 then optional distance/direction/diagonal/repeat/held-out transition campaign.
 It is a proposal, not an executor or physical validation. Root owns hardware.
+
+November 23 — steering probes passed physically; small-step profile mismatch found
+Combined source6cf3c99 is pushed;93 focused tests pass without skips after test-only
+mock repairs. validation-resume02 freshly admitted actual1728/2277 and qualified
+both axes: candidate displacement errors1.207/2.154px. Guarded A10 approach then
+shrunk to4pan/2tiltcounts while still selecting fast GOTO from the originalpixel
+error. Repeated actual1720/2274 observations demonstrated no useful progress;
+profile selection needs to use final guarded movement size and recheck fine-axis
+intermediates. Separate supervisor LaserTransportFault serial write completion
+exceeded deadline stopped the run. FullOFF1795470112.9394574, no controllerfault,
+source inventory unchanged; parent reapedexit1.123 totalsamples, no validation
+target completed. Automatic retry correctly refused the transport failure.
+ReportSHA4f5c7dc44dad52a9f42fd390e879e9b6b9f8f2aae42a860c6a6dc2918d1b5589.
+Fast-calibration agent owns isolated profile fix; transport reviewer investigates
+actualdeadline evidence offline. No new hardware attempt pending those findings.
