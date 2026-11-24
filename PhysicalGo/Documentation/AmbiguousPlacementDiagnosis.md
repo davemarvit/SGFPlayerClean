@@ -53,3 +53,16 @@ branch. For the baseline only, set `PHYSICAL_GO_EXPECT_AMBIGUITY_BUG=1` to prove
 that the archived bad placement is accepted while the legitimate placement also
 passes. Normal mode requires the fix. Tests use temporary game/bridge folders,
 an injected engine callback, and a disabled nonautomatic laser controller.
+
+## Narrow installed-baseline candidate
+
+Root applies this patch to `d5d84ef` as a separate0.256/build257 candidate.
+Before modification, the resolved Swift source hash exactly matched installed
+0.253: `ce241953f14c58738578888ccd7ec9fb62b367f9644ed135ab999435510c0aba`.
+This candidate does not include the staged0.254/0.255 recovery/progress changes.
+The new regression is registered as `--ai-ambiguous-placement-test`.
+
+The user's proposed stricter centering tolerance with marker guidance remains a
+separate preference, not a reason to accept ambiguous assignments with hints off.
+The earlier November16 parallax study remains offline; this patch does not
+implement stone-height correction or correct the optical center estimator.
