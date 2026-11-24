@@ -218,7 +218,7 @@ struct ExperimentView: View {
             }
             }
             if model.playMode == .ai {
-                PhysicalAIPlayView(ai:ai,orientation:model.orientation,boardHeight:boardHeight,cameraNotice:model.aiCameraNotice,practiceBoardSizeChanged:{size in
+                PhysicalAIPlayView(ai:ai,orientation:model.orientation,boardHeight:boardHeight,cameraNotice:model.aiCameraNotice,moveClick:model.aiMoveClick,practiceBoardSizeChanged:{size in
                     if model.size != size {model.size=size;model.boardSizeChanged()}
                 })
                 OccupiedReferenceControls(model:model)

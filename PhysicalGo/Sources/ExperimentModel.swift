@@ -12,7 +12,7 @@ enum PhysicalPlayMode: String, CaseIterable {
 @MainActor final class ExperimentModel: ObservableObject {
     private var occupiedReference=OccupiedReference()
     private var occupiedReferenceLoaded=false
-    private let opponentStoneAudio=StonePlacementAudio()
+    let aiMoveClick:PhysicalAIMoveClick
     private var occupiedReferenceFrame:(frame:GrayFrame,calibration:BoardCalibration,time:Double,identity:String,raw:BoardObservation)?
     @Published var occupiedReferenceStatus="No occupied reference captured."
     @Published private(set) var aiCameraNotice:String?
@@ -587,6 +587,7 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil, stoneSetLibraryURL:URL = StoneSetProfileStore.defaultLibraryURL, ai suppliedAI:PhysicalAI?=nil, onlineBoard suppliedOnlineBoard:PhysicalOnlineBoard?=nil) {
         self.ai=suppliedAI ?? PhysicalAI()
+        self.aiMoveClick=PhysicalAIMoveClick(settings:restoreViewSettings ? settings:nil)
         self.onlineBoard=suppliedOnlineBoard ?? PhysicalOnlineBoard()
         self.stoneSets=StoneSetProfileStore(fileURL:stoneSetLibraryURL)
         self.settings=settings;discoversCameras=discoverCameras
@@ -650,7 +651,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         }
         ai.laser.onTargetIndicated = { [weak self] _ in
             guard let self else {return}
-            self.opponentStoneAudio.play(volume:self.recorder.clock.sounds.volume)
+            self.aiMoveClick.indicate()
         }
         configureDiagnosticCollection()
         recorder.clock.onByoyomiPeriodChange = { [weak self] change in self?.capturePeriodChange(change) }

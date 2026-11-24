@@ -47,6 +47,7 @@ struct PhysicalAISetupView: View {
             PhysicalAILaserControls(laser:ai.laser)
             PhysicalAICenteringControls(ai:ai)
         }.disabled(ai.hasGame && ai.phase != .finished)
+        PhysicalAIMoveClickControls(click:model.aiMoveClick)
         PhysicalAITestModeControls(ai:ai)
         PhysicalAIPracticeControls(ai:ai,orientation:model.orientation) {size in
             if model.size != size {model.size=size;model.boardSizeChanged()}
@@ -59,6 +60,7 @@ struct PhysicalAIPlayView: View {
     let orientation: BoardOrientation
     var boardHeight:CGFloat=480
     var cameraNotice:String?=nil
+    var moveClick:PhysicalAIMoveClick?=nil
     var practiceBoardSizeChanged:((Int)->Void)?=nil
     @State private var ending=false
     @State private var confirmingLaserOff=false
@@ -112,10 +114,11 @@ struct PhysicalAIPlayView: View {
                 }
                 Text("Center dot: last move. Blue ring: AI move to place. Red ×: remove or correct. Games save automatically; two passes finish without assigning a score.").font(.caption).foregroundStyle(.secondary)
             } else {Text("Choose your settings in Setup, then Start AI game.")}
-            DisclosureGroup("Timing, laser hints & practice options") {
+            DisclosureGroup("Timing, sound & practice options") {
                 VStack(alignment:.leading,spacing:12) {
                     Text("Elapsed time · your clock starts when the AI move arrives, including aiming and placement. Captures of two or more stones pause the clock until placement and capture removal are confirmed. Single-stone captures keep the clock running.")
                         .font(.callout).foregroundStyle(.secondary)
+                    if let moveClick {PhysicalAIMoveClickControls(click:moveClick)}
                     PhysicalAICenteringControls(ai:ai)
                     PhysicalAITestModeControls(ai:ai)
                     PhysicalAIPracticeControls(ai:ai,orientation:orientation,boardSizeChanged:practiceBoardSizeChanged)
