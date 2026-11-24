@@ -26,7 +26,7 @@ offline verification, installation and physical validation.
   UI inspection and are not board evidence; use direct webcam frames for calibration.
   Reference image, grid and camera fields are unchanged; only savedAt refreshed.
 - **Latest laser check finished fully OFF; production bridge remains stopped.**
-  Reviewed host `42e5022` completed one attended stationary spot check using v44.
+  Reviewed host `ece72fa` completed the latest stationary spot check using v44.
   No GOTO/PTO/TTO travel was sent. Connect laser bridge is ON for passive webcam
   publication and app OFF/no-target requests; root is the sole serial owner.
   Diagnostic image saving/warnings remain off; bounded native timing logs are on.
@@ -42,12 +42,16 @@ offline verification, installation and physical validation.
   extra tilt probe). A10 passed at 1.111px. Toward K19, planned pose1860/2294
   passed at 2.919px prediction disagreement; actual settlement1860/2292 failed
   at 3.450899px. This is disagreement between predictions, not a measured aiming
-  error. No camera observation was taken at the final pose. Full OFF confirmed
+  error. A subsequent stationary check now measured actual1860/2292: frozen-model
+  prediction error1.46px versus old local estimate5.10px. That check finished
+  full OFF at Unix `1795494545.537726`. The earlier validation run confirmed OFF
   at Unix `1795493870.3991501`, no controller/thermal/timing fault. Maximum motor
   readings14/15°C; all six saved game files unchanged. No binding activated.
   All nine targets must be measured in a completed qualification run; eight were
   not reached here. `adaptive_calibration` owns settlement-aware planning,
-  `fast_calibration` runner integration, `dark_commissioning` independent review.
+  `fast_calibration` runner integration, `dark_commissioning` and architecture
+  reviewers. Optional shrinking alone is insufficient; bounded stationary
+  remeasurement/requalification is being implemented to restore camera feedback.
   [Laser checkpoint](LaserMovementCheckpoint.md).
 - Rollback and fresh stopped-app data backup:
   `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.

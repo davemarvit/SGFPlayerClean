@@ -140,3 +140,32 @@ requalification was subsequently implemented and physically entered; the later
 settlement-response disagreement still prevents full-board qualification. See
 [the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
 This does not authorize automatic retry or an occupied-board calibration run.
+
+
+## Prediction disagreement is not measured aiming error
+
+The camera outer loop already measures the spot and requests small corrections;
+the motors separately control their encoder positions. Calibration also compares
+a measured local response estimate against the frozen global model. Its3px
+consistency limit compares predictions, not actual target accuracy. A clean
+settlement can fail that check before the next camera measurement. Keep these
+meanings separate in logs and user explanations.
+
+November23 evidence: requested1860/2294 passednominal2.919px agreement, actual
+1860/2292 failed3.450899px. A separatelyadmitted stationary observation subsequently
+found the frozenprediction1.46px fromtheactualspot and thelocalestimate5.10pxaway.
+This was an intermediatewaypoint, not an intersectionaccuracytest.
+
+Generic observed-anchor requalification is implemented on laserbranch
+`codex/initial-spot-requalification` (`a84faa5`), independently34tests and a physical
+position/two-axis qualification pass. Default is qualification-only; explicit
+fullvalidation returns to the existing monitored-pose policy. Optional expected
+pose gate for initial-spot-only is on `codex/initial-spot-pose-gate` (`ece72fa`),
+54tests and stationaryphysicalpass. Neither activates a gameplaybinding.
+
+Settlement-aware goalshrinking and bounded observation-only recovery are being
+integrated separately. A more conservative optional proof must not silently
+become a new mandatoryphysicalguarantee: wholehold containment makes someedge
+checks impossible, although the baseline monitored-pose policy can testthem.
+See the currentchecklist for enabledsource and physicalresults; proposed recovery
+is not permission to retry controller, camera, hand or transport faults.

@@ -4463,3 +4463,41 @@ unstated prerequisite. Architecture review separately considers bounded static
 optical requalification after a healthy predictive-disagreement stop, so camera
 feedback may recover without treating an inaccurate prediction as a physical
 miss. This is a proposal, not an enabled controllerfaultretry or guard waiver.
+
+
+## November 23 — final settlement observed; local prediction was less accurate
+
+Root added optional --initial-spot-expected-pose PAN TILT on isolated hostbranch
+codex/initial-spot-pose-gate, commitece72fa, pushed.54 calibrationtests pass
+independently; one oldMock diagnostic fixture was corrected to return a list.
+FreshheldPOSE must be within3counts/axis beforePREPARE; wrongmode/domain rejects
+beforehardware. No travel allowed. Independent optical-only containment of
+expected1860/2292±16 hadminimum169.502px predictedmargin acrossall3hypotheses.
+This is not steering consistency or a bound on allphysicalmodelerror.
+
+initial-spot-02 passed: actual1860/2292 exactly, newreferencepixel758.07776/398.88571,
+board4.338206/7.025124. Root viewed directwebcam spot. FullOFF1795494545.537726,
+85thermalpairs,maxima12/12C, noerrors; sources and6savedgamefiles unchanged.
+No GOTO/PTO/TTO travel; no new binding. RawreportSHA
+bb938bc23833cd6cedb3942d4132b3609953d48b7583d31a9267cdcc3110d4b8.
+
+Genericregisteredanchor loader accepts this report unchanged. Originalframe
+pixel757.97327/398.66919; registrationECC.990852,335inliers,72boundarychecks,
+maxcorner1.390px. At this actualpose oldlocal predictionerror5.10239px,
+anchor-relative frozenpredictionerror2.34640px, absolute frozenmodelerror1.46193px.
+Frozenmodel motorresidual.75718counts. Includesregistrationuncertainty; no fit
+or claim of targeting an intersection (this was an intermediate waypoint).
+
+Dave asked whycamera feedback could not slowlydialin. Motors alreadyhaveposition
+feedback andcamera alreadyhasfinecorrection; the separate3px prediction-agreement
+gate interrupted beforeseeingtheactualspot. Newstrict settlementregionplanner
+alone cannotfixthis: it canrejectevenfresh2axisJ. Root/dark/architecture selected
+optional anticipatorygoalshrink, withtypedunavailabilityfallingbackto unchanged
+baselineguardedproposal. Ordinarynominal/actual3px/5px guards remain. Only a
+cleanfirstcoarseSETTLED prediction-disagreement may enter newboundedstationary
+opticalrecovery: suspendsteering, separatelyadmitoneactualgoalprime, proveheld
+geometrycontainment, normalcamera measurement/DARK, thenfresh2axisqualification.
+Oncepertarget/twiceperrun, originaldeadline/model preserved; allfirmware/camera/
+hand/lease/transportfaultsterminal. Fastauthor implementing; architecture/dark
+reviewers. Notyet physicallyvalidated or enabled. Strictplanner purehelper
+d72f034 has15reviewedtests; source remainsisolated, nohardwareauthority.

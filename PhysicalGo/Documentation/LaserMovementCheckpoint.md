@@ -3,7 +3,11 @@
 **Current followup — recovery and A10 passed, next settlement stopped:**
 Hosta84faa5 requalified fresh position/two-axis response and measured A10 within
 1.111px. PlannedGOTO1860/2294 passed2.919px prediction agreement; actual1860/2292
-failed3.450899px. Last optical pose1832/2290; the final pose has not been observed.
+failed3.450899px. The final pose was not observed during that run. Subsequent stationary
+`initial-spot-02` now verified1860/2292, original-frame pixel757.97327/398.66919.
+The frozen model was1.46px from observation; the old local estimate was5.10px
+away. That latest check finished fullOFF1795494545.537726, rawreportSHA
+`bb938bc23833cd6cedb3942d4132b3609953d48b7583d31a9267cdcc3110d4b8`.
 FullOFF1795493870.3991501, maximum temperatures14/15°C, no controller/timingfault,
 source and saved games unchanged. Eight targets not reached; no binding.
 Settlement-aware planning is now being repaired. The observed-anchor recovery
