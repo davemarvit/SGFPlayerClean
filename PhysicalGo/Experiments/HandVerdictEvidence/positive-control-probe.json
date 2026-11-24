@@ -1,0 +1,525 @@
+{
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.35779464799826788,
+        "y" : 0.099911208785842948
+      },
+      {
+        "x" : 0.8077044930769286,
+        "y" : 0.13394498561541004
+      },
+      {
+        "x" : 0.79883026052236117,
+        "y" : 0.91344576686625689
+      },
+      {
+        "x" : 0.31550657798559845,
+        "y" : 0.84459767546332853
+      }
+    ],
+    "h" : [
+      0.41881822944914532,
+      -0.064323124102642723,
+      0.35779464799826788,
+      0.02887772527364409,
+      0.68569956509868668,
+      0.099911208785842948,
+      -0.038493800512453206,
+      -0.069840236709673598
+    ],
+    "size" : 19
+  },
+  "grantsMotion" : false,
+  "inputSHA256" : "796846d25a38762daa3007f78fd9e2463005ddd65ce897b9a39373fecd83aa8e",
+  "kind" : "offline_saved_snapshot_probe",
+  "label" : "Known photographed placing-hand positive control A18",
+  "limitations" : [
+    "Repeated saved photos and synthetic times; not the original temporal sequence.",
+    "Known-clear reference assumption, empty expected board, fresh tracker initialization.",
+    "Uses supplied calibration without native grid tracking; no alignment qualification is inferred.",
+    "Native hand\/lighting state, camera reference, threshold, expected board and exact stop pixels may differ.",
+    "Apple Vision is evaluated on this OS\/runtime now, not a stored historical model output."
+  ],
+  "reference" : "\/Users\/Dave\/SGFPlayerClean-worktrees\/hand-verdict-evidence\/PhysicalGo\/Tests\/Fixtures\/A18HandOutline\/reference.png",
+  "referenceSHA256" : "c9cb45072f150d090327593b7d969774033df8992cc530e4d8c00552d6f83192",
+  "rows" : [
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.20000000000000001
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.40000000000000002
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.60000000000000009
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : false,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "obstructed" : false,
+        "poseLost" : false,
+        "reason" : "Clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.80000000000000004
+    },
+    {
+      "detectedNonemptyPoints" : 52,
+      "exposureFailure" : false,
+      "handObstructed" : true,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "edge" : 0,
+        "obstructed" : true,
+        "poseLost" : false,
+        "reason" : "Hand outline uncertain; waiting for visual clearance"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+          [
+            {
+              "confidence" : 0.4609375,
+              "id" : "VNHLKRTIP",
+              "x" : 15.319504621777146,
+              "y" : -1.4795024078093484
+            },
+            {
+              "confidence" : 0.295166015625,
+              "id" : "VNHLKIMCP",
+              "x" : 15.011362445897648,
+              "y" : -2.9690774082134497
+            },
+            {
+              "confidence" : 0.37060546875,
+              "id" : "VNHLKTIP",
+              "x" : 16.783226686824129,
+              "y" : -1.9907307379602388
+            },
+            {
+              "confidence" : 0.310546875,
+              "id" : "VNHLKIDIP",
+              "x" : 14.47152870609025,
+              "y" : -1.9524572431459335
+            },
+            {
+              "confidence" : 0.57177734375,
+              "id" : "VNHLKPMCP",
+              "x" : 12.902426722941893,
+              "y" : -2.7856643753978809
+            },
+            {
+              "confidence" : 0.440673828125,
+              "id" : "VNHLKIPIP",
+              "x" : 15.192869827589485,
+              "y" : -2.5714721427867189
+            },
+            {
+              "confidence" : 0.673828125,
+              "id" : "VNHLKTCMC",
+              "x" : 16.028866103782107,
+              "y" : -2.7731535708896904
+            },
+            {
+              "confidence" : 0.79248046875,
+              "id" : "VNHLKMDIP",
+              "x" : 14.950843263885252,
+              "y" : -0.835015920309782
+            },
+            {
+              "confidence" : 0.81982421875,
+              "id" : "VNHLKMPIP",
+              "x" : 15.073033193854615,
+              "y" : -2.0989811180984268
+            },
+            {
+              "confidence" : 0.95263671875,
+              "id" : "VNHLKMTIP",
+              "x" : 14.523687714326154,
+              "y" : 0.016238948611917329
+            },
+            {
+              "confidence" : 0.8515625,
+              "id" : "VNHLKRPIP",
+              "x" : 15.105794904864833,
+              "y" : -2.857008908072082
+            },
+            {
+              "confidence" : 0.525390625,
+              "id" : "VNHLKRDIP",
+              "x" : 15.444203851332897,
+              "y" : -2.3708658940183058
+            },
+            {
+              "confidence" : 0.430908203125,
+              "id" : "VNHLKITIP",
+              "x" : 13.108071779884014,
+              "y" : -0.71869216481820497
+            },
+            {
+              "confidence" : 0.69091796875,
+              "id" : "VNHLKRMCP",
+              "x" : 14.26168009579321,
+              "y" : -2.8928777961470913
+            },
+            {
+              "confidence" : 0.74365234375,
+              "id" : "VNHLKPTIP",
+              "x" : 13.660577525141809,
+              "y" : -0.64156893406117477
+            },
+            {
+              "confidence" : 0.487060546875,
+              "id" : "VNHLKTMP",
+              "x" : 16.578530916119355,
+              "y" : -2.4884076418345487
+            },
+            {
+              "confidence" : 0.7216796875,
+              "id" : "VNHLKMMCP",
+              "x" : 14.501492486425626,
+              "y" : -2.8931301602309003
+            },
+            {
+              "confidence" : 0.58740234375,
+              "id" : "VNHLKWRI",
+              "x" : 13.152781679461947,
+              "y" : -2.2692954644469903
+            }
+          ]
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : true,
+      "syntheticTime" : 1
+    },
+    {
+      "detectedNonemptyPoints" : 52,
+      "exposureFailure" : false,
+      "handObstructed" : true,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "edge" : 0,
+        "obstructed" : true,
+        "poseLost" : false,
+        "reason" : "Hand outline uncertain; waiting for visual clearance"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+          [
+            {
+              "confidence" : 0.37060546875,
+              "id" : "VNHLKTIP",
+              "x" : 16.783226686824129,
+              "y" : -1.9907307379602388
+            },
+            {
+              "confidence" : 0.57177734375,
+              "id" : "VNHLKPMCP",
+              "x" : 12.902426722941893,
+              "y" : -2.7856643753978809
+            },
+            {
+              "confidence" : 0.58740234375,
+              "id" : "VNHLKWRI",
+              "x" : 13.152781679461947,
+              "y" : -2.2692954644469903
+            },
+            {
+              "confidence" : 0.74365234375,
+              "id" : "VNHLKPTIP",
+              "x" : 13.660577525141809,
+              "y" : -0.64156893406117477
+            },
+            {
+              "confidence" : 0.8515625,
+              "id" : "VNHLKRPIP",
+              "x" : 15.105794904864833,
+              "y" : -2.857008908072082
+            },
+            {
+              "confidence" : 0.487060546875,
+              "id" : "VNHLKTMP",
+              "x" : 16.578530916119355,
+              "y" : -2.4884076418345487
+            },
+            {
+              "confidence" : 0.95263671875,
+              "id" : "VNHLKMTIP",
+              "x" : 14.523687714326154,
+              "y" : 0.016238948611917329
+            },
+            {
+              "confidence" : 0.81982421875,
+              "id" : "VNHLKMPIP",
+              "x" : 15.073033193854615,
+              "y" : -2.0989811180984268
+            },
+            {
+              "confidence" : 0.7216796875,
+              "id" : "VNHLKMMCP",
+              "x" : 14.501492486425626,
+              "y" : -2.8931301602309003
+            },
+            {
+              "confidence" : 0.525390625,
+              "id" : "VNHLKRDIP",
+              "x" : 15.444203851332897,
+              "y" : -2.3708658940183058
+            },
+            {
+              "confidence" : 0.430908203125,
+              "id" : "VNHLKITIP",
+              "x" : 13.108071779884014,
+              "y" : -0.71869216481820497
+            },
+            {
+              "confidence" : 0.69091796875,
+              "id" : "VNHLKRMCP",
+              "x" : 14.26168009579321,
+              "y" : -2.8928777961470913
+            },
+            {
+              "confidence" : 0.4609375,
+              "id" : "VNHLKRTIP",
+              "x" : 15.319504621777146,
+              "y" : -1.4795024078093484
+            },
+            {
+              "confidence" : 0.79248046875,
+              "id" : "VNHLKMDIP",
+              "x" : 14.950843263885252,
+              "y" : -0.835015920309782
+            },
+            {
+              "confidence" : 0.295166015625,
+              "id" : "VNHLKIMCP",
+              "x" : 15.011362445897648,
+              "y" : -2.9690774082134497
+            },
+            {
+              "confidence" : 0.440673828125,
+              "id" : "VNHLKIPIP",
+              "x" : 15.192869827589485,
+              "y" : -2.5714721427867189
+            },
+            {
+              "confidence" : 0.310546875,
+              "id" : "VNHLKIDIP",
+              "x" : 14.47152870609025,
+              "y" : -1.9524572431459335
+            },
+            {
+              "confidence" : 0.673828125,
+              "id" : "VNHLKTCMC",
+              "x" : 16.028866103782107,
+              "y" : -2.7731535708896904
+            }
+          ]
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : true,
+      "syntheticTime" : 1.2
+    },
+    {
+      "detectedNonemptyPoints" : 52,
+      "exposureFailure" : false,
+      "handObstructed" : true,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "edge" : 0,
+        "obstructed" : true,
+        "poseLost" : false,
+        "reason" : "Hand outline uncertain; waiting for visual clearance"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+          [
+            {
+              "confidence" : 0.487060546875,
+              "id" : "VNHLKTMP",
+              "x" : 16.578530916119355,
+              "y" : -2.4884076418345487
+            },
+            {
+              "confidence" : 0.295166015625,
+              "id" : "VNHLKIMCP",
+              "x" : 15.011362445897648,
+              "y" : -2.9690774082134497
+            },
+            {
+              "confidence" : 0.673828125,
+              "id" : "VNHLKTCMC",
+              "x" : 16.028866103782107,
+              "y" : -2.7731535708896904
+            },
+            {
+              "confidence" : 0.79248046875,
+              "id" : "VNHLKMDIP",
+              "x" : 14.950843263885252,
+              "y" : -0.835015920309782
+            },
+            {
+              "confidence" : 0.69091796875,
+              "id" : "VNHLKRMCP",
+              "x" : 14.26168009579321,
+              "y" : -2.8928777961470913
+            },
+            {
+              "confidence" : 0.81982421875,
+              "id" : "VNHLKMPIP",
+              "x" : 15.073033193854615,
+              "y" : -2.0989811180984268
+            },
+            {
+              "confidence" : 0.95263671875,
+              "id" : "VNHLKMTIP",
+              "x" : 14.523687714326154,
+              "y" : 0.016238948611917329
+            },
+            {
+              "confidence" : 0.310546875,
+              "id" : "VNHLKIDIP",
+              "x" : 14.47152870609025,
+              "y" : -1.9524572431459335
+            },
+            {
+              "confidence" : 0.8515625,
+              "id" : "VNHLKRPIP",
+              "x" : 15.105794904864833,
+              "y" : -2.857008908072082
+            },
+            {
+              "confidence" : 0.74365234375,
+              "id" : "VNHLKPTIP",
+              "x" : 13.660577525141809,
+              "y" : -0.64156893406117477
+            },
+            {
+              "confidence" : 0.440673828125,
+              "id" : "VNHLKIPIP",
+              "x" : 15.192869827589485,
+              "y" : -2.5714721427867189
+            },
+            {
+              "confidence" : 0.37060546875,
+              "id" : "VNHLKTIP",
+              "x" : 16.783226686824129,
+              "y" : -1.9907307379602388
+            },
+            {
+              "confidence" : 0.58740234375,
+              "id" : "VNHLKWRI",
+              "x" : 13.152781679461947,
+              "y" : -2.2692954644469903
+            },
+            {
+              "confidence" : 0.57177734375,
+              "id" : "VNHLKPMCP",
+              "x" : 12.902426722941893,
+              "y" : -2.7856643753978809
+            },
+            {
+              "confidence" : 0.4609375,
+              "id" : "VNHLKRTIP",
+              "x" : 15.319504621777146,
+              "y" : -1.4795024078093484
+            },
+            {
+              "confidence" : 0.430908203125,
+              "id" : "VNHLKITIP",
+              "x" : 13.108071779884014,
+              "y" : -0.71869216481820497
+            },
+            {
+              "confidence" : 0.525390625,
+              "id" : "VNHLKRDIP",
+              "x" : 15.444203851332897,
+              "y" : -2.3708658940183058
+            },
+            {
+              "confidence" : 0.7216796875,
+              "id" : "VNHLKMMCP",
+              "x" : 14.501492486425626,
+              "y" : -2.8931301602309003
+            }
+          ]
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : true,
+      "syntheticTime" : 1.3999999999999999
+    }
+  ],
+  "target" : "\/Users\/Dave\/SGFPlayerClean-worktrees\/hand-verdict-evidence\/PhysicalGo\/Tests\/Fixtures\/A18HandOutline\/hand.png",
+  "targetSHA256" : "5fee4296d05a9245dfacb351d9d8e26a70ca2bc35f63a0315b9d3d39b64afaef",
+  "threshold" : 0.13
+}

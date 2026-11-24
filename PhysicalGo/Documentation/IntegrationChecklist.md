@@ -11,6 +11,17 @@ and running process IDs are not current operating instructions.
 
 ## Current checkpoint
 
+### Isolated saved hand-verdict investigation — no runtime change
+
+The latest retained spot097/frame59446 does not reproduce a hand obstruction in
+the native offline snapshot probe; a known photographed hand positive control does.
+The actual rejected frame59466 is missing and was captured 2.008 seconds later.
+Its preceding frame59465 was clear 112 ms earlier, so this event is distinct from
+the earlier unknown-clearance gap. No verdict is made about the missing image.
+See [evidence, assumptions, and required retention](../Experiments/HandVerdictEvidence/README.md).
+Only read-only offline tooling/reporting was added. The installed app, camera epoch,
+hardware, saved game, calibration, and clearance rules were not changed.
+
 ### Isolated camera-stage attribution candidate — not installed
 
 Root reports native 0.261 (`9c516f1`) remains installed and owns the active camera

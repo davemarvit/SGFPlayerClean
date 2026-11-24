@@ -1,0 +1,37 @@
+{
+  "reference": "/Users/Dave/SGFPlayerClean-worktrees/hand-verdict-evidence/PhysicalGo/Tests/Fixtures/A18HandOutline/reference.png",
+  "target": "/Users/Dave/SGFPlayerClean-worktrees/hand-verdict-evidence/PhysicalGo/Tests/Fixtures/A18HandOutline/hand.png",
+  "calibration": {
+    "corners": [
+      {
+        "x": 0.3577946479982679,
+        "y": 0.09991120878584295
+      },
+      {
+        "x": 0.8077044930769286,
+        "y": 0.13394498561541004
+      },
+      {
+        "x": 0.7988302605223612,
+        "y": 0.9134457668662569
+      },
+      {
+        "x": 0.31550657798559845,
+        "y": 0.8445976754633285
+      }
+    ],
+    "h": [
+      0.4188182294491453,
+      -0.06432312410264272,
+      0.3577946479982679,
+      0.02887772527364409,
+      0.6856995650986867,
+      0.09991120878584295,
+      -0.038493800512453206,
+      -0.0698402367096736
+    ],
+    "size": 19
+  },
+  "threshold": 0.13,
+  "label": "Known photographed placing-hand positive control A18"
+}

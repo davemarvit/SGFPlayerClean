@@ -1,0 +1,66 @@
+{
+  "result": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/continued-fit-20261124-123608-47324/attempt-000/result.json",
+  "resultSHA256": "0ecf3a453c4a9f10c77bf8ba12bb3cd85b851379868176f95318078fb65624d6",
+  "saved_image_frame": {
+    "frameID": 59446,
+    "capturedAtUptime": 1990625.1437338332,
+    "capturedAtUnix": 1795552617.1441665,
+    "arrivedAtUptime": 1990625.1786062918,
+    "presentationSeconds": 1990625.1437333333,
+    "timestampSource": "cameraPresentation",
+    "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3"
+  },
+  "saved_image": {
+    "file": "spot-097.png",
+    "state": "saved",
+    "observed_at_uptime": 1990626.122554291,
+    "saved_at_uptime": 1990626.54449525
+  },
+  "failed_frame": {
+    "frame": {
+      "capturedAtUnix": 1795552619.1521747,
+      "frameID": 59466,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "arrivedAtUptime": 1990627.1803821668,
+      "capturedAtUptime": 1990627.1517335838,
+      "presentationSeconds": 1990627.1517333332,
+      "timestampSource": "cameraPresentation"
+    },
+    "handObstructed": true,
+    "alignmentValid": true,
+    "publishedAtUnix": 1795552619.308804
+  },
+  "last_clear_frame": {
+    "frame": {
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "presentationSeconds": 1990627.0397333333,
+      "frameID": 59465,
+      "arrivedAtUptime": 1990627.0831890418,
+      "capturedAtUptime": 1990627.039733542,
+      "timestampSource": "cameraPresentation",
+      "capturedAtUnix": 1795552619.0401669
+    },
+    "handObstructed": false,
+    "alignmentValid": true,
+    "publishedAtUnix": 1795552619.2298431
+  },
+  "saved_to_failed_seconds": 2.007999750552699,
+  "last_clear_to_failed_seconds": 0.1120000418741256,
+  "finalOff": {
+    "off_since_unix": 1795552619.3439188,
+    "status": "AimControl v44 OFF",
+    "controller_error": null,
+    "controller_error_code": null
+  },
+  "native_runtime": "/Users/Dave/SGFPlayerClean-worktrees/camera-pipeline-attribution/PhysicalGo/.build/RegressionModules/runtimes/03c5cee175ac112a23c3019e9da319f9c16f4f44329316d8541687e4de56f7ce",
+  "native_runtime_library_sha256": "86ddec7cfe48f425a042c6820ae315ba94cd4cc80d0110f2d692c178ddb8bcbd",
+  "native_runtime_manifest_sha256": "afeed12a152b7eeff8cbd34db1f9664d7ccfbcb5516e2b2d5abc08aa82806d05",
+  "native_source_base": "9c516f1 with timing-only changes from1f28d4c",
+  "missing": [
+    "Exact failed frame59466 PNG",
+    "Original HandOutlineTracker pre-observation checkpoint",
+    "Original hand pose/joints and outline result reason",
+    "Exact native reference image and expected-board/lighting state"
+  ],
+  "grantsMotion": false
+}

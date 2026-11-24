@@ -1,0 +1,37 @@
+{
+  "reference": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/continued-fit-20261124-123608-47324/attempt-000/reference.png",
+  "target": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/continued-fit-20261124-123608-47324/attempt-000/spot-097.png",
+  "calibration": {
+    "h": [
+      0.3385689216178411,
+      -0.10953236104942593,
+      0.3189132156021521,
+      -0.11006109781036898,
+      0.4810782329149089,
+      0.16678668321328657,
+      -0.10357958763680633,
+      -0.21417682975685293
+    ],
+    "size": 19,
+    "corners": [
+      {
+        "y": 0.16678668321328657,
+        "x": 0.3189132156021521
+      },
+      {
+        "y": 0.0632801134607973,
+        "x": 0.7334528845530212
+      },
+      {
+        "y": 0.7882871045313197,
+        "x": 0.8031585640970961
+      },
+      {
+        "y": 0.8244410964972375,
+        "x": 0.26644779955767933
+      }
+    ]
+  },
+  "threshold": 0.13,
+  "label": "Saved frame59446; NOT missing stop frame59466"
+}

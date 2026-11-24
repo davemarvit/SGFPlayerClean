@@ -1,0 +1,195 @@
+{
+  "calibration" : {
+    "corners" : [
+      {
+        "x" : 0.31891321560215208,
+        "y" : 0.16678668321328657
+      },
+      {
+        "x" : 0.73345288455302116,
+        "y" : 0.063280113460797302
+      },
+      {
+        "x" : 0.80315856409709607,
+        "y" : 0.78828710453131967
+      },
+      {
+        "x" : 0.26644779955767933,
+        "y" : 0.82444109649723751
+      }
+    ],
+    "h" : [
+      0.33856892161784108,
+      -0.10953236104942593,
+      0.31891321560215208,
+      -0.11006109781036898,
+      0.48107823291490892,
+      0.16678668321328657,
+      -0.10357958763680633,
+      -0.21417682975685293
+    ],
+    "size" : 19
+  },
+  "grantsMotion" : false,
+  "inputSHA256" : "0916265c3eba68aeb9140a84e1f16a139defa5831f78cfdb16bca0eaee83874d",
+  "kind" : "offline_saved_snapshot_probe",
+  "label" : "Saved frame59446; NOT missing stop frame59466",
+  "limitations" : [
+    "Repeated saved photos and synthetic times; not the original temporal sequence.",
+    "Known-clear reference assumption, empty expected board, fresh tracker initialization.",
+    "Uses supplied calibration without native grid tracking; no alignment qualification is inferred.",
+    "Native hand\/lighting state, camera reference, threshold, expected board and exact stop pixels may differ.",
+    "Apple Vision is evaluated on this OS\/runtime now, not a stored historical model output."
+  ],
+  "reference" : "\/Users\/Dave\/Documents\/SGF PLayer\/work\/ai-laser-integration\/laser-position-recovery-20261123\/calibration-acceptance-redesign\/continued-fit-20261124-123608-47324\/attempt-000\/reference.png",
+  "referenceSHA256" : "6df953c81527c184d2fa13b9f7728328edb8c3c35a2fb5819fe0daccc4012819",
+  "rows" : [
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.20000000000000001
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.40000000000000002
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : null,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "poseLost" : false,
+        "reason" : "Establishing a clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.60000000000000009
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : false,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "obstructed" : false,
+        "poseLost" : false,
+        "reason" : "Clear visual reference"
+      },
+      "input" : "repeated_reference",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 0.80000000000000004
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : false,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "obstructed" : false,
+        "poseLost" : false,
+        "reason" : "Clear visual reference"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 1
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : false,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "obstructed" : false,
+        "poseLost" : false,
+        "reason" : "Clear visual reference"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 1.2
+    },
+    {
+      "detectedNonemptyPoints" : 0,
+      "exposureFailure" : false,
+      "handObstructed" : false,
+      "handOutline" : {
+        "clearanceDelayed" : false,
+        "obstructed" : false,
+        "poseLost" : false,
+        "reason" : "Clear visual reference"
+      },
+      "input" : "repeated_target",
+      "lightingBlocked" : false,
+      "pose" : {
+        "hands" : [
+
+        ],
+        "reliable" : true
+      },
+      "poseObstructed" : false,
+      "syntheticTime" : 1.3999999999999999
+    }
+  ],
+  "target" : "\/Users\/Dave\/Documents\/SGF PLayer\/work\/ai-laser-integration\/laser-position-recovery-20261123\/calibration-acceptance-redesign\/continued-fit-20261124-123608-47324\/attempt-000\/spot-097.png",
+  "targetSHA256" : "fcf2d3de9374290deb80525b2eba5ae8b6be5e9b6c1346ee691c3480cd7b660a",
+  "threshold" : 0.13
+}
