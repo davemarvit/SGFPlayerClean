@@ -173,7 +173,6 @@ import CoreGraphics
     private(set) var cameraContext: String?
     private var lastAction="off"
     private var lastLatencyDriverKey:String?
-    private var lastLatencyRequestKey:String?
     private var reason="disabled"
     private var blockedMove:(session:UUID,number:Int,reason:String)?
     private var mayHaveIlluminated=false
@@ -187,6 +186,38 @@ import CoreGraphics
     private let wallTime: ()->Double
     private let uptime: ()->Double
     private let automatic: Bool
+    private lazy var fileExchange:LatestFileExchange<Request> = {
+        let directory=self.directory
+        return LatestFileExchange(read:{
+            let began=ProcessInfo.processInfo.systemUptime
+            let data=try? Data(contentsOf:directory.appendingPathComponent("status.json"))
+            let duration=ProcessInfo.processInfo.systemUptime-began
+            if duration>=0.02 {PhysicalLatencyTrace.shared?.record("bridge_status_read",metrics:["readSeconds":duration])}
+            return data
+        },write:{request in
+            try Self.writeRequest(request,directory:directory)
+        },completed:{[weak self] request,error in
+            DispatchQueue.main.async {
+                guard let self else {return}
+                if let error {
+                    guard request.sequence==self.sequence else {return}
+                    self.driver=nil;self.message="Laser bridge unavailable: \(error.localizedDescription)"
+                } else {self.onRequestPublished?(request)}
+            }
+        })
+    }()
+    nonisolated private static func writeRequest(_ request:Request,directory:URL)throws {
+        let began=ProcessInfo.processInfo.systemUptime
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        // Preserve the main-thread decision's sent/expiry times, even if IO is
+        // delayed. The driver independently rejects expired requests.
+        try JSONEncoder().encode(request).write(to:directory.appendingPathComponent("request.json"),options:.atomic)
+        PhysicalLatencyTrace.shared?.record("request_published",fields:[
+            "producer":request.producer.uuidString,"sequence":String(request.sequence),
+            "action":request.action,"reason":request.reason],metrics:[
+                "writeSeconds":ProcessInfo.processInfo.systemUptime-began,
+                "decisionAgeSeconds":Date().timeIntervalSince1970-request.sentAtUnix])
+    }
     init(directory: URL? = nil, automatic: Bool = true,
          wallTime: @escaping ()->Double = {Date().timeIntervalSince1970},
          uptime: @escaping ()->Double = {ProcessInfo.processInfo.systemUptime}) {
@@ -549,7 +580,10 @@ import CoreGraphics
         // to an earlier clock sample falsely looks like a future/dropped driver.
         let trace=PhysicalLatencyTrace.shared
         let readBegan=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
-        driver=try? JSONDecoder().decode(DriverStatus.self,from:Data(contentsOf:directory.appendingPathComponent("status.json")))
+        // Automatic/live mode never waits for filesystem IO on the camera/UI
+        // thread. Deterministic manual ticks retain synchronous IO for offline tests.
+        let statusData=automatic ? fileExchange.latest() : (try? Data(contentsOf:directory.appendingPathComponent("status.json")))
+        driver=statusData.flatMap {try? JSONDecoder().decode(DriverStatus.self,from:$0)}
         let now=uptime(),wall=wallTime()
         if let trace {
             let d=driver
@@ -696,25 +730,8 @@ import CoreGraphics
                             alignmentPreparation:enabled && !(wireSchema==2 && action=="off") ? alignmentPreparation:nil,
                             playSession:wireSchema==2 ? playSession:nil,retainOnly:retainOnly)
         do {
-            let writeBegan=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
-            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-            try JSONEncoder().encode(request).write(to:directory.appendingPathComponent("request.json"),options:.atomic)
-            if let trace {
-                let key="\(request.sequence)/\(request.action)/\(request.reason)"
-                let duration=ProcessInfo.processInfo.systemUptime-writeBegan
-                if key != lastLatencyRequestKey || duration>=0.02 {
-                    var fields=["producer":producer.uuidString,"sequence":String(request.sequence),
-                        "action":request.action,"reason":request.reason,"streamEpoch":frames.streamEpoch.uuidString]
-                    if let target=request.target {
-                        fields["session"]=target.session.uuidString;fields["moveNumber"]=String(target.moveNumber)
-                        fields["row"]=String(target.row);fields["col"]=String(target.col);fields["purpose"]=target.purpose ?? "placement"
-                        fields["decisionReceipt"]=String(target.decisionReceivedAtUnix)
-                    } else if let session=playSession {fields["session"]=session.session.uuidString}
-                    trace.record("request_published",fields:fields,metrics:["writeSeconds":duration])
-                    lastLatencyRequestKey=key
-                }
-            }
-            onRequestPublished?(request)
+            if automatic {fileExchange.submit(request)}
+            else {try Self.writeRequest(request,directory:directory);onRequestPublished?(request)}
             if let driver,driver.schemaVersion==wireSchema,driver.producer==producer,driver.sequence==sequence,
                (0..<0.75).contains(wall-driver.updatedAtUnix) {
                 message=(driver.mode == "simulation" ? "Simulation · ":"Laser · ")+driver.detail
@@ -729,7 +746,7 @@ import CoreGraphics
             timer?.cancel();timer=nil
         }
         // Capture provenance before OFF changes the request revision; notify
-        // synchronously only after publishing OFF. The AI owner pauses before
+        // synchronously after submitting OFF. The AI owner pauses before
         // a queued engine result can commit, and sets phase before reentry here.
         if let session=faultScope,let d=statusAtEntry {
             // Host unclassified failures can include normal hand/alignment

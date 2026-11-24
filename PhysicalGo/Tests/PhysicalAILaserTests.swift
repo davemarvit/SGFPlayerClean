@@ -464,6 +464,36 @@ import ImageIO
             check(cueRequest().action=="point" && cueRequest().sentAtUnix==wall,"blocked audio prevented heartbeat renewal")
         }
         audioRelease.signal();cue.setEnabled(false)
+        // Exercise the live asynchronous exchange too, not just deterministic
+        // synchronous protocol tests. All files are in the temporary sandbox.
+        let asyncLaser=PhysicalLaserGuidance(directory:directory.appendingPathComponent("async"),
+            wallTime:{wall},uptime:{now})
+        func asyncRequest()->PhysicalLaserGuidance.Request? {
+            guard let data=try? Data(contentsOf:asyncLaser.directory.appendingPathComponent("request.json")) else {return nil}
+            return try? JSONDecoder().decode(PhysicalLaserGuidance.Request.self,from:data)
+        }
+        func until(_ condition:()->Bool) async throws ->Bool {
+            for _ in 0..<150 {
+                asyncLaser.tick()
+                if condition() {return true}
+                try await Task.sleep(nanoseconds:20_000_000)
+            }
+            return false
+        }
+        asyncLaser.setTarget(target);asyncLaser.setEnabled(true)
+        check(try await until {asyncRequest()?.action=="off"},"async initial request remains OFF without driver")
+        let asyncStatus=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:asyncLaser.producer,
+            sequence:asyncLaser.sequence,updatedAtUnix:wall,mode:"simulation",state:"off",laserOn:false,
+            offSinceUnix:wall-1,detail:"off")
+        try JSONEncoder().encode(asyncStatus).write(to:asyncLaser.directory.appendingPathComponent("status.json"),options:.atomic)
+        check(try await until {asyncLaser.message.contains("Simulation")},"async status reaches native consumer")
+        asyncLaser.observeCamera(hand:false,valid:true,capturedAt:now,now:now,context:"async-camera")
+        asyncLaser.verifyEmptyTarget(capturedAt:now,now:now)
+        check(try await until {asyncRequest()?.action=="point"},"async fresh proof admits point")
+        now+=2;wall+=2
+        check(try await until {asyncRequest()?.action=="off"},"cached async status cannot remain fresh after expiry")
+        check(asyncLaser.suppressed,"async stale status still suppresses guidance")
+        asyncLaser.setEnabled(false)
         print("PASS: \(checks) AI laser lifecycle, clock-receipt, dark-frame and protocol checks")
     }
 }

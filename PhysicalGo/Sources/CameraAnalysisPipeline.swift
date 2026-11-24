@@ -65,13 +65,22 @@ final class CameraAnalysisPipeline {
     private var preparedReference:GrayFrame?
     private var preparationInFlight=false
     func submit(_ input: Input, safety: (@MainActor (CameraSafety)->Void)? = nil, completion: @escaping @MainActor (Output) -> Void) {
+        let submitted=ProcessInfo.processInfo.systemUptime
         queue.async {
+            let began=ProcessInfo.processInfo.systemUptime
             var input=input
             self.latestReference=input.reference
             if self.preparedReference?.patchIdentity != input.reference?.patchIdentity {self.preparedReference=nil}
             if let prepared=self.preparedReference {input.reference=prepared}
             let output = Self.process(input,safety:{ evidence in
-                if let safety {DispatchQueue.main.async {safety(evidence)}}
+                let ready=ProcessInfo.processInfo.systemUptime,captured=input.trackingTime
+                if let safety {DispatchQueue.main.async {
+                    PhysicalLatencyTrace.shared?.record("camera_safety_ready",metrics:[
+                        "queueSeconds":began-submitted,"analysisSeconds":ready-began,
+                        "mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-ready,
+                        "captureAgeSeconds":ProcessInfo.processInfo.systemUptime-captured])
+                    safety(evidence)
+                }}
             })
             DispatchQueue.main.async { completion(output) }
             // The current camera result never waits for preparation. The next

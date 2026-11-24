@@ -1481,7 +1481,7 @@ enum PhysicalPlayMode: String, CaseIterable {
                 if analysis.handOutline?.clearanceDelayed == true {
                     self.aiCameraNotice="Hand clearance is taking longer than expected. If the board is clear, use Camera & setup → Restart camera."
                 } else {
-                    self.aiCameraNotice=analysis.handObstructed == true ? "Possible hand obstruction — waiting for a clear board view.":nil
+                    self.aiCameraNotice=analysis.handObstructed == true ? "Camera clearance: possible hand in view. Laser paused until the board is clear.":nil
                 }
                 if self.playMode == .ai,let evidence=analysis.handTracking.stallEvidence {
                     self.ai.noteHandClearanceStall(evidence,calibration:aligned ?? calibration)

@@ -13,6 +13,7 @@ and shared handoff before any serial operation.
 | Component | Responsibility |
 |---|---|
 | [PhysicalLaserGuidance.swift](../../Sources/PhysicalLaserGuidance.swift) | App request/status schema, short renewable lease, target evidence, generation/recovery and dark-frame admission. |
+| [LatestFileExchange.swift](../../Sources/LatestFileExchange.swift) | Live app background status reads and latest-only request writes; original request deadlines and status timestamps stay authoritative. |
 | [bridge_lease.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_lease.py>) | Strict request parsing, immutable revisions, expiry, cancellation and worker generation gate. |
 | [bridge_runtime.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_runtime.py>) | Request/status file loop, independent supervision, worker lifecycle, OFF/standby barriers. |
 | [bridge_hardware.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_hardware.py>) | Actual backend, calibration admission, bounded coarse travel, optical correction, cue dispatch and logging. |
@@ -36,6 +37,17 @@ Files live under `~/Library/Application Support/Physical Go/LaserBridge/`:
 request about every 200 ms with a 600 ms lease. Heartbeats change lease times,
 not the immutable operation. Host expiry is supervised independently of a motor
 worker continuing to send firmware heartbeats.
+
+Live request/status file IO runs on two independent background queues. There is
+at most one read and one write in flight, plus one replaceable pending request.
+The main-thread consumer checks the cached status's original timestamp; a slow
+read cannot extend freshness. Queued requests retain their original lease expiry,
+and OFF replaces pending pointing work. An in-flight write can finish first;
+OFF submission is never treated as an OFF acknowledgement. Manual (`automatic:
+false`) test instances keep synchronous IO for deterministic protocol fixtures;
+`bridge-io-test` and the async cases in `ai-laser-test` cover the live exchange.
+Optional bounded latency tracing includes camera queue, analysis and main-thread
+delivery timings, plus background bridge IO duration.
 
 An OFF request does not prove darkness. A new producer requires an OFF handshake.
 The host invalidates old worker commands, waits for quiescence and obtains a

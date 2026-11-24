@@ -104,7 +104,13 @@ struct PhysicalAIPlayView: View {
                 Label("Center the highlighted stone on the intersection you intended",systemImage:"scope").foregroundStyle(.orange)
             }
             Text(ai.status).font(.title3).accessibilityIdentifier("ai-game-status")
-            if let cameraNotice {Text(cameraNotice).foregroundStyle(.orange)}
+            if let cameraNotice {
+                VStack(alignment:.leading,spacing:4) {
+                    if ai.phase == .thinking {Text("Your move was accepted. AI is thinking.")}
+                    if ai.phase == .placing {Text("Your move was accepted. Place the AI stone at the blue ring.")}
+                    Text(cameraNotice)
+                }.foregroundStyle(.orange)
+            }
             if let error=ai.error {Text(error).foregroundStyle(.red).textSelection(.enabled)}
             if ai.hasGame {
                 HStack {
