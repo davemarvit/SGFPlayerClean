@@ -379,11 +379,34 @@ struct PhysicalAIGuidanceTarget: Equatable {
         lastFrame=stamp
         var values=Array(repeating:"",count:size*size),seen=Set<Int>(),unknown=0
         let expected=cells.map {Occupancy(rawValue:$0)!}
-        let ambiguous=Set(observation.assignmentOffsets(confirmedBoard:expected).filter {$0.value>=0.30}.map(\.key))
-        detail["ambiguousPoints"]=ambiguous.sorted()
+        var ambiguous=Set(observation.assignmentOffsets(confirmedBoard:expected).filter {$0.value>=0.30}.map(\.key))
         for r in observation.readings {
             guard (0..<size).contains(r.row),(0..<size).contains(r.col),r.confidence.isFinite,
                   seen.insert(r.row*size+r.col).inserted else {interruptObservation();return}
+        }
+        // Color confidence does not establish a unique intersection. A stone
+        // between crossings can produce a strong label at one and an uncertain
+        // reading at its neighbor, even when its fitted outline underestimates
+        // displacement. Previously verified empty neighbors cannot resolve that
+        // new assignment. Established stones may still retain unchanged labels.
+        let byPoint=Dictionary(uniqueKeysWithValues:observation.readings.map {($0.row*size+$0.col,$0)})
+        var unresolvedNeighbors=[Int:[Int]]()
+        for r in observation.readings where r.occupancy.stone != nil && r.confidence>=0.8 {
+            let point=r.row*size+r.col
+            guard r.occupancy.rawValue != cells[point] || point==pendingPoint else {continue}
+            var neighbors=[Int]()
+            for row in max(0,r.row-1)...min(size-1,r.row+1) {
+                for col in max(0,r.col-1)...min(size-1,r.col+1) {
+                    let other=row*size+col
+                    guard other != point,cells[other]=="empty",let reading=byPoint[other] else {continue}
+                    if reading.occupancy == .uncertain || reading.confidence<0.8 {neighbors.append(other)}
+                }
+            }
+            if !neighbors.isEmpty {unresolvedNeighbors[point]=neighbors;ambiguous.insert(point)}
+        }
+        detail["ambiguousPoints"]=ambiguous.sorted()
+        if !unresolvedNeighbors.isEmpty {
+            detail["unresolvedPlacementNeighbors"]=unresolvedNeighbors.map { ["point":$0.key,"neighbors":$0.value] as [String:Any] }
         }
         detail["readingsOfInterest"]=observation.readings.filter {
             $0.occupancy.rawValue != cells[$0.row*size+$0.col] || $0.confidence<0.8 || $0.row*size+$0.col==pendingPoint
@@ -404,7 +427,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         for r in observation.readings {
             let index=r.row*size+r.col
             if ambiguous.contains(index),r.occupancy.stone != nil,r.confidence>=0.8,
-               r.occupancy.rawValue != cells[index] {
+               r.occupancy.rawValue != cells[index] || unresolvedNeighbors[index] != nil {
                 // Verified history may retain an obscured unchanged stone;
                 // it must not erase a positively seen, unresolved new stone.
                 outcome="ambiguous_new_stone";detail["blockingPoint"]=index
