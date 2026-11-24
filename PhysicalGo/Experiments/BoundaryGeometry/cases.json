@@ -1,0 +1,3140 @@
+{
+  "selection": "fixed before first boundary replay; first frame per episode, all eight centered anchors, predefined historical controls",
+  "cases": [
+    {
+      "id": "white-centered-3-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        3,
+        3
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-9-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        3
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-15-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        15,
+        3
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-3-9",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        3,
+        9
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-15-9",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        15,
+        9
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-3-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        3,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-9-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-centered-15-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.png",
+        "sha256": "54f75b113dd42adc0fec8b1d0a00c79e843edad9652f2febc8a551a8a2b0f9bc"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-01/frame-00.json",
+        "sha256": "4f2f0ebbad7b9d1539c20373a0e9f46ebcf525dd645b7c755906b645cf57d667"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        15,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "white-fresh-midpoint",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-midpoint-01/frame-00.png",
+        "sha256": "057725103a11d7199bf0b0869cfc30e036dba8142f1ce785c343c784b85f5f5d"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/white-midpoint-01/frame-00.json",
+        "sha256": "49af8c51a0435de3897f6cfff0f83bb63ccf44dcfba5da907de608f90e1c6b4a"
+      },
+      "calibration": {
+        "h": [
+          0.33504995611902466,
+          -0.1163231281355891,
+          0.31567492999619795,
+          -0.09788627431170174,
+          0.4850258168045663,
+          0.16408691803128558,
+          -0.11134926244946536,
+          -0.20918289169889662
+        ],
+        "corners": [
+          {
+            "x": 0.31567492999619795,
+            "y": 0.16408691803128558
+          },
+          {
+            "x": 0.7322616846173697,
+            "y": 0.07449568308698919
+          },
+          {
+            "x": 0.7865004374266156,
+            "y": 0.8112620249649173
+          },
+          {
+            "x": 0.25208331960454466,
+            "y": 0.8208127113364149
+          }
+        ],
+        "size": 19
+      },
+      "seed": [
+        14.5,
+        9
+      ],
+      "colorHypothesis": "white",
+      "label": "new displaced episode at prior training location, not exact midpoint ground truth",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-3-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        3,
+        3
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-9-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        9,
+        3
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-15-3",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        15,
+        3
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-3-9",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        3,
+        9
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-15-9",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        15,
+        9
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-3-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        3,
+        15
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-9-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        9,
+        15
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-centered-15-15",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        15,
+        15
+      ],
+      "colorHypothesis": "black",
+      "label": "user-confirmed centered outer-star; contact label approximate",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "black-fresh-midpoint",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-midpoint-01/frame-00.png",
+        "sha256": "7222d447357a571a9abe0dfd9dd2214dfd24d0a2431d97a6b675dc9c3ee109cf"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-midpoint-01/frame-00.json",
+        "sha256": "d3c51fdcd8f9eadebfb404d7505c7bdd807b1b7e6e97af6f8c6f077d1b05476b"
+      },
+      "calibration": {
+        "size": 19,
+        "h": [
+          0.33504995611902466,
+          -0.1163231281355891,
+          0.31567492999619795,
+          -0.09788627431170174,
+          0.4850258168045663,
+          0.16408691803128558,
+          -0.11134926244946536,
+          -0.20918289169889662
+        ],
+        "corners": [
+          {
+            "x": 0.31567492999619795,
+            "y": 0.16408691803128558
+          },
+          {
+            "x": 0.7322616846173697,
+            "y": 0.07449568308698919
+          },
+          {
+            "x": 0.7865004374266156,
+            "y": 0.8112620249649173
+          },
+          {
+            "x": 0.25208331960454466,
+            "y": 0.8208127113364149
+          }
+        ]
+      },
+      "seed": [
+        14.5,
+        9
+      ],
+      "colorHypothesis": "black",
+      "label": "new displaced episode at prior training location, not exact midpoint ground truth",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "nov23-legitimate",
+      "image": {
+        "path": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-23 16-37-13 81D4E9F0/frames/000697.png",
+        "sha256": "fb04aeb96986fb0029f60d38e66dd45d19101fc31a5421c02e5fea263a874284"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Experiments/WhiteCentering/frame697/measurements.json",
+        "sha256": "15363ed8bc2d7849d4b5f87701aab974035f2eea91891b26da238c7c165e4c97"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        9
+      ],
+      "colorHypothesis": "white",
+      "label": "existing development centered/midway pair",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [],
+      "visibility": "clear",
+      "compactFit": {
+        "center": {
+          "x": 9.08,
+          "y": 8.72
+        },
+        "col": 9,
+        "quality": 0.9211977186311787,
+        "radiusCol": 0.38,
+        "radiusRow": 0.35719999999999996,
+        "row": 9
+      }
+    },
+    {
+      "id": "nov23-midway",
+      "image": {
+        "path": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-23 16-37-13 81D4E9F0/frames/000697.png",
+        "sha256": "fb04aeb96986fb0029f60d38e66dd45d19101fc31a5421c02e5fea263a874284"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Experiments/WhiteCentering/frame697/measurements.json",
+        "sha256": "15363ed8bc2d7849d4b5f87701aab974035f2eea91891b26da238c7c165e4c97"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.3157279154413356,
+            "y": 0.1635379171204784
+          },
+          {
+            "x": 0.7322612392334021,
+            "y": 0.07449587332710651
+          },
+          {
+            "x": 0.7865005321731822,
+            "y": 0.8112620239560273
+          },
+          {
+            "x": 0.25208310984581894,
+            "y": 0.8208125889919358
+          }
+        ],
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        14.5
+      ],
+      "colorHypothesis": "white",
+      "label": "existing development centered/midway pair",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [],
+      "visibility": "clear",
+      "compactFit": {
+        "center": {
+          "x": 9,
+          "y": 14.28
+        },
+        "col": 9,
+        "quality": 0.915054503413345,
+        "radiusCol": 0.36,
+        "radiusRow": 0.3384,
+        "row": 14
+      }
+    },
+    {
+      "id": "old-black-centered",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/HalfwayNudge/centered.png",
+        "sha256": "ea1e120348c00f9c3210251d38039bdf8ef19205f28fc49f460fad2d646beac0"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/HalfwayNudge/centered.json",
+        "sha256": "dd675bdb9cb29b2b162dee2588577f7059d7d1f7ccb3cc9b1679e2ec5f2f882a"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.35907629764800153,
+            "y": 0.0983335653816437
+          },
+          {
+            "x": 0.8083090240791234,
+            "y": 0.13582139741437052
+          },
+          {
+            "x": 0.7996138589425514,
+            "y": 0.9142206407867772
+          },
+          {
+            "x": 0.31550445988801185,
+            "y": 0.8437793291050142
+          }
+        ],
+        "h": [
+          0.42032979517614805,
+          -0.06650434225190137,
+          0.35907629764800153,
+          0.03263122843746897,
+          0.6841154951694767,
+          0.0983335653816437,
+          -0.03575727895392717,
+          -0.07268519912539924
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        9
+      ],
+      "colorHypothesis": "black",
+      "label": "historical labeled Black centered",
+      "setup": "nov12-iphone",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "old-black-nudged",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/HalfwayNudge/nudged.png",
+        "sha256": "e9e250334f5cea38521bbce900ecb7dbb21bda9709ec385ecaa483b690f1bfb0"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/HalfwayNudge/nudged.json",
+        "sha256": "935a6674639dec44a43b153f564e3d90b8b72274ec11b6899298e7e526040732"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.35907629764800153,
+            "y": 0.0983335653816437
+          },
+          {
+            "x": 0.8083090240791234,
+            "y": 0.13582139741437052
+          },
+          {
+            "x": 0.7996138589425514,
+            "y": 0.9142206407867772
+          },
+          {
+            "x": 0.31550445988801185,
+            "y": 0.8437793291050142
+          }
+        ],
+        "h": [
+          0.42032979517614805,
+          -0.06650434225190137,
+          0.35907629764800153,
+          0.03263122843746897,
+          0.6841154951694767,
+          0.0983335653816437,
+          -0.03575727895392717,
+          -0.07268519912539924
+        ],
+        "size": 19
+      },
+      "seed": [
+        9,
+        9.5
+      ],
+      "colorHypothesis": "black",
+      "label": "historical labeled Black nudged",
+      "setup": "nov12-iphone",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "crowded-frame-816",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/frame-816.png",
+        "sha256": "e3b73df96aa0c96b01f8149b9e2fdb8ba2cabd6ed4f1e14591807d488481974a"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/metadata.json",
+        "sha256": "7f70e530fcb48ddde8ffeaab20ca6ac4a356e046bff85a405c27752feaa708a5"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.23148362518044416,
+            "y": 0.041125938652725146
+          },
+          {
+            "x": 0.7420790303405079,
+            "y": 0.035761320484293535
+          },
+          {
+            "x": 0.8076126546292003,
+            "y": 0.9203779331684668
+          },
+          {
+            "x": 0.1777074314995429,
+            "y": 0.9241757077662628
+          }
+        ],
+        "h": [
+          0.5086784543858511,
+          -0.0873878496461493,
+          0.23148362518044416,
+          -0.0054569974005435565,
+          0.7082507993756899,
+          0.041125938652725146,
+          -0.0025832164713414,
+          -0.18914040725041092
+        ],
+        "size": 19
+      },
+      "seed": [
+        1,
+        1.7
+      ],
+      "colorHypothesis": "white",
+      "label": "known real misplacement; frame950 preserves earlier false relief .36 to .221",
+      "setup": "nov05-crowded",
+      "neighborCenters": [
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          16,
+          2
+        ],
+        [
+          17,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          16,
+          6
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          3,
+          14
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          2,
+          16
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          13,
+          16
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": {
+        "center": {
+          "x": 0.96,
+          "y": 1.6
+        },
+        "col": 1,
+        "quality": 0.8612612612612612,
+        "radiusCol": 0.46,
+        "radiusRow": 0.48760000000000003,
+        "row": 2
+      }
+    },
+    {
+      "id": "crowded-frame-950",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/frame-950.png",
+        "sha256": "3c3729177467eed618f46036511f64d09ab248b96031a3edabd97d4c42707469"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/metadata.json",
+        "sha256": "7f70e530fcb48ddde8ffeaab20ca6ac4a356e046bff85a405c27752feaa708a5"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.23148362518044416,
+            "y": 0.041125938652725146
+          },
+          {
+            "x": 0.7420790303405079,
+            "y": 0.035761320484293535
+          },
+          {
+            "x": 0.8076126546292003,
+            "y": 0.9203779331684668
+          },
+          {
+            "x": 0.1777074314995429,
+            "y": 0.9241757077662628
+          }
+        ],
+        "h": [
+          0.5086784543858511,
+          -0.0873878496461493,
+          0.23148362518044416,
+          -0.0054569974005435565,
+          0.7082507993756899,
+          0.041125938652725146,
+          -0.0025832164713414,
+          -0.18914040725041092
+        ],
+        "size": 19
+      },
+      "seed": [
+        1,
+        1.7
+      ],
+      "colorHypothesis": "white",
+      "label": "known real misplacement; frame950 preserves earlier false relief .36 to .221",
+      "setup": "nov05-crowded",
+      "neighborCenters": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          16,
+          2
+        ],
+        [
+          17,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          16,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          3,
+          14
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          14,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          1,
+          17
+        ],
+        [
+          2,
+          17
+        ],
+        [
+          4,
+          17
+        ],
+        [
+          2,
+          18
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": {
+        "center": {
+          "x": 0.96,
+          "y": 1.6
+        },
+        "col": 1,
+        "quality": 0.8211660870803084,
+        "radiusCol": 0.46,
+        "radiusRow": 0.48760000000000003,
+        "row": 2
+      }
+    },
+    {
+      "id": "hand-covered-950-95",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/frame-950.png",
+        "sha256": "3c3729177467eed618f46036511f64d09ab248b96031a3edabd97d4c42707469"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/metadata.json",
+        "sha256": "7f70e530fcb48ddde8ffeaab20ca6ac4a356e046bff85a405c27752feaa708a5"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.23148362518044416,
+            "y": 0.041125938652725146
+          },
+          {
+            "x": 0.7420790303405079,
+            "y": 0.035761320484293535
+          },
+          {
+            "x": 0.8076126546292003,
+            "y": 0.9203779331684668
+          },
+          {
+            "x": 0.1777074314995429,
+            "y": 0.9241757077662628
+          }
+        ],
+        "h": [
+          0.5086784543858511,
+          -0.0873878496461493,
+          0.23148362518044416,
+          -0.0054569974005435565,
+          0.7082507993756899,
+          0.041125938652725146,
+          -0.0025832164713414,
+          -0.18914040725041092
+        ],
+        "size": 19
+      },
+      "seed": [
+        0,
+        5
+      ],
+      "colorHypothesis": "white",
+      "label": "independent photo-label occluded95; supplied gate, not hand-detection validation",
+      "setup": "nov05-crowded",
+      "neighborCenters": [
+        [
+          1,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          15,
+          2
+        ],
+        [
+          16,
+          2
+        ],
+        [
+          17,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          16,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          2,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          1,
+          14
+        ],
+        [
+          2,
+          14
+        ],
+        [
+          3,
+          14
+        ],
+        [
+          2,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          14,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          1,
+          17
+        ],
+        [
+          2,
+          17
+        ],
+        [
+          4,
+          17
+        ],
+        [
+          2,
+          18
+        ]
+      ],
+      "visibility": "occluded",
+      "compactFit": null
+    },
+    {
+      "id": "shaded-empty-10",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/10.png",
+        "sha256": "33405f742c045e7010b8dbde32f927c2c79167b4f0598a15d9ac9e57e1055a82"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/10.json",
+        "sha256": "2c397ef676db8a4a53013d26a9e26a84d5b1fc8f319d0173ec8a33d08689a1f0"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.24315780763600015,
+            "y": 0.07362131421215032
+          },
+          {
+            "x": 0.732580047493397,
+            "y": 0.062204447875721526
+          },
+          {
+            "x": 0.812769249229391,
+            "y": 0.903598202129909
+          },
+          {
+            "x": 0.18410357137616662,
+            "y": 0.920741401592552
+          }
+        ],
+        "h": [
+          0.49109765896971336,
+          -0.09988512389059435,
+          0.24315780763600015,
+          -0.011274604038678979,
+          0.6429160709976884,
+          0.07362131421215032,
+          0.002287011662478521,
+          -0.22178215949615554
+        ],
+        "size": 19
+      },
+      "seed": [
+        12,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "test fixture: shaded empty crossing",
+      "setup": "nov04-shaded",
+      "neighborCenters": [
+        [
+          3,
+          2
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          9
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          13,
+          12
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          11,
+          13
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          11,
+          14
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          17,
+          15
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          17,
+          16
+        ],
+        [
+          17,
+          17
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "shaded-empty-75",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/75.png",
+        "sha256": "3ed27daac810b0eb86de2ed9ec70d39fb384aac6188a43477db8846111753231"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/75.json",
+        "sha256": "b1e7e016a4391405055f1308666d2e8b3260fbca3297995d7b1df54dc68d884c"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.24315780763600015,
+            "y": 0.07362131421215032
+          },
+          {
+            "x": 0.732580047493397,
+            "y": 0.062204447875721526
+          },
+          {
+            "x": 0.812769249229391,
+            "y": 0.903598202129909
+          },
+          {
+            "x": 0.18410357137616662,
+            "y": 0.920741401592552
+          }
+        ],
+        "h": [
+          0.49109765896971336,
+          -0.09988512389059435,
+          0.24315780763600015,
+          -0.011274604038678979,
+          0.6429160709976884,
+          0.07362131421215032,
+          0.002287011662478521,
+          -0.22178215949615554
+        ],
+        "size": 19
+      },
+      "seed": [
+        12,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "test fixture: shaded empty crossing",
+      "setup": "nov04-shaded",
+      "neighborCenters": [
+        [
+          3,
+          2
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          9
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          13,
+          12
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          11,
+          13
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          11,
+          14
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          17,
+          15
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          17,
+          16
+        ],
+        [
+          17,
+          17
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "shaded-empty-150",
+      "image": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/150.png",
+        "sha256": "5e590538218d557284408d056f57cd855bcc774c77a44a90da4ff2c4af765107"
+      },
+      "metadata": {
+        "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/ShadedCross/150.json",
+        "sha256": "e21b74a5d24571b0a4170ada59350625c8b1693bc128fc6fc87695fdb0a34cc2"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "x": 0.24315780763600015,
+            "y": 0.07362131421215032
+          },
+          {
+            "x": 0.732580047493397,
+            "y": 0.062204447875721526
+          },
+          {
+            "x": 0.812769249229391,
+            "y": 0.903598202129909
+          },
+          {
+            "x": 0.18410357137616662,
+            "y": 0.920741401592552
+          }
+        ],
+        "h": [
+          0.49109765896971336,
+          -0.09988512389059435,
+          0.24315780763600015,
+          -0.011274604038678979,
+          0.6429160709976884,
+          0.07362131421215032,
+          0.002287011662478521,
+          -0.22178215949615554
+        ],
+        "size": 19
+      },
+      "seed": [
+        12,
+        15
+      ],
+      "colorHypothesis": "white",
+      "label": "test fixture: shaded empty crossing",
+      "setup": "nov04-shaded",
+      "neighborCenters": [
+        [
+          3,
+          2
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          13,
+          2
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          9
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          14,
+          11
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          13,
+          12
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          12
+        ],
+        [
+          2,
+          13
+        ],
+        [
+          11,
+          13
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          16,
+          13
+        ],
+        [
+          11,
+          14
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          17,
+          15
+        ],
+        [
+          3,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          17,
+          16
+        ],
+        [
+          17,
+          17
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    },
+    {
+      "id": "empty-center-current",
+      "image": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.png",
+        "sha256": "39c8bc632e2a08a19d783d255c9428a04e3c205be53b74930636331aa0e8c9da"
+      },
+      "metadata": {
+        "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/black-01/frame-00.json",
+        "sha256": "55fc8454685a5fb4236d054eaead3d88ab28136ee21aab0edf132e90d5ab1882"
+      },
+      "calibration": {
+        "corners": [
+          {
+            "y": 0.1635379171204784,
+            "x": 0.3157279154413356
+          },
+          {
+            "y": 0.07449587332710651,
+            "x": 0.7322612392334021
+          },
+          {
+            "y": 0.8112620239560273,
+            "x": 0.7865005321731822
+          },
+          {
+            "y": 0.8208125889919358,
+            "x": 0.25208310984581894
+          }
+        ],
+        "size": 19,
+        "h": [
+          0.33554062350859504,
+          -0.11642057638693133,
+          0.3157279154413356,
+          -0.09728175609475541,
+          0.4854304849053367,
+          0.1635379171204784,
+          -0.11060629177677359,
+          -0.20935861519517823
+        ]
+      },
+      "seed": [
+        9,
+        9
+      ],
+      "colorHypothesis": "white",
+      "label": "user-confirmed eight outer stones, center empty",
+      "setup": "nov23-ausdom",
+      "neighborCenters": [
+        [
+          3,
+          3
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ],
+      "visibility": "clear",
+      "compactFit": null
+    }
+  ],
+  "policy": {
+    "version": "radial-rgb-edge-v1",
+    "samplingAngles": 72,
+    "radiusSearch": [
+      0.22,
+      0.8
+    ],
+    "edgeHalfWidth": 0.025,
+    "minimumRGBStep": 18.0,
+    "minimumRadiality": 0.65,
+    "minimumArcFraction": 0.7,
+    "maximumMissingArcDegrees": 90,
+    "ellipseRadiusBounds": [
+      0.32,
+      0.62
+    ],
+    "maximumCenterShift": 0.3,
+    "maximumEllipseResidual": 0.045,
+    "maximumContestedFraction": 0.15,
+    "neighborOwnershipMargin": 0.08,
+    "geometryOnly": true,
+    "thresholdStatus": "engineering assumptions frozen before replay, not calibrated"
+  },
+  "excluded": "No later frame selection, model fitting, threshold tuning, physical contact inference or live use."
+}
