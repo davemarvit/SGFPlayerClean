@@ -122,3 +122,12 @@ then the shared handoff if another chat/component needs the result. A useful
 handoff names source/commit, tests, installed versions, current physical state,
 exclusive hardware owner, exact outstanding step and artifact path. Do not leave
 an old “test running” note as the final record after the run has stopped.
+
+`ExperimentModel` accepts optional AI/online-controller dependencies for isolated
+UI tests; production defaults are unchanged. Supply temporary AI, laser, online,
+recording, evidence, diagnostics and stone-library storage when testing modes.
+The old mode test accidentally loaded the live saved AI snapshot; this was fixed
+in87fc4a9. Keep source-specific receipts when unchanged suites run before a later
+constructor-only isolation change. The0.258 signed package and installation are
+recorded in [IntegratedPhysicalTestCandidate.md](../IntegratedPhysicalTestCandidate.md)
+and the current checklist.

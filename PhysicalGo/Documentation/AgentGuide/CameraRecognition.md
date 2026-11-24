@@ -150,3 +150,9 @@ It reproduces archived frame697's footprint categories exactly before replaying
 crossings and no local native fit; fresh displaced Black yields a fit with an
 uncertain neighbor. The caller must not confuse stateless class/shape evidence
 with full temporal/controller acceptance or an available laser hint target.
+
+The0.258 app now hosts the named profile store and editor in Setup → Camera &
+board → Stone set. [StoneSetProfileStore.swift](../../Sources/StoneSetProfileStore.swift)
+uses a separate `Physical Go/Stone Sets/library.json`; per-color measured thickness
+may remain unknown. Saving/selecting a profile still does not apply optical or
+parallax correction. The studied geometry candidates remain separate offline work.
