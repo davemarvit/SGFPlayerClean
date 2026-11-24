@@ -135,6 +135,114 @@ import Foundation
    })
    check(field=="current" ? ai.phase == .paused:ai.active,"Only fully scoped v2 fault pauses active AI: \(field)")
   }
+  // Replay the actual receipts around the recorded 1.788-second gap. Only
+  // identity and clock origin are rebound to this isolated game.
+  func recordedReceipt(_ name:String,_ l:PhysicalLaserGuidance)throws {
+   let folder=URL(fileURLWithPath:#filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/GuidanceWarmHandoff")
+   var raw=try JSONSerialization.jsonObject(with:Data(contentsOf:folder.appendingPathComponent(name+".json"))) as! [String:Any]
+   let shift=wall-(raw["updatedAtUnix"] as! Double),r=try request(l)
+   raw["producer"]=l.producer.uuidString;raw["sequence"]=r.sequence;raw["updatedAtUnix"]=wall
+   raw["playSession"]=try JSONSerialization.jsonObject(with:JSONEncoder().encode(r.playSession),options:.fragmentsAllowed)
+   raw["cameraContext"]=r.cameraContext;raw["streamEpoch"]=r.streamEpoch?.uuidString;raw["setupId"]="setup"
+   for key in ["offSinceUnix","beamOffSinceUnix"] {if let old=raw[key] as? Double {raw[key]=old+shift}}
+   for key in ["evidenceAfter","darkEvidenceAfter"] {if var e=raw[key] as? [String:Any] {e["streamEpoch"]=l.frames.streamEpoch.uuidString;e["frameID"]=0;raw[key]=e}}
+   if var t=raw["thermal"] as? [String:Any],let old=t["receivedAtUnix"] as? Double {t["receivedAtUnix"]=old+shift;raw["thermal"]=t}
+   try JSONSerialization.data(withJSONObject:raw).write(to:l.directory.appendingPathComponent("status.json"),options:.atomic);l.tick()
+  }
+  let lost=try fixture("recorded-status-gap",pending:true),ll=lost.laser
+  ll.setStandbyEnabled(true);ll.setEnabled(true);camera(ll)
+  try v2status(ll);try v2status(ll);try v2status(ll,state:"holding")
+  ll.verifyMoveTarget(capturedAt:now,now:now)
+  check(try request(ll).action=="point","Recorded replay starts with actual pending-move indication")
+  var recordedClicks=0;ll.onTargetIndicated={_ in recordedClicks+=1}
+  try recordedReceipt("adequate",ll)
+  check(recordedClicks==1,"Recorded adequate receipt announces first illumination once")
+  ll.observeCamera(hand:true,valid:true,capturedAt:now,now:now,context:"grid")
+  check(try request(ll).action=="standby","Recorded hand interruption requests warm standby")
+  let lostMoves=lost.snapshot!.moves.map(\.point)
+  now+=0.829;wall+=0.829;ll.tick()
+  check(try request(ll).action=="off" && ll.holdingInterrupted && lost.active,"Missing status stops hardware while allowing a returning classified recovery")
+  now+=1.7876689434051514-0.829;wall+=1.7876689434051514-0.829
+  let lostTiming=lost.timing.saved(at:now)
+  try recordedReceipt("off",ll)
+  check(lost.phase == .paused && lost.snapshot!.guidanceInterruption=="driver_link_lost","Returning unclassified full OFF pauses the silently latched game")
+  check(lost.timing==lostTiming && lost.snapshot!.moves.map(\.point)==lostMoves && lost.snapshot!.pendingPlacement,"Lost-link pause freezes clock and preserves pending move")
+  now+=60;wall+=60;ll.tick()
+  check(lost.timing==lostTiming && recordedClicks==1,"Silent OFF cannot charge placement time or announce another click")
+
+  for code in ["hand_obstructed","camera_evidence_unavailable","camera_frame_stale","request_lease_expired"] {
+   let ai=try fixture("returning-transient-"+code,pending:true),l=ai.laser
+   l.setStandbyEnabled(true);l.setEnabled(true);camera(l)
+   try v2status(l);try v2status(l);try v2status(l,state:"holding")
+   now+=0.8;wall+=0.8;l.tick()
+   try v2status(l,mutate:{$0.reasonCode=code})
+   check(ai.active && l.recoveringCamera && !l.holdingInterrupted && !l.gameFaultNeedsRecheck,"Returning classified transient retains automatic recovery: \(code)")
+   now+=3;wall+=3;l.tick()
+   check(ai.active && !l.gameFaultNeedsRecheck,"Classified recovery cancels unresolved-link game pause: \(code)")
+  }
+
+  // A warm quiescence can take the recorded 1.788 seconds. Fresh scoped
+  // transition heartbeats renew liveness without claiming darkness or a click.
+  func transition(_ l:PhysicalLaserGuidance,mutate:((inout PhysicalLaserGuidance.DriverStatus)->Void)?=nil)throws {
+   let r=try request(l)
+   var d=PhysicalLaserGuidance.DriverStatus(schemaVersion:2,producer:l.producer,sequence:r.sequence,updatedAtUnix:wall,
+     mode:"hardware",state:"transitioning",laserOn:true,offSinceUnix:nil,detail:"Waiting for warm quiescence",
+     setupId:"setup",illuminationConfirmed:false,capabilities:["darkMotorStandbyV1"],playSession:r.playSession,
+     cameraContext:r.cameraContext,streamEpoch:r.streamEpoch)
+   mutate?(&d);try JSONEncoder().encode(d).write(to:l.directory.appendingPathComponent("status.json"),options:.atomic);l.tick()
+  }
+  let handoff=try fixture("warm-handoff",pending:true),hl=handoff.laser
+  hl.setStandbyEnabled(true);hl.setEnabled(true);camera(hl)
+  try v2status(hl);try v2status(hl);try v2status(hl,state:"holding")
+  var clicks=0;hl.onTargetIndicated={_ in clicks+=1}
+  for _ in 0..<8 {
+   try transition(hl);camera(hl)
+   check(try handoff.active && !hl.holdingInterrupted && request(hl).action=="standby","Fresh scoped handoff remains admitted across 1.788-second observed quiescence")
+   check(!hl.acceptsObservation(capturedAt:now,now:now) && clicks==0,"Transition cannot authorize camera evidence or first-light audio")
+  }
+  try v2status(hl,state:"holding")
+  check(handoff.active && !hl.holdingInterrupted,"Genuine dark holding completes bounded handoff")
+  check(hl.acceptsObservation(capturedAt:now,now:now),"Only confirmed holding restores dark recognition")
+
+  let prolonged=try fixture("transition-timeout",pending:true),pl=prolonged.laser
+  pl.setStandbyEnabled(true);pl.setEnabled(true);camera(pl)
+  try v2status(pl);try v2status(pl);try v2status(pl,state:"holding")
+  let pendingBefore=prolonged.snapshot!.moves.map(\.point)
+  let initialTransitionRevision=pl.sequence
+  for i in 0..<13 {
+   try transition(pl)
+   if i==6 {pl.observeCamera(hand:true,valid:true,capturedAt:now,now:now,context:"grid")}
+   camera(pl)
+  }
+  check(pl.sequence>initialTransitionRevision,"Handoff deadline spans hand-driven revision changes")
+  check(prolonged.phase == .paused && prolonged.snapshot!.guidanceInterruption=="transition_timeout","Fresh transition heartbeats cannot renew beyond three seconds")
+  check(try request(pl).action=="off" && prolonged.snapshot!.pendingPlacement && prolonged.snapshot!.moves.map(\.point)==pendingBefore,"Transition timeout preserves pending move and requests OFF")
+
+  for invalid in ["illumination","watermark","beam-dark","session","context","epoch","setup"] {
+   let ai=try fixture("bad-transition-"+invalid,pending:true),l=ai.laser
+   l.setStandbyEnabled(true);l.setEnabled(true);camera(l)
+   try v2status(l);try v2status(l);try v2status(l,state:"holding")
+   try transition(l,mutate:{d in
+    switch invalid {
+    case "illumination":d.illuminationConfirmed=true
+    case "watermark":d.evidenceAfter = .init(streamEpoch:l.frames.streamEpoch,frameID:0,timestampSource:"cameraPresentation")
+    case "beam-dark":d.beamOffSinceUnix=wall-1
+    case "session":d.playSession = .init(source:"ai",session:UUID(),size:9)
+    case "context":d.cameraContext="other"
+    case "epoch":d.streamEpoch=UUID()
+    default:d.setupId="other"
+    }
+   })
+   check(try request(l).action=="off" && l.holdingInterrupted,"Malformed/unrelated transition cannot maintain motor admission: \(invalid)")
+   check(["illumination","watermark","beam-dark"].contains(invalid) ? ai.phase == .paused:ai.active,"Only owned malformed transition can pause this game: \(invalid)")
+  }
+  let absent=try fixture("link-never-returns",pending:true),al=absent.laser
+  al.setStandbyEnabled(true);al.setEnabled(true);camera(al)
+  try v2status(al);try v2status(al);try v2status(al,state:"holding")
+  now+=0.8;wall+=0.8;al.tick()
+  now+=3;wall+=3;al.tick()
+  check(absent.phase == .paused && absent.snapshot!.guidanceInterruption=="driver_link_lost","Missing driver cannot leave own-session clock running after bounded recovery wait")
+
   let thermal=try fixture("native-thermal",pending:true),tl=thermal.laser;tl.setStandbyEnabled(true);tl.setEnabled(true);camera(tl)
   try v2status(tl);try v2status(tl);try v2status(tl,state:"holding")
   try v2status(tl,state:"holding",mutate:{$0.thermal?.baseC=50})

@@ -85,6 +85,20 @@ an existing safe hold but cannot authorize cold engagement or recovery engagemen
 | Holding | Beam dark, motors held, bus powered; uses a separate dark receipt. |
 | Cooling | Motors released between indications, with measured temperature supervision. |
 | Arming | Bounded dark cold startup; not a dark-evidence acknowledgement or illumination permission. |
+| Transitioning | Fresh scoped heartbeat while the host finishes a warm handoff; output is uncertain and no dark receipt or first-light acknowledgement is allowed. |
+
+The native transition deadline is three seconds across revision changes. A valid
+transition must echo the current producer, revision, session, camera context,
+stream epoch, setup and standby capability. It conservatively reports possible
+light, explicitly unconfirmed illumination, and no OFF/dark timestamps or frame
+watermarks. Only a subsequent genuine state can authorize recognition or a click.
+The ordinary 0.75-second status freshness guard stays in force.
+
+A missing status still immediately requests OFF. Classified camera/lease failures
+can use the existing confirmed-dark recovery. If the driver instead returns an
+unexplained scoped full OFF, or remains missing for three seconds after the latch,
+the native AI owner pauses the game and clock, retains the pending move, and
+requires explicit recheck/Resume. Hardware recovery does not resume the game.
 
 The accepted policy enters cooling at either motor's 45°C reading. Persistent
 hold can return after both stay below 40°C on fresh measured evidence for

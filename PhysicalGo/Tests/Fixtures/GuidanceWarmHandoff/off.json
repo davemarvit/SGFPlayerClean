@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "producer": "F7E9B209-4E48-4850-93AE-B9586B20701B",
+  "sequence": 73,
+  "updatedAtUnix": 1795516298.769333,
+  "mode": "hardware",
+  "state": "off",
+  "laserOn": false,
+  "offSinceUnix": 1795516298.7233045,
+  "detail": "Replacement requires confirmed OFF",
+  "requiresNewRevision": false,
+  "illuminationConfirmed": false,
+  "capabilities": [
+    "stoneCenteringWiggle",
+    "capturedStoneIndication",
+    "darkMotorStandbyV1"
+  ],
+  "playSession": {
+    "session": "EA70E983-9FAF-40ED-8939-312ED10A1A68",
+    "size": 19,
+    "source": "ai"
+  },
+  "cameraContext": "0x11000000bda0567/eyJjb3JuZXJzIjpbeyJ4IjowLjMxMzU4ODQ2MDE0ODIzMjYsInkiOjAuMTY0OTUyNjMyMDIyMjc1MjN9LHsieCI6MC43Mjc3NjM0MjQ0MTY2MzQsInkiOjAuMDcxMTg2MTIxMzE5MzI3OX0seyJ4IjowLjc4NjQ4ODU5MDExMzk4NjUsInkiOjAuODAxNjUzNTE0NTEyMTgzfSx7IngiOjAuMjUzNTc2Nzc3MjE0NDkzMiwieSI6MC44MTk5NjY5MzU0Nzk5MDU1fV0sImgiOlswLjMzNTE1NDIyNDgyODc5NjM3LC0wLjExMzQ3NjQ0Mjc1MzM4OTcyLDAuMzEzNTg4NDYwMTQ4MjMyNiwtMC4xMDE0OTU5MTgwMjkyMzU4LDAuNDgyMTMwNDMwNzgxODM5NCwwLjE2NDk1MjYzMjAyMjI3NTIzLC0wLjEwODU4MDI1NjY5OTQxNzIsLTAuMjEwODQyNDkyNzgyNDc1OTddLCJzaXplIjoxOX0=",
+  "streamEpoch": "FC5BA287-6777-420D-A48B-38EEE0030B99",
+  "setupId": "55488244b0fb5395",
+  "motorsHeld": false,
+  "motorBusPowered": false,
+  "thermal": {
+    "policy": "warm_hold",
+    "sampleSequence": 99,
+    "receivedAtUnix": 1795516297.682267,
+    "sampleAgeUpperMs": 1205.395249882713,
+    "baseC": 12,
+    "tiltC": 12,
+    "maxBaseC": 12,
+    "maxTiltC": 12,
+    "baseTrendCPerMinute": null,
+    "tiltTrendCPerMinute": null,
+    "baseCurrentMA": 8,
+    "tiltCurrentMA": 0,
+    "baseVoltageV": 5.2,
+    "tiltVoltageV": 5.2,
+    "unavailableReason": "power_off"
+  },
+  "evidenceAfter": {
+    "streamEpoch": "FC5BA287-6777-420D-A48B-38EEE0030B99",
+    "frameID": 27991,
+    "timestampSource": "cameraPresentation"
+  },
+  "opticalReference": {
+    "state": "waiting_for_confirmed_move"
+  }
+}

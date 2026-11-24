@@ -198,14 +198,20 @@ def validate_faults(folder, firmware):
         case = required_fault_cases()[path.name]
         require(all(entry.get(key)==expected for key,expected in case.items()) and code==case['reasonCode'],
                 f'Fixture filename/route/stage has wrong reason semantics: {path.name}')
-        require(status.get('state') in {'fault', 'off', 'approaching'},
+        require(status.get('state') in {'fault', 'off', 'transitioning'},
                 f'Unknown fault-fixture status state: {path.name}')
         require(code is None or code in HARD | TRANSIENT, f'Unknown reason code: {code}')
         require(entry.get('reasonCode') == code and type(entry.get('expectedAutoPause')) is bool and
                 entry['expectedAutoPause'] == (code in HARD), f'Incorrect severity contract: {path.name}')
         expected_state = ('off' if case['stage']!='unconfirmed' else
-                          'approaching' if case['reasonCode'] is None else 'fault')
+                          'transitioning' if case['reasonCode'] is None else 'fault')
         require(status['state']==expected_state, f'Wrong state for required fixture stage: {path.name}')
+        if expected_state=='transitioning':
+            require(status['laserOn'] is True and status.get('illuminationConfirmed') is False and
+                    'darkMotorStandbyV1' in status.get('capabilities', []) and
+                    all(status.get(key) is None for key in
+                        ('offSinceUnix','evidenceAfter','beamOffSinceUnix','darkEvidenceAfter')),
+                    f'Transition fabricates light confirmation or darkness: {path.name}')
         require(status['requiresNewRevision'] == (case['stage']!='new-revision-off' and
                                                   'obsolete_cancel' not in path.name),
                 f'Wrong admission rejection semantics: {path.name}')

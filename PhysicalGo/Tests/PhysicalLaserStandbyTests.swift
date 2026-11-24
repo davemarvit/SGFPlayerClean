@@ -63,6 +63,21 @@ import Foundation
   check(!l.mayHaveMotorSession && request(l).schemaVersion==1,"Full OFF completes shutdown before legacy fallback")
   check(l.temperatureMessage=="Temperature unavailable","Powered-off cached readings are not current temperatures")
 
+  for shutdown in ["pause","disable","holding-toggle"] {
+   let x=fixture("transition-"+shutdown);try activate(x)
+   if shutdown=="pause" {x.setPlaySession(nil)}
+   else if shutdown=="disable" {x.setEnabled(false)}
+   else {x.setStandbyEnabled(false)}
+   for _ in 0..<18 {
+    try status(x,state:"transitioning",mutate:{change(&$0,["laserOn":true,"illuminationConfirmed":false,"motorsHeld":NSNull(),"motorBusPowered":NSNull()])})
+    frame(x)
+    check(request(x).action=="off" && x.mayHaveMotorSession && !x.holdingInterrupted,"Closing handoff renews OFF without falsely latching scope: \(shutdown)")
+    check(!x.acceptsObservation(capturedAt:clock.now,now:clock.now),"Closing transition never supplies dark evidence")
+   }
+   try status(x)
+   check(!x.mayHaveMotorSession && request(x).schemaVersion==1 && !x.holdingInterrupted,"Only full OFF completes \(shutdown) handoff without fault")
+  }
+
   // Each unsafe receipt is tested against a newly admitted real controller so a
   // fault latch cannot accidentally make subsequent rejection cases vacuous.
   let cases:[(String,(inout PhysicalLaserGuidance.DriverStatus)->Void)]=[
@@ -265,6 +280,8 @@ import Foundation
      check(!s.laserOn && s.motorBusPowered==true && s.motorsHeld==(s.state=="holding"),"Host hold/cooling motor truth matches native contract")
      check(s.beamOffSinceUnix != nil && s.darkEvidenceAfter != nil && s.offSinceUnix==nil && s.evidenceAfter==nil,"Host powered darkness is distinct from full OFF")
      check(s.thermal?.admissible(statusAge:0,updatedAtUnix:s.updatedAtUnix)==true,"Host causal thermal fields admit at publication time")
+    } else if s.state=="transitioning" {
+     check(s.laserOn && s.illuminationConfirmed==false && s.offSinceUnix==nil && s.evidenceAfter==nil && s.beamOffSinceUnix==nil && s.darkEvidenceAfter==nil,"Host transition conservatively retains unknown light and no darkness evidence")
     } else {check(s.state=="arming" && !s.laserOn && s.darkEvidenceAfter==nil,"Host cold bootstrap is dark without recognition receipt")}
    }
   }
