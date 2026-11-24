@@ -4138,3 +4138,22 @@ verifiedEMPTY, permittingstable singleWhite275acceptance. LegitimateWhite180also
 measured0.28offset, so simplyloweringthreshold is not a justified fix.
 marker_scenarios owns targeted neighbor-evidence investigation; contract_review
 is assigned independent review. No production/installed change yet.
+
+November 23 — ambiguity candidate and stone-set samples
+Reviewednarrowfixappliedtoinstalledbaselined5d84ef with exactoriginalsourceSHAce241953.
+Candidate347eb84/0.256build257 passes52newambiguitychecks andfive selectedsuites
+(80markers,146lifecycle+realengines,278AI-laser,37capture-controller). Signedbuilt
+sourceSHAd9c8b08cb2418b1e726ddf3a75d5f122b8dbb35f763b7506cd64d119498fd0b2;
+binarySHA7da38ad7520813714ea9192a1844f65f3a232680833fce8b0dfa1c23961aa488.
+Capture directorypreserved. Notinstalledyet; cameraidentityretainedforstone-set
+sampling. No parallax/markerthresholdchange inthisguardfix.
+Userofferedcenteredstones andnamedreusablestone-setprofiles withoptionalmanual
+thickness. Collectedwhite-01 andblack-01:8outerstarstones,8rawbrokerPNG/manifests
+each, freshclearaligned,pausedOFFrequests,nohardwarecommands,gameSHAunchanged.
+An earliermistakenBlackreadinesswasWhite; visuallycaught,userconfirmed,renamed
+white-repeat-01 withexplicitcorrectionaudit. Unknownphysicalscale/effectiveoptical
+height remain distinctfrommeasuredphysicalthickness. Sameboardcalibrationunchanged.
+November16parallaxexperimentwasneverinstalled; priorfreefitexcusedrealmisplacement.
+Currentanalysisdistinguishesbody/contactparallax fromadditionalfitter-to-bodybias
+(~.11cell,4–5px inframe697). intersection_appearance handlesofflinefit/heldouts;
+calibration_progress_ui preparesisolatedprofilemodel/UI withoutfakeapplication.

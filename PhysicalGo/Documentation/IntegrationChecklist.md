@@ -8,6 +8,32 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Narrow0.256/build257 ambiguity candidate is built, signed and verified.**
+  Pushed `347eb84` on `codex/ambiguity-installed-baseline`, based on the exact
+  installed0.253 source hash. New guard requires fresh neighboring evidence for
+  new/pending stone assignments; color recognition is unchanged. Independent
+  review and5/5 suites pass (52 new recorded/synthetic ambiguity checks,80 marker,
+  146 lifecycle plus real engines,278 AI-laser,37 capture-controller). Not yet
+  installed or physically retested; awaiting completion of same-camera sampling.
+  [Build evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/ambiguity-build-verification.json>).
+- **Stone-set/parallax samples collected:** eight carefully centered White stones
+  and eight Black stones at the outer star points, eight fresh broker frames per
+  color. Images/metadata preserved; app paused, game unchanged, no hardware commands.
+  An accidental second White capture is explicitly relabeled`white-repeat-01`,
+  not used as Black. Root is collecting one known halfway Black negative next.
+  intersection_appearance owns offline geometry/body-center/height analysis;
+  calibration_progress_ui owns an isolated named-set/optional-thickness UI candidate.
+  Neither analysis nor profile selection activates a live correction.
+
+- **Parallax correction was studied but not installed.** The November16
+  [offline study](OfflineHandParallax-2026-11-16.md) explicitly withheld live
+  integration: unconstrained corrections could excuse real misplacement, and
+  the camera-constrained variant abstained on negative examples. Current board
+  alignment is not an explicit stone-height compensation. The new same-frame
+  centered/misplaced White pair is being measured by intersection_appearance.
+  Keep physical parallax (visible body versus board contact) separate from the
+  additional outline-fit bias (fit versus visible body, approximately0.10cell).
+
 - **Attended stone tests passed hand clearance and ordinary placement; ambiguity
   failed.** Installed0.253/build254 recognized two hand/withdrawal cycles and
   Black72 → White180 → Black300 exactly once. Pause/Resume preserved clocks and
@@ -215,7 +241,7 @@ in the laser repository. Physical accuracy and gameplay tests remain separate.
 | 7 | Hold motors during active play | Implemented and offline-tested; app 0.253/v44 installed and short dark commissioning passed. Native opt-in, explicit game identity, two-stage OFF handshake, retain-only hand behavior, distinct held/cooling dark evidence, temperature current/max/trend, and hard-fault reset indication are offline-tested. Preserve 45°C cooling, below-40°C measured 30-second recovery and full release for pause/disconnect/fault. Production gameplay bridge remains stopped pending fresh calibration; opt-in is off. |
 | 8 | Validate prolonged holding and cooling | Private v43 commissioning-03 passed 60.022s, 533 pairs, maximum 14°C, clean OFF. Endurance-02 stopped at 917.235s on the camera timestamp gate, maximum 16°C/17°C, current maxima 3mA/11mA. Reviewed v44 is now installed after the short dark pass. Firmware temperature/current/motion/USB/heartbeat/ACK checks and host interlocks are implemented and tested; causal freshness passed eight two-hour clock-drift simulations. Dave no longer requires a formal two-hour test; monitor temperatures during actual gameplay instead. Actual cooling transitions and seated noise remain unvalidated. Never restart automatically after a fault or raise limits to force a pass. |
 | 9 | Fix ended-game grid recovery | Installed in 0.252; physically unvalidated. Ended AI history no longer constrains a cleared board; unfinished/paused games still do. The original failure and fix were reproduced against the archived empty-board recording and preserved 267-move SGF; 21 focused checks pass. Full recovery lifecycle regression also passes. Live finish/reopen workflow remains to check. |
-| 10 | Test laser centering hints | Pending calibration and live clearance. Verify the hint marks the observed off-center stone without inventing its intended intersection, stops for a hand, clears after centering, and yields to placement/capture guidance. |
+| 10 | Test laser centering hints | Pending calibration and live clearance. Dave proposes a stricter centering tolerance when “Mark ambiguous stones” is enabled; mandatory uncertain-intersection abstention must remain active with hints off too. This is a proposed preference, not an implemented threshold change. Correct and misplaced White stones both measured offset0.28 in this session, so raw offset alone cannot choose the policy. Verify the hint marks the observed off-center stone without inventing its intended intersection, stops for a hand, clears after centering, and yields to placement/capture guidance. |
 | 11 | Implement/test captured-stone indication | App installed in 0.252 and host source updated; production bridge remains stopped. Placement precedes prisoner indications; prisoners are indicated individually and silently, with positive dark evidence, capability checks and retained clock behavior. Current full-app tests: 42 state, 47 laser-contract and 37 controller checks; 29 host tests pass. Physical accuracy on both stone colors, partial/out-of-order removal, hand entry and cleanup clocks remain untested. Old saves without explicit capture context do not gain guidance from stale history. |
 | 12 | Complete online-opponent integration | Pending. Protocol accepts online source, but native camera publication/observation is AI-only and lacks an authoritative online target producer. Wire moves/orientation and preserve server clocks before separately validating online placement, captures and timing. |
 | 13 | Illegal-move feedback | Tested proposal ready: [design](IllegalMoveMarkerDesign.md) and tracked [experiment](../Experiments/IllegalMoveMarkers/README.md), 83 checks against actual engine sources. Existing suicide observations can fall through to generic mismatch before the specific illegal-move diagnostic. Candidate adds a separate diagnostic path without accepting illegal moves, guessing ambiguous placements, or mistaking prisoners for new moves. Specific screen feedback is recommended first; a distinct silent laser pattern remains a proposal. No production integration or physical validation; does not block the core test. |
