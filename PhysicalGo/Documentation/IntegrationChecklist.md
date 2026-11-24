@@ -8,6 +8,48 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Overnight offline work — November 24, after final attended session
+
+- All hardware drivers STOPPED; controller serial port is free. Last full OFF
+  receipt1795516412.7072308 (beam off and motor power released), driver47092 exit0.
+  Installed app0.259 was reopened only for camera-only acquisition and is now
+  closed again. No laser, motor or audio activity is authorized while Dave sleeps.
+- Bedtime recording023109 retained560 immutable broker images over126.9s,
+  plus requests/status/native timings. Initial022905 capture retained138 images.
+  The clear-but-latched tail is diagnostic evidence and was not trimmed.
+- GameEA70E983-9FAF-40ED-8939-312ED10A1A68 remains12 plies, WhiteE3 pending,
+  paused. Clocks Black728.2641341662966s/White65.05366220814176s; no reset/edit.
+  Dave regards this as a test game and cleared the physical stones for analysis.
+  Do not resume against the empty physical board without choosing a new game or
+  restoring the saved position. AirPod Pro3 remains the selected audio output.
+- Dave supplied CLEAR.20 full1920×1080 board-camera frames were saved separately
+  in gameplay-activation-20261124/empty-board-20261124-overnight; all camera ID
+  0x11000000bda0567, epoch906ACAD4-5F95-41DB-8123-C224C886A137, clear/aligned.
+  Root visually checked actual board pixels. Game SHA remained
+  0e5a41a3a0bb24d4d0cd1b051793faa150dc97c6f059a985143f52234101e0ea.
+  The active empty reference, grid, laser model and binding were not replaced.
+- Desktop screenshots require advance notice (Dave's explicit privacy request).
+  Prefer AX text for controls and actual camera files for calibration. The single
+  UI-only desktop screenshot from this acquisition was deleted and never used as
+  board data. Preference also recorded in the workspace AGENTS.md.
+- Separate failure causes: frame27830 exceeded600ms freshness (host capture age
+  0.601021528s). Native analysis→manifest delay reached237.6ms; retained traces
+  support scheduling/IO congestion, not a proven fsync cause. Later photographs
+  show a hand near the right board edge/bowl; this was a separate clearance stop.
+- Warm handoff then reused an old receipt for1.788s, exceeding the native0.75s
+  status limit. The app latched OFF and kept the clock running until root Pause.
+  Coordinated host/native `transitioning` status and clock-pause regression repair
+  are under offline test. It grants no darkness or illumination evidence and
+  does not relax original camera/thermal/lease deadlines.
+- Integrated candidate branch codex/gameplay-ui-and-delivery contains large AI
+  clocks, all-four-side coordinates, independent click controls, traced ephemeral
+  IPC writes and bounded image retention. Not built/installed yet. IPC benchmark
+  did not show a speedup; the tracing should identify the next observed stall.
+- Geometry and motor-prediction assessment is using the new empty-board frames
+  and original full-calibration observations offline. No replacement map is
+  activated, and no new physical calibration is claimed.
+
+
 ### Holding handshake corrected; image publication still under investigation — latest
 
 - Current driver is PTY71281, host `f45b5e6b30a9b1f9e66b58954f05b54fc21e73be`
