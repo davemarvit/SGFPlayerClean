@@ -1,5 +1,17 @@
 # Laser movement checkpoint — November 23, 2026
 
+**Latest state — setup image changed; hardware fully OFF.** Reviewed recovery
+host `7bee8a4` passed 66 tests, but observed-validation-02 stopped before arming
+or light. A printed/native corner error of4.0109px was the first rejection.
+Twelve later frames independently show a stable image-coordinate shift of
+about9.5px since initial-spot-02, and10.2px from the original reference. Cause
+is unknown; root asked Dave which equipment may have been nudged. Do not reuse
+the old camera geometry or infer the pointer's new board position. Full OFF
+confirmed at Unix1795496145.193214. The new bounded optical recovery has not
+yet been physically exercised; the prior A10 pass remains historical evidence.
+See the current checklist and dark-grid-diagnostic-01/analysis for details.
+
+
 **Current followup — recovery and A10 passed, next settlement stopped:**
 Hosta84faa5 requalified fresh position/two-axis response and measured A10 within
 1.111px. PlannedGOTO1860/2294 passed2.919px prediction agreement; actual1860/2292

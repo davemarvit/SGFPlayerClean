@@ -14,6 +14,17 @@ offline verification, installation and physical validation.
   23 selected suites, corrected test-fixture failures, five final focused reruns
   and fresh app→host→app acceptance against laser host `42e5022`. Physical retests
   remain pending; passing offline tests is not a physical pass.
+- **Current physical blocker: changed camera/board image alignment.** Recovery
+  host `7bee8a4` is committed/pushed and passed 66 independently rerun tests.
+  Its first physical attempt, `observed-validation-02`, stopped before motor
+  arming or light: one printed/native grid corner differed by 4.0109px (limit 4).
+  Twelve later dark frames confirm a stable structural shift of about 9.5px
+  versus the last spot reference and 10.2px versus the original reference.
+  This is not merely native-grid jitter; the physical cause is unknown. Dave
+  has been asked whether the board, camera, pointer or supports were nudged.
+  Do not retry against the old geometry. Full OFF confirmed at Unix
+  `1795496145.193214`; saved game files are unchanged. The new bounded camera
+  remeasurement path has not yet been physically exercised.
 - **Ready for camera/AI testing:** new paused empty-board Human Black practice,
   ID `EA70E983-9FAF-40ED-8939-312ED10A1A68`, zero moves, both clocks zero, fast mode on.
   Load and relaunch persistence were checked. Original five-move game
@@ -51,7 +62,8 @@ offline verification, installation and physical validation.
   not reached here. `adaptive_calibration` owns settlement-aware planning,
   `fast_calibration` runner integration, `dark_commissioning` and architecture
   reviewers. Optional shrinking alone is insufficient; bounded stationary
-  remeasurement/requalification is being implemented to restore camera feedback.
+  remeasurement/requalification is now implemented in reviewed `7bee8a4`, but
+  its physical test was blocked by the subsequent geometry change above.
   [Laser checkpoint](LaserMovementCheckpoint.md).
 - Rollback and fresh stopped-app data backup:
   `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
@@ -88,10 +100,10 @@ selecting or saving a stone profile does not activate a correction.
    orientation rotates the canonical fixture labels. Preserve the original game.
 3. Check named profile persistence and prepared suicide/ko screen feedback.
    Optical correction and illegal-move laser patterns are not included.
-4. Dave prioritizes laser-assisted testing: finish reviewed recovery from the fresh
-   `initial-spot-01` measurement, re-observe position in the next live session and
-   qualify bounded steering, then complete all nine held-out checks before
-   activating a gameplay binding. Do not retry an old anchor blindly.
+4. Dave prioritizes laser-assisted testing. First establish what changed in the
+   camera/board/pointer setup and reverify calibration; the old camera geometry
+   now fails independent image checks. Then physically test reviewed recovery
+   `7bee8a4` and complete all nine held-out targets before activating a binding.
 5. Once qualified, test cue/light timing, hand darkness, centering wiggle,
    captured-stone markers and monitored holding/cooling. No two-hour run is required.
 6. Keep parallax/outline/map studies offline until their independent validation

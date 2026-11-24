@@ -4501,3 +4501,42 @@ Oncepertarget/twiceperrun, originaldeadline/model preserved; allfirmware/camera/
 hand/lease/transportfaultsterminal. Fastauthor implementing; architecture/dark
 reviewers. Notyet physicallyvalidated or enabled. Strictplanner purehelper
 d72f034 has15reviewedtests; source remainsisolated, nohardwareauthority.
+
+
+## November 23 — recovery fix reviewed; physical test blocked by changed geometry
+
+Laser host `7bee8a416ee6f353bea8d6d5b8af192ff6a5a843` is committed and pushed on
+`codex/settlement-aware-validation`. Both independent reviews cleared it; all
+66 targeted tests passed with retained fixtures and no skips. It keeps optional
+settlement-aware goal selection separate from baseline movement checks. Only a
+clean first-coarse prediction disagreement can admit bounded stationary
+remeasurement and fresh two-axis qualification. Original deadlines, frozen fit,
+physical guards and one-per-target/two-per-run recovery limits remain.
+
+Root's observed-validation-02 stopped before GA, torque, PREPARE or SWEEP. The
+initial reference check reported printed/native corner residuals
+[1.1122, 1.3686, 0.6162, 4.010906]px against the 4px limit. Only status, heartbeat
+and OFF commands were sent; no thermal session or optical sample started.
+Exact v44 OFF confirmed at Unix1795496145.193214; process reaped, saved game
+files and source inventory unchanged. Raw report SHA256:
+1c35e1e38bbd69c18e0131b8d21ba87fffd054ccd7986276dfdf73d88a11cb34.
+The new recovery behavior was not physically exercised.
+
+Twelve subsequent direct-broker dark frames span1.506s. Native current corners
+are identical across them, but differ from initial-spot-02 by up to10.589px.
+Independent printed-grid fits and board-masked image registration confirm a
+structural image change: about9.5px versus initial-spot-02 and10.2px versus the
+original frozen reference. Current fitted corners vary only.057–.133px. Eleven
+frames pass fresh_grid and then fail movement; one fails printed-boundary fit.
+Zero pass full existing reference verification. Lighting variation alone does
+not explain this; the cause (camera, board, support or other) is unidentified.
+Do not cherry-pick a frame that passes the first4px gate or retry old geometry.
+
+Evidence and reproducible analysis are under
+laser-position-recovery-20261123/dark-grid-diagnostic-01/analysis. Original images
+were hash-verified unchanged. The exact initially rejected frame was not saved;
+these later frames do not recreate that particular4.010906px calculation. Fast
+author is fixing that diagnostic omission separately, preserving rejected PNG,
+metadata and reason only after full OFF and quiescence. No threshold or retry
+policy change. Dave was asked whether anything was touched/nudged; answer pending.
+No further hardware run until the setup is reverified.
