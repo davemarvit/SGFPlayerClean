@@ -4540,3 +4540,13 @@ author is fixing that diagnostic omission separately, preserving rejected PNG,
 metadata and reason only after full OFF and quiescence. No threshold or retry
 policy change. Dave was asked whether anything was touched/nudged; answer pending.
 No further hardware run until the setup is reverified.
+
+
+November 23 follow-up: rejected-startup evidence preservation is now committed
+and pushed as laser `4e1a61b98401a3cae496d2ca904a8f9ff81753a9` on
+`codex/rejected-startup-evidence`, extending reviewed recovery `7bee8a4`. The
+32-test aggregate passed; independent review reran four focused cases. Exact
+rejected PNG/metadata/reason are saved only after confirmed OFF and quiescence;
+capture/disk failures remain secondary. No thresholds, retries or hardware
+behavior changed. The earlier missing frame cannot be recovered retrospectively.
+Hardware remains OFF and the equipment-movement question remains pending.

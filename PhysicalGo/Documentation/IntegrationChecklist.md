@@ -25,6 +25,9 @@ offline verification, installation and physical validation.
   Do not retry against the old geometry. Full OFF confirmed at Unix
   `1795496145.193214`; saved game files are unchanged. The new bounded camera
   remeasurement path has not yet been physically exercised.
+  Diagnostic follow-up `4e1a61b` now preserves exact rejected startup frames
+  after shutdown; 32 tests and independent focused review passed. No limits
+  or retry behavior changed. This is the reviewed successor for a later test.
 - **Ready for camera/AI testing:** new paused empty-board Human Black practice,
   ID `EA70E983-9FAF-40ED-8939-312ED10A1A68`, zero moves, both clocks zero, fast mode on.
   Load and relaunch persistence were checked. Original five-move game
