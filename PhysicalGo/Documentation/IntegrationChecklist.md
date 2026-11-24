@@ -8,6 +8,19 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+**Current integration in progress:** reviewed source `e5e2395` on
+`codex/integrated-physical-test-candidate` is preparing 0.258/build 259.
+It combines recovery/progress/optional timing logs, ambiguity protection,
+fast-test idle reuse, named stone-set controls, illegal-move screen feedback
+and four reversible practice positions. The combined regression build is running;
+installation and physical validation remain pending. See the
+[consolidated physical test plan](</Users/dave/SGFPlayerClean-worktrees/integrated-physical-test-candidate/PhysicalGo/Documentation/NextPhysicalTestPlan.md>).
+This supersedes the older recommendation below to install 0.257 next.
+Latest user report says eight Black stones; the earlier photo showed seven Black
+and one displaced White. No fresh visual claim is made. Laser calibration still
+needs an empty board and resolution of the saved steering disagreement.
+
+
 - **Installed: Physical Go 0.253/build 254 and v44 firmware.** The app is paused
   at move 5 with an unplaced AI Black stone. The board holds seven centered Black
   calibration stones and one deliberately displaced White near raw (14.5,9).
