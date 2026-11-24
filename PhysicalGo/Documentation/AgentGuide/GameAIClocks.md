@@ -98,3 +98,22 @@ file replacement is not a multi-file crash transaction.
 AI saves predating capture-indication context do not gain prisoner markers from
 stale history. When the real board is cleared, preserve the old game and clocks
 and explicitly establish the intended new or restored game.
+
+## Reversible practice positions
+
+Installed0.258 adds four paused fast-mode positions through
+[PhysicalAIPracticePosition.swift](../../Sources/PhysicalAIPracticePosition.swift)
+and the ordinary AI Setup/Play controls. The loader stores an immutable original
+snapshot backup, writes the new SGF before atomically replacing current.json, and
+preserves fault requirements. Return checks identity, original bytes/hash and
+current-file authority. Load/return stop retained workers and clear observations;
+Resume still requires fresh physical-board verification. See
+[practice controls and persistence](../PracticeTestPositions.md) and
+[the current test plan](../NextPhysicalTestPlan.md). Test via
+`--practice-positions-test`; saved practice context also affects rollback.
+
+Fast-test worker reuse retains only completed idle work across ordinary pause;
+active requests, faults and shutdown invalidate it. The combined recovery test
+requires fresh post-human-move board evidence before expecting the next AI search.
+Screen illegal feedback is diagnostic only and cannot change accepted history,
+clocks or laser targets; exercise `--ai-illegal-move-test`.
