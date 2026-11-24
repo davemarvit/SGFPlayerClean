@@ -124,3 +124,25 @@ Its bounded next step separates full-boundary geometry from color classification
 reports coverage/ownership/disagreement, and abstains when unresolved. The
 approximately 0.11-row discrepancy in two recorded stones is not a portable
 constant correction or a physical thickness measurement.
+
+The fresh displaced-color study is independently reviewed at
+[`201a258`](https://github.com/davemarvit/SGFPlayerClean/blob/201a258/PhysicalGo/Experiments/StoneSetCalibration/FreshMidpointIndependentReview.md).
+These are two negative episodes at a previously fitted side-middle location;
+explicit per-frame-grid → raw-pixel → frozen-grid mapping preserves the small
+view change as uncertainty. It is not a live classifier/acceptance test.
+
+The separate boundary experiment
+[`b4184d5`](https://github.com/davemarvit/SGFPlayerClean/blob/b4184d5/PhysicalGo/Experiments/BoundaryGeometry/README.md)
+exposes center, angular support, neighbor ownership, discrepancy and abstention.
+Independent review `4c958ce` proves closed shadows/nonstone patches can still
+receive geometric support. Its machine-readable `diagnosticOnly` and
+`stoneVersusShadowUnverified` fields forbid interpreting that support as validated
+stone identity or centering accuracy. No runtime consumer exists.
+
+For the separate native-detector baseline, see
+[`46b9cdd`](https://github.com/davemarvit/SGFPlayerClean/blob/46b9cdd/PhysicalGo/Experiments/FreshNegativeNativeReplay/README.md).
+It reproduces archived frame697's footprint categories exactly before replaying
+32 saved centered/displaced images. Fresh displaced White yields two uncertain
+crossings and no local native fit; fresh displaced Black yields a fit with an
+uncertain neighbor. The caller must not confuse stateless class/shape evidence
+with full temporal/controller acceptance or an available laser hint target.

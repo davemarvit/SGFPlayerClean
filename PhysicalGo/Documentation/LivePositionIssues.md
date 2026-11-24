@@ -4263,3 +4263,70 @@ substantial displacement after correction. This supports these two fresh negativ
 episodes only, not physical thickness, independent-setup portability, calibrated
 confidence, or installed-app acceptance. No model training or live activation.
 Results: stone-set-calibration/offline-body-study-02/fresh-midpoint-results.json.
+
+November 23 — further offline work completed during Dave's absence
+
+User requested useful work while away and explicitly said proceed. Hardware and
+live state were left untouched. Final preservation audit: installed0.253/build254,
+all AI game-file hashes equal the saved White-negative inventory, app bridge
+requestOFF. Physical board remains seven centered Black plus displaced White;
+no Resume against five-move logical game. No laser/controller commands issued.
+
+Recommended next test candidate0.257/build258 combines ambiguity347eb84 and
+fast-test idle reuse8c142a2. Source/version47dc15b, pushed documentation7edf1b0 on
+codex/recognition-fast-test-candidate. Optimized full build and8 registry checks
+pass. Prior unchanged feature checks42idle/162AIplay/278AI-laser/52ambiguity pass.
+Independent copied-package review verifies strict Developer ID signature, version,
+158ordered Swift inputs,4build inputs and173bundle files. Capture directory stays
+/Users/Dave/SGFPlayerClean/PhysicalGo/Captures. Frozen read-only artifact:
+stone-session-20261123/app-0257-candidate/Physical Go.app. SourceSHA
+142bb2374398dbac1df8b445047d703370436ed97aa768c366740d0c4dae4394;
+signed binarySHA4b4d8076dd60772f504d771ac9d84d43604178fce480ed189430086e376cf5af.
+Not installed/launched. Installed0.253 and retained signed0.256 remain unchanged.
+No optical profile, boundary experiment or broader0.254/0.255 changes included.
+
+Fresh negative optical study7c9f57c independently reviewed/pushed201a258 on
+codex/fresh-midpoint-review. Full replay exactly matches;16 frame source/metadata/
+model checks, coordinate inverses and rejected hash/epoch controls pass. These
+are new negative episodes at previously fitted(15,9), not heldout/new setup.
+
+Boundary diagnosticb4184d5, review4c958ce, both pushed on separate branches.
+29cases and numeric policy frozen at738f2d7 before replay; later setup grouping/
+auxiliary-hash metadata corrections preserve original selections and all numeric
+outputs.7 mechanism controls and exact29-case independent replay pass. Evidence
+schema separates outline, coverage, neighboring-owner exclusions, compact-fit
+discrepancy, angular-deletion sensitivity and abstention. Every output says
+runtimeDisposition=diagnosticOnly,boundaryIdentity=stoneVersusShadowUnverified.
+Reason to withhold production: shadows can pass geometric support. Independent
+stone+shadow control has100percent coverage but0.118cell center error with<0.015
+quadrant spread; round dark nonstone also passes.5of9 current Black cases abstain
+under fixed radius bound. Supported outline is not identified body/contact truth.
+No threshold tuning on fresh negatives, classifier/model change or live consumer.
+
+Root native replay46b9cdd pushed on codex/fresh-negative-native-replay. Unchanged
+BoardDetector closure from347eb84 reproduces actual archived697 fourfootprints
+and zeroplacementFits exactly, then replays32 centered/freshnegative images.
+Eight independent input/parity integrity controls pass; all source/input hashes
+unchanged. ReferencePNG exactly equals both current persisted snapshot and prior
+backup (SHAcdc8d10f006fe81fec510f06ab212a75e6b39e412e7d14cdddcf9f0b70a4c268).
+Threshold explicitly archived0.13; freshbrokerlacks threshold/referenceimagehash,
+so no per-frame in-memory-reference claim. Currentgrid is passed perframe.
+At rawside-middle: centeredBlack fit(15,8.96), centeredWhite(15,8.76). FreshBlack
+fit(14.56,8.96), Blackat(15,9)score1, neighbor(14,9)uncertain.6875. FreshWhite
+both14/15uncertain(.625–.71875/.5625–.59375), no localfootprint/placementfit inall8.
+This is stateless detector evidence, not temporaltracking, moveacceptance, clocks
+or hintdispatch. Missing footprint explains why abstention does not guarantee a
+usable centering-hint target. Full artifacts in stone-set-calibration/native-fresh-replay-01.
+
+Capture kitf0009e9 pushedcodex/attended-capture-kit. Two artifact-only synthetic
+four-move humanBlack19x19 fixtures: single A18,A19,T1,C19 then B19 captures A19;
+double B19,A19,B18,A18 then A17 captures A19/A18. Fasttestmode true, no fabricated
+observed timestamps or verifiedcamera evidence.34 actualSGFrules checks plus20
+actualPhysicalAI snapshot/acceptance/capture/clock checks pass. Singleelapsedclock
+continues, double/partial holds, out-of-order removal and fullcleanup verified
+with synthetic observations. Existing-output/Library destination refusal checks
+pass. Short run card and validated-fixtures at work/ai-laser-integration/
+attended-capture-kit-20261123. App has no AI SGFimport/fixturepicker; activation
+requires separate preserved-state loading transaction. No productiontesthook,
+livegamemutation or physicalpass. AIcapture-first guidance and Blackprisoner
+surface tests remain outside this kit. Laser tests still require qualification.

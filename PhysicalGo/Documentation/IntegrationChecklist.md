@@ -18,15 +18,19 @@ offline verification, installation and physical validation.
   Production bridge is stopped. The app's bridge setting is ON only to publish
   passive camera samples and OFF requests. Diagnostic recording and warnings are
   OFF. Root remains sole hardware owner.
-- **Narrow 0.256/build 257 is built, signed and verified, but not installed.**
-  Pushed `347eb84` on `codex/ambiguity-installed-baseline` uses the exact installed
-  0.253 source baseline. The new guard requires fresh neighboring evidence for
-  new/pending assignments; it does not change color recognition or parallax.
-  Independent review and five suites pass: 52 ambiguity, 80 marker, 146 lifecycle
-  checks plus real engine cases, 278 AI-laser and 37 capture-controller checks.
-  The verified app and 0.253 rollback are saved. Same-camera Black and White
-  negative photos are now saved; installation and physical retest remain pending.
-  [Build evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/ambiguity-build-verification.json>).
+- **Recommended next test app: 0.257/build 258, built and independently verified.**
+  Pushed `7edf1b0` on `codex/recognition-fast-test-candidate`; version/source
+  commit `47dc15b` combines narrow ambiguity baseline `347eb84` with reviewed
+  fast-test idle reuse `8c142a2`. Optimized build and eight registry checks pass.
+  Independent packaging review verifies signature, 158 source inputs, four build
+  inputs and all 173 bundle files. Capture directory is preserved. The candidate
+  is frozen read-only and has not been installed or launched. Installed 0.253 and
+  signed narrow 0.256 remain unchanged for rollback/comparison.
+  [Candidate and verification receipts](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/app-0257-candidate/README.md>).
+  The narrow guard passed five suites (52 ambiguity, 80 marker, 146 lifecycle
+  checks plus real engines, 278 AI-laser, 37 capture-controller). Idle reuse
+  additionally passed 42 focused checks and AI-play162/AI-laser278/ambiguity52.
+  Neither optical profile nor boundary experiment is included in the app.
 - **Attended recognition:** two hand/slow-withdrawal cycles and ordinary
   Black72 → White180 → Black300 acceptance passed. A halfway White stone was
   correctly classified White but wrongly assigned to 275, followed by AI288.
@@ -39,7 +43,7 @@ offline verification, installation and physical validation.
   restart likely explains the difference; the load/search split was not measured.
   Separate reviewed idle-worker reuse candidate `8c142a2` passes 42 targeted
   checks plus AI-play 162, AI-laser 278 and ambiguity 52 regression checks. It is
-  pushed but not installed or included in the signed 0.256 app.
+  included in signed 0.257, not installed; signed 0.256 remains the guard-only comparison.
 - **Stone-set evidence is saved:** eight centered outer-star White and Black
   stones, eight fresh camera samples per color. An accidental second White pass
   is explicitly labeled `white-repeat-01`, never Black. Profiles, optional manual
@@ -47,8 +51,10 @@ offline verification, installation and physical validation.
   candidates only. Physical thickness and portability remain unidentified.
   Fresh displaced Black and White episodes are now saved at raw (14.5,9);
   Frozen-model comparison preserves displacement: nearest crossing distance
-  Black 0.434–0.461 cells, White 0.484–0.488 across two geometry hypotheses. This location was a training anchor, so
-  it is not the preselected held-out-location check. Independent setup remains pending.
+  Black 0.434–0.461 cells, White 0.484–0.488 across two geometry hypotheses.
+  Independent review `201a258` reproduces all results. This location was a
+  training anchor, not the preselected held-out location. Independent setup
+  remains pending.
 - **White centering mechanism independently reproduced.** Native replay and a
   separate recomputation of all 8,450 pixel votes and the complete fit search
   show the brightness cutoff/objective favoring the upper bright region. Native
@@ -76,7 +82,8 @@ offline verification, installation and physical validation.
   claimed. Dave prefers monitored gameplay with cooling fallback.
 - Earlier signed 0.254/0.255 candidates remain separate and uninstalled. See
   [overnight results](OvernightSoftwareResults.md) for those broader changes;
-  use the narrow 0.256 candidate for the focused recognition retest.
+  0.257 now combines the focused recognition fix and idle fast-test reuse. The
+  narrower 0.256 remains available for comparison.
 - Dave briefly returned and supplied both displaced-color examples; no more
   physical input is needed for their offline comparison. Preserve camera/setup. No
   acknowledged external laser-agent dependency is outstanding. Historical
@@ -92,10 +99,14 @@ selecting or saving a stone profile does not activate a correction.
 | Calibration optimizations and timing logs | Root, component authors and independent reviewers | Integrated on laser `codex/workflow-review-integration`, runtime3498fb2/documentation42e5022. All183 host/calibration/workflow tests plus38 model/importer tests pass. Native tracing remains opt-in; no hardware run or speed claim. |
 | Historical timing importer | `workflow_timing_model` | Reviewed importer retains uncertain/missing boundaries; three actual reports exported. Included in integrated candidate. |
 | Laser steering/settlement | `fast_calibration`, `adaptive_calibration` | Actual3.172px failure reproduced. Better rolling fits alone still fail full settlement-region checks; current motion samples poorly constrain the other axis. Bounded richer-probe protocol and offline feasibility study completed at `927b63b`, eight tests pass; no production fix or physical execution. |
-| Ambiguous intersection assignment | `marker_scenarios`, `contract_review`, Root | Narrow0.256 built/signed/verified,5/5 suites pass; same-camera negative photos saved; installation and physical retest pending. Correct color, wrong intersection was the defect. |
+| Ambiguous intersection assignment | `marker_scenarios`, `contract_review`, Root | Guard in signed0.256 and combined0.257;5/5 narrow suites pass. Same-camera negative photos saved; installation and physical retest pending. Correct color, wrong intersection was the defect. |
 | Stone-set profiles | `calibration_progress_ui`, `contract_review` | Isolated named picker/editor/storage on pushedbf241bc:34 author and15 independent checks, SwiftUI typecheck pass. Not hosted in app and not applying vision changes. |
 | Parallax/appearance estimate | `intersection_appearance`, `architecture_review` | Eight centered White and eight centered Black samples analyzed; six fitted/two held out per color. Reviewed only for unvalidated optical-candidate storage. Physical thickness remains unidentified; fresh Black/White negatives remain displaced after frozen correction; same-view grid consistency within0.54px. Independent setup pending. Native White-fit diagnosis independently reviewed at `e6a6e85`: exact pixel-vote and complete optimizer replay; no production optical fix. |
-| Faster Pause/Resume testing | `latency_logging`, `contract_review` | Pushed `8c142a2`: 42 targeted checks plus AI-play162/AI-laser278/ambiguity52 pass. Only completed idle fast-test engine may survive ordinary pause; active work cancels. Not installed; separate from signed0.256. |
+| Faster Pause/Resume testing | `latency_logging`, `contract_review` | Pushed `8c142a2`: 42 targeted checks plus AI-play162/AI-laser278/ambiguity52 pass. Only completed idle fast-test engine may survive ordinary pause; active work cancels. Included in signed0.257; not installed. Signed0.256 is retained separately. |
+| Combined recognition/fast-test app | `build_provenance`, Root | Pushed7edf1b0; optimized signed0.257/build258 independently verified and frozen. Installed0.253/signed0.256 unchanged. Not installed or launched. |
+| Full-boundary geometry evidence | `intersection_appearance`, `architecture_review` | Pushedb4184d5, independent review4c958ce. Frozen29 cases reproduce;7 controls pass. Shadow-contaminated outlines and round nonstone patches can pass geometry checks. Explicit diagnostic-only fields; no production promotion. |
+| Fresh-image native detector replay | Root, `contract_review` | Pushed46b9cdd: actual archived697 footprint categories reproduce exactly;32 saved samples replayed. Fresh displaced Black has uncertain neighbor and off-center fit; displaced White has two uncertain crossings and no local fit. No temporal/controller acceptance or hint claim. |
+| Repeatable capture-test fixtures | `capture_guidance`, Root | Pushedf0009e9: single/two-prisoner four-move human-Black fixtures, fast mode,34 actual rules-engine and20 actual-controller checks pass. No AI SGF import/picker; activation remains an explicit preserved-state transaction. No current-game edits. |
 
 ## Immediate next steps
 
@@ -105,8 +116,8 @@ selecting or saving a stone profile does not activate a correction.
    fresh episodes at a previously fitted location. The app made a small grid
    adjustment; exposed crossings establish same-view consistency within 0.54px,
    retained as uncertainty. This is not an installed-app acceptance test.
-2. Install the verified narrow0.256 ambiguity candidate with the saved0.253
-   rollback available. Preserve the failed paused game/history/clocks. Deliberately
+2. Install the verified combined0.257 candidate for recognition/fast-AI tests,
+   retaining signed0.256 for comparison and saved0.253 for rollback. Preserve the failed paused game/history/clocks. Deliberately
    recover the saved three-move test checkpoint before resuming physical play;
    current logical game has five moves and the board now holds eight calibration
    stones (seven Black, one displaced White). Do not press Resume against that mismatch.
@@ -120,7 +131,7 @@ selecting or saving a stone profile does not activate a correction.
    nine accuracy targets and final binding activation remain pending.
 5. After laser qualification, test monitored holding, hand-triggered darkness,
    move indication, centering hints and single/multiple captured-stone markers.
-   Capture fixtures avoid waiting for a random AI capture. Check partial removal,
+   The [capture run card](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/attended-capture-kit-20261123/RUN_CARD.md>) avoids waiting for a random AI capture. Check partial removal,
    cue priority and clock behavior. Thermal cooling transitions remain unvalidated.
 6. Keep stone-set estimates offline until misplaced-stone negatives and independent
    setup checks pass. Improve White body-center measurement and distinguish
@@ -155,13 +166,15 @@ selecting or saving a stone profile does not activate a correction.
 | 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. Runtime adoption and historical-report migration are integrated offline in3498fb2;183 host/workflow plus38 model/importer tests pass. Native logging remains opt-in and unactivated; installed timing policies are unchanged. |
 | 22 | Named stone sets and parallax correction | User requested automatic estimates saved per named set, with optional measured Black/White thickness. Profile UI/model candidatebf241bc passes34+15 checks and typecheck; not integrated. Hardened optical study `8f692b3` and review `c7286b1` permit offlineCandidate storage only. Eight centered stones per color collected; six-fit/two-held-out analysis and White development negative complete. Fresh Black/White negatives captured at previously fitted side-middle location; frozen-model comparison retains displacement for both colors; independent setup pending. Physical thickness, optical height, grid units and metric scale are separate. |
 | 23 | Reject ambiguous intersection assignments | Attended White midpoint was classified White correctly but assigned incorrectly. Narrow0.256 source347eb84 requires fresh neighboring evidence;52 dedicated checks and four related suites pass; signed candidate and rollback saved. Physical retest pending. Marker strictness preference cannot disable mandatory assignment abstention. |
+| 24 | Separate full-boundary geometry from classification | Frozen offline experiment b4184d5/review4c958ce:29 cases and7 controls reproduce. Shadow-contaminated supported center can err0.118cells; nonstone dark disk also passes. Every output is diagnosticOnly/stoneVersusShadowUnverified; no runtime consumer or accuracy improvement claim. Native fresh replay separately shows missing White midpoint footprint. |
+| 25 | Repeatable attended capture fixtures | Pushedf0009e9, artifact-only four-move human-Black positions for single/two White prisoners. Fast mode true,34 rules-engine+20 controller checks, preserved-state loading boundary and short run card. Neither live fixture loading nor physical removal/laser pass performed. |
 
 ## Isolated overnight improvements (November 23)
 
 Dave authorized reversible software improvements while away, including extra
 latency logging and adaptive-calibration research/prototyping. Hardware work is
 still deferred. Earlier0.254/0.255 remain separate staged candidates. The next focused
-recognition retest uses the narrow0.256 candidate described above; experiments
+recognition retest uses the combined0.257 candidate described above; experiments
 are not automatically promoted.
 Root maintains this table and serializes full Swift builds. Each experiment has
 its own worktree, review and targeted acceptance checks.
