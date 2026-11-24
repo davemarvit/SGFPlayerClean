@@ -4792,3 +4792,39 @@ boundary checks can stop before observation. Motor-count limits with the numeric
 value three have different units and are not covered by this accuracy preference.
 No implementation has changed yet; hardware remains fully OFF. Offline study is
 evaluating unnecessary stops and missed errors before selecting a coherent policy.
+
+
+## November 23 — context-safe handoff prepared
+
+User requests a durable handoff before context fills. Architecture and quantitative
+reviews are complete, and calibration author delivered the staged consumer audit.
+The proposals and evidence are saved in PhysicalGo/Documentation/
+CalibrationAccuracyPolicyReview.md, linked from NextConversationHandoff.md and
+IntegrationChecklist.md. No production code/policy change or physical retry.
+A final bounded offline geometry comparison may add results; new implementation
+is deferred to continuation. Agents have no hardware ownership.
+
+First candidate: measure B with the same full local-boundary/grid pipeline as A
+and compare fitted coordinate maps. Evaluate exact failures and local visibility
+controls before adoption. Old local-negative labels establish lost evidence, not
+necessarily physical danger. Later slices share versioned aiming-quality evidence,
+preserve completed observations through recoverable pauses, and distinguish
+prediction disagreement from actual optical error. Suggested cell thresholds are
+offline candidates only. Existing servo-count and control checks are distinct.
+
+This root will perform no further hardware work. Process scan found no active
+commissioning/production driver; lsof found no holder of the existing driver.lock.
+Latest full OFF remains1795500739.5855656, with full03 source/artifacts unchanged.
+Next root can take sole ownership after checking no competing process; fresh
+optical/pose/geometry qualification is required before hardware continuation.
+
+
+Handoff finalization: all relevant agents have now completed. No background
+replay, implementation task or active agent dependency remains. The proposed
+same-full-pipeline B comparison has NOT RUN. Its offline harness/control replay
+is the next task, followed by reviewed implementation. Author's detailed source
+audit and regression command are saved at:
+/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/PLAN.md
+The repository policy review captures the proposal and links all evidence.
+39 local documentation links verified. Hardware remains fully OFF; no further
+hardware work will occur in this chat.

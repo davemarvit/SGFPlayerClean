@@ -21,10 +21,13 @@ offline verification, installation and physical validation.
   cross-frame guard rejected inconsistent measurements under the current policy.
   N1/O1 discrepancies are about 0.072/0.059 grid cells. Global-only evidence
   misses local altered-line controls, so local visibility checks still matter.
-  No code or threshold change has been made. Fast/architecture are reviewing the
-  workflow and three-pixel gates before another patch; occupied-board timing is
-  running a quantitative offline study of false stops versus missed movement or
-  obstruction. **No new hardware run until reviewed results are available**.
+  No code or threshold change has been made. Architecture and quantitative reviews are complete; the calibration author
+  delivered a staged implementation/consumer audit. See
+  [accuracy policy review](CalibrationAccuracyPolicyReview.md) for durable findings,
+  the candidate consistent A/B verifier and versioned aiming/pause design.
+  The proposed full-pipeline B replay has not run; no agent dependency remains.
+  **No new hardware run before the
+  chosen change is implemented and verified**.
   [Exact diagnosis](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/moved-setup-full-calibration-03/boundary-jump-analysis/README.md>).
 - **Accuracy requirement clarified:** Dave's original three pixels was an
   arbitrary final spot-to-intersection aiming preference. An initial landing
@@ -79,7 +82,9 @@ offline verification, installation and physical validation.
   `laser-position-recovery-20261123`. Backup remains
   `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
   Preserve later progress when restoring. Historical attempts below are not
-  current setup authority; root is updating the issue log and primary handoff.
+  current setup authority. Issue log and primary handoff have been updated. This
+  chat will perform no further hardware work; the continuing root must confirm
+  exclusive process/serial ownership before taking over.
 
 ## Parallel software work — current state
 

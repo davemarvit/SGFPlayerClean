@@ -1,8 +1,11 @@
 # Physical Go: current conversation handoff
 
 Updated November 23, 2026. **Hardware fully OFF; no active run. Setup is incomplete.**
-The current root agent retains hardware ownership. Read current records before
-using any saved pose, source hash or OFF receipt as authority.
+This chat is preparing a handoff and will perform no further hardware work.
+The continuing root may assume sole ownership after checking that no prior
+commissioning/production process owns the serial port or driver lock. At handoff,
+no matching process or open driver-lock holder was found. The empty lock file
+itself remains. Read current records before using saved evidence as authority.
 
 ## Read first
 
@@ -30,10 +33,12 @@ worktree copies can be stale. [AgentGuide](AgentGuide/README.md) routes to sourc
 - **Diagnosis:** saved images reproduce N1/O1 feature-selection instability and
   native/fitted sampling-guide mismatch. Other 70 points changed ≤0.159 px;
   whole-board registration ≤0.053 px. This does not support a four-pixel board
-  movement. Fast/architecture are auditing three-pixel gates and workflow;
-  the occupied agent is studying false stops versus missed movement/obstruction.
-  **No code change yet; no new run until reviewed results.** See the laser
-  checkpoint for exact artifacts.
+  movement. The architecture proposal, quantitative study and staged consumer
+  audit are now saved in [accuracy policy review](CalibrationAccuracyPolicyReview.md).
+  **No production change yet; no new run before implementation and verification.**
+  **The proposed full-pipeline B comparison has not run.** All relevant agents
+  have finished their handoff; no replay process or active agent dependency remains.
+  See the laser checkpoint for exact artifacts.
 - **Passed scope:** midpoint source passed 120 tests plus both seven-case reviews;
   stationary observation and four-command inward recenter passed physically.
   Full five-fit/nine-check calibration remains incomplete. No old-map or partial-fit
@@ -68,10 +73,13 @@ practice can proceed separately with bridge setting OFF and production stopped.
 
 ## Next actions
 
-1. Confirm current ownership. Review the quantitative counterfactual study and
-   broader aiming/measurement/control rule audit, then implement and verify the
-   selected change before new hardware work. No competing serial client or
-   automatic retry; do not preserve every three-pixel stop as a user requirement.
+1. Read [accuracy policy review](CalibrationAccuracyPolicyReview.md) and its
+   reproducible evidence. First compare using the same full geometry verifier
+   for A and B, with fitted-map movement checks and explicit local uncertainty.
+   Then implement/review one bounded slice; final aiming quality and recoverable
+   progress need shared versioned contracts. Proposed cell tolerances are offline
+   candidates only. No competing serial client or automatic hardware retry; do
+   not preserve every three-pixel stop as a user requirement.
 2. Root obtains fresh pose/optical qualification, then completes **five fitting
    targets and nine independent checks** with fresh data. Old geometry, poses
    and response estimates are not current movement authority.
@@ -83,7 +91,8 @@ practice can proceed separately with bridge setting OFF and production stopped.
 ## Short starter prompt
 
 > Continue Physical Go from `/Users/dave/SGFPlayerClean/PhysicalGo/Documentation/NextConversationHandoff.md`.
-> Read the current checklist and primary laser handoff first. Coordinate with the
-> hardware owner; preserve games/clocks. Read the revised aiming-accuracy
-> requirement and review the boundary/stop-policy study before new calibration. Use motor-only movement, with no manual
-> re-aim/power-cycle, stale pose assumption or old-geometry fallback.
+> Read the current checklist, CalibrationAccuracyPolicyReview.md and primary laser
+> handoff. Hardware is OFF; verify exclusive ownership before hardware work.
+> Preserve games/clocks. Implement and verify the revised accuracy/recovery policy
+> in bounded steps before new calibration. Use motor-only movement; do not assume
+> a saved pose is current or request manual re-aim/power-cycle.

@@ -1,7 +1,8 @@
 # Laser movement checkpoint — November 23, 2026
 
-**Hardware fully OFF; calibration incomplete.** Root owns hardware; no calibration
-or production driver is active and no gameplay binding is activated. This is the
+**Hardware fully OFF; calibration incomplete.** No calibration or production
+driver is active and no gameplay binding is activated. This chat is handing off;
+the continuing root must check exclusive ownership before hardware work. This is the
 single current checkpoint. Earlier attempts, pilot measurements and rejected
 approaches remain in [LivePositionIssues.md](LivePositionIssues.md) and raw reports;
 they are not current pose, geometry or movement authority.
@@ -45,12 +46,12 @@ initial error above three pixels. Its final report rejects ≥3 px, while separa
 prediction and boundary gates can stop before observation. Those different roles
 must be reviewed separately; three servo counts are not three image pixels.
 
-Fast/architecture are auditing the three-pixel gates and workflow. The occupied
-agent is studying false stops versus missed movement/obstruction and how limits
-relate to grid spacing and pointing accuracy. Separate aiming quality/convergence
-and recoverable measurement uncertainty from actual hazard/control checks.
-**No code change or new hardware run precedes review of these results.** The
-physical cause of changing local peak contrast remains uncertain.
+Architecture and quantitative reviews and the staged consumer audit are saved
+in [accuracy policy review](CalibrationAccuracyPolicyReview.md). No new production
+policy is implemented. First compare consistent full A/B geometry measurement;
+then implement a reviewed bounded slice and versioned aiming/recovery contracts.
+Local negative controls identify missing evidence, not necessarily physical
+hazards. The physical cause of changing local peak contrast remains uncertain.
 
 ## What has passed, and what remains
 
