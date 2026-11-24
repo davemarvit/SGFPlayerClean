@@ -1,0 +1,116 @@
+{
+  "synthetic_geometry": "PASS exact camera projection, height in row pitches, anisotropic pitch and focal recovered",
+  "double_pixel_resolution": "PASS geometry invariant and focal doubles",
+  "metric_scale": "PASS doubling physical board and camera produces identical homography: metric thickness unidentifiable",
+  "geometry": {
+    "cameraGrid": [
+      15.256882970028066,
+      -4.944942102162819
+    ],
+    "heightRowPitches": 27.18258356509343,
+    "focalPixels": 1400.0,
+    "columnToRowPitch": 1.0999999999999999,
+    "principalFraction": [
+      0.5,
+      0.5
+    ],
+    "assumptionsVerified": false
+  },
+  "historical_negative_source": "/Users/dave/Documents/SGF PLayer/work/hand-parallax-stage10/geometry-native.json",
+  "historical_negative_sha256": "d564674cd5e8f1f66b63ebf27c438d0211677a64abab272d1a9c1da1adf9ede5",
+  "historical_negatives": [
+    {
+      "id": "crowded-frame-816",
+      "field": {
+        "model": "radial",
+        "coefficients": [
+          -0.018781281029934746,
+          -0.12973764634983084,
+          0.0006697876665706648
+        ],
+        "support": [
+          23,
+          42,
+          44,
+          55,
+          59,
+          60,
+          71,
+          73,
+          173,
+          186,
+          230,
+          249,
+          263,
+          268,
+          294,
+          300,
+          307,
+          317
+        ],
+        "medianResidual": 0.09264513364515178,
+        "geometry": null,
+        "clockAuthority": false
+      },
+      "target": {
+        "point": 39,
+        "occupancy": "white",
+        "originalOffset": 0.3999999999999999,
+        "proposedOffset": 0.3999999999999999,
+        "proposedRelief": false,
+        "reason": "ownership or confidence remains unresolved",
+        "predictedOffset": [
+          -0.01811149336336408,
+          -0.1283980710166895
+        ]
+      }
+    },
+    {
+      "id": "crowded-frame-950",
+      "field": {
+        "model": "radial",
+        "coefficients": [
+          -0.008700528609589408,
+          -0.13916600104647253,
+          0.0002052500904645982
+        ],
+        "support": [
+          23,
+          42,
+          44,
+          53,
+          55,
+          59,
+          60,
+          71,
+          73,
+          173,
+          186,
+          230,
+          249,
+          263,
+          294,
+          300,
+          307,
+          317
+        ],
+        "medianResidual": 0.08412217882734799,
+        "geometry": null,
+        "clockAuthority": false
+      },
+      "target": {
+        "point": 39,
+        "occupancy": "white",
+        "originalOffset": 0.3599999999999999,
+        "proposedOffset": 0.22124449913445654,
+        "proposedRelief": true,
+        "reason": "geometry proposal",
+        "predictedOffset": [
+          -0.00849527851912481,
+          -0.13875550086554334
+        ]
+      }
+    }
+  ],
+  "note": "Historical own-setup model only. New k+b fit was not transferred to another setup or fit on negatives."
+}

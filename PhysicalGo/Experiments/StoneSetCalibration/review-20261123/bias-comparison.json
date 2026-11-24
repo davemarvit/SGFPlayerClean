@@ -1,0 +1,1078 @@
+{
+  "status": "offline diagnostic extension only; no production changes, no profile replacement",
+  "training": "Exactly original six centered anchors. Two fixed heldouts and White negative never fit.",
+  "model": "apparent-contact = k*(contact-camera_projection) + constant_color_bias",
+  "rows": [
+    {
+      "color": "white",
+      "mode": "currentGrid",
+      "report_sha256": "874d13a5a2593d8a8b1df83c92f11396d630b490586bc6e99a8fab1507684230",
+      "old_k": 0.00862480918998251,
+      "old_height": 0.22346219148666735,
+      "old_max_residual": 0.07759775423676049,
+      "fit": {
+        "k": 0.005686248153265916,
+        "bias": [
+          5.346710206246046e-05,
+          -0.060062550511082766
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.74719603728242,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.05261795308728852,
+        "median_residual": 0.0437578149654414,
+        "residual_vectors": [
+          [
+            0.015170465556239965,
+            -0.03706621437618279
+          ],
+          [
+            0.02151341359875017,
+            0.04230964425714984
+          ],
+          [
+            -0.016285450661556122,
+            0.04941687174283094
+          ],
+          [
+            -0.01617019954315632,
+            0.006169174674800049
+          ],
+          [
+            -0.031921467984466545,
+            -0.04182904336478152
+          ],
+          [
+            0.02769323903418877,
+            -0.019000432933816563
+          ]
+        ],
+        "residual_component_scale": 0.034577350241830604,
+        "conditional_k_standard_error": 0.0018223863702926438,
+        "k_scale_plus_minus_2se": [
+          0.0020414754126806284,
+          0.009331020893851204
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.14775680829163684,
+      "positive_height_supported_by_residual_scale": true,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.11576805528077877,
+          "old_scalar": 0.06527265457342869,
+          "with_bias": 0.0649749955555315,
+          "residual": [
+            -0.004496784804346912,
+            0.06481920220015619
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.10180617454768442,
+          "old_scalar": 0.03213069940711825,
+          "with_bias": 0.00941139584919343,
+          "residual": [
+            0.002366014221419452,
+            0.00910913544384187
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.005110044236951639,
+          "bias": [
+            -0.005334583117426059,
+            -0.0601808297220154
+          ],
+          "omitted_error": 0.05061879731460988
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.006233517381118551,
+          "bias": [
+            -0.0007000188059285045,
+            -0.061371160615535145
+          ],
+          "omitted_error": 0.058923187694606145
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.005316124274594187,
+          "bias": [
+            0.0017984957740804141,
+            -0.07522793748531321
+          ],
+          "omitted_error": 0.06332210715482452
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.006053752688337654,
+          "bias": [
+            0.005670878590531298,
+            -0.05605175329422352
+          ],
+          "omitted_error": 0.023259816232207218
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.00594697382116895,
+          "bias": [
+            0.007502899310277394,
+            -0.04766307281459678
+          ],
+          "omitted_error": 0.0635495041562455
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.005457490097992973,
+          "bias": [
+            -0.006968741846381474,
+            -0.0598015641934213
+          ],
+          "omitted_error": 0.04079227534068393
+        }
+      ],
+      "loo_k_range": [
+        0.005110044236951639,
+        0.006233517381118551
+      ]
+    },
+    {
+      "color": "white",
+      "mode": "localPrintedGrid",
+      "report_sha256": "874d13a5a2593d8a8b1df83c92f11396d630b490586bc6e99a8fab1507684230",
+      "old_k": 0.010320528901717401,
+      "old_height": 0.2669481902125587,
+      "old_max_residual": 0.06405290626064389,
+      "fit": {
+        "k": 0.009045623153265897,
+        "bias": [
+          -0.013701695897503132,
+          -0.02097530570216466
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.74719603728242,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.06691641254503342,
+        "median_residual": 0.05131442081782543,
+        "residual_vectors": [
+          [
+            0.00121213222290667,
+            -0.023680797709516227
+          ],
+          [
+            0.04536758026541667,
+            0.033820060923816314
+          ],
+          [
+            -0.01774378399488924,
+            0.06452103840949724
+          ],
+          [
+            -0.007941032876489822,
+            0.015023341341466712
+          ],
+          [
+            -0.03337980131779966,
+            -0.04375612669811438
+          ],
+          [
+            0.01248490570085527,
+            -0.045927516267149776
+          ]
+        ],
+        "residual_component_scale": 0.039193040398753765,
+        "conditional_k_standard_error": 0.0020656546014509304,
+        "k_scale_plus_minus_2se": [
+          0.004914313950364037,
+          0.013176932356167757
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.23426741852853852,
+      "positive_height_supported_by_residual_scale": true,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.16071128828571854,
+          "old_scalar": 0.061728263225730835,
+          "with_bias": 0.056340581296423956,
+          "residual": [
+            -0.0011113681376808838,
+            0.05632961886682267
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.12309527416254558,
+          "old_scalar": 0.02361858582533004,
+          "with_bias": 0.01318225395762102,
+          "residual": [
+            -0.012998569111913454,
+            -0.0021929478894913423
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.008454342482565652,
+          "bias": [
+            -0.016359672286040287,
+            -0.023967735474595263
+          ],
+          "omitted_error": 0.032794158449722284
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.00874174106532905,
+          "bias": [
+            -0.024745973840284034,
+            -0.031711339929970155
+          ],
+          "omitted_error": 0.06841864654015413
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.008642355335200233,
+          "bias": [
+            -0.011800402991052105,
+            -0.03963452090800753
+          ],
+          "omitted_error": 0.0811179295311963
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.009226101173186117,
+          "bias": [
+            -0.010943037960620612,
+            -0.021404384458928564
+          ],
+          "omitted_error": 0.021030203682255832
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.009318684347484712,
+          "bias": [
+            -0.005910202884309117,
+            -0.007999569252810593
+          ],
+          "omitted_error": 0.06646937151688491
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.009925691852378916,
+          "bias": [
+            -0.010491180869331295,
+            0.0018256803640680672
+          ],
+          "omitted_error": 0.06205469842168608
+        }
+      ],
+      "loo_k_range": [
+        0.008454342482565652,
+        0.009925691852378916
+      ]
+    },
+    {
+      "color": "white",
+      "mode": "refinedPrintedGrid",
+      "report_sha256": "874d13a5a2593d8a8b1df83c92f11396d630b490586bc6e99a8fab1507684230",
+      "old_k": 0.010001161495541833,
+      "old_height": 0.2602305576716728,
+      "old_max_residual": 0.08593548677548239,
+      "fit": {
+        "k": 0.006971147790150576,
+        "bias": [
+          -0.03147877594043866,
+          -0.050522740212647375
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.94845783822036,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.06673849397297599,
+        "median_residual": 0.04107485810372759,
+        "residual_vectors": [
+          [
+            0.01816614481950178,
+            -0.011486932813349615
+          ],
+          [
+            0.03264321197463654,
+            0.031877884445496274
+          ],
+          [
+            -0.021219431179841333,
+            0.057393260120456535
+          ],
+          [
+            -0.01144292604286673,
+            -0.002911761161628501
+          ],
+          [
+            -0.04457841475122122,
+            -0.0496668049712185
+          ],
+          [
+            0.026431415179790918,
+            -0.02520564561975619
+          ]
+        ],
+        "residual_component_scale": 0.03684106643020719,
+        "conditional_k_standard_error": 0.0019416946891503903,
+        "k_scale_plus_minus_2se": [
+          0.003087758411849795,
+          0.010854537168451356
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.18193530715736722,
+      "positive_height_supported_by_residual_scale": true,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.14129547183036012,
+          "old_scalar": 0.08671588095131225,
+          "with_bias": 0.07275285688333005,
+          "residual": [
+            -0.007008303533521339,
+            0.07241451419617712
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.13437487268139864,
+          "old_scalar": 0.03789196241944008,
+          "with_bias": 0.014323637608530641,
+          "residual": [
+            -0.014171473013226528,
+            0.002082293681473772
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.007146916527154589,
+          "bias": [
+            -0.03441911544939316,
+            -0.04590917086031379
+          ],
+          "omitted_error": 0.02624328442604521
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.006951007592015309,
+          "bias": [
+            -0.03813514851392508,
+            -0.05716371344637786
+          ],
+          "omitted_error": 0.05475463346229281
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.006488887990608733,
+          "bias": [
+            -0.029135982784744555,
+            -0.06893505577478648
+          ],
+          "omitted_error": 0.07470347069421364
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.0072312142911248175,
+          "bias": [
+            -0.027540835527731265,
+            -0.046201296277082284
+          ],
+          "omitted_error": 0.01599041382060396
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.007105052795939981,
+          "bias": [
+            -0.022035232529583476,
+            -0.03850348141257511
+          ],
+          "omitted_error": 0.08017126185995892
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.006938890696465454,
+          "bias": [
+            -0.0369696351334201,
+            -0.04598409417768554
+          ],
+          "omitted_error": 0.04383686679883758
+        }
+      ],
+      "loo_k_range": [
+        0.006488887990608733,
+        0.0072312142911248175
+      ]
+    },
+    {
+      "color": "black",
+      "mode": "currentGrid",
+      "report_sha256": "92002e0946a14621f80dc002c47f1d66fec501c899af1c8eab0286fef28b04dd",
+      "old_k": 0.0024044344386044752,
+      "old_height": 0.06268363377225383,
+      "old_max_residual": 0.06321220544783261,
+      "fit": {
+        "k": 0.00150087758078244,
+        "bias": [
+          0.002167064634426539,
+          -0.01926468937035854
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.74719603728242,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.05693915085797026,
+        "median_residual": 0.03032981106717582,
+        "residual_vectors": [
+          [
+            0.015020120806472144,
+            0.02168605479418516
+          ],
+          [
+            0.023592707546303035,
+            0.017528365243630536
+          ],
+          [
+            -0.056220049289162737,
+            0.0004814387815142429
+          ],
+          [
+            -0.004158939983190403,
+            -0.056787059429441455
+          ],
+          [
+            0.03013831876883839,
+            0.008329351215245605
+          ],
+          [
+            -0.008372157849260499,
+            0.008761849394865816
+          ]
+        ],
+        "residual_component_scale": 0.03177577771862314,
+        "conditional_k_standard_error": 0.0016747305335679684,
+        "k_scale_plus_minus_2se": [
+          -0.0018485834863534968,
+          0.004850338647918377
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.039163197278446915,
+      "positive_height_supported_by_residual_scale": false,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.1398980497898107,
+          "old_scalar": 0.08969675469492559,
+          "with_bias": 0.09149128674964678,
+          "residual": [
+            -0.03830706892956867,
+            -0.08308564268952469
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.059878143184292604,
+          "old_scalar": 0.06135007616505279,
+          "with_bias": 0.051926834325810745,
+          "residual": [
+            0.05144856194328065,
+            -0.007031471899155293
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.0024668295702734246,
+          "bias": [
+            0.003109229465435235,
+            -0.010976007763997691
+          ],
+          "omitted_error": 0.04137036148586829
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.0013412896254489555,
+          "bias": [
+            -0.0035864502178214555,
+            -0.024856325697447973
+          ],
+          "omitted_error": 0.03554323648181118
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.00022314918784692434,
+          "bias": [
+            0.008191190094057969,
+            -0.037595351865938674
+          ],
+          "omitted_error": 0.07666588037687547
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.001595398944036768,
+          "bias": [
+            0.003611850592637777,
+            -0.006558369556951304
+          ],
+          "omitted_error": 0.06838005855545197
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.0020747977795612005,
+          "bias": [
+            -0.0015159716476646128,
+            -0.01205147936629952
+          ],
+          "omitted_error": 0.040722478887003144
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.001490622540108619,
+          "bias": [
+            0.0037749893447447803,
+            -0.021175714284080407
+          ],
+          "omitted_error": 0.01454519596295202
+        }
+      ],
+      "loo_k_range": [
+        0.00022314918784692434,
+        0.0024668295702734246
+      ]
+    },
+    {
+      "color": "black",
+      "mode": "localPrintedGrid",
+      "report_sha256": "92002e0946a14621f80dc002c47f1d66fec501c899af1c8eab0286fef28b04dd",
+      "old_k": 0.004714661829911995,
+      "old_height": 0.12262866816054961,
+      "old_max_residual": 0.07390579567537132,
+      "fit": {
+        "k": 0.005068585914115796,
+        "bias": [
+          -0.011789080695860642,
+          0.011597749561076929
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.74719603728242,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.05694671085606007,
+        "median_residual": 0.039877169862986284,
+        "residual_vectors": [
+          [
+            0.0004888708064720443,
+            0.03345688812751868
+          ],
+          [
+            0.04749895754630382,
+            0.00898669857696388
+          ],
+          [
+            -0.055126299289162836,
+            0.014283522114848082
+          ],
+          [
+            0.0041223100168103835,
+            -0.04610997609610833
+          ],
+          [
+            0.028107068768838464,
+            0.0038501845485782345
+          ],
+          [
+            -0.025090907849261844,
+            -0.014467317271800489
+          ]
+        ],
+        "residual_component_scale": 0.0341341364676038,
+        "conditional_k_standard_error": 0.001799026953344038,
+        "k_scale_plus_minus_2se": [
+          0.0014705320074277196,
+          0.008666639820803871
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.13178783314501152,
+      "positive_height_supported_by_residual_scale": true,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.19768665700637425,
+          "old_scalar": 0.1007229510653301,
+          "with_bias": 0.09872044958201387,
+          "residual": [
+            -0.03674456892956882,
+            -0.0916273093561909
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.051391452166741625,
+          "old_scalar": 0.023950526925491468,
+          "with_bias": 0.04012518241433297,
+          "residual": [
+            0.034261061943281566,
+            -0.020885638565821246
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.00596189535974713,
+          "bias": [
+            -0.008237431346025474,
+            0.016582758765068904
+          ],
+          "omitted_error": 0.04710588177452677
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.004055105414922636,
+          "bias": [
+            -0.027861581894336733,
+            -0.0034467246278200568
+          ],
+          "omitted_error": 0.06439029453549204
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.0038157154757257274,
+          "bias": [
+            -0.005882153412054039,
+            -0.009138583427460644
+          ],
+          "omitted_error": 0.07710156271553695
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.004974897050097375,
+          "bias": [
+            -0.01322114166614481,
+            0.019482717392588916
+          ],
+          "omitted_error": 0.05561678183164076
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.005706924972543698,
+          "bias": [
+            -0.014802697588986499,
+            0.02070341268196727
+          ],
+          "omitted_error": 0.03832453137135098
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.006109591838354279,
+          "bias": [
+            -1.967921578803959e-05,
+            0.030596544660318938
+          ],
+          "omitted_error": 0.04507668675717777
+        }
+      ],
+      "loo_k_range": [
+        0.0038157154757257274,
+        0.006109591838354279
+      ]
+    },
+    {
+      "color": "black",
+      "mode": "refinedPrintedGrid",
+      "report_sha256": "92002e0946a14621f80dc002c47f1d66fec501c899af1c8eab0286fef28b04dd",
+      "old_k": 0.00379697876256168,
+      "old_height": 0.09940815404869482,
+      "old_max_residual": 0.0797532865327475,
+      "fit": {
+        "k": 0.0027964612099600347,
+        "bias": [
+          -0.02888090067461545,
+          -0.010071069563103533
+        ],
+        "rank": 3,
+        "raw_design_condition": 37.94845783822036,
+        "spatial_leverage": 360.0,
+        "max_residual": 0.06577226100715719,
+        "median_residual": 0.04286632875168191,
+        "residual_vectors": [
+          [
+            0.017953521020662347,
+            0.04691535165188078
+          ],
+          [
+            0.0347303305094099,
+            0.007349303716826419
+          ],
+          [
+            -0.060996802148384585,
+            0.008421646252682644
+          ],
+          [
+            0.0006934955967229581,
+            -0.06576860483430476
+          ],
+          [
+            0.01745210504982604,
+            0.0003448887134272702
+          ],
+          [
+            -0.009832650028236724,
+            0.002737414499487688
+          ]
+        ],
+        "residual_component_scale": 0.03698345116342461,
+        "conditional_k_standard_error": 0.0019491990235004316,
+        "k_scale_plus_minus_2se": [
+          -0.0011019368370408286,
+          0.006694859256960898
+        ],
+        "uncertainty_note": "OLS residual-scale diagnostic only; not calibrated confidence. Assumes independent equal-variance component residuals, excluding shared grid/shape/placement uncertainty."
+      },
+      "conditional_height": 0.07328679548905187,
+      "positive_height_supported_by_residual_scale": false,
+      "heldout": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "before": 0.16527496803874017,
+          "old_scalar": 0.09150044695817118,
+          "with_bias": 0.08560198023978038,
+          "residual": [
+            -0.04064102556771389,
+            -0.07533927303721598
+          ]
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "before": 0.04821760533594095,
+          "old_scalar": 0.019446602538943054,
+          "with_bias": 0.03787296263753788,
+          "residual": [
+            0.035175728773568546,
+            -0.014036716289527332
+          ]
+        }
+      ],
+      "leave_one_training_anchor_out": [
+        {
+          "omitted": [
+            3.0,
+            3.0
+          ],
+          "k": 0.004503536806605911,
+          "bias": [
+            -0.02574222455849018,
+            0.003040754164476928
+          ],
+          "omitted_error": 0.07648084637949001
+        },
+        {
+          "omitted": [
+            15.0,
+            3.0
+          ],
+          "k": 0.0020759078733131008,
+          "bias": [
+            -0.040396753316488815,
+            -0.021035981962545122
+          ],
+          "omitted_error": 0.04700484702323171
+        },
+        {
+          "omitted": [
+            3.0,
+            9.0
+          ],
+          "k": 0.0014101702520422062,
+          "bias": [
+            -0.02214637092302523,
+            -0.03168672022415739
+          ],
+          "omitted_error": 0.08378914113946222
+        },
+        {
+          "omitted": [
+            15.0,
+            9.0
+          ],
+          "k": 0.00278069994639815,
+          "bias": [
+            -0.029119558542903635,
+            0.0028560447104846037
+          ],
+          "omitted_error": 0.07892799131239812
+        },
+        {
+          "omitted": [
+            3.0,
+            15.0
+          ],
+          "k": 0.003246651113549476,
+          "bias": [
+            -0.03059664979333813,
+            -0.003127239034974624
+          ],
+          "omitted_error": 0.024348623356889126
+        },
+        {
+          "omitted": [
+            15.0,
+            15.0
+          ],
+          "k": 0.0029831779344008016,
+          "bias": [
+            -0.025730203542477133,
+            -0.007709983037037856
+          ],
+          "omitted_error": 0.013286020447862881
+        }
+      ],
+      "loo_k_range": [
+        0.0014101702520422062,
+        0.004503536806605911
+      ]
+    }
+  ],
+  "white_development_control": [
+    {
+      "case": "legitimate-white-180",
+      "mode": "currentGrid",
+      "inferred_contact": [
+        9.121111210030229,
+        8.96921970513328
+      ],
+      "distances": [
+        {
+          "point": [
+            9.0,
+            9.0
+          ],
+          "distance": 0.12496140102875118
+        }
+      ]
+    },
+    {
+      "case": "legitimate-white-180",
+      "mode": "refinedPrintedGrid",
+      "inferred_contact": [
+        9.111834867901367,
+        8.96855790376493
+      ],
+      "distances": [
+        {
+          "point": [
+            9.0,
+            9.0
+          ],
+          "distance": 0.11617074973577277
+        }
+      ]
+    },
+    {
+      "case": "midway-white-275",
+      "mode": "currentGrid",
+      "inferred_contact": [
+        9.085938303778871,
+        14.500035202367934
+      ],
+      "distances": [
+        {
+          "point": [
+            9.0,
+            14.0
+          ],
+          "distance": 0.5073663328045434
+        },
+        {
+          "point": [
+            9.0,
+            15.0
+          ],
+          "distance": 0.50729694551383
+        }
+      ]
+    },
+    {
+      "case": "midway-white-275",
+      "mode": "refinedPrintedGrid",
+      "inferred_contact": [
+        9.070185635504496,
+        14.493530895993366
+      ],
+      "distances": [
+        {
+          "point": [
+            9.0,
+            14.0
+          ],
+          "distance": 0.49849650824372377
+        },
+        {
+          "point": [
+            9.0,
+            15.0
+          ],
+          "distance": 0.5113090814218462
+        }
+      ]
+    }
+  ],
+  "controls": {
+    "known_k_and_constant_bias": "recovered exactly",
+    "zero_height_constant_bias": "k recovered zero",
+    "grid_scale_confound": {
+      "k": 0.005999999999999994,
+      "bias": [
+        0.10400000000000004,
+        0.08799999999999993
+      ],
+      "note": "Zero physical height with this grid error has exactly the same fitted form."
+    },
+    "camera_projection_shift": "k invariant, bias absorbs camera projection change",
+    "collinear_algebraic_rank": 3,
+    "collinear_warning": "Rank3 does not substitute for two-dimensional spatial support."
+  },
+  "limitations": [
+    "Free bias removes camera-projection constraint: algebraically delta=k*P+b_prime. This is an isotropic affine field, not independent proof of parallax.",
+    "Shared printed-grid scale error, spatially varying contour bias and placement offsets still confound k.",
+    "Leave-one-out fits use five anchors only as diagnostics; they do not meet the six-anchor runtime support rule.",
+    "Black midpoint and independent setup tests remain pending."
+  ]
+}
