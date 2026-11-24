@@ -39,3 +39,30 @@ final shared-runtime identity is
 `313863f995b27b5118f3c66fa805c93d9e06982e412387207846c7dbd553e9dc`.
 Offscreen full-play previews use an isolated paused synthetic game and verify
 0°/90° rotation and a compact board height; no live app was controlled.
+
+## First-light stone click
+
+The existing first-confirmed-illumination event still plays at most one click
+per AI move. Refinement, retries of the same pending move and centering hints do
+not replay it. The UI now exposes a dedicated enable switch, volume slider and
+**Test click** in AI settings and the play view's timing/sound options. Testing
+the sound does not activate the laser or alter the game.
+
+`PhysicalAIMoveClick` owns a separate persisted preference. On first use it
+preserves the prior clock-audio volume, then subsequent clock-volume or warning
+feedback changes cannot mute the move cue. `StonePlacementAudio` continues to
+prepare/play on its background queue and now reports missing-asset/playback
+failures. Optional latency tracing records cue requests and playback results.
+A successful playback-start result does not prove the user heard it: macOS's
+selected output, system volume and connected headphones still control routing.
+
+The focused `--ai-move-click-test` checks preference migration, warning
+independence, mute controls, preview and asset-failure reporting with injected
+audio only. No sound is played by this test. Installation and audible physical
+validation remain deferred to the integration owner.
+
+Audio follow-up verification passed 13 dedicated preference/audio checks, 278
+laser lifecycle checks, 133 guidance continuity checks and eight build-registry
+checks. The final control also compiled and rendered offscreen after removing
+dense volume-slider tick marks. Test/preview audio was injected; no sound was
+played and no live app was installed or restarted.

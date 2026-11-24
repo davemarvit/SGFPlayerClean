@@ -48,7 +48,10 @@ and [AIModels.swift](../../../SGFPlayerClean/Models/AIModels.swift).
 same large two-clock layout used by local play, with You/KataGo labels and
 Pause/Resume. Values and running-side emphasis read `PhysicalAITiming`; viewing,
 resizing, switching sides or opening the large clock cannot change time or turn
-ownership. See [AI clock layout](../AIPlayClockLayout.md) for candidate scope.
+ownership. `PhysicalAIMoveClick` supplies the separate AI first-light sound
+preference; its test button only plays audio, and warning/clock-volume settings
+do not override it. See [AI clock layout](../AIPlayClockLayout.md) for candidate
+scope.
 
 ## Clock events in AI practice
 
