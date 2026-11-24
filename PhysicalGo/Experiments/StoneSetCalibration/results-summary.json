@@ -1,0 +1,353 @@
+{
+  "status": "offlineCandidateOnly",
+  "artifactRoot": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01",
+  "colorReports": {
+    "white": {
+      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/white/results.json",
+      "sha256": "874d13a5a2593d8a8b1df83c92f11396d630b490586bc6e99a8fab1507684230",
+      "cameraID": "0x11000000bda0567",
+      "streamEpoch": "F6BDAB92-1B01-438C-AA70-7E8E0BB61F06",
+      "anchorCount": 8,
+      "frames": 8,
+      "conditionalFits": {
+        "currentGrid": {
+          "k": 0.00862480918998251,
+          "effectiveHeightRowPitches": 0.22346219148666735,
+          "medianResidual": 0.05329520580972693,
+          "maxResidual": 0.07759775423676049,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.03449675870703217,
+                -0.11050889675588227
+              ],
+              "predictedOffset": [
+                -0.04558457302280589,
+                -0.17483291877535073
+              ],
+              "residual": [
+                0.011087814315773721,
+                0.06432402201946846
+              ],
+              "residualNorm": 0.06527265457342869,
+              "beforeNorm": 0.11576805528077877
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                -0.027633959681265807,
+                -0.09798398567300559
+              ],
+              "predictedOffset": [
+                -0.04558457302280589,
+                -0.07133520849556062
+              ],
+              "residual": [
+                0.017950613341540085,
+                -0.026648777177444974
+              ],
+              "residualNorm": 0.03213069940711825,
+              "beforeNorm": 0.10180617454768442
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.22039386288632687,
+            0.22635288272828016
+          ]
+        },
+        "localPrintedGrid": {
+          "k": 0.010320528901717401,
+          "effectiveHeightRowPitches": 0.2669481902125587,
+          "medianResidual": 0.05291066808191289,
+          "maxResidual": 0.06405290626064389,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.06262175870703324,
+                -0.14800889675588236
+              ],
+              "predictedOffset": [
+                -0.054546934661550424,
+                -0.20920673738363332
+              ],
+              "residual": [
+                -0.008074824045482813,
+                0.061197840627750966
+              ],
+              "residualNorm": 0.061728263225730835,
+              "beforeNorm": 0.16071128828571854
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                -0.07450895968126581,
+                -0.09798398567300559
+              ],
+              "predictedOffset": [
+                -0.054546934661550424,
+                -0.08536039056302451
+              ],
+              "residual": [
+                -0.019962025019715383,
+                -0.012623595109981081
+              ],
+              "residualNorm": 0.02361858582533004,
+              "beforeNorm": 0.12309527416254558
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.26210399032936205,
+            0.27173517202356967
+          ]
+        },
+        "refinedPrintedGrid": {
+          "k": 0.010001161495541833,
+          "effectiveHeightRowPitches": 0.2602305576716728,
+          "medianResidual": 0.04875060952431151,
+          "maxResidual": 0.08593548677548239,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.07433308207436795,
+                -0.12016240372549714
+              ],
+              "predictedOffset": [
+                -0.05142648983612337,
+                -0.2037981140482591
+              ],
+              "residual": [
+                -0.02290659223824458,
+                0.08363571032276196
+              ],
+              "residualNorm": 0.08671588095131225,
+              "beforeNorm": 0.14129547183036012
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                -0.08149625155407314,
+                -0.10684085075839356
+              ],
+              "predictedOffset": [
+                -0.05142648983612337,
+                -0.0837841761017571
+              ],
+              "residual": [
+                -0.03006976171794977,
+                -0.023056674656636453
+              ],
+              "residualNorm": 0.03789196241944008,
+              "beforeNorm": 0.13437487268139864
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.25551892708566143,
+            0.2648708318086126
+          ]
+        }
+      }
+    },
+    "black": {
+      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/black/results.json",
+      "sha256": "92002e0946a14621f80dc002c47f1d66fec501c899af1c8eab0286fef28b04dd",
+      "cameraID": "0x11000000bda0567",
+      "streamEpoch": "F6BDAB92-1B01-438C-AA70-7E8E0BB61F06",
+      "anchorCount": 8,
+      "frames": 8,
+      "conditionalFits": {
+        "currentGrid": {
+          "k": 0.0024044344386044752,
+          "effectiveHeightRowPitches": 0.06268363377225383,
+          "medianResidual": 0.038496534650271905,
+          "maxResidual": 0.06321220544783261,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.04407256977832219,
+                -0.1327745191221843
+              ],
+              "predictedOffset": [
+                -0.01270812082108651,
+                -0.048740126493864465
+              ],
+              "residual": [
+                -0.03136444895723568,
+                -0.08403439262831983
+              ],
+              "residualNorm": 0.08969675469492559,
+              "beforeNorm": 0.1398980497898107
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                0.04568306109452713,
+                -0.038709817362425625
+              ],
+              "predictedOffset": [
+                -0.01270812082108651,
+                -0.019886913230610766
+              ],
+              "residual": [
+                0.05839118191561364,
+                -0.01882290413181486
+              ],
+              "residualNorm": 0.06135007616505279,
+              "beforeNorm": 0.059878143184292604
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.06190291355731645,
+            0.06340354776698709
+          ]
+        },
+        "localPrintedGrid": {
+          "k": 0.004714661829911995,
+          "effectiveHeightRowPitches": 0.12262866816054961,
+          "medianResidual": 0.03931670648375802,
+          "maxResidual": 0.07390579567537132,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.07532256977832219,
+                -0.18277451912218412
+              ],
+              "predictedOffset": [
+                -0.02491833056586088,
+                -0.09557058835801582
+              ],
+              "residual": [
+                -0.05040423921246131,
+                -0.0872039307641683
+              ],
+              "residualNorm": 0.1007229510653301,
+              "beforeNorm": 0.19768665700637425
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                -0.004316938905471801,
+                -0.051209817362424914
+              ],
+              "predictedOffset": [
+                -0.02491833056586088,
+                -0.03899464639907188
+              ],
+              "residual": [
+                0.02060139166038908,
+                -0.012215170963353034
+              ],
+              "residualNorm": 0.023950526925491468,
+              "beforeNorm": 0.051391452166741625
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.11988726843295108,
+            0.12541096600220475
+          ]
+        },
+        "refinedPrintedGrid": {
+          "k": 0.00379697876256168,
+          "effectiveHeightRowPitches": 0.09940815404869482,
+          "medianResidual": 0.0484092593888335,
+          "maxResidual": 0.0797532865327475,
+          "heldOut": [
+            {
+              "point": [
+                9,
+                3
+              ],
+              "observedOffset": [
+                -0.08390147446332641,
+                -0.14239507590884726
+              ],
+              "predictedOffset": [
+                -0.019524261239846685,
+                -0.07737272428170502
+              ],
+              "residual": [
+                -0.06437721322347972,
+                -0.06502235162714223
+              ],
+              "residualNorm": 0.09150044695817118,
+              "beforeNorm": 0.16527496803874017
+            },
+            {
+              "point": [
+                9,
+                15
+              ],
+              "observedOffset": [
+                -0.008084720122043976,
+                -0.04753498464163819
+              ],
+              "predictedOffset": [
+                -0.019524261239846685,
+                -0.03180897913096487
+              ],
+              "residual": [
+                0.01143954111780271,
+                -0.015726005510673317
+              ],
+              "residualNorm": 0.019446602538943054,
+              "beforeNorm": 0.04821760533594095
+            }
+          ],
+          "principalPointSensitivityRange": [
+            0.09708481098538384,
+            0.10177315872038054
+          ]
+        }
+      }
+    }
+  },
+  "validation": {
+    "analyticControls": 4,
+    "nativeProfileDecode": "pending root-approved build window",
+    "independentSetupValidation": "notPerformed",
+    "freshBlackMidpoint": "awaiting capture"
+  },
+  "profile": {
+    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/offline-stone-set-profile.json",
+    "sha256": "d744bf837ea8a0b74c2b2011b8bfb35ca6b2239cd84c21fc91de9df97b319976"
+  },
+  "whiteDevelopmentPair": {
+    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/white-development-results.json",
+    "sha256": "ef2d759b0e93eb07df5d5d1e8aa87b808cd7aea282b45675739cc134d5c955c9",
+    "notIndependentHoldout": true
+  }
+}
