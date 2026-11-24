@@ -23,9 +23,12 @@ flags and test entry points. [build_sources.py](../../scripts/build_sources.py)
 resolves shared source dependencies. Multiple selected suites use a
 content-addressed shared test runtime via
 [shared_regressions.py](../../scripts/shared_regressions.py), avoiding a complete
-app rebuild for every suite. Run aggregate builds serially and keep their source
-snapshot coherent; competing agents must not edit sources during a frozen build
-or race the same build outputs.
+app rebuild for every suite. Shared builds now serialize cache publication and
+compile private source snapshots; identified runner paths prevent another build
+from replacing the executable about to run. Use isolated worktrees for coherent
+changes. Runtime fixtures/resources are still live, and GUI or hardware tests
+still need a single execution owner. See [build provenance](../BuildProvenance.md)
+for cache receipts, release-source checks and the precise isolation limits.
 
 | Change area | Useful initial suites |
 |---|---|
@@ -80,6 +83,12 @@ pass. `PhysicalLaserStandbyTests` supports a
 The host's `test_gameplay_contract_review.py` checks representative clear/hand
 standby and OFF fixtures. Refresh fixtures after contract changes and retain
 provenance; do not hand-edit them until they happen to pass.
+
+The standalone [mandatory paired acceptance command](../PairedContractAcceptance.md)
+exports fresh Swift requests, runs the Python parser/runtime with fake hardware,
+and requires both native status and ordered-recovery consumers. It validates build
+receipts and fixture coverage, fails on missing opt-ins/provenance, and keeps all
+generated output temporary. This is an offline contract check, not a device test.
 
 Contract review should cover initial OFF negotiation, unsupported capability,
 immutable session/preparation fields, retain-only hand transitions, stale status,

@@ -5,6 +5,18 @@ physical-test baseline is preserved. No hardware, camera, installed app, active
 binding or saved game was changed by this work. Lighting/setup verification and
 physical calibration remain required when Dave returns.
 
+## Later consolidation in progress
+
+The next app candidate, 0.258/build 259, starts from the reviewed 0.255 code below
+and adds the reviewed recognition/fast-test changes, hosted stone-set storage,
+screen-only illegal feedback and pending four-position practice-loader merge.
+It is not yet verified or installed. Keep the 0.255 build/paired receipts as
+historical evidence; they do not prove the later combination. See
+[NextPhysicalTestPlan.md](NextPhysicalTestPlan.md) and the current checklist.
+Recovery, [build provenance](BuildProvenance.md), [paired acceptance](PairedContractAcceptance.md)
+and [opt-in tracing](LatencyDiagnostics.md) remain part of the combined source;
+no adaptive learner or optical stone correction is activated.
+
 ## Optional integrated candidate
 
 **0.255/build256** is built and signed, with matching source/binary hashes verified

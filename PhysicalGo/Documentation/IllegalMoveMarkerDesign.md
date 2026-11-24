@@ -1,9 +1,17 @@
 # Illegal physical placement markers
 
-November 22, 2026. **Tested proposal only:** no production source, app installation,
-bridge, firmware, hardware, camera, audio, game or clock changes were made for this
-task. The isolated candidate passed 83 checks against the actual rules engine.
-The monitored-holding play test need not wait for this optional extension.
+November 23, 2026. **Screen-only integration candidate:** the read-only tracker is
+promoted to `Sources/PhysicalIllegalMoveWarning.swift` and connected to
+`PhysicalAI.consume` on the isolated integration branch. It supplies a specific
+reason and the existing removal/restoration screen marks. The promoted mechanism
+passes 83 independent checks; the new `--ai-illegal-move-test` controller suite is
+registered for the combined app regression run. No installation or physical result
+is claimed. The optional distinct laser pattern remains a proposal.
+
+The diagnostic path is separate from legal acceptance. It cannot commit a move,
+change the accepted position, pause/advance a clock, or create a laser target.
+It caches only a private read-only rules engine for the exact diagnostic context;
+that cache and its witnesses clear on lifecycle/camera changes and interruptions.
 
 ## Existing behavior and the specific gap
 
@@ -15,8 +23,8 @@ call this engine, rather than implement Go rules again.
 
 `PhysicalAI.consume` checks that rejection only after
 `PhysicalMoveInference.candidate` has identified a possible move. The inference
-helper rejects a no-liberty placement first. Consequently an attempted suicide
-currently reaches the generic board-mismatch message, while a recognizable ko
+helper rejects a no-liberty placement first. Before this diagnostic hook, an attempted suicide
+reached the generic board-mismatch message, while a recognizable ko
 recapture can receive the specific ko message. A regression reproduces this gap.
 This is a diagnostic gap, not evidence that the app accepts suicide.
 
@@ -153,6 +161,7 @@ recapture. Test with the black C8 stone both still present and prematurely remov
 the latter must request restoration. Load these as dedicated reviewed fixtures,
 never by replacing the preserved user's game without the appropriate test flow.
 
-Remaining work: review/integrate the candidate, register full-app regressions,
-connect screen state, then separately add the capability-gated silent laser
-pattern and its host/firmware tests. No physical marker result is claimed here.
+Remaining work: execute/review the combined full-app controller regressions and
+physically validate the screen feedback after installation. Separately consider
+the capability-gated silent laser pattern and its host/firmware tests. No physical
+marker result is claimed here.

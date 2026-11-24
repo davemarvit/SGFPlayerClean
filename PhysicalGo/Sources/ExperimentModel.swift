@@ -97,7 +97,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         didSet {
             guard oldValue != playMode else { return }
             // Preserve the local game's checkpoints; returning requires an explicit Resume.
-            ai.pause()
+            ai.shutdown()
             recorder.pause()
             recorder.clock.pause("Local clock paused while switching play mode")
             onlineBoard.enabled = playMode == .online
@@ -167,9 +167,10 @@ enum PhysicalPlayMode: String, CaseIterable {
     }
     func resizeText(_ delta:Double) { interfaceScale=min(1.5,max(0.9,((interfaceScale+delta)*100).rounded()/100)) }
     let scoring=PhysicalScoring()
-    let onlineBoard = PhysicalOnlineBoard()
-    let ai = PhysicalAI()
+    let onlineBoard:PhysicalOnlineBoard
+    let ai:PhysicalAI
     let moveEvidenceCapture:MoveEvidenceCapture
+    let stoneSets:StoneSetProfileStore
     @Published var diagnosticSettings=DiagnosticSettings() {
         didSet {
             guard diagnosticSettings.valid else {diagnosticSettings=oldValue;return}
@@ -584,7 +585,10 @@ enum PhysicalPlayMode: String, CaseIterable {
         let names = ["top-left", "top-right", "bottom-right", "bottom-left"]
         return corners.count < 4 ? "Hover to magnify · Click the \(names[corners.count]) corner intersection" : "Grid aligned"
     }
-    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil) {
+    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil, stoneSetLibraryURL:URL = StoneSetProfileStore.defaultLibraryURL, ai suppliedAI:PhysicalAI?=nil, onlineBoard suppliedOnlineBoard:PhysicalOnlineBoard?=nil) {
+        self.ai=suppliedAI ?? PhysicalAI()
+        self.onlineBoard=suppliedOnlineBoard ?? PhysicalOnlineBoard()
+        self.stoneSets=StoneSetProfileStore(fileURL:stoneSetLibraryURL)
         self.settings=settings;discoversCameras=discoverCameras
         self.recoverySpeech=RecoverySpeech(audio:recoveryAudio)
         self.recorder = GameRecorder(storage:recordingStorage)
@@ -1031,7 +1035,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         prepareCameraStart(); camera.start(deviceID: cameraID)
     }
     func stop() {
-        ai.pause()
+        ai.shutdown()
         boardViewFeedback.reset()
         recoverySpeech.finishCurrent(reason:"camera stopped")
         moveEvidenceCapture.stop(reason:"Camera stopped")

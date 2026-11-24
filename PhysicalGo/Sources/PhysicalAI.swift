@@ -32,6 +32,13 @@ struct PhysicalAIGuidanceTarget: Equatable {
     let black: Bool
 }
 
+@MainActor protocol PhysicalAITestBackend: AnyObject {
+    var isRunning:Bool {get}
+    var reusableConfiguration:Bool {get}
+    func move(_ game:SGFGame) async throws -> String
+    func stop()
+}
+
 @MainActor final class PhysicalAI: ObservableObject {
     enum Phase: String {case idle, checking, human, thinking, placing, paused, finished, failed}
     struct Failure: LocalizedError {let message: String; var errorDescription: String? {message}}
@@ -57,6 +64,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
         var guidanceInterruption: String?
         // Independent of being paused; survives deliberate camera-only play.
         var laserRecheckReason: String?
+        // Explicitly synthetic fixture identity and immutable prior-game backup.
+        var practiceTest: PhysicalAIPracticeContext?
     }
     typealias Generate = @MainActor (SGFGame, PhysicalAISettings) async throws -> String
     @Published var draft = PhysicalAISettings()
@@ -91,6 +100,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private let uptime: ()->Double
     private let wallTime: ()->Double
     private let directory: URL
+    private let practiceStore:PhysicalAIPracticeStore
+    private var currentSnapshotData:Data?
+    @Published private(set) var practiceError:String?
     private let recognitionTrace: AIRecognitionTrace?
     private let generate: Generate
     private let testWorker: TestWorker
@@ -104,6 +116,10 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private var verifiedCells: [String]?
     private var verifiedCameraContext: String?
     private var loadFailed = false
+    private var illegalMoveTracker=PhysicalIllegalMoveWarning.Tracker()
+    private var illegalMoveContext: String?
+    private var illegalMovePlayer: SGFPlayer?
+    private(set) var illegalMoveWarning: PhysicalIllegalMoveWarning.Candidate?
     var hasGame: Bool {snapshot != nil}
     var fastTestMode: Bool {(snapshot?.ended == false ? snapshot?.settings.fastTestMode:draft.fastTestMode) == true}
     var canChangeTestMode: Bool {!hasGame || [.paused,.finished,.failed].contains(phase)}
@@ -135,14 +151,16 @@ struct PhysicalAIGuidanceTarget: Equatable {
     var canPass: Bool {canPass(at:ProcessInfo.processInfo.systemUptime)}
     func canPass(at now: Double)->Bool {phase == .human && lastMatch.map {(0..<1.5).contains(now-$0)} == true}
     var savedURL: URL? {snapshot.map {directory.appendingPathComponent($0.id.uuidString+".sgf")}}
-    init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil,
+    init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil, testWorker: TestWorker? = nil,
+         practiceStore:PhysicalAIPracticeStore?=nil,
          uptime: @escaping ()->Double = {ProcessInfo.processInfo.systemUptime},
          wallTime: @escaping ()->Double = {Date().timeIntervalSince1970}) {
         self.laser=laser ?? PhysicalLaserGuidance();self.uptime=uptime;self.wallTime=wallTime
         persistSettings=directory == nil
         self.directory=directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/AI Games")
+        self.practiceStore=practiceStore ?? PhysicalAIPracticeStore(directory:self.directory)
         recognitionTrace=directory == nil ? AIRecognitionTrace(url:self.directory.appendingPathComponent("recognition-trace.json")):nil
-        let testWorker=TestWorker();self.testWorker=testWorker
+        let testWorker=testWorker ?? TestWorker();self.testWorker=testWorker
         self.generate=generate ?? {game,settings in
             if settings.fastTestMode == true {return try await testWorker.move(game)}
             return try await Self.kataMove(game,visits:settings.strength.visits,rank:settings.humanRank)
@@ -152,13 +170,15 @@ struct PhysicalAIGuidanceTarget: Equatable {
         let url=self.directory.appendingPathComponent("current.json")
         if FileManager.default.fileExists(atPath:url.path) {
             do {
-                let saved=try JSONDecoder().decode(Snapshot.self,from:Data(contentsOf:url))
+                let savedData=try Data(contentsOf:url)
+                let saved=try JSONDecoder().decode(Snapshot.self,from:savedData)
                 guard saved.settings.valid else {throw Failure(message:"Invalid saved AI game settings.")}
                 let player=SGFPlayer();var empty=Self.game(saved);empty.moves=[];player.load(game:empty)
                 for move in saved.moves {
                     if let p=move.point, !(0..<saved.settings.size*saved.settings.size).contains(p) {throw Failure(message:"Invalid saved AI move.")}
                     guard !player.lastTwoMovesWerePasses, player.tryPlayMove(color:player.turn,x:move.point.map{$0%saved.settings.size} ?? -1,y:move.point.map{$0/saved.settings.size} ?? -1) == nil else {throw Failure(message:"The saved AI game has invalid history.")}
                 }
+                currentSnapshotData=savedData
                 snapshot=saved;draft=saved.settings;refreshBoard()
                 if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {self.laser.restoreGameFaultRequirement(reason)}
                 if let verified=saved.verifiedPosition,verified.cells.count==cells.count,
@@ -182,6 +202,10 @@ struct PhysicalAIGuidanceTarget: Equatable {
     static func sgf(_ s: Snapshot)->String {
         let g=game(s)
         var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(g.boardSize)],"RU":[s.settings.rules],"KM":[String(s.settings.komi)],"PB":[g.info.playerBlack!],"PW":[g.info.playerWhite!],"C":["KataGo AI practice; \(s.settings.opponentDescription). Untimed. HumanSL ranks are approximate; search effort is not a calibrated rank."]]
+        if let test=s.practiceTest {
+            props["EV"]=["Physical Go test position · "+test.position.title]
+            props["C"]=[(props["C"]?.first ?? "")+" "+test.position.syntheticDetail+" Subsequent moves use normal physical confirmation."]
+        }
         if let result=s.result {props["RE"]=[result]}
         let nodes=[SGFNode(props:props)]+g.moves.map {SGFNode(props:[$0.0 == .black ? "B":"W":[$0.1.map{SGFCoordinates.toSGF(x:$0.0,y:$0.1)} ?? ""]])}
         return SGFWriter.serialize(SGFTree(branches:[.init(sequence:nodes)]))
@@ -192,8 +216,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
         s.verifiedPosition=verifiedCells.flatMap {cells in verifiedCameraContext.map {VerifiedPosition(cells:cells,cameraContext:$0)}}
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         // current.json is authoritative. SGF is a derived export and can be retried.
-        try JSONEncoder().encode(s).write(to:directory.appendingPathComponent("current.json"),options:.atomic)
-        snapshot=s;refreshBoard()
+        let data=try JSONEncoder().encode(s)
+        try data.write(to:directory.appendingPathComponent("current.json"),options:.atomic)
+        currentSnapshotData=data;snapshot=s;refreshBoard()
         try Self.sgf(s).write(to:directory.appendingPathComponent(s.id.uuidString+".sgf"),atomically:true,encoding:.utf8)
     }
     private func refreshBoard() {
@@ -211,8 +236,80 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 placement:s.pendingPlacement ? s.moves.last?.point.map {($0,cells[$0])}:nil,removed:saved.removed,evidenceAfter:uptime())
         } else {captureGuidance.clear()}
     }
+    private var practiceUnresolvedGuidanceReason:String? {
+        laser.controllerResetRequired ? "controller_fault":laser.gameFaultRecheckReason
+    }
+    var canLoadPracticePosition:Bool {
+        !loadFailed && !active && snapshot?.practiceTest==nil && (snapshot==nil || [.paused,.finished].contains(phase))
+    }
+    var canReturnFromPracticePosition:Bool {
+        !loadFailed && !active && snapshot?.practiceTest != nil && [.paused,.finished].contains(phase)
+    }
+    @discardableResult func loadPracticePosition(_ position:PhysicalAIPracticePosition)->Bool {
+        guard canLoadPracticePosition else {practiceError="Pause the game before loading a test position. Return from the current test before choosing another.";return false}
+        do {
+            let id=UUID(),prepared=try practiceStore.prepare(position:position,testID:id,previousGameID:snapshot?.id,
+                previousCurrent:currentSnapshotData,draft:draft)
+            var settings=PhysicalAISettings();settings.size=19;settings.humanBlack=position.humanBlack
+            settings.fastTestMode=true;settings.humanRank=nil;settings.strength = .quick
+            let test=Snapshot(id:id,settings:settings,moves:position.moves.map {SavedMove(point:$0)},
+                timing:PhysicalAITiming(),guidanceInterruption:practiceUnresolvedGuidanceReason ?? snapshot?.guidanceInterruption ?? snapshot?.laserRecheckReason,
+                laserRecheckReason:practiceUnresolvedGuidanceReason ?? snapshot?.laserRecheckReason,practiceTest:prepared.context)
+            let data=try JSONEncoder().encode(test)
+            try practiceStore.activate(prepared,current:data,sgf:Data(Self.sgf(test).utf8))
+            installPracticeSnapshot(test,data:data,draft:settings)
+            status="Test position loaded and paused. Match the indicated board, then Resume for normal camera verification."
+            return true
+        } catch {practiceError="Could not load test position. The current game is unchanged. "+error.localizedDescription;return false}
+    }
+    @discardableResult func returnFromPracticePosition()->Bool {
+        guard canReturnFromPracticePosition,let current=snapshot,let context=current.practiceTest,
+              context.testID==current.id,let currentData=currentSnapshotData else {practiceError="Pause the current test before returning to its saved game.";return false}
+        do {
+            let backup=try practiceStore.readBackup(context)
+            var restored=try backup.previousCurrent.map {try JSONDecoder().decode(Snapshot.self,from:$0)}
+            guard restored?.id==backup.previousGameID,restored?.practiceTest==nil else {throw Failure(message:"The prior game backup does not match this test.")}
+            if restored==nil,laser.gameFaultNeedsRecheck || laser.controllerResetRequired {
+                throw Failure(message:"Recheck the laser before returning to an empty setup. The test and fault remain saved.")
+            }
+            var restoredData=backup.previousCurrent
+            if var prior=restored {
+                let unresolved=practiceUnresolvedGuidanceReason ?? (laser.gameFaultNeedsRecheck ? current.guidanceInterruption:nil)
+                let recheck=unresolved ?? prior.laserRecheckReason
+                let interruption=unresolved ?? prior.guidanceInterruption ?? prior.laserRecheckReason
+                if recheck != prior.laserRecheckReason || interruption != prior.guidanceInterruption {
+                    prior.laserRecheckReason=recheck;prior.guidanceInterruption=interruption
+                    restored=prior
+                    // Overlay only fault fields; preserve unknown original JSON
+                    // metadata as well as the known history and elapsed clocks.
+                    var fields=try JSONSerialization.jsonObject(with:backup.previousCurrent!) as! [String:Any]
+                    if let recheck {fields["laserRecheckReason"]=recheck} else {fields.removeValue(forKey:"laserRecheckReason")}
+                    if let interruption {fields["guidanceInterruption"]=interruption} else {fields.removeValue(forKey:"guidanceInterruption")}
+                    restoredData=try JSONSerialization.data(withJSONObject:fields,options:[.sortedKeys])
+                }
+            }
+            try practiceStore.restore(context,expectedCurrent:currentData,replacement:restoredData)
+            installPracticeSnapshot(restored,data:restoredData,draft:backup.previousDraft)
+            status=restored==nil ? "Test closed. Your previous setup is restored.":restored?.ended==true ? "Finished game restored.":"Saved game restored and paused. Match its board before Resume."
+            return true
+        } catch {practiceError="Could not return to the saved game. The current test is unchanged. "+error.localizedDescription;return false}
+    }
+    private func installPracticeSnapshot(_ saved:Snapshot?,data:Data?,draft restoredDraft:PhysicalAISettings) {
+        phase = .paused // Prevent reentrant guidance callbacks during cancellation.
+        cancel();captureGuidance.clear();verifiedCells=nil;verifiedCameraContext=nil
+        snapshot=saved;currentSnapshotData=data;draft=restoredDraft
+        timing=saved?.timing?.saved ?? PhysicalAITiming(blackToPlay:(saved?.moves.count ?? 0)%2==0)
+        cells=[];referenceCells=[];lastCapturePoints=[];error=nil;practiceError=nil
+        if let saved {
+            refreshBoard()
+            if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {laser.restoreGameFaultRequirement(reason)}
+            phase=saved.ended ? .finished:.paused
+        } else {phase = .idle}
+        syncGuidance()
+    }
     @discardableResult func start()->Bool {
         defer {syncGuidance()}
+        guard snapshot?.practiceTest==nil else {status="Return from the test position before starting another game.";return false}
         guard draft.valid,!loadFailed, !hasGame || phase == .finished else {return false}
         cancel();timing=PhysicalAITiming();verifiedCells=nil;verifiedCameraContext=nil;error=nil
         do {try save(Snapshot(id:UUID(),settings:draft));phase = .checking;status="Clear the board. Waiting for a verified empty position.";return true}
@@ -232,8 +329,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func pause() {
         defer {syncGuidance()}
         guard active else {return}
-        cancel();timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
+        cancel(preserveIdleTestWorker:true);timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
     }
+    func shutdown() {pause();testWorker.stop()}
     func confirmLaserPhysicallyOff() {
         guard phase == .paused,let saved=snapshot,saved.guidanceInterruption != nil else {return}
         laser.setEnabled(false) // User confirmation is distinct from a driver OFF receipt.
@@ -248,8 +346,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
             status="AI game remains paused. Resolve and recheck the laser before Resume, or explicitly continue without laser guidance."
             return
         }
+        let preserveIdle = phase == .paused && s.guidanceInterruption == nil
         s.guidanceInterruption=nil
-        cancel();error=nil
+        cancel(preserveIdleTestWorker:preserveIdle);error=nil
         if s.moves.count>=2,s.moves.suffix(2).allSatisfy({$0.point == nil}) {s.ended=true}
         if s.pendingCaptureCleanup == true,lastCapturePoints.count<2 {s.pendingCaptureCleanup=false}
         if !s.ended,s.pendingPlacement,!captureCleanupPending {timing.resume(at:uptime())}
@@ -265,6 +364,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         catch {fail(error.localizedDescription)}
     }
     func interruptObservation(reason:String="state_reset",preserveGuidance:Bool=false) {
+        clearIllegalMoveWarning()
         if reason != "state_reset" {centeringWitness=nil}
         // Illuminated/buffered frames are deliberately not new capture evidence;
         // retain the selected operation until hand/positive-removal OFF occurs.
@@ -287,7 +387,12 @@ struct PhysicalAIGuidanceTarget: Equatable {
         recognitionTrace?.record(event)
     }
     private func clearCentering() {centeringStone=nil;centeringTarget=nil;centeringWitness=nil}
-    private func cancel() {laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering();generation=UUID();task?.cancel();task=nil;testWorker.stop();laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()}
+    private func cancel(preserveIdleTestWorker:Bool=false) {
+        laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering()
+        generation=UUID();task?.cancel();task=nil
+        if preserveIdleTestWorker && fastTestMode {testWorker.cancelKeepingIdle()} else {testWorker.stop()}
+        laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()
+    }
     private func observeCentering(_ observation:BoardObservation,ambiguous:Set<Int>,stamp:Double,now:Double) {
         guard centeringEnabled,laser.enabled,[.human,.checking].contains(phase),pendingPoint==nil,
               !captureCleanupPending,!captureGuidance.pending,let snapshot,!snapshot.moves.isEmpty else {clearCentering();return}
@@ -333,6 +438,46 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
         laser.verifyCenteringTarget(capturedAt:stamp,now:now)
     }
+    private var currentIllegalMoveContext: String {
+        "\(snapshot?.id.uuidString ?? "none")/\(snapshot?.moves.count ?? 0)/\(snapshot?.settings.rules ?? "none")/\(generation)/\(laser.cameraContext ?? "board-only")/\(laser.frames.streamEpoch)"
+    }
+    private func clearIllegalMoveWarning() {
+        illegalMoveTracker.clear();illegalMoveContext=nil;illegalMovePlayer=nil
+        if illegalMoveWarning != nil {
+            illegalMoveWarning=nil;mismatch=nil
+            status="Checking the physical board."
+        }
+    }
+    /// This diagnostic uses raw positive readings and never changes legal-move
+    /// acceptance. In particular, suicide does not pass the legal candidate filter.
+    private func observeIllegalMove(_ observation:BoardObservation,ambiguous:Set<Int>,stamp:Double,now:Double)->PhysicalIllegalMoveWarning.Candidate? {
+        let acceptsAttempt=phase == .human || (phase == .checking && snapshot?.moves.isEmpty == false)
+        guard acceptsAttempt,turn==human,pendingPoint==nil,let snapshot,!snapshot.pendingPlacement,
+              observation.capturedAt != nil,observation.manualPoints.isEmpty,ambiguous.isEmpty,
+              observation.readings.allSatisfy({$0.occupancy != .uncertain && $0.confidence>=0.8}) else {
+            clearIllegalMoveWarning();return nil
+        }
+        let added=observation.readings.filter {cells[$0.row*size+$0.col]=="empty" && $0.occupancy.rawValue==human.rawValue}
+        guard added.count==1,let point=added.first.map({$0.row*size+$0.col}),
+              captureGuidance.permitsReply(at:point) else {clearIllegalMoveWarning();return nil}
+        var raw=Array<String?>(repeating:nil,count:cells.count),confidence=Array(repeating:0.0,count:cells.count)
+        for reading in observation.readings {
+            let p=reading.row*size+reading.col;raw[p]=reading.occupancy.rawValue;confidence[p]=reading.confidence
+        }
+        let context=currentIllegalMoveContext;illegalMoveContext=context
+        if illegalMovePlayer==nil {illegalMovePlayer=player()}
+        guard let diagnosticPlayer=illegalMovePlayer else {return nil}
+        // consume's admission above already established clear, calibrated,
+        // dark-safe input; this tracker independently requires unique fresh stamps.
+        let candidate=illegalMoveTracker.observe(player:diagnosticPlayer,context:context,human:human,
+            acceptsHumanAttempt:true,pendingAIPlacement:false,
+            evidence:.init(frameID:String(stamp.bitPattern),capturedAt:stamp,cells:raw,confidence:confidence,
+                           ambiguous:ambiguous,hand:observation.handObstructed,aligned:true,confirmedDark:true),
+            now:now,permitsReply:{[captureGuidance] in captureGuidance.permitsReply(at:$0)})
+        if candidate==nil,illegalMoveWarning != nil {illegalMoveWarning=nil;mismatch=nil;status="Checking the physical board."}
+        illegalMoveWarning=candidate
+        return candidate
+    }
     private func fail(_ message: String) {cancel();timing.pause(at:uptime());error=message;phase = .failed;status="AI game paused. Resolve the issue, then Retry."}
     private func player()->SGFPlayer {
         let p=SGFPlayer();if let s=snapshot {p.load(game:Self.game(s));p.seek(to:s.moves.count)};return p
@@ -341,6 +486,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         defer {syncGuidance()}
         guard active else {return}
         let observationGeneration=generation
+        if let context=illegalMoveContext,context != currentIllegalMoveContext {clearIllegalMoveWarning()}
         let stamp=observation.capturedAt ?? now
         // Retain only previously observed cells in the same camera/grid context.
         // Fresh positive contradictions still override this history below;
@@ -379,11 +525,34 @@ struct PhysicalAIGuidanceTarget: Equatable {
         lastFrame=stamp
         var values=Array(repeating:"",count:size*size),seen=Set<Int>(),unknown=0
         let expected=cells.map {Occupancy(rawValue:$0)!}
-        let ambiguous=Set(observation.assignmentOffsets(confirmedBoard:expected).filter {$0.value>=0.30}.map(\.key))
-        detail["ambiguousPoints"]=ambiguous.sorted()
+        var ambiguous=Set(observation.assignmentOffsets(confirmedBoard:expected).filter {$0.value>=0.30}.map(\.key))
         for r in observation.readings {
             guard (0..<size).contains(r.row),(0..<size).contains(r.col),r.confidence.isFinite,
                   seen.insert(r.row*size+r.col).inserted else {interruptObservation();return}
+        }
+        // Color confidence does not establish a unique intersection. A stone
+        // between crossings can produce a strong label at one and an uncertain
+        // reading at its neighbor, even when its fitted outline underestimates
+        // displacement. Previously verified empty neighbors cannot resolve that
+        // new assignment. Established stones may still retain unchanged labels.
+        let byPoint=Dictionary(uniqueKeysWithValues:observation.readings.map {($0.row*size+$0.col,$0)})
+        var unresolvedNeighbors=[Int:[Int]]()
+        for r in observation.readings where r.occupancy.stone != nil && r.confidence>=0.8 {
+            let point=r.row*size+r.col
+            guard r.occupancy.rawValue != cells[point] || point==pendingPoint else {continue}
+            var neighbors=[Int]()
+            for row in max(0,r.row-1)...min(size-1,r.row+1) {
+                for col in max(0,r.col-1)...min(size-1,r.col+1) {
+                    let other=row*size+col
+                    guard other != point,cells[other]=="empty",let reading=byPoint[other] else {continue}
+                    if reading.occupancy == .uncertain || reading.confidence<0.8 {neighbors.append(other)}
+                }
+            }
+            if !neighbors.isEmpty {unresolvedNeighbors[point]=neighbors;ambiguous.insert(point)}
+        }
+        detail["ambiguousPoints"]=ambiguous.sorted()
+        if !unresolvedNeighbors.isEmpty {
+            detail["unresolvedPlacementNeighbors"]=unresolvedNeighbors.map { ["point":$0.key,"neighbors":$0.value] as [String:Any] }
         }
         detail["readingsOfInterest"]=observation.readings.filter {
             $0.occupancy.rawValue != cells[$0.row*size+$0.col] || $0.confidence<0.8 || $0.row*size+$0.col==pendingPoint
@@ -399,12 +568,24 @@ struct PhysicalAIGuidanceTarget: Equatable {
         guard active,generation==observationGeneration else {return}
         observeCaptures(observation,ambiguous:ambiguous,stamp:stamp,now:now)
         guard active,generation==observationGeneration else {return}
+        if let warning=observeIllegalMove(observation,ambiguous:ambiguous,stamp:stamp,now:now) {
+            clearCentering()
+            outcome="illegal_move";detail["rejection"]=warning.rejection.rawValue;detail["point"]=warning.point
+            witness=nil;witnesses=0;lastMatch=nil
+            var raw=cells
+            for reading in observation.readings {raw[reading.row*size+reading.col]=reading.occupancy.rawValue}
+            mismatch = .init(expected:cells,observed:raw)
+            status=warning.rejection.rawValue+(warning.restorePoints.isEmpty
+                ? " Remove the stone marked ×."
+                : " Remove the stone marked × and restore the stones at the blue rings.")
+            return
+        }
         observeCentering(observation,ambiguous:ambiguous,stamp:stamp,now:now)
         guard active,generation==observationGeneration else {return}
         for r in observation.readings {
             let index=r.row*size+r.col
             if ambiguous.contains(index),r.occupancy.stone != nil,r.confidence>=0.8,
-               r.occupancy.rawValue != cells[index] {
+               r.occupancy.rawValue != cells[index] || unresolvedNeighbors[index] != nil {
                 // Verified history may retain an obscured unchanged stone;
                 // it must not erase a positively seen, unresolved new stone.
                 outcome="ambiguous_new_stone";detail["blockingPoint"]=index
@@ -506,11 +687,18 @@ struct PhysicalAIGuidanceTarget: Equatable {
         timing.resume(at:now)
         if turn == human {phase = .human;status="Your turn · \(human.rawValue.capitalized) to play.";return}
         phase = .thinking;status=s.settings.fastTestMode == true ? "KataGo test move…":"KataGo is thinking…";let token=UUID();generation=token
+        let trace=PhysicalLatencyTrace.shared
+        let traceFields=["session":s.id.uuidString,"moveNumber":String(s.moves.count+1),"source":"ai","generation":token.uuidString]
+        trace?.record("ai_thinking_requested",fields:traceFields)
         task=Task { [weak self, generate] in
+            let began=ProcessInfo.processInfo.systemUptime
+            trace?.record("ai_engine_started",fields:traceFields)
             do {
                 let move=try await generate(Self.game(s),s.settings)
+                trace?.record("ai_engine_returned",fields:traceFields,metrics:["durationSeconds":ProcessInfo.processInfo.systemUptime-began])
                 guard let self,!Task.isCancelled,self.generation==token,self.phase == .thinking else {return}
                 let received=self.uptime(),receivedWall=self.wallTime()
+                trace?.record("ai_decision_received",fields:traceFields.merging(["decisionReceipt":String(receivedWall)],uniquingKeysWith:{$1}))
                 if move.lowercased()=="pass" {self.commit(nil,ai:true,at:received,receivedAt:receivedWall);return}
                 guard let point=Self.point(move,size:s.settings.size) else {self.fail("KataGo returned an invalid coordinate: \(move)");return}
                 self.commit(point,ai:true,at:received,receivedAt:receivedWall)
@@ -595,13 +783,55 @@ struct PhysicalAIGuidanceTarget: Equatable {
         return nil
     }
     @MainActor final class TestWorker {
-        private var engine:KataGoEngine?
-        var isRunning:Bool {engine?.isEngineRunning == true}
+        private var engine:PhysicalAITestBackend?
+        private var activeRequest:UUID?
+        private let makeEngine:@MainActor ()->PhysicalAITestBackend
+        init(makeEngine:@escaping @MainActor ()->PhysicalAITestBackend = {KataBackend()}) {self.makeEngine=makeEngine}
+        var isRunning:Bool {engine?.isRunning == true}
         func move(_ game:SGFGame) async throws -> String {
-            if engine == nil {engine=PhysicalScoring.makeWorker()}
-            return try await PhysicalAI.kataMove(game,visits:PhysicalAISettings.Strength.quick.visits,worker:engine)
+            try Task.checkCancellation()
+            guard activeRequest == nil else {throw Failure(message:"A test search is already running.")}
+            // Recheck path preferences and launch-time asset metadata before
+            // using a retained worker. A paused engine never starts new work.
+            if let engine,!engine.reusableConfiguration {stop()}
+            if engine == nil {engine=makeEngine()}
+            guard let engine else {throw Failure(message:"Test engine is unavailable.")}
+            let token=UUID();activeRequest=token
+            defer {if activeRequest == token {activeRequest=nil}}
+            do {
+                let move=try await engine.move(game)
+                try Task.checkCancellation()
+                guard activeRequest == token else {throw CancellationError()}
+                return move
+            } catch {
+                // An obsolete completion must not stop a replacement worker.
+                if activeRequest == token {stop()}
+                throw error
+            }
         }
-        func stop() {engine?.stop();engine=nil}
+        func cancelKeepingIdle() {
+            // No metadata IO on Pause. Revalidation happens before next use.
+            if activeRequest != nil {stop()}
+        }
+        func stop() {activeRequest=nil;engine?.stop();engine=nil}
+
+        private final class KataBackend:PhysicalAITestBackend {
+            private let engine:KataGoEngine
+            private let preferences:[String?]
+            init() {preferences=Self.currentPreferences();engine=PhysicalScoring.makeWorker()}
+            private static func currentPreferences()->[String?] {
+                let defaults=UserDefaults(suiteName:"com.davemarvit.SGFPlayerClean")
+                return [defaults?.string(forKey:"customKataGoPath"),defaults?.string(forKey:"customAIModelPath")]
+            }
+            var isRunning:Bool {engine.isEngineRunning}
+            var reusableConfiguration:Bool {
+                preferences == Self.currentPreferences() && engine.canReuseCurrentConfiguration()
+            }
+            func move(_ game:SGFGame) async throws -> String {
+                try await PhysicalAI.kataMove(game,visits:PhysicalAISettings.Strength.quick.visits,worker:engine)
+            }
+            func stop() {engine.stop()}
+        }
     }
     static func kataMove(_ game: SGFGame,visits: Int,rank: String? = nil,worker:KataGoEngine? = nil) async throws -> String {
         if let rank,!PhysicalAISettings.ranks.contains(rank) {throw Failure(message:"Unsupported human rank.")}

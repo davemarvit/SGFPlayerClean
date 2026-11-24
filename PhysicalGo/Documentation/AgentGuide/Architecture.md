@@ -76,3 +76,13 @@ Local storage uses ordered background writes through
 [RecordingStorage.swift](../../Sources/RecordingStorage.swift). A storage failure
 pauses dependent work and requires an explicit retry path; do not use diagnostic
 text as the source of a domain or persistence decision.
+
+## Isolated transient recovery extraction
+
+The overnight experiment places the classified transient OFF barrier, witness
+streak and target-verifier handoff in the pure
+[PhysicalGuidanceRecovery](../../Sources/PhysicalGuidanceRecovery.swift) reducer.
+The existing guidance facade still authenticates receipts and owns wire/IO,
+thermal, hard-fault and legacy-hand policy. See the
+[experiment and validation record](../GuidanceRecoveryExtraction.md) before
+adopting it; this branch does not change the installed application.

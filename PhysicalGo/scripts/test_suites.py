@@ -25,8 +25,15 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'stone-set-profile-test': Suite('StoneSetProfileTests','standalone',('Tests/StoneSetProfileTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
+    'stone-set-profile-review-test': Suite('StoneSetProfileReviewTests','standalone',('Tests/StoneSetProfileReviewTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
+    'stone-set-setup-test': Suite('StoneSetSetupTests','standalone',('Tests/StoneSetSetupTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift','Sources/StoneSetProfileView.swift'),optimized=False),
+    'ai-illegal-move-test': Suite('PhysicalAIIllegalMoveTests','app',('Tests/PhysicalAIIllegalMoveTests.swift',),optimized=False),
+    'latency-trace-test': Suite('PhysicalLatencyTraceTests','standalone',('Tests/PhysicalLatencyTraceTests.swift',),extra=('Sources/PhysicalLatencyTrace.swift',),optimized=False),
     'calibration-progress-test': Suite('PhysicalCalibrationProgressTests','standalone',('Tests/PhysicalCalibrationProgressTests.swift',),extra=('Sources/PhysicalCalibrationProgress.swift',),optimized=False),
     'guidance-continuity-test': Suite('PhysicalAIGuidanceContinuityTests','app',('Tests/PhysicalAIGuidanceContinuityTests.swift',),optimized=False),
+    'ai-idle-reuse-test': Suite('PhysicalAIIdleReuseTests','app',('Tests/PhysicalAIIdleReuseTests.swift','Tests/PhysicalAIIdleReuseReviewTests.swift'),optimized=False),
+    'ai-ambiguous-placement-test': Suite('PhysicalAIAmbiguousPlacementTests', 'app', ('Tests/PhysicalAIAmbiguousPlacementTests.swift',), optimized=False),
     'marker-scenarios-test': Suite('PhysicalMarkerScenarioTests','app',('Tests/PhysicalMarkerScenarioTests.swift',),optimized=False),
     'laser-standby-test': Suite('PhysicalLaserStandbyTests','app',('Tests/PhysicalLaserStandbyTests.swift',),optimized=False),
     'broker-epoch-test': Suite('PhysicalLaserEpochTests','app',('Tests/PhysicalLaserEpochTests.swift',),optimized=False),
@@ -115,6 +122,9 @@ SUITES = {
     'timing-panel-test': Suite('TimingPanelTests', 'app', ('Tests/TimingPanelTests.swift', 'Tests/LocalClockTests.swift', 'Tests/PhysicalScoringTests.swift'), extra=(), optimized=False),
     'reference-preparation-test': Suite('ReferencePreparationTests', 'app', ('Tests/ReferencePreparationTests.swift',)),
     'ai-laser-test': Suite('PhysicalAILaserTests', 'app', ('Tests/PhysicalAILaserTests.swift',)),
+    'guidance-reducer-test': Suite('PhysicalGuidanceRecoveryTests', 'standalone', ('Tests/PhysicalGuidanceRecoveryTests.swift','Tests/Support/GuidanceRecoveryBaseline.swift'), extra=('Sources/PhysicalGuidanceRecovery.swift',), optimized=False),
+    'guidance-reducer-review-test': Suite('PhysicalGuidanceRecoveryReviewTests', 'standalone', ('Tests/PhysicalGuidanceRecoveryReviewTests.swift',), extra=('Sources/PhysicalGuidanceRecovery.swift',), optimized=False),
+    'practice-positions-test': Suite('PhysicalAIPracticeTests', 'app', ('Tests/PhysicalAIPracticeTests.swift','Tests/PhysicalAIPracticeCaptureReviewTests.swift'), optimized=False),
     'capture-state-test': Suite('PhysicalCaptureStateTests', 'standalone', ('Tests/PhysicalCaptureStateTests.swift',), extra=('Sources/PhysicalCaptureGuidance.swift',)),
     'capture-laser-test': Suite('PhysicalCaptureLaserTests', 'app', ('Tests/PhysicalCaptureLaserTests.swift',), optimized=False),
     'capture-controller-test': Suite('PhysicalCaptureControllerTests', 'app', ('Tests/PhysicalCaptureControllerTests.swift',), optimized=False),

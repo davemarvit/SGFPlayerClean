@@ -11,8 +11,21 @@ import SwiftUI
         let suite="PhysicalGo.PlayModeTests."+UUID().uuidString
         let settings=UserDefaults(suiteName:suite)!
         defer {settings.removePersistentDomain(forName:suite)}
-        let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,
-            recordingStorage:root.appendingPathComponent("recordings"),settings:settings,diagnosticRoot:root.appendingPathComponent("diagnostics"))
+        func isolatedModel(_ name:String,recordings:URL?)->ExperimentModel {
+            let storage=root.appendingPathComponent(name)
+            let laser=PhysicalLaserGuidance(directory:storage.appendingPathComponent("laser"),automatic:false)
+            let ai=PhysicalAI(directory:storage.appendingPathComponent("ai"),laser:laser)
+            let online=PhysicalOnlineBoard(directory:storage.appendingPathComponent("online"),announceOpponent:{},announceCorrection:{})
+            let model=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,
+                recordingStorage:recordings,settings:settings,diagnosticRoot:storage.appendingPathComponent("diagnostics"),
+                moveEvidenceRoot:storage.appendingPathComponent("evidence"),stoneSetLibraryURL:storage.appendingPathComponent("stone-sets.json"),
+                ai:ai,onlineBoard:online)
+            precondition(model.ai === ai && model.onlineBoard === online && !model.ai.hasGame,
+                         "Mode tests must use isolated empty AI and online storage")
+            return model
+        }
+        let model=isolatedModel("primary",recordings:root.appendingPathComponent("recordings"))
+        defer {model.stop()}
         precondition(model.playMode == .local && !model.onlineBoard.enabled && !model.showDiagnostics)
         model.recorder.start(size:19,now:0)
         model.recorder.pause()
@@ -47,7 +60,8 @@ import SwiftUI
         model.playMode = .local
         precondition(model.size==19 && model.recorder.sgf()==localSGF)
         model.playMode = .online;model.showDiagnostics=true
-        let restored=ExperimentModel(discoverCameras:false,automaticGridDetection:false,referenceArchive:nil,recordingStorage:nil,settings:settings,diagnosticRoot:root)
+        let restored=isolatedModel("restored",recordings:nil)
+        defer {restored.stop()}
         precondition(restored.playMode == .online && restored.onlineBoard.enabled && restored.showDiagnostics)
         // Render all four UI combinations, including the shared Save SGF file button.
         let snapshots=URL(fileURLWithPath:FileManager.default.currentDirectoryPath).appendingPathComponent("work/physical-play-modes")

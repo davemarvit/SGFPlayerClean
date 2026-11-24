@@ -1,5 +1,13 @@
 # Camera and stone-placement session — laser off
 
+**Historical first-session plan.** The zero-move/color/readiness facts below were
+recorded before the attended session and must not be used to Resume now. Current
+installed game is paused at five moves; latest user report says eight Black
+stones, while the earlier photo showed seven Black and displaced White. Use
+[NextPhysicalTestPlan.md](NextPhysicalTestPlan.md) for the consolidated candidate,
+backup/new-practice transaction and Connect laser bridge OFF camera-only test.
+No fresh current-color verification is claimed here.
+
 Prepared November 23, 2026 from read-only source, saved-game and broker checks.
 Root owns app setup and physical operation. This plan does not activate hardware,
 change the saved game, or require completion of laser calibration.

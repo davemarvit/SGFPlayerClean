@@ -135,6 +135,8 @@ It cannot command hardware or activate a calibration binding.
 ## Future manual requalification design
 
 [Explicit manual requalification](../ManualRequalificationDesign.md) describes a
-proposed replacement for incident-specific restart adapters. It separates fresh
-physical admission from historical fault evidence; it is not implemented or an
-automatic-retry policy.
+design for replacing incident-specific restart adapters. Explicit manual
+requalification was subsequently implemented and physically entered; the later
+settlement-response disagreement still prevents full-board qualification. See
+[the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
+This does not authorize automatic retry or an occupied-board calibration run.

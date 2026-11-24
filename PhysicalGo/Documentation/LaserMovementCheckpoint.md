@@ -21,18 +21,18 @@ the laser off. The [integration checklist](IntegrationChecklist.md) remains the
 authority for subsequent changes. This page preserves the exact laser stopping
 point, rather than granting permission to resume from old observations.
 
-## Installed system and last physical state
+## Installed system and historical pilot state
 
 Physical Go **0.253/build 254** and **AimControl v44** are installed. The production
 bridge is stopped; no newly qualified full-board laser binding is active. The
 paused game and clocks were preserved. Newer app candidates are described below;
 their existence does not mean they are installed.
 
-The latest physical run was **interior-pilot-05**, using laser source
+The earlier physical run **interior-pilot-05** used laser source
 `44aeb5e3892d41999d591f229580f04000843a39` on
 `codex/pilot-probe-extension`. It completed both diagnostic legs, confirmed
 `AimControl v44 OFF` at Unix **1795474672.1551886**, and exited successfully. No
-controller or supervisor fault was reported. The latest observed motor pose was
+controller or supervisor fault was reported. That pilot’s final observed motor pose was
 **pan 1820, tilt 2248**; the observed board position was
 **[4.169881, 9.453444]**. Maximum reported motor temperatures were **14/14°C**.
 These are historical measurements, not proof of the present pose, temperature or

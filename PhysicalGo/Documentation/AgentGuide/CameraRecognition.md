@@ -83,13 +83,13 @@ unrelated image. Offline clearance success still requires a live hand/stone test
 The detector already compares local patches with an empty reference. The separate
 `StoneAppearanceModel` learns empty/black/white feature ranges from confirmed
 calibration photos and is currently an inspector, not a live recognition input.
-See the [offline appearance study](../../Experiments/IntersectionAppearance/README.md)
+See the [offline appearance study](https://github.com/davemarvit/SGFPlayerClean/blob/8212400/PhysicalGo/Experiments/IntersectionAppearance/README.md)
 for the capability map, historical findings, November 4 archive coverage audit
 and proposed provenance/occlusion requirements. Historical gains do not establish
 hand clearance: the earlier offline proposal also resolved an occluded example
 to empty. Keep setup-specific references and unknown visibility explicit.
 
-The [proposed confidence contract](../../Experiments/IntersectionAppearance/README.md#confidence-contract-for-downstream-combination)
+The [proposed confidence contract](https://github.com/davemarvit/SGFPlayerClean/blob/8212400/PhysicalGo/Experiments/IntersectionAppearance/README.md#confidence-contract-for-downstream-combination)
 includes raw per-class support, graded confidence with explicit calibration
 status, selected-class confidence and abstention reasons. Visibility/context
 quality and shared-image/reference provenance remain separate for downstream
@@ -108,7 +108,11 @@ blocks new/pending stone assignments when adjacent expected-empty crossings lack
 fresh clear evidence, preventing old empty labels from resolving new ambiguity.
 The preserved wrongly assigned White and legitimate White are regression inputs.
 
-New isolated, explicitly unvalidated work is in the application repository's
+Hosted named profiles are documented in [StoneSetProfiles.md](../StoneSetProfiles.md).
+The combined candidate stores names and optional per-color thickness without
+changing recognition. Combined build and physical validation remain pending.
+
+Separate, explicitly unvalidated optical work is in the application repository's
 `codex/stone-set-profile-study` (Experiments/StoneSetCalibration and WhiteCentering)
 and `codex/stone-set-profiles` (Experiments/StoneSetProfiles) branches. Named sets
 separate optional measured thickness from estimator-specific optical candidates.
