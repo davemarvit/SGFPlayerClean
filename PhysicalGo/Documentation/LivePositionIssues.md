@@ -4612,3 +4612,64 @@ movement/identity/foreground/controller failures remain terminal. Independent
 architecture/dark review and tests required before a new physical run. Hardware
 stays fully OFF while this software work proceeds. New-chat handoff is prepared
 but setup is not complete; finalize outcome and ownership before transfer.
+
+
+November 23 follow-up — root's stationary post-boundary-stop-initial-spot-01
+stopped during GA startup, before PREPARE/SWEEP and without a new optical pose.
+Exact cause CachedEvidenceExpired; full v44 OFF1795497780.4154284, process exited,
+source unchanged. SHA256f4899e6215586c1b904d78b6310a9d34663bab92857a013945e75c909bd7c3ee.
+Timing replay identifies the cached app lease as the earliest deadline:
+last poll80 lease1935788.612318039 versus cache.909424916 and camera1935797.704467042.
+Poll81 request-open observed duration190.224ms crossed lease expiry; manifest-open
+added92.826ms. Refresh prevalidation finished1935788.713669791, after first
+OFF.629406333. Heartbeats/thermal acknowledgments continued; no retained serial
+write failure. These observed intervals include possible scheduling delay; the
+underlying file-open delay cause is unproven. This is separate from weak-line
+reobservation and not the experimental10s camera-age limit. No automatic retry
+or expanded lease allowance authorized by this diagnosis. Hardware stays OFF.
+
+Partial fresh-fit continuation review: no supported committed checkpoint or
+fixed validation model exists, so the three targets cannot be resumed through
+current APIs. Current actual position must be optically observed; if outside
+fresh-start[2,16], attended coarse re-aim (physical power off before moving joints)
+is the existing route. Do not manufacture archived-source compatibility.
+
+
+## November 23 — bounded image reobservation physically passed
+
+Host54589c335e5d5502402a6d7994244eec9ac6a3ac is committed/pushed on
+`codex/calibration-prelight-reobservation` in its same-named laser worktree.
+101 author tests passed with no skips; architecture and dark reviewers each
+independently passed10 focused tests against exact frozen sources. Only typed
+weak-line insufficiency can reobserve B, after independent texture/foreground
+checks. Original3attempt/2s B/A5s/run deadlines remain; no additional movement or
+PREPARE and no light until a complete positive fresh proof. Exact rejected A/B
+bytes are retained within8records/64MiB, then flushed after full OFF/quiescence.
+Escaped line geometry, movement, foreground/identity/controller failures remain
+terminal. No app-lease change or partial-fit continuation was added.
+
+Root's post-boundary-stop-initial-spot-02 physically exercised this path:
+B frames62465 and62469 both failed weak N1 line evidence; frame62473 passed
+at1936223.784656583 before originaldeadline1936224.534742333. No light occurred
+on failed frames. Both exact rejected/analysis images and reasons were saved
+after shutdown. Current pose2297/2401 observed at board16.135067/1.863926.
+Root inspected directwebcam spot. Full v44 OFF1795498218.83076, process exited,
+source/sixgamefiles unchanged, max temperatures12/13C. Raw report SHA256
+aa173a6867f5136e9fe50b42e6d8946e56573d19f67ad37e1ec3526ef19852a5.
+This validates one actual bounded reobservation, not a complete calibration.
+
+The observed point is just outside the fresh-start[2,16] box. Dave clarified he
+wants motor-driven pointer movement, and NOTHING has been touched since this
+check. Do not ask for a power-cycle/housing move: it could disturb the webcam.
+Root has promised small camera-checked inward motor movements, not a blind
+30degree/20degree swing. Fast/architecture are assessing the minimal measured
+inward requalification route. Historical nearby sample31(2294/2400) satisfies
+existing8/5 proximity; no proximity relaxation needed. Its extrapolation misses
+the current optical point by3.7–4.2px depending on historicalJ, so simply admitting
+the old report would still fail3px correspondence. HistoricalJ must remain
+provisional until freshly measured response qualifies it. No new motion yet.
+
+A20s passive metadata poll after offline tests had322samples,zeroexpiredapp
+leases,minremaining357ms,maxfileread149ms,maxcameraage670ms. All requestsOFF,
+handclear/aligned. This does not resolve the earlier app-lease expiry or establish
+production600ms-camera reliability; it supplied current startup evidence only.

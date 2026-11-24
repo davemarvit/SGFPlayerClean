@@ -1,15 +1,19 @@
 # Laser movement checkpoint — November 23, 2026
 
-**Current: fresh calibration stopped after K10/A19/T19; hardware fully OFF.**
-The moved setup was reverified and Dave saw/heard the stationary check. Fresh
-run `moved-setup-full-calibration-01` then reached three fit targets within
-.232/1.166/1.278px. A later prelight image lacked local printed-line evidence
-near N1; this was not a timeout or controller fault. Full OFF1795497537.2905838,
-process reaped, source/game hashes unchanged, no binding. Later dark image
-passes; exact rejected image was not saved. Narrow bounded reobservation and
-rejection retention are being implemented/reviewed offline. See latest issue
-history and checklist. Everything below is historical context.
+**Current: weak-image reobservation passed; motor-only inward recovery pending.**
+Reviewed host54589c3 completed `post-boundary-stop-initial-spot-02`: two weak
+N1-line images rejected, third fully verified within unchanged2s/3attempt limits.
+Exact rejected images saved after OFF. Observed2297/2401 at16.135067/1.863926;
+full OFF1795498218.83076, sources/games unchanged. Dave confirms nothing touched
+and wants motor movement only, avoiding any webcam/housing disturbance. A new
+explicit fresh-start recovery to existing[2,16] is being implemented/reviewed;
+small observed inward probes, max8 actualaxis dispatches, no map qualification.
+HistoricalJ is provisional and needs fresh response before continued steering.
 
+Fresh full run previously reached K10/A19/T19 within.232/1.166/1.278px, then
+stopped on weak printed-line evidence. No full fit/validation or binding yet.
+A separate startup app-lease expiry during delayedfile reads remains unresolved.
+Everything below is historical context; see current checklist and issue history.
 
 **Latest state — setup image changed; hardware fully OFF.** Reviewed recovery
 host `7bee8a4` passed 66 tests, but observed-validation-02 stopped before arming

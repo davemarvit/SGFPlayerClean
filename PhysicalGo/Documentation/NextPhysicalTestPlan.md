@@ -79,8 +79,10 @@ a phantom removal move.
 ## Laser session — blocked until recovery and calibration qualify
 
 The latest fresh laser calibration reached three fitting targets, then stopped
-on insufficient local grid-line evidence in a prelight image. A narrow bounded
-image-reobservation fix is under offline review. All **nine held-out accuracy checks**
+on insufficient local grid-line evidence in a prelight image. Bounded image
+reobservation is now reviewed and physically passed on54589c3. Motor-only inward
+recovery to the fresh-start box is being implemented before a new full run.
+All **nine held-out accuracy checks**
 for this new setup remain pending; there is no
 qualified new gameplay binding. Review [LaserMovementCheckpoint.md](LaserMovementCheckpoint.md)
 before resuming. A new app version does not solve that steering problem.

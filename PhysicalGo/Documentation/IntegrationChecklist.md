@@ -8,82 +8,70 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Latest calibration stopped safely after three of five fit targets.** Fresh
-  setup run `moved-setup-full-calibration-01` reached K10/A19/T19 with errors
-  .232/1.166/1.278px, then lacked local printed-line evidence near N1 in a fresh
-  prelight image. This was not a timeout or motor fault. Full OFF confirmed
-  Unix1795497537.2905838; process exited and serial locks are free. Source and
-  all six saved game files unchanged; maximum motor readings14/15°C. No new
-  binding. A later dark image passes all checks, supporting fragile local
-  contrast; exact failed image was not retained. Fast author is implementing
-  bounded fresh-image retry for this specific inconclusive result plus exact
-  failure-frame retention, with independent review. Hardware remains OFF.
-  This supersedes the pending movement question and running status below.
-- **Installed and running: Physical Go 0.258/build 259; firmware remains v44.**
-  Compiled source `87fc4a9`; signed package independently verified before installation.
-  [Build and scoped acceptance](IntegratedPhysicalTestCandidate.md) records the
-  23 selected suites, corrected test-fixture failures, five final focused reruns
-  and fresh app→host→app acceptance against laser host `42e5022`. Physical retests
-  remain pending; passing offline tests is not a physical pass.
-- **Current physical blocker: changed camera/board image alignment.** Recovery
-  host `7bee8a4` is committed/pushed and passed 66 independently rerun tests.
-  Its first physical attempt, `observed-validation-02`, stopped before motor
-  arming or light: one printed/native grid corner differed by 4.0109px (limit 4).
-  Twelve later dark frames confirm a stable structural shift of about 9.5px
-  versus the last spot reference and 10.2px versus the original reference.
-  This is not merely native-grid jitter; the physical cause is unknown. Dave
-  has been asked whether the board, camera, pointer or supports were nudged.
-  Do not retry against the old geometry. Full OFF confirmed at Unix
-  `1795496145.193214`; saved game files are unchanged. The new bounded camera
-  remeasurement path has not yet been physically exercised.
-  Diagnostic follow-up `4e1a61b` now preserves exact rejected startup frames
-  after shutdown; 32 tests and independent focused review passed. No limits
-  or retry behavior changed. This is the reviewed successor for a later test.
-- **Ready for camera/AI testing:** new paused empty-board Human Black practice,
-  ID `EA70E983-9FAF-40ED-8939-312ED10A1A68`, zero moves, both clocks zero, fast mode on.
-  Load and relaunch persistence were checked. Original five-move game
-  `3D20B55B-DBE7-42E1-847E-3B82E60FF65A`, clocks and earlier three-move checkpoint
-  are preserved. Practice backup contains the exact original bytes; Return to saved
-  game is available. Do not arrange an old position unless deliberately restoring it.
-- **Board is now empty.** Dave cleared it and root inspected a direct webcam image.
-  After installation, a separate native webcam sample was 0.184s old, camera
-  `0x11000000bda0567`, aligned and hand-clear. Screen captures were unsuitable for
-  UI inspection and are not board evidence; use direct webcam frames for calibration.
-  Reference image, grid and camera fields are unchanged; only savedAt refreshed.
-- **Latest laser check finished fully OFF; production bridge remains stopped.**
-  Reviewed host `ece72fa` completed the latest stationary spot check using v44.
-  No GOTO/PTO/TTO travel was sent. Connect laser bridge is ON for passive webcam
-  publication and app OFF/no-target requests; root is the sole serial owner.
-  Diagnostic image saving/warnings remain off; bounded native timing logs are on.
-- **Integrated features:** ambiguity guard, completed idle fast-test worker reuse,
-  guidance fault recovery/reducer, calibration progress, named stone-set controls,
-  four reversible practice positions and screen-only illegal-move feedback.
-  Profile New set/Cancel was checked without saving invented measurements. No
-  parallax, boundary-center correction, adaptive map learning or illegal laser
-  pattern is activated. [Ordered test plan](NextPhysicalTestPlan.md).
-- **Live recovery passed; first edge target passed; planner still needs repair.**
-  Reviewed/pushed host `a84faa5` registered the earlier stationary observation,
-  re-observed current position and qualified two-axis steering (one permitted
-  extra tilt probe). A10 passed at 1.111px. Toward K19, planned pose 1860/2294
-  passed at 2.919px prediction disagreement; actual settlement 1860/2292 failed
-  at 3.450899px. This is disagreement between predictions, not a measured aiming
-  error. A subsequent stationary check now measured actual 1860/2292: frozen-model
-  prediction error 1.46px versus old local estimate 5.10px. That check finished
-  full OFF at Unix `1795494545.537726`. The earlier validation run confirmed OFF
-  at Unix `1795493870.3991501`, no controller/thermal/timing fault. Maximum motor
-  readings 14/15°C; all six saved game files unchanged. No binding activated.
-  All nine targets must be measured in a completed qualification run; eight were
-  not reached here. `adaptive_calibration` owns settlement-aware planning,
-  `fast_calibration` runner integration, `dark_commissioning` and architecture
-  reviewers. Optional shrinking alone is insufficient; bounded stationary
-  remeasurement/requalification is now implemented in reviewed `7bee8a4`, but
-  its physical test was blocked by the subsequent geometry change above.
-  [Laser checkpoint](LaserMovementCheckpoint.md).
-- Rollback and fresh stopped-app data backup:
+- **Installed/running: Physical Go0.258/build259, compiled source87fc4a9; firmwarev44.**
+  Signed package/source verification and offline paired-host acceptance passed.
+  [Build evidence](IntegratedPhysicalTestCandidate.md) records scope and receipts.
+- **Hardware fully OFF; production driver stopped.** Latest stationary check
+  ended with v44 OFF at Unix1795498218.83076 and its process exited. No live binding
+  has been activated. Root owns hardware; no competing serial client is permitted.
+- **Current position is optically known; motor-only inward recovery is next.**
+  `post-boundary-stop-initial-spot-02` observed2297/2401 at grid16.135067/1.863926.
+  Dave confirms nothing has been touched and requests pointer motor movement only.
+  Do not power-cycle/re-aim the housing or move the webcam. The spot is on the
+  printed board but just outside fresh calibration's existing[2,16] starting box.
+  Fast author is implementing a separate bounded, camera-checked fresh-start
+  recovery from the current observation, with independent architecture/dark review.
+  Historical response is provisional for tiny inward probes; it is not current
+  steering authority. No blind30°/20° movement or old-map fallback.
+- **Weak-image reobservation is implemented, reviewed and physically exercised.**
+  Laser host54589c3 is committed/pushed on `codex/calibration-prelight-reobservation`.
+  101 author tests and both independent10-test reviews pass. The latest check
+  rejected two weak N1-line B images, then accepted a fully verified third within
+  the original2s/3attempt budget. Exact rejected A/B images were saved after OFF.
+  No threshold, hand/thermal/identity check or app-lease allowance was relaxed.
+  Source and all six saved game files remained unchanged; maximum readings12/13°C.
+- **Full calibration is incomplete.** Fresh `moved-setup-full-calibration-01`
+  reached K10/A19/T19 with errors.232/1.166/1.278px, then stopped on weak printed-line
+  evidence. It supplied38 optical samples and1860 thermal pairs, maxima14/15°C.
+  Two fitting targets and all nine validation targets remain; no fitted candidate
+  or supported partial-fit continuation checkpoint exists for that run. The next
+  full run will create fresh reference/fit data after inward recovery.
+- **A separate startup permission expiry remains unresolved.** Stationary attempt
+  `post-boundary-stop-initial-spot-01` stopped during GA before light. Timing records
+  identify the app lease as limiting: request-open observed190ms plus manifest-open
+ 93ms prevented refresh before expiry. Underlying filesystem/scheduling cause is
+  unproven. Later20s passive monitoring had no expired leases and the next physical
+  stationary check passed. Neither result proves ordinary gameplay's600ms camera
+  path reliable. Experimental calibration10s camera/.5s cache settings do not
+  transfer to gameplay. No controller or temperature fault was reported.
+- **Ready for camera/AI tests:** paused empty Human Black fast practice,
+  ID `EA70E983-9FAF-40ED-8939-312ED10A1A68`, zero moves/clocks. Original five-move
+  game `3D20B55B-DBE7-42E1-847E-3B82E60FF65A`, clocks and earlier three-move
+  checkpoint are preserved. Return to saved game is available. Do not restore
+  an old position onto the physical board unless deliberately selecting it.
+- **Camera and app state:** native FULL HD WEB CAM `0x11000000bda0567`,1920×1080.
+  Board is empty. Use app-owned webcam images; desktop screenshots are not board
+  evidence. Connect laser bridge is ON for passive publication and OFF requests.
+  Recording/warning feedback OFF; bounded native timing logs ON. Native alignment
+  was checked and passed; older changed image geometry must not be reused.
+- **Installed features for the test:** ambiguity guard, fast-test idle engine reuse,
+  guidance recovery/reducer, calibration progress, named stone-set controls, four
+  reversible practice positions and screen-only illegal-move feedback. Physical
+  retests of recognition, holding, centering/capture laser markers remain pending.
+  No parallax/outline correction, adaptive learning or illegal laser pattern is
+  activated. [Ordered test plan](NextPhysicalTestPlan.md).
+- **Earlier laser work is preserved, not current setup authority.** Old setup A10
+  passed and exposed local/global prediction disagreement. Reviewed7bee8a4 added
+  bounded stationary remeasurement for observed-model continuation, but that
+  branch has not been physically exercised after the subsequent setup change.
+  See [movement history](LaserMovementCheckpoint.md) and latest issue entries.
+- **Rollback/data backup:**
   `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
-  Return from practice before a downgrade where possible; otherwise close the app
-  and restore the preserved data along with the old bundle. Preserve later progress.
-  Signed 0.256/0.257 comparisons and original recordings remain intact.
+  Preserve later game progress when restoring; signed earlier bundles remain.
+- **New conversation:** [handoff](NextConversationHandoff.md) is prepared and must
+  receive the final calibration/ownership state before a gameplay-testing chat.
+  All raw results live under `laser-position-recovery-20261123`; current agents
+  operate from isolated worktrees and root alone runs hardware.
 
 ## Parallel software work — current state
 
@@ -94,7 +82,7 @@ selecting or saving a stone profile does not activate a correction.
 |---|---|---|
 | Calibration optimizations and timing logs | Root, component authors and independent reviewers | Integrated on laser `codex/workflow-review-integration`, runtime3498fb2/documentation42e5022. All183 host/calibration/workflow tests plus38 model/importer tests pass. Native tracing remains opt-in; no hardware run or speed claim. |
 | Historical timing importer | `workflow_timing_model` | Reviewed importer retains uncertain/missing boundaries; three actual reports exported. Included in integrated candidate. |
-| Laser steering/settlement | `fast_calibration`, `adaptive_calibration` | Generic observed-anchor requalification implemented/reviewed a84faa5;34 tests pass. Physical fresh position/two-axis response and A10 accuracy pass. Repeat nominal-versus-settled prediction disagreement stopped next leg; settlement-aware goal shrinking in progress. No binding. |
+| Laser steering/settlement | `fast_calibration`, `adaptive_calibration`, reviewers | Historical observed-model recovery7bee8a4 implemented/reviewed; setup later changed. New54589c3 weak-image reobservation physically passed. Fresh-start motor-only inward recovery is being implemented; full five-fit/nine-validation and binding remain pending. |
 | Ambiguous intersection assignment | `marker_scenarios`, `contract_review`, Root | Guard installed0.258;52 dedicated checks and related regressions pass. Same-camera negative photos saved; physical retest pending. Correct color, wrong intersection was the defect. |
 | Stone-set profiles | Root, component authors/reviewers | Installed0.258; named picker/editor/storage tested. No optical correction activated. |
 | Parallax/appearance estimate | `intersection_appearance`, `architecture_review` | Eight centered White and eight centered Black samples analyzed; six fitted/two held out per color. Reviewed only for unvalidated optical-candidate storage. Physical thickness remains unidentified; fresh Black/White negatives remain displaced after frozen correction; same-view grid consistency within0.54px. Independent setup pending. Native White-fit diagnosis independently reviewed at `e6a6e85`: exact pixel-vote and complete optimizer replay; no production optical fix. |
