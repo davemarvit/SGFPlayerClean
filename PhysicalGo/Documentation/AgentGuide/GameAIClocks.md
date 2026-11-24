@@ -32,8 +32,11 @@ human physically mirrors it. `pendingPlacement` records that physical work;
 Fast test mode uses eight visits, no HumanSL and a retained warm KataGo worker.
 It preserves normal strength/rank settings and changes thinking time, not camera
 clearance or move confirmation. Mode changes are allowed before a game or while
-paused/finished/failed. The worker is released on cancellation/pause. First-use
-latency includes startup; report cold and warm timings separately.
+paused/finished/failed. The installed baseline releases the worker on cancellation/pause. A separate
+[experimental idle-reuse candidate](../FastTestIdleReuse.md) retains only completed
+idle test workers across ordinary pause/resume, with cancellation and asset
+revalidation guards. First-use latency includes startup; report cold and warm
+timings separately. Candidate presence in source does not imply installation.
 
 Sources: [PhysicalAI.swift](../../Sources/PhysicalAI.swift) (`TestWorker`,
 `setFastTestMode`, `kataMove`), [KataGoEngine.swift](../../../SGFPlayerClean/Services/KataGoEngine.swift)
