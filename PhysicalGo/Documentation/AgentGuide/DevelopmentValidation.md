@@ -10,8 +10,8 @@ artifact.
 
 ## Application build and targeted tests
 
-Run from the source checkout matching the intended runtime. For installed 0.260
-that is `/Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery`; the
+Run from the source checkout matching the intended runtime. For installed 0.261
+that is `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`; the
 canonical `/Users/Dave/SGFPlayerClean` currently has older runtime code. Confirm
 the [checklist](../IntegrationChecklist.md) and Git status before building:
 
@@ -38,7 +38,7 @@ for cache receipts, release-source checks and the precise isolation limits.
 | AI lifecycle, fast worker, legal acceptance | `--ai-play-test` (includes real local engine cases) |
 | Laser intent/dark evidence | `--ai-laser-test`, `--laser-standby-test` |
 | Capture and marker interaction | `--capture-state-test`, `--capture-laser-test`, `--capture-controller-test`, `--marker-scenarios-test` |
-| Stream restart/pixel identity | `--broker-epoch-test` |
+| Stream restart/pixel identity / independent clearance | `--broker-epoch-test`, `--camera-safety-test` |
 | Background bridge IO / ephemeral publication | `--bridge-io-test`, `--ephemeral-io-test` |
 | First-light click preference and failures | `--ai-move-click-test` |
 | Handoff/fault recovery and clock continuity | `--guidance-continuity-test`, `--laser-standby-test` |

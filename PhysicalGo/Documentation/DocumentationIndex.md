@@ -7,7 +7,7 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 
 ## Reading and maintenance rules
 
-- **Current:** app 0.260/build 261, firmware v44, paired host `1ae717e`; app/driver
+- **Current:** app 0.261/build 262, firmware v44, paired host `04b76c7`; app/driver
   stopped, moved setup unqualified, 600 ms camera expiry open. Exact provenance
   and completed versus pending validation belong in the checklist.
 - **Source versus installation:** canonical repositories contain updated guides
@@ -36,6 +36,7 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 | [CalibrationAndTiming.md](CalibrationAndTiming.md) | Current guide/status |
 | [CalibrationProgressUI.md](CalibrationProgressUI.md) | Current guide/status |
 | [CalibrationSpeedProposal.md](CalibrationSpeedProposal.md) | Dated study/design/incident evidence |
+| [CameraSafetyDelivery.md](CameraSafetyDelivery.md) | Current independent-delivery contract, test evidence and regional-change follow-up |
 | [CameraFreshnessReliability.md](CameraFreshnessReliability.md) | Current guide/status |
 | [CandidateHistories.txt](CandidateHistories.txt) | Dated study/design/incident evidence |
 | [CaptureOnStart.txt](CaptureOnStart.txt) | Dated study/design/incident evidence |

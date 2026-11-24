@@ -75,7 +75,7 @@ The exact agreement lives in the laser repository's
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
 Installed gameplay firmware v44 provides this contract. The current paired
-software is Physical Go 0.260 with host `1ae717e`. A short dark check and earlier
+software is Physical Go 0.261 with host `04b76c7`. A short dark check and earlier
 interrupted gameplay were exercised; the latest recovery changes remain physically
 unverified. The completed prior calibration needs requalification after movement.
 

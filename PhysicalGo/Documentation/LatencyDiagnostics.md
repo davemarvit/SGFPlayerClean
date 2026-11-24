@@ -1,5 +1,10 @@
 # Optional latency diagnostics
 
+0.261 adds independent `laser_safety_published` and
+`laser_safety_publication_failed` events (frame/epoch, original capture age and
+duration). The small metadata path is separate from optical PNG publication;
+see [the implementation and limits](CameraSafetyDelivery.md).
+
 Updated November 24, 2026. Opt-in tracing is integrated in installed 0.260 and
 the paired host `1ae717e`. The original November 23 sink/clock contract below
 remains applicable; later native camera and broker stages are described here.

@@ -1,69 +1,58 @@
 # Physical Go: current conversation handoff
 
-Updated November 24, 2026. **0.260/build 261 and AimControl v44 installed. App
-closed, driver stopped, last confirmed full OFF `1795516412.7072308`. The board
-moved relative to the camera/laser; qualification is required before laser use.**
+Updated November 24, 2026 after offline follow-up. **Physical Go 0.261/build 262
+installed; AimControl v44 unchanged. App closed, driver stopped, last physical
+full OFF still 1795516412.7072308. The moved setup requires requalification.**
 
-Read [AGENTS.md](../../AGENTS.md), [the current checklist](IntegrationChecklist.md),
-[the morning plan](NextPhysicalTestPlan.md), [camera reliability](CameraFreshnessReliability.md)
-and [laser checkpoint](LaserMovementCheckpoint.md). The [guide](AgentGuide/README.md)
-and [documentation index](DocumentationIndex.md) route to focused source/evidence.
-Read the primary laser [handoff](</Users/Dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/AI play integration reply.txt>);
-older incoming messages and frozen worktree copies are historical.
+Read [AGENTS.md](../../AGENTS.md), [the checklist](IntegrationChecklist.md),
+[next physical test plan](NextPhysicalTestPlan.md) and
+[the new delivery/test report](CameraSafetyDelivery.md). Source/offline/install
+results are distinct from physical validation. No old READY applies to a new run.
 
-## Exact continuation sources
+## Current sources and receipts
 
-- Installed app source: `/Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery`,
-  `codex/gameplay-ui-and-delivery`, runtime `87200da`, compiled after `35c14a1`.
-  Later documentation commits do not identify a different installed executable.
-- Host: `/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-session-source`,
-  `codex/gameplay-session-admission`, pinned `1ae717e2c693aeca441325909e7634c906416be3`.
-- Calibration launcher uses separately pinned frozen source. Read its guards
-  before running; do not copy current docs into frozen sources and invalidate pins.
-- Canonical repositories contain current guides but older runtime code. Start
-  implementation from the appropriate installed-source worktree, after checking Git.
-- Exact hashes, paired acceptance, installation and first-launch records:
-  [overnight-0260](</Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-activation-20261124/overnight-0260>). Signed 0.259 rollback retained there.
+- App `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, runtime `9c516f1`.
+- Host `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848`.
+- The canonical repositories contain current guides but older runtime code.
+  Earlier 0.260 and calibration worktrees retain their own immutable provenance.
+- Exact source/binary hashes, signed 0.260 rollback, logs, paired acceptance and
+  literal Swift messages: [artifacts](</Users/Dave/Documents/SGF PLayer/work/camera-safety-delivery-20261124>). The gameplay launcher now pins
+  this matched pair and still checks the equipment-movement blocker before serial.
 
-## What is finished and what is open
+## Completed offline work
 
-Five calibration fit targets plus nine independent checks passed on the prior
-setup (max final check error 2.990 px). Calibration was bound and real gameplay
-reached 12 plies. After the movement, all three fresh camera checks reject the old
-alignment. The old binding is retained; a launcher marker blocks its use. Camera
-and laser reportedly stayed fixed together, but this does not eliminate parallax
-if the board plane changed. An offline transfer estimate is deliberately not
-production-loadable; 35/361 targets extrapolate beyond its prior domain.
+Safety metadata now has a small independent latest-only writer/reader, avoiding
+PNG compression/write delays while preserving original timestamps and no unsafe
+fallback. Optical aiming still requires its own fresh matching image. Final
+native safety suite: 26 checks; host safety suite: 15 tests with Swift exports;
+all five selected integrated suites and mandatory native→host→native acceptance
+passed. Host gameplay 134/bridge 149 tests passed. Signed optimized build installed;
+the app was left closed and no live hardware/audio/camera operation was performed.
+This is not proof that every 600 ms failure is solved.
 
-0.259 moved request/status file IO off the UI thread; F5 was physically verified.
-The subsequent 600 ms camera expiry still occurred. 0.260 adds stage tracing,
-ephemeral IPC, honest bounded host transitions, unrecoverable-link-loss clock
-pause, large AI clocks, four-sided labels and independent click controls. All
-listed offline/paired checks and first-launch smoke passed. No 0.260 physical
-endurance or audible click pass is claimed. Metadata still waits for PNG delivery;
-separating them is the next proposed reliability improvement.
+The fixed-anchor regional-change prototype was audited against 20 real pre-bump
+empty-board images: 19 comparisons averaged 4.26 regions requested; median 7.39 ms
+excluding decode, under concurrent build load. All three misaligned later images
+were ineligible. No classifier skipping, map learning or optical correction was
+activated; current hand detection still needs fresh White-stone shapes.
 
-Game `EA70E983-9FAF-40ED-8939-312ED10A1A68` is paused at 12 plies, White E3 pending.
-Clocks are Black 728.2641341662966 s / White 65.05366220814176 s. The real board is
-empty. Preserve the save; choose a new empty practice or restore its stones before
-Resume. Do not edit snapshots to bypass board agreement.
+## Physical state and next session
 
-## Next actions and constraints
+Prior calibration completed five fit targets/nine independent checks (max final
+error 2.990 px), was bound, and used for play. Subsequent movement failed all three
+alignment checks. Old binding is retained and blocked. Camera/laser fixed-relative
+geometry does not eliminate unknown board-plane parallax; the transfer estimate
+remains a nonproduction diagnostic.
 
-Continue offline reliability work; then root can perform current camera geometry
-and attended optical qualification, review a new binding, and test ordinary play
-under the [physical test plan](NextPhysicalTestPlan.md). Check for an existing run
-and serial owner first. Wait for a fresh READY at the launcher's attended prompt.
-Do not auto-restart from a prior READY or treat software tests as optical evidence.
+Game EA70E983-9FAF-40ED-8939-312ED10A1A68 remains paused at 12 plies, White E3
+pending. Clocks: Black 728.2641341662966 s / White 65.05366220814176 s. Physical
+board is empty; preserve the saved game and choose a new empty practice or restore
+the position before Resume. Do not edit the snapshot to bypass board agreement.
 
-No unattended laser, motor or audio tests. Keep AirPod Pro 3 output. Diagnostic
-image saving/warnings remain off until a requested test. Notify Dave before any
-desktop screenshot; actual camera images are the board evidence. Preserve the
-before/after-movement recordings separately. The conservative data-pruning audit
-is in `work/data-pruning-20261124`; retain unique recordings and KEEP evidence.
-No component agent has an outstanding hardware assignment.
-
-> Continue Physical Go from this handoff and the current checklist. Inspect the
-> installed-source worktrees and current runtime state. Preserve game/clocks and
-> the hardware-off state while addressing the open camera freshness path. Before
-> physical play, qualify the moved setup with Dave present and record final OFF.
+Root checks existing process/serial ownership, establishes new camera geometry,
+then performs attended interior and boundary optical qualification before binding.
+Test ordinary play/hand darkness/recovery/clock pause and first-light click on
+AirPod Pro 3. Record final controller full OFF. Diagnostic image saving/warnings
+remain off until requested testing. No unattended motor/laser/audio run is scheduled.
+Notify Dave before desktop screenshots; actual camera files are board evidence.
+Preserve unique recordings/KEEP evidence and the existing pruning audit.

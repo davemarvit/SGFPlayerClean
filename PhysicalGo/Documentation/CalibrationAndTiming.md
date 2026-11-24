@@ -1,6 +1,6 @@
 # Calibration, ongoing checks and timing limits
 
-Updated November 24, 2026. Installed app 0.260 and firmware v44; driver stopped.
+Updated November 24, 2026. Installed app 0.261 and firmware v44; driver stopped.
 The prior full calibration passed five fit targets and nine independent checks
 (max final error 2.990 px), then the setup moved. Requalification is required;
 see [the checkpoint](LaserMovementCheckpoint.md) and [current checklist](IntegrationChecklist.md).
