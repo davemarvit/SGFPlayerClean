@@ -8,6 +8,46 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Holding handshake corrected; image publication still under investigation — latest
+
+- Current driver is PTY71281, host `f45b5e6b30a9b1f9e66b58954f05b54fc21e73be`
+  on pushed `codex/gameplay-session-admission`. Launcher pins this commit. Earlier
+  drivers95890 and40633 shut down fully OFF and released the port. Installed
+  native app remains0.259. Root retains exclusive hardware ownership.
+- F5 was accepted and Dave played Black move11; AI move12 at displayedE3 is now
+  pending. Game was paused again after camera/holding interruptions; no moves or
+  clock balances were reset. Current saved guidanceInterruption is
+  thermal_telemetry_unavailable; the root cause is still under investigation.
+- Holding switch is ON; centering hints OFF. Initial schema2 startup published
+  an invented approaching state while awaiting a controller barrier, with no
+  admitted motor/thermal state. Native correctly rejected those inconsistent
+  receipts. Host now retains the prior status's original identity/timestamp until
+  a real receipt, worker feedback or fault exists. It never fabricates OFF.
+-89 focused host checks pass; old-source regression reproduces. Mandatory paired
+  native/host acceptance passes against f45b5e6 and native0.259 source. Receipt:
+  /var/folders/yd/zrnp2hjn67b4ck4htrq9rmmr0000gn/T/physical-go-paired-contract-s7x3whfw/acceptance.json.
+  Intermediate candidates d807c12/c9ab868 covered OFF only; e94dc5c extends all
+  unconfirmed transitions; f45b5e6 updates actual worker-feedback fixture coverage.
+- Physical retry confirmed schema2 holding (motorsHeld=true,motorBusPowered=true,
+  laserOn=false), then warm pointing began. It stopped before positive illumination
+  on frame18155, captureAge0.603344s, publicationAge0.340458s. The original0.6s
+  camera limit remains. Native safety analysis was timely in this window, so
+  publication/IO is the next measured bottleneck, not sustained image-analysis backlog.
+  Full OFF after the interruption is confirmed; no repeated live retry planned
+  until publication changes are tested.
+- Earlier move12 log had a379ms main-thread delivery wait, possibly confounded by
+  root opening the diagnostic sheet after Dave's report. Do not present that as a
+  proven spontaneous UI stall. Diagnostic recording and warning feedback are OFF;
+  no redundant camera recording tail was removed.
+- UI/clock/four-side coordinates33e60f0 and independent click controls a79a3bc are
+  merged into isolated `codex/gameplay-ui-and-delivery`, not installed. User chose
+  to KEEP AirPod Pro3 output. Existing click is once per AI move; retries are silent.
+  Current volume0.73, systemvolume50%, unmuted, asset not silent. Audibility unverified.
+- Regional difference study e63233f is offline only (~8.7ms pass, ~57/361 selected
+  regions on30 clear-board pairs); it does not supply fresh recognition/safety votes.
+  A separate bounded IPC-writer experiment is now benchmarking atomic visibility
+  without per-frame durability flushes. No change to camera authority or freshness.
+
 ### Camera delivery fix installed and F5 physically verified — latest
 
 - Source `2b7b434` on pushed `codex/gameplay-camera-delivery`, signed app0.259
