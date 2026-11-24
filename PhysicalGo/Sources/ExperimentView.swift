@@ -173,6 +173,8 @@ struct ExperimentView: View {
                     if model.calibration == nil {Button("Find grid") {model.detectGrid(retryAutomatically:model.running)}.disabled(model.image == nil || model.detectingGrid)}
                 }
                 cameraDetails
+                Divider()
+                StoneSetProfilePicker(store:model.stoneSets)
             }
             WorkflowCard(number:3,title:model.playMode == .online ? "Connect & play":"Ready to play",summary:"Save setup, then press Start when both players are ready") {
                 if model.playMode == .local {

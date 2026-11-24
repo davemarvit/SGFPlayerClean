@@ -25,6 +25,9 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'stone-set-profile-test': Suite('StoneSetProfileTests','standalone',('Tests/StoneSetProfileTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
+    'stone-set-profile-review-test': Suite('StoneSetProfileReviewTests','standalone',('Tests/StoneSetProfileReviewTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
+    'stone-set-setup-test': Suite('StoneSetSetupTests','standalone',('Tests/StoneSetSetupTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift','Sources/StoneSetProfileView.swift'),optimized=False),
     'latency-trace-test': Suite('PhysicalLatencyTraceTests','standalone',('Tests/PhysicalLatencyTraceTests.swift',),extra=('Sources/PhysicalLatencyTrace.swift',),optimized=False),
     'calibration-progress-test': Suite('PhysicalCalibrationProgressTests','standalone',('Tests/PhysicalCalibrationProgressTests.swift',),extra=('Sources/PhysicalCalibrationProgress.swift',),optimized=False),
     'guidance-continuity-test': Suite('PhysicalAIGuidanceContinuityTests','app',('Tests/PhysicalAIGuidanceContinuityTests.swift',),optimized=False),
