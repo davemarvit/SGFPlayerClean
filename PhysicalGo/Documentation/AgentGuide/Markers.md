@@ -60,22 +60,19 @@ After a hand enters, darkness and fresh stable evidence are required before a
 hint can resume. Moving or removing the disk must invalidate the old hint. A
 wiggle is an attention cue, not a commitment to the nearest grid intersection.
 
-## Illegal-move feedback: separate proposal
+## Illegal-move feedback: screen implementation, laser proposal
 
-[IllegalMoveMarkerDesign.md](../IllegalMoveMarkerDesign.md) contains the new
-source-grounded proposal and isolated test evidence. Its
-[tracked experimental candidate](../../Experiments/IllegalMoveMarkers/README.md)
-is outside the app build. It is not an installed
-illegal-laser capability. The current engine already distinguishes suicide, ko
-and superko, but the physical candidate path filters no-liberty placements before
-the specific suicide message can be reached. Current mismatch UI can already
-show removal crosses and restoration rings.
+[IllegalMoveMarkerDesign.md](../IllegalMoveMarkerDesign.md) records the design and
+isolated precursor. The promoted `Sources/PhysicalIllegalMoveWarning.swift` is
+installed since 0.258 and retained in 0.260. Stable qualified additions can produce
+the authoritative rule reason plus removal crosses/restoration rings without
+changing accepted history, clocks or laser targets. The ordinary legal inference
+path remains strict; ambiguity and prisoners are not illegal-move evidence.
 
-The proposal uses a diagnostic-only path with positive, stable dark evidence and
-the active rule policy. It must not broaden legal acceptance or classify capture
-cleanup as an illegal reply. A possible silent illegal-move laser pattern needs
-its own capability and physical validation; ordinary ambiguity wiggle is not
-proof of illegality. See [GameAIClocks.md](GameAIClocks.md) for rule ownership.
+The tracked experiment remains outside the app build; its promoted source is the
+runtime implementation. A distinct silent illegal-move laser pattern still needs
+its own capability and physical validation. See [GameAIClocks.md](GameAIClocks.md)
+for rule ownership and [the test plan](../NextPhysicalTestPlan.md) for physical gaps.
 
 ## Tests and the physical session
 

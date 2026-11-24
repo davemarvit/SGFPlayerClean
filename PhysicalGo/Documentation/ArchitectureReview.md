@@ -1,5 +1,11 @@
 # Architecture and development-process review
 
+November 24 follow-up: scoped recovery extraction, immutable build tooling,
+mandatory paired acceptance and background bridge exchange have been integrated.
+The 600 ms problem remains open; independent safety metadata is still a proposal.
+This review's original findings/source snapshot below are retained, not relabeled
+as an audit of 0.260. See [current reliability work](CameraFreshnessReliability.md).
+
 Reviewed November 23, 2026 (Pacific). This is an independent source/document review,
 not a build, installation, hardware test or safety certification. Current running
 state belongs in [IntegrationChecklist.md](/Users/dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md).

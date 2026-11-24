@@ -1,5 +1,10 @@
 # Combined marker test session
 
+Historical fixture/review results. Holding and marker software are now integrated;
+physical coverage remains incomplete. Current installation and test sequence are
+in [the checklist](IntegrationChecklist.md) and [physical plan](NextPhysicalTestPlan.md).
+The runtime identities and interim test totals below remain dated evidence.
+
 Prepared November 22, 2026, as a focused review of ambiguous-placement and
 captured-stone guidance while monitored motor holding is being implemented.
 This is an offline test plan and fixture description, not a physical pass.

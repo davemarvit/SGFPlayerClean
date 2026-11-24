@@ -1,5 +1,10 @@
 # Monitored dark motor standby and thermal validation
 
+Historical design, subsequently implemented in v44 and the native/host contract.
+Installed versions and short/partial physical results are in
+[the checklist](IntegrationChecklist.md). Cooling/endurance gaps remain; this
+design review itself is not a physical pass or authorization to start a test.
+
 Design prepared November 22, 2026, Pacific time. **Proposal only:** no firmware,
 bridge or application changes in this review; no port, camera, sound or hardware
 operation performed. Root chat retains exclusive hardware ownership.

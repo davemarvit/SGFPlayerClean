@@ -1,9 +1,11 @@
 # Optional latency diagnostics
 
-Experimental overnight branch, November 23, 2026. These changes are not in the
-preserved signed 0.254 candidate and have not been used with hardware. The primary
-game, installed app and calibration are unchanged. This is diagnostic logging,
-not an admission signal, a new timeout policy or adaptive-map activation.
+Updated November 24, 2026. Opt-in tracing is integrated in installed 0.260 and
+the paired host `1ae717e`. The original November 23 sink/clock contract below
+remains applicable; later native camera and broker stages are described here.
+Tracing is diagnostic, never admission evidence or adaptive-map activation.
+See [current latency findings](CameraFreshnessReliability.md); no physical speedup
+or complete 600 ms repair has been established.
 
 ## Enable for a later supervised run
 
@@ -12,8 +14,7 @@ absolute directory path in their launch environment. With the variable absent,
 there is no trace writer. This branch does not modify persistent app settings,
 `launchctl` environment, or the running application.
 
-After root builds and reviews a candidate containing these changes, launch that
-candidate with the environment variable, for example:
+For a later attended run, launch the verified app with the variable, for example:
 
 ```sh
 env PHYSICAL_GO_LATENCY_TRACE_DIRECTORY="/absolute/test-session/latency" \
@@ -59,8 +60,13 @@ Request heartbeats are sampled only when producer/revision changes. Native reque
 and driver-state transitions are sampled; slow status reads/writes over 20 ms are
 also recorded. Those are diagnostic sampling thresholds, not safety deadlines.
 Host optical sample timings preserve frame waiting, image processing and existing
-report-write costs separately. Native camera pipeline CPU time is not newly
-profiled by this change; existing recognition recordings/traces remain separate.
+report-write costs separately. Later native instrumentation now measures queue,
+analysis, safety callback and main delivery intervals. Broker events
+`laser_frame_encoding`, `laser_frame_published` and `laser_frame_publication_failed`
+separate encoding, directory work, pruning, pixel write and manifest publication.
+Prepared-pixel reuse is explicit. See the [IPC event contract](../Experiments/EphemeralIPC/README.md).
+Host cached-expiry text identifies frame/epoch and check/capture/arrival/publication
+ages. These are diagnostic details, not permission to refresh an old timestamp.
 
 ## Clock and loss semantics
 
@@ -117,8 +123,8 @@ future instrumentation; they are not accepted online training pairs.
 - Existing bridge and fast-feedback tests cover the unchanged control path,
   including retained recordings supplied read-only in the isolated worktree.
 
-Full native integration compilation and physical overhead measurements remain
-root's integration gates. Disable the environment variable for immediate runtime
-rollback; the paired branch commits can also be omitted/reverted without changing
-the model, binding, saved game or firmware. The preserved 0.254 candidate remains
-the separate physical-testing fallback.
+Full integration and paired acceptance passed for 0.260; physical overhead and
+sustained recovery remain unverified. Disable the environment variable at the next
+normal relaunch to stop tracing. The retained 0.259 bundle is the latest rollback,
+but source/host compatibility and preserved game context still need review.
+Earlier 0.254/0.255 bundles are historical artifacts, not the default fallback.

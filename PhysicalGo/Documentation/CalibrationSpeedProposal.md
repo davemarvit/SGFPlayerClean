@@ -1,5 +1,10 @@
 # Calibration speed: candidate map before independent validation
 
+Historical source proposal. Later global steering and a full five-fit/nine-check
+run completed on the previous setup. The current runner is separately pinned;
+the old “today” source analysis below is not its current implementation. See
+[the laser checkpoint](LaserMovementCheckpoint.md); no setup-speed improvement is claimed.
+
 Source-only proposal, 2026-11-23. No hardware, fitting, image processing, or test workloads were run for this assessment. Reviewed runner SHA `a8f2e4e7c5a5218933d2c8ccf476dc39f4c872d0fa846f28fbd059f49fdcc1de`.
 
 ## Recommendation

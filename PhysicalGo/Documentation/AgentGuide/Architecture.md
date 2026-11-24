@@ -77,12 +77,21 @@ Local storage uses ordered background writes through
 pauses dependent work and requires an explicit retry path; do not use diagnostic
 text as the source of a domain or persistence decision.
 
-## Isolated transient recovery extraction
+## Scoped transient recovery
 
-The overnight experiment places the classified transient OFF barrier, witness
+The installed recovery implementation places the classified transient OFF barrier, witness
 streak and target-verifier handoff in the pure
 [PhysicalGuidanceRecovery](../../Sources/PhysicalGuidanceRecovery.swift) reducer.
 The existing guidance facade still authenticates receipts and owns wire/IO,
 thermal, hard-fault and legacy-hand policy. See the
-[experiment and validation record](../GuidanceRecoveryExtraction.md) before
-adopting it; this branch does not change the installed application.
+[origin and validation record](../GuidanceRecoveryExtraction.md). It is integrated
+in the installed 0.260 lineage; later transition/link-loss policy remains owned by
+the facade and AI controller, with coordinated host support.
+
+Live bridge reads/writes use independent bounded background queues in
+[LatestFileExchange.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/LatestFileExchange.swift>). Ephemeral
+publication uses [EphemeralAtomicFile.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/EphemeralAtomicFile.swift>).
+PNG preparation can overlap analysis, but the broker still publishes checked
+metadata only after its exact PNG is written. See [camera freshness](../CameraFreshnessReliability.md)
+for the measured delay and proposed metadata separation; this is not yet solved
+by the concurrency changes.

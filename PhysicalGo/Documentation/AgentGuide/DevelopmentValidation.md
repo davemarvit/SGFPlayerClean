@@ -10,7 +10,10 @@ artifact.
 
 ## Application build and targeted tests
 
-Run from `/Users/dave/SGFPlayerClean`:
+Run from the source checkout matching the intended runtime. For installed 0.260
+that is `/Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery`; the
+canonical `/Users/Dave/SGFPlayerClean` currently has older runtime code. Confirm
+the [checklist](../IntegrationChecklist.md) and Git status before building:
 
 ```sh
 python3 PhysicalGo/build.py --list-tests
@@ -36,6 +39,9 @@ for cache receipts, release-source checks and the precise isolation limits.
 | Laser intent/dark evidence | `--ai-laser-test`, `--laser-standby-test` |
 | Capture and marker interaction | `--capture-state-test`, `--capture-laser-test`, `--capture-controller-test`, `--marker-scenarios-test` |
 | Stream restart/pixel identity | `--broker-epoch-test` |
+| Background bridge IO / ephemeral publication | `--bridge-io-test`, `--ephemeral-io-test` |
+| First-light click preference and failures | `--ai-move-click-test` |
+| Handoff/fault recovery and clock continuity | `--guidance-continuity-test`, `--laser-standby-test` |
 | Cleared-board/ended-game recovery | `--recovery-lifecycle-test` |
 | Hand clearance | `--hand-outline-test` and the relevant incident fixture suite |
 | Local clocks/capture/review | `--capture-clock-test`, `--clock-review-test`, `--hand-clock-test` |
@@ -128,6 +134,8 @@ UI tests; production defaults are unchanged. Supply temporary AI, laser, online,
 recording, evidence, diagnostics and stone-library storage when testing modes.
 The old mode test accidentally loaded the live saved AI snapshot; this was fixed
 in87fc4a9. Keep source-specific receipts when unchanged suites run before a later
-constructor-only isolation change. The0.258 signed package and installation are
-recorded in [IntegratedPhysicalTestCandidate.md](../IntegratedPhysicalTestCandidate.md)
-and the current checklist.
+constructor-only isolation change. The historical 0.258 package is recorded in
+[IntegratedPhysicalTestCandidate.md](../IntegratedPhysicalTestCandidate.md).
+The current checklist records the exact 0.260 installation and paired host.
+Documentation-only revisions do not constitute a rebuild or new physical pass;
+keep the compiled source hash and tested runtime commit separate from later doc commits.

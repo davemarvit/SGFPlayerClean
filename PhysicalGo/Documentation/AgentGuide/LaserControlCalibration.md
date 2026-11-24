@@ -10,9 +10,15 @@ and shared handoff before any serial operation.
 
 ## Source map
 
+The links below identify components in the canonical repository. Current runtime
+code is in the isolated worktrees named by the [checklist](../IntegrationChecklist.md);
+the canonical checkout may be older. Use the paired host pinned by the launcher,
+not an arbitrary similarly named `laser_bridge.py`.
+
 | Component | Responsibility |
 |---|---|
 | [PhysicalLaserGuidance.swift](../../Sources/PhysicalLaserGuidance.swift) | App request/status schema, short renewable lease, target evidence, generation/recovery and dark-frame admission. |
+| [LatestFileExchange.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/LatestFileExchange.swift>) | Live app background status reads and latest-only request writes; original request deadlines and status timestamps stay authoritative. |
 | [bridge_lease.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_lease.py>) | Strict request parsing, immutable revisions, expiry, cancellation and worker generation gate. |
 | [bridge_runtime.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_runtime.py>) | Request/status file loop, independent supervision, worker lifecycle, OFF/standby barriers. |
 | [bridge_hardware.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_hardware.py>) | Actual backend, calibration admission, bounded coarse travel, optical correction, cue dispatch and logging. |
@@ -37,6 +43,17 @@ request about every 200 ms with a 600 ms lease. Heartbeats change lease times,
 not the immutable operation. Host expiry is supervised independently of a motor
 worker continuing to send firmware heartbeats.
 
+Live request/status file IO runs on two independent background queues. There is
+at most one read and one write in flight, plus one replaceable pending request.
+The main-thread consumer checks the cached status's original timestamp; a slow
+read cannot extend freshness. Queued requests retain their original lease expiry,
+and OFF replaces pending pointing work. An in-flight write can finish first;
+OFF submission is never treated as an OFF acknowledgement. Manual (`automatic:
+false`) test instances keep synchronous IO for deterministic protocol fixtures;
+`bridge-io-test` and the async cases in `ai-laser-test` cover the live exchange.
+Optional bounded latency tracing includes camera queue, analysis and main-thread
+delivery timings, plus background bridge IO duration.
+
 An OFF request does not prove darkness. A new producer requires an OFF handshake.
 The host invalidates old worker commands, waits for quiescence and obtains a
 fresh hardware receipt before publishing state. Status must match producer and
@@ -57,10 +74,10 @@ The exact agreement lives in the laser repository's
 [Gameplay standby protocol.md](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/Gameplay standby protocol.md>).
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
-Gameplay firmware v44 provides the new contract. The November 23 checklist records
-Physical Go 0.253/v44 installed and the short dark check passed; fresh full-board
-calibration and gameplay validation remain separate. Consult that checklist for
-later installation and physical results.
+Installed gameplay firmware v44 provides this contract. The current paired
+software is Physical Go 0.260 with host `1ae717e`. A short dark check and earlier
+interrupted gameplay were exercised; the latest recovery changes remain physically
+unverified. The completed prior calibration needs requalification after movement.
 
 The new capability is `darkMotorStandbyV1`. Discovery uses schema-1 full OFF,
 then a new schema-2 OFF revision and matching confirmation before active use.
@@ -73,6 +90,20 @@ an existing safe hold but cannot authorize cold engagement or recovery engagemen
 | Holding | Beam dark, motors held, bus powered; uses a separate dark receipt. |
 | Cooling | Motors released between indications, with measured temperature supervision. |
 | Arming | Bounded dark cold startup; not a dark-evidence acknowledgement or illumination permission. |
+| Transitioning | Fresh scoped heartbeat while the host finishes a warm handoff; output is uncertain and no dark receipt or first-light acknowledgement is allowed. |
+
+The native transition deadline is three seconds across revision changes. A valid
+transition must echo the current producer, revision, session, camera context,
+stream epoch, setup and standby capability. It conservatively reports possible
+light, explicitly unconfirmed illumination, and no OFF/dark timestamps or frame
+watermarks. Only a subsequent genuine state can authorize recognition or a click.
+The ordinary 0.75-second status freshness guard stays in force.
+
+A missing status still immediately requests OFF. Classified camera/lease failures
+can use the existing confirmed-dark recovery. If the driver instead returns an
+unexplained scoped full OFF, or remains missing for three seconds after the latch,
+the native AI owner pauses the game and clock, retains the pending move, and
+requires explicit recheck/Resume. Hardware recovery does not resume the game.
 
 The accepted policy enters cooling at either motor's 45°C reading. Persistent
 hold can return after both stay below 40°C on fresh measured evidence for
@@ -107,16 +138,18 @@ evidence. The app supports 9/13/19 boards, while the inspected hardware setup
 admission is commissioned for 19×19; do not assume app size support implies
 pointer calibration for that size.
 
-Old full-board interpolation evidence is not approval for a moved setup. At the
-November 22 checkpoint, recalibration was partial and no fresh full binding had
-been activated. Check the live checklist before using any saved binding.
+The November 24 full calibration passed five fitting targets and nine independent
+checks, and was bound for play. The subsequent movement invalidates its current
+qualification. The binding is retained and gameplay is blocked pending new
+geometry/attended optical review. See [the calibration checkpoint](../LaserMovementCheckpoint.md).
 
 ## Latency and physical tests
 
 Measure AI decision receipt, command dispatch/acknowledgement, first visible
-light and final pointing accuracy separately. Sound starts with light dispatch
-without waiting for playback to finish; actual acoustic/optical simultaneity
-still needs measurement. Warm holding can avoid repeated cold ARM/HOLD work,
+light and final pointing accuracy separately. Calibration attention beeps and the
+native AI stone click are different cues. Native click uses first confirmed
+illumination once per move; retries and centering stay silent. Dispatch/playback
+acknowledgement does not prove acoustic/optical simultaneity or audibility. Warm holding can avoid repeated cold ARM/HOLD work,
 but no historical timing is a measured speedup of the new implementation.
 
 The accepted sequence is software/fault tests, a short root-owned dark hold/stop
@@ -136,13 +169,14 @@ It cannot command hardware or activate a calibration binding.
 
 [Explicit manual requalification](../ManualRequalificationDesign.md) describes a
 design for replacing incident-specific restart adapters. Explicit manual
-requalification was subsequently implemented and physically entered; the later
-settlement-response disagreement still prevents full-board qualification. See
+requalification was subsequently implemented and physically entered. Later global
+steering completed full-board qualification on the prior setup; that setup then
+moved and requires fresh qualification. See
 [the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
 This does not authorize automatic retry or an occupied-board calibration run.
 
 
-## Prediction disagreement is not measured aiming error
+## Historical November 23 prediction disagreement, distinct from aiming error
 
 The camera measures the spot and requests small corrections; the motors
 separately control their encoder positions. Calibration also compares a local
@@ -164,10 +198,23 @@ policy. The optional expected-pose gate on `codex/initial-spot-pose-gate`
 (`ece72fa`) passed 54 tests and a stationary physical check. Neither activates a
 gameplay binding.
 
-Settlement-aware goal shrinking and bounded stationary remeasurement are being
-integrated separately. An optional conservative proof must not silently become
+Those November 23 steering investigations are historical. Later global steering
+completed the full calibration; its source and limitations are in the movement checkpoint. An optional conservative proof must not silently become
 a new required guarantee: proving containment over every permitted holding
 position makes some edge checks impossible, although the established policy can
 test them. Consult the current checklist for enabled source and physical results.
 The proposed recovery does not permit retries after controller, camera, hand or
 transport faults.
+
+
+## Ephemeral IPC publication
+
+The [ephemeral IPC implementation installed in 0.260](../../Experiments/EphemeralIPC/README.md)
+uses same-directory POSIX temporary-write/close/rename for live broker PNGs,
+manifest and request JSON. It preserves atomic visibility and original deadlines,
+without claiming crash durability. Persistent game/calibration writes are excluded.
+The broker retains four protocol images using a queue-owned list after one startup
+scan. Optional bounded trace events separate encode, pixel write, manifest and
+pruning costs. Private benchmarks did not establish a speedup; consult the current
+checklist for installation/physical-validation status rather than assuming this
+source change fixed the observed interruption.

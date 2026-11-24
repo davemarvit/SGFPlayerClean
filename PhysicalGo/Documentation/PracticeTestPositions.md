@@ -1,5 +1,11 @@
 # Reversible practice test positions — candidate
 
+Installed since 0.258 and retained in 0.260; 166 persistence/controller checks
+passed, and the empty-practice load/relaunch was verified. The original candidate
+wording below describes implementation history. Current game is 12 plies/paused
+with the physical board empty; preserve it when loading a new practice. Physical
+capture tests remain pending; use [the current plan](NextPhysicalTestPlan.md).
+
 This candidate exposes **Practice tests** in the AI Setup and Play panels. It
 provides four separate, synthetic 19×19 positions with Fast test mode enabled:
 

@@ -1,14 +1,17 @@
 # AI / laser integration handoff — 2026-11-21
 
-## Current extension work — November 22
+## Current contract status — November 24
 
 The legacy schema-1 contract below remains supported. Monitored gameplay holding
-is being implemented on `codex/monitored-gameplay-holding` in both repositories.
+is implemented in v44 and the installed 0.260/host `1ae717e` combination.
+The canonical branches below carry current docs but older runtime source; exact
+installed-source worktrees are identified in the checklist.
 The exact schema-2 agreement is maintained in the laser repository's
 [`Firmware/Gameplay standby protocol.md`](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/codex/monitored-gameplay-holding/Firmware/Gameplay%20standby%20protocol.md).
 It adds explicit same-game standby permission, retain-only hand handling,
-temperature telemetry and dark receipts distinct from full OFF. This is not yet
-an installation or physical-validation claim; consult
+temperature telemetry and dark receipts distinct from full OFF. The current
+extension also includes bounded scoped `transitioning` without dark/light evidence.
+Short dark/earlier gameplay tests do not validate the newer recovery changes; consult
 [IntegrationChecklist.md](IntegrationChecklist.md) for current evidence.
 
 Implemented in the authoritative `/Users/dave/SGFPlayerClean` source. The game

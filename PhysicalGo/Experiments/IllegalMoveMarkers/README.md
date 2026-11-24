@@ -1,5 +1,11 @@
 # Illegal-move marker experiment
 
+November 24 integration note: this directory remains the isolated precursor.
+The promoted `Sources/PhysicalIllegalMoveWarning.swift` is integrated and installed
+since 0.258, retained in 0.260. The statement below about no production integration
+describes the original experiment, not the later app. The illegal-laser pattern
+remains unimplemented. See [current status](../../Documentation/IntegrationChecklist.md).
+
 **Experimental, not part of the app build, not installed.** This is a tested
 diagnostic candidate, not a new legal-move acceptance path or laser command.
 It cannot open a camera or serial port, illuminate the laser, play audio, or

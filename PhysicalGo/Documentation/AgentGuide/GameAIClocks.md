@@ -32,15 +32,26 @@ human physically mirrors it. `pendingPlacement` records that physical work;
 Fast test mode uses eight visits, no HumanSL and a retained warm KataGo worker.
 It preserves normal strength/rank settings and changes thinking time, not camera
 clearance or move confirmation. Mode changes are allowed before a game or while
-paused/finished/failed. The installed baseline releases the worker on cancellation/pause. A separate
-[experimental idle-reuse candidate](../FastTestIdleReuse.md) retains only completed
-idle test workers across ordinary pause/resume, with cancellation and asset
-revalidation guards. First-use latency includes startup; report cold and warm
-timings separately. Candidate presence in source does not imply installation.
+paused/finished/failed. Installed [idle reuse](../FastTestIdleReuse.md) retains only
+completed idle test workers across ordinary pause/resume, with cancellation and
+asset revalidation guards. Active work, faults and shutdown invalidate the worker.
+First-use latency includes startup; report cold and warm timings separately.
 
 Sources: [PhysicalAI.swift](../../Sources/PhysicalAI.swift) (`TestWorker`,
 `setFastTestMode`, `kataMove`), [KataGoEngine.swift](../../../SGFPlayerClean/Services/KataGoEngine.swift)
 and [AIModels.swift](../../../SGFPlayerClean/Models/AIModels.swift).
+
+## AI play presentation
+
+[PhysicalAIClockView.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/PhysicalAIClockView.swift>) displays the
+same large two-clock layout used by local play, with You/KataGo labels and
+Pause/Resume. Values and running-side emphasis read `PhysicalAITiming`; viewing,
+resizing, switching sides or opening the large clock cannot change time or turn
+ownership. `PhysicalAIMoveClick` supplies the separate AI first-light sound
+preference; its test button only plays audio, and warning/clock-volume settings
+do not override it. These controls are installed in 0.260; see
+[AI clock layout](../AIPlayClockLayout.md) for offline and first-launch evidence.
+Actual AirPod Pro 3 audibility remains to be checked with Dave present.
 
 ## Clock events in AI practice
 
@@ -48,6 +59,10 @@ and [AIModels.swift](../../../SGFPlayerClean/Models/AIModels.swift).
   to play. AI decision receipt time is recorded before pointing begins.
 - Laser dispatch, first visible light, final optical refinement, hand entry and
   a thermal acknowledgement do not switch clock ownership.
+- A current scoped hard guidance fault pauses the game and clock. 0.260 also
+  pauses on invalid/overlong transitions and unrecoverable own-game link loss.
+  Classified transient camera/lease recovery remains separate; neither a new
+  heartbeat nor a hardware recovery automatically resumes a paused game.
 - Captures of two or more stones pause elapsed practice time until the played
   stone and complete capture cleanup are physically verified. A single-stone
   capture keeps the clock running under the accepted AI-practice policy.
@@ -75,9 +90,11 @@ actual active settings/overrides before presenting an illegal-move explanation.
 `PhysicalMoveInference` in [PhysicalOnlineBoard.swift](../../Sources/PhysicalOnlineBoard.swift)
 infers one added stone with optional partial capture removal; it rejects
 no-liberty placements before returning a candidate. Therefore a physical suicide
-can currently become a generic mismatch before the AI controller reaches its
-specific legality message. Dedicated illegal-marker work is a new proposal,
-not installed behavior; keep it distinct from ambiguous vision.
+used to become a generic mismatch before the AI controller reached its specific
+legality message. The separate installed `PhysicalIllegalMoveWarning` diagnostic
+now evaluates stable qualified illegal additions without broadening legal move
+acceptance. It supplies screen reasons/removal/restoration marks only. A distinct
+illegal-move laser pattern is still a proposal; ambiguous vision is not illegality.
 
 ## Persistence and recovery
 
@@ -101,7 +118,7 @@ and explicitly establish the intended new or restored game.
 
 ## Reversible practice positions
 
-Installed0.258 adds four paused fast-mode positions through
+Introduced in 0.258 and retained in 0.260, four paused fast-mode positions use
 [PhysicalAIPracticePosition.swift](../../Sources/PhysicalAIPracticePosition.swift)
 and the ordinary AI Setup/Play controls. The loader stores an immutable original
 snapshot backup, writes the new SGF before atomically replacing current.json, and

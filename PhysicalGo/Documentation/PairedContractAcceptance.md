@@ -6,13 +6,14 @@ fixture exports, hashes, coverage, native build provenance, an unsuccessful
 subprocess or an optional native fixture block that did not run makes the command
 fail. A failed/partial run never produces a successful acceptance receipt.
 
-This experiment changes test tooling only. It does not build, install, launch the
+This integrated command changes test artifacts only. It does not build, install, launch the
 application, access a camera/serial port, activate a calibration or contact a
 network service. Host code is read-only. Bytecode is disabled; generated requests,
 statuses, native artifacts, logs and `acceptance.json` go into a new system temp
 directory that is printed even on failure. Retain that directory as review
-evidence. The installed app, signed0.254 candidate and saved game are unrelated
-to this command's result.
+evidence. A passing result verifies the supplied source/runner pair, not the
+installed application's physical behavior. The latest accepted 0.260/host pair
+and receipts are recorded in [the checklist](IntegrationChecklist.md).
 
 ## Fresh build receipts are the normal entry point
 

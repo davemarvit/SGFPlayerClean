@@ -1,5 +1,9 @@
 # Initial calibration progress display
 
+Installed since 0.258 and retained in 0.260. Earlier candidate/build statements
+below are dated validation records, not the current installation. Optical calibration
+completed on the prior setup; the moved setup now needs requalification.
+
 The setup and play panels include passive progress for the externally operated
 initial laser calibration. It appears when the calibration runner publishes a
 status file; there is no new hardware command, Start button or binding authority
@@ -9,9 +13,9 @@ The panel shows the current stage and target, elapsed time, time in that stage,
 and actual completed point checks. Full calibration has **5 calibration targets
 and 9 independent accuracy targets**; repeated K10 entries are separate checks.
 The bar measures completed checks, not elapsed-time fraction. Individual targets
-can need different numbers of optical corrections, and no complete measured run
-currently supports a useful remaining-time estimate, so the UI does not invent
-an ETA. An initial spot-only check has no full-board progress bar.
+can need different numbers of optical corrections. The completed November 24 run
+spanned 1,230.9 seconds from first to last observation; one run does not establish
+a useful remaining-time estimate, so the UI does not invent an ETA. An initial spot-only check has no full-board progress bar.
 
 Successful measurement and fitting displays “Measurements complete — setup
 review still required.” It never means the map was activated. Stop, unconfirmed

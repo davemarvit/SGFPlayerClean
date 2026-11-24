@@ -1,5 +1,11 @@
 # Live position issues, reviews, and clocks
 
+Historical incident chronology. The version, game and “latest” statements within
+each dated entry describe that checkpoint. Current installation/physical state is
+in [IntegrationChecklist.md](IntegrationChecklist.md), with the November 24 camera
+and handoff findings in [CameraFreshnessReliability.md](CameraFreshnessReliability.md).
+Do not operate from an older running-driver or READY entry.
+
 Date: 2026-11-11 (America/Los_Angeles)
 
 Status: all four batches completed in 0.157 / build 158. Full regression and
@@ -4828,3 +4834,27 @@ audit and regression command are saved at:
 The repository policy review captures the proposal and links all evidence.
 39 local documentation links verified. Hardware remains fully OFF; no further
 hardware work will occur in this chat.
+
+
+## November 24 — completed calibration, interrupted play and moved setup
+
+The prior global calibration completed five fitting targets and nine held-out
+checks (max final error 2.990 px) and was bound for actual play. The 12-ply practice
+is preserved and paused at White E3; Dave cleared the real stones for analysis.
+0.259 moved request/status IO off the main thread and F5 was physically verified.
+Later frame 27830 exceeded 600 ms capture age. A separate 1.788-second warm handoff
+exceeded the 750 ms native status limit and latched OFF without pausing the clock.
+The subsequent hand-near-board clearance episode was distinct from that expiry.
+
+Installed 0.260 and host `1ae717e` have offline/paired-tested transition/link-loss
+repairs, stage tracing, ephemeral IPC, large clocks, four-sided coordinates and
+independent click controls. First launch passed with the game paused, then app
+quit. No new physical endurance/audibility pass. [Camera freshness findings](CameraFreshnessReliability.md)
+retain measurements, uncertainties and proposed metadata separation.
+
+After the empty-board reference recording, the board/rig relation moved. All three
+later native alignment flags are false, corner displacement about 9–35 px. Old
+binding retained but launcher blocked pending current geometry and attended optical
+qualification. [Laser checkpoint](LaserMovementCheckpoint.md) records the offline
+assessment and its limits. Last full OFF remains 1795516412.7072308; driver stopped.
+Current source/hash/evidence paths and next actions are in the checklist.

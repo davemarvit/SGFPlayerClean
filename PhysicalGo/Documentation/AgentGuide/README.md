@@ -2,7 +2,7 @@
 
 This guide explains the project for a new chat or a human reader. Read only the
 pages relevant to the task; the source links are entry points, not an exhaustive
-file inventory. Prepared November 22, 2026 from inspected code, repository
+file inventory. Updated November 24, 2026 from inspected code, repository
 documentation, shared laser handoffs and the current integration conversation.
 No tool for reading other historical chats was available. Historical claims are
 therefore grounded in the durable project records, not a purported review of all
@@ -20,10 +20,10 @@ facts.
    checkpoint and immediate next steps. Preserve game history, clocks and
    calibration; do not infer current hardware state from an old chat.
 2. Inspect both repositories' branch, status and recent commits. Check the
-   installed app/firmware separately. At this guide's preparation checkpoint,
-   installed Physical Go was 0.252 and firmware v39; schema-2 monitored holding
-   and v44 were being developed. Those are dated facts, not a standing claim
-   about the current installation.
+   installed app/firmware separately. The November 24 checkpoint is app 0.260
+   and firmware v44, with the driver stopped and moved setup unqualified.
+   Use the installed-source worktrees named in the checklist; the canonical
+   repositories carry current documentation but older runtime code.
 3. For laser work, read the latest shared outgoing and incoming handoff files.
    A request is not an active dependency until the other agent acknowledges it.
 4. Select a page from the table below. Follow its source links and targeted
@@ -36,7 +36,7 @@ facts.
 |---|---|
 | Next attended test, preserved game and candidate inclusion | [Consolidated physical test plan](../NextPhysicalTestPlan.md) |
 | Where decisions live; how components connect | [Architecture and state ownership](Architecture.md) |
-| Reversible overnight candidates, diagnostics and adaptive-map experiments | [Software results and rollback](../OvernightSoftwareResults.md) |
+| Historical overnight results, diagnostics and adaptive-map experiments | [Software results and rollback](../OvernightSoftwareResults.md) |
 | Structural weaknesses and incremental improvement priorities | [Independent architecture/process review](../ArchitectureReview.md) |
 | Wrong camera, hand not clearing, missed stone, glare, stale image | [Camera and recognition](CameraRecognition.md) |
 | AI speed, legal moves, turn transitions, clocks, saved games | [Game, AI and clocks](GameAIClocks.md) |
@@ -48,6 +48,11 @@ facts.
 | A specific failure or unresolved investigation | [Troubleshooting and known problems](Troubleshooting.md) |
 
 ## Repositories and durable records
+
+Use [NextConversationHandoff.md](../NextConversationHandoff.md) for exact active
+source paths and launcher pins, and [DocumentationIndex.md](../DocumentationIndex.md)
+to distinguish operating guides, proposals and historical evidence. Do not rebuild
+from the canonical directory below without checking it matches the desired runtime.
 
 | Location | Responsibility |
 |---|---|

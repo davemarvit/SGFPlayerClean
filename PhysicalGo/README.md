@@ -1,8 +1,14 @@
 # Physical Go — camera game recorder
 
+Current operations: [checklist](Documentation/IntegrationChecklist.md) ·
+[handoff](Documentation/NextConversationHandoff.md) · [documentation index](Documentation/DocumentationIndex.md).
+The dated release entries below preserve feature history; they do not establish
+the latest installed version, active driver or calibration qualification.
+
 Physical Go is an independent macOS application inside the SGFPlayerClean repository.
 It records stable physical Go moves from an empty board, supports move-by-move review,
-and saves SGF. It supports two-player local games and online games through SGF Player’s
+and saves SGF. It supports AI practice with elapsed clocks and optional laser guidance,
+two-player local games, and online games through SGF Player’s
 OGS connection, with visual guidance for opponent moves. Camera detection remains experimental.
 Do not rely on it as your only tournament game record yet.
 

@@ -1,5 +1,9 @@
 # Saved stone sets in Setup
 
+Installed since 0.258 and retained in 0.260. Storage/editor validation does not
+establish an optical correction; [current status](IntegrationChecklist.md) tracks
+physical tests separately.
+
 The reviewed named stone-set controls are hosted in **Setup → Camera & board**,
 below camera/grid options. They are shared by Local, AI and Online setup views.
 
