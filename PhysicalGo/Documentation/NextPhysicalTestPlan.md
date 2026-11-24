@@ -1,27 +1,34 @@
 # Next physical test session
 
-Operational update — November 24, 2026: **Hardware fully OFF, controller fault
-latched; reset requested from Dave and pending.** The physical three-point attempt
-`three-point-20261124-133938-58346` exited 1 after one observation and zero completed
-movements. READY-to-OFF was **16.2945466 seconds**, not a completed calibration time.
-Final receipt: AimControl v44 OFF at `1795556395.0343037`, retaining
-`RESULT ERROR reason=target_step_too_large gpio_high_ms=3843`.
+Operational update — November24,2026: **Three-point physical test completed;
+hardware fully OFF, no active launcher/driver or pending READY.** Successful run
+`three-point-20261124-135005-60909`, source `019b6d7` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-step-limit`, PTY42102 exited0.
+READY to confirmed full OFF: **30.064086s**; acquisition including first view:
+19.943720s; first-to-third observation:13.616027s. Camera preflight/operator waiting
+are excluded from READY-to-OFF timing. Final AimControl v44 OFF at
+`1795557035.856552`, controller_error/code null, no cleanup/source faults.
 
-Root's new test requested a 36-count PTO move; v44 fast-session fine moves permit
-24/12 counts. The controller rejected before writing the goal. Corrected source
-`019b6d7` in `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-step-limit`
-uses 18/10 with explicit fine-bound checks and seven passing focused tests.
-Initial source `dca4653` remains frozen. Base suites passed 237 (19 skipped) and51.
-`work/PhysicalGo-Three-Point.command` is pinned to the correction; no retry is
-running or waiting. Do not restart before explicit reset, fresh full-OFF admission,
-camera checks and READY. Root remains sole hardware owner. Firmware unchanged.
+The corrected18/10-count probes collected exactly three fresh actual spot/POSE
+pairs and two dark moves. The97-point map assisted direction only; no old samples
+entered the affine fit. The spots span less than0.4 cells: this is a local bootstrap,
+not a widely spread three-point tour. Agreement with9 nearby saved observations:
+median18.40px /0.347 cells, max21.46px /0.393 cells. Across all97 saved observations:
+median176.04px /4.983 cells, max528.15px /10.942 cells. These are inverse spot
+prediction errors at saved poses, not measured new landings or corrected accuracy.
+Dense97-model prediction of today's3 fresh spots: median5.063px, max5.108px.
 
-User still wants a timed successful three-point physical run and comparison with
-the saved97 observations. The minimal-runner implementation is now present; it
-collects three fresh spots without intersection centering and ends fully OFF.
-Old map assists probe direction only, not the three-point fit. Completion and
-accuracy comparison remain pending. A post-OFF comparison script is prepared at
-`work/attended-recheck-20261124-105259/three-point-comparison/compare.py`.
+The new affine model extrapolates94/361 nominal predictions outside host bounds;
+none were commanded. No gameplay binding or firmware changed. Optical-feedback
+convergence and learning during play remain untested/unimplemented. Comparison
+and concise summary: `three-point-20261124-135005-60909/{three-point-comparison.json,summary.txt}`
+under `work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`.
+
+Prior attempt `three-point-20261124-133938-58346` stopped after one view in16.294547s
+when root's36-count fine probe exceeded firmware24-count pan limit. Dave power-cycled
+both supplies; OFF/status check proved latch cleared at1795556958.424495. All three
+camera checks passed afterward; Dave then gave fresh READY for the successful run.
+Both attempts and original97 observations remain preserved. Root solely owns hardware.
 
 The saved checkpoint retains **97 observations and four fitting targets**:
 K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
