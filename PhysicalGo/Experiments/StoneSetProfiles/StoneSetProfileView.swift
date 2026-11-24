@@ -44,7 +44,7 @@ private struct StoneSetColorSummary:View {
             if profile.opticalHeightCandidates.isEmpty {
                 Text("No camera estimate saved").font(.caption).foregroundStyle(.secondary)
             } else {
-                Text("\(profile.opticalHeightCandidates.count) camera estimate\(profile.opticalHeightCandidates.count == 1 ? "":"s") saved · needs validation")
+                Text("Camera estimate saved · needs validation")
                     .font(.caption).foregroundStyle(.orange)
                 Text("Saved with its original board and camera setup; recheck with a different board or after moving the camera.")
                     .font(.caption).foregroundStyle(.secondary)
