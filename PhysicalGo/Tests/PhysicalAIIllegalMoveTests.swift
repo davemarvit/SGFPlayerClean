@@ -83,7 +83,7 @@ import Foundation
   let prisoner=try fixture("prisoner-not-ko",moves:ko,humanBlack:false,capture:true)
   var left=prisoner.cells;left[10]="white"
   feed(prisoner,left)
-  check(prisoner.captureGuidance.pending && prisoner.illegalMoveWarning==nil,"Remaining legal prisoner is never relabeled an illegal recapture")
+  check(prisoner.remainingCapturedStones==1 && prisoner.illegalMoveWarning==nil,"Remaining legal prisoner is never relabeled an illegal recapture")
   check(!prisoner.status.contains(SGFPlayer.MoveRejection.ko.rawValue) && prisoner.snapshot?.moves.count==ko.count,"Unremoved prisoner cannot advance history or produce ko accusation")
   feed(prisoner,prisoner.cells)
   check(prisoner.phase == .human,"Positive cleanup completes before the next human attempt")
