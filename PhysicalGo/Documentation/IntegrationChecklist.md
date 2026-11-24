@@ -47,6 +47,21 @@ offline verification, installation and physical validation.
   regions on30 clear-board pairs); it does not supply fresh recognition/safety votes.
   A separate bounded IPC-writer experiment is now benchmarking atomic visibility
   without per-frame durability flushes. No change to camera authority or freshness.
+### Source-only ephemeral IPC candidate — November 24, separate offline work
+
+- `codex/ephemeral-bridge-io`, based on71af909, adds a POSIX atomic-visibility
+  writer for transient PNG/manifest/request files, one-time broker orphan scanning,
+  four-image retention and bounded publication-stage traces. Persistent writes,
+  camera freshness, original timestamps and hardware policy remain unchanged.
+-43 injected writer assertions, async exchange checks and283 AI lifecycle checks
+  pass. The new broker suite hit a test-only URL-normalization assertion; preserved
+  artifacts show four protocol images and the unrelated image correctly retained.
+  The assertion is corrected; rerun waits until the attended physical session ends.
+- Alternating private-folder benchmarks did not demonstrate a write speedup.
+  Correct nested PNG filter options were honored and lossless but slower/neutral,
+  so the default encoder remains. No candidate build/install or hardware action.
+  Root owns integration and all live state. See [evidence and caveats](../Experiments/EphemeralIPC/README.md).
+
 
 ### Camera delivery fix installed and F5 physically verified — latest
 

@@ -211,7 +211,7 @@ import CoreGraphics
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         // Preserve the main-thread decision's sent/expiry times, even if IO is
         // delayed. The driver independently rejects expired requests.
-        try JSONEncoder().encode(request).write(to:directory.appendingPathComponent("request.json"),options:.atomic)
+        try EphemeralAtomicFile.write(JSONEncoder().encode(request),to:directory.appendingPathComponent("request.json"))
         PhysicalLatencyTrace.shared?.record("request_published",fields:[
             "producer":request.producer.uuidString,"sequence":String(request.sequence),
             "action":request.action,"reason":request.reason],metrics:[
