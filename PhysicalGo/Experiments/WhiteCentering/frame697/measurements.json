@@ -1,0 +1,311 @@
+{
+  "cameraID": "0x11000000bda0567",
+  "frameID": 697,
+  "captureUptime": 1918771.2830670008,
+  "image": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-23 16-37-13 81D4E9F0/frames/000697.png",
+  "image_sha256": "fb04aeb96986fb0029f60d38e66dd45d19101fc31a5421c02e5fea263a874284",
+  "events": "/Users/dave/SGFPlayerClean/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-23 16-37-13 81D4E9F0/events.jsonl",
+  "events_sha256": "ee7e5337f8a99e1195bcb860ed1d51331ecbcc5186c4ae4881f3d10b871eed63",
+  "calibration": {
+    "corners": [
+      {
+        "x": 0.3157279154413356,
+        "y": 0.1635379171204784
+      },
+      {
+        "x": 0.7322612392334021,
+        "y": 0.07449587332710651
+      },
+      {
+        "x": 0.7865005321731822,
+        "y": 0.8112620239560273
+      },
+      {
+        "x": 0.25208310984581894,
+        "y": 0.8208125889919358
+      }
+    ],
+    "h": [
+      0.33554062350859504,
+      -0.11642057638693133,
+      0.3157279154413356,
+      -0.09728175609475541,
+      0.4854304849053367,
+      0.1635379171204784,
+      -0.11060629177677359,
+      -0.20935861519517823
+    ],
+    "size": 19
+  },
+  "script_sha256": "6e5c97d239831e135d24cd1ab8cb968406cff6cc5bbfb36c2482fafa5fd39e79",
+  "opencv": "4.13.0",
+  "numpy": "2.4.1",
+  "measurements": [
+    {
+      "name": "legitimate",
+      "point": 180,
+      "productionFit": {
+        "center": {
+          "x": 9.08,
+          "y": 8.72
+        },
+        "col": 9,
+        "quality": 0.9211977186311787,
+        "radiusCol": 0.38,
+        "radiusRow": 0.35719999999999996,
+        "row": 9
+      },
+      "productionFitPixel": [
+        975.8917375662995,
+        447.62365426821276
+      ],
+      "thresholdSweep": [
+        {
+          "blueMinusRedThreshold": 15,
+          "bodyCentroidGrid": [
+            9.087545810239838,
+            8.827942516032886
+          ],
+          "bodyCentroidPixel": [
+            976.130178629838,
+            451.9965881854596
+          ],
+          "ellipseCenterGrid": [
+            9.08766975402832,
+            8.825103530883789
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.46840385437011717,
+            0.5108693313598632
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.0075458102398382465,
+            -0.1079425160328853
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -0.23844106353851657,
+            -4.372933917246826
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 20,
+          "bodyCentroidGrid": [
+            9.089679518712646,
+            8.828086696181703
+          ],
+          "bodyCentroidPixel": [
+            976.2359148463304,
+            451.9947306590796
+          ],
+          "ellipseCenterGrid": [
+            9.089528656005859,
+            8.826007614135742
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.4645118713378906,
+            0.5078142547607422
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.009679518712646384,
+            -0.10808669618170264
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -0.3441772800308627,
+            -4.371076390866847
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 25,
+          "bodyCentroidGrid": [
+            9.093700079778497,
+            8.827877627997559
+          ],
+          "bodyCentroidPixel": [
+            976.4357670344978,
+            451.97160149216955
+          ],
+          "ellipseCenterGrid": [
+            9.093575439453126,
+            8.827579956054688
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.4565362548828125,
+            0.49672397613525393
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.013700079778496743,
+            -0.10787762799755818
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -0.5440294681982323,
+            -4.347947223956794
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 30,
+          "bodyCentroidGrid": [
+            9.09677614665226,
+            8.828522175441211
+          ],
+          "bodyCentroidPixel": [
+            976.5876710936952,
+            451.9867531943565
+          ],
+          "ellipseCenterGrid": [
+            9.09664093017578,
+            8.828342132568359
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.4442722702026367,
+            0.4825887680053711
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.016776146652260238,
+            -0.10852217544121068
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -0.6959335273957095,
+            -4.363098926143721
+          ]
+        }
+      ]
+    },
+    {
+      "name": "midway",
+      "point": 275,
+      "productionFit": {
+        "center": {
+          "x": 9,
+          "y": 14.28
+        },
+        "col": 9,
+        "quality": 0.915054503413345,
+        "radiusCol": 0.36,
+        "radiusRow": 0.3384,
+        "row": 14
+      },
+      "productionFitPixel": [
+        964.0228035851391,
+        692.912530827239
+      ],
+      "thresholdSweep": [
+        {
+          "blueMinusRedThreshold": 15,
+          "bodyCentroidGrid": [
+            9.055889718397681,
+            14.388591735620755
+          ],
+          "bodyCentroidPixel": [
+            966.8544215637748,
+            697.9924774610206
+          ],
+          "ellipseCenterGrid": [
+            9.058945541381835,
+            14.383812103271485
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.4758850860595703,
+            0.5048884963989257
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.05588971839768142,
+            -0.10859173562075597
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -2.8316179786357907,
+            -5.07994663378156
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 20,
+          "bodyCentroidGrid": [
+            9.056281206944849,
+            14.389881946707371
+          ],
+          "bodyCentroidPixel": [
+            966.8735026956335,
+            698.0535010592583
+          ],
+          "ellipseCenterGrid": [
+            9.057336502075195,
+            14.387201232910156
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.47139419555664064,
+            0.49665729522705077
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.05628120694484906,
+            -0.10988194670737172
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -2.8506991104944746,
+            -5.140970232019299
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 25,
+          "bodyCentroidGrid": [
+            9.056897224822908,
+            14.390370671330237
+          ],
+          "bodyCentroidPixel": [
+            966.9058416518409,
+            698.0756889292907
+          ],
+          "ellipseCenterGrid": [
+            9.057571411132812,
+            14.388743896484375
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.4652341079711914,
+            0.48744796752929687
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.056897224822908044,
+            -0.11037067133023726
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -2.883038066701829,
+            -5.163158102051625
+          ]
+        },
+        {
+          "blueMinusRedThreshold": 30,
+          "bodyCentroidGrid": [
+            9.05915306936771,
+            14.390675076734192
+          ],
+          "bodyCentroidPixel": [
+            967.0264986112394,
+            698.0857937348292
+          ],
+          "ellipseCenterGrid": [
+            9.059010009765625,
+            14.38985595703125
+          ],
+          "ellipsePrincipalRadiiGrid": [
+            0.45687042236328124,
+            0.47573917388916015
+          ],
+          "fittedMinusBodyCenterGrid": [
+            -0.05915306936771003,
+            -0.11067507673419286
+          ],
+          "fittedMinusBodyCenterPixel": [
+            -3.0036950261003312,
+            -5.173262907590129
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Single retained frame; diagnostic thresholds selected after viewing these pixels, not an independently validated estimator.",
+    "Measures visible cyan/white body, not physical board-contact center or true stone placement.",
+    "Contour threshold sweep estimates sensitivity to this mask only, not a statistical confidence interval.",
+    "Exact native White-vote mask and disk objective not replayed here; mechanism attribution remains partial.",
+    "Red cross is nominal assigned grid point; green dot is saved production fit; blue cross is contour centroid at threshold20.",
+    "Current grid and source image are retained, not recalibrated or fitted to these stone centers."
+  ]
+}

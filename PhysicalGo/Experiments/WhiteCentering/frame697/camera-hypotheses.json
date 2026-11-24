@@ -1,0 +1,510 @@
+{
+  "purpose": "Reuse prior camera_geometry without fitting a height field or changing assignment",
+  "parallax_lab_sha256": "1d0c38ef6826933f919a8eee69c1599d28dd42c5e1fb740a174130fb4bb3c40e",
+  "image_sha256": "fb04aeb96986fb0029f60d38e66dd45d19101fc31a5421c02e5fea263a874284",
+  "hypotheses": [
+    {
+      "principalFraction": [
+        0.49,
+        0.49
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.381452915791566,
+          23.948525606917226
+        ],
+        "heightRowPitches": 26.94399345008156,
+        "focalPixels": 1459.874970154521,
+        "columnToRowPitch": 1.0876924756225146,
+        "principalFraction": [
+          0.49,
+          0.49
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.49,
+        0.495
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.338052897329256,
+          23.94081555526315
+        ],
+        "heightRowPitches": 26.815793106389727,
+        "focalPixels": 1455.0338856197075,
+        "columnToRowPitch": 1.0865894032685681,
+        "principalFraction": [
+          0.49,
+          0.495
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.49,
+        0.5
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.294619208142924,
+          23.933130755421484
+        ],
+        "heightRowPitches": 26.687314349906718,
+        "focalPixels": 1450.1565695018953,
+        "columnToRowPitch": 1.0854888282366852,
+        "principalFraction": [
+          0.49,
+          0.5
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.49,
+        0.505
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.251151809033583,
+          23.925471083538653
+        ],
+        "heightRowPitches": 26.558551390730436,
+        "focalPixels": 1445.2426549847698,
+        "columnToRowPitch": 1.0843907403660569,
+        "principalFraction": [
+          0.49,
+          0.505
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.49,
+        0.51
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.207650660741395,
+          23.91783641656975
+        ],
+        "heightRowPitches": 26.42949832833604,
+        "focalPixels": 1440.2917674746834,
+        "columnToRowPitch": 1.0832951295535993,
+        "principalFraction": [
+          0.49,
+          0.51
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.495,
+        0.49
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.376663586643458,
+          23.61836473999942
+        ],
+        "heightRowPitches": 26.675277747405467,
+        "focalPixels": 1437.8732094053055,
+        "columnToRowPitch": 1.0916290386067786,
+        "principalFraction": [
+          0.495,
+          0.49
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.495,
+        0.495
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.333321378887588,
+          23.61115425336418
+        ],
+        "heightRowPitches": 26.545364890374202,
+        "focalPixels": 1432.9577963580903,
+        "columnToRowPitch": 1.0905170170638097,
+        "principalFraction": [
+          0.495,
+          0.495
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.495,
+        0.5
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.289945591504477,
+          23.603967520478424
+        ],
+        "heightRowPitches": 26.415157788569015,
+        "focalPixels": 1428.0050818926925,
+        "columnToRowPitch": 1.08940752938951,
+        "principalFraction": [
+          0.495,
+          0.5
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.495,
+        0.505
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.246536185454993,
+          23.596804424156
+        ],
+        "heightRowPitches": 26.28465027141263,
+        "focalPixels": 1423.0146765333363,
+        "columnToRowPitch": 1.088300565214657,
+        "principalFraction": [
+          0.495,
+          0.505
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.495,
+        0.51
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.203093121639451,
+          23.589664847980362
+        ],
+        "heightRowPitches": 26.153836046599,
+        "focalPixels": 1417.9861823364843,
+        "columnToRowPitch": 1.0871961142292845,
+        "principalFraction": [
+          0.495,
+          0.51
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.5,
+        0.49
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.371887402834934,
+          23.284306724786983
+        ],
+        "heightRowPitches": 26.396402923823313,
+        "focalPixels": 1415.4644736330772,
+        "columnToRowPitch": 1.0955976722524814,
+        "principalFraction": [
+          0.5,
+          0.49
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.5,
+        0.495
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.328602852133534,
+          23.27760815787284
+        ],
+        "heightRowPitches": 26.264704843536446,
+        "focalPixels": 1410.470969547153,
+        "columnToRowPitch": 1.0944765700624122,
+        "principalFraction": [
+          0.5,
+          0.495
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.5,
+        0.5
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.28528481253257,
+          23.270931788081132
+        ],
+        "heightRowPitches": 26.132695261386097,
+        "focalPixels": 1405.4390145798593,
+        "columnToRowPitch": 1.0933580390401203,
+        "principalFraction": [
+          0.5,
+          0.5
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.5,
+        0.505
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.241933245151886,
+          23.26427750526205
+        ],
+        "heightRowPitches": 26.00036758459403,
+        "focalPixels": 1400.368194233619,
+        "columnToRowPitch": 1.0922420686024221,
+        "principalFraction": [
+          0.5,
+          0.505
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.5,
+        0.51
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.1985481110511,
+          23.257645199993377
+        ],
+        "heightRowPitches": 25.867715085963347,
+        "focalPixels": 1395.2580847603242,
+        "columnToRowPitch": 1.0911286482269718,
+        "principalFraction": [
+          0.5,
+          0.51
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.505,
+        0.49
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.367124310319863,
+          22.946282149963654
+        ],
+        "heightRowPitches": 26.1068335679716,
+        "focalPixels": 1392.6291171231537,
+        "columnToRowPitch": 1.0995988494376694,
+        "principalFraction": [
+          0.505,
+          0.49
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.505,
+        0.495
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.323897263632055,
+          22.940108193030824
+        ],
+        "heightRowPitches": 25.973271175725397,
+        "focalPixels": 1387.5534359717954,
+        "columnToRowPitch": 1.0984685324252494,
+        "principalFraction": [
+          0.505,
+          0.495
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.505,
+        0.5
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.280636818405256,
+          22.933954815871097
+        ],
+        "heightRowPitches": 25.839378424823845,
+        "focalPixels": 1382.4380656814453,
+        "columnToRowPitch": 1.0973408246523215,
+        "principalFraction": [
+          0.505,
+          0.5
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.505,
+        0.505
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.237342935917415,
+          22.92782191575726
+        ],
+        "heightRowPitches": 25.70514825241565,
+        "focalPixels": 1377.2825640234387,
+        "columnToRowPitch": 1.096215715316013,
+        "principalFraction": [
+          0.505,
+          0.505
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.505,
+        0.51
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.194015577386569,
+          22.92170939064462
+        ],
+        "heightRowPitches": 25.570573446661612,
+        "focalPixels": 1372.086478626948,
+        "columnToRowPitch": 1.0950931936759212,
+        "principalFraction": [
+          0.505,
+          0.51
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.51,
+        0.49
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.362374255347978,
+          22.604219946007426
+        ],
+        "heightRowPitches": 25.805990450718145,
+        "focalPixels": 1369.3457969231383,
+        "columnToRowPitch": 1.1036330528523333,
+        "principalFraction": [
+          0.51,
+          0.49
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.51,
+        0.495
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.319204560240772,
+          22.598583635661683
+        ],
+        "heightRowPitches": 25.67047745288986,
+        "focalPixels": 1364.1834888932592,
+        "columnToRowPitch": 1.1024933840522615,
+        "principalFraction": [
+          0.51,
+          0.495
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.51,
+        0.5
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.276001556590007,
+          22.59296622477179
+        ],
+        "heightRowPitches": 25.534613437000363,
+        "focalPixels": 1358.9801540629305,
+        "columnToRowPitch": 1.1013563633567696,
+        "principalFraction": [
+          0.51,
+          0.5
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.51,
+        0.505
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.23276520583086,
+          22.58736761843749
+        ],
+        "heightRowPitches": 25.398390814653197,
+        "focalPixels": 1353.7353193496974,
+        "columnToRowPitch": 1.1002219797373796,
+        "principalFraction": [
+          0.51,
+          0.505
+        ],
+        "assumptionsVerified": false
+      }
+    },
+    {
+      "principalFraction": [
+        0.51,
+        0.51
+      ],
+      "geometry": {
+        "cameraGrid": [
+          14.189495469338986,
+          22.581787722392804
+        ],
+        "heightRowPitches": 25.2618018316515,
+        "focalPixels": 1348.4485005081758,
+        "columnToRowPitch": 1.099090222229767,
+        "principalFraction": [
+          0.51,
+          0.51
+        ],
+        "assumptionsVerified": false
+      }
+    }
+  ],
+  "admissible": 25,
+  "heightFieldFit": null,
+  "reason": "Four visible stones; evaluated candidate must be excluded; existing fit needs six well-spread established anchors."
+}
