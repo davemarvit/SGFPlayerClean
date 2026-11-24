@@ -1,0 +1,158 @@
+{
+  "status": "offlineStatelessNativeDetectorOnly",
+  "summaryPath": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/native-fresh-replay-01/summary.json",
+  "summarySHA256": "1d2ce3d58997634ea6d876c446635f4a98ab05a69370f2b405315e1a8e68fef3",
+  "nativeResultsSHA256": "5620dbeffeddf3a14c70300d4679d4396c479b3d59cfa07015baef197929f075",
+  "provenanceSHA256": "c899ec855aada5b114b585a9d777db1780b1cb7097b72046abfc7b99a1456aea",
+  "archivedCategoriesExactlyReproduced": true,
+  "executableSHA256": "b4c9e6d5af67e9052c9e5e97bb49db9b2bb66fc16539bbd96fb45604d748cb1e",
+  "groups": {
+    "black-01": {
+      "frames": 8,
+      "localFitCounts": [
+        1
+      ],
+      "manualPointCounts": [
+        0
+      ],
+      "lightingBlocked": false,
+      "intersections": {
+        "14,9": {
+          "labels": [
+            "empty"
+          ],
+          "heuristicScoreRange": [
+            1,
+            1
+          ]
+        },
+        "15,9": {
+          "labels": [
+            "black"
+          ],
+          "heuristicScoreRange": [
+            1,
+            1
+          ]
+        }
+      },
+      "centers": [
+        [
+          15,
+          8.96
+        ]
+      ]
+    },
+    "white-01": {
+      "frames": 8,
+      "localFitCounts": [
+        1
+      ],
+      "manualPointCounts": [
+        0
+      ],
+      "lightingBlocked": false,
+      "intersections": {
+        "14,9": {
+          "labels": [
+            "empty"
+          ],
+          "heuristicScoreRange": [
+            1,
+            1
+          ]
+        },
+        "15,9": {
+          "labels": [
+            "white"
+          ],
+          "heuristicScoreRange": [
+            0.8125,
+            0.875
+          ]
+        }
+      },
+      "centers": [
+        [
+          15,
+          8.76
+        ]
+      ]
+    },
+    "black-midpoint-01": {
+      "frames": 8,
+      "localFitCounts": [
+        1
+      ],
+      "manualPointCounts": [
+        0
+      ],
+      "lightingBlocked": false,
+      "intersections": {
+        "14,9": {
+          "labels": [
+            "uncertain"
+          ],
+          "heuristicScoreRange": [
+            0.6875,
+            0.6875
+          ]
+        },
+        "15,9": {
+          "labels": [
+            "black"
+          ],
+          "heuristicScoreRange": [
+            1,
+            1
+          ]
+        }
+      },
+      "centers": [
+        [
+          14.56,
+          8.96
+        ]
+      ]
+    },
+    "white-midpoint-01": {
+      "frames": 8,
+      "localFitCounts": [
+        0
+      ],
+      "manualPointCounts": [
+        0
+      ],
+      "lightingBlocked": false,
+      "intersections": {
+        "14,9": {
+          "labels": [
+            "uncertain"
+          ],
+          "heuristicScoreRange": [
+            0.625,
+            0.71875
+          ]
+        },
+        "15,9": {
+          "labels": [
+            "uncertain"
+          ],
+          "heuristicScoreRange": [
+            0.5625,
+            0.59375
+          ]
+        }
+      },
+      "centers": []
+    }
+  },
+  "limitations": [
+    "Archived control establishes source/image replay correspondence for that example.",
+    "Fresh broker metadata does not include threshold; archived0.13 is explicit, not claimed as a fresh preference read.",
+    "Reference PNG matches persisted snapshot exactly; broker metadata does not attest in-memory reference bytes per frame.",
+    "Saved camera flags describe capture only. This does not replay temporal hand/tracking state.",
+    "Classification and fits do not prove full-controller acceptance, hint activation, or clock behavior.",
+    "No profile correction, fitting, training, runtime changes, app start, or hardware commands."
+  ]
+}
