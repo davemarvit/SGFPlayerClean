@@ -1,0 +1,347 @@
+{
+  "recording": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-activation-20261124/bedtime-play-20261124-022905",
+  "startUnix": 1795516145.615226,
+  "endUnix": 1795516181.722294,
+  "immutableMetadataChanges": [],
+  "timelineRows": 273,
+  "uniqueManifests": 270,
+  "matchedFrames": 270,
+  "nativeSafetyRangeUnix": [
+    1795516144.661475,
+    1795516181.659163
+  ],
+  "recorderLoopStartBeforeManifestTimestampRows": 34,
+  "limitations": [
+    "Recorder observedAtUnix is before file reads, not a post-read freshness check.",
+    "publishedAtUnix is sampled before manifest encode/write/rename, not actual visibility.",
+    "Sampled recording can omit intermediate publications; gaps are not proof of no publication.",
+    "Native safety-to-manifest interval combines broker wait/encode/pixel IO; installed trace does not split these stages."
+  ],
+  "eventMetrics": {
+    "bridge_status_read": {
+      "readSeconds": {
+        "count": 67,
+        "median": 0.033151375129818916,
+        "p95": 0.07168020820245147,
+        "maximum": 0.09092958318069577,
+        "minimum": 0.02000245824456215
+      }
+    },
+    "camera_safety_ready": {
+      "analysisSeconds": {
+        "count": 371,
+        "median": 0.05860049999319017,
+        "p95": 0.06239820830523968,
+        "maximum": 0.0653357501141727,
+        "minimum": 0.05389445833861828
+      },
+      "captureAgeSeconds": {
+        "count": 371,
+        "median": 0.10985237453132868,
+        "p95": 0.11761883250437677,
+        "maximum": 0.13667554105632007,
+        "minimum": 0.09671804145909846
+      },
+      "mainDeliverySeconds": {
+        "count": 371,
+        "median": 3.9333244785666466e-05,
+        "p95": 7.124990224838257e-05,
+        "maximum": 0.017745708348229527,
+        "minimum": 1.4083459973335266e-05
+      },
+      "queueSeconds": {
+        "count": 371,
+        "median": 2.3250002413988113e-05,
+        "p95": 3.816676326096058e-05,
+        "maximum": 5.4458389058709145e-05,
+        "minimum": 7.583294063806534e-06
+      }
+    },
+    "request_published": {
+      "decisionAgeSeconds": {
+        "count": 556,
+        "median": 0.0017546415328979492,
+        "p95": 0.02161121368408203,
+        "maximum": 0.071807861328125,
+        "minimum": 0.0005021095275878906
+      },
+      "writeSeconds": {
+        "count": 556,
+        "median": 0.0016505623934790492,
+        "p95": 0.021557000000029802,
+        "maximum": 0.07175312493927777,
+        "minimum": 0.0004645416047424078
+      }
+    }
+  },
+  "pairedMetrics": {
+    "captureToManifest": {
+      "count": 270,
+      "median": 0.14240336418151855,
+      "p95": 0.2594263553619385,
+      "maximum": 0.29600024223327637,
+      "minimum": 0.1160728931427002
+    },
+    "safetyToManifest": {
+      "count": 270,
+      "median": 0.03247249126434326,
+      "p95": 0.14960598945617676,
+      "maximum": 0.1922450065612793,
+      "minimum": 0.012927055358886719
+    },
+    "analysis": {
+      "count": 270,
+      "median": 0.05848404171410948,
+      "p95": 0.062071333173662424,
+      "maximum": 0.06524654175154865,
+      "minimum": 0.05389445833861828
+    },
+    "mainDelivery": {
+      "count": 270,
+      "median": 4.029169213026762e-05,
+      "p95": 7.008342072367668e-05,
+      "maximum": 0.000635750126093626,
+      "minimum": 1.8999911844730377e-05
+    },
+    "analysisQueue": {
+      "count": 270,
+      "median": 2.33333557844162e-05,
+      "p95": 3.8333237171173096e-05,
+      "maximum": 5.4458389058709145e-05,
+      "minimum": 7.583294063806534e-06
+    },
+    "matchError": {
+      "count": 270,
+      "median": 5.291658453643322e-06,
+      "p95": 8.583301678299904e-06,
+      "maximum": 1.0791700333356857e-05,
+      "minimum": 1.8333084881305695e-06
+    }
+  },
+  "transitions": [
+    {
+      "recorderLoopStart": 1795516147.542805,
+      "statusUpdated": 1795516147.517365,
+      "state": "off",
+      "statusReason": "request_lease_expired",
+      "statusSequence": 57,
+      "action": "off",
+      "requestReason": "no_pending_move",
+      "requestSequence": 57
+    }
+  ],
+  "largestSafetyToManifest": [
+    {
+      "frameID": 26547,
+      "capturedAtUnix": 1795516154.1606967,
+      "publishedAtUnix": 1795516154.456697,
+      "safetyAtUnix": 1795516154.264452,
+      "captureToManifest": 0.29600024223327637,
+      "safetyToManifest": 0.1922450065612793,
+      "analysis": 0.05892491666600108,
+      "mainDelivery": 3.054179251194e-05,
+      "analysisQueue": 2.204161137342453e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 4.541594535112381e-06
+    },
+    {
+      "frameID": 26545,
+      "capturedAtUnix": 1795516153.956697,
+      "publishedAtUnix": 1795516154.236762,
+      "safetyAtUnix": 1795516154.056693,
+      "captureToManifest": 0.28006505966186523,
+      "safetyToManifest": 0.1800689697265625,
+      "analysis": 0.06062187487259507,
+      "mainDelivery": 3.9333244785666466e-05,
+      "analysisQueue": 3.962521441280842e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 6.208429113030434e-06
+    },
+    {
+      "frameID": 26589,
+      "capturedAtUnix": 1795516158.3437731,
+      "publishedAtUnix": 1795516158.6274328,
+      "safetyAtUnix": 1795516158.454865,
+      "captureToManifest": 0.2836596965789795,
+      "safetyToManifest": 0.17256784439086914,
+      "analysis": 0.057950375135988,
+      "mainDelivery": 4.370836541056633e-05,
+      "analysisQueue": 3.55415977537632e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 7.291790097951889e-06
+    },
+    {
+      "frameID": 26582,
+      "capturedAtUnix": 1795516157.6557627,
+      "publishedAtUnix": 1795516157.938839,
+      "safetyAtUnix": 1795516157.769064,
+      "captureToManifest": 0.28307628631591797,
+      "safetyToManifest": 0.16977500915527344,
+      "analysis": 0.06014229170978069,
+      "mainDelivery": 3.10833565890789e-05,
+      "analysisQueue": 1.8541701138019562e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 3.750203177332878e-06
+    },
+    {
+      "frameID": 26543,
+      "capturedAtUnix": 1795516153.7516994,
+      "publishedAtUnix": 1795516154.036151,
+      "safetyAtUnix": 1795516153.866483,
+      "captureToManifest": 0.2844514846801758,
+      "safetyToManifest": 0.16966795921325684,
+      "analysis": 0.060073458356782794,
+      "mainDelivery": 3.13750933855772e-05,
+      "analysisQueue": 3.2458221539855e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 3.1248200684785843e-06
+    },
+    {
+      "frameID": 26588,
+      "capturedAtUnix": 1795516158.2508128,
+      "publishedAtUnix": 1795516158.53212,
+      "safetyAtUnix": 1795516158.362541,
+      "captureToManifest": 0.2813072204589844,
+      "safetyToManifest": 0.16957902908325195,
+      "analysis": 0.05873562511987984,
+      "mainDelivery": 4.454166628420353e-05,
+      "analysisQueue": 2.4499837309122086e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 3.6249402910470963e-06
+    },
+    {
+      "frameID": 26603,
+      "capturedAtUnix": 1795516159.75684,
+      "publishedAtUnix": 1795516160.032572,
+      "safetyAtUnix": 1795516159.8650389,
+      "captureToManifest": 0.27573204040527344,
+      "safetyToManifest": 0.16753315925598145,
+      "analysis": 0.058507791720330715,
+      "mainDelivery": 2.8625130653381348e-05,
+      "analysisQueue": 3.312481567263603e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 5.958369001746178e-06
+    },
+    {
+      "frameID": 26590,
+      "capturedAtUnix": 1795516158.455779,
+      "publishedAtUnix": 1795516158.735168,
+      "safetyAtUnix": 1795516158.56774,
+      "captureToManifest": 0.2793889045715332,
+      "safetyToManifest": 0.16742801666259766,
+      "analysis": 0.059166874969378114,
+      "mainDelivery": 3.870832733809948e-05,
+      "analysisQueue": 2.6541762053966522e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 8.458271622657776e-06
+    },
+    {
+      "frameID": 26602,
+      "capturedAtUnix": 1795516159.663838,
+      "publishedAtUnix": 1795516159.9339418,
+      "safetyAtUnix": 1795516159.768935,
+      "captureToManifest": 0.27010393142700195,
+      "safetyToManifest": 0.1650068759918213,
+      "analysis": 0.05852341675199568,
+      "mainDelivery": 2.8125010430812836e-05,
+      "analysisQueue": 2.5666551664471626e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 4.2084138840436935e-06
+    },
+    {
+      "frameID": 26579,
+      "capturedAtUnix": 1795516157.3587575,
+      "publishedAtUnix": 1795516157.6219149,
+      "safetyAtUnix": 1795516157.463706,
+      "captureToManifest": 0.26315736770629883,
+      "safetyToManifest": 0.15820884704589844,
+      "analysis": 0.05785008333623409,
+      "mainDelivery": 3.3499905839562416e-05,
+      "analysisQueue": 2.4166656658053398e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 6.375135853886604e-06
+    },
+    {
+      "frameID": 26546,
+      "capturedAtUnix": 1795516154.0677063,
+      "publishedAtUnix": 1795516154.328024,
+      "safetyAtUnix": 1795516154.170679,
+      "captureToManifest": 0.2603175640106201,
+      "safetyToManifest": 0.15734481811523438,
+      "analysis": 0.06100124982185662,
+      "mainDelivery": 5.4333359003067017e-05,
+      "analysisQueue": 2.150004729628563e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 9.041745215654373e-06
+    },
+    {
+      "frameID": 26581,
+      "capturedAtUnix": 1795516157.5447586,
+      "publishedAtUnix": 1795516157.811006,
+      "safetyAtUnix": 1795516157.6570191,
+      "captureToManifest": 0.2662475109100342,
+      "safetyToManifest": 0.15398693084716797,
+      "analysis": 0.059255666797980666,
+      "mainDelivery": 9.616650640964508e-05,
+      "analysisQueue": 2.920837141573429e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 3.62517312169075e-06
+    },
+    {
+      "frameID": 26578,
+      "capturedAtUnix": 1795516157.2657645,
+      "publishedAtUnix": 1795516157.522387,
+      "safetyAtUnix": 1795516157.3697639,
+      "captureToManifest": 0.2566225528717041,
+      "safetyToManifest": 0.15262317657470703,
+      "analysis": 0.05930741666816175,
+      "mainDelivery": 4.620826803147793e-05,
+      "analysisQueue": 2.00001522898674e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 2.9583461582660675e-06
+    },
+    {
+      "frameID": 26604,
+      "capturedAtUnix": 1795516159.8498366,
+      "publishedAtUnix": 1795516160.1167831,
+      "safetyAtUnix": 1795516159.964426,
+      "captureToManifest": 0.26694655418395996,
+      "safetyToManifest": 0.1523571014404297,
+      "analysis": 0.062370916828513145,
+      "mainDelivery": 2.9499875381588936e-05,
+      "analysisQueue": 2.3791566491127014e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 4.83333133161068e-06
+    },
+    {
+      "frameID": 26593,
+      "capturedAtUnix": 1795516158.75278,
+      "publishedAtUnix": 1795516159.004951,
+      "safetyAtUnix": 1795516158.855345,
+      "captureToManifest": 0.25217103958129883,
+      "safetyToManifest": 0.14960598945617676,
+      "analysis": 0.05832449998706579,
+      "mainDelivery": 6.791669875383377e-05,
+      "analysisQueue": 2.7541769668459892e-05,
+      "hand": false,
+      "aligned": true,
+      "matchError": 7.4999406933784485e-06
+    }
+  ],
+  "firstFaultWindow": [],
+  "handWindow": []
+}

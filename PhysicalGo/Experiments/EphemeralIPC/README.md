@@ -57,11 +57,15 @@ The writer's 43 assertions pass, covering short writes, EINTR, zero-length data,
 create/write/zero-progress/close/rename errors, temporary cleanup, old-file
 visibility during a deliberately blocked partial write, and unchanged bytes.
 The actual asynchronous exchange checks and 283 AI laser lifecycle checks pass.
-An initial broker-retention assertion failed because its test compared normalized
-file URLs to an unnormalized URL for the unrelated image. The preserved test
-folder had exactly four protocol PNGs plus that unrelated file. The test now
-compares basenames. Its rerun is pending until the root's attended physical test
-releases the CPU-intensive testing window.
+The corrected broker suite passes 49 actual app-type checks, including startup
+orphans, four-image retention across stream resets, unrelated-file preservation,
+manifest-write failure cleanup, and reset during blocked pixel IO. An initial
+test-only URL-normalization comparison was corrected to compare basenames.
+
+The [bedtime recording analysis](BedtimePublicationFindings.md) confirms a
+publication-stage delay after fresh native safety results, but cannot separate
+compression from file IO using the installed trace. Diagnostic stage tracing is
+justified; a no-fsync speedup is still unproven.
 
 No candidate app was built or installed by this agent. The live driver, camera,
 game, clocks and calibration were not changed.
