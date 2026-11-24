@@ -8,6 +8,63 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Installed0.260 and coordinated host; physical setup still needs qualification
+
+- Signed Physical Go0.260/build261 installed in `/Users/Dave/Applications/Physical Go.app`.
+  Source hashafb2e4761305061c689fa07429f8cd893a9dbe22f66aa1e0fe38789384cc0c13;
+  binary43d8b24b2d9bf8671a136ed818b7c7ed70488351fb518685d0208b522fcac91d.
+  Source branchcodex/gameplay-ui-and-delivery; compiled after35c14a1 (runtime87200da).
+  Verified staged bundle swap; signed0.259 rollback retained in overnight-0260.
+- Exact integrated suites pass:184 guidance continuity,345 monitored standby,
+  283 AI laser lifecycle,49 broker,680 coordinate checks. Standalone43 atomic IPC,
+  13 click preference/feedback checks and stalled file-exchange suite pass.
+  Host1ae717e passes134 gameplay and149 bridge tests (legacy optical fixtures
+  were linked read-only for the latter then the temporary link was removed).
+  Mandatory app→host→app paired acceptance passes with actual68 host statuses;
+  matching build receipts/report are copied to overnight-0260/paired-acceptance.
+- First launch verified through AX text, without desktop screenshots: Game paused,
+  move12 E3 pending, new clock layout/Resume control and enabled independent
+  stone-click option/Test click are present. No sound was played. Camera stopped,
+  bridge disabled; app quit again. Game and binding hashes unchanged. Reference
+  pixels/calibrations are semantically unchanged; the normal archive save updates
+  savedAt, so its whole-plist hash changes on quit. See launch-smoke.json.
+- Host/app now exchange explicit scoped transitioning during controller handoff;
+  no dark or confirmed-light receipt is invented. Native bounds the continuous
+  wait to3s, including revision churn, and pauses clocks on unrecoverable own-game
+  link loss. Existing0.6s camera,0.75s status/thermal and request leases remain.
+  These repairs are offline-tested/installed, not yet physically validated.
+- Gameplay launcher pins host1ae717e and exact app0.260 source hash. A concrete
+  gameplay-requalification-required.json blocks stale setup use after the bump.
+  Remove only after current geometry/attended optical qualification and binding
+  review. Driver has not been restarted. Last physical full OFF remains
+  1795516412.7072308, and serial port is free.
+- Calibration launcher now preserves any saved game rather than requiring a
+  hard-coded empty test-game UUID. It requires fresh OFF leases, unchanged game
+  bytes, actual camera checks and attended READY.7 injected lease cases and all
+  embedded Python/shell syntax checks pass; no physical run performed.
+- Calibration audit is pushed/isolated at ae40a42 on codex/calibration-coverage-audit,
+  under calibration-audit-source/Firmware/Experiments/CalibrationAudit.11 tests
+  pass. Prior20-frame geometry: maxboundary2.190px, heldout p95 homography2.054px
+  vs diagnostic radial1.841px. Motor prediction endpoint equivalents1.57–6.04px
+  differ from corrected final observations. Residual interpolation worsens4/8
+  supported endpoints; no fitted improvement was promoted.
+- Camera/laser relationship reportedly stayed fixed. A transferred ray-model seed
+  is mathematically plausible, but unknown board-plane parallax remains;35/361
+  targets extrapolate beyond the old domain. Two moved-image printed-grid
+  diagnostics pass; one fails weak N1 evidence. All three native alignment flags
+  are false. Transfer artifact deliberately cannot be loaded as a production model.
+  [Morning plan](NextPhysicalTestPlan.md) starts with geometry and observed interior
+  screening, then boundary qualification, before a new empty-board practice game.
+- Dave requested saved-data pruning. Three abandoned install snapshots contained
+  only identical files/exact prefixes retained in completed same-version backups;
+  pruned306,201,499 logical duplicate bytes with hashes/restoration metadata in
+  work/data-pruning-20261124/pruned-backups-audit.json and Backups/pruning-20261124.json.
+  No unique game, recording, KEEP evidence or calibration data removed. Five other
+  duplicate files were consolidated with independent APFS clones;691,531,353 logical
+  bytes share storage, but no material extra free space was observed (already shared
+  extents/snapshots may account for it). Do not claim that amount as disk reclaimed.
+
+
 ### Common stand bumped — current setup requires requalification
 
 Dave reported bumping the stand holding camera and laser. Root captured three

@@ -7,8 +7,8 @@ is authoritative for installed builds, completed tests and current hardware stat
 
 ## Morning start
 
-1. Open Physical Go. Candidate0.260/build261 is in final validation; installed
-   version remains0.259 until the checklist records the verified replacement.
+1. Open Physical Go. Signed0.260/build261 is installed and has passed first-launch and paired
+   app/driver tests. The app is closed and the hardware driver is stopped.
    It combines large AI clocks, four-sided coordinates, independent click controls,
    asynchronous bridge IO, bounded transition recovery and detailed frame timings.
 2. Leave the physical board empty and establish its new camera geometry. The
@@ -16,10 +16,12 @@ is authoritative for installed builds, completed tests and current hardware stat
    show9–35px corner displacement and fail alignment. Do not reuse an old green
    alignment status or quietly replace the saved laser binding.
 3. Camera and laser reportedly remained rigid relative to one another. Review
-   the offline transfer assessment as a possible starting estimate. A homography
+   the [offline transfer assessment](</Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/calibration-audit-source/Firmware/Experiments/CalibrationAudit/README.md>) as a possible starting estimate. A homography
    can align photographs, but cannot by itself resolve camera–laser parallax from
    plane depth/tilt changes. Confirm the proposed estimate with attended optical
-   checks; use full calibration if measured errors/domain checks require it.
+   checks: establish an interior spot, screen center/four insets with a center
+   revisit, then qualify boundaries.35/361 transferred points extrapolate outside
+   the old domain. Use full calibration if measured errors/domain checks require it.
 4. The saved12-ply practice remains paused with E3 pending, but its stones were
    cleared. Load a new empty Human Black practice through the app's existing test
    position controls, preserving the old snapshot. Do not Resume a mismatched board.
