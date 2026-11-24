@@ -11,6 +11,21 @@ and running process IDs are not current operating instructions.
 
 ## Current checkpoint
 
+### Isolated camera-stage attribution candidate — not installed
+
+Root reports native 0.261 (`9c516f1`) remains installed and owns the active camera
+and calibration. This isolated `codex/camera-pipeline-attribution` branch adds
+optional bounded timings only; it does not alter delivery, hand clearance,
+freshness thresholds, bindings, or the current epoch. The saved 11:44 calibration
+attempt has an 800.033 ms observed manifest capture gap, with seven intervening
+frame IDs allocated after main delivery. No native trace was enabled, so the
+responsible analysis/rendering/delivery stage is not yet established.
+See [evidence, instrumentation and enablement](../Experiments/CameraPipelineAttribution/README.md).
+The older installed checkpoint below is inherited history of this branch's base,
+not a request to change the current runtime. No installation or physical validation
+was performed for this candidate. The full shared native runtime compiled;
+54 photographed hand/stone pipeline checks and 26 bounded trace checks pass.
+
 **Installed: Physical Go 0.260/build 261 and AimControl v44. Hardware driver
 stopped; app closed; board empty. The setup moved after calibration and requires
 requalification before laser use. The 600 ms camera-freshness problem is open.**
