@@ -43,4 +43,27 @@ class HeightControls(unittest.TestCase):
         self.assertTrue(fit['atConstraintBoundary'])
 
 
+
+    def test_invalid_measurements_and_camera_geometry_abstain(self):
+        good=self.training+.01*(self.training-self.geometry['cameraGrid'])
+        for value in [float('nan'),float('inf'),-float('inf')]:
+            broken=good.copy();broken[0,0]=value
+            self.assertIsNone(fit_confirmed(self.training.tolist(),broken,self.geometry))
+        for centers in [good[:-1],good.ravel(),np.zeros((6,3))]:
+            self.assertIsNone(fit_confirmed(self.training.tolist(),centers,self.geometry))
+        for height in [0,-1,float('nan'),float('inf')]:
+            self.assertIsNone(fit_confirmed(self.training.tolist(),good,dict(self.geometry,heightRowPitches=height)))
+        for camera in [[1], [1,2,3], [float('nan'),23]]:
+            self.assertIsNone(fit_confirmed(self.training.tolist(),good,dict(self.geometry,cameraGrid=camera)))
+
+    def test_contour_bias_can_mimic_height(self):
+        # Deliberately no physical height: a constant optical-center bias alone
+        # creates a plausible positive scalar fit. A low residual is not proof
+        # that the estimated height is identifiable physical thickness.
+        apparent=self.training+np.array([0.,-.05])
+        fit=fit_confirmed(self.training.tolist(),apparent,self.geometry)
+        self.assertGreater(fit['effectiveHeightRowPitches'],.05)
+        self.assertLess(fit['maxResidual'],.05)
+
+
 if __name__=='__main__':unittest.main()

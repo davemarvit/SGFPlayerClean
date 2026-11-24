@@ -1,10 +1,10 @@
 {
   "status": "offlineCandidateOnly",
-  "artifactRoot": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01",
+  "artifactRoot": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02",
   "colorReports": {
     "white": {
-      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/white/results.json",
-      "sha256": "874d13a5a2593d8a8b1df83c92f11396d630b490586bc6e99a8fab1507684230",
+      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/white/results.json",
+      "sha256": "6e2596248658c1ddfda3de9f3ae66cbe33856562a95bfbbdc8a3acecc7348ce6",
       "cameraID": "0x11000000bda0567",
       "streamEpoch": "F6BDAB92-1B01-438C-AA70-7E8E0BB61F06",
       "anchorCount": 8,
@@ -169,8 +169,8 @@
       }
     },
     "black": {
-      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/black/results.json",
-      "sha256": "92002e0946a14621f80dc002c47f1d66fec501c899af1c8eab0286fef28b04dd",
+      "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/black/results.json",
+      "sha256": "63c45b4bfba10d84bbf19d93d0210a75e1a04d89645a866c5d62ef8782a9093d",
       "cameraID": "0x11000000bda0567",
       "streamEpoch": "F6BDAB92-1B01-438C-AA70-7E8E0BB61F06",
       "anchorCount": 8,
@@ -336,14 +336,14 @@
     }
   },
   "validation": {
-    "analyticControls": 4,
+    "analyticControls": 6,
     "nativeProfileDecode": "pending root-approved build window",
     "independentSetupValidation": "notPerformed",
     "freshBlackMidpoint": "awaiting capture"
   },
   "profile": {
-    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/offline-stone-set-profile.json",
-    "sha256": "d744bf837ea8a0b74c2b2011b8bfb35ca6b2239cd84c21fc91de9df97b319976"
+    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/offline-stone-set-profile.json",
+    "sha256": "efe58a4ad98ec8553ef7b78dc787bc49fe5f94cc75eef4b193a204497d501c27"
   },
   "whiteDevelopmentPair": {
     "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/white-development-results.json",

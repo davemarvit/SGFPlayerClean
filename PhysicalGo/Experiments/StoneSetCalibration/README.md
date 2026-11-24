@@ -104,7 +104,7 @@ The intervening `white-repeat-01` capture was correctly relabeled White by root
 and is **not** included in the Black data or these estimates.
 
 Durable artifacts are under:
-`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/`.
+`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/`.
 Each color's `results.json` retains every body/rail measurement, capture/code
 hashes, model variants, held-out residual vectors and principal-point sensitivity
 sweep. `anchors.png` shows red nominal grid, yellow independently measured rail
@@ -141,8 +141,8 @@ White uses an exploratory cyan-body mask with four thresholds; Black uses dark
 body masks relative to local wood plus opening to remove thin grid rails. These
 are different optical center estimators. They can include rims/shadows differently,
 so the fitted heights do **not** establish a ratio of physical stone thicknesses.
-The lower-right White retains two complete threshold families but loses stricter
-masks; this is explicitly recorded, and cannot be advertised as robust glare
+The lower-right White supports thresholds 25/30 in every frame, while thresholds
+15/20 are incomplete; this is explicitly recorded, and cannot be advertised as robust glare
 handling. The development support rule accepts at least two complete threshold
 families across the eight frames, bounded center spread and usable exposed rails.
 That rule was adjusted after inspecting this calibration and is not independently
@@ -184,7 +184,16 @@ are checked. It refuses to overwrite an output directory. The challenge evaluato
 uses frozen model coefficients and records all candidate residuals; it never
 learns from a displaced stone or declares a move. The local-ink variant abstains
 on a displaced challenge when its fresh rail evidence is unavailable; it does not
-borrow the old centered stone's local-ink correction. Four small analytic controls
+borrow the old centered stone's local-ink correction. Six small analytic controls
 pass, covering a known height, a preserved halfway negative, sparse/collinear
-support and an inadmissible negative-height boundary. No production runtime
+support an inadmissible negative-height boundary, invalid numerical inputs and the
+non-identifiability of height under a constant contour bias. No production runtime
 classifier has been changed or activated.
+
+Independent review added a useful identifiability control: even zero physical
+height plus a constant upward contour bias of 0.05 cells produces a positive
+fitted effective height with a small residual. Therefore a good field fit cannot
+by itself separate physical thickness from estimator bias. Nonfinite centers,
+malformed coordinate arrays and nonpositive/nonfinite camera heights now abstain
+before fitting. Existing recorded measurements were finite; the guards do not
+change their numerical estimates.

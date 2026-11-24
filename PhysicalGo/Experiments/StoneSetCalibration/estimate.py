@@ -97,18 +97,25 @@ def fit_confirmed(points,centers,geometry):
     Reuses the old constrained scalar relation and robust weights. Centers are
     diagnostic body contours, so this is a different measurement provenance.
     """
-    if len(points)<6:return None
-    p=np.asarray(points,float);a=np.asarray(centers,float)
+    try:
+        p=np.asarray(points,float);a=np.asarray(centers,float)
+        camera=np.asarray(geometry['cameraGrid'],float);height=float(geometry['heightRowPitches'])
+    except (TypeError,ValueError,KeyError):return None
+    if (p.ndim!=2 or p.shape[1]!=2 or a.shape!=p.shape or len(p)<6 or camera.shape!=(2,)
+            or not np.isfinite(p).all() or not np.isfinite(a).all() or not np.isfinite(camera).all()
+            or not np.isfinite(height) or height<=0):return None
     if np.any(np.ptp(p,axis=0)<4) or np.linalg.svd(p-p.mean(axis=0),compute_uv=False)[-1]<2:return None
-    direction=p-geometry['cameraGrid'];delta=a-p;weights=np.ones(len(p));k=0.
+    direction=p-camera;delta=a-p;weights=np.ones(len(p));k=0.
     for _ in range(8):
         denominator=float(np.sum(weights[:,None]*direction**2))
-        if denominator<=0:return None
+        if not np.isfinite(denominator) or denominator<=0:return None
         unconstrained=float(np.sum(weights[:,None]*direction*delta)/denominator)
+        if not np.isfinite(unconstrained):return None
         k=float(np.clip(unconstrained,0,.04))
         residual=delta-k*direction
+        if not np.isfinite(residual).all():return None
         weights=np.minimum(1,.1/np.maximum(np.linalg.norm(residual,axis=1),1e-8))
-    return dict(k=k,unconstrainedK=unconstrained,effectiveHeightRowPitches=float(geometry['heightRowPitches']*k/(1+k)),
+    return dict(k=k,unconstrainedK=unconstrained,effectiveHeightRowPitches=float(height*k/(1+k)),
                 medianResidual=float(np.median(np.linalg.norm(residual,axis=1))),maxResidual=float(np.max(np.linalg.norm(residual,axis=1))),
                 residualVectors=residual.tolist(),fitPoints=[list(p) for p in points],atConstraintBoundary=k in (0.,.04))
 
@@ -223,7 +230,7 @@ def main():
                         'Effective height includes optical-estimator bias and assumed camera intrinsics; not physical thickness in millimeters.',
                         'Two-point spatial holdout shares setup/frame/stone set; independent setup validation and misplacement negatives remain required.',
                         'No runtime profile or binding is created or activated.'])
-    (args.output/'results.json').write_text(json.dumps(report,indent=2)+'\n')
+    (args.output/'results.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
     print(json.dumps(dict(color=color,aggregated=aggregated,conditionalFits=fits),indent=2))
 
 if __name__=='__main__':main()
