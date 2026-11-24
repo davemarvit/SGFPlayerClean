@@ -1,10 +1,27 @@
 # Physical Go: current conversation handoff
 
-Operational update — November 24, 2026: **Hardware fully OFF; no calibration
-launcher/driver active or waiting for READY.** Last run
-`continued-fit-20261124-124528-48748/attempt-000` exited 1 with confirmed
-AimControl v44 OFF at Unix `1795553137.9640346`, no controller error. Root remains
-sole hardware owner. No new physical run has been performed since that receipt.
+Operational update — November 24, 2026: **Hardware fully OFF, controller fault
+latched; reset requested from Dave and pending.** The physical three-point attempt
+`three-point-20261124-133938-58346` exited 1 after one observation and zero completed
+movements. READY-to-OFF was **16.2945466 seconds**, not a completed calibration time.
+Final receipt: AimControl v44 OFF at `1795556395.0343037`, retaining
+`RESULT ERROR reason=target_step_too_large gpio_high_ms=3843`.
+
+Root's new test requested a 36-count PTO move; v44 fast-session fine moves permit
+24/12 counts. The controller rejected before writing the goal. Corrected source
+`019b6d7` in `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-step-limit`
+uses 18/10 with explicit fine-bound checks and seven passing focused tests.
+Initial source `dca4653` remains frozen. Base suites passed 237 (19 skipped) and51.
+`work/PhysicalGo-Three-Point.command` is pinned to the correction; no retry is
+running or waiting. Do not restart before explicit reset, fresh full-OFF admission,
+camera checks and READY. Root remains sole hardware owner. Firmware unchanged.
+
+User still wants a timed successful three-point physical run and comparison with
+the saved97 observations. The minimal-runner implementation is now present; it
+collects three fresh spots without intersection centering and ends fully OFF.
+Old map assists probe direction only, not the three-point fit. Completion and
+accuracy comparison remain pending. A post-OFF comparison script is prepared at
+`work/attended-recheck-20261124-105259/three-point-comparison/compare.py`.
 
 The saved checkpoint retains **97 observations and four fitting targets**:
 K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
