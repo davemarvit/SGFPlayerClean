@@ -1,27 +1,49 @@
 # Next physical test session
 
-Prepared November 23, 2026. Start with camera recognition and fast AI, keeping
-the laser off. These tests do not depend on finishing laser calibration.
+Updated November24,2026 after the common camera/laser stand moved. The goal is a
+short setup verification followed by an ordinary practice game, not another long
+unstructured debugging session. The [integration checklist](IntegrationChecklist.md)
+is authoritative for installed builds, completed tests and current hardware state.
 
-**Installed: 0.258/build 259, compiled source `87fc4a9`.** Package/signature/source
-and paired-host acceptance are independently verified. See
-[build evidence](IntegratedPhysicalTestCandidate.md) for source-scoped test receipts.
-All planned features in this document ship; physical tests remain pending.
+## Morning start
 
-## Before starting
+1. Open Physical Go. Candidate0.260/build261 is in final validation; installed
+   version remains0.259 until the checklist records the verified replacement.
+   It combines large AI clocks, four-sided coordinates, independent click controls,
+   asynchronous bridge IO, bounded transition recovery and detailed frame timings.
+2. Leave the physical board empty and establish its new camera geometry. The
+   earlier20-frame empty-board recording predates the bump; three later frames
+   show9–35px corner displacement and fail alignment. Do not reuse an old green
+   alignment status or quietly replace the saved laser binding.
+3. Camera and laser reportedly remained rigid relative to one another. Review
+   the offline transfer assessment as a possible starting estimate. A homography
+   can align photographs, but cannot by itself resolve camera–laser parallax from
+   plane depth/tilt changes. Confirm the proposed estimate with attended optical
+   checks; use full calibration if measured errors/domain checks require it.
+4. The saved12-ply practice remains paused with E3 pending, but its stones were
+   cleared. Load a new empty Human Black practice through the app's existing test
+   position controls, preserving the old snapshot. Do not Resume a mismatched board.
+5. After calibration qualification/binding, enable monitored motor holding,
+   leave centering hints off for the first game, and test the independent stone
+   click on the selected AirPod Pro3 output while Dave is present. A retry of the
+   same pending move intentionally does not announce it again.
+6. Start a bounded attended recording, then play a few ordinary alternating moves.
+   Verify hand entry→darkness→fresh-clear recovery, one cue on each new AI move,
+   visible pending target and paused clock for a genuinely unrecoverable fault.
+   Pause ends the test; confirm full OFF and close the driver when finished.
 
-The board is now empty. A separate **paused empty-board Human Black practice** is
-loaded with fast AI, zero moves and zero clocks. Original five-move game/clocks
-and the three-move checkpoint are preserved; the practice backup is byte-exact.
-Load and relaunch persistence have been checked. Do not Resume an old position
-unless the physical board has deliberately been restored to match it.
+No unattended laser/motor/audio tests. The driver is stopped and the app is closed.
+Native diagnostic image saving and warning feedback are off. Camera-only images
+are the calibration evidence; desktop screenshots require advance notice because
+confidential material may be visible. Game history/clocks/calibration are preserved.
 
-**Connect laser bridge is ON for passive camera publication and OFF requests;
-production driver stopped; hardware OFF.** Direct
-webcam preflight passed on the correct camera. Start bounded diagnostic recording
-when the physical test begins; images and warning feedback are currently off.
-Bounded native latency logging is on for this launch. Screen captures are not
-camera evidence. Use direct webcam frames for board/calibration checks.
+The calibration launcher no longer requires one hard-coded empty saved-game ID.
+Its preflight requires fresh OFF requests and unchanged saved-game bytes, then
+three actual camera geometry checks. READY remains an attended confirmation of
+app pause, empty board, hands clear and pointer directed at the board.
+
+The following recognition/capture cases remain optional follow-up coverage. They
+are not prerequisites for the first ordinary game once the morning checks pass.
 
 ## First five minutes — recognition and ambiguity
 
@@ -78,14 +100,12 @@ a phantom removal move.
 
 ## Laser session — blocked until recovery and calibration qualify
 
-The latest fresh laser calibration reached three fitting targets, then stopped
-on insufficient local grid-line evidence in a prelight image. Bounded image
-reobservation is now reviewed and physically passed on54589c3. Motor-only inward
-recovery to the fresh-start box is being implemented before a new full run.
-All **nine held-out accuracy checks**
-for this new setup remain pending; there is no
-qualified new gameplay binding. Review [LaserMovementCheckpoint.md](LaserMovementCheckpoint.md)
-before resuming. A new app version does not solve that steering problem.
+The prior setup completed five fitting targets and nine independent checks on
+November24 (maximum final check error2.990px). Later gameplay revealed separate
+camera-publication and handoff-recovery problems; new software has offline
+regressions but still needs an attended endurance check. The subsequent stand bump
+invalidates the assumption that the old physical setup is unchanged. Requalify
+before activating either a transferred estimate or a new calibration.
 
 | Order | Action once its prerequisite is met | Expected pass / evidence |
 |---|---|---|
