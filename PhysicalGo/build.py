@@ -84,7 +84,7 @@ else:
     (app / 'Contents/Resources').mkdir(exist_ok=True)
     executable = app / 'Contents/MacOS/PhysicalGo'
     sources = shared + [root.parent / 'SGFPlayerClean/Models/SGFPlayerEngine.swift'] + sorted((root / 'Sources').glob('*.swift'))
-    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.255', CFBundleVersion='256', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
+    plist = dict(CFBundleIdentifier='com.davemarvit.PhysicalGo', CFBundleName='Physical Go', CFBundleDisplayName='Physical Go', CFBundleExecutable='PhysicalGo', CFBundlePackageType='APPL', CFBundleIconFile='PhysicalGo.icns', CFBundleShortVersionString='0.258', CFBundleVersion='259', LSMinimumSystemVersion='14.0', NSHighResolutionCapable=True, NSCameraUsageDescription='Physical Go uses your camera to recognize stones on your Go board. Images are processed on this Mac.', NSCameraUseContinuityCameraDeviceType=True, PhysicalGoCaptureDirectory=str(root / 'Captures'), PhysicalGoSourceHash=hashlib.sha256(b''.join((p.read_bytes() for p in sources))).hexdigest())
     (app / 'Contents/Info.plist').write_bytes(plistlib.dumps(plist))
 sources = resolve_sources(root, sources)
 if executable.name == 'PhysicalGo':
