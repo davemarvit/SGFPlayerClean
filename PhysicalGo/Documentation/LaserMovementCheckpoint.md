@@ -1,5 +1,19 @@
 # Laser movement checkpoint — November 23, 2026
 
+**Latest followup — attended manual-validation-01:** stopped after approximately
+102 seconds on post-settlement model/local prediction disagreement (3.172px,
+limit3px), before completing A10. Fresh position/steering had passed. Planned
+[1681,2289] was admitted at2.143px disagreement; actual coarse settlement
+[1681,2287] failed the recheck. Last optically observed pose[1704,2284].
+159 samples retained; all nine validation targets remain. Full OFF confirmed
+Unix1795478146.9190755; process reaped; no timing/controller/supervisor fault,
+source change or saved-game change. Report SHA256:
+`82b063a6c6e246c24d9b724b1201a79ee441aa2c88a36b9f88eb8a36cdc52b84`.
+Standalone reviewed `bed3c52` was used. Root is prioritizing stone-placement tests;
+settlement-aware planning is under offline investigation. The pilot05 details
+below are historical; its saved pose must not be treated as the current pose.
+
+
 Laser work is paused so Dave can prioritize physical stone-placement testing.
 Use the [stone-placement session plan](StonePlacementSessionPlan.md) for that
 session; camera, hand, stone, screen guidance and clock checks can proceed with

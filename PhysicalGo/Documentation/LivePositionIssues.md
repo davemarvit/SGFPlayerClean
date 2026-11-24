@@ -4066,3 +4066,39 @@ Allnine fullboard validation targets remain; no bindingactive.
 Workflow followupa4867ea pushed: seven outcome definitions added,23 tests and
 independent review pass. Missing acceptance/exposure/onset/correlation/clock
 evidence remains explicit. No runtime adapter or timeout changes enabled.
+
+November 23 — pending software work and workflow efficiency review started
+Dave authorized beginning the pending work and reviewing whether the workflow
+is efficient. Five offline owners: latency_logging adds schema-aligned bounded
+host events; workflow_timing_model imports/audits existing reports; transport_review
+measures the file-reading path; fast_calibration prepares explicit fresh manual
+validation from completed-pilot evidence; architecture_review independently
+examines dependencies, repeated work and speed/reliability tradeoffs.
+Root created codex/workflow-review-integration at44aeb5e plus reviewed model
+commits7737129/a4867ea (integration equivalents ea205f9/277a59d). No hardware
+operations, installed app/firmware changes or game/clock/binding mutations.
+All software changes require focused tests and independent review before merge
+into the isolated candidate. Physical validation is a later separate step.
+
+November 23 — attended manual validation started
+Dave is at the board and confirmed nothing moved and beam area clear. Root alone
+started manual-validation-01 on independently reviewed standalone bed3c52 from
+pilot05 SHA034883c595c2f4a6fc4cc66f974b233e2535de3e8e290799a54428a66ea2356c.
+Explicit10s camera age/0.5s poll cache, finite7200s ceiling/no target elapsed cap,
+attention beep; user-facing budget one10–20min attempt then stone-placement test.
+Fresh optical correspondence0.673px and fresh steering qualified; validation in
+progress, no binding activation. Merged f9101f2 not used because aggregate tests
+reported errors requiring diagnosis. Installed0.253/v44 and saved game unchanged.
+
+November 23 — manual-validation-01 stopped on post-settlement prediction guard
+Reviewedbed3c52 passed fresh position0.673px and independent steering. Approximately
+102s into run, beforeA10, last observed1704/2284 planned1681/2289 with local/fixed
+model predicted endpoint disagreement2.143px. Actual coarse settlement1681/2287
+remained within firmware tolerance but recheck disagreement3.172089px exceeded3px;
+predicted polygon margins50–54px. No optical observation at settled endpoint.
+This is not camera age/serial timeout or measured A10 target error.159samples,
+allnine validationtargets pending. FullOFF1795478146.9190755, no controller or
+supervisorfault, cancellationfalse, sourceinventories/gameSHAunchanged; exit1
+reaped and serial released. ReportSHA82b063a6c6e246c24d9b724b1201a79ee441aa2c88a36b9f88eb8a36cdc52b84.
+Root switches to attended stone tests. fast_calibration acknowledged offline
+settlement-aware planning diagnosis; no hardware ownership transferred.

@@ -8,6 +8,21 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Attended manual-validation-01 stopped after approximately 102 seconds.**
+  Reviewed standalone `bed3c52` passed fresh position (0.673px) and steering
+  qualification, then stopped before A10 on predicted endpoint disagreement:
+  3.172px versus the unchanged 3px gate. This was not a camera/serial timeout.
+  Planned [1681,2289] passed at 2.143px; actual coarse settlement [1681,2287]
+  failed the recheck despite remaining 50–54px inside the predicted board bounds.
+  Last optical observation was [1704,2284]; settled pose has no fresh optical
+  observation. 159 samples retained, all nine validation targets still pending.
+  Fresh full OFF Unix 1795478146.9190755; no controller/supervisor/cancellation
+  errors; process exit 1 reaped, source inventory and game/clocks unchanged.
+  No gameplay binding active. Root prioritizes attended camera/stone tests;
+  fast_calibration owns offline settlement-aware planning investigation.
+  Merged optimization candidate `f9101f2` was not used: its aggregate regression
+  reported errors that still need diagnosis. No installed app/firmware changes.
+  See [the detailed laser checkpoint](LaserMovementCheckpoint.md).
 - **Interior pilot05 completed both larger-move legs, then stopped fully OFF.**
   Reviewed/pushed `44aeb5e` passed fresh position and steering qualification. Its
   requested 2.5-intersection outbound span measured 2.322; return measured 2.148.
@@ -98,7 +113,7 @@ offline verification, installation and physical validation.
 - Correct camera and fresh board grid were verified after equipment moved.
   Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
   camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** interior-pilot-05 confirmed fresh v44 OFF.
+- **Hardware is fully OFF:** manual-validation-01 confirmed fresh v44 OFF.
   Production bridge and calibration are stopped; root remains sole hardware owner.
 - Heat testing is partial: v43 passed a 60-second check, then held for about
   15 minutes before a camera timestamp interlock stopped endurance-02. Highest
@@ -116,6 +131,25 @@ offline verification, installation and physical validation.
 - **No dependency on a laser-agent response is confirmed.** The incoming shared
   response remains November 21. A written request is not acknowledged ownership.
   Parallel agents have worked offline; coordinate before any serial access.
+
+## Active software work — workflow review follow-up
+
+Dave authorized beginning pending work and reviewing workflow efficiency on
+November 23. Root keeps hardware fully OFF; installed app, firmware, binding,
+game and clocks are unchanged. Work is isolated and reversible.
+
+| Workstream | Owner | Scope / current state |
+|---|---|---|
+| Runtime timing adoption | `latency_logging` | Add schema-aligned events to the existing bounded asynchronous host logger; preserve control behavior and report missing evidence honestly. Implementation underway. |
+| Existing-report migration | `workflow_timing_model` | Bounded importer and duration/coverage audit of actual calibration reports. Preserve original timestamps, uncertainty and artifact provenance. |
+| Poll-read delays | `transport_review` | Compare equivalent fresh-descriptor readers and split open/read/close/decode timings. Adopt a behavioral change only with evidence and unchanged deadline semantics. |
+| Manual calibration continuation | `fast_calibration` | Explicit fresh qualification from a structurally clean completed pilot, retaining the frozen fit and requiring all nine new held-out checks. No incident-specific exception or automatic fault retry. |
+| Diagnostics after darkness | `dark_commissioning` | Save accepted samples in memory, confirm DARK and ready state before image/report writes; defer failure-path images until confirmed full OFF and quiescence. |
+| Duplicate calibration registration | `occupied_board_timing` | Review found identical reference and dark-baseline pixels are registered twice. Implement verified immutable same-source reuse, with actual-image acceptance/rejection replay and measured timing; gameplay defaults remain unchanged. |
+| Workflow efficiency review | `architecture_review` | Critical path, necessary ordering, safe overlap, duplicated work and reliability costs; distinguish measured savings from hypotheses. |
+
+Root integrates independently reviewed commits on `codex/workflow-review-integration`
+in the laser repository. Physical accuracy and gameplay tests remain separate.
 
 ## Immediate next steps
 
@@ -174,7 +208,7 @@ offline verification, installation and physical validation.
 | 18 | Continuous laser-map refinement during play | Dave authorized advance software/literature work overnight after initially deferring this. An isolated offline/shadow prototype now compares baseline, global offset and bounded local residual correction using actual measured poses/spots, confidence/provenance and chronological validation. Separate reviewed branch; no live learning or map activation. Retain baseline model and rollback; distinguish raised stones, outliers and changed equipment. Independent algorithm and campaign reviews complete; 56 tests pass. Cleared-board survey plan covers 25 fit + 24 reserved locations (130 episodes with approaches/anchors), optionally all361. First aim and final metrology remain separate; no hardware executor. Physical validation follows initial calibration/gameplay baseline. |
 | 19 | Initial-calibration progress UI | Implemented and independently reviewed; not installed. Actual stage/target, five calibration plus nine accuracy checks, elapsed/stage time and stale/stopped/shutdown-unconfirmed/review-required states. No unsupported ETA. Passive asynchronous publishing cannot interrupt shutdown; injected publisher-failure tests pass. 26 native checks, SwiftUI typecheck and 128 calibration/progress/dark tests pass. Registered as `--calibration-progress-test`; final four-suite app regression and eight build-registry checks pass. Signed full app build and signature/source-hash verification passed; visual/physical validation pending. See [progress UI](CalibrationProgressUI.md). |
 | 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. At Dave’s subsequent authorization, reducer extraction, build/source provenance and paired acceptance are implemented and reviewed on isolated overnight branches; optional0.255 integrates them. Remaining recommendations include measured I/O isolation and explicit camera-failure clock policy. |
-| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. No runtime adapter, instrumentation activation or timeout changes; adoption remains pending. |
+| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. Runtime adoption and historical-report migration are now in progress on isolated branches; no instrumentation activation or timeout changes in the installed system. |
 
 ## Isolated overnight improvements (November 23)
 
