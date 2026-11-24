@@ -65,6 +65,9 @@ struct PhysicalAIPlayView: View {
     @State private var ending=false
     @State private var confirmingLaserOff=false
     @State private var exportError: String?
+    private var humanHasMoved:Bool {
+        (ai.snapshot?.moves.count ?? 0)>=(ai.human == .black ? 1:2)
+    }
     private func coordinate(_ p: Int)->String {
         let displayed=PhysicalMoveInference.displayedPoint(row:p/ai.size,col:p%ai.size,size:ai.size,quarterTurns:orientation.turns)
         return "\(Array("ABCDEFGHJKLMNOPQRST")[displayed%ai.size])\(ai.size-displayed/ai.size)"
@@ -97,8 +100,8 @@ struct PhysicalAIPlayView: View {
             Text(ai.status).font(.title3).accessibilityIdentifier("ai-game-status")
             if let cameraNotice {
                 VStack(alignment:.leading,spacing:4) {
-                    if ai.phase == .thinking {Text("Your move was accepted. AI is thinking.")}
-                    if ai.phase == .placing {Text("Your move was accepted. Place the AI stone at the blue ring.")}
+                    if ai.phase == .thinking {Text(humanHasMoved ? "Your move was accepted. AI is thinking.":"AI is thinking.")}
+                    if ai.phase == .placing {Text(humanHasMoved ? "Your move was accepted. Place the AI stone at the blue ring.":"AI move ready. Place the stone at the blue ring.")}
                     Text(cameraNotice)
                 }.foregroundStyle(.orange)
             }
