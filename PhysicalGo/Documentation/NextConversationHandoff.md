@@ -1,44 +1,64 @@
 # Physical Go: current conversation handoff
 
 Current feedback-test update — November 24, 2026: **Controller fully OFF;
-retry launcher waiting at READY in PTY 7981. Do not start a competing driver.**
-Root owns hardware. Frozen feedback source `352948b` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-feedback` is pushed.
-Launcher: `work/PhysicalGo-Three-Point-Feedback.command`. Three camera rechecks
-passed after the first attempt. Fresh user READY remains required before hardware.
+remaining-target launcher waiting at READY in PTY 42459. No active controller.**
+Root owns hardware. Frozen source `5612839` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/feedback-remaining-targets` is pushed.
+Launcher: `work/PhysicalGo-Feedback-Remaining.command`. Three fresh camera checks
+passed (corner changes 0.115, 0.141, 0.070 px). Fresh user READY is pending.
+Remaining route: K2, S10, P15, K18. Earlier targets will not repeat; the model is
+still the original three wide observations, hash fedd0febe69daaa9ffa36e1ea6879b8def36d01f047226140e031f9d49c953e5.
 
-First feedback attempt `three-point-feedback-20261124-141443-66813` stopped after
-K10 for native `handObstructed: true`, with alignment valid. The exact saved
-`guard-rejected-frame.png` appears empty: suspected false obstruction, not proof of
-actual hand intrusion. Offline Vision replay of the exact rejected PNG repeats a
-false hand pose in right-side fabric in 3/3 trials. One inferred joint maps to
-(18.708, 14.555), outside the grid but within the 0.75-cell obstruction rim;
-confidence 0.682. This strongly identifies a false-pose trigger, though bridge
-metadata lacks the original outline state/reason. The unchanged-rim exception
-requires every sampled edge pixel to pass its brightness/color bounds; its live
-failure cannot be reconstructed from this frame alone. Replay evidence is in
-`work/attended-recheck-20261124-105259/feedback-hand-rejection`. No runtime change.
-Full OFF at `1795558540.6453667`, no controller error;
-source manifests unchanged, PTY 32249 exited 1. READY-to-OFF: 57.152896 seconds.
-K10 reached 0.1083 cells / 5.309 px in 27.668217 seconds (four moves), then
-0.0331 cells / 1.625 px in 40.888455 seconds (six moves). F14 was interrupted
-before a measured landing. Six further target results remain outstanding.
+Retry `three-point-feedback-20261124-144034-67453`, source `352948b`, PTY 7981
+exited 1 after 202.595673 seconds READY-to-OFF. Completed K10: 19.123279 s,
+2.631 px; F14: 24.179058 s, 2.544 px; B10: 30.352483 s, 0.959 px. B10 first
+reached the 0.20-cell indication threshold at 25.118787 s. K2's last observation
+was 0.313809 cells / 17.619 px after 95.198393 s; the next view was interrupted.
+Terminal cause: `LaserTransportFault: Serial write completion exceeded deadline`;
+native clearance also became unknown after a 0.687-second exposure gap. No positive
+hand flag in that terminal frame. Original failed write details were evicted by
+later OFF writes from the 64-entry ring, so exact scheduling/kernel attribution
+is unavailable. Full OFF at `1795560237.089935`, no controller error, unchanged
+source manifests. The actual port-write deadline is 100 ms, distinct from the
+600 ms camera/lease checks. This fault is not declared solved.
 
-Benchmark route: K10, F14, B10, K2, S10, P15, K18. Same frozen three-point affine
-seed only; fresh optical anchoring and local response updates within each target,
-reset for each new target. Time to 0.20 cells is recorded before at most three
-extra refinements toward 3 px. Near-edge inward waypoints/smaller steps avoid an
-overshoot exposed by simulation. No dense-model steering or global learning.
-248 calibration tests passed (19 optional skipped), including 17 local/wide/feedback
-tests; 51 base model tests passed. This is a calibration-runner benchmark, not
-installed gameplay latency. Hardware guards and final full OFF remain enforced.
+Source `5612839` adds an explicit remaining-target batch and pins the earliest
+eight write failures alongside 64 recent writes. Guards/commands/deadlines remain
+unchanged. Offline: 12 serial diagnostic tests, 18 local/wide/feedback tests,
+51 base model tests, and threaded controller/heartbeat smoke passed. No physical
+run of this new source yet; no firmware, installed app or gameplay binding change.
 
-Separate offline learning work `3ad106c` in `gameplay-learning-offline` is pushed:
-10 tests pass. Shadow residual and separate response learning improve medians but
-regress some fresh tail errors; no live promotion, installation or physical timing
-claim. Eligible samples require actual motor/spot pairs, reliable pose timing and
-board-plane evidence. Score-before-update, holdout checks and rollback implemented.
-See `Firmware/Experiments/GameplayLearning/README.md` in that worktree.
+First attempt `three-point-feedback-20261124-141443-66813` stopped for a false
+native hand indication after K10, in 57.152896 s READY-to-OFF. K10 reached
+0.1083 cells / 5.309 px in 27.668217 s, then 0.0331 cells / 1.625 px in
+40.888455 s. Full OFF1795558540.6453667, no controller error. Exact rejection PNG
+saved. Apple Vision replay gives a false right-fabric hand in 3/3 trials, with
+one inferred joint at (18.708,14.555) inside the 0.75-cell outside-grid guard.
+
+Native offline audit `e841750` in `hand-rim-diagnostics` runs the production
+sampler/detector/tracker against explicitly substituted backgrounds. Older saved
+reference: 6/1,078 rim samples fail (one brightness, five color), tracker obstructed.
+Recent spot image and identical-image control: all pass, tracker clear. The first
+old-reference brightness difference is 0.06885 against a 0.06 limit. This reproduces
+background sensitivity but not the missing original live checkpoint. No hand
+threshold or app behavior changed. See `PhysicalGo/Documentation/HandRimRejectionReplay.md`
+in that worktree; evidence in `work/attended-recheck-20261124-105259/feedback-hand-rejection`.
+First-obstruction checkpoint capture remains a useful next instrumentation task;
+existing five-second stall capture misses these brief false entries.
+
+Benchmark: frozen affine seed supplies response, fresh optical spot anchors
+position, measured corrections update response only within a target; reset at each
+new target. Time to 0.20 cells precedes at most three extra refinements toward
+3 px. Near-edge inward waypoints/smaller steps prevent simulated overshoot. These
+are calibration-runner timings, not installed gameplay latency. Both prior run
+folders contain `timing-summary.json`; preserve interrupted travel time separately
+from any remaining-target batch. No dense model steers these feedback runs.
+
+Offline learning `3ad106c` in `gameplay-learning-offline` is pushed; 10 tests pass.
+Shadow residual and separate response learners improve medians but regress some
+fresh tail errors. No live promotion, installation or physical convergence claim.
+Qualified actual spot/pose pairs, score-before-update, holdout checks and rollback
+are required. See `Firmware/Experiments/GameplayLearning/README.md` there.
 
 Previous completed wide test — November 24, 2026: **Wide three-point physical test completed;
 hardware fully OFF, no active launcher/driver or pending READY.** Successful run
