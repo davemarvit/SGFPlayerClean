@@ -3635,3 +3635,725 @@ Tomorrow: restore lighting, install/visually verify candidate preserving game
 and clocks, verify camera/grid/setup and finish full laser calibration with
 beeps. Final reference/context/binding and production route validation still
 precede gameplay; current-point success is not a full-board qualification.
+
+November 23 — user authorizes isolated overnight improvements
+After the signed0.254 checkpoint, Dave authorized using the remaining hours for
+reversible software work. Separate worktrees/branches preserve appc39e7e0 and
+laser6dec0c9 primary code. Workstreams: pure transient-recovery reducer; immutable
+build inputs/ownership; mandatory paired contract acceptance; complete calibration
+source inventory; optional bounded latency diagnostics; adaptive-map literature
+and offline/shadow prototype. Root checklist records branches and validation gates.
+Adaptive calibration is item18 (item19 is progress UI); it is now authorized for
+advance development, but no live learning/map activation or physical tests.
+Each implementation has independent review/targeted tests; full Swift builds are
+serialized. Primary installed app, signedcandidate, saved game and hardware are
+untouched. Successful experiments remain optional separate candidates until root
+reviews evidence; uncertain work must not displace tomorrow's tested baseline.
+
+November 23 — optional integrated0.255 software checkpoint
+Paired experimental app939fe27 and host45ed952 on codex/overnight-reviewed-candidate
+pass11app suites,344host tests(no skips),69tooling tests(no skips), and mandatory
+fresh app→host→app acceptance with exact source/linked-runtime provenance.
+A pre-existing fake-device float timestamp race was fixed ONLY in its testfixture;
+real parser/firmware rules unchanged. Full0.255/build256 optimized build and
+strict signature/source verification passed. Candidate, manifests and snapshots
+are in overnight-software-20261123/candidate-0.255.
+Sourcehash e63bdbb90964f08cc336e60fff7fdac3190af0412750ff2f0782462913151112;
+binaryhash e8057cc4546b8ce3b7f37c58f953d8db0fcfd0912f69353e853ebf3cf391df56.
+Not installed/physically tested. Originalsigned0.254 and primaryinstalled0.253
+remain unchanged. No physical actions, camera use or firmware upload overnight.
+Adaptive core is separate branchcodex/overnight-adaptive-calibration dc03dc9,
+35tests and syntheticpositive/negativeaudits pass; currentarchivesquarantined
+for missing time-paired settled-pose evidence. Dave's later spatial-distortion
+suggestion is extending only thatofflineexperiment with25fit+24edge/interior
+validation locations, optional361 and repeatedanchors. No hardwareexecutor or
+adaptiveactivation. See OvernightSoftwareResults.md for pairedbranches/rollback.
+
+November 23 — cleared-board distortion campaign reviewed and saved
+Adaptive branch f47f36c adds an offline plan/analyzer: 49 locations (25 fit,
+24 reserved including8 edges),130 episodes including approaches/anchors; optional
+361 locations/832 episodes. First aim before correction and final settled evidence
+are separate. Compare motor bias, translation, rotation, affine and local residual;
+missing first aims remain failures. Independent review fixed heldout leakage from
+misconverged final spots. Total56 author/reviewer tests pass; original adaptive
+core/candidate hashes unchanged. Synthetic results do not establish physical gain
+or mechanical cause; sparse local learning remains limited. No executor, map
+activation, firmware change or hardware/camera use. Separate experimental branch
+preserves signed0.254 and optional0.255. Checklist and OvernightSoftwareResults.md
+record the final offline checkpoint and later attended comparison requirements.
+
+November 23 — resumed physical setup after equipment movement
+Dave restored lights and confirmed empty board, camera and pointer both moved,
+and physical power on. Correct app camera restarted (0x11000000bda0567); app
+remains0.253 with game paused and SHA unchanged. Fresh grid qualified. First
+spot-only attempt stopped before light/motor engagement for insufficient printed
+boundary evidence; full OFF confirmed. A fresh second attempt passed: measured
+spot near H8/H9, pose1973/2213, seven-frame consensus, final full OFF without
+controller fault. Dave confirmed seeing the spot and hearing the beep.
+Dave explicitly requested automatic continuation after leaving. Root owns one
+finite600-second full calibration using reviewed host45ed952 with existing
+camera/motion/thermal guards, no automatic fault retries or binding activation.
+This updates the earlier attended-only operating plan for this specific run;
+physical prerequisites were checked with Dave. Artifacts: session directory
+calibration-resume-20261123, including authorization.json and full-calibration-01.
+Do not open a competing serial client. Full-run result will follow.
+
+November 23 — automatic calibration stopped cleanly at target time limit
+full-calibration-01 (reviewed host45ed952, installed app0.253) completed37 spot
+measurements and37 staged A/B prelight admissions. K10 passed1.5625px and A19
+2.7839px. T19 exhausted its120-second target correction budget after21 moves;
+last spot reached the intermediate inset[15.9992,1.9603], before the final corner.
+Confirmed full OFF1795463029.7635274, controller_error null, no supervisor fault,
+source inventories unchanged, peak temperatures14/15°C. No model/binding created.
+Game SHA remains6ca3728c88fa9fc7aeba9675715543a1b02f37dafd5b134daa9ebeec8a972f09.
+Near-edge40px step caps led to repeated approximately one-intersection moves;
+full correction cycles cost roughly5–6seconds. Each target's120seconds includes
+both inset waypoints and its final corner. Later fine adjustments also added
+cycles. This is a route/budget/convergence issue, not the previous stale-prelight
+failure or a reported motor fault. A analysis median0.223s; B proof0.121s;
+SWEEP command roundtrip0.119s (not optical latency). All raw evidence retained.
+Next: offline interior-route and intermediate-waypoint accuracy review without
+weakening final3px checks or motor/camera safeguards. No unattended automatic
+retry. Saved summary: calibration-resume-20261123/run-summary.json. Full calibration
+and independent nine-target validation still required before gameplay.
+
+November 23 — explicit longer experimental allowance ready, not run
+Dave asked to retry without the two-minute target timer, then authorized beyond
+30minutes while away for a couplehours, explicitly excluding ordinary runs.
+Separate branch codex/calibration-experiment-budget commitfaa2230 adds
+--experimental-long-run --seconds7200 --target-seconds0. Normal defaults600/120
+and whole-run maximum900 unchanged. The flag gates two-hour whole-run maximum
+and disabled target timer.35corrections/stage, accuracy and all camera/hand/motor/
+thermal/command/heartbeat limits and OFF cleanup remain unchanged. Exact options
+are recorded in result.json. Independent review153tests pass (128calibration,
+25dark), mocked fullrunner default/experimental reportforwarding verified; source
+SHA8bf34fea10cef6bb45cebd32209d58f9f0cb111b1b7c6c6be64bd8dd5790fbdd.
+No new hardware command or retry performed. Last spot[15.9992,1.9603] is outside
+the unchanged initial[2,16] margin. Dave was asked to switch physical power off,
+coarsely re-aim toward center, restore power and confirm ifstillpresent; reply
+pending. If alreadygone, keep hardwareOFF and wait for physical setup correction.
+Do not weaken initialmargin, use oldmap, or repeatedlyretryborderlineobservations.
+Review evidence saved in calibration-resume-20261123/experiment-budget-review.json.
+
+November 23 — longer experimental calibration started after re-aim
+Dave said Try now. Correct camera/clear aligned fresh broker and paused OFF lease
+verified; game SHA unchanged. initial-spot-03 measured[8.7775,8.9375] nearK10,
+comfortably within initialmargin, and finished fullOFF1795463663.4061315 without
+fault. Started full-calibration-02 on reviewedfaa2230 with explicit experimental
+7200-second overall allowance,target timerdisabled,35corrections/stage and all
+safety unchanged. Root solehardwareowner; no competingserialclient. Result follows.
+
+November 23 — extended run stopped on image match; shadow hypothesis supported
+full-calibration-02 used reviewedfaa2230 with7200whole-run,target0 explicitly
+recorded. K10 passed2.9017px, A19 passed2.2654px,14spot measurements. Next
+measurement raised LaserOpticalFault: Unreliable board registration texture match.
+Full OFF1795463793.625718 confirmed without controller/supervisor fault; source
+inventory unchanged, no candidate/binding activated. Saved game unchanged.
+Dave reported moving near the board and suggested a shadow. The exact rejected
+five-frame median and newestcontributingframe metadata were preserved. Root
+replayed the actual registrar offline without changing its thresholds: firstECC
+0.9197929, localized-mask retry0.9477494 below0.95. Rejectedfit estimated corner
+motion0.102–0.203px; median brightness changes on0..255scale were topLeft-4,
+topRight-2,bottomLeft-8,bottomRight-3. Reference/rejected comparison and report
+are consistent with local lighting/shadow, not proof of cause or acceptedgeometry.
+The app's newestmetadata indicated aligned/handclear; a person outsideboard need
+not sethandflag. No threshold or hardware change. Proposed follow-up: bounded
+beam-off waiting and fresh requalification before resuming after temporarylighting,
+rather than aborting all calibrationprogress. Currentcode still aborts. Evidence:
+full-calibration-02/shadow-diagnosis.json and ../full-calibration-02-summary.json.
+
+November 23 — distinguish smooth illumination from localized changes
+Dave proposed lower significance for gentle changes over a large area, versus
+waiting for localized stone/hand-scale changes. Current registrar compensates a
+global gain/offset and masks some localized residuals but still gates globalECC.
+Root offline diagnostic fitted a robust quadratic log-gain field in rectified
+board coordinates, with no spatialwarp fit: saved rejectedmedian correlation
+0.9578→0.9762, gradientcorrelation0.9800. Syntheticgentleillumination normalized;
+stone/ellipseocclusion/5pxgridshift retained changes. Smallstone retained a high
+wholeboard score, so localshape/edge/gridvisibility evidence is necessary;
+residualarea alone is insufficient. These diagnostic scores differ from liveECC.
+No production code/threshold/activation changed, no hardware commands. Proposed
+architecture separates geometry, smoothlighting and localizedforeground, followed
+by bounded darkwait/requalification for ambiguous views. DiagnosticJSON retained
+at full-calibration-02/lighting-separation-diagnostic.json. Not a validated classifier.
+
+November 23 — delegated scene-change study; current-point recheck
+Dave explicitly requested another agent to classify/detect relevant scene changes,
+including historical data, while root continues calibration. scene_change_detection
+is assigned offline historical recordings, source review, diagnostic prototype and
+negative controls in an isolated worktree; no hardware/live source changes.
+Root initial-spot-04 passed onboard observation at[1.95675,1.83198] but failed the
+initial[2,16] interior-margin prerequisite. Full OFF1795464228.406652 confirmed
+without controller fault. Re-aim towardcenter withphysicalpoweroff requested if
+Dave stillpresent; no fullrun or repeatedborderline retry started. History study
+continues independently. Correct camera/epoch/clearance/pausedOFFlease verified.
+
+November 23 — measured-pose recenter implemented, reviewed and physically passed
+Dave suggested small automaticinward movement and recalling measuredK10motorpose.
+Separate branch codex/calibration-recenter commit8fd0630 adds explicit preparation:
+fresh dual-reference/pose/spot qualification, K10direction, max8darksteps <=8pan/
+5tiltcounts with5pxprintedboard clearance, remeasure each, stop inside[3,15].
+Independent179tests pass withoutskips, including partialfailure/fullOFFcleanup.
+Physical recenter-01 passed8steps/9observations fromnearcorner to[3.05686,3.09366],
+pose1853/2364, freshanchor residual1.9439px and recent-spotresidual0.6520px.
+Full OFF1795465128.0599422 confirmed nofault; inventoriesunchanged. No map/binding.
+Root then started full-calibration-03 fromthe verifiedinterior with7200seconds,
+targettimer0 and allotherguardsunchanged. Root solehardwareowner; result follows.
+Sceneagent completed16historicalcomparison study andedgefollowup; separateoffline
+branch, no classifier activation or live threshold change.
+
+November 23 — full calibration stopped on camera evidence age; appearance study active
+full-calibration-03 used reviewed host8fd0630 and the explicit7200-second overall,
+target0 experiment. K10 passed2.44693px, A19 passed2.73264px;17 measurements.
+The supervision thread raised External evidence permit expired, then set the
+shared cancellation event. Thus the top-level Commissioning cancelled message
+was a consequence, not evidence of a user cancellation. Last successful poll
+saw frame26550 aged0.582566s, with only17.434ms of evidence lifetime remaining;
+next poll saw0.615428s, beyond0.6s. The final poll gap was30.693ms, maximum
+recorded gap86.186ms. Full OFF1795465259.8695755 confirmed, no controller fault,
+source hashes unchanged, game SHA unchanged. No map/binding activated.
+architecture_review owns an offline assessment of safe full-OFF pause/fresh
+requalification with progress preservation. No live timing checks weakened.
+At Dave's explicit request, intersection_appearance is reviewing per-intersection
+empty/black/white evidence and historical coverage, first avoiding duplication of
+BoardVision empty-reference and inspector-only StoneAppearanceModel features.
+Hardware OFF notice sent before agent starts heavier historical replay.
+Scene-change edge follow-up a7286f7 pushed, eight tests pass; complementary edge
+and local texture evidence remains diagnostic only. Root remains hardware owner.
+
+November 23 — explicit camera-age override and confidence requirement
+Dave clarified the stationary experimental run should not use the0.6-second
+camera age cutoff, then emphasized that repeated run-ending delays are unacceptable.
+calibration_readiness owns a separate experimental age override; architecture_review
+independently reviews all age paths. fast_calibration owns separate full-OFF recovery
+with preserved progress and fresh actual pose/spot; interruptedcommands are not
+replayed. These remain in progress, no hardware activated. Planned explicit10s
+camera allowance is distinct from unchanged leases/heartbeat/thermal protections
+and increases possible unseen-hand delay. Normal defaults remain unchanged.
+Appearance report and reproducible144-sample audit integrated as8212400; root
+independent replay agrees. Dave requests per-intersection confidence in addition
+to black/white/empty/uncertain for downstream fusion. Agent is adding class scores,
+confidence semantics/calibration status and correlated-source provenance.
+
+November 23 — experimental camera-age policy physically exercised
+Host98a2fb6 oncodex/calibration-experiment-camera-age explicitly propagates
+--experimental-camera-max-age-seconds10 through metadata/permit and alloptical
+readers/admission paths, gated by--experimental-long-run.219targeted checks pass,
+independent failure-snapshot replay passes; normal0.6sdefaults unchanged.
+Root initial-spot-05 used explicit10s and passed: pose1813/2406, spotboard
+[1.16140,1.02257], fullOFF1795466083.6103785, nofaults, sourcehashesunchanged.
+Largest observedcameraage0.3674s, so this short physicalrun didnot itself exercise
+an over600ms frame; that case was covered by replay/tests. The actualpose matches
+the last accepted sample, not the interrupted TTO2396 command. It remainswithin
+5pan/3tiltcounts ofa cleanrun02anchor, allowing existing fresh requalification.
+A boundedexperimental16-step recenter allowance is being reviewed because this
+start isfartherfromcenter thanprevious8-step run; per-step movement andfresh
+opticalchecks unchanged. HardwareOFF whilecode isprepared. No fullmap yet.
+Confidence contract followup integrated as5b30e0d; design/example only,no liveAPI.
+
+November 23 — recenter02 passed; full-calibration04 active
+Reviewed424f3a5 adds explicit experimental16-step allowance (default8), independent
+review+171calibrationtests pass. Physicalrecenter02 passed12steps, finalpose
+1853/2364, board[3.05908,3.08168], cleanfullOFF1795466437.5372622; sourceinventory
+unchanged. Maximumguardcameraage0.371s, noover600msobservations. Rootthenstarted
+full-calibration04 fromverifiedinterior, explicitcameraage10s/run7200s/target0.
+Rootsolehardwareowner; otheragentsheavytests paused. Resultwillfollow.
+
+November 23 — all fit targets passed; independent cache watchdog stopped validation
+Full-calibration04 host424f3a5 usedcamera10s/run7200s/target0 for702.277seconds.
+106samples; all5fit targets passed K10=2.21,A19=1.76,T19=2.31,T1=2.58,A1=2.86px.
+Firstvalidationlegstopped on250ms polling-cache expiry, notcameraage. Pre-gap
+poll finished1905175.957824, cachedeadline1905176.207824; nextpoll started
+1905176.279739, firstOFF.279812. Appleasewasvalidto1905176.528499; oldcamera
+snapshotstill~0.516sold atOFF. Newpollreturnedfreshframe45622,age0.223s.
+Supervisorlatchedcancelbeforethatfreshpollcompleted. FullOFF1795467167.9429295,
+no controllerfault, sourcehashesunchanged. Cameraage max0.5376, temperaturesmax
+15/17C. Concurrentserial/HB/thermalgap suggests sharedprocessscheduling, not
+proof oftheblockingfunction. Offlineinvestigation andprogressrecovery assigned.
+Root fitted95fit-stagesamples offline: median2.493/p955.188motorcounts, saved
+fit-only-candidate.json SHA1b083a14534d79d45ad23c5dd35109bb667e5cb2fb2d5641789e9e47cbfaa7e9.
+Unvalidated: no held-outtargetscomplete, no activebinding. Recoverymust freshly
+measure actualPOSE/spot; lastsample1679/2243 preceded settleddarkmove1726/2272.
+Do notreplayorassume commandedpose. Allninevalidationchecks remain. HardwareOFF.
+Speedproposal andtimingreport preserved; exactstagecosts do notestablishspeedup.
+
+November 23 — reviewed validation-only recovery started; fresh admission passed
+Host983ef924 reviewedandpushed;194calibrationchecks(1optionalfixturegroupskipped),
+25darkchecks;independent31focusedactual03/04tests passwithoutskips. Rootstarted
+validation-resume01 with2boundedprocessrestarts,10scameraage,7200soverall,target0.
+Fresh originalreferencegeometrypassed. Actualpose1726/2272,spot[2.00797,9.15147].
+LocalJresidual6.608pxfailed3pxbranch; explicitfixedmodelconsistency passed3.386
+motorcounts(<8). CandidateSHAunchanged; firstfreshcheckpoint/travelstarted.
+All5fit targetsretained; all9validationtargetsnewlyrequired. Rootsolehardwareowner.
+Schedulingprobesfinishedoffline: normalimageoperationsgaps<40ms,forcedGC<47ms;
+largeFINALreportencoding350msgap excludedaslivecause becauseafterOFF. Exactcause
+unproven; phase/CPU/loopgap/GCdiagnosticrecommendations archived. GameSHAunchanged.
+
+November 23 — validation continuation stopped on spot detection; steering gap identified
+validation-resume01 attempt000 passedfreshgeometry/model-positionadmission, then
+observed1728/2275 at[1.99883,9.00813]. NextA10movecommand1626/2323 settled1625/2321;
+fiveandsevenframes returnedSpotUnreliable Ambiguousspot. Detectorwordingincludes
+zerocandidates; itdoesnotnecessarilymeanmultiplebrightspots. FullOFF1795468415.5879025,
+no supervisor/controllerfault; inventoriesunchanged. Rawfailedimageswerenotsaved;
+brokercontributors58056/58084expiredbeforeinspection. Original5fit targets preserved.
+Offlinefixedmodelinversepredictsactualfailedposeat[-1.1257,8.1610], outsideboardmask;
+64.49pxfromlocalprediction. Thisishypothesis,notphysicalobservation. KeepbeamOFF.
+ReviewfoundglobalpositionadmissionretainedoldlocalJacobianforsteering; onetiny
+combinedaxisupdatecannotindependentlyvalidatebothaxes. Earlierreviewmissedthisgap.
+Separateauthorspreparerevieweddark-onlyreturnto1728/2275, independentaxisprobe+
+finiteendpointagreementchecks, andfailedimagebufferflushedonlyafterconfirmedOFF.
+Daveadditionallyrequestslarge-movelandingexperiments; adaptiveagentownsdata-only
+bidirectional/distance/diagonal/repeat/heldouttransitionplan, firstlandingbeforecorrection.
+
+November 23 — dark return passed; combined steering review and large-move plan
+The reviewed dark-only return (host65e5fd4) moved actual1625/2321 toward the last
+observed1728/2275 and settled1728/2277. Exactly one GOTO, no illumination, clean
+full OFF1795469498.7246559. Return report SHA256:
+30c491901017fcb67243f52f9c00aaf9a25aa4c56bc03aa4c8b0a9442cba2fbf.
+Fresh optical/two-axis qualification remains mandatory before further travel.
+Combined steering and failed-image retention atbc713f8 passed independent code
+review. Focused93-test integration run has3 errors from outdated MagicMock
+collector returns; tests are being corrected to the real collector contract.
+Runtime guards are not being weakened. Failed images will be buffered in memory
+and flushed only after full OFF and worker shutdown. No new physical run yet.
+Large-move first-landing protocol86bf0b9 is pushed: fixed camera, six-move pilot,
+then optional distance/direction/diagonal/repeat/held-out transition campaign.
+It is a proposal, not an executor or physical validation. Root owns hardware.
+
+November 23 — steering probes passed physically; small-step profile mismatch found
+Combined source6cf3c99 is pushed;93 focused tests pass without skips after test-only
+mock repairs. validation-resume02 freshly admitted actual1728/2277 and qualified
+both axes: candidate displacement errors1.207/2.154px. Guarded A10 approach then
+shrunk to4pan/2tiltcounts while still selecting fast GOTO from the originalpixel
+error. Repeated actual1720/2274 observations demonstrated no useful progress;
+profile selection needs to use final guarded movement size and recheck fine-axis
+intermediates. Separate supervisor LaserTransportFault serial write completion
+exceeded deadline stopped the run. FullOFF1795470112.9394574, no controllerfault,
+source inventory unchanged; parent reapedexit1.123 totalsamples, no validation
+target completed. Automatic retry correctly refused the transport failure.
+ReportSHA4f5c7dc44dad52a9f42fd390e879e9b6b9f8f2aae42a860c6a6dc2918d1b5589.
+Fast-calibration agent owns isolated profile fix; transport reviewer investigates
+actualdeadline evidence offline. No new hardware attempt pending those findings.
+
+November 23 — reviewed fine dispatch repair and existing move coverage
+Reviewed small-step source91df4a7 integrated and pushed as0e7434a. Four targeted
+and51 existing checks passed; independent four-case review passed. Final guarded
+steps within the existing18/10count fine envelope usePTO/TTO, with fine-axis
+intermediate path checks repeated. No accuracy/deadline/step-limit relaxation.
+Not physically retested. Offline move audit found largest measured opticalinterval
+2.965intersections in full04 fitting,2.548 in validation; intervals can contain
+multiple commands. Thus no long-jump validation exists. Smallest nextpilot is one
+qualified interior2–3intersection span in both directions, firstlanding preserved.
+Transport review infers lateTA769 reachedfirmware becauseGT770 acknowledges769;
+failedwriteitself wasnotrecorded. Overlapping137.9ms permitread window supports
+hostdelay aspossible, notprovenUSBblocking. Bounded diagnostic patch underreview.
+Hardware fullyOFF, serialportunowned, savedgameSHAunchanged. Caffeinate stopped.
+
+November 23 — follow-up software checkpoint complete; hardware remains OFF
+Bounded serial-write diagnostics6dd292b integrated asbbc7f72 alongside small-step
+fix0e7434a. Final combined112 tests pass with no skips after the optical shutdown
+mock gained the real snapshot return contract. Diagnostics preserve the100ms
+write deadline and transport behavior, retain64 in-memory records including
+failedcommand/bytecounts/observed timing windows, and serialize afterOFF/close.
+Independent review passed; optionalCPU instrumentation was removed. No further
+physical retry: small-step repair and diagnostics remain offline-tested only.
+Serial-delay cause unresolved; no automatic transport retry enabled. Remaining
+physical work is fresh qualification and allnine validation targets, then the
+short bidirectional first-landing pilot before expanding distance. Root owns
+hardware; laser and motor power fullyOFF, port closed, game/clocks preserved.
+
+November 23 — requested large-move restart and timeout investigation
+Dave explicitly requested resuming the larger-move experiment and diagnosing the
+previous timeout. Correct broker camera is fresh, empty board visually inspected,
+no hand and aligned; original stream epoch persists, saved game SHA unchanged.
+Root OFF-only serial probe01 passed96 STATUS replies in15seconds; worst reply
+2.356ms. Only STATUS/HB/OFF permitted, no torque/light requested. Final fullOFF
+1795471865.586275, no controller/cleanup fault. No large movement yet.
+Offline exact steering replay:1000 calls max4.53ms;50 reconstructed checkpoints
+max42.70ms; no100ms simulated write failure. Original failure remains a host-side
+100ms completion check, likely thermal ACK769 which firmware received. Evidence
+does not identify USB blocking versus scheduling. Bounded diagnostics are ready.
+Pilot author and independent reviewer are preparing explicit SHA-bound manual
+restart, fresh pose/spot/two-axis checks and conservative interior out/back moves.
+Ordinary3px linear-response agreement inherently shrinks curved-map large moves;
+separate named diagnostic proposal uses[3,15] interior predictions/path,25px
+maximum model disagreement and unchanged108/58 motor envelope. No automatic
+transport retry, model training or calibration/binding approval is implied.
+
+November 23 — interior pilot01 physical result: separate poll-cache expiry
+Host5b3880d passed9 independent actual-artifact tests and51 existing tests, then
+root ran interior-pilot01. Fresh camera/geometry/pose/spot admission passed;
+position residual0.09527px, model residual2.241motorcounts. PTO1728 began but no
+SETTLED was received. Poll-cache expiry caused fullOFF1795472563.6018767 with
+no controllerfault and unchanged source inventory. Last telemetry1720/2274;
+actual next pose must be queried before any illumination. One new opticalsample,
+no completed steering probes or diagnostic legs. Parent exit1 reaped.
+Last successfulpoll finished1910571.718266666, cachedeadline.968266666. Nextread
+started.745209166 andfinished.973832541:228.623ms read/UTF8/JSON interval, BEFORE
+validatorwork; totalrefreshgap255.566ms. Cameraage.411s andleasevaliduntil
+1910572.297; firstOFF.97301625. SerialHB/TA continued and diagnosticsrecorded no
+failedwrites. This differs from prior100ms serialcompletionfailure.
+Root is preparing an explicit0.5s stationary cache allowance, preservingminof
+camera/lease/run deadlines and immediate invalid-evidence revocation; normal
+0.25s default unchanged. Passive per-read-stage profiling runs withhardwareOFF.
+Earlier timeout replay and safe checkpoint copy removalce1b36b are pushed;
+optimization not merged into pilot and not claimed to fix the original timeout.
+Systemlog shows the same OpenRB request-abort message near both failed-run and
+successful-OFF-probe shutdown, so that message alone is not evidence of a USB cause.
+
+November 23 — workflow timing model delegated; pilot02 stopped before light
+Dave requested a separate agent to model the whole workflow and relevant timing
+options, then generate a timestamp/event data structure. workflow_timing_model
+owns an isolated offline model/generator/schema/coverage inventory. Root continues
+physical work; no runtime changes or hardware access delegated to that agent.
+Pilot02 on9841f0 with explicit0.5s cache ended before illumination: measuredPOSE
+1725/2274 exceeded the saved1720/2274 anchor's3-count start envelope. This confirms
+partial movement from the interrupted first probe. No PREPARE/SWEEP writes, clean
+fullOFF1795472997.1711957, no controller/supervisor fault, sources unchanged.
+A narrow explicit dark-return-to-anchor option is being prepared/reviewed for
+this5-count difference, within8/5counts, using provisional candidate bounds and
+ordinarypath/settlement checks. No light until returned within3counts, followed
+by fresh optical admission and two independent probes. Default rejection remains.
+
+November 23 — workflow timing contract complete; interior pilot resumed
+Pushed/reviewed7737129 provides64 workflow stages across eight parallel lanes,
+37 timing options, generated event schema/selected-path plans, legacy inventory
+and20 passing tests. No runtime instrumentation enabled or timing policy changed.
+Distinct clocks, requested/settled/measured positions, image acquisition, sound
+dispatch/onset, fault origin and OFF/close/persistence boundaries are explicit.
+Pilot03 on3202fe3 reached interior without timing/serial faults; stopped before
+second interior probe because the actual first-probe pose drifted one count,
+requiring nine counts to return to baseline against the eight-count cap. Latest
+observed1828/2257 at board[4.12182,8.94954];134 samples preserved, fullOFF
+1795473507.3676848, no controllerfault and unchanged sources.
+Reviewed/pushed094ddfd clips that return to the unchanged eight-count cap and
+preserves the latest clean observed anchor separately from the inherited123
+checkpoint. Six independent actual-recording tests and relevant existing checks
+passed. Root launched pilot04 from that interior anchor, with explicit10s camera
+age/0.5s cache,7200s finite limit and attention beep. No automatic retry; fixed
+95-fit model and all nine pending validation targets remain unchanged.
+
+November 23 — pilot04 stopped on measured probe independence, not timing
+094ddfd passed fresh geometry/position admission (0.830px). Actual observed
+probe poses1828/2257→1836/2257→1829/2254; second target1828/2252 settled
+1829/2254. The measured two-axis basis failed its unchanged minimum travel
+criterion. No outbound diagnostic leg.137 samples retained, latest board
+[4.198813,9.031403]. FullOFF1795474158.026998, no controller/supervisor fault,
+no cancellation, source hashes/inventory and savedgameSHAunchanged; exit1 reaped.
+ReportSHA416473721b04c8f588125686b2cd8505ed9bcaa120cbf7491296c3b8d5daab10.
+Root requested offline design review for bounded additional probing without
+weakening measured qualification. Hardware/serial port released, no auto retry.
+
+November 23 — interior pilot05 completed; timing outcomes model reviewed
+Pushed44aeb5e passed fresh position/two-axis qualification and exercised one
+bounded extra tilt probe. Outbound requested2.5intersections, measured2.322;
+return measured2.148. First target misses0.190/0.188intersections, model-at-actual
+residual3.700/2.115px, actual motor goal residual(+1,+2)/(−1,−2)counts. Return
+optical error7.276px: useful diagnostic, not accuracy approval. No camera-directed
+correction/model update;144samples retained. Coarse legs each include normal
+secondGOTOactualsettled beforePREPARE, so single_goal is not one wire command.
+Host travel-to-light dispatch3.410/3.324s: travel receipt1.241/1.228s, goal-prime
+receipt0.625/0.550s, PREPAREreceipt0.568/0.471s, READY-to-light0.965/1.070s.
+Lightack0.107/0.137s; these are not physical onset measurements.
+Arming captured279.048ms polling gap:159ms request readwindow +94ms manifest
+readwindow, JSONonly0.029/0.021ms. Original camera/lease valid; explicit0.5cache
+run continued. Exact filesystem/schedulingcause remains unresolved.
+FullOFF1795474672.1551886, no controller/supervisorfault/cancellation, source
+inventories and game/clocks unchanged; exit0 reaped. Latest actual1820/2248 at
+board[4.169881,9.453444], maxreportedtemps14/14C. Caffeinate stopped/reaped.
+ReportSHA034883c595c2f4a6fc4cc66f974b233e2535de3e8e290799a54428a66ea2356c.
+Allnine fullboard validation targets remain; no bindingactive.
+Workflow followupa4867ea pushed: seven outcome definitions added,23 tests and
+independent review pass. Missing acceptance/exposure/onset/correlation/clock
+evidence remains explicit. No runtime adapter or timeout changes enabled.
+
+November 23 — pending software work and workflow efficiency review started
+Dave authorized beginning the pending work and reviewing whether the workflow
+is efficient. Five offline owners: latency_logging adds schema-aligned bounded
+host events; workflow_timing_model imports/audits existing reports; transport_review
+measures the file-reading path; fast_calibration prepares explicit fresh manual
+validation from completed-pilot evidence; architecture_review independently
+examines dependencies, repeated work and speed/reliability tradeoffs.
+Root created codex/workflow-review-integration at44aeb5e plus reviewed model
+commits7737129/a4867ea (integration equivalents ea205f9/277a59d). No hardware
+operations, installed app/firmware changes or game/clock/binding mutations.
+All software changes require focused tests and independent review before merge
+into the isolated candidate. Physical validation is a later separate step.
+
+November 23 — attended manual validation started
+Dave is at the board and confirmed nothing moved and beam area clear. Root alone
+started manual-validation-01 on independently reviewed standalone bed3c52 from
+pilot05 SHA034883c595c2f4a6fc4cc66f974b233e2535de3e8e290799a54428a66ea2356c.
+Explicit10s camera age/0.5s poll cache, finite7200s ceiling/no target elapsed cap,
+attention beep; user-facing budget one10–20min attempt then stone-placement test.
+Fresh optical correspondence0.673px and fresh steering qualified; validation in
+progress, no binding activation. Merged f9101f2 not used because aggregate tests
+reported errors requiring diagnosis. Installed0.253/v44 and saved game unchanged.
+
+November 23 — manual-validation-01 stopped on post-settlement prediction guard
+Reviewedbed3c52 passed fresh position0.673px and independent steering. Approximately
+102s into run, beforeA10, last observed1704/2284 planned1681/2289 with local/fixed
+model predicted endpoint disagreement2.143px. Actual coarse settlement1681/2287
+remained within firmware tolerance but recheck disagreement3.172089px exceeded3px;
+predicted polygon margins50–54px. No optical observation at settled endpoint.
+This is not camera age/serial timeout or measured A10 target error.159samples,
+allnine validationtargets pending. FullOFF1795478146.9190755, no controller or
+supervisorfault, cancellationfalse, sourceinventories/gameSHAunchanged; exit1
+reaped and serial released. ReportSHA82b063a6c6e246c24d9b724b1201a79ee441aa2c88a36b9f88eb8a36cdc52b84.
+Root switches to attended stone tests. fast_calibration acknowledged offline
+settlement-aware planning diagnosis; no hardware ownership transferred.
+
+November 23 — attended stone session: basic recognition passed; ambiguity failed
+PhysicalGo0.253/build254, fasttestmode, laser fullyOFF/bridge disabled. Recording
+16-32-43/81F57368 captured two explicit hand-overboard/slowwithdrawal cycles;
+handtrue→false twice, alignmentvalid, no game moves whilepaused. Resumed humanWhite
+game: AI Blackpoint72 accepted exactlyonce. Recording reached per-session5GB
+(1552frames), not diskfull (~59GB free). Diagnosticpause script verified images/
+warnings off. No tailtrim: recording ended18s after meaningfulplacement.
+Paused atmove1, clocks101.293sWhite/11.380sBlack, restarted recording16-37-13/81D4E9F0
+with10GB requested (archive allocated5.976GB). Resume verified existingposition
+withoutduplicate. White180 and AI Black300 acceptedonce; placement cleared about
+0.5–0.7s after handflagclear. Bothrecordings markedKEEP.
+Ambiguitytest FAILED: user placedWhite midway between emptyintersections, withdrew,
+thenremovedit. Nativeacceptedpoint275 at1795480763.698962 andAIpoint288 at
+1795480764.873220. Frame697/time1795480763.128513 retainsclear image; footprint
+center[9,14.28], quality0.915, readingWhiteconfidence1, placementFits/tracks empty.
+Cause notyetproven; marker_scenarios owns isolated offlineinvestigation.
+Firstactiondiagnosticpause script succeeded; thenAIpaused atmove5/pendingBlack.
+History/clocks preserved, pre-failure3move snapshot saved; do notresumeagainst
+physical3stoneboard without deliberate recovery. Secondrecording stopped795frames/
+2.571GB; no redundant30s tail. No physicalcapture/laserwigglepass claimed.
+FastAI review: bothsearches8visits. AfterPause/Resume boardrecheck0.793s+engine/
+presentation8.253s=9.047s; nextuninterruptedmove0.796+0.378=1.174s. Workerstop
+onpause explains likelycoldrestart; exactload/searchsplit notlogged. No AIchange.
+Evidence: work/ai-laser-integration/stone-session-20261123/session-result.json and
+ambiguity-failure/ beneath /Users/dave/Documents/SGF PLayer.
+
+November 23 — clarify ambiguity failure and preliminary cause
+Dave clarified: WHITE color classification was correct; assigning the stone to
+an intersection was incorrect. Expected behavior is spatial abstention until
+centered, regardless of laserhint toggle. Agent preliminaryread: measuredoffset
+0.28 is below hardambiguity0.30; neighboring294wasuncertain but borrowed prior
+verifiedEMPTY, permittingstable singleWhite275acceptance. LegitimateWhite180also
+measured0.28offset, so simplyloweringthreshold is not a justified fix.
+marker_scenarios owns targeted neighbor-evidence investigation; contract_review
+is assigned independent review. No production/installed change yet.
+
+November 23 — ambiguity candidate and stone-set samples
+Reviewednarrowfixappliedtoinstalledbaselined5d84ef with exactoriginalsourceSHAce241953.
+Candidate347eb84/0.256build257 passes52newambiguitychecks andfive selectedsuites
+(80markers,146lifecycle+realengines,278AI-laser,37capture-controller). Signedbuilt
+sourceSHAd9c8b08cb2418b1e726ddf3a75d5f122b8dbb35f763b7506cd64d119498fd0b2;
+binarySHA7da38ad7520813714ea9192a1844f65f3a232680833fce8b0dfa1c23961aa488.
+Capture directorypreserved. Notinstalledyet; cameraidentityretainedforstone-set
+sampling. No parallax/markerthresholdchange inthisguardfix.
+Userofferedcenteredstones andnamedreusablestone-setprofiles withoptionalmanual
+thickness. Collectedwhite-01 andblack-01:8outerstarstones,8rawbrokerPNG/manifests
+each, freshclearaligned,pausedOFFrequests,nohardwarecommands,gameSHAunchanged.
+An earliermistakenBlackreadinesswasWhite; visuallycaught,userconfirmed,renamed
+white-repeat-01 withexplicitcorrectionaudit. Unknownphysicalscale/effectiveoptical
+height remain distinctfrommeasuredphysicalthickness. Sameboardcalibrationunchanged.
+November16parallaxexperimentwasneverinstalled; priorfreefitexcusedrealmisplacement.
+Currentanalysisdistinguishesbody/contactparallax fromadditionalfitter-to-bodybias
+(~.11cell,4–5px inframe697). intersection_appearance handlesofflinefit/heldouts;
+calibration_progress_ui preparesisolatedprofilemodel/UI withoutfakeapplication.
+
+November 23 — offline work completed while awaiting final physical negative
+
+Dave is away approximately 20 minutes. Current app remains 0.253/build254, paused
+at five moves/pending AI Black; physical board holds eight Black outer-star
+calibration stones. No Resume against that mismatch. Original three-move and
+failed five-move states/clocks are preserved. Hardware remains fully OFF since
+1795478146.9190755; no later commands. App bridge setting is now ON solely for
+passive camera broker sampling and OFF requests; production bridge remains
+stopped. This supersedes the earlier bridge-disabled/three-stone physical state.
+Diagnostic recordings/warnings remain OFF. Narrow signed 0.256 is deliberately
+not installed until the final same-camera negative photo is captured.
+
+Combined laser candidate codex/workflow-review-integration is pushed at42e5022
+(runtime3498fb2). All183 host/calibration/workflow and38 model/importer tests pass.
+Earlier aggregate failures were missing diagnostic-snapshot methods in test
+permits; test-only fixes796dd49/3498fb2 restore the actual permit interface.
+Includes reviewed immutable-source registration reuse, fresh manual validation,
+DARK-before-image-persistence, read diagnostics and optional bounded native
+workflow tracing. OFF/cleanup precedes deferred persistence. Tracing defaults
+OFF. No hardware execution or claim that this fixes the steering disagreement.
+
+Settlement study codex/calibration-settlement-admission is pushed927b63b. Existing
+samples poorly constrain the second motor direction. Better rolling fits reduce
+the observed endpoint disagreement but still fail the full settlement-region
+checks. Reviewed offline protocol proposes17 fitting observations plus4 independent
+checks with unchanged movement/agreement limits and separately qualified probe
+corridors. Eight deterministic tests pass; synthetic feasibility is not physical
+reliability. No executor or production change; allnine accuracy targets remain.
+
+Stone study codex/stone-set-profile-study pushed8f692b3, independent reviewc7286b1:
+six-fit/two-held-out anchors per color, three geometry hypotheses retained, six
+analytic controls and34 producer-to-native profile checks pass. Estimated optical
+height is setup/estimator-specific, not physical thickness. Constant contour bias
+and grid scale can imitate height; the existing White midpoint informed development
+and is not an independent negative. Fresh Black midpoint and another setup remain
+pending. Named set UI/store codex/stone-set-profiles pushedbf241bc,34 author/15
+independent checks and SwiftUI typecheck pass; no hosted UI or runtime activation.
+Optional measured Black/White thickness is separate from optical candidates.
+
+White-vote diagnosis independently reviewed/pushede6a6e85 on
+codex/white-vote-mask-diagnostic. All8 source hashes,4 archived footprints,8,450
+pixel votes and full discrete optimizer searches reproduce. In the centered180
+and misplaced275 White stones, relative-color core support is zero; the brightness
+fallback favors the upper body and disk/ring objective selects that region.
+Native minus visible-body row discrepancies are -0.10809/-0.10988. This verifies
+estimator disagreement on two examples, not the physical cause of brightness,
+contact-point ground truth, physical thickness or a universal correction.
+Next bounded geometry work should expose full-boundary evidence, coverage,
+neighbor ownership, disagreement and abstention separately from classification;
+frozen centered/midpoint/shadow/crowd/empty/hand examples and another setup precede
+any runtime consumer. No global threshold reduction or constant offset justified.
+
+Optional fast-test idle reuse codex/fast-test-idle-reuse pushed8c142a2, based on
+narrow347eb84. It retains only a completed idle fast-test engine through ordinary
+Pause/Resume/Freeze, revalidates launch assets, cancels active search and fences
+late results from replacement work. End/settings/fault/shutdown release it. Tradeoff:
+model memory remains resident during pause.42 targeted checks (23 independent),
+8 build-registry checks and requested debug regressions all pass: AI-play162
+including real engines/HumanSL, AI-laser278, ambiguity52. No installed change,
+physical speed claim or mutation of the signed0.256 candidate.
+
+Next attended action: front-middle Black from raw(9,15) halfway toward center to
+(9,14.5), otherseven unchanged, capture against frozen six-anchor model. Optional
+fresh White at the same halfway location would provide a development-independent
+White negative. Then install narrow0.256 and deliberately recover the three-move
+checkpoint/physical position for ambiguity and capture tests. Laser work remains
+separate and requires empty board/setup verification before requalification.
+
+November 23 — fresh Black and White misplaced examples captured
+
+Dave returned briefly and moved the nearest-side middle Black toward board center,
+then replaced it with White at the same intended position. Root saved eight fresh
+broker images per episode under stone-session-20261123/stone-set-calibration/
+black-midpoint-01 and white-midpoint-01. Maximum capture ages0.233/0.246seconds;
+same camera ID, epoch and context as centered samples; all clear/aligned, app OFF
+requests, AI game-file inventories byte-identical before/after. No hardware commands.
+Visual confirmation: seven centered Black stones, one moved stone, then White.
+
+The user sits at camera-image right. Root's nearest-you instruction therefore
+moved raw(15,9) toward(14.5,9), not image-bottom raw(9,15). Independent body analysis
+confirmed Black center14.9991,8.9025→14.5727,8.9111 (~0.426columns left); intended
+held-out bottom-middle remained essentially unchanged. Corrected samples.json
+preserves original instruction and explicitly identifies actual location. Images
+and frame metadata remain unchanged. These are fresh negative episodes at a
+previously fitted anchor, not a preselected held-out-location test. Neither is
+included in training. Frozen Black/White model evaluation delegated offline.
+
+Physical board now seven centered Black plus displaced White near(14.5,9); app
+still paused at failed five-move game/pending AI Black. Do not Resume that mismatch.
+Both requested photos are complete, allowing later narrow0.256 installation;
+not installed during collection. Dave can step away; laser remains fully OFF.
+
+Frozen-model follow-up: exact current-grid equality check detected a small
+automatic grid update despite identical epoch/context. Seven unchanged exposed
+crossings measured maximum0.462px Black/0.535px White displacement; residuals
+after estimating common shift were0.187/0.176px. No common shift is applied to
+stone pixels: bodies are explicitly mapped through raw image coordinates into
+the frozen grids. Original metadata, estimator thresholds and model coefficients
+are preserved; <=0.54px view uncertainty remains explicit.
+Across eight frames per episode, conditional nearest-crossing median distances
+are Black0.434cells(native grid)/0.461(refined grid), White0.484/0.488. Both retain
+substantial displacement after correction. This supports these two fresh negative
+episodes only, not physical thickness, independent-setup portability, calibrated
+confidence, or installed-app acceptance. No model training or live activation.
+Results: stone-set-calibration/offline-body-study-02/fresh-midpoint-results.json.
+
+November 23 — further offline work completed during Dave's absence
+
+User requested useful work while away and explicitly said proceed. Hardware and
+live state were left untouched. Final preservation audit: installed0.253/build254,
+all AI game-file hashes equal the saved White-negative inventory, app bridge
+requestOFF. Physical board remains seven centered Black plus displaced White;
+no Resume against five-move logical game. No laser/controller commands issued.
+
+Recommended next test candidate0.257/build258 combines ambiguity347eb84 and
+fast-test idle reuse8c142a2. Source/version47dc15b, pushed documentation7edf1b0 on
+codex/recognition-fast-test-candidate. Optimized full build and8 registry checks
+pass. Prior unchanged feature checks42idle/162AIplay/278AI-laser/52ambiguity pass.
+Independent copied-package review verifies strict Developer ID signature, version,
+158ordered Swift inputs,4build inputs and173bundle files. Capture directory stays
+/Users/Dave/SGFPlayerClean/PhysicalGo/Captures. Frozen read-only artifact:
+stone-session-20261123/app-0257-candidate/Physical Go.app. SourceSHA
+142bb2374398dbac1df8b445047d703370436ed97aa768c366740d0c4dae4394;
+signed binarySHA4b4d8076dd60772f504d771ac9d84d43604178fce480ed189430086e376cf5af.
+Not installed/launched. Installed0.253 and retained signed0.256 remain unchanged.
+No optical profile, boundary experiment or broader0.254/0.255 changes included.
+
+Fresh negative optical study7c9f57c independently reviewed/pushed201a258 on
+codex/fresh-midpoint-review. Full replay exactly matches;16 frame source/metadata/
+model checks, coordinate inverses and rejected hash/epoch controls pass. These
+are new negative episodes at previously fitted(15,9), not heldout/new setup.
+
+Boundary diagnosticb4184d5, review4c958ce, both pushed on separate branches.
+29cases and numeric policy frozen at738f2d7 before replay; later setup grouping/
+auxiliary-hash metadata corrections preserve original selections and all numeric
+outputs.7 mechanism controls and exact29-case independent replay pass. Evidence
+schema separates outline, coverage, neighboring-owner exclusions, compact-fit
+discrepancy, angular-deletion sensitivity and abstention. Every output says
+runtimeDisposition=diagnosticOnly,boundaryIdentity=stoneVersusShadowUnverified.
+Reason to withhold production: shadows can pass geometric support. Independent
+stone+shadow control has100percent coverage but0.118cell center error with<0.015
+quadrant spread; round dark nonstone also passes.5of9 current Black cases abstain
+under fixed radius bound. Supported outline is not identified body/contact truth.
+No threshold tuning on fresh negatives, classifier/model change or live consumer.
+
+Root native replay46b9cdd pushed on codex/fresh-negative-native-replay. Unchanged
+BoardDetector closure from347eb84 reproduces actual archived697 fourfootprints
+and zeroplacementFits exactly, then replays32 centered/freshnegative images.
+Eight independent input/parity integrity controls pass; all source/input hashes
+unchanged. ReferencePNG exactly equals both current persisted snapshot and prior
+backup (SHAcdc8d10f006fe81fec510f06ab212a75e6b39e412e7d14cdddcf9f0b70a4c268).
+Threshold explicitly archived0.13; freshbrokerlacks threshold/referenceimagehash,
+so no per-frame in-memory-reference claim. Currentgrid is passed perframe.
+At rawside-middle: centeredBlack fit(15,8.96), centeredWhite(15,8.76). FreshBlack
+fit(14.56,8.96), Blackat(15,9)score1, neighbor(14,9)uncertain.6875. FreshWhite
+both14/15uncertain(.625–.71875/.5625–.59375), no localfootprint/placementfit inall8.
+This is stateless detector evidence, not temporaltracking, moveacceptance, clocks
+or hintdispatch. Missing footprint explains why abstention does not guarantee a
+usable centering-hint target. Full artifacts in stone-set-calibration/native-fresh-replay-01.
+
+Capture kitf0009e9 pushedcodex/attended-capture-kit. Two artifact-only synthetic
+four-move humanBlack19x19 fixtures: single A18,A19,T1,C19 then B19 captures A19;
+double B19,A19,B18,A18 then A17 captures A19/A18. Fasttestmode true, no fabricated
+observed timestamps or verifiedcamera evidence.34 actualSGFrules checks plus20
+actualPhysicalAI snapshot/acceptance/capture/clock checks pass. Singleelapsedclock
+continues, double/partial holds, out-of-order removal and fullcleanup verified
+with synthetic observations. Existing-output/Library destination refusal checks
+pass. Short run card and validated-fixtures at work/ai-laser-integration/
+attended-capture-kit-20261123. App has no AI SGFimport/fixturepicker; activation
+requires separate preserved-state loading transaction. No productiontesthook,
+livegamemutation or physicalpass. AIcapture-first guidance and Blackprisoner
+surface tests remain outside this kit. Laser tests still require qualification.
+
+
+## November 23 — consolidated physical-test candidate preparation
+
+At Dave's request, root is assembling 0.258/build 259 from reviewed 0.255
+recovery/progress/tracing/build tooling and 0.257 ambiguity/fast-test idle reuse.
+Integration source frozen at 9b51d45 also hosts named stone sets and bounded
+screen-only illegal feedback. Four practice positions are merged and independently source-reviewed: empty Human Black, empty Human White, single capture and
+two-stone capture. Combined acceptance, build/signature/package verification,
+installation and physical validation are pending. Earlier receipts remain
+source-specific; they do not establish success for this combination.
+
+Installed app remains 0.253/build 254, firmware v44, original game paused at five
+moves. Latest user statement reports eight Black stones; earlier photo showed
+seven Black plus displaced White. Current colors/positions are not freshly
+verified. Do not Resume against the mismatch. Preserve the five-move failure,
+three-move checkpoint and clocks before installation; intended first session is
+a separate paused empty Human Black practice position with intentionally cleared
+board. Turn Connect laser bridge OFF for camera-only tests (currently ON for
+passive broker publication). No app, camera, hardware or saved-state action was
+performed for this documentation reconciliation.
+
+All nine laser accuracy checks remain pending after the settled-pose steering
+mismatch. Future laser work requires an empty board, reviewed remedy and fresh
+qualification. The candidate enables no parallax/body-edge correction, adaptive
+map learning or illegal laser marker. See NextPhysicalTestPlan.md for the ordered
+camera/AI and later laser tests, and LaserMovementCheckpoint.md for evidence.

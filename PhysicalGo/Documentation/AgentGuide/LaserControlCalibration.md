@@ -131,3 +131,12 @@ The passive [calibration progress panel](../CalibrationProgressUI.md) reads the
 external runner's versioned status. It shows actual stage, completed target
 checks and elapsed time, with explicit stale/stopped/review-required states.
 It cannot command hardware or activate a calibration binding.
+
+## Future manual requalification design
+
+[Explicit manual requalification](../ManualRequalificationDesign.md) describes a
+design for replacing incident-specific restart adapters. Explicit manual
+requalification was subsequently implemented and physically entered; the later
+settlement-response disagreement still prevents full-board qualification. See
+[the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
+This does not authorize automatic retry or an occupied-board calibration run.

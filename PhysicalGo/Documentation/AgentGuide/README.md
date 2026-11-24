@@ -34,13 +34,16 @@ facts.
 
 | Immediate concern | Read |
 |---|---|
+| Next attended test, preserved game and candidate inclusion | [Consolidated physical test plan](../NextPhysicalTestPlan.md) |
 | Where decisions live; how components connect | [Architecture and state ownership](Architecture.md) |
+| Reversible overnight candidates, diagnostics and adaptive-map experiments | [Software results and rollback](../OvernightSoftwareResults.md) |
 | Structural weaknesses and incremental improvement priorities | [Independent architecture/process review](../ArchitectureReview.md) |
 | Wrong camera, hand not clearing, missed stone, glare, stale image | [Camera and recognition](CameraRecognition.md) |
 | AI speed, legal moves, turn transitions, clocks, saved games | [Game, AI and clocks](GameAIClocks.md) |
 | Local recording, unresolved chronology, corrections, scoring | [Recording, review and scoring](RecordingReviewScoring.md) |
 | Laser doesn't appear, holding/cooling, firmware, calibration | [Laser control and calibration](LaserControlCalibration.md) |
 | Ambiguous stone, captured stone, wrong/illegal placement | [Markers and physical corrections](Markers.md) |
+| Workflow stages, duration policies, timestamp schema and logging gaps | [Workflow timing contract](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md) — reviewed model with opt-in host adoption; use the checklist for integration and activation status. |
 | Build, targeted tests, source hash, repository workflow | [Development and validation](DevelopmentValidation.md) |
 | A specific failure or unresolved investigation | [Troubleshooting and known problems](Troubleshooting.md) |
 

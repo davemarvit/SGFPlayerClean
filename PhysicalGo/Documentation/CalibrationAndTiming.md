@@ -5,7 +5,9 @@ Updated November 23, 2026 (Pacific time). See the
 Physical Go 0.253 and v44 firmware are installed; the game is paused and a fresh
 full-board laser binding is not yet active. The staged calibration policy below
 is implemented and independently reviewed, with 117 offline checks passing,
-but **has not been physically validated**.
+and the resumed moved-setup run passed **37 physical staged prelight checks**.
+Full-board calibration remains incomplete: that run stopped at the separate
+120-second target correction limit while approaching T19. See the latest checklist.
 
 There are two initial calibrations: locating the printed board in the camera
 image, then learning where motor positions place the laser on that board.
@@ -23,10 +25,10 @@ aim during play currently does not rewrite the saved motor map.
 | **Per-move aiming and correction** | Where is the spot now, and what small correction reaches this target? | Each indicated move or marker. | The saved map supplies an initial aim; optical feedback corrects that indication. The saved map remains unchanged. |
 | **Stone recognition and game acceptance** | What stones are physically present, and does that evidence establish a legal move or completed cleanup? | During normal play, using admitted clear/dark observations. | Separate game-state evidence. Calibration success, a laser acknowledgement or a temperature reading cannot accept a stone or switch clocks. |
 
-Continuous map learning during gameplay is **deferred**, checklist item 18. It
-would use reliable measured poses and spots to improve later initial aims, with
-bounded, versioned updates and independent validation. Current corrective aiming
-should not be described as that learning feature.
+Continuous map learning during gameplay remains **inactive**, checklist item18.
+A separate reviewed offline prototype and cleared-board survey now exist; see
+[overnight results](OvernightSoftwareResults.md). Current corrective aiming does
+not update the active map.
 
 ## Longer static analysis, followed by a fresh clearance check
 
@@ -55,8 +57,8 @@ calibration-only change does not permit old hand or stone evidence during play.
 
 | Check or operation | Current limit | Meaning |
 |---|---|---|
-| Entire attended calibration run | **600 seconds by default**; configurable **60–900 seconds**. | Finite run deadline, not the maximum age of an image. This deadline was **not** the cause of the recent early stops. |
-| Correct one named calibration target | **120 seconds**; at most **35 corrections per navigation stage**. | Bounds a target search/correction attempt. Individual motor and evidence safeguards still apply throughout. |
+| Entire calibration run | **600 seconds by default**; configurable **60–900 seconds** normally. Explicit `--experimental-long-run` permits up to **7,200 seconds**. | Finite run deadline, not the maximum age of an image. This deadline was **not** the cause of the recent early stops. |
+| Correct one named calibration target | **120 seconds by default**; explicit experimental `--target-seconds 0` disables only this timer. At most **35 corrections per navigation stage** remains. | Bounds a target search/correction attempt. Individual motor and evidence safeguards still apply throughout. |
 | Refresh commissioning safety metadata | Poll every **20 ms**; cached validation allowance at most **250 ms**. | The allowance is shortened by the remaining app lease, all four actual 600-ms camera-age budgets and the run deadline. Invalid observations revoke permission immediately. It is not a 250-ms extension of those budgets. |
 | Actual camera evidence consumed by hardware | **600 ms** age budget. | Remains current for calibration clearance and the existing gameplay frame reader. The staged A exception is for geometric analysis only; B remains live evidence. |
 | New post-OFF reference frame | Bounded wait of **3 seconds**. | Waits for a genuinely newer qualifying frame; the wait does not make stale frames acceptable. |
@@ -119,3 +121,16 @@ Sources: laser [calibration plan](</Users/dave/Personal/Fab Files/DYNAMIXEL Go P
 [firmware](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/AimControl/AimControl.ino>),
 [app guidance](../Sources/PhysicalLaserGuidance.swift) and
 [capture evidence](../Sources/PhysicalCaptureGuidance.swift).
+
+## Longer experimental allowance (November 23)
+
+Dave explicitly authorized a retry lasting beyond30minutes while away for a
+couple of hours, with ordinary calibration unchanged. The separate branch
+`codex/calibration-experiment-budget` adds an explicit per-invocation experimental
+gate for `--seconds 7200 --target-seconds 0`. This disables only the per-target
+elapsed timer; it does not disable the finite overall run limit,35-correction
+cap, live camera/hand evidence, movement bounds, temperatures, serial/heartbeat
+checks or full-OFF cleanup. Timing options are recorded in the run result.
+Review/test and actual-run status belong to the checklist. The previous stopped
+spot was too close to an edge for the unchanged fresh-start margin; extra time
+is not a substitute for a valid starting spot.

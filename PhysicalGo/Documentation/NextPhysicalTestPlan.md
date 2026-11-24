@@ -3,31 +3,33 @@
 Prepared November 23, 2026. Start with camera recognition and fast AI, keeping
 the laser off. These tests do not depend on finishing laser calibration.
 
-**Build status: planned 0.258/build 259; not yet verified, installed or physically
-tested.** The intended consolidation includes the reviewed 0.255 recovery,
-calibration-progress and optional latency work plus the 0.257 ambiguity guard and
-fast-test idle-worker reuse. Named stone profiles, practice-position controls and
-bounded illegal-move feedback are conditional on final integration and review.
-Root must record the actual included features and verified source/build receipt
-here before installation. The [integration checklist](IntegrationChecklist.md)
+**Build status: 0.258/build 259 integration candidate; combined verification,
+installation and physical validation are pending.** Source through `9b51d45`
+includes the reviewed 0.255 recovery, calibration-progress and optional latency
+work, 0.257 ambiguity guard/fast-test idle reuse, named stone-set Setup controls
+and screen-only illegal-move feedback. The merged four-position practice loader provides empty Human Black, empty Human
+White, single capture and two-stone capture. Root must record the final source/build receipt before installation. The [integration checklist](IntegrationChecklist.md)
 is the current installation/status authority; installed app at preparation is
 0.253/build 254 with v44 firmware.
 
 ## Before starting
 
 **Do not press Resume on the current board.** The app is paused at five moves,
-with an unplaced AI Black stone; the physical board has seven centered Black
-calibration stones and one displaced White. These positions do not match.
+with an unplaced AI Black stone. Dave most recently reports **eight Black
+stones** on the physical board; the earlier retained photo showed seven Black
+and one displaced White. Current colors/positions have not been freshly verified.
+Neither report establishes agreement with the paused game.
 
 Root first backs up the failed five-move game, the earlier good three-move
 checkpoint, clocks and installed app, then installs and visually verifies the
-selected signed candidate. Deliberately choose an empty-board new practice game
-or a separate controlled practice position and arrange the physical board to
-match. Preserve the original games; clearing the real board must not silently
+selected signed candidate. The intended first test is a **new paused empty
+Human Black practice game**, after preserving the original. Deliberately clear
+the physical board to match; use other separate practice positions later. Preserve the original games; clearing the real board must not silently
 rewrite their histories. Confirm selected camera, grid and orientation.
 
-Leave the production laser bridge stopped and hardware off. A bridge setting
-used to publish passive camera evidence is not permission to start its driver.
+For this camera-only pass, turn **Connect laser bridge OFF** and leave the
+production bridge stopped and hardware off. The setting is currently ON for
+passive broker publication; turn it off before these tests.
 Start bounded diagnostic recording only when the actual tests begin.
 
 ## First five minutes — recognition and ambiguity
@@ -53,15 +55,18 @@ capture cases while the basic recognition sequence is failing.
 | Step | Action | Expected pass | Record / stop if |
 |---|---|---|---|
 | 5. Pause and warm AI | After an AI answer has completed and the board matches, Pause, wait, Resume, then play another ordinary move. Compare first and subsequent replies. | Paused elapsed balances stay fixed; no duplicate move or charged pause time. Completed idle fast-test worker may be reused. Active search still cancels when paused. | Record acceptance-to-answer windows separately for cold, uninterrupted warm and post-pause turns. A speed improvement has no predetermined passing duration. Stop on state/clock corruption. |
-| 6. Named stone profile — if included | In Setup → Camera & board → Stone set, use New set… / Edit… to create two names and switch between them. Leave thickness unknown, then optionally enter known Black/White mm; clear White back to Unknown. Reopen settings. | Selected name and per-color values persist; clearing White does not change Black. “Saved for calibration” does not change recognition, game or camera geometry. Unknown remains valid. | Record saved values and selection, including after relaunch when root schedules it. Stop on lost values, unintended game change or a claim that storing thickness activates optical correction. |
-| 7. Practice position — if included | Open a separate single-capture practice fixture and follow its board diagram; later open the two-capture fixture. | Original five-/three-move games and clocks remain recoverable. Practice has its own identity, four moves, Human Black, fast mode and matching physical setup before Resume. | Record original and practice identities. Stop if loading silently overwrites the preserved game or starts against a mismatch. |
+| 6. Named stone profile | In Setup → Camera & board → Stone set, use New set… / Edit… to create two names and switch between them. Leave thickness unknown, then optionally enter known Black/White mm; clear White back to Unknown. Reopen settings. | Selected name and per-color values persist; clearing White does not change Black. “Saved for calibration” does not change recognition, game or camera geometry. Unknown remains valid. | Record saved values and selection, including after relaunch when root schedules it. Stop on lost values, unintended game change or a claim that storing thickness activates optical correction. |
+| 7. Practice positions — after loader integration | In AI Setup or Play, open **Practice tests** and choose **Empty board — you play Black/White**, **Single capture**, or **Two-stone capture**. Confirm **Load test position**, match the displayed board, then Resume. Use **Return to saved game** while paused. | Original five-/three-move games and clocks remain recoverable. Each test has its own identity and starts paused. Empty tests use their named human color; capture tests have four moves and Human Black. Fast mode and board agreement precede Resume. Returning restores the preserved game paused. | Record original and practice identities. Stop if loading silently overwrites the preserved game or starts against a mismatch. |
 | 8. Single capture | In the single fixture play Black B19, leave White A19 briefly, then remove it. | Exactly one capture; next player's elapsed clock continues for a single prisoner. Positive empty evidence clears cleanup; White C19 remains. | Record prisoner set, history and clocks. Removal must not become a phantom move. |
 | 9. Two captures | In the two fixture play Black A17. Remove A18 first, leaving A19; then remove A19. On a fresh copy, reverse order. | Both clocks remain held while either prisoner remains; partial/out-of-order removal tracks the true remainder. Complete agreement releases cleanup. | Record both intermediate states. Hand entry without removal is not cleanup. Stop on premature release, wrong prisoner or lost state. |
-| 10. Illegal feedback — if included | Use an explicitly prepared suicide/ko example under the displayed rules. Remove the rejected stone and restore the legal position. | Specific feedback where supported, no illegal history entry or opponent reply; restoration clears the diagnostic. An ambiguous disk or pending prisoner is not mislabeled illegal. | Record rules, legal history, reason and restoration. Skip unsupported cases rather than inferring an illegal-move laser feature. |
+| 10. Screen-only illegal feedback | Use an explicitly prepared suicide/ko example under the displayed rules. Remove the rejected stone and restore the legal position. | Authoritative reason and remove × appear; prematurely removed ko stones get restore rings. No illegal history entry or opponent reply; restoration clears the diagnostic. Ambiguous disks and pending prisoners are not mislabeled illegal. | Record rules, legal history, reason and restoration. Skip unsupported cases rather than inferring an illegal-move laser feature. |
 
-The capture kit at source commit **f0009e9** supplies deterministic positions;
-the new UI is optional, not assumed from the kit's existence. Root must use its
-reviewed preserved-state loading path if no picker ships.
+The capture kit at source commit **f0009e9** supplies deterministic positions.
+Practice candidate `4c78d82` is implemented but pending merge and verification.
+The loader must pass combined persistence/return checks
+before shipping. Do not substitute ad hoc edits of the live game if it is omitted.
+The illegal-feedback integration adds no laser pattern or cue; its actual
+controller suite and combined acceptance still need to pass before installation.
 
 | Fixture | Initial Black | Initial White | Human Black plays | White prisoners |
 |---|---|---|---|---|
@@ -96,7 +101,7 @@ not a measured absolute temperature ceiling. A formal two-hour run is optional.
 
 ## Evidence and completion
 
-Root records the final version/source, included optional features, game identity,
+Root records the final version/source, integrated features, game identity,
 rules/colors, hint/profile settings and each step's pass/fail/skipped result.
 Keep bounded camera recordings and actual AI game/SGF, clocks and recognition
 trace together. Continuous “next game” recording arming is Local-only in the
