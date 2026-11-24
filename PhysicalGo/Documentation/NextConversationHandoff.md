@@ -1,34 +1,36 @@
 # Physical Go: current conversation handoff
 
-Operational update — November24,2026: **Three-point physical test completed;
+Operational update — November 24, 2026: **Wide three-point physical test completed;
 hardware fully OFF, no active launcher/driver or pending READY.** Successful run
-`three-point-20261124-135005-60909`, source `019b6d7` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-step-limit`, PTY42102 exited0.
-READY to confirmed full OFF: **30.064086s**; acquisition including first view:
-19.943720s; first-to-third observation:13.616027s. Camera preflight/operator waiting
-are excluded from READY-to-OFF timing. Final AimControl v44 OFF at
-`1795557035.856552`, controller_error/code null, no cleanup/source faults.
+`three-point-wide-20261124-135944-63058`, frozen source `b7183b1` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-wide`, PTY 8386 exited 0.
+READY-to-full-OFF **87.628823s**; acquisition 78.225342 s; first-to-third selected
+observation 72.048064 s. Preflight/operator waiting excluded. Final AimControl v44
+OFF at `1795557672.1890821`, controller_error/code null; no cleanup/source faults.
 
-The corrected18/10-count probes collected exactly three fresh actual spot/POSE
-pairs and two dark moves. The97-point map assisted direction only; no old samples
-entered the affine fit. The spots span less than0.4 cells: this is a local bootstrap,
-not a widely spread three-point tour. Agreement with9 nearby saved observations:
-median18.40px /0.347 cells, max21.46px /0.393 cells. Across all97 saved observations:
-median176.04px /4.983 cells, max528.15px /10.942 cells. These are inverse spot
-prediction errors at saved poses, not measured new landings or corrected accuracy.
-Dense97-model prediction of today's3 fresh spots: median5.063px, max5.108px.
+Actual fitting points near H3, D16, Q16: (6.70664,16.00862),(2.96008,3.01514),
+(14.72738,3.12532). Minimum pair separation 11.7678 cells; area 76.2427 square cells.
+Selected indices 0, 6, 11 among 12 new camera views; 11 dark movements. Only those three
+landings enter the affine fit; nine transit views are retained/excluded. Old map
+assisted direction only. This measures assisted three-wide-point acquisition, not
+cold startup. No intersection-centering was required.
 
-The new affine model extrapolates94/361 nominal predictions outside host bounds;
-none were commanded. No gameplay binding or firmware changed. Optical-feedback
-convergence and learning during play remain untested/unimplemented. Comparison
-and concise summary: `three-point-20261124-135005-60909/{three-point-comparison.json,summary.txt}`
-under `work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`.
+On the same 9 fresh guidance views withheld from both fits, median/max inverse spot
+prediction error: three-wide affine 0.742/0.940 cells (30.74/39.45px), dense 97 ray
+model 0.172/0.238 cells (6.54/8.38px). Against all 97 old measured samples, wide fit
+median 1.496 cells, max 14.984 cells; nearby-three fit median 4.983, max 10.942 cells.
+Wider coverage improved median error but leaves large extrapolation errors outside
+the triangle. These are predictions at recorded poses, not fresh first landings or
+corrected-target accuracy. All 361 nominal motor predictions are in bounds, but
+none were commanded under this new model; no gameplay binding/firmware changed.
 
-Prior attempt `three-point-20261124-133938-58346` stopped after one view in16.294547s
-when root's36-count fine probe exceeded firmware24-count pan limit. Dave power-cycled
-both supplies; OFF/status check proved latch cleared at1795556958.424495. All three
-camera checks passed afterward; Dave then gave fresh READY for the successful run.
-Both attempts and original97 observations remain preserved. Root solely owns hardware.
+Reports/comparison/raw evidence are in the run above under
+`work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`;
+read `summary.txt` or `three-point-comparison.json`. Earlier local three-point test
+completed in 30.064086 s; its failed predecessor and reset records remain preserved.
+The three local points were too close because root implemented independent motor
+probes. This wider repeat addresses that scope mistake. 11 local/wide tests plus
+51 base runner/model tests passed before the physical run. Root solely owns hardware.
 
 The saved checkpoint retains **97 observations and four fitting targets**:
 K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
