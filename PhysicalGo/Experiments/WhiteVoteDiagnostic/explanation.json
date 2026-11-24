@@ -1,0 +1,133 @@
+{
+  "nativeArchivedFootprintsExactlyReproduced": true,
+  "objectiveScoresExactlyReproduced": true,
+  "bodyMeasurementSource": "/Users/dave/SGFPlayerClean-worktrees/intersection-appearance-study/PhysicalGo/Experiments/WhiteCentering/frame697/measurements.json",
+  "bodyMeasurementSHA256": "15363ed8bc2d7849d4b5f87701aab974035f2eea91891b26da238c7c165e4c97",
+  "analysisSourceSHA256": "d39b408c4e4cc82350cf10aaa4b94e90d0597e137b1c031ab60ff04beacfb17a",
+  "cases": [
+    {
+      "point": 180,
+      "trace": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/native-white-votes-01/point-180-call-00.json",
+      "trace_sha256": "f1dae7f462b454b6ba032ed1331babd2fe4acc9ebad68c840a9c8206c9e79311",
+      "nativeFit": {
+        "center": {
+          "x": 9.08,
+          "y": 8.72
+        },
+        "col": 9,
+        "quality": 0.9211977186311787,
+        "radiusCol": 0.38,
+        "radiusRow": 0.35719999999999996,
+        "row": 9
+      },
+      "bodyCenter": [
+        9.089679518712646,
+        8.828086696181703
+      ],
+      "nativeScore": {
+        "score": 0.9211977186311787,
+        "insideFraction": 0.9961977186311787,
+        "ringFraction": 0.10714285714285714,
+        "bodySamples": 263
+      },
+      "sameSmallDiskAtBodyCenter": {
+        "score": 0.7408269961977186,
+        "insideFraction": 0.8783269961977186,
+        "ringFraction": 0.19642857142857142,
+        "bodySamples": 263
+      },
+      "largerBodyDiskAtBodyCenter": {
+        "score": 0.7223476297968398,
+        "insideFraction": 0.7223476297968398,
+        "ringFraction": 0.0,
+        "bodySamples": 443
+      },
+      "visibleCore": {
+        "upper": {
+          "samples": 147,
+          "whiteVoteFraction": 1.0,
+          "colorCriterionVotes": 0,
+          "brightnessCriterionVotes": 147,
+          "medianCorrectedBrightnessDifference": 0.15511982570806093,
+          "medianCurrentColorMagnitude": 0.054887818067782125,
+          "medianExpectedWoodColorMagnitude": 0.01197931214528894
+        },
+        "lower": {
+          "samples": 154,
+          "whiteVoteFraction": 0.7337662337662337,
+          "colorCriterionVotes": 0,
+          "brightnessCriterionVotes": 113,
+          "medianCorrectedBrightnessDifference": 0.14291938997821346,
+          "medianCurrentColorMagnitude": 0.06498800503916413,
+          "medianExpectedWoodColorMagnitude": 0.013542827264441957
+        }
+      },
+      "diagnosticImage": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/native-white-votes-01/point-180-call-00-diagnostic.png"
+    },
+    {
+      "point": 275,
+      "trace": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/native-white-votes-01/point-275-call-01.json",
+      "trace_sha256": "42833baaa97d3de64ed96d7b9dad5e55c7ac22588e9a6257e0a5765620b17a34",
+      "nativeFit": {
+        "center": {
+          "x": 9,
+          "y": 14.28
+        },
+        "col": 9,
+        "quality": 0.915054503413345,
+        "radiusCol": 0.36,
+        "radiusRow": 0.3384,
+        "row": 14
+      },
+      "bodyCenter": [
+        9.056281206944849,
+        14.389881946707371
+      ],
+      "nativeScore": {
+        "score": 0.915054503413345,
+        "insideFraction": 0.9288702928870293,
+        "ringFraction": 0.019736842105263157,
+        "bodySamples": 239
+      },
+      "sameSmallDiskAtBodyCenter": {
+        "score": 0.6434265580268663,
+        "insideFraction": 0.7907949790794979,
+        "ringFraction": 0.21052631578947367,
+        "bodySamples": 239
+      },
+      "largerBodyDiskAtBodyCenter": {
+        "score": 0.5792396233705489,
+        "insideFraction": 0.582392776523702,
+        "ringFraction": 0.0045045045045045045,
+        "bodySamples": 443
+      },
+      "visibleCore": {
+        "upper": {
+          "samples": 145,
+          "whiteVoteFraction": 0.9448275862068966,
+          "colorCriterionVotes": 0,
+          "brightnessCriterionVotes": 137,
+          "medianCorrectedBrightnessDifference": 0.14901960784313728,
+          "medianCurrentColorMagnitude": 0.05389991384283564,
+          "medianExpectedWoodColorMagnitude": 0.011172427407329974
+        },
+        "lower": {
+          "samples": 154,
+          "whiteVoteFraction": 0.525974025974026,
+          "colorCriterionVotes": 0,
+          "brightnessCriterionVotes": 81,
+          "medianCorrectedBrightnessDifference": 0.12135076252723304,
+          "medianCurrentColorMagnitude": 0.0665058682265805,
+          "medianExpectedWoodColorMagnitude": 0.012570400154615469
+        }
+      },
+      "diagnosticImage": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/native-white-votes-01/point-275-call-01-diagnostic.png"
+    }
+  ],
+  "limits": [
+    "Two White stones in one frame; no general classifier validation.",
+    "Upper/lower masks use a conservative ellipse around the independently measured visible-body center, not a board-contact estimate.",
+    "Larger-body score uses radius.46/aspect1.06 as a diagnostic counterfactual, not an optimized replacement.",
+    "No threshold, live model, camera, laser, grid or game state changed."
+  ]
+}
