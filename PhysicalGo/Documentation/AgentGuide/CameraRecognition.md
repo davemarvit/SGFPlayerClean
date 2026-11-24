@@ -111,6 +111,12 @@ combination. The example is documentation only; no classifier is activated.
 
 ## Parallax, stone-set profiles and spatial assignment
 
+The November24 [passive-play height audit](../../Experiments/PassiveStoneHeight/README.md)
+explains what ordinary placement offsets and shape can identify, reproduces a
+mean-offset versus spatial-field held-out comparison, and proposes placement-level
+shadow evaluation. It has no runtime collector or correction; physical thickness
+remains distinct from effective optical height.
+
 The November16 [parallax study](../OfflineHandParallax-2026-11-16.md) is offline;
 board-plane alignment does not itself compensate raised-stone height. A fitted
 center can also be biased relative to the visible body, independently of physical

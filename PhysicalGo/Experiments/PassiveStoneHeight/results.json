@@ -1,0 +1,129 @@
+{
+  "status": "offlineDiagnosticOnly",
+  "physicalThicknessIdentified": false,
+  "grantsMotion": false,
+  "controlsPassed": 8,
+  "colors": [
+    {
+      "color": "black",
+      "source": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/black/results.json",
+      "sourceSHA256": "63c45b4bfba10d84bbf19d93d0210a75e1a04d89645a866c5d62ef8782a9093d",
+      "independentCenteredPositions": 6,
+      "fit": {
+        "k": 0.0015008775807824521,
+        "center": [
+          9.0,
+          9.0
+        ],
+        "meanOffset": [
+          -0.005765500848753343,
+          -0.0406836109479651
+        ],
+        "spatialLeverage": 360.0
+      },
+      "heldOut": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "uncorrected": 0.13989804978981088,
+          "meanOffsetOnly": 0.09974049778463735,
+          "spatialField": 0.09149128674964689
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "uncorrected": 0.05987814318429256,
+          "meanOffsetOnly": 0.05148640973256835,
+          "spatialField": 0.05192683432581074
+        }
+      ]
+    },
+    {
+      "color": "white",
+      "source": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/white/results.json",
+      "sourceSHA256": "6e2596248658c1ddfda3de9f3ae66cbe33856562a95bfbbdc8a3acecc7348ce6",
+      "independentCenteredPositions": 6,
+      "fit": {
+        "k": 0.005686248153265913,
+        "center": [
+          9.0,
+          9.0
+        ],
+        "meanOffset": [
+          -0.02999997390268555,
+          -0.14121061003644322
+        ],
+        "spatialLeverage": 360.0
+      },
+      "heldOut": [
+        {
+          "point": [
+            9,
+            3
+          ],
+          "uncorrected": 0.11576805528077903,
+          "meanOffsetOnly": 0.031029280880135846,
+          "spatialField": 0.06497499555553152
+        },
+        {
+          "point": [
+            9,
+            15
+          ],
+          "uncorrected": 0.10180617454768472,
+          "meanOffsetOnly": 0.043291327967084674,
+          "spatialField": 0.009411395849193496
+        }
+      ]
+    }
+  ],
+  "illustrativeEllipsoidOnly": [
+    {
+      "angleFromBoardNormalDegrees": 0,
+      "diameterPixels": 40,
+      "diameterMm": 22,
+      "thicknessMm": 8,
+      "minorDiameterChangeForOneMmExtraThicknessPixels": 0.0
+    },
+    {
+      "angleFromBoardNormalDegrees": 35,
+      "diameterPixels": 40,
+      "diameterMm": 22,
+      "thicknessMm": 8,
+      "minorDiameterChangeForOneMmExtraThicknessPixels": 0.2723113738443672
+    },
+    {
+      "angleFromBoardNormalDegrees": 55,
+      "diameterPixels": 40,
+      "diameterMm": 22,
+      "thicknessMm": 8,
+      "minorDiameterChangeForOneMmExtraThicknessPixels": 0.7193172450170815
+    }
+  ],
+  "illustrativePlacementCountForOneMmEffectiveHeightSE": [
+    {
+      "componentScatterCells": 0.05,
+      "cameraHeightRowPitches": 26,
+      "assumedRowPitchMm": 23,
+      "rmsSpreadCells": 6,
+      "independentPlacements": 25
+    },
+    {
+      "componentScatterCells": 0.1,
+      "cameraHeightRowPitches": 26,
+      "assumedRowPitchMm": 23,
+      "rmsSpreadCells": 6,
+      "independentPlacements": 100
+    }
+  ],
+  "limitations": [
+    "Current-grid body estimator only; prior static centered scenes, not causal play replay.",
+    "OLS field is diagnostic and must not waive placement flags or train from pending moves.",
+    "Shape calculation assumes an ellipsoid and orthographic projection, not measured Go stone shape.",
+    "Placement-count calculation excludes systematic placement, grid, shape and camera errors."
+  ]
+}
