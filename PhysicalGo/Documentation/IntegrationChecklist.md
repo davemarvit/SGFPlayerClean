@@ -8,6 +8,17 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Latest calibration stopped safely after three of five fit targets.** Fresh
+  setup run `moved-setup-full-calibration-01` reached K10/A19/T19 with errors
+  .232/1.166/1.278px, then lacked local printed-line evidence near N1 in a fresh
+  prelight image. This was not a timeout or motor fault. Full OFF confirmed
+  Unix1795497537.2905838; process exited and serial locks are free. Source and
+  all six saved game files unchanged; maximum motor readings14/15°C. No new
+  binding. A later dark image passes all checks, supporting fragile local
+  contrast; exact failed image was not retained. Fast author is implementing
+  bounded fresh-image retry for this specific inconclusive result plus exact
+  failure-frame retention, with independent review. Hardware remains OFF.
+  This supersedes the pending movement question and running status below.
 - **Installed and running: Physical Go 0.258/build 259; firmware remains v44.**
   Compiled source `87fc4a9`; signed package independently verified before installation.
   [Build and scoped acceptance](IntegratedPhysicalTestCandidate.md) records the

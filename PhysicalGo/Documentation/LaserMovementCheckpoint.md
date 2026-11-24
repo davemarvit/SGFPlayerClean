@@ -1,5 +1,16 @@
 # Laser movement checkpoint — November 23, 2026
 
+**Current: fresh calibration stopped after K10/A19/T19; hardware fully OFF.**
+The moved setup was reverified and Dave saw/heard the stationary check. Fresh
+run `moved-setup-full-calibration-01` then reached three fit targets within
+.232/1.166/1.278px. A later prelight image lacked local printed-line evidence
+near N1; this was not a timeout or controller fault. Full OFF1795497537.2905838,
+process reaped, source/game hashes unchanged, no binding. Later dark image
+passes; exact rejected image was not saved. Narrow bounded reobservation and
+rejection retention are being implemented/reviewed offline. See latest issue
+history and checklist. Everything below is historical context.
+
+
 **Latest state — setup image changed; hardware fully OFF.** Reviewed recovery
 host `7bee8a4` passed 66 tests, but observed-validation-02 stopped before arming
 or light. A printed/native corner error of4.0109px was the first rejection.

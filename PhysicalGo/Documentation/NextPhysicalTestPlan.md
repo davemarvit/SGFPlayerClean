@@ -16,7 +16,8 @@ and the three-move checkpoint are preserved; the practice backup is byte-exact.
 Load and relaunch persistence have been checked. Do not Resume an old position
 unless the physical board has deliberately been restored to match it.
 
-**Connect laser bridge is OFF; production driver stopped; hardware OFF.** Direct
+**Connect laser bridge is ON for passive camera publication and OFF requests;
+production driver stopped; hardware OFF.** Direct
 webcam preflight passed on the correct camera. Start bounded diagnostic recording
 when the physical test begins; images and warning feedback are currently off.
 Bounded native latency logging is on for this launch. Screen captures are not
@@ -77,8 +78,10 @@ a phantom removal move.
 
 ## Laser session — blocked until recovery and calibration qualify
 
-The latest laser run stopped on predicted-versus-settled response disagreement,
-not a timeout. All **nine held-out accuracy checks** remain pending; there is no
+The latest fresh laser calibration reached three fitting targets, then stopped
+on insufficient local grid-line evidence in a prelight image. A narrow bounded
+image-reobservation fix is under offline review. All **nine held-out accuracy checks**
+for this new setup remain pending; there is no
 qualified new gameplay binding. Review [LaserMovementCheckpoint.md](LaserMovementCheckpoint.md)
 before resuming. A new app version does not solve that steering problem.
 

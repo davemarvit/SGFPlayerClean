@@ -4550,3 +4550,65 @@ rejected PNG/metadata/reason are saved only after confirmed OFF and quiescence;
 capture/disk failures remain secondary. No thresholds, retries or hardware
 behavior changed. The earlier missing frame cannot be recovered retrospectively.
 Hardware remains OFF and the equipment-movement question remains pending.
+
+
+## November 23 — new setup observed; fresh calibration running
+
+Dave could not rule out movement, then confirmed the housing aimed at the board
+and that he could watch. Native Check alignment passed. Root preserved the
+prior empty reference and direct webcam metadata/image before checking. No old
+geometry was reused or threshold relaxed.
+
+Fresh initial-only run moved-setup-initial-spot-01 using reviewed host4e1a61b
+passed: pose1860/2292, new-grid coordinates4.399779/7.052266, interior margin
+satisfied. All seven images found the spot; root inspected its direct webcam
+image, and Dave confirmed both beep and spot. Setup3ef3a3070bb19b28. Full v44 OFF
+1795497259.6732147; no commanded travel, no controller error. All six saved game
+files remain byte-identical. Raw report SHA256
+2d4df1d468ca222b383bc20b2d1a8c1a54d54bfe982af4c917e374582f86845d.
+
+Root started moved-setup-full-calibration-01 using the same reviewed source,
+fresh reference/model path, experimental7200s total and no per-target time cap,
+10s camera-age/.5s permit-cache settings. Five fitting targets then nine separate
+validation targets; original physical/camera/thermal guards remain. No old fit
+or observed-continuation flags supplied. The recent bounded remeasurement path
+is observed-full-only; fresh calibration does not use the old global/local
+prediction disagreement gate because its model is fitted after measurements.
+Root is sole serial owner; production driver remains stopped and the app paused.
+This run is in progress, not a calibration pass or active gameplay binding.
+Dave asked about a new conversation afterward: prepare a durable completion
+checkpoint and test handoff after the active run shuts down.
+
+
+## November 23 — fresh setup reached three fit targets; weak boundary image stopped run
+
+Fresh run moved-setup-full-calibration-01 on4e1a61b reached K10(.2315px),
+A19(1.1657px), T19(1.2777px), then stopped while heading toward T1. Exact error:
+`Printed boundary lacks line evidence: axis=1, fixed=12, target=18, samples=2`.
+This is insufficient local printed-line evidence near N1, not a timeout or
+controller fault. Last actual pose2297/2401 was not illuminated; last observed
+pose2303/2408 was grid16.491354/1.547468. No SWEEP followed the rejected proof.
+Full v44 OFF1795497537.2905838; process reaped, serial/driver locks free.
+38 optical samples and1860 thermal pairs retained, maxima14/15C. Source inventory
+and all six saved game files unchanged. No model/binding qualified or activated.
+Report SHA2565a4ae8689bde95e80da9a8ab2330855bfda5bb892b19a680d89ca16f30d34ac0.
+
+Immediately preceding geometry A(frame55768) passed338inliers/72boundarypoints,
+max movement.1887px, ECC.99720. Fresh B then lacked three usable local profiles
+(two found). The exact rejected B was not retained: verification raised before
+its event/evidence capture. Startup-frame preservation does not cover this later
+phase. Root saved a separate later dark image56215 in moved-setup-post-stop-dark-01;
+it passes B against the original reference with72points,max displacement.4482px,
+ECC.99714 and clear foreground. Its N1 line has only three usable profiles,
+weakestcontrast8.211 against threshold8 (reference had four,weakest14.42).
+Supports fragile local contrast, not persistent geometry change; exact transient
+cause remains unknown. Later image is not the missing failed image.
+
+Fast author now owns an isolated typed insufficient-line-evidence B retry and
+bounded exact A/B rejection retention. Proposal preserves the existing three
+attempt/two-second B budget, original A/run expiry and complete positive proof
+before light; no movement, extra PREPARE, or old evidence re-dating. Generic
+movement/identity/foreground/controller failures remain terminal. Independent
+architecture/dark review and tests required before a new physical run. Hardware
+stays fully OFF while this software work proceeds. New-chat handoff is prepared
+but setup is not complete; finalize outcome and ownership before transfer.
