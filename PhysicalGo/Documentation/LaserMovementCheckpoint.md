@@ -1,6 +1,17 @@
 # Laser movement checkpoint — November 23, 2026
 
-**Current followup — stationary position verified:** installed Physical Go
+**Current followup — recovery and A10 passed, next settlement stopped:**
+Hosta84faa5 requalified fresh position/two-axis response and measured A10 within
+1.111px. PlannedGOTO1860/2294 passed2.919px prediction agreement; actual1860/2292
+failed3.450899px. Last optical pose1832/2290; the final pose has not been observed.
+FullOFF1795493870.3991501, maximum temperatures14/15°C, no controller/timingfault,
+source and saved games unchanged. Eight targets not reached; no binding.
+Settlement-aware planning is now being repaired. The observed-anchor recovery
+code itself is implemented and physically passed; fullboard validation is incomplete.
+Report: laser-position-recovery-20261123/observed-validation-01/result.json,
+SHA256 `071dc8ad5fe5f39f8b537ca97cdae9494ded5b88d8242172c8c424aed1d999b0`.
+
+**Earlier followup — stationary position verified:** installed Physical Go
 0.258/build 259 and v44 completed `initial-spot-01` using reviewed host42e5022.
 The direct webcam saw the spot at held pan1681/tilt2287, pixel592.132/487.443 in
 that run's frame, near the image-left board edge. Full OFF confirmed at Unix
@@ -39,6 +50,32 @@ session; camera, hand, stone, screen guidance and clock checks can proceed with
 the laser off. The [integration checklist](IntegrationChecklist.md) remains the
 authority for subsequent changes. This page preserves the exact laser stopping
 point, rather than granting permission to resume from old observations.
+
+## Recovery policy review — November 23 (implemented and physically entered)
+
+Independent firmware and architecture reviews separated two different policies.
+The established host42e5022 policy checks the actual held pose, the existing
+strict 3px steering agreement and 5px endpoint margin, fresh A/B camera evidence,
+current lease/hand/identity and firmware/thermal supervision. It does not claim
+that every position permitted by the firmware holding guard stays on the board.
+
+A proposed stronger policy bounds the entire possible holding region. Offline
+negative witnesses show that a pose-centered ±13-count region cannot fit at any
+of the four edge targets, even with the frozen model treated as perfect. Knowing
+firmware anchors and using ±6 still fails the 5px margin at three edge targets.
+These results invalidate that additional containment guarantee; they do not
+invalidate ordinary baseline calibration. Dark travel is separate from beam
+admission and keeps mechanical, command, session and firmware guards.
+
+Root selected explicit observed-anchor bootstrap: source-bound registration,
+fresh same-session position and two measured directions. Strong region checks
+can protect this interior qualification. An explicit, reported transition may
+then enter the established ordinary nine-target validation policy, with no
+change to its 3px steering rule or frozen fit. Qualification alone grants no
+accuracy approval or gameplay binding. The source passed34 independently rerun tests; the physical run above passed
+requalification and entered this baseline policy before the next planning stop. No firmware change is required
+merely to preserve the baseline policy. A future observation-only recovery after
+steering disagreement is a separate proposal, not an enabled automatic retry.
 
 ## Installed system and historical pilot state
 

@@ -36,16 +36,19 @@ offline verification, installation and physical validation.
   Profile New set/Cancel was checked without saving invented measurements. No
   parallax, boundary-center correction, adaptive map learning or illegal laser
   pattern is activated. [Ordered test plan](NextPhysicalTestPlan.md).
-- **Fresh laser position measured; movement recovery is still being implemented.**
-  `initial-spot-01` verified actual held pose pan 1681 / tilt 2287 and the spot
-  inside the board near the webcam-image left edge. Camera evidence is sufficient
-  for Dave; he heard the beep. Full OFF confirmed at Unix `1795492387.674151`.
-  This establishes observed position, not a qualified steering derivative or a
-  gameplay binding. All nine held-out accuracy checks remain pending. The earlier
-  stop was a 3.172px disagreement between predictions, not a timeout. Authors
-  `fast_calibration` and `adaptive_calibration` are implementing explicit camera
-  stream re-registration and bounded inward probes; `dark_commissioning` reviews
-  the executable path. [Laser checkpoint](LaserMovementCheckpoint.md).
+- **Live recovery passed; first edge target passed; planner still needs repair.**
+  Reviewed/pushed host `a84faa5` registered the earlier stationary observation,
+  re-observed current position and qualified two-axis steering (one permitted
+  extra tilt probe). A10 passed at 1.111px. Toward K19, planned pose1860/2294
+  passed at 2.919px prediction disagreement; actual settlement1860/2292 failed
+  at 3.450899px. This is disagreement between predictions, not a measured aiming
+  error. No camera observation was taken at the final pose. Full OFF confirmed
+  at Unix `1795493870.3991501`, no controller/thermal/timing fault. Maximum motor
+  readings14/15°C; all six saved game files unchanged. No binding activated.
+  All nine targets must be measured in a completed qualification run; eight were
+  not reached here. `adaptive_calibration` owns settlement-aware planning,
+  `fast_calibration` runner integration, `dark_commissioning` independent review.
+  [Laser checkpoint](LaserMovementCheckpoint.md).
 - Rollback and fresh stopped-app data backup:
   `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
   Return from practice before a downgrade where possible; otherwise close the app
@@ -61,7 +64,7 @@ selecting or saving a stone profile does not activate a correction.
 |---|---|---|
 | Calibration optimizations and timing logs | Root, component authors and independent reviewers | Integrated on laser `codex/workflow-review-integration`, runtime3498fb2/documentation42e5022. All183 host/calibration/workflow tests plus38 model/importer tests pass. Native tracing remains opt-in; no hardware run or speed claim. |
 | Historical timing importer | `workflow_timing_model` | Reviewed importer retains uncertain/missing boundaries; three actual reports exported. Included in integrated candidate. |
-| Laser steering/settlement | `fast_calibration`, `adaptive_calibration` | Fresh stationary optical position passed at1681/2287. Generic requalification across app camera-stream restart and bounded inward probes are in progress, independently reviewed by dark_commissioning. No new steering qualification or gameplay binding; nine accuracy targets pending. |
+| Laser steering/settlement | `fast_calibration`, `adaptive_calibration` | Generic observed-anchor requalification implemented/reviewed a84faa5;34 tests pass. Physical fresh position/two-axis response and A10 accuracy pass. Repeat nominal-versus-settled prediction disagreement stopped next leg; settlement-aware goal shrinking in progress. No binding. |
 | Ambiguous intersection assignment | `marker_scenarios`, `contract_review`, Root | Guard installed0.258;52 dedicated checks and related regressions pass. Same-camera negative photos saved; physical retest pending. Correct color, wrong intersection was the defect. |
 | Stone-set profiles | Root, component authors/reviewers | Installed0.258; named picker/editor/storage tested. No optical correction activated. |
 | Parallax/appearance estimate | `intersection_appearance`, `architecture_review` | Eight centered White and eight centered Black samples analyzed; six fitted/two held out per color. Reviewed only for unvalidated optical-candidate storage. Physical thickness remains unidentified; fresh Black/White negatives remain displaced after frozen correction; same-view grid consistency within0.54px. Independent setup pending. Native White-fit diagnosis independently reviewed at `e6a6e85`: exact pixel-vote and complete optimizer replay; no production optical fix. |
@@ -96,7 +99,7 @@ selecting or saving a stone profile does not activate a correction.
 |---|---|---|
 | 0 | Faster AI test mode | Installed in0.258, eight visits/no HumanSL. Completed idle worker now survives ordinary Pause/Resume; hard faults, active searches and shutdown cancel it.67 final targeted checks pass. Offline real-engine cold/warm was8.275s/0.114s before the constructor-only test isolation change; no new physical speed claim. |
 | 1 | Resolve motor movement faults | Unresolved physical interpretation. Untouched, released base reported raw speed +2 in 2 of 15 readings; encoder position varied one count. A dark FASTARM probe stopped before HOLD or movement. During endurance-02, 8,429 held sample pairs had speeds only 0/1; base encoder stayed 2422 and tilt ranged 2143–2144. These are different conditions, not an event-rate estimate or proof of no movement. Prepare an attended optical comparison; guards unchanged. |
-| 2 | Finish laser calibration | Fresh stationary optical position verified at1681/2287; completed fully OFF. Generic requalification and bounded steering recovery remain in progress after the3.172px prediction disagreement. All nine held-out accuracy targets remain; no gameplay binding activated. |
+| 2 | Finish laser calibration | Generic recovery physically passed; A10=1.111px, remaining eight not reached. Next coarse settlement1860/2292 failed3.450899px prediction agreement despite nominalgoal2.919px. FullOFF confirmed. Settlement-aware planner repair pending; complete nine-target qualification still required, no binding. |
 | 3 | Physically validate hand clearance | Two attended hand/slow-withdrawal cycles and ordinary live placement acceptance passed November 23. The stone did not leave a false hand flag. Hand-triggered beam shutoff remains untested; no exact withdrawal latency claimed. |
 | 4 | Test moves and placement | Camera/AI ordinary placement passed Black72 → White180 → Black300 exactly once; ambiguity failed and narrow fix awaits physical retest. Laser indication and broader clock/capture cases remain pending. |
 | 5 | Test captures | Physical tests pending. Verify delayed, single, multiple and partial removals and the intended clock policy. Offline tests preserve a legitimate cleanup-plus-reply while rejecting a remaining prisoner mistaken for a new move. |

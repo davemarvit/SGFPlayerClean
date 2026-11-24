@@ -4425,3 +4425,41 @@ owns generic source-bound initial-spot registration/requalification,
 adaptive_calibration owns conservative inward/probe planning, and
 dark_commissioning independently reviews command envelopes. Frozen95-sample map
 remains unchanged; no gameplay binding or adaptive correction activated.
+
+
+## November 23 — observed-anchor recovery passed, repeated settlement planning defect
+
+Hosta84faa599f64fcf33942071abeecdb96830e6e0c committed/pushed with independent
+34-test pass using retained fixtures (no skips). Generic clean initial-spot
+registration preserves original reference/model and new epoch provenance. Root
+ran explicit --observed-validate-full with7200s experiment allowance, targettimer0,
+10s camera/.5s cache; ordinary gameplay policies unchanged. Direct webcam empty
+preflight age.166s; currentepoch59B7F169-A2A9-4B8C-954D-B8910738AA23, handfalse,
+aligned, OFF/no-target request. No competing serialowner. No desktopimage used.
+
+observed-validation-01 re-observed1681/2287 and qualified measured two-axis
+steering. One typed additional5count tilt probe completed an initially weak
+independent basis; optical checks passed without threshold change. Explicit
+reported transition then entered existing baseline monitored-pose validation;
+no claim that every firmware-permitted hold position remains insideboard.
+A10 measured1.111477px and passed. Next route towardK19 stopped: lastoptical
+1832/2290 atboard3.73128/7.31161. PlannedGOTO1860/2294 had2.919063px agreement;
+actualSETTLED1860/2292 failed3.450899px, allendpointmargins195–200px. This number
+is disagreement between two predictions, not measured aimingerror. No optical
+measurement exists atfinalsettlement. Stop was not a timeout/controllerfault.
+
+Exactv44OFF1795493870.3991501, processreaped/noowner.1155thermalpairs, maxima
+14/15C. Sourceinventory unchanged; sixAIgamefiles byte-identical. No binding.
+Oneofnine targets passed thisrun; complete futurequalification stillneedsallnine.
+RawreportSHA071dc8ad5fe5f39f8b537ca97cdae9494ded5b88d8242172c8c424aed1d999b0;
+artifacts laser-position-recovery-20261123/observed-validation-01 and derived
+observed-validation-01-summary.json. Existingrawreports/reference/model untouched.
+
+Next: adaptive_calibration owns proactive settlement-consistency goal shrinking,
+fast_calibration owns isolatedrunnerintegration, dark_commissioning reviews
+actualfirmware finalregions/primewrites. Keep actual3px/5px checks and distinguish
+darktravel from illumination; do not add impossible wholehold containment as an
+unstated prerequisite. Architecture review separately considers bounded static
+optical requalification after a healthy predictive-disagreement stop, so camera
+feedback may recover without treating an inaccurate prediction as a physical
+miss. This is a proposal, not an enabled controllerfaultretry or guard waiver.
