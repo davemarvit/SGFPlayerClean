@@ -57,8 +57,10 @@ explicit measured flush bound. See [Laser control](LaserControlCalibration.md).
 
 ## Freshness and optional difference analysis
 
-Metadata currently waits for the exact frame's PNG publication, even when the
-host refresh reads only JSON. Background execution and latest-only work do not
+Installed 0.261 publishes `safety.json` separately from the image-backed manifest.
+The paired host uses it only for clearance supervision; optical reads still need
+their own matching fresh pixels. [The contract and tests](../CameraSafetyDelivery.md)
+cover unknown/stale/malformed metadata, unsafe fallback and stalled image writes. Background execution and latest-only work do not
 guarantee a fresh frame within 600 ms. [Current timing evidence and next steps](../CameraFreshnessReliability.md)
 separate analysis, IO and handoff failures. Regional/frame-difference work remains
 an offline optimization candidate; unchanged appearance cannot create fresh hand

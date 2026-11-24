@@ -11,21 +11,21 @@ and running process IDs are not current operating instructions.
 
 ## Current checkpoint
 
-**Installed: Physical Go 0.260/build 261 and AimControl v44. Hardware driver
+**Installed: Physical Go 0.261/build 262 and AimControl v44. Hardware driver
 stopped; app closed; board empty. The setup moved after calibration and requires
 requalification before laser use. The 600 ms camera-freshness problem is open.**
 
 | Item | Verified record |
 |---|---|
-| App | `/Users/Dave/Applications/Physical Go.app`, signed 0.260/build 261 |
-| App source | `/Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery`, branch `codex/gameplay-ui-and-delivery`; runtime `87200da`, compiled after `35c14a1` |
-| Embedded source hash | `afb2e4761305061c689fa07429f8cd893a9dbe22f66aa1e0fe38789384cc0c13` |
-| Installed executable SHA-256 | `43d8b24b2d9bf8671a136ed818b7c7ed70488351fb518685d0208b522fcac91d` |
-| Coordinated host | `/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-session-source`, branch `codex/gameplay-session-admission`, pinned `1ae717e2c693aeca441325909e7634c906416be3` |
+| App | `/Users/Dave/Applications/Physical Go.app`, signed 0.261/build 262 |
+| App source | `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`; runtime `9c516f1` |
+| Embedded source hash | `79f2ec079f3d116af313d612b4ad4a8f71ddb569211cce14f4c6f4a0569a30d7` |
+| Installed executable SHA-256 | `b381f986a7a5e513bd77428adb28f4c7916b889c039556c3e0e577a4c3a7fee3` |
+| Coordinated host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848` |
 | Firmware | AimControl v44; documentation work does not upload firmware |
 | Last physical full OFF | Unix `1795516412.7072308`: beam off and motor bus power released; driver PTY 47092 exited 0, serial port subsequently free |
 | Launch guard | `gameplay-activation-20261124/gameplay-requalification-required.json` blocks `work/PhysicalGo-Play.command` until current geometry, attended optical qualification and binding review |
-| Rollback | Signed 0.259 bundle in `gameplay-activation-20261124/overnight-0260`; preserve the saved game and paired host compatibility when rolling back |
+| Rollback | Signed 0.260 bundle in `work/camera-safety-delivery-20261124`; preserve the saved game and paired host compatibility when rolling back |
 
 The canonical app and laser repositories contain current documentation but older
 runtime source than these isolated worktrees. **Do not build or launch the canonical
@@ -34,21 +34,25 @@ old build receipts and pinned launchers must retain their provenance.
 
 ## Verification and limits
 
-- Exact integrated app suites passed: 184 guidance-continuity, 345 monitored-standby,
-  283 AI-laser lifecycle, 49 broker and 680 coordinate checks. Standalone 43 atomic
-  IPC checks, 13 move-click checks and stalled file-exchange tests passed.
-- Host passed 134 gameplay and 149 bridge tests. The latter used legacy optical
-  fixtures through a temporary read-only link, removed afterward. Mandatory fresh
-  app → host → app acceptance passed using 68 actual host statuses.
-- Installation/signature and first-launch accessibility smoke passed. The paused
-  game, large AI clocks, Resume control, independent click option and Test click
-  were present. No audio or hardware test was performed; app quit afterward.
-- Game and binding bytes were unchanged. Reference image/calibration content was
-  unchanged; normal archive saving updates `savedAt`, so the entire reference
-  plist is not byte-identical after launch.
-- Build/test/install/AX receipts are in
-  [overnight-0260](</Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-activation-20261124/overnight-0260>). These are **not** a physical gameplay
-  endurance pass. AirPod Pro 3 audibility and 0.260 live recovery remain unverified.
+- 0.261 publishes checked hand/alignment metadata independently of PNG delivery;
+  host `04b76c7` consumes it without borrowing timestamps/verdicts for old pixels.
+  No camera/status/lease/thermal threshold changed. This removes one dependency,
+  not proof that all 600 ms interruptions are solved.
+- Final native safety suite passed 26 checks including >600 ms image stalls,
+  bounded pending work, epoch reset, write failure and actual Swift exports.
+  Integrated broker 49, monitored standby 345, guidance continuity 184 and AI-laser
+  283 checks passed. Host 15 safety/wire, 134 gameplay and 149 bridge tests passed.
+  Mandatory fresh app → host → app acceptance passed with 68 generated host statuses.
+- Optimized build and strict signature verification passed. Signed 0.261/build 262
+  is installed with matching binary/source hashes and a signed 0.260 rollback.
+  App was **not launched** after this install. Saved game hash is unchanged;
+  no camera, desktop screenshot, audio, serial or hardware operation occurred.
+- Earlier 0.260 first-launch AX smoke verified paused game, large clocks and click
+  controls; it is not a 0.261 first-launch or physical validation result.
+- Receipts/logs/actual wire messages: [camera-safety-delivery-20261124](</Users/Dave/Documents/SGF PLayer/work/camera-safety-delivery-20261124>).
+  [Implementation and test details](CameraSafetyDelivery.md) include the separate
+  empty-board regional-change audit. Live recovery and AirPod Pro 3 audibility
+  remain unverified on the latest version.
 
 ## Preserved game and equipment
 
@@ -74,11 +78,11 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 | 0 | Faster AI test mode | Installed: eight visits/no HumanSL; only completed idle workers survive ordinary Pause/Resume. Active searches and faults cancel. Measure cold/warm physical replies separately. |
 | 1 | Motor movement faults | Earlier released/held encoder and raw-velocity observations remain inconclusive; no guard relaxation. Attended optical comparison remains optional follow-up. |
 | 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. Movement invalidates current qualification; requalify before use. |
-| 3 | Hand clearance | Ordinary hand withdrawal and placement were observed. Recheck beam darkness and fresh-clear recovery in 0.260; do not confuse the later real hand episode with the 600 ms expiry. |
-| 4 | Ordinary placement | Earlier Black/White moves and F5 laser indication passed. Broader 0.260 play, halfway-placement correction and clock behavior still need an attended run. |
+| 3 | Hand clearance | Ordinary hand withdrawal and placement were observed. Recheck beam darkness and fresh-clear recovery in 0.261; do not confuse the later real hand episode with the 600 ms expiry. |
+| 4 | Ordinary placement | Earlier Black/White moves and F5 laser indication passed. Broader 0.261 play, halfway-placement correction and clock behavior still need an attended run. |
 | 5 | Captures | Offline coverage exists; single/multiple/partial removals and both colors need physical validation. |
-| 6 | Move-to-light latency | Background request/status IO installed since 0.259; 0.260 adds publication-stage tracing and ephemeral atomic IPC. No benchmark speedup established; [600 ms reliability work remains open](CameraFreshnessReliability.md). |
-| 7 | Monitored motor holding | v44/schema 2 implemented; short dark commissioning and interrupted gameplay exercised. 0.260 + host `1ae717e` adds honest bounded `transitioning`; physical recovery test pending. Full OFF still releases bus power. |
+| 6 | Move-to-light latency | Background request/status IO installed since 0.259; 0.260 added publication-stage tracing/ephemeral IPC; 0.261 separates safety metadata from PNG delivery. Injected-stall tests pass; no live latency improvement established; [600 ms reliability work remains open](CameraFreshnessReliability.md). |
+| 7 | Monitored motor holding | v44/schema 2 implemented; short dark commissioning and interrupted gameplay exercised. 0.261 + host `04b76c7` retains honest bounded `transitioning`; physical recovery test pending. Full OFF still releases bus power. |
 | 8 | Thermal endurance/cooling | Earlier short and partial endurance records retained; no two-hour physical pass or measured cooling recovery. Formal two-hour test optional. Monitor actual play; no unattended run scheduled. |
 | 9 | Ended-game grid recovery | Fix installed since 0.252 and offline-tested; live finish/reopen validation remains. Unfinished paused games still constrain expected position. |
 | 10 | Centering hints | Implemented behind preference; physically validate observed-disk target, hand stop and removal/centering. Never infer the intended intersection from an ambiguous disk. |
@@ -91,13 +95,13 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 | 17 | Gameplay fault continuity | Scoped hard-fault pause installed; 0.260 adds continuous three-second transition bound and pause on unrecoverable own-game link loss. Classified camera/lease recovery remains. Live validation pending. |
 | 18 | Adaptive map refinement | Offline/shadow only. No production learner or automatic model update. Recent residual interpolation worsened 4/8 supported endpoints and was not promoted. |
 | 19 | Calibration progress | Installed passive stage/target/check display; five fit + nine independent checks, no ETA or binding authority. One 1,230.9-second observation span is not a reliable ETA model. |
-| 20 | Architecture/process | Pure recovery reducer, immutable builds and paired acceptance integrated. Separate safety metadata from PNG delivery is a proposed next change, not installed. |
+| 20 | Architecture/process | Pure recovery reducer, immutable builds and paired acceptance integrated. Independent safety metadata is now installed in 0.261 and paired with host `04b76c7`; physical validation remains. |
 | 21 | Timing contract/logging | Optional bounded native/host tracing implemented. Cross-process clock domains and missing events must remain explicit; no ACK-to-actual-light equivalence. |
 | 22 | Stone profiles/parallax | Named sets and optional per-color thickness installed since 0.258; no optical/parallax correction activated. Independent setup/height identification remains open. |
 | 23 | Ambiguous assignment | Guard installed since 0.258; 52 focused checks recorded. Retest halfway stones in both colors with hints off/on; correct color is not correct intersection. |
-| 24 | Boundary geometry/difference studies | Diagnostic/offline work only. Shadow/nonstone controls and fresh evidence remain required; unchanged pixels cannot supply fresh clearance or positive stone witnesses. |
+| 24 | Boundary geometry/difference studies | Diagnostic/offline work only. New full-resolution empty-board audit averages 4.26/361 regions requested across 19 comparisons; this is not stone/hand validation. Shadow/nonstone controls and fresh evidence remain required; unchanged pixels cannot supply fresh clearance or positive stone witnesses. |
 | 25 | Practice fixtures | Four paused, reversible starts installed; 166 persistence/controller checks recorded. Follow displayed rotated coordinates and preserve original snapshot. |
-| 26 | AI UI and sound | 0.260 installed: large clocks, four-sided labels, independent move-click controls. First-light cue once per move; E3 retry deduplication explains no repeat click. Actual headphone audibility still pending. |
+| 26 | AI UI and sound | Introduced in 0.260, retained in 0.261: large clocks, four-sided labels, independent move-click controls. First-light cue once per move; E3 retry deduplication explains no repeat click. Actual headphone audibility still pending. |
 | 27 | Saved-data retention | Three abandoned partial backups pruned only after exact duplicate/prefix verification (306,201,499 logical bytes). All unique game/recording/calibration evidence retained. APFS clone consolidation did not produce measurable material free-space gain. Audit at `work/data-pruning-20261124/`. |
 
 ## Immediate next steps
@@ -105,7 +109,7 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 1. Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md): new camera geometry,
    attended interior optical screening, then independent boundary checks/binding
    review. The offline transfer estimate is a hypothesis, not a production model.
-2. Address and fault-test the remaining publication/freshness path described in
+2. Physically validate the independently delivered metadata and inspect remaining tail delays described in
    [CameraFreshnessReliability.md](CameraFreshnessReliability.md). Preserve original
    timestamps and fail-dark behavior; do not call moving IO off-thread a complete fix.
 3. With qualified equipment and Dave present, test the click on AirPod Pro 3 and

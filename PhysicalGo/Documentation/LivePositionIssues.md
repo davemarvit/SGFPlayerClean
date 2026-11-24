@@ -4858,3 +4858,14 @@ binding retained but launcher blocked pending current geometry and attended opti
 qualification. [Laser checkpoint](LaserMovementCheckpoint.md) records the offline
 assessment and its limits. Last full OFF remains 1795516412.7072308; driver stopped.
 Current source/hash/evidence paths and next actions are in the checklist.
+
+
+## November 24 — independent safety delivery installed in 0.261
+
+Native 9c516f1/host 04b76c7 separate fresh hand/alignment metadata from PNG work.
+26 native fault-injection/export checks, 15 host safety/wire tests, the selected
+integrated suites and mandatory paired acceptance pass. Optimized signed 0.261
+installed with signed 0.260 rollback; app left closed. Game unchanged; no hardware,
+camera or audio action. [Report](CameraSafetyDelivery.md) retains the limits and
+independent empty-board difference audit. Calibration blocker and 600 ms guards
+remain. Physical endurance/recovery still requires attended qualification/play.

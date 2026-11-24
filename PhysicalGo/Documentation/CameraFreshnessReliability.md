@@ -3,7 +3,8 @@
 Updated November 24, 2026. **The repeated 600 ms expiry is not solved.** Moving
 request/status IO off the UI thread fixed a measured source of blocking, but a
 later attended run still expired. Installed 0.260 adds instrumentation and recovery
-repairs; it has not passed sustained physical gameplay. See the
+repairs. The later installed 0.261 now separates safety metadata from PNG delivery
+and passes injected-stall/paired tests; it has not passed sustained physical gameplay. See the
 [checklist](IntegrationChecklist.md) for exact installed/host identities.
 
 ## What the deadline measures
@@ -25,8 +26,10 @@ flowchart LR
     F --> G[Guard at command use]
 ```
 
-The current host's metadata-only refresh skips PNG decoding, but still waits for
-the broker's image-backed manifest. The native broker has replaceable pending
+The diagram describes the 0.259/0.260 failure path. In 0.261, checked safety metadata
+has its own bounded writer and host reader; it no longer waits for the PNG.
+The image-backed manifest still waits for its exact pixels and remains the only
+source for optical location. See [implementation and limits](CameraSafetyDelivery.md). The native broker has replaceable pending
 work; there is no evidence here of an unbounded analysis backlog. Dropping old
 work is useful, but the most recent completed evidence can still become stale.
 
@@ -71,13 +74,13 @@ as the same timeout or dismiss real hand evidence as noise.
   own-game link loss pauses the game/clock; classified camera/lease recovery stays
   available. This repairs handoff semantics, not camera delivery speed.
 
-## Next changes to evaluate — not implemented
+## Follow-up after the 0.261 delivery change
 
-1. Publish checked hand/alignment metadata independently of large PNG delivery.
-   Preserve original frame/epoch, camera context, verdict and capture timestamps.
-   Metadata may establish fresh clearance only for its own observation; it must
-   never be paired with older pixels to authorize spot location or recognition.
-   Unknown/obstructed/stale observations must revoke permission promptly.
+1. The independent checked-metadata path is now implemented, installed and
+   offline/paired-tested. Verify it during attended play after setup qualification.
+   Original frame/epoch/context/timestamps remain authoritative; missing or bad
+   safety metadata cannot fall back to older clear image evidence. UI delivery and
+   filesystem contention remain possible sources of delay.
 2. Use stage timings to locate tail delays. Consider a bounded socket/shared-memory
    image path only if file delivery is measured as the limiting stage. Transport
    changes need explicit ownership, cancellation, reconnect and loss behavior.
@@ -86,7 +89,8 @@ as the same timeout or dismiss real hand evidence as noise.
    fresh, prove visibility, or substitute for hand/board checks. A smaller workload
    may help CPU cost; it does not alone fix an IO stall.
 
-Before claiming resolution, inject independent stalls into encoding, publication,
+Injected encoding/pixel stalls longer than 600 ms, metadata failures and epoch resets
+now have passing regressions. Before claiming resolution, extend coverage as needed to
 reads and UI delivery. Verify stale frames never relight the beam, epoch changes
 never mix pixels/verdicts, faults preserve history/clocks, and recovery needs fresh
 evidence. Then run a bounded attended game on the requalified setup, retaining

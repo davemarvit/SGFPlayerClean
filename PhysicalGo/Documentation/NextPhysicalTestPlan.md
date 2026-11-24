@@ -7,10 +7,11 @@ is authoritative for installed builds, completed tests and current hardware stat
 
 ## Morning start
 
-1. Open Physical Go. Signed0.260/build261 is installed and has passed first-launch and paired
-   app/driver tests. The app is closed and the hardware driver is stopped.
+1. Open Physical Go. Signed 0.261/build 262 is installed and has passed build/signature and paired
+   app/driver tests. It was left closed after installation; first launch is next. The app is closed and the hardware driver is stopped.
    It combines large AI clocks, four-sided coordinates, independent click controls,
-   asynchronous bridge IO, bounded transition recovery and detailed frame timings.
+   asynchronous bridge IO, independent safety metadata, bounded transition recovery
+   and detailed frame timings.
 2. Leave the physical board empty and establish its new camera geometry. The
    earlier20-frame empty-board recording predates the bump; three later frames
    show9–35px corner displacement and fail alignment. Do not reuse an old green

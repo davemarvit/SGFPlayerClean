@@ -89,9 +89,10 @@ in the installed 0.260 lineage; later transition/link-loss policy remains owned 
 the facade and AI controller, with coordinated host support.
 
 Live bridge reads/writes use independent bounded background queues in
-[LatestFileExchange.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/LatestFileExchange.swift>). Ephemeral
-publication uses [EphemeralAtomicFile.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/EphemeralAtomicFile.swift>).
-PNG preparation can overlap analysis, but the broker still publishes checked
-metadata only after its exact PNG is written. See [camera freshness](../CameraFreshnessReliability.md)
-for the measured delay and proposed metadata separation; this is not yet solved
-by the concurrency changes.
+[LatestFileExchange.swift](/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery/PhysicalGo/Sources/LatestFileExchange.swift). Ephemeral
+publication uses [EphemeralAtomicFile.swift](/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery/PhysicalGo/Sources/EphemeralAtomicFile.swift).
+PNG preparation can overlap analysis. In 0.261 the broker publishes a separate
+checked safety message independently; the optical manifest still waits for its
+exact PNG. See [camera freshness](../CameraFreshnessReliability.md)
+for measured delays and [the delivery change](../CameraSafetyDelivery.md). Offline
+stall checks pass, but sustained physical reliability remains unverified.

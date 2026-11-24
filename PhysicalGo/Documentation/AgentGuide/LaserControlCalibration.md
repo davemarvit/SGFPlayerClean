@@ -18,7 +18,7 @@ not an arbitrary similarly named `laser_bridge.py`.
 | Component | Responsibility |
 |---|---|
 | [PhysicalLaserGuidance.swift](../../Sources/PhysicalLaserGuidance.swift) | App request/status schema, short renewable lease, target evidence, generation/recovery and dark-frame admission. |
-| [LatestFileExchange.swift](</Users/Dave/SGFPlayerClean-worktrees/gameplay-ui-and-delivery/PhysicalGo/Sources/LatestFileExchange.swift>) | Live app background status reads and latest-only request writes; original request deadlines and status timestamps stay authoritative. |
+| [LatestFileExchange.swift](/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery/PhysicalGo/Sources/LatestFileExchange.swift) | Live app background status reads and latest-only request writes; original request deadlines and status timestamps stay authoritative. |
 | [bridge_lease.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_lease.py>) | Strict request parsing, immutable revisions, expiry, cancellation and worker generation gate. |
 | [bridge_runtime.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_runtime.py>) | Request/status file loop, independent supervision, worker lifecycle, OFF/standby barriers. |
 | [bridge_hardware.py](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/bridge_hardware.py>) | Actual backend, calibration admission, bounded coarse travel, optical correction, cue dispatch and logging. |
@@ -75,7 +75,7 @@ The exact agreement lives in the laser repository's
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
 Installed gameplay firmware v44 provides this contract. The current paired
-software is Physical Go 0.260 with host `1ae717e`. A short dark check and earlier
+software is Physical Go 0.261 with host `04b76c7`. A short dark check and earlier
 interrupted gameplay were exercised; the latest recovery changes remain physically
 unverified. The completed prior calibration needs requalification after movement.
 
