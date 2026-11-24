@@ -39,14 +39,14 @@ offline verification, installation and physical validation.
 - **Live recovery passed; first edge target passed; planner still needs repair.**
   Reviewed/pushed host `a84faa5` registered the earlier stationary observation,
   re-observed current position and qualified two-axis steering (one permitted
-  extra tilt probe). A10 passed at 1.111px. Toward K19, planned pose1860/2294
-  passed at 2.919px prediction disagreement; actual settlement1860/2292 failed
+  extra tilt probe). A10 passed at 1.111px. Toward K19, planned pose 1860/2294
+  passed at 2.919px prediction disagreement; actual settlement 1860/2292 failed
   at 3.450899px. This is disagreement between predictions, not a measured aiming
-  error. A subsequent stationary check now measured actual1860/2292: frozen-model
-  prediction error1.46px versus old local estimate5.10px. That check finished
+  error. A subsequent stationary check now measured actual 1860/2292: frozen-model
+  prediction error 1.46px versus old local estimate 5.10px. That check finished
   full OFF at Unix `1795494545.537726`. The earlier validation run confirmed OFF
   at Unix `1795493870.3991501`, no controller/thermal/timing fault. Maximum motor
-  readings14/15°C; all six saved game files unchanged. No binding activated.
+  readings 14/15°C; all six saved game files unchanged. No binding activated.
   All nine targets must be measured in a completed qualification run; eight were
   not reached here. `adaptive_calibration` owns settlement-aware planning,
   `fast_calibration` runner integration, `dark_commissioning` and architecture
