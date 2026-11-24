@@ -4157,3 +4157,71 @@ November16parallaxexperimentwasneverinstalled; priorfreefitexcusedrealmisplaceme
 Currentanalysisdistinguishesbody/contactparallax fromadditionalfitter-to-bodybias
 (~.11cell,4–5px inframe697). intersection_appearance handlesofflinefit/heldouts;
 calibration_progress_ui preparesisolatedprofilemodel/UI withoutfakeapplication.
+
+November 23 — offline work completed while awaiting final physical negative
+
+Dave is away approximately 20 minutes. Current app remains 0.253/build254, paused
+at five moves/pending AI Black; physical board holds eight Black outer-star
+calibration stones. No Resume against that mismatch. Original three-move and
+failed five-move states/clocks are preserved. Hardware remains fully OFF since
+1795478146.9190755; no later commands. App bridge setting is now ON solely for
+passive camera broker sampling and OFF requests; production bridge remains
+stopped. This supersedes the earlier bridge-disabled/three-stone physical state.
+Diagnostic recordings/warnings remain OFF. Narrow signed 0.256 is deliberately
+not installed until the final same-camera negative photo is captured.
+
+Combined laser candidate codex/workflow-review-integration is pushed at42e5022
+(runtime3498fb2). All183 host/calibration/workflow and38 model/importer tests pass.
+Earlier aggregate failures were missing diagnostic-snapshot methods in test
+permits; test-only fixes796dd49/3498fb2 restore the actual permit interface.
+Includes reviewed immutable-source registration reuse, fresh manual validation,
+DARK-before-image-persistence, read diagnostics and optional bounded native
+workflow tracing. OFF/cleanup precedes deferred persistence. Tracing defaults
+OFF. No hardware execution or claim that this fixes the steering disagreement.
+
+Settlement study codex/calibration-settlement-admission is pushed927b63b. Existing
+samples poorly constrain the second motor direction. Better rolling fits reduce
+the observed endpoint disagreement but still fail the full settlement-region
+checks. Reviewed offline protocol proposes17 fitting observations plus4 independent
+checks with unchanged movement/agreement limits and separately qualified probe
+corridors. Eight deterministic tests pass; synthetic feasibility is not physical
+reliability. No executor or production change; allnine accuracy targets remain.
+
+Stone study codex/stone-set-profile-study pushed8f692b3, independent reviewc7286b1:
+six-fit/two-held-out anchors per color, three geometry hypotheses retained, six
+analytic controls and34 producer-to-native profile checks pass. Estimated optical
+height is setup/estimator-specific, not physical thickness. Constant contour bias
+and grid scale can imitate height; the existing White midpoint informed development
+and is not an independent negative. Fresh Black midpoint and another setup remain
+pending. Named set UI/store codex/stone-set-profiles pushedbf241bc,34 author/15
+independent checks and SwiftUI typecheck pass; no hosted UI or runtime activation.
+Optional measured Black/White thickness is separate from optical candidates.
+
+White-vote diagnosis independently reviewed/pushede6a6e85 on
+codex/white-vote-mask-diagnostic. All8 source hashes,4 archived footprints,8,450
+pixel votes and full discrete optimizer searches reproduce. In the centered180
+and misplaced275 White stones, relative-color core support is zero; the brightness
+fallback favors the upper body and disk/ring objective selects that region.
+Native minus visible-body row discrepancies are -0.10809/-0.10988. This verifies
+estimator disagreement on two examples, not the physical cause of brightness,
+contact-point ground truth, physical thickness or a universal correction.
+Next bounded geometry work should expose full-boundary evidence, coverage,
+neighbor ownership, disagreement and abstention separately from classification;
+frozen centered/midpoint/shadow/crowd/empty/hand examples and another setup precede
+any runtime consumer. No global threshold reduction or constant offset justified.
+
+Optional fast-test idle reuse codex/fast-test-idle-reuse pushed8c142a2, based on
+narrow347eb84. It retains only a completed idle fast-test engine through ordinary
+Pause/Resume/Freeze, revalidates launch assets, cancels active search and fences
+late results from replacement work. End/settings/fault/shutdown release it. Tradeoff:
+model memory remains resident during pause.42 targeted checks (23 independent),
+8 build-registry checks and requested debug regressions all pass: AI-play162
+including real engines/HumanSL, AI-laser278, ambiguity52. No installed change,
+physical speed claim or mutation of the signed0.256 candidate.
+
+Next attended action: front-middle Black from raw(9,15) halfway toward center to
+(9,14.5), otherseven unchanged, capture against frozen six-anchor model. Optional
+fresh White at the same halfway location would provide a development-independent
+White negative. Then install narrow0.256 and deliberately recover the three-move
+checkpoint/physical position for ambiguity and capture tests. Laser work remains
+separate and requires empty board/setup verification before requalification.

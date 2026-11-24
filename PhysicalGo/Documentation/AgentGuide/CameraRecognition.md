@@ -94,3 +94,33 @@ includes raw per-class support, graded confidence with explicit calibration
 status, selected-class confidence and abstention reasons. Visibility/context
 quality and shared-image/reference provenance remain separate for downstream
 combination. The example is documentation only; no classifier is activated.
+
+## Parallax, stone-set profiles and spatial assignment
+
+The November16 [parallax study](../OfflineHandParallax-2026-11-16.md) is offline;
+board-plane alignment does not itself compensate raised-stone height. A fitted
+center can also be biased relative to the visible body, independently of physical
+parallax. November23 native replay identified a White brightness mask favoring
+its upper region. Correct color confidence is not intersection confidence.
+
+The current checklist tracks the narrow assignment guard and staged app. It
+blocks new/pending stone assignments when adjacent expected-empty crossings lack
+fresh clear evidence, preventing old empty labels from resolving new ambiguity.
+The preserved wrongly assigned White and legitimate White are regression inputs.
+
+New isolated, explicitly unvalidated work is in the application repository's
+`codex/stone-set-profile-study` (Experiments/StoneSetCalibration and WhiteCentering)
+and `codex/stone-set-profiles` (Experiments/StoneSetProfiles) branches. Named sets
+separate optional measured thickness from estimator-specific optical candidates.
+Camera/grid geometry belongs to the setup. Row-pitch units require their original
+board-spacing identity; millimetres require a physical scale. Selection is not
+runtime activation. Follow the independent review and retain failed geometry
+hypotheses and negative controls rather than calling a low fit residual physical
+thickness or portability evidence.
+
+The exact White-vote diagnosis and independent full-search reproduction are on
+[`codex/white-vote-mask-diagnostic` at e6a6e85](https://github.com/davemarvit/SGFPlayerClean/blob/e6a6e85/PhysicalGo/Experiments/WhiteVoteDiagnostic/IndependentReview.md).
+Its bounded next step separates full-boundary geometry from color classification,
+reports coverage/ownership/disagreement, and abstains when unresolved. The
+approximately 0.11-row discrepancy in two recorded stones is not a portable
+constant correction or a physical thickness measurement.

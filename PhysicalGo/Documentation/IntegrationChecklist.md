@@ -8,234 +8,127 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
-- **Narrow0.256/build257 ambiguity candidate is built, signed and verified.**
-  Pushed `347eb84` on `codex/ambiguity-installed-baseline`, based on the exact
-  installed0.253 source hash. New guard requires fresh neighboring evidence for
-  new/pending stone assignments; color recognition is unchanged. Independent
-  review and5/5 suites pass (52 new recorded/synthetic ambiguity checks,80 marker,
-  146 lifecycle plus real engines,278 AI-laser,37 capture-controller). Not yet
-  installed or physically retested; awaiting completion of same-camera sampling.
+- **Installed: Physical Go 0.253/build 254 and v44 firmware.** The app is paused
+  at move 5 with an unplaced AI Black stone. The board instead holds eight Black
+  calibration stones. Do not Resume against that mismatch. The failed game and
+  the earlier good three-move checkpoint are preserved, including clocks.
+- **Hardware is fully OFF.** Last confirmed full OFF was Unix
+  1795478146.9190755 after manual-validation-01; no later hardware commands.
+  Production bridge is stopped. The app's bridge setting is ON only to publish
+  passive camera samples and OFF requests. Diagnostic recording and warnings are
+  OFF. Root remains sole hardware owner.
+- **Narrow 0.256/build 257 is built, signed and verified, but not installed.**
+  Pushed `347eb84` on `codex/ambiguity-installed-baseline` uses the exact installed
+  0.253 source baseline. The new guard requires fresh neighboring evidence for
+  new/pending assignments; it does not change color recognition or parallax.
+  Independent review and five suites pass: 52 ambiguity, 80 marker, 146 lifecycle
+  checks plus real engine cases, 278 AI-laser and 37 capture-controller checks.
+  The verified app and 0.253 rollback are saved. Installation waits for the final
+  same-camera negative photo to preserve the sampling setup.
   [Build evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/ambiguity-build-verification.json>).
-- **Stone-set/parallax samples collected:** eight carefully centered White stones
-  and eight Black stones at the outer star points, eight fresh broker frames per
-  color. Images/metadata preserved; app paused, game unchanged, no hardware commands.
-  An accidental second White capture is explicitly relabeled`white-repeat-01`,
-  not used as Black. Root is collecting one known halfway Black negative next.
-  intersection_appearance owns offline geometry/body-center/height analysis;
-  calibration_progress_ui owns an isolated named-set/optional-thickness UI candidate.
-  Neither analysis nor profile selection activates a live correction.
+- **Attended recognition:** two hand/slow-withdrawal cycles and ordinary
+  Black72 → White180 → Black300 acceptance passed. A halfway White stone was
+  correctly classified White but wrongly assigned to 275, followed by AI288.
+  This failed ambiguity test motivated the narrow fix. Both diagnostic recordings
+  are retained with KEEP; the first reached its 5GB session cap, not a full disk.
+  Capture handling and laser markers remain physically untested.
+  [Session evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/session-result.json>).
+- **Fast AI is active at eight visits.** Observed acceptance-to-reply time was
+  9.047s after Pause/Resume and 1.174s on the next uninterrupted move. Cold worker
+  restart likely explains the difference; the load/search split was not measured.
+  Separate reviewed idle-worker reuse candidate `8c142a2` passes 42 targeted
+  checks plus AI-play 162, AI-laser 278 and ambiguity 52 regression checks. It is
+  pushed but not installed or included in the signed 0.256 app.
+- **Stone-set evidence is saved:** eight centered outer-star White and Black
+  stones, eight fresh camera samples per color. An accidental second White pass
+  is explicitly labeled `white-repeat-01`, never Black. Profiles, optional manual
+  thickness, and six-fit/two-held-out optical estimates are reviewed offline
+  candidates only. Physical thickness and portability remain unidentified.
+  The fresh halfway Black negative and an independent setup remain pending.
+- **White centering mechanism independently reproduced.** Native replay and a
+  separate recomputation of all 8,450 pixel votes and the complete fit search
+  show the brightness cutoff/objective favoring the upper bright region. Native
+  centers are about 0.11 row above independent visible-body estimates in both the
+  centered and misplaced examples. This is estimator disagreement, not a
+  measurement of physical stone height. The next geometry study should retain
+  full-boundary evidence, uncertainty and abstention separately from color.
+  No optical correction is installed. See the [camera guide](AgentGuide/CameraRecognition.md).
+- **Latest laser stop was a prediction disagreement, not a timeout.**
+  Manual-validation-01 passed fresh optical and steering qualification, then
+  planned [1681,2289] passed at 2.143px while actual settlement [1681,2287]
+  failed the unchanged 3px gate at 3.172px. There is no fresh optical observation
+  at that settled pose. All nine accuracy targets remain pending and no gameplay
+  binding is active. Better fitting alone still fails the full settlement-region
+  checks; a richer bounded-probe protocol is studied offline, not executed.
+  [Detailed laser checkpoint](LaserMovementCheckpoint.md).
+- **Combined calibration optimizations and workflow logging pass offline.**
+  Laser `codex/workflow-review-integration` runtime `3498fb2`, documentation
+  `42e5022`: 183 host/calibration/workflow plus 38 model/importer tests pass.
+  Earlier aggregate errors were incomplete test doubles, now corrected. Tracing
+  is opt-in and unactivated. This does not resolve the physical steering stop.
+- **Thermal/holding validation remains partial.** Dark holding commissioning
+  passed; earlier endurance held about 15 minutes before a camera interlock,
+  maximum reported 16/17°C. No two-hour, cooling-transition or noise/power pass is
+  claimed. Dave prefers monitored gameplay with cooling fallback.
+- Earlier signed 0.254/0.255 candidates remain separate and uninstalled. See
+  [overnight results](OvernightSoftwareResults.md) for those broader changes;
+  use the narrow 0.256 candidate for the focused recognition retest.
+- Dave is away for approximately 20 minutes. Finish offline review, tests and
+  documentation now; preserve camera/setup for the next negative photo. No
+  acknowledged external laser-agent dependency is outstanding. Historical
+  experiments and original source checkpoints remain in the issue history.
 
-- **Parallax correction was studied but not installed.** The November16
-  [offline study](OfflineHandParallax-2026-11-16.md) explicitly withheld live
-  integration: unconstrained corrections could excuse real misplacement, and
-  the camera-constrained variant abstained on negative examples. Current board
-  alignment is not an explicit stone-height compensation. The new same-frame
-  centered/misplaced White pair is being measured by intersection_appearance.
-  Keep physical parallax (visible body versus board contact) separate from the
-  additional outline-fit bias (fit versus visible body, approximately0.10cell).
+## Parallel software work — current state
 
-- **Attended stone tests passed hand clearance and ordinary placement; ambiguity
-  failed.** Installed0.253/build254 recognized two hand/withdrawal cycles and
-  Black72 → White180 → Black300 exactly once. Pause/Resume preserved clocks and
-  did not duplicate the first stone. White color recognition was correct, but the halfway-placed stone was assigned
-  to point275, followed by AI288; game now paused at move5/pendingBlack, with
-  pre-failure three-move snapshot saved. Keep the physical three-stone position;
-  deliberate recovery is needed before resuming. Images/warnings are off; laser
-  fully OFF and app bridge disabled. Both recordings retained with KEEP.
-  marker_scenarios owns isolated ambiguity diagnosis. Capture/laser marker tests
-  remain pending. [Session evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/session-result.json>).
-- **Fast AI is active (8 visits).** A response after Pause/Resume took9.047s;
-  the next uninterrupted response took1.174s (0.796s board recheck,0.378s AI).
-  Cold engine restart is the likely difference; load/search split is unmeasured.
-- **Diagnostic recording cap interrupted testing.** First recording reached its
-  5GB per-session cap, with ~59GB disk free. New recording requested10GB and was
-  allocated5.976GB from the shared archive allowance; it was stopped manually at
-  2.571GB after the ambiguity failure. No retained recordings were manually deleted.
+Hardware is OFF and app0.253 remains installed. These candidates are isolated;
+selecting or saving a stone profile does not activate a correction.
 
-- **Attended manual-validation-01 stopped after approximately 102 seconds.**
-  Reviewed standalone `bed3c52` passed fresh position (0.673px) and steering
-  qualification, then stopped before A10 on predicted endpoint disagreement:
-  3.172px versus the unchanged 3px gate. This was not a camera/serial timeout.
-  Planned [1681,2289] passed at 2.143px; actual coarse settlement [1681,2287]
-  failed the recheck despite remaining 50–54px inside the predicted board bounds.
-  Last optical observation was [1704,2284]; settled pose has no fresh optical
-  observation. 159 samples retained, all nine validation targets still pending.
-  Fresh full OFF Unix 1795478146.9190755; no controller/supervisor/cancellation
-  errors; process exit 1 reaped, source inventory and game/clocks unchanged.
-  No gameplay binding active. Root prioritizes attended camera/stone tests;
-  fast_calibration owns offline settlement-aware planning investigation.
-  Merged optimization candidate `f9101f2` was not used: its aggregate regression
-  reported errors that still need diagnosis. No installed app/firmware changes.
-  See [the detailed laser checkpoint](LaserMovementCheckpoint.md).
-- **Interior pilot05 completed both larger-move legs, then stopped fully OFF.**
-  Reviewed/pushed `44aeb5e` passed fresh position and steering qualification. Its
-  requested 2.5-intersection outbound span measured 2.322; return measured 2.148.
-  First landing errors were 0.190 and 0.188 intersections before optical correction.
-  Model residuals at actual motor positions were 3.700/2.115 px; motor goal errors
-  were (+1,+2) and(−1,−2) counts. Return missed the optical origin by 7.276 px,
-  so this is a diagnostic completion, **not an accuracy pass**. All 144 observations
-  retained; source inventories/game/clocks unchanged. Full OFF confirmed
-  Unix 1795474672.1551886; exit 0 reaped, no controller/supervisor fault. Latest
-  observed pose [1820,2248], board [4.169881,9.453444]. Maximum temperatures 14/14°C.
-  See the [result and timing table](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/fresh-board-20261122-133741/calibration-resume-20261123/interior-pilot-05-summary.md>).
-- **The bounded extra-probe fix was exercised physically.** A weak but optically
-  consistent interior tilt observation received one additional ≤5-count probe.
-  Measured basis and all unchanged residual checks then passed. Seven independent
-  focused tests passed; 36 selected regressions passed with two optional older
-  fixtures skipped. The pilot-only change does not relax 8/5 movement limits or
-  measured qualification. Pilot04 remains preserved separately; pilot05 reused
-  admitted pilot03 evidence with mandatory new pose/spot checks and no new stop adapter.
-- **Two distinct timing stops are identified; the original host delay remains
-  unresolved.** Validation-resume02 hit a 100 ms serial completion check; firmware
-  evidence indicates the likely thermal ACK arrived. Exact steering replay did
-  not reproduce it (1000 calls max 4.53 ms; 50 checkpoints max 42.70 ms). A separate
-  OFF-only serial check passed 96 replies, worst 2.356 ms. Pilot01 then expired its
-  250ms poll-cache deadline: 228.623 ms file-read/parse window, 255.566 ms refresh gap,
-  camera age 0.411 s and app lease still valid. Serial service continued normally.
-  Passive profiling observed occasional file-open waits but did not reproduce
-  that 228 ms outlier. Root uses the reviewed explicit 0.5 s cache option only for
-  stationary experiments, still capped by camera/lease/run deadlines. Normal
-  cache remains 0.25 s. Pilot03–05 had no timing failure; no automatic fault retry.
-  Pilot05 captured
-  a 279 ms refresh gap during arming, dominated by 159 ms request and 94 ms manifest
-  read windows; parsing was below 0.03 ms each. Camera and lease remained valid.
-- **One interior out-and-back diagnostic is complete; wider coverage remains.**
-  Both first accepted landings were recorded before optical correction. The
-  fixed candidate was not trained or activated. Repeat directions, distances and
-  distributed board positions before inferring map distortion or backlash. Each
-  coarse leg includes the normal second GOTO to its reported settled pose before
-  fine-profile preparation; it is not literally one serial command. See the
-  [larger campaign protocol](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/86bf0b9/Firmware/Experiments/AdaptiveCalibration/LARGE_MOVES.md).
-- **Five fit targets passed; all nine validation targets remain.**
-  Full-calibration04 ran 702 seconds: K10 2.21px, A19 1.76px, T19 2.31px,
-  T1 2.58px, A1 2.86px. The frozen 95-sample candidate has median 2.49/p95 5.19
-  motor-count fit residual, but is **unvalidated** and no binding is active.
-  Explicit experimental camera age 10 s, run 7200 s and disabled target timer do
-  not disable other deadlines. Later small-step profile repairs and serial/poll
-  diagnostics are reviewed and have now run physically. Earlier detailed
-  results, source checkpoints and timeout evidence remain in the issue history.
-- **Unified timing model is complete offline.** Pushed `a4867ea` defines 64 stages,
-  eight concurrent lanes and 37 timing options; it generates event schemas and
-  path-specific collection requirements. Twenty-three tests and independent review
-  pass, including seven user-facing outcome definitions. No runtime instrumentation,
-  adapter or timing-policy change is enabled;
-  checklist item 21 tracks adoption.
-- Preserved physical-test baseline code checkpoints: app `64a1b77`, laser `11d3855`,
-  both on `codex/monitored-gameplay-holding`.
-  Staged calibration, progress UI and gameplay recovery changes are included.
-  Signed **0.254/build 255** candidate is built and verified, but not installed.
-  Candidate and source/game snapshots are under the session artifact directory
-  `gameplay-holding-validation/app-0254-candidate/`.
-  Source hash: `c03914ec09b7de194b7ede5707ee266699a9c60dfff2bc1abe882346e5d03a9b`.
-- **Optional 0.255/build256 candidate is also built, signed and verified**, with
-  reviewed recovery extraction, opt-in tracing and improved provenance/tooling.
-  App `939fe27`, host `45ed952`, both on separate
-  `codex/overnight-reviewed-candidate` worktrees. Eleven app suites,344 host
-  tests,69 tooling checks and mandatory paired acceptance pass. Not installed or
-  physically validated; 0.254 remains available. See [overnight results](OvernightSoftwareResults.md).
-- Both projects have pushed Git checkpoints before gameplay-holding changes.
-  App baseline: `e8b2b14` on `codex/physical-go-confidence-validation` in
-  [SGFPlayerClean](https://github.com/davemarvit/SGFPlayerClean).
-  Laser baseline: `1060bef` on `main` in the new private
-  [DYNAMIXEL-Go-Pointer](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer)
-  repository, rooted at the existing laser project folder. Future laser code
-  and tests belong there. Large `Camera checks/` recordings remain local and
-  ignored; the repository includes firmware, bridge, tests, CAD and documentation.
-- Physical Go **0.253/build 254** and reviewed **v44 firmware** are installed.
-  App signature/source hash and firmware upload were verified. Eight app suites,
-  four final targeted suites, actual Swift/host contract exchange, host transport
-  checks and independent firmware/USB/timing checks passed offline.
-- Physical dark commissioning passed: 19.360 seconds, 143 paired reports,
-  reported motor temperatures 11–12°C, maximum causal sample age 148.183ms.
-  Holding, dark reuse and final full OFF were verified without travel or light.
-  Optical gameplay and physical cooling transitions remain unvalidated.
-- Correct app camera, fresh grid and empty board verified after installation.
-  Game/clocks are byte-identical and paused. Broker publishes OFF/no-target
-  evidence; production bridge is stopped. Recording/warning feedback remain off.
-- Fast AI test mode is enabled on the paused empty-board game. The old 267-move
-  game and clocks are backed up. New game remains at move 0; clocks preserved.
-- Correct camera and fresh board grid were verified after equipment moved.
-  Full laser recalibration is incomplete: K10, D16, Q16 and Q4 were within three
-  camera pixels before a motor fault stopped calibration. No new binding activated.
-- **Hardware is fully OFF:** manual-validation-01 confirmed fresh v44 OFF.
-  Production bridge and calibration are stopped; root remains sole hardware owner.
-- Heat testing is partial: v43 passed a 60-second check, then held for about
-  15 minutes before a camera timestamp interlock stopped endurance-02. Highest
-  internal temperatures were 16°C/17°C; no motor or thermal fault was reported.
-  No two-hour pass, cooling transition, external-temperature, power or noise
-  measurement has been established. Dave now prefers monitored actual gameplay;
-  a formal two-hour endurance test is optional, not a prerequisite.
-- The exact camera check that failed was not retained by the old generic error.
-  A subsequent ten-minute passive audit found no failing checks. Detailed
-  timestamp logging is added. At Dave's request, an explicit camera-independent
-  option is now prepared for the stationary, beam-disabled heat test only; it
-  retains the app OFF lease and all motor protections. It is offline-tested,
-  not physically rerun. Gameplay camera safeguards remain unchanged. The separate
-  stream-cache bug is not the proven cause of the interruption.
-- **No dependency on a laser-agent response is confirmed.** The incoming shared
-  response remains November 21. A written request is not acknowledged ownership.
-  Parallel agents have worked offline; coordinate before any serial access.
-
-## Active software work — workflow review follow-up
-
-Dave authorized beginning pending work and reviewing workflow efficiency on
-November 23. Root keeps hardware fully OFF; installed app, firmware, binding,
-game and clocks are unchanged. Work is isolated and reversible.
-
-| Workstream | Owner | Scope / current state |
+| Workstream | Owner | Current state |
 |---|---|---|
-| Runtime timing adoption | `latency_logging` | Add schema-aligned events to the existing bounded asynchronous host logger; preserve control behavior and report missing evidence honestly. Implementation underway. |
-| Existing-report migration | `workflow_timing_model` | Bounded importer and duration/coverage audit of actual calibration reports. Preserve original timestamps, uncertainty and artifact provenance. |
-| Poll-read delays | `transport_review` | Compare equivalent fresh-descriptor readers and split open/read/close/decode timings. Adopt a behavioral change only with evidence and unchanged deadline semantics. |
-| Manual calibration continuation | `fast_calibration` | Explicit fresh qualification from a structurally clean completed pilot, retaining the frozen fit and requiring all nine new held-out checks. No incident-specific exception or automatic fault retry. |
-| Diagnostics after darkness | `dark_commissioning` | Save accepted samples in memory, confirm DARK and ready state before image/report writes; defer failure-path images until confirmed full OFF and quiescence. |
-| Duplicate calibration registration | `occupied_board_timing` | Review found identical reference and dark-baseline pixels are registered twice. Implement verified immutable same-source reuse, with actual-image acceptance/rejection replay and measured timing; gameplay defaults remain unchanged. |
-| Workflow efficiency review | `architecture_review` | Critical path, necessary ordering, safe overlap, duplicated work and reliability costs; distinguish measured savings from hypotheses. |
-
-Root integrates independently reviewed commits on `codex/workflow-review-integration`
-in the laser repository. Physical accuracy and gameplay tests remain separate.
+| Calibration optimizations and timing logs | Root, component authors and independent reviewers | Integrated on laser `codex/workflow-review-integration`, runtime3498fb2/documentation42e5022. All183 host/calibration/workflow tests plus38 model/importer tests pass. Native tracing remains opt-in; no hardware run or speed claim. |
+| Historical timing importer | `workflow_timing_model` | Reviewed importer retains uncertain/missing boundaries; three actual reports exported. Included in integrated candidate. |
+| Laser steering/settlement | `fast_calibration`, `adaptive_calibration` | Actual3.172px failure reproduced. Better rolling fits alone still fail full settlement-region checks; current motion samples poorly constrain the other axis. Bounded richer-probe protocol and offline feasibility study completed at `927b63b`, eight tests pass; no production fix or physical execution. |
+| Ambiguous intersection assignment | `marker_scenarios`, `contract_review`, Root | Narrow0.256 built/signed/verified,5/5 suites pass; install and physical retest pending final same-camera stone photo. Correct color, wrong intersection was the defect. |
+| Stone-set profiles | `calibration_progress_ui`, `contract_review` | Isolated named picker/editor/storage on pushedbf241bc:34 author and15 independent checks, SwiftUI typecheck pass. Not hosted in app and not applying vision changes. |
+| Parallax/appearance estimate | `intersection_appearance`, `architecture_review` | Eight centered White and eight centered Black samples analyzed; six fitted/two held out per color. Reviewed only for unvalidated optical-candidate storage. Physical thickness remains unidentified; fresh Black negative and another setup pending. Native White-fit diagnosis independently reviewed at `e6a6e85`: exact pixel-vote and complete optimizer replay; no production optical fix. |
+| Faster Pause/Resume testing | `latency_logging`, `contract_review` | Pushed `8c142a2`: 42 targeted checks plus AI-play162/AI-laser278/ambiguity52 pass. Only completed idle fast-test engine may survive ordinary pause; active work cancels. Not installed; separate from signed0.256. |
 
 ## Immediate next steps
 
-0. Signed 0.255 candidate and paired checkpoints are ready, with 0.254 retained
-   as a fallback. Install and visually verify the selected candidate when returning
-   to the board; installed app is still 0.253. Preserve
-   the paused game/clocks and verify the restored lighting/setup before testing.
-1. Temperature-protected holding is implemented and installed in app/firmware;
-   host runtime is implemented, offline-tested and stopped pending calibration.
-2. Short physical dark holding/reuse/full-OFF check passed. Physical gameplay
-   Pause/Resume and cooling recovery remain to test; two-hour endurance is optional.
-3. Complete fresh full-board laser calibration before playing. The earlier
-   120-second target timeout now has an explicit experimental override (normal
-   defaults unchanged,153 offline checks pass). The longer retry instead stopped
-   on an image-similarity rejection consistent with Dave's reported nearby
-   movement/shadow. Investigate dark pause and full requalification for transient
-   lighting; do not lower the0.95 threshold merely to admit this image. The
-   earlier staged A/B prelight timing fix is working in these partial runs.
-   No full-board model is qualified. See latest history and calibration timing.
-4. Play several ordinary moves with fast AI and recognition checks. Start without
-   centering hints, so ordinary hand/stone acceptance and cue timing are clear.
-   Check a lingering hand, slow withdrawal, correct placement and Pause/Resume.
-5. Enable centering hints: deliberately offset a stone, then place it between
-   intersections; verify the wiggle marks the observed disk without accepting a
-   guessed move. Check hand-triggered darkness, centering and removal.
-6. Use controlled legal single- and two-stone capture fixtures (see the capture
-   test plan), rather than waiting for random AI captures. Check AI placement
-   before prisoner indication, partial/out-of-order removal, no repeated cue,
-   no phantom reply, and single/multiple-capture clock behavior.
-7. Continue normal play while logging both temperatures. Use real-session data
-   to assess whether temperatures level off under this mounting/load/room setup.
-   Cooling/trip events remain actionable even if earlier readings were cool.
+1. When Dave returns, capture the front-middle Black stone halfway toward the
+   board center, leaving the other seven centered. This is a negative example
+   excluded from the frozen six-anchor fit. Preserve camera identity until then.
+2. Install the verified narrow0.256 ambiguity candidate with the saved0.253
+   rollback available. Preserve the failed paused game/history/clocks. Deliberately
+   recover the saved three-move test checkpoint before resuming physical play;
+   current logical game has five moves and the board now holds eight calibration
+   stones. Do not press Resume against that mismatch.
+3. Retest halfway placement, removal and correct centering, with hint preference
+   both off/on. The fix blocks uncertain assignment; it does not yet promise a
+   laser marker or parallax-corrected center. Then test ordinary placement and
+   controlled captures using retained recordings.
+4. Return to laser work only with an empty board and verified equipment setup.
+   The blocker is steering-response/settlement disagreement, not a run timeout.
+   Review the richer response evidence/probe plan before another attempt. All
+   nine accuracy targets and final binding activation remain pending.
+5. After laser qualification, test monitored holding, hand-triggered darkness,
+   move indication, centering hints and single/multiple captured-stone markers.
+   Capture fixtures avoid waiting for a random AI capture. Check partial removal,
+   cue priority and clock behavior. Thermal cooling transitions remain unvalidated.
+6. Keep stone-set estimates offline until misplaced-stone negatives and independent
+   setup checks pass. Improve White body-center measurement and distinguish
+   parallax, printed-grid error and estimator bias. Optional physical thickness
+   entry and named profiles are available as reviewed source candidates only.
 
 ## Work list
 
 | # | Task | Current status / completion criterion |
 |---|---|---|
-| 0 | Faster AI test mode | Installed and enabled since 0.251. Eight visits, no HumanSL, warm worker retained between replies. Normal opponent profile is preserved. Latest regression measured 12.904s cold and 0.219s warm; earlier run was 9.090s/0.170s. Real engine and four normal HumanSL profiles pass. Physical gameplay still awaits calibration. |
+| 0 | Faster AI test mode | Installed and enabled since 0.251. Eight visits, no HumanSL, warm worker retained between replies. Normal opponent profile is preserved. Latest regression measured 12.904s cold and 0.219s warm; earlier run was 9.090s/0.170s. Real engine and four normal HumanSL profiles pass. Ordinary physical camera/AI moves passed November 23; laser indication awaits calibration. Separate reviewed idle-worker reuse through Pause/Resume passes three regression suites at `8c142a2`; not installed. |
 | 1 | Resolve motor movement faults | Unresolved physical interpretation. Untouched, released base reported raw speed +2 in 2 of 15 readings; encoder position varied one count. A dark FASTARM probe stopped before HOLD or movement. During endurance-02, 8,429 held sample pairs had speeds only 0/1; base encoder stayed 2422 and tilt ranged 2143–2144. These are different conditions, not an event-rate estimate or proof of no movement. Prepare an attended optical comparison; guards unchanged. |
 | 2 | Finish laser calibration | Partial. Complete moved-setup coverage/accuracy checks and activate a fresh binding. Reset transient camera evidence and capture a dark empty-board reference before gameplay. |
-| 3 | Physically validate hand clearance | Partial pass: paused empty-board and single-stone placement/removal checks detected hands and returned to clear; the stone did not leave a false hand flag. Still test live acceptance, clocks and hand-triggered beam shutoff. No exact withdrawal latency claimed. |
-| 4 | Test moves and placement | Pending calibration. Verify human recognition, AI indication, physical placement, turn transitions and clocks on the new game. |
+| 3 | Physically validate hand clearance | Two attended hand/slow-withdrawal cycles and ordinary live placement acceptance passed November 23. The stone did not leave a false hand flag. Hand-triggered beam shutoff remains untested; no exact withdrawal latency claimed. |
+| 4 | Test moves and placement | Camera/AI ordinary placement passed Black72 → White180 → Black300 exactly once; ambiguity failed and narrow fix awaits physical retest. Laser indication and broader clock/capture cases remain pending. |
 | 5 | Test captures | Physical tests pending. Verify delayed, single, multiple and partial removals and the intended clock policy. Offline tests preserve a legitimate cleanup-plus-reply while rejecting a remaining prisoner mistaken for a new move. |
 | 6 | Reduce and measure move-to-laser delay | Fast approach/fine correction exists. Nonblocking simultaneous cue/light dispatch is implemented and tested offline; actual acoustic/optical timing is unverified. Measure first visible light separately from final pointing accuracy, for AI and online play. |
 | 7 | Hold motors during active play | Implemented and offline-tested; app 0.253/v44 installed and short dark commissioning passed. Native opt-in, explicit game identity, two-stage OFF handshake, retain-only hand behavior, distinct held/cooling dark evidence, temperature current/max/trend, and hard-fault reset indication are offline-tested. Preserve 45°C cooling, below-40°C measured 30-second recovery and full release for pause/disconnect/fault. Production gameplay bridge remains stopped pending fresh calibration; opt-in is off. |
@@ -252,14 +145,17 @@ in the laser repository. Physical accuracy and gameplay tests remain separate.
 | 18 | Continuous laser-map refinement during play | Dave authorized advance software/literature work overnight after initially deferring this. An isolated offline/shadow prototype now compares baseline, global offset and bounded local residual correction using actual measured poses/spots, confidence/provenance and chronological validation. Separate reviewed branch; no live learning or map activation. Retain baseline model and rollback; distinguish raised stones, outliers and changed equipment. Independent algorithm and campaign reviews complete; 56 tests pass. Cleared-board survey plan covers 25 fit + 24 reserved locations (130 episodes with approaches/anchors), optionally all361. First aim and final metrology remain separate; no hardware executor. Physical validation follows initial calibration/gameplay baseline. |
 | 19 | Initial-calibration progress UI | Implemented and independently reviewed; not installed. Actual stage/target, five calibration plus nine accuracy checks, elapsed/stage time and stale/stopped/shutdown-unconfirmed/review-required states. No unsupported ETA. Passive asynchronous publishing cannot interrupt shutdown; injected publisher-failure tests pass. 26 native checks, SwiftUI typecheck and 128 calibration/progress/dark tests pass. Registered as `--calibration-progress-test`; final four-suite app regression and eight build-registry checks pass. Signed full app build and signature/source-hash verification passed; visual/physical validation pending. See [progress UI](CalibrationProgressUI.md). |
 | 20 | Overall architecture and development-process review | [Review completed](ArchitectureReview.md). Existing app/host/controller boundaries are sound; no wholesale rewrite recommended and no new immediate source blocker found. Prioritize a pure scoped recovery/admission state machine, explicit status meanings, paired transition tests, measured I/O isolation and immutable build snapshots. Camera-failure clock policy needs an explicit decision before claiming complete/unattended reliability. At Dave’s subsequent authorization, reducer extraction, build/source provenance and paired acceptance are implemented and reviewed on isolated overnight branches; optional0.255 integrates them. Remaining recommendations include measured I/O isolation and explicit camera-failure clock policy. |
-| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. Runtime adoption and historical-report migration are now in progress on isolated branches; no instrumentation activation or timeout changes in the installed system. |
+| 21 | Unified workflow and timing contract | Implemented and independently reviewed offline on pushed `a4867ea`, branch `codex/workflow-timing-model`: 64 stages, eight parallel lanes, 37 timing options, generated event schema and selected-path collection plans; 23 tests pass; seven outcome definitions include move-to-light, centering, cue/light skew and failure-to-OFF. [Design and usage](https://github.com/davemarvit/DYNAMIXEL-Go-Pointer/blob/a4867ea1f713648aee7b817127411750c89903ef/Firmware/Experiments/WorkflowTiming/README.md). Existing-log inventory identifies collection gaps. Runtime adoption and historical-report migration are integrated offline in3498fb2;183 host/workflow plus38 model/importer tests pass. Native logging remains opt-in and unactivated; installed timing policies are unchanged. |
+| 22 | Named stone sets and parallax correction | User requested automatic estimates saved per named set, with optional measured Black/White thickness. Profile UI/model candidatebf241bc passes34+15 checks and typecheck; not integrated. Hardened optical study `8f692b3` and review `c7286b1` permit offlineCandidate storage only. Eight centered stones per color collected; six-fit/two-held-out analysis and White development negative complete. Fresh Black negative and independent setup pending. Physical thickness, optical height, grid units and metric scale are separate. |
+| 23 | Reject ambiguous intersection assignments | Attended White midpoint was classified White correctly but assigned incorrectly. Narrow0.256 source347eb84 requires fresh neighboring evidence;52 dedicated checks and four related suites pass; signed candidate and rollback saved. Physical retest pending. Marker strictness preference cannot disable mandatory assignment abstention. |
 
 ## Isolated overnight improvements (November 23)
 
 Dave authorized reversible software improvements while away, including extra
 latency logging and adaptive-calibration research/prototyping. Hardware work is
-still deferred. The signed 0.254 candidate and primary code branches remain the
-physical-test baseline; experimental branches are not automatically promoted.
+still deferred. Earlier0.254/0.255 remain separate staged candidates. The next focused
+recognition retest uses the narrow0.256 candidate described above; experiments
+are not automatically promoted.
 Root maintains this table and serializes full Swift builds. Each experiment has
 its own worktree, review and targeted acceptance checks.
 
