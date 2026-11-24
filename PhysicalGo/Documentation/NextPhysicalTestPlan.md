@@ -1,150 +1,64 @@
 # Next physical test session
 
-Updated November24,2026 after the common camera/laser stand moved. The goal is a
-short setup verification followed by an ordinary practice game, not another long
-unstructured debugging session. The [integration checklist](IntegrationChecklist.md)
-is authoritative for installed builds, completed tests and current hardware state.
+Operational update — November 24, 2026: **Hardware fully OFF; no calibration
+launcher/driver active or waiting for READY.** Last run
+`continued-fit-20261124-124528-48748/attempt-000` exited 1 with confirmed
+AimControl v44 OFF at Unix `1795553137.9640346`, no controller error. Root remains
+sole hardware owner. No new physical run has been performed since that receipt.
 
-## Current attended checkpoint
+The saved checkpoint retains **97 observations and four fitting targets**:
+K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
+not completed. The last restart rejected actual POSE 1897/2077 against the old
+1933/2077 anchor. A preceding interrupted GOTO explains the partial position change;
+this is not evidence that all optical measurements were lost.
 
-Camera geometry/reference and three live checks are complete. A new empty Human
-Black game is paused; previous games are preserved. The prior calibration continuation
-`continued-fit-20261124-120522-42111` stopped with insufficient measured probe travel
-and full OFF 1795550752.159239. The latest continuation `continued-fit-20261124-121422-43815`
-is active in PTY 38073 after fresh READY. Its position/two-axis checks passed; fitting resumed. Monitor to final full OFF, then review five fit targets and all nine independent
-checks before binding. Do not start a second driver. The checklist is current;
-the morning-start steps below describe work already performed or later play steps.
+Dave clarified the objective: minimal startup, optical feedback during play, and
+learning from every reliable actual spot/POSE pair. Three non-collinear observations
+can seed a local response; a full five-plus-nine tour is an optional validation
+procedure, not a mathematical requirement. Do not keep restarting that tour as the
+only way to obtain a usable model. The installed gameplay loop records observations
+but does not yet update its model and performs a predicted coarse landing before
+spot acquisition. A minimal feedback-first gameplay/learning path remains open.
 
-## Morning start
+Offline continuation changes are frozen at `58a9cf2` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity`:
+retain completed measurements/checks, reacquire actual spot after OFF, remove old
+position/3px prediction gates, skip redundant axis probes, and relax only transit
+waypoint centering. Clearance stops can ask for fresh READY after confirmed OFF.
+231 calibration tests (19 optional skipped), 51 model tests, 25 dark tests passed;
+11 focused tests also passed with actual saved recordings. No physical validation,
+new gameplay binding, firmware upload or installed app change is claimed.
+Details: [observed continuity](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity/Firmware/ObservedCalibrationContinuity.md>).
 
-1. Open Physical Go. Signed 0.261/build 262 is installed and has passed build/signature and paired
-   app/driver tests. It was left closed after installation; first launch is next. The app is closed and the hardware driver is stopped.
-   It combines large AI clocks, four-sided coordinates, independent click controls,
-   asynchronous bridge IO, independent safety metadata, bounded transition recovery
-   and detailed frame timings.
-2. Leave the physical board empty and establish its new camera geometry. The
-   earlier20-frame empty-board recording predates the bump; three later frames
-   show9–35px corner displacement and fail alignment. Do not reuse an old green
-   alignment status or quietly replace the saved laser binding.
-3. Camera and laser reportedly remained rigid relative to one another. Review
-   the [offline transfer assessment](</Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/calibration-audit-source/Firmware/Experiments/CalibrationAudit/README.md>) as a possible starting estimate. A homography
-   can align photographs, but cannot by itself resolve camera–laser parallax from
-   plane depth/tilt changes. Confirm the proposed estimate with attended optical
-   checks: establish an interior spot, screen center/four insets with a center
-   revisit, then qualify boundaries.35/361 transferred points extrapolate outside
-   the old domain. Use full calibration if measured errors/domain checks require it.
-4. The saved12-ply practice remains paused with E3 pending, but its stones were
-   cleared. Load a new empty Human Black practice through the app's existing test
-   position controls, preserving the old snapshot. Do not Resume a mismatched board.
-5. After calibration qualification/binding, enable monitored motor holding,
-   leave centering hints off for the first game, and test the independent stone
-   click on the selected AirPod Pro3 output while Dave is present. A retry of the
-   same pending move intentionally does not announce it again.
-6. Start a bounded attended recording, then play a few ordinary alternating moves.
-   Verify hand entry→darkness→fresh-clear recovery, one cue on each new AI move,
-   visible pending target and paused clock for a genuinely unrecoverable fault.
-   Pause ends the test; confirm full OFF and close the driver when finished.
+Physical Go 0.261/build262 and AimControl v44 remain installed. App/camera were left
+open, empty Human Black game `D710D336-2746-4004-9796-F63A8D2FB8F5` paused, holding
+preference on, hints off, AirPod Pro 3 retained. Previous games/clocks and all unique
+recordings are preserved. No desktop screenshots taken. Check processes and fresh
+camera state before any future attended hardware step; obtain READY at its prompt.
 
-No unattended laser/motor/audio tests. The app and attended continuation are active.
-Native diagnostic image saving and warning feedback are off. Camera-only images
-are the calibration evidence; desktop screenshots require advance notice because
-confidential material may be visible. Game history/clocks/calibration are preserved.
+## Next implementation and physical check
 
-The calibration launcher no longer requires one hard-coded empty saved-game ID.
-Its preflight requires fresh OFF requests and unchanged saved-game bytes, then
-three actual camera geometry checks. READY remains an attended confirmation of
-app pause, empty board, hands clear and pointer directed at the board.
+1. Keep hardware OFF while preparing feedback-first gameplay. Preserve the saved
+   map and all observations. Do not collect another full tour merely to improve
+   first-guess accuracy.
+2. Reuse the 97 observations as a starting estimate. Design startup to reacquire
+   the current actual spot and use bounded travel plus optical correction. A sparse
+   seed must not silently pass the old fixed-model full-domain admission rules.
+3. Make every reliable indication a potential learning sample: retain actual spot,
+   measured encoder position, setup identity, timestamps and quality. Establish
+   stable pose during its frame window and distinguish board from stone surfaces.
+   Evaluate new observations before training on them; retain rollback/provenance.
+4. Keep camera alignment checks, independent hand/lease protection, motor bounds,
+   thermal handling and full OFF. Improve delivery latency separately; moving
+   analysis to another thread is not proof that the 600ms fault is solved.
+5. Once the minimal path is tested, use one fresh attended startup and a short
+   practice game to measure acquisition, corrected accuracy, cue and recovery.
+   Ask READY at the actual launcher prompt, monitor to completion/full OFF.
 
-The following recognition/capture cases remain optional follow-up coverage. They
-are not prerequisites for the first ordinary game once the morning checks pass.
+## Optional diagnostic continuation
 
-## First five minutes — recognition and ambiguity
-
-Times are session priorities, not promises about engine or recognition latency.
-Use a disposable human-Black fast-AI game for ordinary alternating play; repeat
-human-placement checks in a disposable human-White game where needed to exercise
-both colors. Record the actual game/color rather than changing an existing game.
-
-| Step | Action | Expected pass | Record / stop if |
-|---|---|---|---|
-| 1. Clear board and hand | Observe empty board, cover part with a hand, hold, then withdraw slowly. | Fresh camera view, correct grid, hand wait while obstructed; clear board returns without a phantom move or lingering hand flag. | Record withdrawal and clearance frames. Stop this sequence on false acceptance or persistent obstruction. |
-| 2. Ordinary stones | Place a centered legal human stone; place the AI's indicated stone; repeat one turn. Exercise Black and White. | Human move accepted once after clearance. Screen target identifies the AI move; mirroring it physically does not append it again. | Note coordinates, history length and elapsed clocks before/after. Stop on wrong color, wrong point, duplicate or unexpected turn. |
-| 3. Halfway stone, hints off | On the human turn, place a stone halfway between empty intersections. Withdraw, then remove it. Repeat and center it deliberately on one legal crossing. | No guessed move while ambiguous; removal preserves history. Centering produces exactly one legal acceptance. | Retain the ambiguous and corrected frames. Stop immediately if the original wrong-intersection failure recurs. |
-| 4. Halfway stone, hints on | Repeat step 3 for both colors with centering hints enabled. | The preference does not weaken acceptance. Ambiguity remains uncommitted; a centered stone is accepted once. | Record hint preference and color. Screen behavior alone does not establish laser wiggle or corrected optical center. |
-
-If time is short, prioritize the previously failing halfway placement and its
-removal/centering recovery after confirming ordinary recognition. Do not add
-capture cases while the basic recognition sequence is failing.
-
-## Next ten minutes — continuity, profiles and captures
-
-| Step | Action | Expected pass | Record / stop if |
-|---|---|---|---|
-| 5. Pause and warm AI | After an AI answer has completed and the board matches, Pause, wait, Resume, then play another ordinary move. Compare first and subsequent replies. | Paused elapsed balances stay fixed; no duplicate move or charged pause time. Completed idle fast-test worker may be reused. Active search still cancels when paused. | Record acceptance-to-answer windows separately for cold, uninterrupted warm and post-pause turns. A speed improvement has no predetermined passing duration. Stop on state/clock corruption. |
-| 6. Named stone profile | In Setup → Camera & board → Stone set, use New set… / Edit… to create two names and switch between them. Leave thickness unknown, then optionally enter known Black/White mm; clear White back to Unknown. Reopen settings. | Selected name and per-color values persist; clearing White does not change Black. “Saved for calibration” does not change recognition, game or camera geometry. Unknown remains valid. | Record saved values and selection, including after relaunch when root schedules it. Stop on lost values, unintended game change or a claim that storing thickness activates optical correction. |
-| 7. Installed practice positions | In AI Setup or Play, open **Practice tests** and choose **Empty board — you play Black/White**, **Single capture**, or **Two-stone capture**. Confirm **Load test position**, match the displayed board, then Resume. Use **Return to saved game** while paused. | The pre-test game and its clocks remain recoverable. Each test has its own identity and starts paused. Empty tests use their named human color; capture tests have four moves and Human Black. Fast mode and board agreement precede Resume. Returning restores the preserved game paused. | Record original and practice identities. Stop if loading silently overwrites the preserved game or starts against a mismatch. |
-| 8. Single capture | In the single fixture play Black B19, leave White A19 briefly, then remove it. | Exactly one capture; next player's elapsed clock continues for a single prisoner. Positive empty evidence clears cleanup; White C19 remains. | Record prisoner set, history and clocks. Removal must not become a phantom move. |
-| 9. Two captures | In the two fixture play Black A17. Remove A18 first, leaving A19; then remove A19. On a fresh copy, reverse order. | Both clocks remain held while either prisoner remains; partial/out-of-order removal tracks the true remainder. Complete agreement releases cleanup. | Record both intermediate states. Hand entry without removal is not cleanup. Stop on premature release, wrong prisoner or lost state. |
-| 10. Screen-only illegal feedback | Use an explicitly prepared suicide/ko example under the displayed rules. Remove the rejected stone and restore the legal position. | Authoritative reason and remove × appear; prematurely removed ko stones get restore rings. No illegal history entry or opponent reply; restoration clears the diagnostic. Ambiguous disks and pending prisoners are not mislabeled illegal. | Record rules, legal history, reason and restoration. Skip unsupported cases rather than inferring an illegal-move laser feature. |
-
-The capture kit at source commit **f0009e9** supplies deterministic positions.
-The practice loader is installed and passed166 persistence/controller checks;
-empty-position loading, exact original backup and paused relaunch are verified.
-Use its controls rather than editing a live snapshot. Screen-only illegal feedback
-passed69 actual-controller checks and is installed; it adds no laser pattern or cue.
-Physical capture and illegal-placement validation remain pending.
-
-The table below uses canonical fixture coordinates. **Follow the app's displayed
-instructions when the view is rotated.** At this installation's orientation,
-single is Black S19/A1, White T19/T17, play T18 and remove T19; double is Black
-T18/S18, White T19/S19, play R19 and remove T19/S19. Re-read the UI after rotation.
-
-| Fixture | Initial Black | Initial White | Human Black plays | White prisoners |
-|---|---|---|---|---|
-| Single | A18, T1 | A19, C19 | B19 | A19 |
-| Two | B19, B18 | A19, A18 | A17 | A19 and A18 |
-
-Use the [capture run card](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/attended-capture-kit-20261123/RUN_CARD.md>)
-for canonical orientation, partial-cleanup Pause/Resume and extra cases. These
-fixtures test White prisoners captured by Human Black. Black prisoner surfaces
-and AI placement-before-capture priority need separate prepared cases. After
-complete cleanup a legitimate AI reply may add the next move; distinguish it from
-a phantom removal move.
-
-## Laser session — blocked until recovery and calibration qualify
-
-The prior setup completed five fitting targets and nine independent checks on
-November24 (maximum final check error2.990px). Later gameplay revealed separate
-camera-publication and handoff-recovery problems; new software has offline
-regressions but still needs an attended endurance check. The subsequent stand bump
-invalidates the assumption that the old physical setup is unchanged. Requalify
-before activating either a transferred estimate or a new calibration.
-
-| Order | Action once its prerequisite is met | Expected pass / evidence |
-|---|---|---|
-| 1. Calibration and progress | Resolve/review the steering approach, reverify empty-board setup and run fresh qualification plus all nine held-out checks. | Progress displays actual stage/target and meaningful stopped/stale states. Preserve the frozen fit and separate validation evidence; activate a binding only after review. |
-| 2. Ordinary indication | Request a known move, observe spot and cue, place the stone; enter/withdraw a hand during another indication. | Correct point, one acceptance, native click on first confirmed light, without delaying light; beam dark on obstruction and returns only after fresh clearance. Record optical/acoustic onset separately from software acknowledgement. |
-| 3. Centering | Test offset and halfway stones with hints off/on, then center or remove them. | Wiggle indicates the observed disk without choosing an intersection; no guessed move. Hand entry makes it dark; correct placement/removal ends the hint. |
-| 4. Captured-stone markers | Repeat single/two capture cases; remove the non-indicated prisoner first. Add an AI-capture case when prepared. | Pending AI placement takes priority, then remaining prisoners individually and silently; removed stones are not marked again. Capture guidance outranks centering. Clock policy matches the screen-only pass. |
-| 5. Holding and recovery | Play normally with monitored holding; Pause/Resume and observe temperatures. | Pause releases hardware and preserves game/clocks. Existing policy: cooling at either motor ≥45°C; resume holding only after both are below 40°C for 30 seconds of qualifying measured evidence; hard OFF at ≥50°C. Record maxima and transitions actually observed. |
-
-Do not deliberately heat the motors to prove a transition during this short
-session. A cool run leaves cooling recovery untested; the 50°C trip trigger is
-not a measured absolute temperature ceiling. A formal two-hour run is optional.
-
-## Evidence and completion
-
-Root records the final version/source, integrated features, game identity,
-rules/colors, hint/profile settings and each step's pass/fail/skipped result.
-Keep bounded camera recordings and actual AI game/SGF, clocks and recognition
-trace together. Continuous “next game” recording arming is Local-only in the
-earlier app: verify recording is actually active for AI tests. Preserve a failure
-before changing the camera, clearing stones or resetting a game. For reported
-malfunctions, follow `AGENTS.md`: stop recording and warning feedback first,
-retain useful frames, and diagnose without altering history/clocks/calibration.
-
-Named profile storage, optional thickness and diagnostic geometry studies do
-**not** enable parallax correction, adaptive-map learning or edge-based center
-correction. Mark those absent unless a separately reviewed implementation and
-physical test explicitly establish otherwise. Update this plan's build line and
-the canonical checklist after the session; do not turn skipped cases into passes.
+The tested `--resume-observations` mode can finish the remaining full diagnostic
+tour if specifically useful. It preserves progress and avoids exact transit
+centering. It is not yet physically tested and should not be presented as the
+only path to play. Prior plan/version snapshots remain under
+`work/attended-recheck-20261124-105259/docs-before-observed-continuity`.

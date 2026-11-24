@@ -1,5 +1,41 @@
 # Camera, AI and laser integration — current checklist
 
+Operational update — November 24, 2026: **Hardware fully OFF; no calibration
+launcher/driver active or waiting for READY.** Last run
+`continued-fit-20261124-124528-48748/attempt-000` exited 1 with confirmed
+AimControl v44 OFF at Unix `1795553137.9640346`, no controller error. Root remains
+sole hardware owner. No new physical run has been performed since that receipt.
+
+The saved checkpoint retains **97 observations and four fitting targets**:
+K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
+not completed. The last restart rejected actual POSE 1897/2077 against the old
+1933/2077 anchor. A preceding interrupted GOTO explains the partial position change;
+this is not evidence that all optical measurements were lost.
+
+Dave clarified the objective: minimal startup, optical feedback during play, and
+learning from every reliable actual spot/POSE pair. Three non-collinear observations
+can seed a local response; a full five-plus-nine tour is an optional validation
+procedure, not a mathematical requirement. Do not keep restarting that tour as the
+only way to obtain a usable model. The installed gameplay loop records observations
+but does not yet update its model and performs a predicted coarse landing before
+spot acquisition. A minimal feedback-first gameplay/learning path remains open.
+
+Offline continuation changes are frozen at `58a9cf2` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity`:
+retain completed measurements/checks, reacquire actual spot after OFF, remove old
+position/3px prediction gates, skip redundant axis probes, and relax only transit
+waypoint centering. Clearance stops can ask for fresh READY after confirmed OFF.
+231 calibration tests (19 optional skipped), 51 model tests, 25 dark tests passed;
+11 focused tests also passed with actual saved recordings. No physical validation,
+new gameplay binding, firmware upload or installed app change is claimed.
+Details: [observed continuity](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity/Firmware/ObservedCalibrationContinuity.md>).
+
+Physical Go 0.261/build262 and AimControl v44 remain installed. App/camera were left
+open, empty Human Black game `D710D336-2746-4004-9796-F63A8D2FB8F5` paused, holding
+preference on, hints off, AirPod Pro 3 retained. Previous games/clocks and all unique
+recordings are preserved. No desktop screenshots taken. Check processes and fresh
+camera state before any future attended hardware step; obtain READY at its prompt.
+
 Updated November 24, 2026 (Pacific time). This is the authority for current
 implementation, installation, open work and physical validation. Read the
 [handoff](NextConversationHandoff.md) to resume, the [project guide](AgentGuide/README.md)
@@ -11,8 +47,7 @@ and running process IDs are not current operating instructions.
 
 ## Current checkpoint
 
-**Installed: Physical Go 0.261/build 262 and AimControl v44. Hardware driver
-active in attended continuation; app open, camera active, game paused, board empty.
+**Installed: Physical Go 0.261/build 262 and AimControl v44. Hardware fully OFF, driver stopped; app/camera last left open, game paused, board empty.
 Camera alignment has been re-established; laser requalification is incomplete.
 The 600 ms reliability problem remains open.**
 
@@ -24,7 +59,7 @@ The 600 ms reliability problem remains open.**
 | Installed executable SHA-256 | `b381f986a7a5e513bd77428adb28f4c7916b889c039556c3e0e577a4c3a7fee3` |
 | Coordinated host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848` |
 | Firmware | AimControl v44; documentation work does not upload firmware |
-| Last physical full OFF | Unix `1795551006.046342`, no controller error. The previous continuation stopped and exited; current continuation PTY 38073 (`continued-fit-20261124-121422-43815`) is active after fresh READY; its final OFF is pending. |
+| Last physical full OFF | Unix `1795553137.9640346`, no controller error; latest driver exited 1. No active run. |
 | Launch guard | `gameplay-activation-20261124/gameplay-requalification-required.json` blocks `work/PhysicalGo-Play.command` until current geometry, attended optical qualification and binding review |
 | Rollback | Signed 0.260 bundle in `work/camera-safety-delivery-20261124`; preserve the saved game and paired host compatibility when rolling back |
 
@@ -119,7 +154,7 @@ passed. A passive collector and any correction remain unimplemented.
 |---|---|---|
 | 0 | Faster AI test mode | Installed: eight visits/no HumanSL; only completed idle workers survive ordinary Pause/Resume. Active searches and faults cancel. Measure cold/warm physical replies separately. |
 | 1 | Motor movement faults | Earlier released/held encoder and raw-velocity observations remain inconclusive; no guard relaxation. Attended optical comparison remains optional follow-up. |
-| 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. Fresh camera alignment passed; attended laser continuation is active; no current binding qualification yet. |
+| 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. 97 current-setup observations retained; all hardware OFF. Minimal feedback-first startup/learning is now the objective; no new gameplay binding. |
 | 3 | Hand clearance | Ordinary hand withdrawal and placement were observed. Recheck beam darkness and fresh-clear recovery in 0.261; do not confuse the later real hand episode with the 600 ms expiry. |
 | 4 | Ordinary placement | Earlier Black/White moves and F5 laser indication passed. Broader 0.261 play, halfway-placement correction and clock behavior still need an attended run. |
 | 5 | Captures | Offline coverage exists; single/multiple/partial removals and both colors need physical validation. |
@@ -148,9 +183,9 @@ passed. A passive collector and any correction remain unimplemented.
 
 ## Immediate next steps
 
-1. Monitor the active continuation through completion and verify its final full OFF.
-   Then review all fit/independent checks and the new binding before starting play.
-   Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md).
+1. Implement minimal feedback-first startup and qualified learning from gameplay
+   observations. Use the saved 97 observations; do not automatically repeat the full
+   diagnostic tour. Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md).
 2. Physically validate the independently delivered metadata and inspect remaining tail delays described in
    [CameraFreshnessReliability.md](CameraFreshnessReliability.md). Preserve original
    timestamps and fail-dark behavior; do not call moving IO off-thread a complete fix.
@@ -164,7 +199,7 @@ passed. A passive collector and any correction remain unimplemented.
 ## Operating preferences and ownership
 
 Root is the sole hardware owner. Check for an existing process/serial owner before
-launching. The attended driver is active as recorded above; there is no
+launching. Hardware is fully OFF and the attended driver has exited; there is no
 unattended run. Independent agent instrumentation is complete and not installed. An old READY is not a confirmation for a new physical run.
 Diagnostic image saving/warnings are off. Preserve games, clocks and calibration.
 Notify Dave before **any desktop screenshot**; use actual camera files for board

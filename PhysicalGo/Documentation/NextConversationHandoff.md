@@ -1,37 +1,40 @@
 # Physical Go: current conversation handoff
 
-Updated November 24, 2026 during attended calibration. **Physical Go 0.261/build
-262 and AimControl v44 remain installed. App/camera open, new empty game paused.
-Camera alignment passed; laser requalification is still incomplete.**
+Operational update — November 24, 2026: **Hardware fully OFF; no calibration
+launcher/driver active or waiting for READY.** Last run
+`continued-fit-20261124-124528-48748/attempt-000` exited 1 with confirmed
+AimControl v44 OFF at Unix `1795553137.9640346`, no controller error. Root remains
+sole hardware owner. No new physical run has been performed since that receipt.
 
-**Active continuation:** PTY 38073, `continued-fit-20261124-121422-43815`, started
-after fresh READY. Root owns hardware.
-The prior continuation `continued-fit-20261124-120522-42111` stopped after consistent
-probes with insufficient measured tilt travel; PTY 55574 exited. Full OFF confirmed
-at 1795550752.159239, no controller error. Check existing process before launching.
-Monitor this run through completion and verify its final OFF; do not start another driver. Monitor using
-`work/attended-recheck-20261124-105259/calibration-status.py`.
+The saved checkpoint retains **97 observations and four fitting targets**:
+K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
+not completed. The last restart rejected actual POSE 1897/2077 against the old
+1933/2077 anchor. A preceding interrupted GOTO explains the partial position change;
+this is not evidence that all optical measurements were lost.
 
-Calibration source is frozen `d92e6a8` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-observed-fit-anchor`. It includes
-printed-boundary consensus, bounded OFF-lease/unknown-clearance recovery and fresh
-pre-fit actual-pose/two-axis qualification, with one bounded extra tilt probe for
-insufficient measured travel. Explicit continuation preserves the original 20 observations plus one reviewed stationary
-position anchor and K10 (1.68 px) from the last stopped run. A19 and all remaining
-fit/independent targets still need completion. Fresh position/two-axis checks passed in this active run; fitting resumed. The original finite deadline is
-retained. Do not modify frozen source or reinterpret saved unknown as clear.
+Dave clarified the objective: minimal startup, optical feedback during play, and
+learning from every reliable actual spot/POSE pair. Three non-collinear observations
+can seed a local response; a full five-plus-nine tour is an optional validation
+procedure, not a mathematical requirement. Do not keep restarting that tour as the
+only way to obtain a usable model. The installed gameplay loop records observations
+but does not yet update its model and performs a predicted coarse landing before
+spot acquisition. A minimal feedback-first gameplay/learning path remains open.
 
-See the checklist's November 24 attended section for exact failures and tests.
-The new launcher targets this continuation, not a fresh arbitrary run. All final
-qualification and binding review must precede gameplay. Current empty Human Black
-game: D710D336-2746-4004-9796-F63A8D2FB8F5. Previous games/clocks are backed up and
-preserved through app controls; holding preference on, hints off, AirPod Pro 3.
-No desktop screenshots were taken.
+Offline continuation changes are frozen at `58a9cf2` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity`:
+retain completed measurements/checks, reacquire actual spot after OFF, remove old
+position/3px prediction gates, skip redundant axis probes, and relax only transit
+waypoint centering. Clearance stops can ask for fresh READY after confirmed OFF.
+231 calibration tests (19 optional skipped), 51 model tests, 25 dark tests passed;
+11 focused tests also passed with actual saved recordings. No physical validation,
+new gameplay binding, firmware upload or installed app change is claimed.
+Details: [observed continuity](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity/Firmware/ObservedCalibrationContinuity.md>).
 
-Read [AGENTS.md](../../AGENTS.md), [the checklist](IntegrationChecklist.md),
-[next physical test plan](NextPhysicalTestPlan.md) and
-[the new delivery/test report](CameraSafetyDelivery.md). Source/offline/install
-results are distinct from physical validation. No old READY applies to a new run.
+Physical Go 0.261/build262 and AimControl v44 remain installed. App/camera were left
+open, empty Human Black game `D710D336-2746-4004-9796-F63A8D2FB8F5` paused, holding
+preference on, hints off, AirPod Pro 3 retained. Previous games/clocks and all unique
+recordings are preserved. No desktop screenshots taken. Check processes and fresh
+camera state before any future attended hardware step; obtain READY at its prompt.
 
 ## Current sources and receipts
 
