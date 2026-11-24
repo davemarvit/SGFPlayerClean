@@ -13,6 +13,7 @@ def image(kind='stone'):
 class BoundaryTests(unittest.TestCase):
  def test_circle_geometry(self):
   e=measure(image(),np.array([9.,9.]),[],'clear',P)
+  self.assertEqual(e.runtimeDisposition,'diagnosticOnly');self.assertEqual(e.boundaryIdentity,'stoneVersusShadowUnverified')
   self.assertEqual(e.status,'supported');self.assertLess(np.linalg.norm(np.array(e.supportedOutline.center)-[9.05,8.95]),.02)
   self.assertIsNone(e.confidence['classProbability']);self.assertIsNone(e.uncertainty['calibratedProbability'])
  def test_uniform_and_cross_abstain(self):

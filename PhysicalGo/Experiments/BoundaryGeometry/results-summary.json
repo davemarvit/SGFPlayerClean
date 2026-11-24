@@ -1,11 +1,11 @@
 {
   "status": "offlineDiagnosticOnlyNotReadyForRuntime",
-  "resultPath": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/boundary-geometry-02/results.json",
-  "resultSHA256": "08fd26c0583636623383506e63091ea111ee1d39287eb6430267de9297ac3948",
+  "resultPath": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/boundary-geometry-03/results.json",
+  "resultSHA256": "17cf507037541d735f3e361223315ba82e769dd74a538581f9ae946c3cee7faa",
   "manifestSHA256": "a5029a454bb7d73c77279f502dae8a9c0751b1185c80e3c8919d4204581ab2d8",
   "sourceHashes": {
     "replay.py": "8690dac3796d3de5bc2a24cf768031cd9fa789c8e5d6fafb24510c738b6e4761",
-    "boundary.py": "8c539ca74a3b99874dc85925be123c1133c5f27f57eef73626b6f839fd3d6419",
+    "boundary.py": "c96186b5472702f6f66978b9adc8fdc24937cd15040b52e7f4b007131f4519fb",
     "estimate.py": "684a8633e70005343da96565b5e1e70296d95dbe8e847ad73e12136068bc44d7"
   },
   "policyFreezeCommit": "738f2d7",
@@ -21,6 +21,8 @@
       "id": "white-centered-3-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -85,6 +87,8 @@
       "id": "white-centered-9-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -149,6 +153,8 @@
       "id": "white-centered-15-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -213,6 +219,8 @@
       "id": "white-centered-3-9",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -277,6 +285,8 @@
       "id": "white-centered-15-9",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -341,6 +351,8 @@
       "id": "white-centered-3-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -405,6 +417,8 @@
       "id": "white-centered-9-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -469,6 +483,8 @@
       "id": "white-centered-15-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -533,6 +549,8 @@
       "id": "white-fresh-midpoint",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -597,6 +615,8 @@
       "id": "black-centered-3-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -653,6 +673,8 @@
       "id": "black-centered-9-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -709,6 +731,8 @@
       "id": "black-centered-15-3",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -765,6 +789,8 @@
       "id": "black-centered-3-9",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -821,6 +847,8 @@
       "id": "black-centered-15-9",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -885,6 +913,8 @@
       "id": "black-centered-3-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -949,6 +979,8 @@
       "id": "black-centered-9-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1013,6 +1045,8 @@
       "id": "black-centered-15-15",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1077,6 +1111,8 @@
       "id": "black-fresh-midpoint",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1133,6 +1169,8 @@
       "id": "nov23-legitimate",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1211,6 +1249,8 @@
       "id": "nov23-midway",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1289,6 +1329,8 @@
       "id": "old-black-centered",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1353,6 +1395,8 @@
       "id": "old-black-nudged",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "supported",
         "candidateOutline": {
           "center": [
@@ -1417,6 +1461,8 @@
       "id": "crowded-frame-816",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1515,6 +1561,8 @@
       "id": "crowded-frame-950",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1613,6 +1661,8 @@
       "id": "hand-covered-950-95",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": null,
         "supportedOutline": null,
@@ -1675,6 +1725,8 @@
       "id": "shaded-empty-10",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1746,6 +1798,8 @@
       "id": "shaded-empty-75",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1815,6 +1869,8 @@
       "id": "shaded-empty-150",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": {
           "center": [
@@ -1883,6 +1939,8 @@
       "id": "empty-center-current",
       "evidence": {
         "schemaVersion": 1,
+        "runtimeDisposition": "diagnosticOnly",
+        "boundaryIdentity": "stoneVersusShadowUnverified",
         "status": "abstain",
         "candidateOutline": null,
         "supportedOutline": null,

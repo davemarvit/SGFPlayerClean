@@ -13,6 +13,8 @@ class Outline:
 @dataclass
 class BoundaryEvidence:
     schemaVersion: int = 1
+    runtimeDisposition: Literal['diagnosticOnly'] = 'diagnosticOnly'
+    boundaryIdentity: Literal['stoneVersusShadowUnverified'] = 'stoneVersusShadowUnverified'
     status: Literal['supported','abstain'] = 'abstain'
     candidateOutline: Outline | None = None
     supportedOutline: Outline | None = None

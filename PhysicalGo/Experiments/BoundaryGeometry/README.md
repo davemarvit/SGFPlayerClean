@@ -25,6 +25,8 @@ coordinates, **not board-contact coordinates**. Its fields include:
   and calibrated probability remain null, including when the result is supported.
 - Explicit abstention reasons, source/setup provenance and correlation family.
 
+Every record carries `runtimeDisposition=diagnosticOnly` and
+`boundaryIdentity=stoneVersusShadowUnverified`, including supported records.
 `status=supported` means only that this particular edge ellipse satisfies the
 frozen engineering policy. It **does not mean the stone body has been identified
 reliably**. A cast shadow can pass those geometric checks. A downstream consumer
@@ -123,9 +125,13 @@ arc accounting. These are mechanism tests, not a physical accuracy estimate.
 
 Full original and metadata-corrected results and overlays are retained at:
 
-`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/boundary-geometry-{01,02}`
+`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/boundary-geometry-{01,02,03}`
 
 `results-summary.json` pins the current result and source hashes, all 29 compact
 outputs and original-policy identity. The montage labels yellow candidate ellipse,
 green retained edge samples and red candidate center. Unchanged estimates between
 01 and 02 were verified; only provenance grouping strings changed.
+
+Replay03 adds only those explicit disposition/identity fields to the evidence
+contract; every geometric result equals replay02 exactly. All prior artifacts
+remain preserved. No engineering threshold changed.
