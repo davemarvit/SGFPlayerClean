@@ -3,34 +3,24 @@
 Prepared November 23, 2026. Start with camera recognition and fast AI, keeping
 the laser off. These tests do not depend on finishing laser calibration.
 
-**Build status: 0.258/build 259 integration candidate; combined verification,
-installation and physical validation are pending.** Source through `9b51d45`
-includes the reviewed 0.255 recovery, calibration-progress and optional latency
-work, 0.257 ambiguity guard/fast-test idle reuse, named stone-set Setup controls
-and screen-only illegal-move feedback. The merged four-position practice loader provides empty Human Black, empty Human
-White, single capture and two-stone capture. Root must record the final source/build receipt before installation. The [integration checklist](IntegrationChecklist.md)
-is the current installation/status authority; installed app at preparation is
-0.253/build 254 with v44 firmware.
+**Installed: 0.258/build 259, compiled source `87fc4a9`.** Package/signature/source
+and paired-host acceptance are independently verified. See
+[build evidence](IntegratedPhysicalTestCandidate.md) for source-scoped test receipts.
+All planned features in this document ship; physical tests remain pending.
 
 ## Before starting
 
-**Do not press Resume on the current board.** The app is paused at five moves,
-with an unplaced AI Black stone. Dave most recently reports **eight Black
-stones** on the physical board; the earlier retained photo showed seven Black
-and one displaced White. Current colors/positions have not been freshly verified.
-Neither report establishes agreement with the paused game.
+The board is now empty. A separate **paused empty-board Human Black practice** is
+loaded with fast AI, zero moves and zero clocks. Original five-move game/clocks
+and the three-move checkpoint are preserved; the practice backup is byte-exact.
+Load and relaunch persistence have been checked. Do not Resume an old position
+unless the physical board has deliberately been restored to match it.
 
-Root first backs up the failed five-move game, the earlier good three-move
-checkpoint, clocks and installed app, then installs and visually verifies the
-selected signed candidate. The intended first test is a **new paused empty
-Human Black practice game**, after preserving the original. Deliberately clear
-the physical board to match; use other separate practice positions later. Preserve the original games; clearing the real board must not silently
-rewrite their histories. Confirm selected camera, grid and orientation.
-
-For this camera-only pass, turn **Connect laser bridge OFF** and leave the
-production bridge stopped and hardware off. The setting is currently ON for
-passive broker publication; turn it off before these tests.
-Start bounded diagnostic recording only when the actual tests begin.
+**Connect laser bridge is OFF; production driver stopped; hardware OFF.** Direct
+webcam preflight passed on the correct camera. Start bounded diagnostic recording
+when the physical test begins; images and warning feedback are currently off.
+Bounded native latency logging is on for this launch. Screen captures are not
+camera evidence. Use direct webcam frames for board/calibration checks.
 
 ## First five minutes — recognition and ambiguity
 
@@ -68,6 +58,11 @@ before shipping. Do not substitute ad hoc edits of the live game if it is omitte
 The illegal-feedback integration adds no laser pattern or cue; its actual
 controller suite and combined acceptance still need to pass before installation.
 
+The table below uses canonical fixture coordinates. **Follow the app's displayed
+instructions when the view is rotated.** At this installation's orientation,
+single is Black S19/A1, White T19/T17, play T18 and remove T19; double is Black
+T18/S18, White T19/S19, play R19 and remove T19/S19. Re-read the UI after rotation.
+
 | Fixture | Initial Black | Initial White | Human Black plays | White prisoners |
 |---|---|---|---|---|
 | Single | A18, T1 | A19, C19 | B19 | A19 |
@@ -80,7 +75,7 @@ and AI placement-before-capture priority need separate prepared cases. After
 complete cleanup a legitimate AI reply may add the next move; distinguish it from
 a phantom removal move.
 
-## Laser session — blocked until calibration qualifies
+## Laser session — blocked until recovery and calibration qualify
 
 The latest laser run stopped on predicted-versus-settled response disagreement,
 not a timeout. All **nine held-out accuracy checks** remain pending; there is no

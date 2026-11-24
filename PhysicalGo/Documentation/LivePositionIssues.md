@@ -4357,3 +4357,39 @@ mismatch. Future laser work requires an empty board, reviewed remedy and fresh
 qualification. The candidate enables no parallax/body-edge correction, adaptive
 map learning or illegal laser marker. See NextPhysicalTestPlan.md for the ordered
 camera/AI and later laser tests, and LaserMovementCheckpoint.md for evidence.
+
+
+November 23 — integrated0.258 installed and empty practice prepared
+
+Compiled87fc4a9,0.258/build259 signed and independently package-reviewed.23
+selected suites are accounted for in source-specific receipts:20 initiallypass,
+then5 final focused reruns after two test fixes and an ExperimentModel dependency
+injection seam. Initial illegal test accessed private state; idle recovery fixture
+omitted post-commit board verification. Mode test read the real saved AI game;
+current.json SHAfe2ee0b70e4936ba567533510da291f3cdba3700927c1fb36c48086cb3ee1b89
+remained unchanged. Isolation now supplies temporary AI/laser/online stores.
+Final idle67, illegal69, standby225, continuity133 and mode/UI checks pass. Fresh
+app-host-app acceptance exacthost42e5022 passes229/241/495 plus225/133 controls.
+
+Fresh stopped-app backup preserves0.253, AI Games, reference, preferences and
+three-/five-move checkpoints. Stage rename initially failed on sealed directory
+permissions and automatically restoredoldapp; owner-write on stagedbundle directory
+allowed replacement, signed bytes unchanged and signature reverified.0.258 launched.
+Practice EA70E983-9FAF-40ED-8939-312ED10A1A68 loaded empty HumanBlackfastmode,
+0moves/0clocks, paused. Original backup bytes exact; restart retains practice bytes.
+Profile Newset/Cancel opens and closes without saving invented values. UI checked
+through accessibility controls; screen captures were unsuitable and stopped after
+Dave flaggedthem. They are not webcam evidence. Nativewebcam emptyboard preflight
+visually confirmedclear; postinstalldirectframe0.184s, correctcamera, aligned,
+handfalse. Bridgebrieflyenabledonlyforpassivepublisher withnodriver/serialowner,
+OFFrequests; thenOFF. FinalrestartshowsLaserbridge disabled. No hardwarecommands.
+Reference PNG/grid/camerafields unchanged; savedAt refreshes normally. Boundednative
+latencyloggingenabled; diagnosticimages/warningsremainOFF untilphysicaltest.
+
+Laserrecovery f15531c adds strict offline historical-stop/source/model preflight;
+10tests+5 independentprovenancemutationspass, noexecutor/light/motionauthority.
+Stationary optical observation may use existingv44 only after separately reviewed
+activation/hold admission; earlyGT cannot establishpret-orque anchor relation.
+Allnineaccuracychecks pending. No parallax/adaptivemap/illegal-laserpattern activated.
+Artifacts: stone-session-20261123/app-0258-candidate, before-0258-install,
+install-0258.json, practice-0258.json and empty-board-preflight-0258.
