@@ -4393,3 +4393,35 @@ activation/hold admission; earlyGT cannot establishpret-orque anchor relation.
 Allnineaccuracychecks pending. No parallax/adaptivemap/illegal-laserpattern activated.
 Artifacts: stone-session-20261123/app-0258-candidate, before-0258-install,
 install-0258.json, practice-0258.json and empty-board-preflight-0258.
+
+
+## November 23 — stationary laser position recovered optically
+
+Reviewed host42e5022 initial-spot-only run completed successfully against installed
+0.258/build259 and firmwarev44. User confirmed equipment unmoved and could watch.
+Direct app webcam, camera0x11000000bda0567, verified the empty board; no desktop
+image was used. Current stream differs after app restart, so subsequent reuse
+requires explicit reference registration, not weakening ordinary epoch checks.
+
+Evidence: laser-position-recovery-20261123/initial-spot-01/result.json, SHA256
+2b828043e0cc2f35620d4583179c6f24a09a5e939fa8efec732d313288120e7a.
+Status initial_spot_verified; actual held pose1681/2287; spot592.132/487.443px,
+board0.8644/9.0227 in this run's unrotated frame. No GOTO/PTO/TTO commands.
+GA holding can settle slightly; this is not a guarantee of zero shaft movement.
+SWEEP-to-DARK dispatch interval2.1607s; audio dispatch11.6ms after light command,
+not a measured acoustic/optical onset difference.76 thermal pairs, first11/12C,
+last12/12C; no endurance or absolute ambient-accuracy claim. Exact v44 OFF confirmed
+at Unix1795492387.674151. Saved AI files before/after identical.
+
+Dave heard the beep and accepts the clearly recorded camera spot despite not
+watching it himself. No repeat needed solely for visual confirmation. Fresh live
+pose/spot requalification is still required before a later movement session.
+Connect laser bridge ON only for passive webcam publication and OFF/no-target
+requests; production driver stopped, root sole hardware owner.
+
+Existing 3.172px stop was a prediction-consistency failure, not a timeout or proof
+of a large miss. All nine held-out accuracy checks remain pending. fast_calibration
+owns generic source-bound initial-spot registration/requalification,
+adaptive_calibration owns conservative inward/probe planning, and
+dark_commissioning independently reviews command envelopes. Frozen95-sample map
+remains unchanged; no gameplay binding or adaptive correction activated.

@@ -1,6 +1,24 @@
 # Laser movement checkpoint — November 23, 2026
 
-**Latest followup — attended manual-validation-01:** stopped after approximately
+**Current followup — stationary position verified:** installed Physical Go
+0.258/build 259 and v44 completed `initial-spot-01` using reviewed host42e5022.
+The direct webcam saw the spot at held pan1681/tilt2287, pixel592.132/487.443 in
+that run's frame, near the image-left board edge. Full OFF confirmed at Unix
+1795492387.674151. No GOTO/PTO/TTO travel was sent. Dave heard the beep and
+accepts the camera evidence; repeating solely for visual confirmation is unnecessary.
+
+This is position evidence, not qualified steering or a gameplay binding. App
+restart changed the camera stream epoch; a generic explicit reference-registration
+and fresh live requalification path is being implemented and independently
+reviewed. The frozen95-sample fit remains unchanged. All nine accuracy targets
+remain pending. Connect laser bridge is ON only for passive camera publication
+and app OFF/no-target requests; production driver remains stopped. Root owns
+hardware. Source/registration/planner work continues offline while hardware is OFF.
+
+Evidence: [stationary report](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/initial-spot-01/result.json>),
+SHA256 `2b828043e0cc2f35620d4583179c6f24a09a5e939fa8efec732d313288120e7a`.
+
+**Earlier followup — attended manual-validation-01:** stopped after approximately
 102 seconds on post-settlement model/local prediction disagreement (3.172px,
 limit3px), before completing A10. Fresh position/steering had passed. Planned
 [1681,2289] was admitted at2.143px disagreement; actual coarse settlement
@@ -9,12 +27,13 @@ limit3px), before completing A10. Fresh position/steering had passed. Planned
 Unix1795478146.9190755; process reaped; no timing/controller/supervisor fault,
 source change or saved-game change. Report SHA256:
 `82b063a6c6e246c24d9b724b1201a79ee441aa2c88a36b9f88eb8a36cdc52b84`.
-Standalone reviewed `bed3c52` was used. Root is prioritizing stone-placement tests;
-settlement-aware planning is under offline investigation. The pilot05 details
+Standalone reviewed `bed3c52` was used. At that checkpoint root prioritized stone-placement tests;
+settlement-aware planning was under offline investigation. The pilot05 details
 below are historical; its saved pose must not be treated as the current pose.
 
 
-Laser work is paused so Dave can prioritize physical stone-placement testing.
+Laser work was paused at the earlier checkpoint to prioritize stone-placement testing.
+Dave subsequently requested recovery so the next tests can use laser guidance.
 Use the [stone-placement session plan](StonePlacementSessionPlan.md) for that
 session; camera, hand, stone, screen guidance and clock checks can proceed with
 the laser off. The [integration checklist](IntegrationChecklist.md) remains the
@@ -23,7 +42,8 @@ point, rather than granting permission to resume from old observations.
 
 ## Installed system and historical pilot state
 
-Physical Go **0.253/build 254** and **AimControl v44** are installed. The production
+At the historical pilot checkpoint, Physical Go **0.253/build 254** and
+**AimControl v44** were installed. Current app installation is **0.258/build 259**. The production
 bridge is stopped; no newly qualified full-board laser binding is active. The
 paused game and clocks were preserved. Newer app candidates are described below;
 their existence does not mean they are installed.
@@ -143,7 +163,11 @@ as current. Preserve installed 0.253, candidate artifacts, the paused game and
 clock backups until the selected replacement is verified. The physical pilot's
 exact source remains available at `codex/pilot-probe-extension` / `44aeb5e`.
 
-## Exact resumption sequence
+## Earlier pilot resumption sequence (superseded for the current stopped pose)
+
+The sequence below documents the older clean-pilot entry path. Do not use it
+to bypass the current settled-pose failure. The generic initial-spot recovery
+path remains under implementation/review; consult the current checklist first.
 
 1. Finish the camera/stone session first. Save its results and preserve game and
    clocks; a successful screen-only test is not laser qualification.
