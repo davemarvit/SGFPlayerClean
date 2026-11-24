@@ -4225,3 +4225,41 @@ fresh White at the same halfway location would provide a development-independent
 White negative. Then install narrow0.256 and deliberately recover the three-move
 checkpoint/physical position for ambiguity and capture tests. Laser work remains
 separate and requires empty board/setup verification before requalification.
+
+November 23 — fresh Black and White misplaced examples captured
+
+Dave returned briefly and moved the nearest-side middle Black toward board center,
+then replaced it with White at the same intended position. Root saved eight fresh
+broker images per episode under stone-session-20261123/stone-set-calibration/
+black-midpoint-01 and white-midpoint-01. Maximum capture ages0.233/0.246seconds;
+same camera ID, epoch and context as centered samples; all clear/aligned, app OFF
+requests, AI game-file inventories byte-identical before/after. No hardware commands.
+Visual confirmation: seven centered Black stones, one moved stone, then White.
+
+The user sits at camera-image right. Root's nearest-you instruction therefore
+moved raw(15,9) toward(14.5,9), not image-bottom raw(9,15). Independent body analysis
+confirmed Black center14.9991,8.9025→14.5727,8.9111 (~0.426columns left); intended
+held-out bottom-middle remained essentially unchanged. Corrected samples.json
+preserves original instruction and explicitly identifies actual location. Images
+and frame metadata remain unchanged. These are fresh negative episodes at a
+previously fitted anchor, not a preselected held-out-location test. Neither is
+included in training. Frozen Black/White model evaluation delegated offline.
+
+Physical board now seven centered Black plus displaced White near(14.5,9); app
+still paused at failed five-move game/pending AI Black. Do not Resume that mismatch.
+Both requested photos are complete, allowing later narrow0.256 installation;
+not installed during collection. Dave can step away; laser remains fully OFF.
+
+Frozen-model follow-up: exact current-grid equality check detected a small
+automatic grid update despite identical epoch/context. Seven unchanged exposed
+crossings measured maximum0.462px Black/0.535px White displacement; residuals
+after estimating common shift were0.187/0.176px. No common shift is applied to
+stone pixels: bodies are explicitly mapped through raw image coordinates into
+the frozen grids. Original metadata, estimator thresholds and model coefficients
+are preserved; <=0.54px view uncertainty remains explicit.
+Across eight frames per episode, conditional nearest-crossing median distances
+are Black0.434cells(native grid)/0.461(refined grid), White0.484/0.488. Both retain
+substantial displacement after correction. This supports these two fresh negative
+episodes only, not physical thickness, independent-setup portability, calibrated
+confidence, or installed-app acceptance. No model training or live activation.
+Results: stone-set-calibration/offline-body-study-02/fresh-midpoint-results.json.
