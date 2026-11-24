@@ -64,6 +64,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
         var guidanceInterruption: String?
         // Independent of being paused; survives deliberate camera-only play.
         var laserRecheckReason: String?
+        // Explicitly synthetic fixture identity and immutable prior-game backup.
+        var practiceTest: PhysicalAIPracticeContext?
     }
     typealias Generate = @MainActor (SGFGame, PhysicalAISettings) async throws -> String
     @Published var draft = PhysicalAISettings()
@@ -98,6 +100,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private let uptime: ()->Double
     private let wallTime: ()->Double
     private let directory: URL
+    private let practiceStore:PhysicalAIPracticeStore
+    private var currentSnapshotData:Data?
+    @Published private(set) var practiceError:String?
     private let recognitionTrace: AIRecognitionTrace?
     private let generate: Generate
     private let testWorker: TestWorker
@@ -147,11 +152,13 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func canPass(at now: Double)->Bool {phase == .human && lastMatch.map {(0..<1.5).contains(now-$0)} == true}
     var savedURL: URL? {snapshot.map {directory.appendingPathComponent($0.id.uuidString+".sgf")}}
     init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil, testWorker: TestWorker? = nil,
+         practiceStore:PhysicalAIPracticeStore?=nil,
          uptime: @escaping ()->Double = {ProcessInfo.processInfo.systemUptime},
          wallTime: @escaping ()->Double = {Date().timeIntervalSince1970}) {
         self.laser=laser ?? PhysicalLaserGuidance();self.uptime=uptime;self.wallTime=wallTime
         persistSettings=directory == nil
         self.directory=directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/AI Games")
+        self.practiceStore=practiceStore ?? PhysicalAIPracticeStore(directory:self.directory)
         recognitionTrace=directory == nil ? AIRecognitionTrace(url:self.directory.appendingPathComponent("recognition-trace.json")):nil
         let testWorker=testWorker ?? TestWorker();self.testWorker=testWorker
         self.generate=generate ?? {game,settings in
@@ -163,13 +170,15 @@ struct PhysicalAIGuidanceTarget: Equatable {
         let url=self.directory.appendingPathComponent("current.json")
         if FileManager.default.fileExists(atPath:url.path) {
             do {
-                let saved=try JSONDecoder().decode(Snapshot.self,from:Data(contentsOf:url))
+                let savedData=try Data(contentsOf:url)
+                let saved=try JSONDecoder().decode(Snapshot.self,from:savedData)
                 guard saved.settings.valid else {throw Failure(message:"Invalid saved AI game settings.")}
                 let player=SGFPlayer();var empty=Self.game(saved);empty.moves=[];player.load(game:empty)
                 for move in saved.moves {
                     if let p=move.point, !(0..<saved.settings.size*saved.settings.size).contains(p) {throw Failure(message:"Invalid saved AI move.")}
                     guard !player.lastTwoMovesWerePasses, player.tryPlayMove(color:player.turn,x:move.point.map{$0%saved.settings.size} ?? -1,y:move.point.map{$0/saved.settings.size} ?? -1) == nil else {throw Failure(message:"The saved AI game has invalid history.")}
                 }
+                currentSnapshotData=savedData
                 snapshot=saved;draft=saved.settings;refreshBoard()
                 if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {self.laser.restoreGameFaultRequirement(reason)}
                 if let verified=saved.verifiedPosition,verified.cells.count==cells.count,
@@ -193,6 +202,10 @@ struct PhysicalAIGuidanceTarget: Equatable {
     static func sgf(_ s: Snapshot)->String {
         let g=game(s)
         var props=["GM":["1"],"FF":["4"],"CA":["UTF-8"],"SZ":[String(g.boardSize)],"RU":[s.settings.rules],"KM":[String(s.settings.komi)],"PB":[g.info.playerBlack!],"PW":[g.info.playerWhite!],"C":["KataGo AI practice; \(s.settings.opponentDescription). Untimed. HumanSL ranks are approximate; search effort is not a calibrated rank."]]
+        if let test=s.practiceTest {
+            props["EV"]=["Physical Go test position · "+test.position.title]
+            props["C"]=[(props["C"]?.first ?? "")+" "+test.position.syntheticDetail+" Subsequent moves use normal physical confirmation."]
+        }
         if let result=s.result {props["RE"]=[result]}
         let nodes=[SGFNode(props:props)]+g.moves.map {SGFNode(props:[$0.0 == .black ? "B":"W":[$0.1.map{SGFCoordinates.toSGF(x:$0.0,y:$0.1)} ?? ""]])}
         return SGFWriter.serialize(SGFTree(branches:[.init(sequence:nodes)]))
@@ -203,8 +216,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
         s.verifiedPosition=verifiedCells.flatMap {cells in verifiedCameraContext.map {VerifiedPosition(cells:cells,cameraContext:$0)}}
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         // current.json is authoritative. SGF is a derived export and can be retried.
-        try JSONEncoder().encode(s).write(to:directory.appendingPathComponent("current.json"),options:.atomic)
-        snapshot=s;refreshBoard()
+        let data=try JSONEncoder().encode(s)
+        try data.write(to:directory.appendingPathComponent("current.json"),options:.atomic)
+        currentSnapshotData=data;snapshot=s;refreshBoard()
         try Self.sgf(s).write(to:directory.appendingPathComponent(s.id.uuidString+".sgf"),atomically:true,encoding:.utf8)
     }
     private func refreshBoard() {
@@ -222,8 +236,80 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 placement:s.pendingPlacement ? s.moves.last?.point.map {($0,cells[$0])}:nil,removed:saved.removed,evidenceAfter:uptime())
         } else {captureGuidance.clear()}
     }
+    private var practiceUnresolvedGuidanceReason:String? {
+        laser.controllerResetRequired ? "controller_fault":laser.gameFaultRecheckReason
+    }
+    var canLoadPracticePosition:Bool {
+        !loadFailed && !active && snapshot?.practiceTest==nil && (snapshot==nil || [.paused,.finished].contains(phase))
+    }
+    var canReturnFromPracticePosition:Bool {
+        !loadFailed && !active && snapshot?.practiceTest != nil && [.paused,.finished].contains(phase)
+    }
+    @discardableResult func loadPracticePosition(_ position:PhysicalAIPracticePosition)->Bool {
+        guard canLoadPracticePosition else {practiceError="Pause the game before loading a test position. Return from the current test before choosing another.";return false}
+        do {
+            let id=UUID(),prepared=try practiceStore.prepare(position:position,testID:id,previousGameID:snapshot?.id,
+                previousCurrent:currentSnapshotData,draft:draft)
+            var settings=PhysicalAISettings();settings.size=19;settings.humanBlack=position.humanBlack
+            settings.fastTestMode=true;settings.humanRank=nil;settings.strength = .quick
+            let test=Snapshot(id:id,settings:settings,moves:position.moves.map {SavedMove(point:$0)},
+                timing:PhysicalAITiming(),guidanceInterruption:practiceUnresolvedGuidanceReason ?? snapshot?.guidanceInterruption ?? snapshot?.laserRecheckReason,
+                laserRecheckReason:practiceUnresolvedGuidanceReason ?? snapshot?.laserRecheckReason,practiceTest:prepared.context)
+            let data=try JSONEncoder().encode(test)
+            try practiceStore.activate(prepared,current:data,sgf:Data(Self.sgf(test).utf8))
+            installPracticeSnapshot(test,data:data,draft:settings)
+            status="Test position loaded and paused. Match the indicated board, then Resume for normal camera verification."
+            return true
+        } catch {practiceError="Could not load test position. The current game is unchanged. "+error.localizedDescription;return false}
+    }
+    @discardableResult func returnFromPracticePosition()->Bool {
+        guard canReturnFromPracticePosition,let current=snapshot,let context=current.practiceTest,
+              context.testID==current.id,let currentData=currentSnapshotData else {practiceError="Pause the current test before returning to its saved game.";return false}
+        do {
+            let backup=try practiceStore.readBackup(context)
+            var restored=try backup.previousCurrent.map {try JSONDecoder().decode(Snapshot.self,from:$0)}
+            guard restored?.id==backup.previousGameID,restored?.practiceTest==nil else {throw Failure(message:"The prior game backup does not match this test.")}
+            if restored==nil,laser.gameFaultNeedsRecheck || laser.controllerResetRequired {
+                throw Failure(message:"Recheck the laser before returning to an empty setup. The test and fault remain saved.")
+            }
+            var restoredData=backup.previousCurrent
+            if var prior=restored {
+                let unresolved=practiceUnresolvedGuidanceReason ?? (laser.gameFaultNeedsRecheck ? current.guidanceInterruption:nil)
+                let recheck=unresolved ?? prior.laserRecheckReason
+                let interruption=unresolved ?? prior.guidanceInterruption ?? prior.laserRecheckReason
+                if recheck != prior.laserRecheckReason || interruption != prior.guidanceInterruption {
+                    prior.laserRecheckReason=recheck;prior.guidanceInterruption=interruption
+                    restored=prior
+                    // Overlay only fault fields; preserve unknown original JSON
+                    // metadata as well as the known history and elapsed clocks.
+                    var fields=try JSONSerialization.jsonObject(with:backup.previousCurrent!) as! [String:Any]
+                    if let recheck {fields["laserRecheckReason"]=recheck} else {fields.removeValue(forKey:"laserRecheckReason")}
+                    if let interruption {fields["guidanceInterruption"]=interruption} else {fields.removeValue(forKey:"guidanceInterruption")}
+                    restoredData=try JSONSerialization.data(withJSONObject:fields,options:[.sortedKeys])
+                }
+            }
+            try practiceStore.restore(context,expectedCurrent:currentData,replacement:restoredData)
+            installPracticeSnapshot(restored,data:restoredData,draft:backup.previousDraft)
+            status=restored==nil ? "Test closed. Your previous setup is restored.":restored?.ended==true ? "Finished game restored.":"Saved game restored and paused. Match its board before Resume."
+            return true
+        } catch {practiceError="Could not return to the saved game. The current test is unchanged. "+error.localizedDescription;return false}
+    }
+    private func installPracticeSnapshot(_ saved:Snapshot?,data:Data?,draft restoredDraft:PhysicalAISettings) {
+        phase = .paused // Prevent reentrant guidance callbacks during cancellation.
+        cancel();captureGuidance.clear();verifiedCells=nil;verifiedCameraContext=nil
+        snapshot=saved;currentSnapshotData=data;draft=restoredDraft
+        timing=saved?.timing?.saved ?? PhysicalAITiming(blackToPlay:(saved?.moves.count ?? 0)%2==0)
+        cells=[];referenceCells=[];lastCapturePoints=[];error=nil;practiceError=nil
+        if let saved {
+            refreshBoard()
+            if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {laser.restoreGameFaultRequirement(reason)}
+            phase=saved.ended ? .finished:.paused
+        } else {phase = .idle}
+        syncGuidance()
+    }
     @discardableResult func start()->Bool {
         defer {syncGuidance()}
+        guard snapshot?.practiceTest==nil else {status="Return from the test position before starting another game.";return false}
         guard draft.valid,!loadFailed, !hasGame || phase == .finished else {return false}
         cancel();timing=PhysicalAITiming();verifiedCells=nil;verifiedCameraContext=nil;error=nil
         do {try save(Snapshot(id:UUID(),settings:draft));phase = .checking;status="Clear the board. Waiting for a verified empty position.";return true}

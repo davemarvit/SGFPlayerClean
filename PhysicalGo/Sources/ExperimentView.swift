@@ -217,7 +217,9 @@ struct ExperimentView: View {
             }
             }
             if model.playMode == .ai {
-                PhysicalAIPlayView(ai:ai,orientation:model.orientation,cameraNotice:model.aiCameraNotice)
+                PhysicalAIPlayView(ai:ai,orientation:model.orientation,cameraNotice:model.aiCameraNotice,practiceBoardSizeChanged:{size in
+                    if model.size != size {model.size=size;model.boardSizeChanged()}
+                })
                 OccupiedReferenceControls(model:model)
             } else if !hasSession && model.playMode == .local {
                 ContentUnavailableView {

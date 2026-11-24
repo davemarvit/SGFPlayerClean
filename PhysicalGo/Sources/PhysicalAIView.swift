@@ -48,6 +48,9 @@ struct PhysicalAISetupView: View {
             PhysicalAICenteringControls(ai:ai)
         }.disabled(ai.hasGame && ai.phase != .finished)
         PhysicalAITestModeControls(ai:ai)
+        PhysicalAIPracticeControls(ai:ai,orientation:model.orientation) {size in
+            if model.size != size {model.size=size;model.boardSizeChanged()}
+        }
     }
 }
 
@@ -55,6 +58,7 @@ struct PhysicalAIPlayView: View {
     @ObservedObject var ai: PhysicalAI
     let orientation: BoardOrientation
     var cameraNotice:String?=nil
+    var practiceBoardSizeChanged:((Int)->Void)?=nil
     @State private var ending=false
     @State private var confirmingLaserOff=false
     @State private var exportError: String?
@@ -66,7 +70,7 @@ struct PhysicalAIPlayView: View {
         VStack(alignment:.leading,spacing:12) {
             HStack {
                 VStack(alignment:.leading) {
-                    Text("Play AI · KataGo").font(.title2.bold())
+                    Text(ai.snapshot?.practiceTest.map {"Test position · "+$0.position.title} ?? "Play AI · KataGo").font(.title2.bold())
                     Text(ai.snapshot?.settings.opponentDescription ?? "").font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -95,6 +99,7 @@ struct PhysicalAIPlayView: View {
             PhysicalAILaserControls(laser:ai.laser,clockRunning:ai.timing.anchor != nil)
             PhysicalAICenteringControls(ai:ai)
             PhysicalAITestModeControls(ai:ai)
+            PhysicalAIPracticeControls(ai:ai,orientation:orientation,boardSizeChanged:practiceBoardSizeChanged)
             if ai.centeringStone != nil {
                 Label("Center the highlighted stone on the intersection you intended",systemImage:"scope").foregroundStyle(.orange)
             }
@@ -263,6 +268,69 @@ struct PhysicalAILaserControls: View {
                 Text("Requires a commissioned laser driver. Hand entry turns the light off; the camera must still verify the stone. The screen marker remains available.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+/// Explicit, reversible synthetic positions. No hardware enable command is issued.
+struct PhysicalAIPracticeControls:View {
+    @ObservedObject var ai:PhysicalAI
+    let orientation:BoardOrientation
+    var boardSizeChanged:((Int)->Void)?=nil
+    @State private var choice:PhysicalAIPracticePosition?
+    @State private var confirmingLoad=false
+    @State private var confirmingReturn=false
+    private var returnTitle:String {ai.snapshot?.practiceTest?.previousGameID == nil ? "Return to setup":"Return to saved game"}
+    private func coordinate(_ p:Int)->String {
+        let displayed=PhysicalMoveInference.displayedPoint(row:p/19,col:p%19,size:19,quarterTurns:orientation.turns)
+        return "\(Array("ABCDEFGHJKLMNOPQRST")[displayed%19])\(19-displayed/19)"
+    }
+    @ViewBuilder private func detail(_ position:PhysicalAIPracticePosition)->some View {
+        if !position.moves.isEmpty {
+            Text("Initial setup — Black: "+position.black.map(coordinate).joined(separator:", ")+" · White: "+position.white.map(coordinate).joined(separator:", "))
+            if let next=position.nextMove {
+                Text("Then play Black at \(coordinate(next)); remove White at \(position.prisoners.map(coordinate).joined(separator:", ")).")
+            }
+        }
+        Text(position.clockDetail)
+    }
+    var body:some View {
+        VStack(alignment:.leading,spacing:6) {
+            if let test=ai.snapshot?.practiceTest {
+                Text("Test position · "+test.position.title).font(.headline)
+                Text("Synthetic practice · 19 × 19 · "+(ai.fastTestMode ? "Fast test mode":"Standard AI mode")+". Your prior game is preserved separately.").font(.caption).foregroundStyle(.secondary)
+                detail(test.position).font(.callout)
+                Button(returnTitle) {confirmingReturn=true}.disabled(!ai.canReturnFromPracticePosition)
+                if ai.active {Text("Pause the test before returning.").font(.caption).foregroundStyle(.secondary)}
+            } else {
+                DisclosureGroup("Practice tests") {
+                    VStack(alignment:.leading,spacing:8) {
+                        Text("Your current game is preserved before loading a separate test position. Tests start paused; arrange the board, then Resume for normal verification. Laser settings are not enabled by loading a test.")
+                        ForEach(PhysicalAIPracticePosition.allCases) {position in
+                            VStack(alignment:.leading,spacing:3) {
+                                Button(position.title) {choice=position;confirmingLoad=true}.disabled(!ai.canLoadPracticePosition)
+                                detail(position).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        if !ai.canLoadPracticePosition {Text("Pause the game before loading a practice test.").font(.caption)}
+                    }.padding(.top,6)
+                }
+            }
+            if let error=ai.practiceError {Text(error).foregroundStyle(.red).font(.callout).textSelection(.enabled)}
+        }
+        .confirmationDialog("Load test position?",isPresented:$confirmingLoad,titleVisibility:.visible) {
+            Button("Load test position") {
+                if let choice,ai.loadPracticePosition(choice) {boardSizeChanged?(ai.size)}
+            }
+            Button("Cancel",role:.cancel) {}
+        } message: {
+            Text("\(choice?.title ?? "Practice test"). Your saved game and elapsed clocks will be backed up. The new test stays paused until you arrange the board and Resume.")
+        }
+        .confirmationDialog(returnTitle+"?",isPresented:$confirmingReturn,titleVisibility:.visible) {
+            Button(returnTitle) {if ai.returnFromPracticePosition() {boardSizeChanged?(ai.size)}}
+            Button("Cancel",role:.cancel) {}
+        } message: {
+            Text("The current test is archived. Your previous game or setup is restored with its elapsed clocks. Match the board before resuming an unfinished game.")
         }
     }
 }
