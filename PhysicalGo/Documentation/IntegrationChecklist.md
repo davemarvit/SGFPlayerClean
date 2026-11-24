@@ -6,6 +6,15 @@ Maintain this document after meaningful changes or tests. Keep investigation
 history in [LivePositionIssues.md](LivePositionIssues.md). Distinguish source,
 offline verification, installation and physical validation.
 
+## Isolated next-test package — November 23
+
+This worktree built, signed and verified Physical Go 0.257/build 258 from reviewed `8c142a2`
+(narrow ambiguity guard plus idle fast-test reuse). It is not installed or
+physically validated. See [candidate provenance](RecognitionFastTestCandidate.md).
+The primary integration checklist remains authoritative for live equipment,
+installed application and game state; the older checkpoint below is this
+branch's inherited baseline, not a new live-state observation.
+
 ## Current checkpoint
 
 - Both projects now have pushed Git checkpoints before gameplay-holding changes.
