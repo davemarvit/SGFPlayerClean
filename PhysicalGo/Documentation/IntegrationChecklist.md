@@ -8,6 +8,41 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Camera delivery fix installed and F5 physically verified — latest
+
+- Source `2b7b434` on pushed `codex/gameplay-camera-delivery`, signed app0.259
+  build260 installed at `/Users/Dave/Applications/Physical Go.app`. Source hash
+  `04f12b1612bf523b97488e51236267e70a09b657d3603a94fdfaf95021791d32`.
+  Prior0.258 bundle preserved in camera-delivery-fix evidence. The first in-place
+  copy was rejected by read-only bundle files; verified staged directory swap
+  then succeeded. No signature permissions or filesystem protections changed.
+- Three read-only restart alignment checks passed, maximum1.717px vs6.377px.
+  New stream FC5BA287-6777-420D-A48B-38EEE0030B99, native producer
+  F7E9B209-4E48-4850-93AE-B9586B20701B. Same camera, geometry/model and firmware.
+- After stabilization: native camera safety analysis median57.3ms,p9560.3ms,
+  max71.6ms; delivery to main thread median0.040ms,max0.092ms (259 frames).
+  One startup analysis took601ms, before bridge connection. Connected passive
+  30s check had301 frames, sampled capture-age maximum329ms, zero >600ms.
+- Dave supplied READY, then confirmed seeing the F5 dot. A single pending-move
+  worker ran58.2s with final observed error2.411px, no camera freshness stop and
+  no cold-session fault. The35s sampled window saw maximum capture age440ms.
+  Root paused to end the test; report's `Operation cancelled` is that pause,
+  not another camera error. Final full OFF1795513720.8999321, hardware mode,
+  laserOn=false, reasonCode=null. Driver95890 remains live/idle; no competing port.
+- Game10 remains pending at F5, same saved moves. Normal elapsed-time policy
+  counted the test: Black433.34248354146257s, White18.110881583299488s. No clock
+  edit/reset. Root left it paused and told Dave he may Resume and place White F5.
+  Check current status before further hardware activity; Dave may resume himself.
+- The measured main-thread IO stall is removed and this attended indication
+  passed; long-game endurance is not established. OS-level cause of slow file
+  operations remains unknown. Regional recognition and large-clock/four-side
+  coordinate UI work continue separately and are not installed in0.259.
+- Evidence: `gameplay-activation-20261124/camera-delivery-fix`, including native
+  timings, passive audit, physical-test.json, final OFF status, geometry checks,
+  signed build/test logs and unchanged-before-test game snapshot. No redundant
+  recording tail removed. Native diagnostic image saving/warning feedback stay
+  off; optical host test recording was retained.
+
 ### Camera delivery repair — offline verified, installation pending
 
 - Live process sampling found camera-result delivery blocked in native bridge
