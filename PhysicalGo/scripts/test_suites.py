@@ -28,6 +28,8 @@ SUITES = {
     'latency-trace-test': Suite('PhysicalLatencyTraceTests','standalone',('Tests/PhysicalLatencyTraceTests.swift',),extra=('Sources/PhysicalLatencyTrace.swift',),optimized=False),
     'calibration-progress-test': Suite('PhysicalCalibrationProgressTests','standalone',('Tests/PhysicalCalibrationProgressTests.swift',),extra=('Sources/PhysicalCalibrationProgress.swift',),optimized=False),
     'guidance-continuity-test': Suite('PhysicalAIGuidanceContinuityTests','app',('Tests/PhysicalAIGuidanceContinuityTests.swift',),optimized=False),
+    'ai-idle-reuse-test': Suite('PhysicalAIIdleReuseTests','app',('Tests/PhysicalAIIdleReuseTests.swift','Tests/PhysicalAIIdleReuseReviewTests.swift'),optimized=False),
+    'ai-ambiguous-placement-test': Suite('PhysicalAIAmbiguousPlacementTests', 'app', ('Tests/PhysicalAIAmbiguousPlacementTests.swift',), optimized=False),
     'marker-scenarios-test': Suite('PhysicalMarkerScenarioTests','app',('Tests/PhysicalMarkerScenarioTests.swift',),optimized=False),
     'laser-standby-test': Suite('PhysicalLaserStandbyTests','app',('Tests/PhysicalLaserStandbyTests.swift',),optimized=False),
     'broker-epoch-test': Suite('PhysicalLaserEpochTests','app',('Tests/PhysicalLaserEpochTests.swift',),optimized=False),

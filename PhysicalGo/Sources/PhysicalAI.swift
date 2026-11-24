@@ -32,6 +32,13 @@ struct PhysicalAIGuidanceTarget: Equatable {
     let black: Bool
 }
 
+@MainActor protocol PhysicalAITestBackend: AnyObject {
+    var isRunning:Bool {get}
+    var reusableConfiguration:Bool {get}
+    func move(_ game:SGFGame) async throws -> String
+    func stop()
+}
+
 @MainActor final class PhysicalAI: ObservableObject {
     enum Phase: String {case idle, checking, human, thinking, placing, paused, finished, failed}
     struct Failure: LocalizedError {let message: String; var errorDescription: String? {message}}
@@ -135,14 +142,14 @@ struct PhysicalAIGuidanceTarget: Equatable {
     var canPass: Bool {canPass(at:ProcessInfo.processInfo.systemUptime)}
     func canPass(at now: Double)->Bool {phase == .human && lastMatch.map {(0..<1.5).contains(now-$0)} == true}
     var savedURL: URL? {snapshot.map {directory.appendingPathComponent($0.id.uuidString+".sgf")}}
-    init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil,
+    init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil, testWorker: TestWorker? = nil,
          uptime: @escaping ()->Double = {ProcessInfo.processInfo.systemUptime},
          wallTime: @escaping ()->Double = {Date().timeIntervalSince1970}) {
         self.laser=laser ?? PhysicalLaserGuidance();self.uptime=uptime;self.wallTime=wallTime
         persistSettings=directory == nil
         self.directory=directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/AI Games")
         recognitionTrace=directory == nil ? AIRecognitionTrace(url:self.directory.appendingPathComponent("recognition-trace.json")):nil
-        let testWorker=TestWorker();self.testWorker=testWorker
+        let testWorker=testWorker ?? TestWorker();self.testWorker=testWorker
         self.generate=generate ?? {game,settings in
             if settings.fastTestMode == true {return try await testWorker.move(game)}
             return try await Self.kataMove(game,visits:settings.strength.visits,rank:settings.humanRank)
@@ -232,8 +239,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func pause() {
         defer {syncGuidance()}
         guard active else {return}
-        cancel();timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
+        cancel(preserveIdleTestWorker:true);timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
     }
+    func shutdown() {pause();testWorker.stop()}
     func confirmLaserPhysicallyOff() {
         guard phase == .paused,let saved=snapshot,saved.guidanceInterruption != nil else {return}
         laser.setEnabled(false) // User confirmation is distinct from a driver OFF receipt.
@@ -248,8 +256,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
             status="AI game remains paused. Resolve and recheck the laser before Resume, or explicitly continue without laser guidance."
             return
         }
+        let preserveIdle = phase == .paused && s.guidanceInterruption == nil
         s.guidanceInterruption=nil
-        cancel();error=nil
+        cancel(preserveIdleTestWorker:preserveIdle);error=nil
         if s.moves.count>=2,s.moves.suffix(2).allSatisfy({$0.point == nil}) {s.ended=true}
         if s.pendingCaptureCleanup == true,lastCapturePoints.count<2 {s.pendingCaptureCleanup=false}
         if !s.ended,s.pendingPlacement,!captureCleanupPending {timing.resume(at:uptime())}
@@ -287,7 +296,12 @@ struct PhysicalAIGuidanceTarget: Equatable {
         recognitionTrace?.record(event)
     }
     private func clearCentering() {centeringStone=nil;centeringTarget=nil;centeringWitness=nil}
-    private func cancel() {laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering();generation=UUID();task?.cancel();task=nil;testWorker.stop();laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()}
+    private func cancel(preserveIdleTestWorker:Bool=false) {
+        laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering()
+        generation=UUID();task?.cancel();task=nil
+        if preserveIdleTestWorker && fastTestMode {testWorker.cancelKeepingIdle()} else {testWorker.stop()}
+        laser.setTarget(nil);laser.clearAlignmentPreparation();laser.invalidateCamera();interruptObservation()
+    }
     private func observeCentering(_ observation:BoardObservation,ambiguous:Set<Int>,stamp:Double,now:Double) {
         guard centeringEnabled,laser.enabled,[.human,.checking].contains(phase),pendingPoint==nil,
               !captureCleanupPending,!captureGuidance.pending,let snapshot,!snapshot.moves.isEmpty else {clearCentering();return}
@@ -625,13 +639,55 @@ struct PhysicalAIGuidanceTarget: Equatable {
         return nil
     }
     @MainActor final class TestWorker {
-        private var engine:KataGoEngine?
-        var isRunning:Bool {engine?.isEngineRunning == true}
+        private var engine:PhysicalAITestBackend?
+        private var activeRequest:UUID?
+        private let makeEngine:@MainActor ()->PhysicalAITestBackend
+        init(makeEngine:@escaping @MainActor ()->PhysicalAITestBackend = {KataBackend()}) {self.makeEngine=makeEngine}
+        var isRunning:Bool {engine?.isRunning == true}
         func move(_ game:SGFGame) async throws -> String {
-            if engine == nil {engine=PhysicalScoring.makeWorker()}
-            return try await PhysicalAI.kataMove(game,visits:PhysicalAISettings.Strength.quick.visits,worker:engine)
+            try Task.checkCancellation()
+            guard activeRequest == nil else {throw Failure(message:"A test search is already running.")}
+            // Recheck path preferences and launch-time asset metadata before
+            // using a retained worker. A paused engine never starts new work.
+            if let engine,!engine.reusableConfiguration {stop()}
+            if engine == nil {engine=makeEngine()}
+            guard let engine else {throw Failure(message:"Test engine is unavailable.")}
+            let token=UUID();activeRequest=token
+            defer {if activeRequest == token {activeRequest=nil}}
+            do {
+                let move=try await engine.move(game)
+                try Task.checkCancellation()
+                guard activeRequest == token else {throw CancellationError()}
+                return move
+            } catch {
+                // An obsolete completion must not stop a replacement worker.
+                if activeRequest == token {stop()}
+                throw error
+            }
         }
-        func stop() {engine?.stop();engine=nil}
+        func cancelKeepingIdle() {
+            // No metadata IO on Pause. Revalidation happens before next use.
+            if activeRequest != nil {stop()}
+        }
+        func stop() {activeRequest=nil;engine?.stop();engine=nil}
+
+        private final class KataBackend:PhysicalAITestBackend {
+            private let engine:KataGoEngine
+            private let preferences:[String?]
+            init() {preferences=Self.currentPreferences();engine=PhysicalScoring.makeWorker()}
+            private static func currentPreferences()->[String?] {
+                let defaults=UserDefaults(suiteName:"com.davemarvit.SGFPlayerClean")
+                return [defaults?.string(forKey:"customKataGoPath"),defaults?.string(forKey:"customAIModelPath")]
+            }
+            var isRunning:Bool {engine.isEngineRunning}
+            var reusableConfiguration:Bool {
+                preferences == Self.currentPreferences() && engine.canReuseCurrentConfiguration()
+            }
+            func move(_ game:SGFGame) async throws -> String {
+                try await PhysicalAI.kataMove(game,visits:PhysicalAISettings.Strength.quick.visits,worker:engine)
+            }
+            func stop() {engine.stop()}
+        }
     }
     static func kataMove(_ game: SGFGame,visits: Int,rank: String? = nil,worker:KataGoEngine? = nil) async throws -> String {
         if let rank,!PhysicalAISettings.ranks.contains(rank) {throw Failure(message:"Unsupported human rank.")}

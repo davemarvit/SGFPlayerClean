@@ -97,7 +97,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         didSet {
             guard oldValue != playMode else { return }
             // Preserve the local game's checkpoints; returning requires an explicit Resume.
-            ai.pause()
+            ai.shutdown()
             recorder.pause()
             recorder.clock.pause("Local clock paused while switching play mode")
             onlineBoard.enabled = playMode == .online
@@ -1031,7 +1031,7 @@ enum PhysicalPlayMode: String, CaseIterable {
         prepareCameraStart(); camera.start(deviceID: cameraID)
     }
     func stop() {
-        ai.pause()
+        ai.shutdown()
         boardViewFeedback.reset()
         recoverySpeech.finishCurrent(reason:"camera stopped")
         moveEvidenceCapture.stop(reason:"Camera stopped")

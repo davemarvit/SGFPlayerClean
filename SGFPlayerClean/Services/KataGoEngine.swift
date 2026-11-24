@@ -93,7 +93,7 @@ class KataGoEngine: ObservableObject {
     private var configURL: URL? {configOverride ?? Bundle.main.url(forResource:"analysis",withExtension:"cfg")}
     /// Hash contents once per asset change, including replacements at the same path.
     /// Captured at process launch so an on-disk replacement cannot relabel old results.
-    private func configuredEngineIdentity() -> String? {
+    private func configuredAssetSignature() -> String? {
         let urls = [executableURL, modelURL, configURL] + (humanModelOverride.map {[$0]} ?? [])
         var signature = ""
         for url in urls {
@@ -101,6 +101,19 @@ class KataGoEngine: ObservableObject {
             guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.resolvingSymlinksInPath().path) else { return nil }
             signature += "\(url.resolvingSymlinksInPath().path):\(attributes[.size] ?? 0):\((attributes[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0): \(attributes[.systemFileNumber] ?? 0);"
         }
+        return signature
+    }
+    /// Idle reuse is allowed only for the same launch-time asset metadata.
+    /// Do not hash/reload models while pausing; a changed file forces a fresh worker.
+    func canReuseCurrentConfiguration() -> Bool {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard isEngineRunning,!hasPendingAnalysis,engineStartupError == nil,analysisError == nil,
+              let signature=configuredAssetSignature(),let assetSignature else {return false}
+        return signature == assetSignature
+    }
+    private func configuredEngineIdentity() -> String? {
+        guard let signature=configuredAssetSignature() else {return nil}
+        let urls = [executableURL, modelURL, configURL] + (humanModelOverride.map {[$0]} ?? [])
         if signature == assetSignature { return assetIdentity }
         var hashes: [String] = []
         for url in urls {
