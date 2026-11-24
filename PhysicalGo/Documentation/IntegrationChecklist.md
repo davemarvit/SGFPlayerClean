@@ -12,8 +12,9 @@ and running process IDs are not current operating instructions.
 ## Current checkpoint
 
 **Installed: Physical Go 0.261/build 262 and AimControl v44. Hardware driver
-stopped; app closed; board empty. The setup moved after calibration and requires
-requalification before laser use. The 600 ms camera-freshness problem is open.**
+active in attended continuation; app open, camera active, game paused, board empty.
+Camera alignment has been re-established; laser requalification is incomplete.
+The 600 ms reliability problem remains open.**
 
 | Item | Verified record |
 |---|---|
@@ -23,7 +24,7 @@ requalification before laser use. The 600 ms camera-freshness problem is open.**
 | Installed executable SHA-256 | `b381f986a7a5e513bd77428adb28f4c7916b889c039556c3e0e577a4c3a7fee3` |
 | Coordinated host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848` |
 | Firmware | AimControl v44; documentation work does not upload firmware |
-| Last physical full OFF | Unix `1795516412.7072308`: beam off and motor bus power released; driver PTY 47092 exited 0, serial port subsequently free |
+| Last physical full OFF | Unix `1795551006.046342`, no controller error. The previous continuation stopped and exited; current continuation PTY 38073 (`continued-fit-20261124-121422-43815`) is active after fresh READY; its final OFF is pending. |
 | Launch guard | `gameplay-activation-20261124/gameplay-requalification-required.json` blocks `work/PhysicalGo-Play.command` until current geometry, attended optical qualification and binding review |
 | Rollback | Signed 0.260 bundle in `work/camera-safety-delivery-20261124`; preserve the saved game and paired host compatibility when rolling back |
 
@@ -45,8 +46,8 @@ old build receipts and pinned launchers must retain their provenance.
   Mandatory fresh app → host → app acceptance passed with 68 generated host statuses.
 - Optimized build and strict signature verification passed. Signed 0.261/build 262
   is installed with matching binary/source hashes and a signed 0.260 rollback.
-  App was **not launched** after this install. Saved game hash is unchanged;
-  no camera, desktop screenshot, audio, serial or hardware operation occurred.
+  The app was subsequently launched for the November 24 attended session below.
+  No desktop screenshots were taken; camera-only evidence and accessibility controls were used.
 - Earlier 0.260 first-launch AX smoke verified paused game, large clocks and click
   controls; it is not a 0.261 first-launch or physical validation result.
 - Receipts/logs/actual wire messages: [camera-safety-delivery-20261124](</Users/Dave/Documents/SGF PLayer/work/camera-safety-delivery-20261124>).
@@ -56,20 +57,61 @@ old build receipts and pinned launchers must retain their provenance.
 
 ## Preserved game and equipment
 
-Game `EA70E983-9FAF-40ED-8939-312ED10A1A68` is paused at 12 plies with White **E3**
-pending (raw row 14, column 16, index 282). F5 was accepted earlier. Saved elapsed
-balances: Black `728.2641341662966` seconds, White `65.05366220814176` seconds.
-`AI Games/current.json` SHA-256 is
-`0e5a41a3a0bb24d4d0cd1b051793faa150dc97c6f059a985143f52234101e0ea`.
-Dave cleared the physical stones for analysis. Preserve this game; use the app's
-practice loader for a new empty game or restore its position before Resume.
+The 12-ply E3 test `EA70E983-9FAF-40ED-8939-312ED10A1A68` and original
+five-ply game were preserved through the app's practice/return controls and
+session backups. Current game `D710D336-2746-4004-9796-F63A8D2FB8F5` is an empty,
+paused Human Black practice. Holding preference is on; centering hints are off.
+Keep AirPod Pro 3 selected.
 
-Twenty actual AUSDOM camera frames (1920×1080, ID `0x11000000bda0567`) were clear
-and aligned **before** the reported movement. Three later camera-only frames
-were clear but all had `alignmentValid=false`, with approximately 9–35 px corner
-displacement. Dave reports camera and laser remained fixed relative to one another;
-their relation to the board changed. The old map/binding is retained as evidence,
-not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoint.md).
+Fresh camera geometry and empty-board reference are established. Current stream
+is `F1514C6F-7D81-4BEC-98ED-12BACE6F60E3`, AUSDOM `0x11000000bda0567`, 1920×1080.
+The previous gameplay binding remains blocked for the moved setup.
+
+## November 24 attended calibration
+
+Five attempts stopped safely: old seed/context mismatch; a 3.017 px local boundary
+measurement disagreement; an OFF lease expiring across a 641 ms request-read
+interval; a 4.018 px local boundary disagreement; and unknown native hand clearance.
+Read timings include scheduling and are not syscall-only measurements. The last
+stop followed a 0.8 s gap between delivered camera observations. A hand-tracker
+reset is plausible, but those published records alone do not identify the delayed
+pipeline stage or prove which intermediate frames were analyzed.
+
+- Calibration-only OFF-lease recovery: frozen source `982bdbf`, 206 calibration
+  tests (12 optional skipped), 25 dark tests and 30 focused checks passed.
+- Printed-boundary consensus: frozen source `3445585`. It rejects competing local
+  line models and retains the 3 px map limit. Both rejected images, 100 fresh
+  camera checks (max 2.129 px), 57 focused tests and four historical sequence tests
+  passed under the existing lighting. No room-light change was needed.
+- Latest stopped attempt retained 20 observations/19 moves and completed K10 at
+  1.68 px. A19 was observed but not completed. Full OFF is recorded above.
+- Pre-fit recovery source `8b8a4e2`, worktree
+  `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-fit-resume`, adds fresh
+  actual-pose/two-axis requalification and full-OFF restart for independently
+  classified unknown clearance. It does not treat unknown as clear. 214 calibration
+  tests (15 optional skipped), 25 dark tests and eight focused/actual-record replay
+  tests passed. One explicit hash-bound migration retains the old measurements,
+  unchanged original failure report and original finite run deadline.
+- `continued-fit-20261124-120522-42111` stopped after fresh position agreement
+  (1.608 px) and two consistent probes: actual tilt travel was only three counts,
+  below the independent response-basis requirement. Full OFF confirmed; PTY 55574 exited.
+  Updated source `371cccc` in `calibration-fit-probe-extension` permits one extra
+  same-direction contained tilt probe only for insufficient measured travel. All
+  nine focused/actual-record replay tests passed. Three fresh camera checks passed;
+  The next stationary observation stopped before new travel on old-anchor prediction disagreement; full OFF1795551006.046342. Source `d92e6a8` now uses that reviewed stationary position as the anchor, preserving all accuracy checks. Ten focused/record-replay and17 recovery tests passed. PTY38073 is running `continued-fit-20261124-121422-43815` after fresh READY; fresh position/two-axis checks passed and fitting resumed. No new binding is qualified.
+
+Evidence and launcher backups: `/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259`.
+Calibration attempts are under `work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`.
+Native 0.261 and AimControl v44 were not replaced during this session. Independent
+native timing instrumentation is pushed at `1f28d4c` in
+`/Users/Dave/SGFPlayerClean-worktrees/camera-pipeline-attribution`; 54 photographed
+hand/stone checks and 26 trace checks passed. It is not installed.
+
+The passive stone-height study is pushed at `d0ed574` in `passive-stone-height`.
+Effective optical offset may be learnable; physical thickness is confounded by
+placement habits, camera pose and detector bias. Spatial correction did not
+consistently beat mean bias in the small existing sample. Eight analytic controls
+passed. A passive collector and any correction remain unimplemented.
 
 ## Current work list
 
@@ -77,7 +119,7 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 |---|---|---|
 | 0 | Faster AI test mode | Installed: eight visits/no HumanSL; only completed idle workers survive ordinary Pause/Resume. Active searches and faults cancel. Measure cold/warm physical replies separately. |
 | 1 | Motor movement faults | Earlier released/held encoder and raw-velocity observations remain inconclusive; no guard relaxation. Attended optical comparison remains optional follow-up. |
-| 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. Movement invalidates current qualification; requalify before use. |
+| 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. Fresh camera alignment passed; attended laser continuation is active; no current binding qualification yet. |
 | 3 | Hand clearance | Ordinary hand withdrawal and placement were observed. Recheck beam darkness and fresh-clear recovery in 0.261; do not confuse the later real hand episode with the 600 ms expiry. |
 | 4 | Ordinary placement | Earlier Black/White moves and F5 laser indication passed. Broader 0.261 play, halfway-placement correction and clock behavior still need an attended run. |
 | 5 | Captures | Offline coverage exists; single/multiple/partial removals and both colors need physical validation. |
@@ -106,9 +148,9 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 
 ## Immediate next steps
 
-1. Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md): new camera geometry,
-   attended interior optical screening, then independent boundary checks/binding
-   review. The offline transfer estimate is a hypothesis, not a production model.
+1. Monitor the active continuation through completion and verify its final full OFF.
+   Then review all fit/independent checks and the new binding before starting play.
+   Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md).
 2. Physically validate the independently delivered metadata and inspect remaining tail delays described in
    [CameraFreshnessReliability.md](CameraFreshnessReliability.md). Preserve original
    timestamps and fail-dark behavior; do not call moving IO off-thread a complete fix.
@@ -122,8 +164,8 @@ not qualified for the moved setup. See [laser checkpoint](LaserMovementCheckpoin
 ## Operating preferences and ownership
 
 Root is the sole hardware owner. Check for an existing process/serial owner before
-launching. No driver, unattended laser/motor/audio test or active agent dependency
-is left running. An old READY is not a confirmation for a new physical run.
+launching. The attended driver is active as recorded above; there is no
+unattended run. Independent agent instrumentation is complete and not installed. An old READY is not a confirmation for a new physical run.
 Diagnostic image saving/warnings are off. Preserve games, clocks and calibration.
 Notify Dave before **any desktop screenshot**; use actual camera files for board
 evidence and accessibility text for UI checks. Keep AirPod Pro 3 selected.

@@ -5,6 +5,16 @@ short setup verification followed by an ordinary practice game, not another long
 unstructured debugging session. The [integration checklist](IntegrationChecklist.md)
 is authoritative for installed builds, completed tests and current hardware state.
 
+## Current attended checkpoint
+
+Camera geometry/reference and three live checks are complete. A new empty Human
+Black game is paused; previous games are preserved. The prior calibration continuation
+`continued-fit-20261124-120522-42111` stopped with insufficient measured probe travel
+and full OFF 1795550752.159239. The latest continuation `continued-fit-20261124-121422-43815`
+is active in PTY 38073 after fresh READY. Its position/two-axis checks passed; fitting resumed. Monitor to final full OFF, then review five fit targets and all nine independent
+checks before binding. Do not start a second driver. The checklist is current;
+the morning-start steps below describe work already performed or later play steps.
+
 ## Morning start
 
 1. Open Physical Go. Signed 0.261/build 262 is installed and has passed build/signature and paired
@@ -35,7 +45,7 @@ is authoritative for installed builds, completed tests and current hardware stat
    visible pending target and paused clock for a genuinely unrecoverable fault.
    Pause ends the test; confirm full OFF and close the driver when finished.
 
-No unattended laser/motor/audio tests. The driver is stopped and the app is closed.
+No unattended laser/motor/audio tests. The app and attended continuation are active.
 Native diagnostic image saving and warning feedback are off. Camera-only images
 are the calibration evidence; desktop screenshots require advance notice because
 confidential material may be visible. Game history/clocks/calibration are preserved.

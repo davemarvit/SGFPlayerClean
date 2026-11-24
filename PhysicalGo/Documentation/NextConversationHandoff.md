@@ -1,8 +1,32 @@
 # Physical Go: current conversation handoff
 
-Updated November 24, 2026 after offline follow-up. **Physical Go 0.261/build 262
-installed; AimControl v44 unchanged. App closed, driver stopped, last physical
-full OFF still 1795516412.7072308. The moved setup requires requalification.**
+Updated November 24, 2026 during attended calibration. **Physical Go 0.261/build
+262 and AimControl v44 remain installed. App/camera open, new empty game paused.
+Camera alignment passed; laser requalification is still incomplete.**
+
+**Active continuation:** PTY 38073, `continued-fit-20261124-121422-43815`, started
+after fresh READY. Root owns hardware.
+The prior continuation `continued-fit-20261124-120522-42111` stopped after consistent
+probes with insufficient measured tilt travel; PTY 55574 exited. Full OFF confirmed
+at 1795550752.159239, no controller error. Check existing process before launching.
+Monitor this run through completion and verify its final OFF; do not start another driver. Monitor using
+`work/attended-recheck-20261124-105259/calibration-status.py`.
+
+Calibration source is frozen `d92e6a8` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-observed-fit-anchor`. It includes
+printed-boundary consensus, bounded OFF-lease/unknown-clearance recovery and fresh
+pre-fit actual-pose/two-axis qualification, with one bounded extra tilt probe for
+insufficient measured travel. Explicit continuation preserves the original 20 observations plus one reviewed stationary
+position anchor and K10 (1.68 px) from the last stopped run. A19 and all remaining
+fit/independent targets still need completion. Fresh position/two-axis checks passed in this active run; fitting resumed. The original finite deadline is
+retained. Do not modify frozen source or reinterpret saved unknown as clear.
+
+See the checklist's November 24 attended section for exact failures and tests.
+The new launcher targets this continuation, not a fresh arbitrary run. All final
+qualification and binding review must precede gameplay. Current empty Human Black
+game: D710D336-2746-4004-9796-F63A8D2FB8F5. Previous games/clocks are backed up and
+preserved through app controls; holding preference on, hints off, AirPod Pro 3.
+No desktop screenshots were taken.
 
 Read [AGENTS.md](../../AGENTS.md), [the checklist](IntegrationChecklist.md),
 [next physical test plan](NextPhysicalTestPlan.md) and
@@ -19,7 +43,7 @@ results are distinct from physical validation. No old READY applies to a new run
   literal Swift messages: [artifacts](</Users/Dave/Documents/SGF PLayer/work/camera-safety-delivery-20261124>). The gameplay launcher now pins
   this matched pair and still checks the equipment-movement blocker before serial.
 
-## Completed offline work
+## Earlier offline installation checkpoint
 
 Safety metadata now has a small independent latest-only writer/reader, avoiding
 PNG compression/write delays while preserving original timestamps and no unsafe
@@ -36,7 +60,7 @@ excluding decode, under concurrent build load. All three misaligned later images
 were ineligible. No classifier skipping, map learning or optical correction was
 activated; current hand detection still needs fresh White-stone shapes.
 
-## Physical state and next session
+## Prior setup history (superseded by current state above)
 
 Prior calibration completed five fit targets/nine independent checks (max final
 error 2.990 px), was bound, and used for play. Subsequent movement failed all three
