@@ -1,0 +1,37 @@
+{
+  "status": "review only; failures deliberately retained",
+  "freezeCommit": "738f2d7",
+  "reviewedCommit": "b4184d5",
+  "all29FrozenSelectionAndPolicyUnchanged": true,
+  "all29OutcomesUnchangedAcross01_02_03": true,
+  "independentReplayExactlyEqual": true,
+  "sourceAndArtifactHashesVerified": true,
+  "counts": {
+    "supported": 17,
+    "abstain": 12
+  },
+  "syntheticShadowMergedWithBody": {
+    "status": "supported",
+    "center": [
+      9.000000002484928,
+      9.042967960238457
+    ],
+    "knownBodyCenter": [
+      9.0,
+      8.925
+    ],
+    "centerErrorCells": 0.11796796023845604,
+    "coverage": 1.0,
+    "quadrantDeletionSpread": [
+      0.014968141913414001,
+      0.004676036536693573
+    ]
+  },
+  "syntheticRoundDarkPatchWithoutStone": {
+    "status": "supported",
+    "coverage": 1.0
+  },
+  "imageUnchanged": true,
+  "visibilityNotOverridden": true,
+  "colorHypothesisDoesNotChangeGeometry": true
+}
