@@ -42,6 +42,14 @@ Sources: [PhysicalAI.swift](../../Sources/PhysicalAI.swift) (`TestWorker`,
 `setFastTestMode`, `kataMove`), [KataGoEngine.swift](../../../SGFPlayerClean/Services/KataGoEngine.swift)
 and [AIModels.swift](../../../SGFPlayerClean/Models/AIModels.swift).
 
+## AI play presentation
+
+[PhysicalAIClockView.swift](../../Sources/PhysicalAIClockView.swift) displays the
+same large two-clock layout used by local play, with You/KataGo labels and
+Pause/Resume. Values and running-side emphasis read `PhysicalAITiming`; viewing,
+resizing, switching sides or opening the large clock cannot change time or turn
+ownership. See [AI clock layout](../AIPlayClockLayout.md) for candidate scope.
+
 ## Clock events in AI practice
 
 - Accepting a human move or receiving/committing the AI answer changes the side

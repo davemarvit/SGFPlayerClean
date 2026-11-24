@@ -25,6 +25,7 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'board-coordinate-labels-test': Suite('BoardCoordinateLabelsTests','vision',('Tests/BoardCoordinateLabelsTests.swift',),extra=('Sources/BoardCoordinates.swift','Sources/BoardOrientation.swift'),optimized=False),
     'stone-set-profile-test': Suite('StoneSetProfileTests','standalone',('Tests/StoneSetProfileTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
     'stone-set-profile-review-test': Suite('StoneSetProfileReviewTests','standalone',('Tests/StoneSetProfileReviewTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
     'stone-set-setup-test': Suite('StoneSetSetupTests','standalone',('Tests/StoneSetSetupTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift','Sources/StoneSetProfileView.swift'),optimized=False),

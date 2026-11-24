@@ -210,6 +210,7 @@ struct ExperimentView: View {
             if model.playMode != .local || !hasSession {
             HStack {
                 if model.playMode == .local {LocalPlayHeading(recorder:recorder,clock:recorder.clock)}
+                else if model.playMode == .ai {PhysicalAIPlayHeading(ai:ai)}
                 else {Text("Playing").font(.largeTitle.bold())}
                 Spacer()
                 Button("Check board photo…") {model.beginBoardCorrection()}
@@ -217,7 +218,7 @@ struct ExperimentView: View {
             }
             }
             if model.playMode == .ai {
-                PhysicalAIPlayView(ai:ai,orientation:model.orientation,cameraNotice:model.aiCameraNotice,practiceBoardSizeChanged:{size in
+                PhysicalAIPlayView(ai:ai,orientation:model.orientation,boardHeight:boardHeight,cameraNotice:model.aiCameraNotice,practiceBoardSizeChanged:{size in
                     if model.size != size {model.size=size;model.boardSizeChanged()}
                 })
                 OccupiedReferenceControls(model:model)

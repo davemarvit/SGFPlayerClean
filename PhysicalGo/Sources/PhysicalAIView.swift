@@ -57,6 +57,7 @@ struct PhysicalAISetupView: View {
 struct PhysicalAIPlayView: View {
     @ObservedObject var ai: PhysicalAI
     let orientation: BoardOrientation
+    var boardHeight:CGFloat=480
     var cameraNotice:String?=nil
     var practiceBoardSizeChanged:((Int)->Void)?=nil
     @State private var ending=false
@@ -77,6 +78,7 @@ struct PhysicalAIPlayView: View {
                 if ai.phase == .thinking {ProgressView().controlSize(.small)}
                 Text("Move \(ai.snapshot?.moves.count ?? 0)").monospacedDigit()
             }
+            if ai.hasGame {PhysicalAIClockPanel(ai:ai)}
             if let point=ai.placementGuidancePoint {
                 Label("Place \(ai.human.opponent.rawValue.capitalized) at \(coordinate(point))",systemImage:"scope")
                     .font(.title.bold()).foregroundStyle(.blue)
@@ -85,21 +87,8 @@ struct PhysicalAIPlayView: View {
                 Label("Remove captured stone at \(coordinate(point)) · \(ai.remainingCapturedStones) remaining",systemImage:"minus.circle")
                     .font(.title.bold()).foregroundStyle(.orange)
             }
-            TimelineView(.periodic(from:.now,by:0.5)) { _ in
-                HStack {
-                    Text("Black · \(LocalClockEngine.display(ai.timing.elapsed(black:true,at:ProcessInfo.processInfo.systemUptime)))")
-                    Text("White · \(LocalClockEngine.display(ai.timing.elapsed(black:false,at:ProcessInfo.processInfo.systemUptime)))")
-                }.monospacedDigit()
-            }
-            Text("Elapsed time · your clock starts when the AI move arrives, including aiming and placement. Captures of two or more stones pause the clock until placement and capture removal are confirmed. Single-stone captures keep the clock running.").font(.caption).foregroundStyle(.secondary)
-            if ai.clockPausedForCaptureCleanup {
-                Text("Clock paused for capture cleanup — complete the move and remove captured stones.").foregroundStyle(.orange)
-            }
             PhysicalCalibrationProgressView()
             PhysicalAILaserControls(laser:ai.laser,clockRunning:ai.timing.anchor != nil)
-            PhysicalAICenteringControls(ai:ai)
-            PhysicalAITestModeControls(ai:ai)
-            PhysicalAIPracticeControls(ai:ai,orientation:orientation,boardSizeChanged:practiceBoardSizeChanged)
             if ai.centeringStone != nil {
                 Label("Center the highlighted stone on the intersection you intended",systemImage:"scope").foregroundStyle(.orange)
             }
@@ -108,8 +97,6 @@ struct PhysicalAIPlayView: View {
             if let error=ai.error {Text(error).foregroundStyle(.red).textSelection(.enabled)}
             if ai.hasGame {
                 HStack {
-                    if ai.active {Button("Pause") {ai.pause()}}
-                    if ai.phase == .paused || ai.phase == .failed {Button(ai.phase == .failed ? "Retry":"Resume") {ai.resume()}}
                     if ai.phase == .paused,ai.snapshot?.guidanceInterruption != nil {
                         Button("Continue without laser") {confirmingLaserOff=true}
                     }
@@ -118,13 +105,22 @@ struct PhysicalAIPlayView: View {
                     Spacer()
                     Button("Save SGF file") {export()}
                 }
-                board.frame(maxWidth:650,maxHeight:650).frame(maxWidth:.infinity)
+                board.frame(maxWidth:650,maxHeight:boardHeight).frame(maxWidth:.infinity)
                 if let issue=ai.mismatch {
                     Text("Match the board: \(issue.remove.map{coordinate($0)}.joined(separator:", "))\(issue.remove.isEmpty ? "":" — remove marked stones. ")\(issue.place.map{coordinate($0)}.joined(separator:", "))\(issue.place.isEmpty ? "":" — place required stones.")")
                         .foregroundStyle(.orange)
                 }
                 Text("Center dot: last move. Blue ring: AI move to place. Red ×: remove or correct. Games save automatically; two passes finish without assigning a score.").font(.caption).foregroundStyle(.secondary)
             } else {Text("Choose your settings in Setup, then Start AI game.")}
+            DisclosureGroup("Timing, laser hints & practice options") {
+                VStack(alignment:.leading,spacing:12) {
+                    Text("Elapsed time · your clock starts when the AI move arrives, including aiming and placement. Captures of two or more stones pause the clock until placement and capture removal are confirmed. Single-stone captures keep the clock running.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    PhysicalAICenteringControls(ai:ai)
+                    PhysicalAITestModeControls(ai:ai)
+                    PhysicalAIPracticeControls(ai:ai,orientation:orientation,boardSizeChanged:practiceBoardSizeChanged)
+                }.padding(.top,8)
+            }
             if let exportError {Text(exportError).foregroundStyle(.red)}
         }
         .confirmationDialog("Switch the laser’s physical power switch OFF",isPresented:$confirmingLaserOff,titleVisibility:.visible) {
@@ -162,10 +158,14 @@ struct PhysicalAIPlayView: View {
                 let p=inset+CGFloat(i)*step
                 lines.move(to:.init(x:inset,y:p));lines.addLine(to:.init(x:inset+CGFloat(size-1)*step,y:p))
                 lines.move(to:.init(x:p,y:inset));lines.addLine(to:.init(x:p,y:inset+CGFloat(size-1)*step))
-                context.draw(Text(String(Array("ABCDEFGHJKLMNOPQRST")[i])).font(.system(size:11)).foregroundColor(.black),at:.init(x:p,y:step*0.28))
-                context.draw(Text(String(size-i)).font(.system(size:11)).foregroundColor(.black),at:.init(x:step*0.28,y:p))
             }
             context.stroke(lines,with:.color(.black.opacity(0.65)),lineWidth:1)
+            // Shared Go labels cover all four edges. Rotate their canonical
+            // anchors with the stones while keeping the glyphs upright.
+            let labelMargin=min(0.72,max(0,1-8/Double(step)))
+            for label in BoardCoordinates.labels(size:size,orientation:orientation,margin:labelMargin) {
+                context.draw(Text(label.text).font(.system(size:11)).foregroundColor(.black),at:stoneCenter(label.grid))
+            }
             for i in ai.cells.indices {
                 let c=center(i),rect=CGRect(x:c.x-step*0.45,y:c.y-step*0.45,width:step*0.9,height:step*0.9)
                 if ai.cells[i] != "empty" {
