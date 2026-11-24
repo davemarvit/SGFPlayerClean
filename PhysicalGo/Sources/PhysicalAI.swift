@@ -111,6 +111,10 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private var verifiedCells: [String]?
     private var verifiedCameraContext: String?
     private var loadFailed = false
+    private var illegalMoveTracker=PhysicalIllegalMoveWarning.Tracker()
+    private var illegalMoveContext: String?
+    private var illegalMovePlayer: SGFPlayer?
+    private(set) var illegalMoveWarning: PhysicalIllegalMoveWarning.Candidate?
     var hasGame: Bool {snapshot != nil}
     var fastTestMode: Bool {(snapshot?.ended == false ? snapshot?.settings.fastTestMode:draft.fastTestMode) == true}
     var canChangeTestMode: Bool {!hasGame || [.paused,.finished,.failed].contains(phase)}
@@ -274,6 +278,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         catch {fail(error.localizedDescription)}
     }
     func interruptObservation(reason:String="state_reset",preserveGuidance:Bool=false) {
+        clearIllegalMoveWarning()
         if reason != "state_reset" {centeringWitness=nil}
         // Illuminated/buffered frames are deliberately not new capture evidence;
         // retain the selected operation until hand/positive-removal OFF occurs.
@@ -347,6 +352,46 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
         laser.verifyCenteringTarget(capturedAt:stamp,now:now)
     }
+    private var currentIllegalMoveContext: String {
+        "\(snapshot?.id.uuidString ?? "none")/\(snapshot?.moves.count ?? 0)/\(snapshot?.settings.rules ?? "none")/\(generation)/\(laser.cameraContext ?? "board-only")/\(laser.frames.streamEpoch)"
+    }
+    private func clearIllegalMoveWarning() {
+        illegalMoveTracker.clear();illegalMoveContext=nil;illegalMovePlayer=nil
+        if illegalMoveWarning != nil {
+            illegalMoveWarning=nil;mismatch=nil
+            status="Checking the physical board."
+        }
+    }
+    /// This diagnostic uses raw positive readings and never changes legal-move
+    /// acceptance. In particular, suicide does not pass the legal candidate filter.
+    private func observeIllegalMove(_ observation:BoardObservation,ambiguous:Set<Int>,stamp:Double,now:Double)->PhysicalIllegalMoveWarning.Candidate? {
+        let acceptsAttempt=phase == .human || (phase == .checking && snapshot?.moves.isEmpty == false)
+        guard acceptsAttempt,turn==human,pendingPoint==nil,let snapshot,!snapshot.pendingPlacement,
+              observation.capturedAt != nil,observation.manualPoints.isEmpty,ambiguous.isEmpty,
+              observation.readings.allSatisfy({$0.occupancy != .uncertain && $0.confidence>=0.8}) else {
+            clearIllegalMoveWarning();return nil
+        }
+        let added=observation.readings.filter {cells[$0.row*size+$0.col]=="empty" && $0.occupancy.rawValue==human.rawValue}
+        guard added.count==1,let point=added.first.map({$0.row*size+$0.col}),
+              captureGuidance.permitsReply(at:point) else {clearIllegalMoveWarning();return nil}
+        var raw=Array<String?>(repeating:nil,count:cells.count),confidence=Array(repeating:0.0,count:cells.count)
+        for reading in observation.readings {
+            let p=reading.row*size+reading.col;raw[p]=reading.occupancy.rawValue;confidence[p]=reading.confidence
+        }
+        let context=currentIllegalMoveContext;illegalMoveContext=context
+        if illegalMovePlayer==nil {illegalMovePlayer=player()}
+        guard let diagnosticPlayer=illegalMovePlayer else {return nil}
+        // consume's admission above already established clear, calibrated,
+        // dark-safe input; this tracker independently requires unique fresh stamps.
+        let candidate=illegalMoveTracker.observe(player:diagnosticPlayer,context:context,human:human,
+            acceptsHumanAttempt:true,pendingAIPlacement:false,
+            evidence:.init(frameID:String(stamp.bitPattern),capturedAt:stamp,cells:raw,confidence:confidence,
+                           ambiguous:ambiguous,hand:observation.handObstructed,aligned:true,confirmedDark:true),
+            now:now,permitsReply:{[captureGuidance] in captureGuidance.permitsReply(at:$0)})
+        if candidate==nil,illegalMoveWarning != nil {illegalMoveWarning=nil;mismatch=nil;status="Checking the physical board."}
+        illegalMoveWarning=candidate
+        return candidate
+    }
     private func fail(_ message: String) {cancel();timing.pause(at:uptime());error=message;phase = .failed;status="AI game paused. Resolve the issue, then Retry."}
     private func player()->SGFPlayer {
         let p=SGFPlayer();if let s=snapshot {p.load(game:Self.game(s));p.seek(to:s.moves.count)};return p
@@ -355,6 +400,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         defer {syncGuidance()}
         guard active else {return}
         let observationGeneration=generation
+        if let context=illegalMoveContext,context != currentIllegalMoveContext {clearIllegalMoveWarning()}
         let stamp=observation.capturedAt ?? now
         // Retain only previously observed cells in the same camera/grid context.
         // Fresh positive contradictions still override this history below;
@@ -436,6 +482,18 @@ struct PhysicalAIGuidanceTarget: Equatable {
         guard active,generation==observationGeneration else {return}
         observeCaptures(observation,ambiguous:ambiguous,stamp:stamp,now:now)
         guard active,generation==observationGeneration else {return}
+        if let warning=observeIllegalMove(observation,ambiguous:ambiguous,stamp:stamp,now:now) {
+            clearCentering()
+            outcome="illegal_move";detail["rejection"]=warning.rejection.rawValue;detail["point"]=warning.point
+            witness=nil;witnesses=0;lastMatch=nil
+            var raw=cells
+            for reading in observation.readings {raw[reading.row*size+reading.col]=reading.occupancy.rawValue}
+            mismatch = .init(expected:cells,observed:raw)
+            status=warning.rejection.rawValue+(warning.restorePoints.isEmpty
+                ? " Remove the stone marked ×."
+                : " Remove the stone marked × and restore the stones at the blue rings.")
+            return
+        }
         observeCentering(observation,ambiguous:ambiguous,stamp:stamp,now:now)
         guard active,generation==observationGeneration else {return}
         for r in observation.readings {
