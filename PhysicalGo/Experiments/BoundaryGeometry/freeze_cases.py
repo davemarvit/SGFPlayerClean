@@ -28,14 +28,15 @@ for name in ['frame-816','frame-950']:
  d=next(x for x in rows if x['name']==name);n=next(x for x in native if x['id']=='crowded-'+name)
  neighbors=[[i%19,i//19] for i,c in enumerate(d['signature']) if c in 'BW?' and i!=39]
  fit=next(s for s in n['shapes'] if s['row']*19+s['col']==39)
- add('crowded-'+name,FIX/'CrowdedWhiteAdjustment'/(name+'.png'),meta,d['calibration'],[1,1.7],'white','known real misplacement; frame950 preserves earlier false relief .36 to .221','nov05-crowded',neighbors,compact=fit)
+ add('crowded-'+name,FIX/'CrowdedWhiteAdjustment'/(name+'.png'),meta,d['calibration'],[1,1.7],'white','known real misplacement; frame950 preserves earlier false relief .36 to .221','historical-crowded-fixture',neighbors,compact=fit)
  if name=='frame-950':
-  add('hand-covered-950-95',FIX/'CrowdedWhiteAdjustment/frame-950.png',meta,d['calibration'],[0,5],'white','independent photo-label occluded95; supplied gate, not hand-detection validation','nov05-crowded',neighbors,visibility='occluded')
+  add('hand-covered-950-95',FIX/'CrowdedWhiteAdjustment/frame-950.png',meta,d['calibration'],[0,5],'white','independent photo-label occluded95; supplied gate, not hand-detection validation','historical-crowded-fixture',neighbors,visibility='occluded')
 for name in ['10','75','150']:
  meta=FIX/'ShadedCross'/(name+'.json');d=json.loads(meta.read_text());neighbors=[[x['col'],x['row']] for x in d['readings'] if x['occupancy'] in ['black','white']]
- add('shaded-empty-'+name,meta.with_suffix('.png'),meta,d['calibration'],[12,15],'white','test fixture: shaded empty crossing','nov04-shaded',neighbors)
+ add('shaded-empty-'+name,meta.with_suffix('.png'),meta,d['calibration'],[12,15],'white','test fixture: shaded empty crossing','historical-shaded-fixture',neighbors)
 meta=CAP/'black-01/frame-00.json';d=json.loads(meta.read_text());add('empty-center-current',meta.with_suffix('.png'),meta,d['currentCalibration'],[9,9],'white','user-confirmed eight outer stones, center empty','nov23-ausdom',points)
 policy={'version':'radial-rgb-edge-v1','samplingAngles':72,'radiusSearch':[.22,.80],'edgeHalfWidth':.025,'minimumRGBStep':18.,'minimumRadiality':.65,'minimumArcFraction':.70,'maximumMissingArcDegrees':90,'ellipseRadiusBounds':[.32,.62],'maximumCenterShift':.30,'maximumEllipseResidual':.045,'maximumContestedFraction':.15,'neighborOwnershipMargin':.08,'geometryOnly':True,'thresholdStatus':'engineering assumptions frozen before replay, not calibrated'}
 payload={'selection':'fixed before first boundary replay; first frame per episode, all eight centered anchors, predefined historical controls','cases':cases,'policy':policy,'excluded':'No later frame selection, model fitting, threshold tuning, physical contact inference or live use.'}
+payload['auxiliaryProvenance']=[source(Path('/Users/dave/Documents/SGF PLayer/work/hand-parallax-stage10/geometry-native.json')),source(FIX/'CrowdedWhiteAdjustment/photo-labels.json')]
 with (OUT/'cases.json').open('x') as f:json.dump(payload,f,indent=2);f.write('\n')
 print(len(cases),'cases frozen')

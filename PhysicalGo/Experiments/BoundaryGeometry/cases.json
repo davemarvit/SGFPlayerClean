@@ -1752,7 +1752,7 @@
       ],
       "colorHypothesis": "white",
       "label": "known real misplacement; frame950 preserves earlier false relief .36 to .221",
-      "setup": "nov05-crowded",
+      "setup": "historical-crowded-fixture",
       "neighborCenters": [
         [
           2,
@@ -1963,7 +1963,7 @@
       ],
       "colorHypothesis": "white",
       "label": "known real misplacement; frame950 preserves earlier false relief .36 to .221",
-      "setup": "nov05-crowded",
+      "setup": "historical-crowded-fixture",
       "neighborCenters": [
         [
           1,
@@ -2222,7 +2222,7 @@
       ],
       "colorHypothesis": "white",
       "label": "independent photo-label occluded95; supplied gate, not hand-detection validation",
-      "setup": "nov05-crowded",
+      "setup": "historical-crowded-fixture",
       "neighborCenters": [
         [
           1,
@@ -2471,7 +2471,7 @@
       ],
       "colorHypothesis": "white",
       "label": "test fixture: shaded empty crossing",
-      "setup": "nov04-shaded",
+      "setup": "historical-shaded-fixture",
       "neighborCenters": [
         [
           3,
@@ -2672,7 +2672,7 @@
       ],
       "colorHypothesis": "white",
       "label": "test fixture: shaded empty crossing",
-      "setup": "nov04-shaded",
+      "setup": "historical-shaded-fixture",
       "neighborCenters": [
         [
           3,
@@ -2873,7 +2873,7 @@
       ],
       "colorHypothesis": "white",
       "label": "test fixture: shaded empty crossing",
-      "setup": "nov04-shaded",
+      "setup": "historical-shaded-fixture",
       "neighborCenters": [
         [
           3,
@@ -3136,5 +3136,16 @@
     "geometryOnly": true,
     "thresholdStatus": "engineering assumptions frozen before replay, not calibrated"
   },
-  "excluded": "No later frame selection, model fitting, threshold tuning, physical contact inference or live use."
+  "excluded": "No later frame selection, model fitting, threshold tuning, physical contact inference or live use.",
+  "auxiliaryProvenance": [
+    {
+      "path": "/Users/dave/Documents/SGF PLayer/work/hand-parallax-stage10/geometry-native.json",
+      "sha256": "d564674cd5e8f1f66b63ebf27c438d0211677a64abab272d1a9c1da1adf9ede5"
+    },
+    {
+      "path": "/Users/Dave/SGFPlayerClean-worktrees/boundary-geometry-diagnostic/PhysicalGo/Tests/Fixtures/CrowdedWhiteAdjustment/photo-labels.json",
+      "sha256": "c603789d1c981038aea92c58d5d335ab181a07cf890629624b3f6baafb33431b"
+    }
+  ],
+  "metadataCorrection": "After first replay: removed unverified dates from setup grouping IDs and pinned auxiliary compact-fit/photo-label sources. Case IDs, images, geometry inputs, labels, seeds and policy unchanged from 738f2d7."
 }
