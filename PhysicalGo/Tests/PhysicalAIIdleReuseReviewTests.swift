@@ -17,12 +17,12 @@ import Darwin
         func finish(_ result:Result<String,Error>) {pending.removeFirst().resume(with:result)}
     }
     private struct InjectedFailure:Error {}
-    private static func waitFor(_ predicate:()->Bool) async throws {
+    private static func waitFor(file:StaticString = #fileID,line:UInt = #line,_ predicate:()->Bool) async throws {
         for _ in 0..<1000 {
             if predicate() {return}
             try await Task.sleep(nanoseconds:1_000_000)
         }
-        preconditionFailure("Fake request did not reach its continuation")
+        preconditionFailure("Fake request did not reach its continuation",file:file,line:line)
     }
     static func run() async throws -> Int {
         var checks=0
@@ -148,6 +148,11 @@ import Darwin
         feed(ai.cells)
         check(ai.phase == .human && !ai.snapshot!.pendingPlacement,"Fresh unambiguous placement can finish after camera-only recovery")
         var human=ai.cells;human[0]="white";feed(human)
+        // Human acceptance resets witnesses and enters checking. The next
+        // search requires a NEW stable board/capture-removal observation cohort.
+        check(ai.phase == .checking && ai.snapshot!.moves.count==2,"Accepted human move must still cross post-commit board verification")
+        check(created==1 && second.pending.isEmpty,"No replacement search starts before post-commit verification")
+        feed(ai.cells)
         try await waitFor {!second.pending.isEmpty}
         check(created==2 && first.stops==1 && second.stops==0,"Next accepted human move uses a fresh backend after hard fault")
         second.finish(.success("E5"));try await waitFor {ai.phase == .placing}
