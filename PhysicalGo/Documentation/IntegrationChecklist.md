@@ -20,6 +20,18 @@ only way to obtain a usable model. The installed gameplay loop records observati
 but does not yet update its model and performs a predicted coarse landing before
 spot acquisition. A minimal feedback-first gameplay/learning path remains open.
 
+Minimal-seed assessment: offline source `5c167da` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/minimal-calibration-assessment` compares
+three local affine, three spread affine, five ray-model and 71-point dense-prefix
+fits on 21 later withheld observations. Three-point global extrapolation is poor;
+this does not measure adaptive optical convergence. First-to-third local saved
+observation span is 11.082s, excluding startup/preflight/OFF, not a new tour time.
+The proposed physical test times three observed positions (no intersection-centering
+needed), then scores new targets before learning from them. Full97-model comparison
+is diagnostic, not independent ground truth. Four math tests passed. No new physical
+run, hardware activation or minimal-runner implementation in this assessment.
+Report: [minimal comparison](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/minimal-calibration-assessment/Firmware/Experiments/MinimalCalibration/README.md>).
+
 Offline continuation changes are frozen at `58a9cf2` in
 `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity`:
 retain completed measurements/checks, reacquire actual spot after OFF, remove old
