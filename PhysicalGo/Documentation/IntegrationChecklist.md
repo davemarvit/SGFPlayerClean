@@ -14,10 +14,9 @@ offline verification, installation and physical validation.
   writer for transient PNG/manifest/request files, one-time broker orphan scanning,
   four-image retention and bounded publication-stage traces. Persistent writes,
   camera freshness, original timestamps and hardware policy remain unchanged.
--43 injected writer assertions, async exchange checks and283 AI lifecycle checks
-  pass. The new broker suite hit a test-only URL-normalization assertion; preserved
-  artifacts show four protocol images and the unrelated image correctly retained.
-  The assertion is corrected; rerun waits until the attended physical session ends.
+- 43 injected writer assertions, async exchange checks, 283 AI lifecycle checks
+  and 49 actual broker epoch/cache/retention/error checks pass. The broker test's
+  URL-normalization assertion was corrected to compare the unrelated basename.
 - Alternating private-folder benchmarks did not demonstrate a write speedup.
   Correct nested PNG filter options were honored and lossless but slower/neutral,
   so the default encoder remains. No candidate build/install or hardware action.
