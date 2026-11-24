@@ -1,0 +1,32 @@
+{
+  "status": "independent offline review only",
+  "artifactSHA256": "48d9f3b079856f9efa2aecc8c873694c522effcee1990bfe7bc2edcb03ea1036",
+  "cases": [
+    {
+      "color": "black",
+      "frames": 8,
+      "allSourceAndIdentityChecks": true,
+      "coefficientsEqualStudy01": true,
+      "minimumNeighborDistance": 0.4334398615777303
+    },
+    {
+      "color": "white",
+      "frames": 8,
+      "allSourceAndIdentityChecks": true,
+      "coefficientsEqualStudy01": true,
+      "minimumNeighborDistance": 0.4828783446181579
+    }
+  ],
+  "minimumNeighborDistance": 0.4334398615777303,
+  "maximumNativeGridRoundtripPixels": 2.5421149729252077e-13,
+  "negativeControls": [
+    {
+      "fault": "changed_epoch",
+      "rejectedBeforeResult": true
+    },
+    {
+      "fault": "changed_image_hash",
+      "rejectedBeforeResult": true
+    }
+  ]
+}
