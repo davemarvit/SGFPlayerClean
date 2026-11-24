@@ -8,6 +8,21 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Common stand bumped — current setup requires requalification
+
+Dave reported bumping the stand holding camera and laser. Root captured three
+fresh actual AUSDOM board images (epochDF192AF7-3FA4-4C42-891F-6FE96919C503),
+all alignmentValid=false/handObstructed=false. Board-only feature registration
+against the earlier empty-board recording measured corner shifts about9–35px
+(709–715 inliers). App likewise says Board alignment needs attention.
+Evidence: gameplay-activation-20261124/stand-bump-check-20261124/comparison.json.
+No model, grid or binding changed; do not treat the former calibration as current
+for this moved setup. Camera was checked read-only and app quit; hardware driver
+remains stopped/full OFF. Offline analysis continues on labelled before-bump data.
+Before next physical use, establish camera geometry and perform attended optical
+requalification; image alignment alone cannot certify the moved motor map.
+
+
 ### Overnight offline work — November 24, after final attended session
 
 - All hardware drivers STOPPED; controller serial port is free. Last full OFF
