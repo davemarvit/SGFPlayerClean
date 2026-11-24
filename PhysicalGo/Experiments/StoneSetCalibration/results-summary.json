@@ -339,8 +339,10 @@
     "analyticControls": 6,
     "nativeProfileDecode": "34 checks passed, including actual study02 producer JSON",
     "independentSetupValidation": "notPerformed",
-    "freshBlackMidpoint": "awaiting capture",
-    "nativeProfileEvidence": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/native-profile-validation.json"
+    "freshBlackMidpoint": "Frozen-model same-view diagnostic complete; new episode at prior training location, not held-out location",
+    "nativeProfileEvidence": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/native-profile-validation.json",
+    "freshWhiteMidpoint": "Frozen-model same-view diagnostic complete; new episode at prior training location, not held-out location",
+    "freshNegativeAtPreselectedHeldOutLocation": "notPerformed"
   },
   "profile": {
     "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/offline-stone-set-profile.json",
@@ -350,5 +352,146 @@
     "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/white-development-results.json",
     "sha256": "68b548bd7f801a769ec193704bff8bc185d42c83b823be6ec17027cb17db4078",
     "notIndependentHoldout": true
+  },
+  "freshMidpoints": {
+    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/fresh-midpoint-results.json",
+    "sha256": "48d9f3b079856f9efa2aecc8c873694c522effcee1990bfe7bc2edcb03ea1036",
+    "status": "offlineSameViewDiagnosticOnly",
+    "cases": [
+      {
+        "color": "black",
+        "modelSHA256": "63c45b4bfba10d84bbf19d93d0210a75e1a04d89645a866c5d62ef8782a9093d",
+        "sampleManifestSHA256": "0e338bda61059fdd44e8ff6214ba3e61861e2c4792d7109c540dd89bdb1c6a0e",
+        "summary": {
+          "currentGrid": {
+            "medianContact": [
+              14.569175512164453,
+              8.947506888293997
+            ],
+            "coordinateRange": [
+              [
+                14.56865693001402,
+                14.569677328153725
+              ],
+              [
+                8.94585871599007,
+                8.948699805103479
+              ]
+            ],
+            "medianDistancesToCol14And15": [
+              0.5715771056107946,
+              0.4339923542933306
+            ],
+            "distanceRanges": [
+              [
+                0.5709662109524446,
+                0.5720601272567334
+              ],
+              [
+                0.4334398615777303,
+                0.43438295779340935
+              ]
+            ]
+          },
+          "refinedPrintedGrid": {
+            "medianContact": [
+              14.541271577814705,
+              8.94989567820329
+            ],
+            "coordinateRange": [
+              [
+                14.54075004431056,
+                14.541774728345604
+              ],
+              [
+                8.948247072888526,
+                8.951089708687629
+              ]
+            ],
+            "medianDistancesToCol14And15": [
+              0.5435716738957759,
+              0.46144014725865334
+            ],
+            "distanceRanges": [
+              [
+                0.5429574817774715,
+                0.5440584732497891
+              ],
+              [
+                0.46089125763935457,
+                0.46184709417405
+              ]
+            ]
+          }
+        }
+      },
+      {
+        "color": "white",
+        "modelSHA256": "6e2596248658c1ddfda3de9f3ae66cbe33856562a95bfbbdc8a3acecc7348ce6",
+        "sampleManifestSHA256": "a26656fa50d96033087a3634b5ad7deef42ce8fae0a3939c158dd10f849e868a",
+        "summary": {
+          "currentGrid": {
+            "medianContact": [
+              14.51655765135439,
+              8.986419893338251
+            ],
+            "coordinateRange": [
+              [
+                14.515335141860106,
+                14.517316515209448
+              ],
+              [
+                8.985363060073308,
+                8.98895272932436
+              ]
+            ],
+            "medianDistancesToCol14And15": [
+              0.5167457590510358,
+              0.4836433711851975
+            ],
+            "distanceRanges": [
+              [
+                0.5155104607674516,
+                0.517498334412844
+              ],
+              [
+                0.4828783446181579,
+                0.4848512673392303
+              ]
+            ]
+          },
+          "refinedPrintedGrid": {
+            "medianContact": [
+              14.487820783766203,
+              8.989163544247539
+            ],
+            "coordinateRange": [
+              [
+                14.486593377233268,
+                14.488582157943267
+              ],
+              [
+                8.988105448567461,
+                8.991698006152314
+              ]
+            ],
+            "medianDistancesToCol14And15": [
+              0.48794940124082153,
+              0.5123017449755882
+            ],
+            "distanceRanges": [
+              [
+                0.4867109719630417,
+                0.48870539721969347
+              ],
+              [
+                0.5115355797841684,
+                0.5135180773475002
+              ]
+            ]
+          }
+        }
+      }
+    ]
   }
 }

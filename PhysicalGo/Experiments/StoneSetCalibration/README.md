@@ -154,8 +154,9 @@ the frozen refined-G White model, the inferred contacts are approximately
 intersection; the midway example is 0.473/0.533 from the two neighboring rows.
 The model therefore preserves this misplacement instead of correcting it away.
 Because that pair informed contour-estimator development, it remains a development
-negative control, not untouched validation. A fresh Black midpoint capture is
-requested separately and will be evaluated without refitting the positive model.
+negative control, not untouched validation. Fresh Black and White misplaced-stone episodes were subsequently evaluated with
+the frozen models; see [FreshMidpointAudit.md](FreshMidpointAudit.md). These are new
+episodes at a prior training location, not held-out locations or independent setups.
 
 ## Candidate profile and reproduction
 
