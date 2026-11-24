@@ -183,3 +183,16 @@ position makes some edge checks impossible, although the established policy can
 test them. Consult the current checklist for enabled source and physical results.
 The proposed recovery does not permit retries after controller, camera, hand or
 transport faults.
+
+
+## Ephemeral IPC publication
+
+The [November 24 source candidate](../../Experiments/EphemeralIPC/README.md)
+uses same-directory POSIX temporary-write/close/rename for live broker PNGs,
+manifest and request JSON. It preserves atomic visibility and original deadlines,
+without claiming crash durability. Persistent game/calibration writes are excluded.
+The broker retains four protocol images using a queue-owned list after one startup
+scan. Optional bounded trace events separate encode, pixel write, manifest and
+pruning costs. Private benchmarks did not establish a speedup; consult the current
+checklist for installation/physical-validation status rather than assuming this
+source change fixed the observed interruption.

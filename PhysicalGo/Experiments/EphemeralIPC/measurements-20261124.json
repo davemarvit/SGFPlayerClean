@@ -1,0 +1,125 @@
+{
+  "baseline": {
+    "alternatingOrder": true,
+    "pngBytes": 3113749,
+    "privateDirectory": "/Users/dave/Library/Application Support/PhysicalGoIPC-Benchmark-F7BBE4A8-B9D6-40D5-8813-02FC89D8D295",
+    "results": {
+      "ephemeral_atomic": {
+        "manifest": {
+          "count": 60,
+          "maxMs": 30.243749963119626,
+          "medianMs": 0.7198334205895662,
+          "p95Ms": 10.70158346556127
+        },
+        "png": {
+          "count": 60,
+          "maxMs": 34.893791656941175,
+          "medianMs": 2.006583265028894,
+          "p95Ms": 6.728666601702571
+        },
+        "request": {
+          "count": 60,
+          "maxMs": 18.155999947339296,
+          "medianMs": 0.6981876213103533,
+          "p95Ms": 7.955166744068265
+        },
+        "total": {
+          "count": 60,
+          "maxMs": 58.899249881505966,
+          "medianMs": 4.002687404863536,
+          "p95Ms": 24.639916606247425
+        }
+      },
+      "foundation_atomic": {
+        "manifest": {
+          "count": 60,
+          "maxMs": 23.24500004760921,
+          "medianMs": 0.6125625222921371,
+          "p95Ms": 6.048916606232524
+        },
+        "png": {
+          "count": 60,
+          "maxMs": 39.6657083183527,
+          "medianMs": 1.9833333790302277,
+          "p95Ms": 7.437333231791854
+        },
+        "request": {
+          "count": 60,
+          "maxMs": 6.576125044375658,
+          "medianMs": 0.5608958890661597,
+          "p95Ms": 2.776291687041521
+        },
+        "total": {
+          "count": 60,
+          "maxMs": 50.720375031232834,
+          "medianMs": 3.578937496058643,
+          "p95Ms": 26.008083252236247
+        }
+      }
+    },
+    "warmupPairs": 4
+  },
+  "withConcurrentReaders": {
+    "alternatingOrder": true,
+    "concurrentReaders": true,
+    "pngBytes": 3113749,
+    "privateDirectory": "/Users/dave/Library/Application Support/PhysicalGoIPC-Benchmark-96B32F95-9304-447B-A8AE-9B205388F3B0",
+    "results": {
+      "ephemeral_atomic": {
+        "manifest": {
+          "count": 60,
+          "maxMs": 16.432999866083264,
+          "medianMs": 0.6091041723266244,
+          "p95Ms": 2.0612915977835655
+        },
+        "png": {
+          "count": 60,
+          "maxMs": 9.08712507225573,
+          "medianMs": 1.6878333408385515,
+          "p95Ms": 3.9020832628011703
+        },
+        "request": {
+          "count": 60,
+          "maxMs": 20.920125069096684,
+          "medianMs": 0.6028332281857729,
+          "p95Ms": 3.0153749976307154
+        },
+        "total": {
+          "count": 60,
+          "maxMs": 39.79087504558265,
+          "medianMs": 3.1334790401160717,
+          "p95Ms": 9.28454170934856
+        }
+      },
+      "foundation_atomic": {
+        "manifest": {
+          "count": 60,
+          "maxMs": 10.606708470731974,
+          "medianMs": 0.6134374998509884,
+          "p95Ms": 2.8482498601078987
+        },
+        "png": {
+          "count": 60,
+          "maxMs": 5.99954160861671,
+          "medianMs": 1.8355208449065685,
+          "p95Ms": 3.262791782617569
+        },
+        "request": {
+          "count": 60,
+          "maxMs": 17.104541650041938,
+          "medianMs": 0.6229582941159606,
+          "p95Ms": 2.1993748378008604
+        },
+        "total": {
+          "count": 60,
+          "maxMs": 30.10233328677714,
+          "medianMs": 3.2239584252238274,
+          "p95Ms": 7.930416613817215
+        }
+      }
+    },
+    "warmupPairs": 4
+  },
+  "pngFilterExperiment": "default seconds 0.0772288334555924 max 0.09056216664612293 bytes 3113761\nnone seconds 0.09329516673460603 max 0.1013092917855829 bytes 3525399\nsub seconds 0.0895203750114888 max 0.09905645833350718 bytes 3298034\nup seconds 0.0774509166367352 max 0.0799152918625623 bytes 3298412\navg seconds 0.10321200010366738 max 0.12203308334574103 bytes 3412161\npaeth seconds 0.10464829159900546 max 0.11302495817653835 bytes 3116872\n",
+  "conclusion": "No material write speedup reproduced. Nested PNG filters were honored and lossless, but no filter improved encoding. Keep default ImageIO encoding; stage tracing is needed on an actual recurrence."
+}

@@ -48,10 +48,15 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
     private var pendingPreparation: (CGImage,Frame)?
     private var working=false
     private let encodeImage: ((CGImage)->Data?)?
+    private let writeFile:(Data,URL)throws->Void
+    private var directoryPrepared=false // queue-owned; orphan scan is once per broker
     private var publishedFrame: Frame?
     private var preparedPixels:[FrameIdentity:Data]=[:] // queue-owned, at most two analyzed frames
     private var retained=[URL]() // queue-owned; at most four published PNGs
-    init(directory: URL,encodeImage:((CGImage)->Data?)?=nil) {self.directory=directory;self.encodeImage=encodeImage}
+    init(directory: URL,encodeImage:((CGImage)->Data?)?=nil,
+         writeFile:@escaping (Data,URL)throws->Void = {try EphemeralAtomicFile.write($0,to:$1)}) {
+        self.directory=directory;self.encodeImage=encodeImage;self.writeFile=writeFile
+    }
     var streamEpoch: UUID {lock.lock();defer {lock.unlock()};return epoch}
     func resetStream() {
         lock.lock();epoch=UUID();nextID=0;pending=nil;pendingPreparation=nil;lock.unlock()
@@ -114,43 +119,80 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
                     // An approved frame may already have been encoded by publish().
                     // Never queue redundant compression behind newer safety verdicts.
                     if let old=publishedFrame,old.streamEpoch==frame.streamEpoch,old.frameID>=frame.frameID {return}
+                    let began=ProcessInfo.processInfo.systemUptime
                     guard frame.streamEpoch==streamEpoch,let pixels=encode(image),frame.streamEpoch==streamEpoch else {return}
+                    PhysicalLatencyTrace.shared?.record("laser_frame_encoding",fields:["frameID":String(frame.frameID),"stage":"prepare"],
+                        metrics:["encodeSeconds":ProcessInfo.processInfo.systemUptime-began])
                     preparedPixels[FrameIdentity(frame)]=pixels
                     for key in preparedPixels.keys.sorted(by:{$0.frameID<$1.frameID}).dropLast(2) {preparedPixels.removeValue(forKey:key)}
                 }
             } else {working=false;lock.unlock();return}
         }
     }
+    private func prepareDirectory()throws {
+        guard !directoryPrepared else {return}
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        // An earlier process may have left protocol images. Discover them once,
+        // then maintain the four-file bound from our queue-owned retained list.
+        // Unrelated files are never candidates for deletion.
+        let existing=try FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:[.contentModificationDateKey])
+        retained=existing.filter {url in
+            let parts=url.deletingPathExtension().lastPathComponent.split(separator:"-")
+            return url.pathExtension=="png" && parts.count==6 && UInt64(parts.last!) != nil && UUID(uuidString:parts.dropLast().joined(separator:"-")) != nil
+        }.sorted {((try? $0.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast) < ((try? $1.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast)}
+        directoryPrepared=true
+    }
+    private func makeRoomForPublication()throws {
+        // Remove before writing another image. If cleanup fails, stop publishing
+        // instead of growing the directory/list without bound. Readers can retry
+        // a pruned image using latest.json, as in the existing broker protocol.
+        while retained.count>=4 {
+            do {try FileManager.default.removeItem(at:retained[0])}
+            catch let error as CocoaError where error.code == .fileNoSuchFile {}
+            retained.removeFirst()
+        }
+    }
     private func publish(_ item: Item) {
         let m=item.manifest
         guard m.frame.streamEpoch==streamEpoch else {return}
         if let old=publishedFrame,old.streamEpoch==m.frame.streamEpoch,old.frameID>=m.frame.frameID {return}
-        guard let pixels=preparedPixels.removeValue(forKey:FrameIdentity(m.frame)) ?? encode(item.image),
-              m.frame.streamEpoch==streamEpoch else {return}
+        let began=ProcessInfo.processInfo.systemUptime
+        let prepared=preparedPixels.removeValue(forKey:FrameIdentity(m.frame))
+        guard let pixels=prepared ?? encode(item.image),m.frame.streamEpoch==streamEpoch else {return}
+        let encoded=ProcessInfo.processInfo.systemUptime
+        var stage="prepare_directory",unpublished:URL?
+        defer {if let unpublished {try? FileManager.default.removeItem(at:unpublished)}}
         do {
-            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            try prepareDirectory()
+            stage="prune";let pruneBegan=ProcessInfo.processInfo.systemUptime
+            try makeRoomForPublication()
+            let pruned=ProcessInfo.processInfo.systemUptime
             let file=directory.appendingPathComponent(m.imageFile)
-            try (pixels as Data).write(to:file,options:.atomic)
-            guard m.frame.streamEpoch==streamEpoch else {try? FileManager.default.removeItem(at:file);return}
+            unpublished=file;stage="pixels"
+            try writeFile(pixels,file)
+            let pixelsWritten=ProcessInfo.processInfo.systemUptime
+            guard m.frame.streamEpoch==streamEpoch else {return}
             let published=Manifest(schemaVersion:1,frame:m.frame,publishedAtUnix:Date().timeIntervalSince1970,
                                    imageFile:m.imageFile,encoding:m.encoding,width:m.width,height:m.height,
                                    cameraID:m.cameraID,cameraContext:m.cameraContext,referenceCalibration:m.referenceCalibration,
                                    currentCalibration:m.currentCalibration,handObstructed:m.handObstructed,alignmentValid:m.alignmentValid)
-            try JSONEncoder().encode(published).write(to:directory.appendingPathComponent("latest.json"),options:.atomic)
-            publishedFrame=m.frame
-            retained.append(file)
-            while retained.count>4 {try? FileManager.default.removeItem(at:retained.removeFirst())}
-            // Also bound files left by an earlier app process. Only remove names
-            // belonging to this protocol, never arbitrary files in the folder.
-            let existing=(try? FileManager.default.contentsOfDirectory(at:directory,includingPropertiesForKeys:[.contentModificationDateKey])) ?? []
-            let pngs=existing.filter {url in
-                let parts=url.deletingPathExtension().lastPathComponent.split(separator:"-")
-                return url.pathExtension=="png" && parts.count==6 && UInt64(parts.last!) != nil && UUID(uuidString:parts.dropLast().joined(separator:"-")) != nil
-            }.sorted {((try? $0.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast) > ((try? $1.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast)}
-            for old in pngs.dropFirst(4) {try? FileManager.default.removeItem(at:old)}
+            stage="manifest"
+            try writeFile(JSONEncoder().encode(published),directory.appendingPathComponent("latest.json"))
+            let finished=ProcessInfo.processInfo.systemUptime
+            publishedFrame=m.frame;retained.append(file);unpublished=nil
+            PhysicalLatencyTrace.shared?.record("laser_frame_published",fields:[
+                "frameID":String(m.frame.frameID),"streamEpoch":m.frame.streamEpoch.uuidString,
+                "preparedPixels":String(prepared != nil)],metrics:[
+                    "encodeSeconds":encoded-began,"directorySeconds":pruneBegan-encoded,
+                    "pruneSeconds":pruned-pruneBegan,"pixelWriteSeconds":pixelsWritten-pruned,
+                    "manifestWriteSeconds":finished-pixelsWritten,"totalSeconds":finished-began,
+                    "captureAgeSeconds":Date().timeIntervalSince1970-m.frame.capturedAtUnix])
         } catch {
-            // No usable new manifest is published on failure. Readers enforce
-            // freshness, never interpreting an old image as a new camera sample.
+            PhysicalLatencyTrace.shared?.record("laser_frame_publication_failed",fields:[
+                "frameID":String(m.frame.frameID),"stage":stage],metrics:[
+                    "totalSeconds":ProcessInfo.processInfo.systemUptime-began])
+            // A failed publication leaves the previous manifest unchanged. The
+            // unpublished image is removed, and readers enforce original ages.
         }
     }
     func flushForTesting() {queue.sync {}}
