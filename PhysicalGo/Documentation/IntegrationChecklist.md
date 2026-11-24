@@ -1,6 +1,38 @@
 # Camera, AI and laser integration — current checklist
 
-Operational update — November 24, 2026: **Wide three-point physical test completed;
+Current feedback-test update — November 24, 2026: **Controller fully OFF;
+retry launcher waiting at READY in PTY 7981. Do not start a competing driver.**
+Root owns hardware. Frozen feedback source `352948b` in
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-feedback` is pushed.
+Launcher: `work/PhysicalGo-Three-Point-Feedback.command`. Three camera rechecks
+passed after the first attempt. Fresh user READY remains required before hardware.
+
+First feedback attempt `three-point-feedback-20261124-141443-66813` stopped after
+K10 for native `handObstructed: true`, with alignment valid. The exact saved
+`guard-rejected-frame.png` appears empty: suspected false obstruction, not proof of
+actual hand intrusion. Full OFF at `1795558540.6453667`, no controller error;
+source manifests unchanged, PTY 32249 exited 1. READY-to-OFF: 57.152896 seconds.
+K10 reached 0.1083 cells / 5.309 px in 27.668217 seconds (four moves), then
+0.0331 cells / 1.625 px in 40.888455 seconds (six moves). F14 was interrupted
+before a measured landing. Six further target results remain outstanding.
+
+Benchmark route: K10, F14, B10, K2, S10, P15, K18. Same frozen three-point affine
+seed only; fresh optical anchoring and local response updates within each target,
+reset for each new target. Time to 0.20 cells is recorded before at most three
+extra refinements toward 3 px. Near-edge inward waypoints/smaller steps avoid an
+overshoot exposed by simulation. No dense-model steering or global learning.
+248 calibration tests passed (19 optional skipped), including 17 local/wide/feedback
+tests; 51 base model tests passed. This is a calibration-runner benchmark, not
+installed gameplay latency. Hardware guards and final full OFF remain enforced.
+
+Separate offline learning work `3ad106c` in `gameplay-learning-offline` is pushed:
+10 tests pass. Shadow residual and separate response learning improve medians but
+regress some fresh tail errors; no live promotion, installation or physical timing
+claim. Eligible samples require actual motor/spot pairs, reliable pose timing and
+board-plane evidence. Score-before-update, holdout checks and rollback implemented.
+See `Firmware/Experiments/GameplayLearning/README.md` in that worktree.
+
+Previous completed wide test — November 24, 2026: **Wide three-point physical test completed;
 hardware fully OFF, no active launcher/driver or pending READY.** Successful run
 `three-point-wide-20261124-135944-63058`, frozen source `b7183b1` in
 `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-wide`, PTY 8386 exited 0.
@@ -97,7 +129,7 @@ The 600 ms reliability problem remains open.**
 | Installed executable SHA-256 | `b381f986a7a5e513bd77428adb28f4c7916b889c039556c3e0e577a4c3a7fee3` |
 | Coordinated host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848` |
 | Firmware | AimControl v44; documentation work does not upload firmware |
-| Last physical full OFF | Unix `1795557672.1890821`, no controller error; wide3-point test exited0. |
+| Last physical full OFF | Unix `1795558540.6453667`, no controller error; feedback test stopped on camera obstruction flag. |
 | Launch guard | `gameplay-activation-20261124/gameplay-requalification-required.json` blocks `work/PhysicalGo-Play.command` until current geometry, attended optical qualification and binding review |
 | Rollback | Signed 0.260 bundle in `work/camera-safety-delivery-20261124`; preserve the saved game and paired host compatibility when rolling back |
 
