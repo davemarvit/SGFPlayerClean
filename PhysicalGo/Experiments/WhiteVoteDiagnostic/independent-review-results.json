@@ -1,0 +1,38 @@
+{
+  "source_hashes_verified": 8,
+  "archived_footprints_exactly_reproduced": 4,
+  "cases": [
+    {
+      "point": 180,
+      "all4225_votes_match": true,
+      "raw_color_support_in_core": 0,
+      "full_discrete_search_matches": true,
+      "best": [
+        0.9211977186311787,
+        [
+          0.38,
+          0.35719999999999996,
+          2,
+          -7
+        ]
+      ],
+      "native_minus_body_row": -0.10808669618170264
+    },
+    {
+      "point": 275,
+      "all4225_votes_match": true,
+      "raw_color_support_in_core": 0,
+      "full_discrete_search_matches": true,
+      "best": [
+        0.915054503413345,
+        [
+          0.36,
+          0.3384,
+          0,
+          7
+        ]
+      ],
+      "native_minus_body_row": -0.10988194670737172
+    }
+  ]
+}
