@@ -25,6 +25,7 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'camera-safety-test': Suite('PhysicalCameraSafetyTests','app',('Tests/PhysicalCameraSafetyTests.swift',),optimized=False),
     'ephemeral-io-test': Suite('EphemeralAtomicFileTests','standalone',('Tests/EphemeralAtomicFileTests.swift',),extra=('Sources/EphemeralAtomicFile.swift',),optimized=False),
     'bridge-io-test': Suite('LatestFileExchangeTests','standalone',('Tests/LatestFileExchangeTests.swift',),extra=('Sources/LatestFileExchange.swift',),optimized=False),
     'ai-move-click-test': Suite('PhysicalAIMoveClickTests','standalone',('Tests/PhysicalAIMoveClickTests.swift',),extra=('Sources/PhysicalAIMoveClick.swift',),optimized=False),

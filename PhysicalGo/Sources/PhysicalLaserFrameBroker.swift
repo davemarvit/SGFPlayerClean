@@ -30,6 +30,22 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
         let handObstructed: Bool?
         let alignmentValid: Bool
     }
+    /// Clearance supervision only. No image locator: consumers must continue
+    /// to read the independently timestamped PNG manifest for optical evidence.
+    struct SafetyManifest: Codable {
+        let schemaVersion: Int
+        let kind: String
+        let frame: Frame
+        var publishedAtUnix: Double
+        let width: Int
+        let height: Int
+        let cameraID: String
+        let cameraContext: String
+        let referenceCalibration: BoardCalibration?
+        let currentCalibration: BoardCalibration?
+        let handObstructed: Bool?
+        let alignmentValid: Bool
+    }
     private struct FrameIdentity: Hashable {
         let streamEpoch: UUID
         let frameID: UInt64
@@ -42,11 +58,15 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
     let directory: URL
     private let lock=NSLock()
     private let queue=DispatchQueue(label:"PhysicalGo.laserFrames",qos:.userInitiated)
+    private let safetyQueue=DispatchQueue(label:"PhysicalGo.laserSafety",qos:.userInitiated)
     private var epoch=UUID()
     private var nextID: UInt64=0
     private var pending: Item?
     private var pendingPreparation: (CGImage,Frame)?
     private var working=false
+    private var safetyPending: SafetyManifest?
+    private var safetyWorking=false
+    private var lastOffered: Frame? // lock-owned; immutable, advancing observations
     private let encodeImage: ((CGImage)->Data?)?
     private let writeFile:(Data,URL)throws->Void
     private var directoryPrepared=false // queue-owned; orphan scan is once per broker
@@ -59,7 +79,10 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
     }
     var streamEpoch: UUID {lock.lock();defer {lock.unlock()};return epoch}
     func resetStream() {
-        lock.lock();epoch=UUID();nextID=0;pending=nil;pendingPreparation=nil;lock.unlock()
+        lock.lock();epoch=UUID();nextID=0;pending=nil;pendingPreparation=nil
+        safetyPending=nil;lastOffered=nil;lock.unlock()
+        // Leave any old safety file to fail its epoch/age checks. Removing it
+        // could make a reader mistake a failed new producer for a legacy one.
         queue.async { [self] in
             preparedPixels.removeAll()
             guard let owned=publishedFrame else {return}
@@ -103,9 +126,46 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
                               referenceCalibration:reference,currentCalibration:current,handObstructed:hand,alignmentValid:aligned)
         lock.lock()
         guard frame.streamEpoch==epoch else {lock.unlock();return}
+        if let old=lastOffered,old.streamEpoch==frame.streamEpoch,old.frameID>=frame.frameID {
+            lock.unlock();return
+        }
+        lastOffered=frame
         pending=Item(image:image,manifest:manifest)
-        let start = !working;working=true;lock.unlock()
+        safetyPending=SafetyManifest(schemaVersion:2,kind:"cameraSafety",frame:frame,publishedAtUnix:0,
+            width:image.width,height:image.height,cameraID:cameraID,cameraContext:context,
+            referenceCalibration:reference,currentCalibration:current,handObstructed:hand,alignmentValid:aligned)
+        let start = !working,safetyStart = !safetyWorking
+        working=true;safetyWorking=true;lock.unlock()
+        if safetyStart {safetyQueue.async {[self] in drainSafety()}}
         if start {queue.async {[self] in drain()}}
+    }
+    private func drainSafety() {
+        while true {
+            lock.lock()
+            guard var item=safetyPending else {safetyWorking=false;lock.unlock();return}
+            safetyPending=nil;lock.unlock()
+            guard item.frame.streamEpoch==streamEpoch else {continue}
+            let began=ProcessInfo.processInfo.systemUptime
+            do {
+                // Independent from PNG compression, image retention and pixel IO.
+                // No filesystem work runs under the shared admission lock.
+                try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+                item.publishedAtUnix=Date().timeIntervalSince1970
+                let bytes=try JSONEncoder().encode(item)
+                guard item.frame.streamEpoch==streamEpoch else {continue}
+                try writeFile(bytes,directory.appendingPathComponent("safety.json"))
+                PhysicalLatencyTrace.shared?.record("laser_safety_published",fields:[
+                    "frameID":String(item.frame.frameID),"streamEpoch":item.frame.streamEpoch.uuidString],metrics:[
+                        "totalSeconds":ProcessInfo.processInfo.systemUptime-began,
+                        "captureAgeSeconds":Date().timeIntervalSince1970-item.frame.capturedAtUnix])
+            } catch {
+                // Atomic failure retains the prior message with its ORIGINAL
+                // capture/publication times; host expiry must still stop use.
+                PhysicalLatencyTrace.shared?.record("laser_safety_publication_failed",fields:[
+                    "frameID":String(item.frame.frameID)],metrics:[
+                        "totalSeconds":ProcessInfo.processInfo.systemUptime-began])
+            }
+        }
     }
     private func drain() {
         while true {
@@ -195,5 +255,6 @@ final class PhysicalLaserFrameBroker: @unchecked Sendable {
             // unpublished image is removed, and readers enforce original ages.
         }
     }
-    func flushForTesting() {queue.sync {}}
+    func flushSafetyForTesting() {safetyQueue.sync {}}
+    func flushForTesting() {safetyQueue.sync {};queue.sync {}}
 }
