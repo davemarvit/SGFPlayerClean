@@ -4102,3 +4102,39 @@ supervisorfault, cancellationfalse, sourceinventories/gameSHAunchanged; exit1
 reaped and serial released. ReportSHA82b063a6c6e246c24d9b724b1201a79ee441aa2c88a36b9f88eb8a36cdc52b84.
 Root switches to attended stone tests. fast_calibration acknowledged offline
 settlement-aware planning diagnosis; no hardware ownership transferred.
+
+November 23 — attended stone session: basic recognition passed; ambiguity failed
+PhysicalGo0.253/build254, fasttestmode, laser fullyOFF/bridge disabled. Recording
+16-32-43/81F57368 captured two explicit hand-overboard/slowwithdrawal cycles;
+handtrue→false twice, alignmentvalid, no game moves whilepaused. Resumed humanWhite
+game: AI Blackpoint72 accepted exactlyonce. Recording reached per-session5GB
+(1552frames), not diskfull (~59GB free). Diagnosticpause script verified images/
+warnings off. No tailtrim: recording ended18s after meaningfulplacement.
+Paused atmove1, clocks101.293sWhite/11.380sBlack, restarted recording16-37-13/81D4E9F0
+with10GB requested (archive allocated5.976GB). Resume verified existingposition
+withoutduplicate. White180 and AI Black300 acceptedonce; placement cleared about
+0.5–0.7s after handflagclear. Bothrecordings markedKEEP.
+Ambiguitytest FAILED: user placedWhite midway between emptyintersections, withdrew,
+thenremovedit. Nativeacceptedpoint275 at1795480763.698962 andAIpoint288 at
+1795480764.873220. Frame697/time1795480763.128513 retainsclear image; footprint
+center[9,14.28], quality0.915, readingWhiteconfidence1, placementFits/tracks empty.
+Cause notyetproven; marker_scenarios owns isolated offlineinvestigation.
+Firstactiondiagnosticpause script succeeded; thenAIpaused atmove5/pendingBlack.
+History/clocks preserved, pre-failure3move snapshot saved; do notresumeagainst
+physical3stoneboard without deliberate recovery. Secondrecording stopped795frames/
+2.571GB; no redundant30s tail. No physicalcapture/laserwigglepass claimed.
+FastAI review: bothsearches8visits. AfterPause/Resume boardrecheck0.793s+engine/
+presentation8.253s=9.047s; nextuninterruptedmove0.796+0.378=1.174s. Workerstop
+onpause explains likelycoldrestart; exactload/searchsplit notlogged. No AIchange.
+Evidence: work/ai-laser-integration/stone-session-20261123/session-result.json and
+ambiguity-failure/ beneath /Users/dave/Documents/SGF PLayer.
+
+November 23 — clarify ambiguity failure and preliminary cause
+Dave clarified: WHITE color classification was correct; assigning the stone to
+an intersection was incorrect. Expected behavior is spatial abstention until
+centered, regardless of laserhint toggle. Agent preliminaryread: measuredoffset
+0.28 is below hardambiguity0.30; neighboring294wasuncertain but borrowed prior
+verifiedEMPTY, permittingstable singleWhite275acceptance. LegitimateWhite180also
+measured0.28offset, so simplyloweringthreshold is not a justified fix.
+marker_scenarios owns targeted neighbor-evidence investigation; contract_review
+is assigned independent review. No production/installed change yet.

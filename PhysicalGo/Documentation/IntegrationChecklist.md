@@ -8,6 +8,24 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+- **Attended stone tests passed hand clearance and ordinary placement; ambiguity
+  failed.** Installed0.253/build254 recognized two hand/withdrawal cycles and
+  Black72 → White180 → Black300 exactly once. Pause/Resume preserved clocks and
+  did not duplicate the first stone. White color recognition was correct, but the halfway-placed stone was assigned
+  to point275, followed by AI288; game now paused at move5/pendingBlack, with
+  pre-failure three-move snapshot saved. Keep the physical three-stone position;
+  deliberate recovery is needed before resuming. Images/warnings are off; laser
+  fully OFF and app bridge disabled. Both recordings retained with KEEP.
+  marker_scenarios owns isolated ambiguity diagnosis. Capture/laser marker tests
+  remain pending. [Session evidence](</Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/session-result.json>).
+- **Fast AI is active (8 visits).** A response after Pause/Resume took9.047s;
+  the next uninterrupted response took1.174s (0.796s board recheck,0.378s AI).
+  Cold engine restart is the likely difference; load/search split is unmeasured.
+- **Diagnostic recording cap interrupted testing.** First recording reached its
+  5GB per-session cap, with ~59GB disk free. New recording requested10GB and was
+  allocated5.976GB from the shared archive allowance; it was stopped manually at
+  2.571GB after the ambiguity failure. No retained recordings were manually deleted.
+
 - **Attended manual-validation-01 stopped after approximately 102 seconds.**
   Reviewed standalone `bed3c52` passed fresh position (0.673px) and steering
   qualification, then stopped before A10 on predicted endpoint disagreement:
