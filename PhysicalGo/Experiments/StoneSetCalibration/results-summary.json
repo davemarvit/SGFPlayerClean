@@ -337,17 +337,18 @@
   },
   "validation": {
     "analyticControls": 6,
-    "nativeProfileDecode": "pending root-approved build window",
+    "nativeProfileDecode": "34 checks passed, including actual study02 producer JSON",
     "independentSetupValidation": "notPerformed",
-    "freshBlackMidpoint": "awaiting capture"
+    "freshBlackMidpoint": "awaiting capture",
+    "nativeProfileEvidence": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/native-profile-validation.json"
   },
   "profile": {
     "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/offline-stone-set-profile.json",
     "sha256": "efe58a4ad98ec8553ef7b78dc787bc49fe5f94cc75eef4b193a204497d501c27"
   },
   "whiteDevelopmentPair": {
-    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-01/white-development-results.json",
-    "sha256": "ef2d759b0e93eb07df5d5d1e8aa87b808cd7aea282b45675739cc134d5c955c9",
+    "path": "/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/stone-set-calibration/offline-body-study-02/white-development-results.json",
+    "sha256": "68b548bd7f801a769ec193704bff8bc185d42c83b823be6ec17027cb17db4078",
     "notIndependentHoldout": true
   }
 }

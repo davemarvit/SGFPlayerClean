@@ -166,8 +166,9 @@ It has three separate optical-height candidates per color, uncalibrated confiden
 metadata, sensitivity ranges and complete capture/code provenance. Measured
 physical thickness and metric conversion are null. The temporary board-spacing
 identity binds the unknown pitch to this study; it does not assert the spacing of
-another board. The file is **not installed, selected or applied**. Native decode
-validation remains pending the root-approved build window.
+another board. The file is **not installed, selected or applied**. Native decoding/validation of this exact study02 producer file and the model/store
+test suite pass 34 checks. Evidence hashes are in `native-profile-validation.json`;
+no app was launched or profile installed.
 
 From the application repository root, choose new output paths:
 
