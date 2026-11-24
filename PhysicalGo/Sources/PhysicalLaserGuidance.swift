@@ -150,6 +150,10 @@ import CoreGraphics
     private var standbyFault: String?
     private var standbySetup: String?
     private var armingStartedAt: Double?
+    // A live transition heartbeat is uncertain output, never dark admission.
+    // Revision changes cannot extend this continuous handoff deadline.
+    private var transitionStartedAt: Double?
+    private var unresolvedLinkLoss: (session:PlaySession,sequence:Int,since:Double)?
     private var coldAdmissionConfirmed=false
     private var lastRetainOnly: Bool?
     private var cameraAt: Double?
@@ -250,6 +254,7 @@ import CoreGraphics
         // A new game revokes the old lease, but is not a hardware-fault retry.
         if let value,let barrier=manualDarkBarrier,barrier.session != value {refreshManualDarkBarrier(session:value)}
         playSession=value;standbyReady=false
+        transitionStartedAt=nil;unresolvedLinkLoss=nil
         targetEmptyAt=nil;emptyEvidenceAfter=uptime();sequence+=1;tick()
     }
     func setEnabled(_ value: Bool) {
@@ -473,6 +478,15 @@ import CoreGraphics
         playSession != nil && status.playSession==playSession && cameraContext != nil && status.cameraContext==cameraContext &&
         status.streamEpoch==frames.streamEpoch && standbySetup != nil && status.setupId==standbySetup
     }
+    private func matchedTransition(_ status:DriverStatus)->Bool {
+        if matchedStandby(status) {return true}
+        // Pause revokes the play session before its OFF acknowledgement. The
+        // host can report an uncertain, bounded handoff for this nullable scope.
+        return closingStandby && lastAction=="off" && playSession==nil && status.playSession==nil &&
+            status.schemaVersion==2 && status.capabilities?.contains("darkMotorStandbyV1")==true &&
+            cameraContext != nil && status.cameraContext==cameraContext && status.streamEpoch==frames.streamEpoch &&
+            standbySetup != nil && status.setupId==standbySetup
+    }
     /// Darkness permits recognition; only a genuine full OFF permits shutdown.
     /// Powered darkness also requires a fresh thermal sample and exact session,
     /// camera, setup and optical watermark. A request is never an acknowledgement.
@@ -517,7 +531,8 @@ import CoreGraphics
             motorMessage=mayHaveMotorSession ? "Waiting for motor status":"Motor holding is off"
             temperatureMessage="Temperature unavailable";return
         }
-        motorMessage=driver.state=="holding" && driver.motorsHeld==true && !driver.laserOn ? "Holding · laser off":
+        motorMessage=driver.state=="transitioning" ? "Changing laser mode · waiting for confirmation":
+            driver.state=="holding" && driver.motorsHeld==true && !driver.laserOn ? "Holding · laser off":
             driver.state=="cooling" && driver.motorsHeld==false && !driver.laserOn ? "Cooling · motors released":
             fullOff(driver,wall:wall) ? "Motors off":driver.motorBusPowered==true ? "Motors active": "Motor status unavailable"
         if holdingInterrupted {motorMessage=controllerResetRequired ? "Controller stopped; reset required":"Motor holding stopped · check the driver before retrying"}
@@ -600,6 +615,7 @@ import CoreGraphics
         let faultScope=currentHardFaultScope(driver,wall:wall)
         let statusAtEntry=driver
         var currentHealthFault:String?
+        var localLinkFault:HardFault?
         func hardHealth(_ code:String) {currentHealthFault=code;latchStandby(code)}
         // Unexpected or uncertain light still contaminates buffered camera
         // frames. Keep optical OFF/flush gating even if we requested only dark
@@ -617,7 +633,36 @@ import CoreGraphics
         if wireSchema==2 {
             if connected,driver?.sequence==sequence,
                driver?.state=="fault" || driver?.requiresNewRevision==true {latchStandby(driver?.reasonCode ?? "driver_interrupted")}
-            if !transientRecovery.isPending,mayHaveMotorSession,!connected {latchStandby("driver_link_lost")}
+            if !transientRecovery.isPending,mayHaveMotorSession,!connected {
+                if unresolvedLinkLoss==nil,enabled,let session=playSession,session.valid {
+                    unresolvedLinkLoss=(session,sequence,now)
+                }
+                latchStandby("driver_link_lost")
+                suppressed=target != nil;reason="driver_link_lost";resetHandRecoveryEvidence()
+            }
+            // A returned classified camera/lease fault enters the existing
+            // recovery path above. An unexplained OFF or prolonged absence
+            // cannot leave the game clock running behind a permanent OFF latch.
+            if standbyFault != "driver_link_lost" {unresolvedLinkLoss=nil}
+            if let lost=unresolvedLinkLoss,enabled,playSession==lost.session,
+               !transientRecovery.isPending,!gameFaultNeedsRecheck,
+               now-lost.since>=3 || (faultScope==lost.session && driver.map {fullOff($0,wall:wall)}==true) {
+                localLinkFault = .init(session:lost.session,requestSequence:lost.sequence,
+                    reason:"driver_link_lost",detectedAtUptime:now)
+            }
+            if connected,let d=driver,d.sequence==sequence,d.state=="transitioning" {
+                if !matchedTransition(d) {latchStandby("standby_context_changed")}
+                else if d.illuminationConfirmed != false || !d.laserOn || d.offSinceUnix != nil ||
+                        d.evidenceAfter != nil || d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {
+                    hardHealth("invalid_transition_status")
+                } else {
+                    if transitionStartedAt==nil {transitionStartedAt=now}
+                    if now-transitionStartedAt!>=3 {hardHealth("transition_timeout")}
+                }
+            } else if connected,let d=driver,d.sequence==sequence,matchedStandby(d),
+                      ["off","arming","holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) {
+                transitionStartedAt=nil
+            }
             if mayHaveMotorSession,connected,driver?.sequence==sequence,!standbyAvailable {hardHealth("standby_capability_lost")}
             if !transientRecovery.isPending,mayHaveMotorSession,let began=armingStartedAt,now-began>=12,
                !coldAdmissionConfirmed || driver?.state=="arming" {hardHealth("arming_timeout")}
@@ -625,7 +670,7 @@ import CoreGraphics
                d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
                d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {hardHealth("invalid_arming_status")}
             if connected,let d=driver,d.sequence==sequence,
-               ["holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) || (d.laserOn && d.state != "fault") || d.illuminationConfirmed==true {
+               ["holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) || (d.laserOn && !["fault","transitioning"].contains(d.state)) || (d.illuminationConfirmed==true && d.state != "transitioning") {
                 if d.thermal?.admissible(statusAge:wall-d.updatedAtUnix,updatedAtUnix:d.updatedAtUnix) != true {
                     hardHealth("thermal_telemetry_unavailable")
                 } else {coldAdmissionConfirmed=true}
@@ -639,10 +684,10 @@ import CoreGraphics
                     if !["arming","holding","cooling"].contains(d.state),d.motorBusPowered != true {hardHealth("invalid_motor_status")}
                 } else if d.state=="off" {
                     if !fullOff(d,wall:wall) {hardHealth("invalid_off_status")}
-                } else if d.state != "fault" {hardHealth("unknown_driver_state")}
+                } else if !["fault","transitioning"].contains(d.state) {hardHealth("unknown_driver_state")}
             }
             if let d=driver,fullOff(d,wall:wall) {
-                mayHaveMotorSession=false;armingStartedAt=nil;coldAdmissionConfirmed=false
+                mayHaveMotorSession=false;armingStartedAt=nil;transitionStartedAt=nil;coldAdmissionConfirmed=false
                 if closingStandby || !wantsStandby {
                     wireSchema=1;standbyReady=false;closingStandby=false;standbySetup=nil;sequence+=1
                 } else if standbyAvailable,d.playSession==playSession,
@@ -748,6 +793,7 @@ import CoreGraphics
         // Capture provenance before OFF changes the request revision; notify
         // synchronously after submitting OFF. The AI owner pauses before
         // a queued engine result can commit, and sets phase before reentry here.
+        var notification=localLinkFault
         if let session=faultScope,let d=statusAtEntry {
             // Host unclassified failures can include normal hand/alignment
             // races. Only explicit hard classification pauses the local game.
@@ -755,12 +801,15 @@ import CoreGraphics
             let reported=(d.state=="fault" || d.requiresNewRevision==true) && d.reasonCode.map {hardReasons.contains($0)}==true
             if reported || currentHealthFault != nil {
                 let code=reported ? (d.reasonCode ?? "driver_interrupted"):currentHealthFault!
-                let identity="\(session.source)/\(session.session)/\(d.sequence)/\(code)"
-                if notifiedHardFault != identity {
-                    notifiedHardFault=identity;gameFaultNeedsRecheck=true;gameFaultRecheckReason=code;manualDarkBarrier=nil
-                    if code=="controller_fault" {controllerResetRequired=true}
-                    onHardFault?(.init(session:session,requestSequence:d.sequence,reason:code,detectedAtUptime:now))
-                }
+                notification = .init(session:session,requestSequence:d.sequence,reason:code,detectedAtUptime:now)
+            }
+        }
+        if let event=notification {
+            let identity="\(event.session.source)/\(event.session.session)/\(event.requestSequence)/\(event.reason)"
+            if notifiedHardFault != identity {
+                notifiedHardFault=identity;gameFaultNeedsRecheck=true;gameFaultRecheckReason=event.reason;manualDarkBarrier=nil
+                if event.reason=="controller_fault" {controllerResetRequired=true}
+                onHardFault?(event)
             }
         }
         // Continue renewing OFF while awaiting acknowledgement. On app loss the

@@ -1,0 +1,8 @@
+{
+  "sourceRecording": "bedtime-play-20261124-023109/timeline.jsonl",
+  "sourceSHA256": "7f0d6cf9aa12bf3ec47ceedc64ff9da10ff06465b4452faa093f5cbc52d260d2",
+  "sourceVersion": "Physical Go0.259 / host f45",
+  "receiptGapSeconds": 1.7876689434051514,
+  "nativeOFFStatusAgeSeconds": 0.829,
+  "note": "Raw status objects only. Tests rebind producer/session/camera/setup/revision and translate wall-clock timestamps; receipt states and dark/illumination payloads remain unchanged."
+}
