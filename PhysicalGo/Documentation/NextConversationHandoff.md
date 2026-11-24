@@ -10,7 +10,15 @@ passed after the first attempt. Fresh user READY remains required before hardwar
 First feedback attempt `three-point-feedback-20261124-141443-66813` stopped after
 K10 for native `handObstructed: true`, with alignment valid. The exact saved
 `guard-rejected-frame.png` appears empty: suspected false obstruction, not proof of
-actual hand intrusion. Full OFF at `1795558540.6453667`, no controller error;
+actual hand intrusion. Offline Vision replay of the exact rejected PNG repeats a
+false hand pose in right-side fabric in 3/3 trials. One inferred joint maps to
+(18.708, 14.555), outside the grid but within the 0.75-cell obstruction rim;
+confidence 0.682. This strongly identifies a false-pose trigger, though bridge
+metadata lacks the original outline state/reason. The unchanged-rim exception
+requires every sampled edge pixel to pass its brightness/color bounds; its live
+failure cannot be reconstructed from this frame alone. Replay evidence is in
+`work/attended-recheck-20261124-105259/feedback-hand-rejection`. No runtime change.
+Full OFF at `1795558540.6453667`, no controller error;
 source manifests unchanged, PTY 32249 exited 1. READY-to-OFF: 57.152896 seconds.
 K10 reached 0.1083 cells / 5.309 px in 27.668217 seconds (four moves), then
 0.0331 cells / 1.625 px in 40.888455 seconds (six moves). F14 was interrupted
