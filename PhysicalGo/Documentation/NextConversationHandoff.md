@@ -1,80 +1,89 @@
 # Physical Go: current conversation handoff
 
-Updated November 23, 2026. **Setup is incomplete; hardware is fully OFF while
-software work proceeds.** The current root agent retains sole hardware ownership.
-Check the latest checklist before treating this checkpoint as current authority.
+Updated November 23, 2026. **Hardware fully OFF; no active run. Setup is incomplete.**
+The current root agent retains hardware ownership. Read current records before
+using any saved pose, source hash or OFF receipt as authority.
 
 ## Read first
 
 Read [AGENTS.md](/Users/dave/SGFPlayerClean/AGENTS.md),
 [IntegrationChecklist.md](IntegrationChecklist.md), the latest
-[LivePositionIssues.md](LivePositionIssues.md) entries and
-[NextPhysicalTestPlan.md](NextPhysicalTestPlan.md). Read the **primary** shared
+[LivePositionIssues.md](LivePositionIssues.md), [laser checkpoint](LaserMovementCheckpoint.md)
+and [test plan](NextPhysicalTestPlan.md). Read the **primary** shared
 [outgoing handoff](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/AI play integration reply.txt>)
 and [incoming handoff](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/AI play integration response.txt>);
-worktree copies can be stale. [AgentGuide](AgentGuide/README.md) supplies subsystem detail.
+worktree copies can be stale. [AgentGuide](AgentGuide/README.md) routes to source detail.
 
-## Installed, preserved and observed
+## Current checkpoint
 
 - **Installed:** Physical Go **0.258/build 259**, compiled source `87fc4a9`;
-  firmware **v44**. Production driver stopped; no new gameplay binding activated.
-- **Last completed check:** `post-boundary-stop-initial-spot-02`, host
-  `54589c335e5d5502402a6d7994244eec9ac6a3ac`, branch
-  `codex/calibration-prelight-reobservation` in
-  `/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-prelight-reobservation`.
-  Two weak fresh B images were rejected; the third passed full verification
-  within the unchanged **two-second/three-attempt** limit. Exact rejected images
-  were retained after shutdown. This physically validates bounded reobservation,
-  not full calibration. Source and all six saved game files were unchanged.
-- **Last confirmed full OFF:** Unix **1795498218.83076**; process exited.
-  Latest optical observation was motor pose **2297/2401**, board coordinates
-  **[16.135067, 1.863926]**, just outside the existing fresh-start box **[2,16]**.
-  These identify recorded evidence, not permission to move from an assumed pose.
-- **User instruction:** Dave confirms **nothing has been touched** and wants
-  motor-driven pointer movement only. Do not request a power-cycle, manual joint
-  movement or housing re-aim; these could disturb the webcam.
-- **Saved practice:** paused empty Human Black, fast AI, zero moves/clocks,
-  `EA70E983-9FAF-40ED-8939-312ED10A1A68`. Original five-move game
-  `3D20B55B-DBE7-42E1-847E-3B82E60FF65A`, its clocks and earlier three-move checkpoint
-  remain preserved; Return to saved game is available. Backup:
-  `/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
-- **Camera/app:** empty board; app-owned FULL HD WEB CAM `0x11000000bda0567`,
-  1920×1080. Use native broker images, not screenshots. Connect laser bridge is
-  ON for passive publication/OFF requests; recording/warnings OFF, timing logs ON.
+  firmware **v44**. Production driver stopped; no gameplay binding active.
+- **Latest run:** `moved-setup-full-calibration-03`, host
+  `acea4b341fcc78777556c3f56b14344aa1834de8` in
+  `/Users/dave/DYNAMIXEL-Go-Pointer-worktrees/midpoint-line-profiles`.
+  It stopped after the first dark probe on fresh B boundary disagreement:
+  **3.989569 px from A / 4.049711 px from original**. Full OFF confirmed at
+  Unix **1795500739.5855656**; process exited.
+- **Position distinction:** last optical pose **2293/2391**, grid
+  **[15.816780, 2.415560]**; later actual settlement **2312/2391 was unobserved**.
+  Do not treat the earlier spot as the latest physical location.
+- **Diagnosis:** saved images reproduce N1/O1 feature-selection instability and
+  native/fitted sampling-guide mismatch. Other 70 points changed ≤0.159 px;
+  whole-board registration ≤0.053 px. This does not support a four-pixel board
+  movement. Fast/architecture are auditing three-pixel gates and workflow;
+  the occupied agent is studying false stops versus missed movement/obstruction.
+  **No code change yet; no new run until reviewed results.** See the laser
+  checkpoint for exact artifacts.
+- **Passed scope:** midpoint source passed 120 tests plus both seven-case reviews;
+  stationary observation and four-command inward recenter passed physically.
+  Full five-fit/nine-check calibration remains incomplete. No old-map or partial-fit
+  continuation is approved. Separate startup app-lease timing expiry is unresolved.
+- **User instruction:** nothing was touched; use **motor-only pointer movement**.
+  Do not request a power-cycle, manual joint movement or housing re-aim that could
+  move the webcam. Beep when Dave must look for a spot.
 
-## Next work and remaining uncertainty
+**Accuracy clarification:** Dave's three-pixel figure was an arbitrary final
+spot-to-intersection preference. Initial error beyond it followed by correction
+is fine; final error above it is probably fine without a whole-system stop.
+The existing correction loop already permits initial error above three pixels;
+final-report rejection at ≥3 px and separate prediction/boundary aborts are under
+review. Distinguish aiming quality and recoverable measurement uncertainty from
+hazard/control checks; three servo counts are a different unit. No code policy
+has changed merely because the requirement was clarified. Global-only evidence
+misses local altered-line controls; retain meaningful local visibility checks.
 
-1. Finish implementation and independent review of the **explicit fresh-start
-   inward recovery**, in a new isolated laser branch. It permits at most **eight
-   actual axis steps**, with fresh camera checks, to enter the existing [2,16]
-   box. It is not yet a physically validated route. Historical response may guide
-   provisional tiny probes but cannot grant current steering authority. Root
-   selects the reviewed revision and verifies current ownership/pose before use.
-2. After successful inward recovery, run **fresh five-target fitting and all nine
-   independent validation checks**. The earlier three-fit-target partial run has
-   no supported continuation model. Do not reuse old geometry, manufacture a
-   partial-fit checkpoint or silently activate a binding.
-3. Keep the **separate app-lease expiry** unresolved: a prior startup observed
-   approximately 190 ms request-open plus 93 ms manifest-open windows before
-   renewal. Exact filesystem/scheduling cause remains unproven. Later successful
-   polling/reobservation does not fix it; calibration's experimental 10 s camera /
-   0.5 s cache settings do not transfer to ordinary gameplay.
-4. After complete qualification and confirmed OFF, review final artifacts, prove
-   current native camera context, create a new binding and establish one production
-   owner. Then test fast AI, slow hand withdrawal/darkness, ambiguity hints off/on,
-   centering, captures and monitored holding. Preserve games and clocks throughout.
+## Preserved application state
 
-Raw evidence is under
-`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123`.
-Use a beep whenever Dave must look for a spot. Before changing chats, update this
-checkpoint and the primary handoff with the final run/ownership state. Never start
-a competing serial client or infer current hardware authority from an old source
-hash, pose or OFF receipt. Historical attempts remain in the issue log.
+Paused empty Human Black fast practice has zero moves/clocks:
+`EA70E983-9FAF-40ED-8939-312ED10A1A68`. Original five-move game
+`3D20B55B-DBE7-42E1-847E-3B82E60FF65A`, its clocks and earlier three-move checkpoint
+have preserved backups; Return to saved game is available. **Root verified all
+six saved-game hashes unchanged after full03.** Backup:
+`/Users/dave/Documents/SGF PLayer/work/ai-laser-integration/stone-session-20261123/before-0258-install`.
+
+Board is empty; app-owned FULL HD WEB CAM `0x11000000bda0567`, 1920×1080. Use
+native broker images, not screenshots. Connect laser bridge is ON for passive
+publication/OFF requests; recording/warnings OFF, timing logs ON. Camera-only
+practice can proceed separately with bridge setting OFF and production stopped.
+
+## Next actions
+
+1. Confirm current ownership. Review the quantitative counterfactual study and
+   broader aiming/measurement/control rule audit, then implement and verify the
+   selected change before new hardware work. No competing serial client or
+   automatic retry; do not preserve every three-pixel stop as a user requirement.
+2. Root obtains fresh pose/optical qualification, then completes **five fitting
+   targets and nine independent checks** with fresh data. Old geometry, poses
+   and response estimates are not current movement authority.
+3. Review successful final evidence, confirmed OFF and native-context geometry
+   before creating a new binding and one production owner. Calibration's 10 s
+   camera / 0.5 s cache experiments do not transfer to gameplay. Then follow the
+   ordered AI/hand/ambiguity/capture/holding tests, preserving games and clocks.
 
 ## Short starter prompt
 
 > Continue Physical Go from `/Users/dave/SGFPlayerClean/PhysicalGo/Documentation/NextConversationHandoff.md`.
-> Read its linked current checklist and primary laser handoff first. Coordinate
-> with the existing hardware owner before device access. Preserve saved games and
-> clocks; use motor-only inward recovery after review, then fresh full calibration.
-> Do not manually re-aim/power-cycle the pointer or reuse old geometry.
+> Read the current checklist and primary laser handoff first. Coordinate with the
+> hardware owner; preserve games/clocks. Read the revised aiming-accuracy
+> requirement and review the boundary/stop-policy study before new calibration. Use motor-only movement, with no manual
+> re-aim/power-cycle, stale pose assumption or old-geometry fallback.

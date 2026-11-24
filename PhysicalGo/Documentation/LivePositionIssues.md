@@ -4673,3 +4673,122 @@ A20s passive metadata poll after offline tests had322samples,zeroexpiredapp
 leases,minremaining357ms,maxfileread149ms,maxcameraage670ms. All requestsOFF,
 handclear/aligned. This does not resolve the earlier app-lease expiry or establish
 production600ms-camera reliability; it supplied current startup evidence only.
+
+
+## November 23 — motor-only inward recovery passed; exact local-line failure captured
+
+Host48894b01b4198122de62b37a1e4a97689185aa59 is committed/pushed on
+codex/observed-inward-recenter.48 author tests and both independent12-test reviews
+passed with retained archives and no skips. Separate explicit mode establishes
+fresh-start[2,16] position only; old[3,15] recenter unchanged. Fresh references,
+actualPOSE±3/latestspot3px, single-axis8/5 caps, actualsettlement/5px clearance,
+opticalresponse/inwardprogress, eight-dispatch maximum and full OFF remain.
+No fitted model or steering authority carries into the next fresh calibration.
+
+observed-fresh-start-01 passed in two actualaxis commands: tiltgoal2396 settled
+2398, optical2397; pangoal2289 settled/optical2290. Final2290/2397 at
+15.861271/2.006822. Full OFF1795499382.978848, source/sixgames unchanged, max12/12C.
+SHA7521ab65a191ddd86ab079cdffda06a934f054ce74b3082fdf564d465e7be7bf.
+
+Root then ran fresh moved-setup-full-calibration-02 on the same frozen source.
+Initialspot2290/2397 at15.860489/2.003225 passed freshstart. Firstdarkpan probe
+PTO2308 settled2307/2397. AfterPREPARE, geometryA rejected printed-boundary line
+samples disagree, before that probe was illuminated. Full OFF1795499436.7751687,
+process reaped, sources/sixgames unchanged; no targets or model. Last optical
+2290/2397; latest settlement2307/2397 is not an optical observation.
+SHA892931c427e4735c9c4daff025451c8345473df92b4784b2e2929979b538fdf9.
+
+Exact failing A frame74674 now retained underprelight-rejections/02-rejected.png
+and metadata/reason, SHAa6584b5eb42512cbca4e47ff76b6fd40c2e2871c936cab49b9af301ef479b532.
+Offline reproduction localizes both failures to N1,col12,row18,vertical line.
+A had three profiles at17.75/17.25/16.75 withcontrasts32.325/23.106/14.939 and
+offsets−1.362/−1.127/+3.434px; maxfitresidual1.500854px exceeds1.5. Two others
+wereweak<8. Reference/earlierA hadsamebadthirdprofile and marginal1.370/1.375px
+residual, not a new physical shift. All four savedimages register against
+reference withmaxcorner≤.061px,ECC≥.997817,649–691inliers. Reflection is visible
+butnotpixel-saturated. Exact transient/lightingcause notproved; current evidence
+shows localized noisyline measurement, not board movement.
+
+No retry widening or thresholdchange authorized by this result. Occupied-board
+diagnostic agent and architecture reviewer are evaluating additional non-grid-
+intersection midpoint profiles within the existingwindow, with samecontrast/
+residual/point-error limits and negativegeometrycontrols. CurrenthardwareOFF.
+The saved failure and reproducible report are in full02/failed-line-analysis.
+
+
+## November 23 — midpoint sampling reviewed; physical start recovered; full03 running
+
+Hostacea4b341fcc78777556c3f56b14344aa1834de8 committed/pushed on
+codex/midpoint-line-profiles (same-named worktree).120 relatedtests passed;
+both independent reviewers each reran7 focused tests on four hash-pinned images,
+zero skips. Only fixed nonjunction profileticks changed from.25/.75 to.25/.5/.75;
+original windows/contrast/residual/3px/outlier/retry/lease limits unchanged. Whole
+reviewed provenance profile explicitly added; original accepted-coordinate fit
+arrays and actualpose response replay remain identical. Both exact failedimages
+pass; seven unique synthetic negatives plus a recordedocclusion reject. New
+supports can shorten span and increase endpoint sensitivity(~27% in rescuedB);
+no calibratedconfidence/generalreliability claim.
+
+midpoint-initial-spot-01 passed, no prelightrejections: actual2307/2397 at
+16.320196/2.257017, fullOFF1795500588.8804305. Then observed-fresh-start-02
+passed withfour actualaxis commands, freshresponsequalified when furthertravel
+wasneeded; final2293/2391 at15.818993/2.420984, fullOFF1795500685.1973846.
+No map/steeringauthority carried into nextsession. Source unchanged; these are
+position/start checks, not fullcalibration. See derived result summaries.
+
+ROOT CURRENTLY RUNNING moved-setup-full-calibration-03 on frozenacea4b3, sole
+hardwareowner. Newfreshreference/fit, fivefit/ninevalidationroute;7200s overall,
+targettimer0, experimental10s camera/.5s cache. Productiondriver remainsstopped;
+apppracticepaused, boardempty, no otherhardware/CPUtestjobs permitted. Do not
+treat priorOFF receipt ascurrentOFF whilethisrunactive. Finish/record actual
+shutdownbeforehandoff oranotherprocess.
+
+
+## November 23 — full03 stopped; local measurement instability under review
+
+Fresh moved-setup-full-calibration-03 on host acea4b3 stopped after its first
+dark pan probe: fresh boundary disagreement was 3.989569 px against A and
+4.049711 px against the original reference. Full OFF (beam and motor power)
+confirmed at Unix 1795500739.5855656; process exited. Last optical observation
+was 2293/2391 at board [15.816780, 2.415560]; subsequent settlement 2312/2391
+was not illuminated or optically verified. No fit targets/model or live binding.
+Result SHA256: 25a7e7d32ec314f8d6188509840d0e9465db1de235fb071680f6fc0fdb4dd48b.
+All six preserved game files still match the pre-run hashes.
+
+Exact saved A/B analysis isolates N1 and O1; other 70 boundary points differ by
+at most 0.159 px. Independent board registration estimates at most 0.053 px
+whole-board movement. A local profile switches between competing dark features;
+reference/A and B also use inconsistent native-versus-fitted sampling guides,
+which amplifies disagreement. This supports measurement instability rather than
+four-pixel whole-board movement. It does not prove local geometry is correct.
+Reproducible evidence: laser-position-recovery-20261123/
+moved-setup-full-calibration-03/boundary-jump-analysis/README.md in work artifacts.
+
+Dave asks whether acceptance rules are unnecessarily strict and how to test that.
+Root has assigned offline counterfactual evaluation against retained positives,
+actual failures and movement/obstruction controls; compare unnecessary stops with
+missed errors and relate thresholds to grid spacing and final pointing accuracy.
+Fast-calibration and architecture agents are assessing consistent sampling and
+uncertainty/redundancy rules. No new implementation, threshold relaxation or live
+retry is authorized by the diagnostic result alone. Root remains sole hardware
+owner; hardware stays fully OFF during this work. User requests motor-only
+movement and reports nothing touched; do not request a housing move/power-cycle.
+
+
+## November 23 — user clarifies accuracy policy
+
+Dave clarifies that the original three-pixel value was an arbitrary preferred
+laser-spot distance from the intended intersection. A coarse landing well beyond
+three pixels followed by correction is acceptable. A final offset above three
+pixels is also potentially useful and should not by itself terminate the system.
+
+This supersedes treating every three-pixel accuracy gate as an immutable
+requirement. Root has redirected the architecture and calibration agents to
+separate aiming quality/convergence, prediction uncertainty, board geometry and
+actual physical/control hazards; evaluate in local grid units as well as pixels.
+The current loop already permits initial errors above three pixels and corrects
+them; final validation still rejects such offsets, and separate prediction and
+boundary checks can stop before observation. Motor-count limits with the numeric
+value three have different units and are not covered by this accuracy preference.
+No implementation has changed yet; hardware remains fully OFF. Offline study is
+evaluating unnecessary stops and missed errors before selecting a coherent policy.
