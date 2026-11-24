@@ -83,7 +83,76 @@ import Darwin
             second.finish(.success("Q16"));_ = try await next.value
             worker.stop()
         }
+        checks += try await guidanceRecoveryAndAmbiguityReview()
         checks += try await metadataReview()
+        return checks
+    }
+    /// Combined integration boundary: ordinary idle retention must never weaken
+    /// scoped hardware-fault recovery or fresh neighboring-placement evidence.
+    private static func guidanceRecoveryAndAmbiguityReview() async throws -> Int {
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent("idle-guidance-merge-"+UUID().uuidString)
+        defer {try? FileManager.default.removeItem(at:root)}
+        var now=100.0,wall=1000.0,frameID:UInt64=0,checks=0,created=0
+        func check(_ value:Bool,_ message:String) {precondition(value,message);checks+=1}
+        let first=Backend(),second=Backend()
+        let worker=PhysicalAI.TestWorker(makeEngine:{created+=1;return created==1 ? first:second})
+        let laser=PhysicalLaserGuidance(directory:root.appendingPathComponent("bridge"),automatic:false,wallTime:{wall},uptime:{now})
+        let ai=PhysicalAI(directory:root.appendingPathComponent("game"),laser:laser,testWorker:worker,uptime:{now},wallTime:{wall})
+        defer {ai.shutdown()}
+        func camera() {
+            now+=0.25;wall+=0.25;frameID+=1
+            laser.noteFrame(.init(streamEpoch:laser.frames.streamEpoch,frameID:frameID,capturedAtUptime:now,arrivedAtUptime:now,capturedAtUnix:wall,timestampSource:"cameraPresentation",presentationSeconds:now))
+            laser.observeCamera(hand:false,valid:true,capturedAt:now,now:now,context:"merge-grid")
+        }
+        func feed(_ cells:[String],uncertain:Int?=nil) {
+            for _ in 0..<4 {
+                camera()
+                var o=BoardObservation(readings:cells.enumerated().map {i,c in
+                    IntersectionReading(row:i/9,col:i%9,occupancy:i==uncertain ? .uncertain:Occupancy(rawValue:c)!,confidence:i==uncertain ? 0.5:1,delta:0)},size:9)
+                o.capturedAt=now;o.handObstructed=false;ai.consume(o,now:now)
+            }
+        }
+        ai.draft.size=9;ai.draft.humanBlack=false;ai.setFastTestMode(true)
+        check(ai.start(),"Combined fixture starts")
+        feed(Array(repeating:"empty",count:81));try await waitFor {!first.pending.isEmpty}
+        first.finish(.success("D4"));try await waitFor {ai.phase == .placing}
+        check(worker.isRunning && first.stops==0,"Completed fast-test worker exists before fault")
+        ai.pause();check(worker.isRunning && first.stops==0,"Ordinary pause still retains idle worker")
+        ai.resume();check(ai.phase == .placing && worker.isRunning && created==1,"Ordinary resume retains idle worker without new search")
+        laser.setEnabled(true);camera()
+        let before=ai.snapshot!,clockAtFault=ai.timing.saved(at:now)
+        let fault=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:laser.producer,sequence:laser.sequence,updatedAtUnix:wall,mode:"hardware",state:"fault",laserOn:false,offSinceUnix:nil,detail:"controller fault",reasonCode:"controller_fault",requiresNewRevision:true)
+        try JSONEncoder().encode(fault).write(to:laser.directory.appendingPathComponent("status.json"),options:.atomic)
+        laser.tick()
+        check(ai.phase == .paused && ai.snapshot!.guidanceInterruption=="controller_fault","Scoped hard fault pauses the merged AI")
+        check(!worker.isRunning && first.stops==1,"Hard-fault pause destroys previously retained idle worker")
+        check(ai.timing==clockAtFault,"Hard-fault clock freezes before shutdown work")
+        check(ai.snapshot!.id==before.id && ai.snapshot!.moves.map(\.point)==before.moves.map(\.point),"Fault retains game identity/history")
+        check(ai.snapshot!.moves.map(\.decisionReceivedAtUnix)==before.moves.map(\.decisionReceivedAtUnix) && ai.snapshot!.pendingPlacement,"Fault retains decision receipt and pending placement")
+        let request=try JSONDecoder().decode(PhysicalLaserGuidance.Request.self,from:Data(contentsOf:laser.directory.appendingPathComponent("request.json")))
+        check(request.action=="off" && laser.playSession==nil,"Fault revokes motor session and publishes OFF")
+        ai.resume();check(ai.phase == .paused && created==1,"Resume cannot clear fault or recreate engine")
+        laser.setEnabled(false);ai.resume()
+        check(ai.phase == .paused && ai.snapshot!.guidanceInterruption != nil,"Disabling guidance is not physical-OFF confirmation")
+        camera();ai.confirmLaserPhysicallyOff();ai.resume()
+        check(ai.phase == .paused,"Physical-OFF confirmation needs subsequent camera evidence")
+        camera();ai.resume();check(ai.phase == .paused,"Early manual-dark frame cannot bypass flush")
+        camera();ai.resume()
+        check(ai.phase == .placing && ai.snapshot!.guidanceInterruption==nil,"Fresh flushed camera proof permits explicit camera-only recovery")
+        check(ai.snapshot!.laserRecheckReason=="controller_fault" && laser.gameFaultNeedsRecheck,"Camera-only recovery retains durable laser recheck")
+        check(!worker.isRunning && created==1 && first.stops==1,"Fault recovery cannot reuse or eagerly restart destroyed worker")
+        let count=ai.snapshot!.moves.count
+        feed(ai.cells,uncertain:49)
+        check(ai.phase == .placing && ai.snapshot!.pendingPlacement && ai.snapshot!.moves.count==count,"Uncertain neighboring crossing still blocks pending placement after recovery")
+        check(ai.snapshot!.moves.map(\.decisionReceivedAtUnix)==before.moves.map(\.decisionReceivedAtUnix),"Ambiguous recovered placement cannot rewrite original receipt")
+        feed(ai.cells)
+        check(ai.phase == .human && !ai.snapshot!.pendingPlacement,"Fresh unambiguous placement can finish after camera-only recovery")
+        var human=ai.cells;human[0]="white";feed(human)
+        try await waitFor {!second.pending.isEmpty}
+        check(created==2 && first.stops==1 && second.stops==0,"Next accepted human move uses a fresh backend after hard fault")
+        second.finish(.success("E5"));try await waitFor {ai.phase == .placing}
+        check(ai.snapshot!.moves.count==3 && ai.pendingPoint==40,"Only fresh replacement decision is committed")
+        ai.shutdown();check(!worker.isRunning && second.stops==1,"Shutdown releases recovered idle backend")
         return checks
     }
     private static func metadataReview() async throws -> Int {
