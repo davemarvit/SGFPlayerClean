@@ -35,3 +35,9 @@ list, as requested by Dave. Read it when continuing integration work and update
 it after meaningful changes or tests. Distinguish implemented, offline-tested,
 installed and physically validated work. A shared handoff request is not an active
 dependency unless the other agent has acknowledged ownership.
+
+# Desktop screenshot privacy
+
+Dave requires advance notice before any desktop screenshot because confidential
+information may be visible. Prefer accessibility text for controls and camera-only
+frames for board analysis; never treat a desktop screenshot as calibration data.
