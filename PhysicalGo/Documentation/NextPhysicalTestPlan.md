@@ -52,11 +52,11 @@ capture cases while the basic recognition sequence is failing.
 | 10. Screen-only illegal feedback | Use an explicitly prepared suicide/ko example under the displayed rules. Remove the rejected stone and restore the legal position. | Authoritative reason and remove × appear; prematurely removed ko stones get restore rings. No illegal history entry or opponent reply; restoration clears the diagnostic. Ambiguous disks and pending prisoners are not mislabeled illegal. | Record rules, legal history, reason and restoration. Skip unsupported cases rather than inferring an illegal-move laser feature. |
 
 The capture kit at source commit **f0009e9** supplies deterministic positions.
-Practice candidate `4c78d82` is implemented but pending merge and verification.
-The loader must pass combined persistence/return checks
-before shipping. Do not substitute ad hoc edits of the live game if it is omitted.
-The illegal-feedback integration adds no laser pattern or cue; its actual
-controller suite and combined acceptance still need to pass before installation.
+The practice loader is installed and passed166 persistence/controller checks;
+empty-position loading, exact original backup and paused relaunch are verified.
+Use its controls rather than editing a live snapshot. Screen-only illegal feedback
+passed69 actual-controller checks and is installed; it adds no laser pattern or cue.
+Physical capture and illegal-placement validation remain pending.
 
 The table below uses canonical fixture coordinates. **Follow the app's displayed
 instructions when the view is rotated.** At this installation's orientation,
