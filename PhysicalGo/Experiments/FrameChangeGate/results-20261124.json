@@ -1,0 +1,946 @@
+{
+  "diagnosticOnly": true,
+  "runtimeIntegrated": false,
+  "timing": {
+    "samples": 40,
+    "medianMs": 8.71566659770906,
+    "p95Ms": 11.319000006187705,
+    "maxMs": 12.926707975566387,
+    "includes": "rectification, descriptor and region comparison; image decode excluded",
+    "opencv": "4.13.0"
+  },
+  "cases": [
+    {
+      "name": "synthetic/same_pixels",
+      "rawCount": 0,
+      "expandedCount": 0,
+      "skippedFraction": 1.0,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 0,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/sensor_noise_sigma2",
+      "rawCount": 0,
+      "expandedCount": 0,
+      "skippedFraction": 1.0,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 0,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/uniform_5percent_dimmer",
+      "rawCount": 0,
+      "expandedCount": 0,
+      "skippedFraction": 1.0,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 0,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/smooth_8percent_shadow",
+      "rawCount": 1,
+      "expandedCount": 9,
+      "skippedFraction": 0.9750692520775623,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 43,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/camera_translation_2px",
+      "rawCount": 360,
+      "expandedCount": 361,
+      "skippedFraction": 0.0,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 264,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/glare-before.png-to-white.png",
+      "rawCount": 69,
+      "expandedCount": 237,
+      "skippedFraction": 0.3434903047091413,
+      "required": [
+        185
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 342,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/glare-white.png-to-after.png",
+      "rawCount": 38,
+      "expandedCount": 129,
+      "skippedFraction": 0.6426592797783934,
+      "required": [
+        185
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 345,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/glare-before.png-to-after.png",
+      "rawCount": 70,
+      "expandedCount": 237,
+      "skippedFraction": 0.3434903047091413,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 400,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/A18HandOutline/before.png-to-after.png",
+      "rawCount": 20,
+      "expandedCount": 68,
+      "skippedFraction": 0.8116343490304709,
+      "required": [
+        17
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 400,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/A18HandOutline/before.png-to-hand.png",
+      "rawCount": 33,
+      "expandedCount": 126,
+      "skippedFraction": 0.6509695290858726,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 390,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/C1HandOutline/before.png-to-after.png",
+      "rawCount": 53,
+      "expandedCount": 135,
+      "skippedFraction": 0.6260387811634349,
+      "required": [
+        322
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 398,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/covered-border-000009.png",
+      "rawCount": 40,
+      "expandedCount": 211,
+      "skippedFraction": 0.41551246537396125,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 52,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/covered-border-000010.png",
+      "rawCount": 27,
+      "expandedCount": 144,
+      "skippedFraction": 0.6011080332409973,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 35,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/covered-border-000011.png",
+      "rawCount": 130,
+      "expandedCount": 230,
+      "skippedFraction": 0.3628808864265928,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 400,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-231",
+      "rawCount": 16,
+      "expandedCount": 57,
+      "skippedFraction": 0.8421052631578947,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 140,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-232",
+      "rawCount": 16,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 162,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-234",
+      "rawCount": 18,
+      "expandedCount": 64,
+      "skippedFraction": 0.8227146814404432,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 140,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-235",
+      "rawCount": 15,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 152,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-236",
+      "rawCount": 12,
+      "expandedCount": 49,
+      "skippedFraction": 0.8642659279778393,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 112,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-237",
+      "rawCount": 14,
+      "expandedCount": 55,
+      "skippedFraction": 0.8476454293628809,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 117,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-238",
+      "rawCount": 15,
+      "expandedCount": 55,
+      "skippedFraction": 0.8476454293628809,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 191,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-239",
+      "rawCount": 14,
+      "expandedCount": 53,
+      "skippedFraction": 0.853185595567867,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 128,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-240",
+      "rawCount": 15,
+      "expandedCount": 53,
+      "skippedFraction": 0.853185595567867,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 104,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-242",
+      "rawCount": 16,
+      "expandedCount": 55,
+      "skippedFraction": 0.8476454293628809,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 164,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-244",
+      "rawCount": 14,
+      "expandedCount": 52,
+      "skippedFraction": 0.8559556786703602,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 199,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-230-to-245",
+      "rawCount": 21,
+      "expandedCount": 69,
+      "skippedFraction": 0.8088642659279779,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 400,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-258",
+      "rawCount": 14,
+      "expandedCount": 61,
+      "skippedFraction": 0.8310249307479225,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 118,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-259",
+      "rawCount": 15,
+      "expandedCount": 56,
+      "skippedFraction": 0.8448753462603878,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 160,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-261",
+      "rawCount": 13,
+      "expandedCount": 50,
+      "skippedFraction": 0.8614958448753463,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 105,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-262",
+      "rawCount": 14,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 139,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-263",
+      "rawCount": 15,
+      "expandedCount": 54,
+      "skippedFraction": 0.850415512465374,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 129,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-265",
+      "rawCount": 15,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 132,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-267",
+      "rawCount": 16,
+      "expandedCount": 57,
+      "skippedFraction": 0.8421052631578947,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 144,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-268",
+      "rawCount": 16,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 178,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-269",
+      "rawCount": 15,
+      "expandedCount": 56,
+      "skippedFraction": 0.8448753462603878,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 141,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-270",
+      "rawCount": 14,
+      "expandedCount": 55,
+      "skippedFraction": 0.8476454293628809,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 148,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-271",
+      "rawCount": 15,
+      "expandedCount": 60,
+      "skippedFraction": 0.8337950138504155,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 135,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-272",
+      "rawCount": 14,
+      "expandedCount": 57,
+      "skippedFraction": 0.8421052631578947,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 195,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-273",
+      "rawCount": 14,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 182,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-274",
+      "rawCount": 14,
+      "expandedCount": 55,
+      "skippedFraction": 0.8476454293628809,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 137,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-275",
+      "rawCount": 14,
+      "expandedCount": 59,
+      "skippedFraction": 0.8365650969529086,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 125,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-276",
+      "rawCount": 14,
+      "expandedCount": 53,
+      "skippedFraction": 0.853185595567867,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 134,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-278",
+      "rawCount": 17,
+      "expandedCount": 57,
+      "skippedFraction": 0.8421052631578947,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 248,
+      "invalidCells": 0
+    },
+    {
+      "name": "recorded/grid-A18-256-to-280",
+      "rawCount": 12,
+      "expandedCount": 53,
+      "skippedFraction": 0.853185595567867,
+      "required": null,
+      "requiredFound": null,
+      "reason": "pixel_change",
+      "maxChangedSamples": 114,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-placement-0",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 385,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-removal-0",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 385,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.025-0",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 113,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.05-0",
+      "rawCount": 2,
+      "expandedCount": 6,
+      "skippedFraction": 0.9833795013850416,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 233,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.1-0",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 311,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-placement-360",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 396,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-removal-360",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 396,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.025-360",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 117,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.05-360",
+      "rawCount": 2,
+      "expandedCount": 6,
+      "skippedFraction": 0.9833795013850416,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 226,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.1-360",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 314,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-placement-180",
+      "rawCount": 5,
+      "expandedCount": 21,
+      "skippedFraction": 0.9418282548476454,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 384,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-removal-180",
+      "rawCount": 5,
+      "expandedCount": 21,
+      "skippedFraction": 0.9418282548476454,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 384,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.025-180",
+      "rawCount": 1,
+      "expandedCount": 9,
+      "skippedFraction": 0.9750692520775623,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 99,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.05-180",
+      "rawCount": 3,
+      "expandedCount": 15,
+      "skippedFraction": 0.9584487534626038,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 176,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/black-shift-0.1-180",
+      "rawCount": 3,
+      "expandedCount": 15,
+      "skippedFraction": 0.9584487534626038,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 290,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-placement-0",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 364,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-removal-0",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 364,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.025-0",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 8,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.05-0",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 50,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.1-0",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        0
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 98,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-placement-360",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 362,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-removal-360",
+      "rawCount": 3,
+      "expandedCount": 8,
+      "skippedFraction": 0.9778393351800554,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 362,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.025-360",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 7,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.05-360",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 50,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.1-360",
+      "rawCount": 1,
+      "expandedCount": 4,
+      "skippedFraction": 0.9889196675900277,
+      "required": [
+        360
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 86,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-placement-180",
+      "rawCount": 5,
+      "expandedCount": 21,
+      "skippedFraction": 0.9418282548476454,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 316,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-removal-180",
+      "rawCount": 5,
+      "expandedCount": 21,
+      "skippedFraction": 0.9418282548476454,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 316,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.025-180",
+      "rawCount": 1,
+      "expandedCount": 9,
+      "skippedFraction": 0.9750692520775623,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 10,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.05-180",
+      "rawCount": 1,
+      "expandedCount": 9,
+      "skippedFraction": 0.9750692520775623,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 56,
+      "invalidCells": 0
+    },
+    {
+      "name": "synthetic/white-shift-0.1-180",
+      "rawCount": 1,
+      "expandedCount": 9,
+      "skippedFraction": 0.9750692520775623,
+      "required": [
+        180
+      ],
+      "requiredFound": true,
+      "reason": "pixel_change",
+      "maxChangedSamples": 95,
+      "invalidCells": 0
+    },
+    {
+      "name": "scope_reset",
+      "rawCount": 361,
+      "expandedCount": 361,
+      "skippedFraction": 0.0,
+      "required": null,
+      "requiredFound": null,
+      "reason": "new_scope"
+    }
+  ],
+  "sourceBase": "0c74f174cff7f97a72a3c55aba8408000dba0514",
+  "thresholds": {
+    "samplesPerPitch": 20,
+    "detailDelta": 0.023529411764705882,
+    "chromaDelta": 0.018,
+    "minimumChromaLight": 0.15,
+    "minimumChangedSamples": 4,
+    "neighborHalo": 1
+  },
+  "exploratoryFailure": {
+    "detailDelta": 0.03137254901960784,
+    "missed": "Synthetic White shift of 0.025 pitch at center and both corner controls. Lowered to 6/255 and reran; this is tuning on the development set, not independent validation."
+  },
+  "fixtureHashes": {
+    "A18HandOutline/before.png": "b74f48cda77764f0acfd6adeb3fe734b88e6dca74a12bd22d2a53aefb6718cb4",
+    "A18HandOutline/after.png": "b6cbc56da0f101385624f5b1e713986a34af787aed0e147b19ea8085c720db68",
+    "A18HandOutline/reference.png": "c9cb45072f150d090327593b7d969774033df8992cc530e4d8c00552d6f83192",
+    "A18HandOutline/hand.png": "5fee4296d05a9245dfacb351d9d8e26a70ca2bc35f63a0315b9d3d39b64afaef",
+    "A18HandOutline/pixels.u16.gz": "82573f0d58405d47f9664fad2a610351ecc9f44478127bc878c4ad42728776d1",
+    "A18HandOutline/sample.json": "6bb63b0f1efebdf9653d916ac346d3e4f99b9a1b892eadc09193830adb4db97b",
+    "A18HandOutline/manifest.json": "ba6b52d2fa14bd82410a62317e45ee90f555a3af34492971aa71dae48b3b9213",
+    "C1HandOutline/before.png": "079d266f48d53e57e78958a6a84792d609f0635ed90d1ca72aeff0ef05ff0443",
+    "C1HandOutline/after.png": "7168c29b22ee9b43643b64685d045c6116f343ed29018ac77465aef03acf2114",
+    "C1HandOutline/reference.png": "884c9e9866220ef60c1c890f009f76315d1a0a0ee743fbbd5f83cd0ef0abc840",
+    "C1HandOutline/sample.json": "c2d989ff25521cfaab1b61bc66ed0470c012e2792b127c3bf1a9c46e0c4dc719",
+    "KnownPositionGlare/before.png": "b40363f74787569fd483be35f0b782def19c84758ff3d16250a207d2ba2d48c4",
+    "KnownPositionGlare/after.png": "9d6e42a3b7e1b464e04af54f6afcc42acd8d73ef400a0a943db5410505969971",
+    "KnownPositionGlare/reference.png": "c9cb45072f150d090327593b7d969774033df8992cc530e4d8c00552d6f83192",
+    "KnownPositionGlare/cases.json": "6ab64da1a72652577d3fe0c735aea86e20c319c26b95c99e53bc476f9dd8029d",
+    "KnownPositionGlare/white.png": "b7e19ea09bfe0ebab2dd735065957bc7382cd3d3556c1e28f859737814ac91dd",
+    "CoveredBorder/000009.png": "84f87272908715e2b2b887aee213c23ad037062b6641feb4408906f03c5005b0",
+    "CoveredBorder/metadata.json": "570362a907a296f4fc030f06d1a334680a1606cad06f6c74a79832606ae24ee3",
+    "CoveredBorder/000010.png": "600d028e3b3f84b07cb330dd94c928623d803431d6c9eb9aabb56102f42b047f",
+    "CoveredBorder/000011.png": "9fc0811970a94e9cfd96ba61d364b9f7723850a5154ec4f012b2d59add6514a4",
+    "CoveredBorder/000001.png": "e8599a3902bf8da64cdb3711a8fa43070d613d957ed331ae3eae5b88052962be"
+  },
+  "prototypeHashes": {
+    "change_gate.py": "8ee0c9cb4522762c7ea417da57f1c2202a7bd3424c87a9ad619984c90f72904d",
+    "benchmark.py": "9f15396c68e47fc181e098e836add9703c262d49e0293ae36664ce593da763c4",
+    "test_change_gate.py": "862a07caf6d230977c4c062f420dda4546b0477f6490e94f0829695f79a6b896"
+  }
+}

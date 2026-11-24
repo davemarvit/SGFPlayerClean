@@ -156,3 +156,15 @@ board → Stone set. [StoneSetProfileStore.swift](../../Sources/StoneSetProfileS
 uses a separate `Physical Go/Stone Sets/library.json`; per-color measured thickness
 may remain unknown. Saving/selecting a profile still does not apply optical or
 parallax correction. The studied geometry candidates remain separate offline work.
+
+
+## Regional change detection experiment
+
+The [November 24 offline experiment](../../Experiments/FrameChangeGate/README.md)
+measures a small board-ROI difference pass and per-intersection scheduling hints.
+It is not a runtime feature. Its unchanged-region output is not fresh occupancy,
+a hand verdict, or post-dark evidence. Current White-stone masks and temporal
+acceptance need independent current-frame checks before any such optimization
+can be integrated. The actual native queue was healthy after the separate bridge
+IO repair, so region selection is an optional optimization rather than a proven
+fix for the reported laser stops.

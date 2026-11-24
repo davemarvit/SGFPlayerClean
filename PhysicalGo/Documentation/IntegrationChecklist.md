@@ -8,6 +8,25 @@ offline verification, installation and physical validation.
 
 ## Current checkpoint
 
+### Offline regional analysis feasibility — November 24, separate branch
+
+- `codex/frame-change-gate` contains an offline Python/OpenCV region-difference
+  prototype and fixture audit. No Swift runtime, app install, calibration or live
+  state changes. Root's camera/laser repair proceeds independently.
+- The small board-ROI pass measured median 8.72 ms / p95 11.32 ms (40 passes,
+  image decode excluded). Thirty real successive clear-board sampling pairs
+  selected about 57 of 361 regions including neighboring cells. This is potential
+  reuse coverage, not a measured end-to-end speedup.
+- Seven regression methods pass, including actual glare insertion/removal and
+  edge White placements, synthetic noise/shadows, small stone shifts, boundary
+  motion, context reset and fixed-anchor behavior. A looser threshold missed
+  subtle White shifts; the revised development threshold catches these controls.
+  Independent validation and fresh per-region evidence integration remain open.
+- Existing hand safety requires current independent White fits. Cached results
+  must not supply those masks or be counted as fresh game/post-dark evidence.
+  See [experiment, caveats and reproduction](../Experiments/FrameChangeGate/README.md).
+
+
 - **Hardware fully OFF; no active run or production driver.** Fresh
   `moved-setup-full-calibration-03` stopped after its first dark probe. Full v44
   OFF was confirmed at Unix **1795500739.5855656** and the process exited.
