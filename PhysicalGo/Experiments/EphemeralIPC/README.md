@@ -1,5 +1,12 @@
 # Ephemeral bridge IPC — November 24 candidate
 
+**Integration update, November 24:** this implementation is installed in 0.260.
+43 standalone IPC checks and the integrated broker/paired suites passed. No
+benchmark speedup or sustained physical-play pass is established. See
+[camera freshness](../../Documentation/CameraFreshnessReliability.md) and
+[installation evidence](../../Documentation/IntegrationChecklist.md). The candidate
+benchmarks below retain their original scope.
+
 This candidate keeps complete-file atomic visibility for live camera PNGs,
 `latest.json`, and laser `request.json`, while removing crash-durability work
 from those replaceable IPC files. It does not change saved-game, calibration,

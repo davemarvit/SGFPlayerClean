@@ -1,5 +1,10 @@
 # Integrated physical-test candidate 0.258
 
+**Historical package receipt.** This 0.258 candidate was subsequently installed
+and later superseded by installed 0.260/build 261. Preserve its hashes/results;
+they do not attest the newer build. See [the current checklist](IntegrationChecklist.md)
+for exact 0.260 paired acceptance, installation, rollback and physical limits.
+
 Version0.258/build259 was built and signed from `87fc4a9` on the isolated
 `codex/integrated-physical-test-candidate` branch. Packaging did not install or
 launch it. Installation and physical acceptance remain separate actions owned

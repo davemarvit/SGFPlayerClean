@@ -1,5 +1,9 @@
 # Bedtime publication evidence — November 24
 
+This is retained evidence from the earlier bedtime run. Later 0.260 installation
+adds instrumentation and recovery changes, but has not established that camera
+expiry is solved. See [current findings](../../Documentation/CameraFreshnessReliability.md).
+
 The recording supports a delay **after the native safety calculation**, with a
 short simultaneous increase in recognition and background file-I/O time. It does
 not establish that fsync caused the stop. A later hand-triggered interruption is

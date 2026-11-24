@@ -28,6 +28,28 @@ a hand transition, stone cleanup or camera gap. Leave saving/warnings off during
 investigation; re-enable them when testing is requested. Prefer next-game arming
 to recording irrelevant setup time.
 
+## Current reliability findings — November 24
+
+- The 600 ms camera-evidence expiry is still open. Read
+  [the measured pipeline and proposed fixes](../CameraFreshnessReliability.md).
+  Background IO fixed one blockage; later expiry and handoff failures were distinct.
+- 0.260/host `1ae717e` adds bounded `transitioning` and pauses an unrecoverable
+  own-game outage. It does not enlarge camera/status freshness limits or prove
+  sustained physical recovery.
+- Camera/laser-to-board alignment changed after the successful calibration. The
+  launcher is blocked pending qualification; do not simply toggle holding or Resume.
+- Calibration/host beeps are not the AI stone click. The click is deduplicated per
+  game/move and now has independent controls. Keep AirPod Pro 3 output; test audibility
+  only with Dave present. A repeated E3 request intentionally produces no new click.
+- Use actual app-camera files, never a desktop screenshot as calibration evidence.
+  Desktop capture requires advance notice. Accessibility text is preferred for UI.
+
+Do not repeatedly open diagnostic panels when saving/warnings are already verified
+off; UI work itself can affect a timing investigation. If the AppleScript does not
+find its process, inspect accessibility process names (`PhysicalGo` in the latest
+launch) and operate equivalent controls; do not treat a successful script exit as
+verification. These instructions do not require opening a closed app for offline work.
+
 ## Symptom routes
 
 | Symptom | First distinction | Read/inspect |
@@ -40,7 +62,7 @@ to recording irrelevant setup time.
 | Laser is dark but motors remain held | Explicit monitored holding versus full OFF | New state-specific receipt; never infer power release from laser darkness. |
 | Camera evidence remains blocked after light | Requested OFF versus confirmed dark receipt and post-dark watermark | `PhysicalLaserGuidance.acceptsObservation`; exact frame epoch, ID and timestamp source. |
 | Capture marker points incorrectly or cleanup stalls | Legal prisoner set, placement-first priority, current present/empty witnesses | [Markers](Markers.md); all three capture test layers. |
-| Suspected suicide or ko gets generic correction | Confident illegal input versus uncertain vision or capture cleanup | [Illegal-move proposal](../IllegalMoveMarkerDesign.md), current rule policy and `PhysicalMoveInference` filtering. |
+| Suspected suicide or ko gets generic correction | Confident illegal input versus uncertain vision or capture cleanup | [Installed screen diagnostic and laser proposal](../IllegalMoveMarkerDesign.md), current rule policy and `PhysicalMoveInference` filtering. |
 | Incorrect time charged during cleanup/recovery | Local, AI-practice or online clock owner | [GameAIClocks](GameAIClocks.md); original accepted event and clock anchor. |
 | Motor “moving too fast” while apparently still | Raw velocity estimate, encoder movement and optical spot movement are different measurements | Motor logs and motion safeguards; do not widen a guard to force a pass. |
 | Temperature test stops on a timestamp | Camera age, motor causal age and independent clock drift are distinct | The exact failing age field, retained manifest, accepted sample sequence and ACK provenance. |

@@ -1,5 +1,13 @@
 # Gameplay continuity review
 
+**Historical audit with later addenda.** The November 22 baseline below is
+superseded: scoped hard-fault pause was installed in the 0.258 lineage; 0.260 adds
+bounded host-transition handling and pause on unrecoverable own-game link loss.
+Classified transient camera/lease recovery remains separate. See
+[current reliability status](CameraFreshnessReliability.md) and
+[the current contract](AgentGuide/LaserControlCalibration.md). No 0.260 physical
+endurance pass is claimed. “Current” in the audit tables refers to the audited commit.
+
 Reviewed November 22, 2026, against app source commit `50f28df` and the installed
 0.253/build 254 checkpoint. This is a source/test audit, not a physical gameplay
 pass. Read the current [checklist](IntegrationChecklist.md) and shared handoffs;

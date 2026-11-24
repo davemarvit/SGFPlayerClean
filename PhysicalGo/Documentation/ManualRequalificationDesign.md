@@ -1,5 +1,10 @@
 # Explicit manual requalification after a stopped calibration
 
+Historical design origin. Observed-anchor/manual requalification was subsequently
+implemented and physically entered, and later global calibration completed on the
+prior setup. This document is not a live launcher or current movement authority.
+Use [the checkpoint](LaserMovementCheckpoint.md) and [test plan](NextPhysicalTestPlan.md).
+
 Architecture follow-up, 2026-11-23. This is a future design recommendation, not part of the reviewed interior pilot and not authorization to operate hardware.
 
 The current exact-report-SHA adapters make each unusual stop reviewable, but repeatedly encode incident-specific transcripts in production acquisition paths. Keep them for the existing recorded experiments; replace this pattern incrementally with an explicit manual fresh-requalification operation. Its authority should come from newly established physical state rather than assumptions about what a previous interrupted command did.

@@ -1,5 +1,11 @@
 # Reversible overnight software work — November 23, 2026
 
+**Historical November 23 report, superseded for installation.** Physical Go
+0.260/build 261 is now installed, with paired tests and first-launch smoke passed.
+The latest signed rollback is 0.259. Read [the current checklist](IntegrationChecklist.md)
+for source hashes and remaining physical qualification; old candidate/primary
+version statements below refer only to the dated work they describe.
+
 The primary installation remains **0.253/build254**, and the signed **0.254/build255**
 physical-test baseline is preserved. No hardware, camera, installed app, active
 binding or saved game was changed by this work. Lighting/setup verification and

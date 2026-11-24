@@ -5,7 +5,10 @@
 The app owns the selected AVFoundation camera. The pointer consumes app-published
 pixels; starting another camera client can inspect the wrong feed or disturb the
 active stream. Device identity, board geometry and laser calibration are separate
-things to verify after equipment moves.
+things to verify after equipment moves. The current AUSDOM camera ID is
+`0x11000000bda0567`, normally 1920×1080. Verify it for each new acquisition.
+Desktop screenshots are not board-camera evidence and require advance notice to
+Dave because confidential information may be visible.
 
 ## Follow an observation
 
@@ -51,6 +54,15 @@ checks identity and capture/publication/arrival ages. A recent manifest write
 cannot make an old image fresh. Hardware dark evidence additionally needs a
 post-receipt watermark and a presentation flush; callback timestamps require an
 explicit measured flush bound. See [Laser control](LaserControlCalibration.md).
+
+## Freshness and optional difference analysis
+
+Metadata currently waits for the exact frame's PNG publication, even when the
+host refresh reads only JSON. Background execution and latest-only work do not
+guarantee a fresh frame within 600 ms. [Current timing evidence and next steps](../CameraFreshnessReliability.md)
+separate analysis, IO and handoff failures. Regional/frame-difference work remains
+an offline optimization candidate; unchanged appearance cannot create fresh hand
+clearance, new stone witnesses or optical target measurements.
 
 ## Expected position is useful context, not fresh evidence
 
@@ -109,8 +121,9 @@ fresh clear evidence, preventing old empty labels from resolving new ambiguity.
 The preserved wrongly assigned White and legitimate White are regression inputs.
 
 Hosted named profiles are documented in [StoneSetProfiles.md](../StoneSetProfiles.md).
-The combined candidate stores names and optional per-color thickness without
-changing recognition. Combined build and physical validation remain pending.
+The controls were installed in 0.258 and remain in 0.260. They store names and
+optional per-color thickness without changing recognition. Optical correction
+and independent-setup validation remain separate, unimplemented capabilities.
 
 Separate, explicitly unvalidated optical work is in the application repository's
 `codex/stone-set-profile-study` (Experiments/StoneSetCalibration and WhiteCentering)
@@ -151,7 +164,7 @@ crossings and no local native fit; fresh displaced Black yields a fit with an
 uncertain neighbor. The caller must not confuse stateless class/shape evidence
 with full temporal/controller acceptance or an available laser hint target.
 
-The0.258 app now hosts the named profile store and editor in Setup → Camera &
+Introduced in 0.258 and retained in 0.260, the app hosts the named profile store and editor in Setup → Camera &
 board → Stone set. [StoneSetProfileStore.swift](../../Sources/StoneSetProfileStore.swift)
 uses a separate `Physical Go/Stone Sets/library.json`; per-color measured thickness
 may remain unknown. Saving/selecting a profile still does not apply optical or

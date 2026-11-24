@@ -1,5 +1,11 @@
 # Calibration accuracy and recovery policy review
 
+Historical November 23 policy review. Its user accuracy clarification remains
+relevant; later geometry/global-steering work completed calibration on the prior
+setup. This does not mean every proposed quality/recovery redesign was adopted.
+Use [the current laser checkpoint](LaserMovementCheckpoint.md) for implemented
+source, physical evidence and post-movement qualification.
+
 Updated November 23, 2026. Design handoff; **no production change or new live
 policy is implemented or physically validated**. This document captures the
 completed architecture proposal and staged implementation audit so continuation

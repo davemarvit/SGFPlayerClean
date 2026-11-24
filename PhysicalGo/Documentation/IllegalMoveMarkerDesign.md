@@ -1,5 +1,11 @@
 # Illegal physical placement markers
 
+**Current status, November 24:** the promoted screen-only diagnostic is installed
+since 0.258 and retained in 0.260; 69 controller checks passed. The precursor and
+candidate sections below preserve design/test history. The isolated experiment
+is still outside the app build; `Sources/PhysicalIllegalMoveWarning.swift` is the
+runtime path. Physical validation remains pending; the laser pattern is a proposal.
+
 November 23, 2026. **Screen-only integration candidate:** the read-only tracker is
 promoted to `Sources/PhysicalIllegalMoveWarning.swift` and connected to
 `PhysicalAI.consume` on the isolated integration branch. It supplies a specific

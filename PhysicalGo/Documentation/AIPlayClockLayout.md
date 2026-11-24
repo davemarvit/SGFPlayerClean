@@ -27,13 +27,14 @@ Sources:
 - `Sources/PhysicalAIClockFace.swift` renders supplied clock values only.
 - `Sources/PhysicalAIView.swift` embeds the panel and groups secondary controls.
 
-This is an offline UI candidate, separate from the camera-delivery repair. No
-application has been installed or relaunched by this work, and no live game,
-camera or controller has been accessed. Light/dark clock-card previews are stored
+Installed in 0.260/build 261 on November 24; first-launch accessibility smoke
+confirmed the controls with the saved game paused. The original offline UI work
+below was separate from camera delivery and did not access the live game,
+camera or controller. Light/dark clock-card previews are stored
 outside Git in `work/ai-play-clock-layout-20261124` in the integration workspace.
 They are rendering checks, not a live gameplay acceptance test.
 
-Offline verification: 278 AI laser lifecycle/clock/dark-frame checks, 133
+Original isolated-branch verification (superseded build, retained evidence): 278 AI laser lifecycle/clock/dark-frame checks, 133
 guidance-fault continuity checks and 680 four-edge label checks passed. The
 final shared-runtime identity is
 `313863f995b27b5118f3c66fa805c93d9e06982e412387207846c7dbd553e9dc`.
@@ -58,11 +59,12 @@ selected output, system volume and connected headphones still control routing.
 
 The focused `--ai-move-click-test` checks preference migration, warning
 independence, mute controls, preview and asset-failure reporting with injected
-audio only. No sound is played by this test. Installation and audible physical
-validation remain deferred to the integration owner.
+audio only. No sound is played by this test. Installation is complete; audible
+validation through the selected AirPod Pro 3 output remains pending.
 
 Audio follow-up verification passed 13 dedicated preference/audio checks, 278
 laser lifecycle checks, 133 guidance continuity checks and eight build-registry
 checks. The final control also compiled and rendered offscreen after removing
 dense volume-slider tick marks. Test/preview audio was injected; no sound was
-played and no live app was installed or restarted.
+played during those isolated checks. Later installation and first-launch results
+are recorded in [IntegrationChecklist.md](IntegrationChecklist.md).

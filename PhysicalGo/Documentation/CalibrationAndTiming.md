@@ -1,13 +1,18 @@
 # Calibration, ongoing checks and timing limits
 
-Updated November 23, 2026 (Pacific time). See the
-[integration checklist](IntegrationChecklist.md) for current results and ownership.
-Physical Go 0.253 and v44 firmware are installed; the game is paused and a fresh
-full-board laser binding is not yet active. The staged calibration policy below
-is implemented and independently reviewed, with 117 offline checks passing,
-and the resumed moved-setup run passed **37 physical staged prelight checks**.
-Full-board calibration remains incomplete: that run stopped at the separate
-120-second target correction limit while approaching T19. See the latest checklist.
+Updated November 24, 2026. Installed app 0.260 and firmware v44; driver stopped.
+The prior full calibration passed five fit targets and nine independent checks
+(max final error 2.990 px), then the setup moved. Requalification is required;
+see [the checkpoint](LaserMovementCheckpoint.md) and [current checklist](IntegrationChecklist.md).
+The 600 ms gameplay freshness issue remains open; [timing evidence](CameraFreshnessReliability.md)
+does not establish an analysis backlog or a complete IO fix.
+
+The staged defaults below describe the reviewed November 23 calibration policy,
+not every frozen experimental launcher invocation. The global calibration launcher
+explicitly uses a 10-second calibration camera-age override and 0.5-second cached
+permit, plus its recorded finite-run/target options. These are attended calibration
+experiments, **not gameplay settings**. Read the pinned launcher's actual arguments
+and run receipt before interpreting a timeout. Gameplay retains 600 ms camera ages.
 
 There are two initial calibrations: locating the printed board in the camera
 image, then learning where motor positions place the laser on that board.
@@ -30,7 +35,7 @@ A separate reviewed offline prototype and cleared-board survey now exist; see
 [overnight results](OvernightSoftwareResults.md). Current corrective aiming does
 not update the active map.
 
-## Longer static analysis, followed by a fresh clearance check
+## Reviewed staged defaults: static analysis, then a fresh clearance check
 
 An image of stationary geometry can be analyzed for longer than a live clearance
 permission lasts. The distinction is between **what the older image measured**
@@ -55,7 +60,7 @@ calibration-only change does not permit old hand or stone evidence during play.
 
 ## Other calibration and recognition limits
 
-| Check or operation | Current limit | Meaning |
+| Check or operation | Default/reviewed limit (see experimental override above) | Meaning |
 |---|---|---|
 | Entire calibration run | **600 seconds by default**; configurable **60–900 seconds** normally. Explicit `--experimental-long-run` permits up to **7,200 seconds**. | Finite run deadline, not the maximum age of an image. This deadline was **not** the cause of the recent early stops. |
 | Correct one named calibration target | **120 seconds by default**; explicit experimental `--target-seconds 0` disables only this timer. At most **35 corrections per navigation stage** remains. | Bounds a target search/correction attempt. Individual motor and evidence safeguards still apply throughout. |
@@ -71,7 +76,7 @@ calibration-only change does not permit old hand or stone evidence during play.
 | Restore a pending target after a classified camera/lease delay | Observations less than **500 ms** old, plus the stable evidence below. | An additional recovery condition; a new heartbeat alone cannot relight the target. |
 | Stable capture/centering or hand-recovery evidence | At least **3 distinct observations spanning 450 ms**; applicable witness gaps over **600 ms** reset continuity. | Evidence must also meet its identity, clear/dark and classification requirements. Waiting 450 ms alone does not establish a stone or clearance. |
 
-The commissioning metadata allowance has been implemented and checked in
+The default commissioning metadata allowance was implemented and checked in
 88 offline tests. Increasing it from 150 to 250 ms lets a briefly delayed reader
 retain a still-valid permission for at most 100 ms longer. It does not change the
 20-ms polling cadence, current image ages or final 150-ms light ticket.

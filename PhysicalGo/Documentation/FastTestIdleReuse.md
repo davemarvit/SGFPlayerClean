@@ -1,5 +1,10 @@
 # Experimental fast-test idle engine reuse
 
+**Current status, November 24:** completed-idle-worker reuse was installed in
+0.258 and remains in 0.260. The candidate narrative below is historical; its
+timings are not a measured 0.260 speedup. Physical pause/resume coverage is in
+[the test plan](NextPhysicalTestPlan.md).
+
 This isolated candidate is based on narrow 0.256 source `347eb84`. It is separate
 from the ambiguity fix and is not installed or physically validated.
 

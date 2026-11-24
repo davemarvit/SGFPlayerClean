@@ -1,5 +1,10 @@
 # Scoped guidance recovery extraction experiment
 
+**Current status, November 24:** the reducer described here was integrated into
+the installed app lineage and remains in 0.260. The isolated experiment narrative
+below records its origin, not the current installation. Later transition/link-loss
+changes are recorded in [the checklist](IntegrationChecklist.md).
+
 This isolated `codex/overnight-guidance-reducer` experiment starts from app commit
 `c39e7e0`. It changes structure, not admission policy. The primary repository,
 installed application, saved game and hardware are untouched.

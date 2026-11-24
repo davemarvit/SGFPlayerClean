@@ -1,5 +1,11 @@
 # SGFPlayerClean
 
+Physical Go camera/AI/laser work has its own [current checklist](PhysicalGo/Documentation/IntegrationChecklist.md),
+[continuation handoff](PhysicalGo/Documentation/NextConversationHandoff.md) and
+[documentation index](PhysicalGo/Documentation/DocumentationIndex.md). Those identify
+the installed-source worktrees; this checkout's runtime may be older than the installed app.
+The dated SGF Player/iPad feature entries below are their own development history.
+
 Native macOS SGF player with shared 2D/3D board state, OGS live play, and KataGo analysis.
 The application project is `SGFPlayerClean/SGFPlayerClean.xcodeproj` and its scheme is `SGFPlayerClean`.
 The older `davemarvit/SGFPlayer` repository is a separate implementation.

@@ -1,5 +1,12 @@
 # Local recording, review and scoring
 
+November 24 retention review: all unique games, camera recordings and calibration
+evidence were retained. Only three abandoned partial install backups were removed
+after exact duplicate/prefix checks; `work/data-pruning-20261124` contains hashes,
+retained origins and restoration metadata. Preserve KEEP-marked backups and useful
+fault tails. Clone consolidation is not evidence of reclaimed disk space.
+See [current status](../IntegrationChecklist.md) before further pruning.
+
 [Start here](README.md) · [Current status](../IntegrationChecklist.md)
 
 This page covers the local two-player recorder. AI practice and online play use

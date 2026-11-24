@@ -1,5 +1,9 @@
 # Occupied-board image-processing timing
 
+These measurements concern the host's optical image-registration path. They
+exclude native analysis and publication IO and must not be used as the measured
+cause of the later 600 ms expiry. See [recent camera-pipeline evidence](CameraFreshnessReliability.md).
+
 Measured November 22, 2026. Offline recordings only; no hardware, live camera, app, saved game or production source was changed. The [integration checklist](IntegrationChecklist.md) owns current installation and physical-test status.
 
 The user’s concern is supported by measurement: an empty-board timing check is insufficient for gameplay. Some archived sparse positions take more than a second to register, while a heavily occupied position with a suitable occupied reference takes about 0.15 seconds. Stone count alone is not a useful latency predictor. Reference differences, lighting, feature matching and dense-alignment convergence affect which processing path runs.

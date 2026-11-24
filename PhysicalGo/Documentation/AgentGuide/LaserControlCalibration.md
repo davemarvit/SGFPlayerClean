@@ -10,6 +10,11 @@ and shared handoff before any serial operation.
 
 ## Source map
 
+The links below identify components in the canonical repository. Current runtime
+code is in the isolated worktrees named by the [checklist](../IntegrationChecklist.md);
+the canonical checkout may be older. Use the paired host pinned by the launcher,
+not an arbitrary similarly named `laser_bridge.py`.
+
 | Component | Responsibility |
 |---|---|
 | [PhysicalLaserGuidance.swift](../../Sources/PhysicalLaserGuidance.swift) | App request/status schema, short renewable lease, target evidence, generation/recovery and dark-frame admission. |
@@ -69,10 +74,10 @@ The exact agreement lives in the laser repository's
 [Gameplay standby protocol.md](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/Gameplay standby protocol.md>).
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
-Gameplay firmware v44 provides the new contract. The November 23 checklist records
-Physical Go 0.253/v44 installed and the short dark check passed; fresh full-board
-calibration and gameplay validation remain separate. Consult that checklist for
-later installation and physical results.
+Installed gameplay firmware v44 provides this contract. The current paired
+software is Physical Go 0.260 with host `1ae717e`. A short dark check and earlier
+interrupted gameplay were exercised; the latest recovery changes remain physically
+unverified. The completed prior calibration needs requalification after movement.
 
 The new capability is `darkMotorStandbyV1`. Discovery uses schema-1 full OFF,
 then a new schema-2 OFF revision and matching confirmation before active use.
@@ -133,16 +138,18 @@ evidence. The app supports 9/13/19 boards, while the inspected hardware setup
 admission is commissioned for 19×19; do not assume app size support implies
 pointer calibration for that size.
 
-Old full-board interpolation evidence is not approval for a moved setup. At the
-November 22 checkpoint, recalibration was partial and no fresh full binding had
-been activated. Check the live checklist before using any saved binding.
+The November 24 full calibration passed five fitting targets and nine independent
+checks, and was bound for play. The subsequent movement invalidates its current
+qualification. The binding is retained and gameplay is blocked pending new
+geometry/attended optical review. See [the calibration checkpoint](../LaserMovementCheckpoint.md).
 
 ## Latency and physical tests
 
 Measure AI decision receipt, command dispatch/acknowledgement, first visible
-light and final pointing accuracy separately. Sound starts with light dispatch
-without waiting for playback to finish; actual acoustic/optical simultaneity
-still needs measurement. Warm holding can avoid repeated cold ARM/HOLD work,
+light and final pointing accuracy separately. Calibration attention beeps and the
+native AI stone click are different cues. Native click uses first confirmed
+illumination once per move; retries and centering stay silent. Dispatch/playback
+acknowledgement does not prove acoustic/optical simultaneity or audibility. Warm holding can avoid repeated cold ARM/HOLD work,
 but no historical timing is a measured speedup of the new implementation.
 
 The accepted sequence is software/fault tests, a short root-owned dark hold/stop
@@ -162,13 +169,14 @@ It cannot command hardware or activate a calibration binding.
 
 [Explicit manual requalification](../ManualRequalificationDesign.md) describes a
 design for replacing incident-specific restart adapters. Explicit manual
-requalification was subsequently implemented and physically entered; the later
-settlement-response disagreement still prevents full-board qualification. See
+requalification was subsequently implemented and physically entered. Later global
+steering completed full-board qualification on the prior setup; that setup then
+moved and requires fresh qualification. See
 [the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
 This does not authorize automatic retry or an occupied-board calibration run.
 
 
-## Prediction disagreement is not measured aiming error
+## Historical November 23 prediction disagreement, distinct from aiming error
 
 The camera measures the spot and requests small corrections; the motors
 separately control their encoder positions. Calibration also compares a local
@@ -190,8 +198,8 @@ policy. The optional expected-pose gate on `codex/initial-spot-pose-gate`
 (`ece72fa`) passed 54 tests and a stationary physical check. Neither activates a
 gameplay binding.
 
-Settlement-aware goal shrinking and bounded stationary remeasurement are being
-integrated separately. An optional conservative proof must not silently become
+Those November 23 steering investigations are historical. Later global steering
+completed the full calibration; its source and limitations are in the movement checkpoint. An optional conservative proof must not silently become
 a new required guarantee: proving containment over every permitted holding
 position makes some edge checks impossible, although the established policy can
 test them. Consult the current checklist for enabled source and physical results.
@@ -201,7 +209,7 @@ transport faults.
 
 ## Ephemeral IPC publication
 
-The [November 24 source candidate](../../Experiments/EphemeralIPC/README.md)
+The [ephemeral IPC implementation installed in 0.260](../../Experiments/EphemeralIPC/README.md)
 uses same-directory POSIX temporary-write/close/rename for live broker PNGs,
 manifest and request JSON. It preserves atomic visibility and original deadlines,
 without claiming crash durability. Persistent game/calibration writes are excluded.

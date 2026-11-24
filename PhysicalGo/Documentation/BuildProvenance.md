@@ -1,5 +1,9 @@
 # Build snapshots and ownership
 
+Status November 24: this tooling is integrated in the installed-source worktree
+and was used for 0.260 verification. The isolated November 23 results at the end
+are historical; current build/install receipts are in [the checklist](IntegrationChecklist.md).
+
 The shared regression builder compiles identified source copies rather than live
 Swift files. Its command-line interface is unchanged: multiple test flags and
 `--all-tests` use the shared runtime. A single suite can opt in using
