@@ -205,3 +205,70 @@ domain or locally justified response bound without raising tolerances. Do not
 expand to361 merely because the saved-anchor sweep mostly passes; subsequent
 game targets start elsewhere. Root retains the paused game and activation block
 while that explicit domain condition remains unresolved.
+
+## Dense-response correction and attended-attempt recommendation
+
+**This subsequent review supersedes the preceding domain block for the new
+dense-response candidate.** On the user's explicit request to finish the
+movement correction, reviewer recommends integrating runtime
+`71fe9379ce73141eaa6a15a59f456c8f8d9ad9bf` with provenance helper272e4c9,
+documentationf9dde4f and explicit policy115710f (candidate cherry-picks
+f07f5c4/5d74355/a62f700). No concrete source blocker remains. The recommendation
+is supervised attempts at all361 coordinates under `attended_full_board_v1`,
+not a claim of361 physically validated landings or guaranteed completion.
+
+The correction uses the frozen dense model only as a local response prior,
+evaluated at the independently observed encoder pose. Measured optical pixels
+remain the anchor; target landing and adequacy still require optical feedback.
+It removes secant carryover and refreshes the derivative after every accepted
+observation, including initial acquisition and prelight. It does not refit the
+model or change the frozen three-point benchmark. The qualified dense model
+SHA-256 is `adf8ace866254af7a82cdcfecb984ce539490689794d119357a85fb6fdcb42fa`:
+86 fit observations from97 retained observations, with71 later chronological
+endpoint measurements used for response evaluation, not fitting. Those legs are
+correlated trajectories, not71 independent whole-board experiments.
+
+PG02's independent audit reports the dense derivative covers all71 measured
+endpoint responses under the unchanged0..2-axis/+5px envelope; maximum distance
+outside the nominal response hull is2.047px, within the5px allowance. This
+addresses the prior observed4/71 defect. Missing corner measurements remain
+extrapolation uncertainty rather than a reason to require per-point calibration.
+
+Reviewer found and verified repairs to two provenance gaps: changing grid
+geometry and rehashing a binding could initially inherit an old setup proof;
+swapping the historical PNG could likewise inherit fresh-geometry metadata.
+The helper now pins the approved report to the full semantic fresh setup,
+excluding only reference filepath for relocation, and requires the approved
+fresh PNG hash. Original model/setup identities are retained rather than
+rewritten. It loads copied parameters once per binding and performs no live
+fitting. Both negative cases have owner-run passing regressions.
+
+The observed motor hull is now explicitly a diagnostic in attended mode. A
+separate optional strict policy still rejects extrapolation. Both modes enforce
+finite poses, original motor bounds, exact provenance and derivative conditioning.
+The original uniform optical response envelope and actual-pose, clearance,
+thermal, cancellation and full-OFF guards are unchanged. Runtime logs extrapolation
+with stage and actual pose. Reviewer also verified the new response calculation
+precedes the final600ms optical-age check and cache publication; a delayed-response
+regression is included. Owner reports65 passing focused checks.
+
+Earlier fixed comparison cohorts for dense actual-pose response without secant
+carryover showed361/361 reached from the saved anchor,361/361 from center,
+70/72 from opposite perimeter with2 bounded failures, and34/72 under drift stress
+with38 bounded failures. None had a simulated5px margin breach; minimum margins
+were12.959px,14.412px,10.575px and18.797px respectively. Hard hull gating instead
+produced282/361 saved-anchor successes and79 coverage-only refusals; PG02 found
+82 excluded diagnostic endpoints. These restrictions describe absent retained
+coverage, not demonstrated unsafe responses outside the hull, and would make
+ordinary play impractical. Final production-helper, source-pinned cohort
+artifacts are being completed by PG06b; these earlier comparisons are not
+misrepresented as those final runs.
+
+The reviewable minimal first-game path therefore remains the retained qualified
+response prior plus fresh three-point setup evidence and measured corrections,
+with an explicit361-attempt binding. Root owns final integration/manifests,
+installation, current same-geometry/anchor checks and fresh attended READY.
+Known bounded failures remain failures; extrapolation is recorded, not relabeled
+as physical validation. No additional calibration tour, arbitrary tolerance
+increase, inaccurate fallback or hold-control redesign is required by this
+review. No physical operation was performed by the reviewer.
