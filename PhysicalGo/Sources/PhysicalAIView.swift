@@ -62,6 +62,7 @@ struct PhysicalAIPlayView: View {
     var cameraNotice:String?=nil
     var moveClick:PhysicalAIMoveClick?=nil
     var practiceBoardSizeChanged:((Int)->Void)?=nil
+    var openCameraSetup:(()->Void)?=nil
     @State private var ending=false
     @State private var confirmingLaserOff=false
     @State private var exportError: String?
@@ -98,6 +99,14 @@ struct PhysicalAIPlayView: View {
                 Label("Center the highlighted stone on the intersection you intended",systemImage:"scope").foregroundStyle(.orange)
             }
             Text(ai.status).font(.title3).accessibilityIdentifier("ai-game-status")
+            if let help=ai.checkingHelp {
+                VStack(alignment:.leading,spacing:6) {
+                    Label("Board check needs attention",systemImage:"viewfinder").font(.headline)
+                    Text(help.explanation {BoardCoordinates.name(point:$0,size:ai.size,orientation:orientation)})
+                    Text(help.recovery).font(.callout)
+                    if let openCameraSetup {Button("Camera & setup",action:openCameraSetup)}
+                }.foregroundStyle(.orange).accessibilityIdentifier("ai-checking-explanation")
+            }
             if let cameraNotice {
                 VStack(alignment:.leading,spacing:4) {
                     if ai.phase == .thinking {Text(humanHasMoved ? "Your move was accepted. AI is thinking.":"AI is thinking.")}

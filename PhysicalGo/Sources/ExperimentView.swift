@@ -220,7 +220,7 @@ struct ExperimentView: View {
             if model.playMode == .ai {
                 PhysicalAIPlayView(ai:ai,orientation:model.orientation,boardHeight:boardHeight,cameraNotice:model.aiCameraNotice,moveClick:model.aiMoveClick,practiceBoardSizeChanged:{size in
                     if model.size != size {model.size=size;model.boardSizeChanged()}
-                })
+                },openCameraSetup:{workspace.activity = .setup})
                 OccupiedReferenceControls(model:model)
             } else if !hasSession && model.playMode == .local {
                 ContentUnavailableView {
