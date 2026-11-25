@@ -7,6 +7,22 @@ repairs. The later installed 0.261 now separates safety metadata from PNG delive
 and passes injected-stall/paired tests; it has not passed sustained physical gameplay. See the
 [checklist](IntegrationChecklist.md) for exact installed/host identities.
 
+**Latest installed audit (0.262/build263, host `3f5802f`): the earlier repairs are
+present, verified from installed bytes and build fingerprints.** All 173 native
+build inputs reproduce the installed source fingerprint, the installed executable
+matches its release receipt, and all 482 packaged host files match the pinned
+manifest. The native IO/safety implementation files match `9c516f1`; the host
+camera-safety reader, cached guard and supervision files match `04b76c7` exactly.
+This is not merely an ancestry check. [Detailed audit and two-gate comparison](FreshnessInstalledAudit20261124.md).
+
+The latest three completed acquisitions successfully detected a spot, then failed
+the **separate processed-optical-result age check**. At the earlier measurement
+event, newest pixels were already 2.122 s, 1.169 s and 0.960 s old, before the final
+pose/response checks. Registration alone took 0.513–1.632 s. No target travel was
+issued. These failures identify the rejection site and a measured optical-processing
+bottleneck; they do not show that the installed IO repair disappeared or that
+native delivery can never stall.
+
 ## What the deadline measures
 
 The host evaluates the age of the original camera evidence when it uses it.
