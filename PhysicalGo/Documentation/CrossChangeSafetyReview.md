@@ -715,3 +715,39 @@ statistics; no stale prior-frame proof is borrowed. Existing OFF/quiescence
 ownership of evidence writes remains. Physical acceptance is still root's
 attended preflight/run responsibility; no reviewer camera, controller, UI,
 installation or benchmark action occurred.
+
+## Exact dark-refresh residual repair — frozen 4dd6b58
+
+Independent source/artifact review approves
+`4dd6b58d72cde60bd6b801dc25c4ca7980470c8f` for root's single authorized attended
+retry. Runtime bytes match integrated `968ba538d457c03fc34ed0b17b0d59e853817838`.
+The only runtime changes are the two forward/back LK calls in the already-aligned
+dark-registration validator, pyramid level 1 to 0, with an explanatory comment.
+The temporal tracker remains normalized level 2. Existing ORB fit/residual gates,
+25 px transform cap, distributed edge/quadrant support, 0.5/1 px residual limits,
+native grid, hand checks, geometry lifetime and final 600 ms guard are unchanged.
+
+Run 1795595051454342000, feedback-74 retained the exact failed dark frames
+39377–39379. All fourteen retained files independently matched their manifest.
+Actual 77-inlier ORB support passed: ECC candidate ORB median/p90 0.721/1.400 px,
+but its aligned grid p95 was 1.178 px (ORB candidate 1.198 px), with spurious
+neighboring-line jumps. The new local residual check accepts the unchanged ECC
+homography with 328 tracks and p95 0.554 px. Full real registration passes each
+source and the median; the complete constructor passes native-grid mismatch
+1.831 px against 6.349 px, and source-to-median temporal p95 0.081/0.076/0.084 px.
+The old post-H pyramid reproduces the failure. Committed replay uses actual ORB
+matches, unlike the explicitly exploratory initial triage.
+
+Owner reports 97 tests passed, including two exact regressions. Existing thirteen
+saved-image controls preserve nine accepts and four rejections, including covered
+edge/quadrant, blank and large movement; false-transform and concentrated-support
+tests pass. The prior temporal level-zero covered-edge weakness is not ignored:
+that control class still rejects for distributed visibility in this distinct
+ORB plus aligned-grid path. This does not establish arbitrary-occlusion coverage.
+
+Reviewer inspected `Firmware/Experiments/DarkResidualAliasing/` and independently
+matched its exact replay's two source hashes, six evidence hashes, setup and
+runner, plus the control replay's five source hashes, sixteen inputs and runner.
+Root owns integration checks, installation and the single attended retry. These
+are offline retained-image results, not physical acceptance. No reviewer test,
+benchmark, hardware, camera, UI or installation action occurred.
