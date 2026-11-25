@@ -897,3 +897,53 @@ reject at873–899 ms. The worst accepted replay has only23 ms below the unchang
 three copies of the retained dark median and emulated controller/response calls;
 it is not five independent physical observations or a live latency guarantee.
 No reviewer heavy tests, hardware, camera, UI or installation were performed.
+
+## PG37 pure motor admission — 9a6e5f3 plus 54e4180
+
+Independent source review approves `9a6e5f3` with test-only follow-up `54e4180`,
+based on native `1f6fb91`. Existing possible-power, cold-admission and handoff
+assignments map directly to pure reducer events. The 12-second timeout remains
+before full-OFF consumption, the three-second handoff remains independent,
+transient recovery suppresses only cold timeout, authenticated active receipts
+finish cold admission, and disabled release clears only possible power. Play
+session changes clear only handoff. The ordered typed blocker preserves the old
+ten-input conjunction. Receipt authentication and all command/game authority
+stay in the guidance facade. Optional trace events use the existing bounded,
+nonblocking utility writer; keying now includes power/action and deadline starts.
+
+Owner reports 4,096 four-event sequences, 1,024 gate combinations and explicit
+boundaries passed (312,326 assertions). Reviewer found a new unrun facade fixture
+accidentally expired thermal evidence while testing stale camera: 100+710 ms
+exceeded750 ms. Follow-up54e4180 publishes fresh holding status at the advanced
+clock while leaving the camera old; no production change. Eight new facade
+assertions and existing standby/continuity integration remain root-owned. Four
+retained evidence hashes independently matched. Historical persistent-OFF cause
+is explicitly unproven; this extraction does not claim to fix that live cause.
+
+## PG34 board-check help — 2c79bde plus c7d471c
+
+Independent source review approves `2c79bde` with
+`c7d471ca4d9f02145f30d8b47775e6ceeb5bdc8d`, pending root's full controller/view
+compilation and integration suite. Presentation waits three seconds and at least
+three fresh assessments, lists at most eight correctly oriented points and
+refreshes at most once per second. It retains waiting history across alternating
+ambiguous/stable observations without changing recognition witnesses, move
+acceptance, timing or laser admission. Existing navigation opens Camera & setup;
+no reference capture or recalibration is performed by this feature.
+
+Two concrete reviewer findings were repaired. First, zero accepted moves during
+a human turn may include a visibly placed but ambiguous first stone; advice now
+uses empty-startup wording only in checking phase, consistent with the existing
+startup-empty requirement. A first-human-move regression confirms no empty-reference
+advice, no premature accepted move and eventual normal recovery. Second, actual
+ExperimentModel pre-consume interruptions use camera_hand_obstruction,
+camera_waiting_for_dark_evidence and camera_alignment_rejected. These now clear
+help/grace directly; regression cases exercise all three real reason strings,
+not only synthetic hand observations passed into consume.
+
+Owner's standalone helper passed54 checks; full controller/view integration and
+new repair regressions are not yet run by the reviewer. The 600-frame retained
+startup metadata source hash independently matches. It does not reproduce pixels
+or diagnose a bad reference. PG34 and PG37 source changes have no conflicting
+authority: one is presentation only, the other preserves authenticated admission
+bookkeeping. No reviewer build, hardware, camera, UI or installation occurred.
