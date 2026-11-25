@@ -329,7 +329,13 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func pause() {
         defer {syncGuidance()}
         guard active else {return}
-        cancel(preserveIdleTestWorker:true);timing.pause(at:uptime());if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}};phase = .paused;status="AI game paused. Resume when the board is ready."
+        // Manual pause and shutdown share the fault path's timing boundary:
+        // cancellation can publish requests or wait for a worker. Freeze first
+        // so that work cannot charge the player or reenter an active game.
+        phase = .paused;timing.pause(at:uptime())
+        cancel(preserveIdleTestWorker:true)
+        if let s=snapshot {do {try save(s)} catch {fail(error.localizedDescription);return}}
+        status="AI game paused. Resume when the board is ready."
     }
     func shutdown() {pause();testWorker.stop()}
     func confirmLaserPhysicallyOff() {
