@@ -834,3 +834,66 @@ first_light remains, while actual eligibility is accepted illumination. Dedup
 remains memory-only across app restart. Host double-beep policy is separate.
 No reviewer compile, audio playback, hardware or installation occurred; audible
 onset timing still requires attended observation.
+
+## Combined native validation closes metadata/cue build condition
+
+Root reports combined native source `1f6fb91` passed all eight relevant suites
+against shared runtime `07e065a48183`: accepted click 28, continuity 263,
+ambiguous placement 57 (real PhysicalAI metadata case), standby 379, diagnostics
+1,427 with retained R16 fixture and offset reuse, stone tracking 82, geometry 27,
+and AI-laser 325; 2,588 total checks. This fulfills the outstanding full native
+integration condition for reviewed PG23 metadata/reuse and PG26b accepted cue.
+These are root-run results; reviewer performed no duplicate compile or audio,
+UI, camera or hardware action. Optimized application build/installation and
+physical acceptance remain separately owned by root.
+
+## Temporal correspondence repair — frozen e5ffa0d
+
+Independent source/artifact review approves
+`e5ffa0decdb60ce6e6f7c5ef820f75efb2538980` for offline integration, with no concrete
+remaining blocker. Release packaging must include new `bridge_correspondence.py`
+and hash it with the integrated runtime. The frozen candidate is based on host
+`968ba538`; combining other host changes remains root's integration responsibility.
+
+This is an explicit fallback for an already-rejected temporal frame, not deletion
+of disagreeing features. Original normalized pyramid-2 tracking, coverage and
+coherent median motion gates run first. Only a passing median with failing p95
+can attempt repair. Every originally valid track above one pixel must receive an
+independent unique 41-by-41 half-resolution patch match in a bounded broad search,
+including the observed alias and projected neighboring half/whole-grid locations.
+Distinct-peak and reverse searches plus local subpixel/FB verification must all
+pass. No suspect may be dropped; a last-suspect failure returns no partial result.
+Original points, valid mask, denominator and anchor remain immutable. The original
+0.5/1 px motion gates are reapplied to all original valid tracks, followed by
+unchanged native-grid/current-context checks. No transform refit or anchor chaining
+occurs. Fixed peak 0.8 and distinct-margin 0.1 qualify replacements only on the
+already-rejected path, not ordinary-frame brightness. Missing alternatives,
+flat/tied/nonfinite matches, reverse disagreement and refinement escape reject.
+Count32 and measured100 ms work bounds fail closed; neither extends optical age.
+
+The reviewer inspected owner tests for the above boundaries, native-grid/age
+checks, coherent-motion/coverage no-call behavior, count/time budgets and exact
+failure replay. Owner reports 133 focused tests passed. Independently matched
+replay's five runtime hashes, 44 input hashes and runner, and whole-path replay's
+six runtime hashes, seven inputs and runner. Durable evidence is under
+`Firmware/Experiments/TemporalCorrespondence/` in the candidate tree.
+
+The 62 recorded image cases yield nine accepts and 53 rejects. All 44 original
+synthetic motion/occlusion negatives remain rejected. The only formerly rejected
+cases rescued are exact57014 and its benign local-shadow variant. Exact57014
+retains the same146/160 tracks; all nine suspects are repaired, final median
+0.0603 px and p95 0.1227 px. Exact21221 still passes the ordinary path. The actual
+dark39377–39379 constructor, native grid and all source checks also pass. A small
+opaque patch remains accepted on21221 by both baseline and candidate; this is an
+explicit sparse-visibility limitation, not a silently omitted negative. Perfectly
+identical repeated-pattern images cannot prove absence of motion.
+
+Twenty warm repeats record fallback median30.47 ms/p95 32.51 ms versus roughly4 ms
+baseline rejection; ordinary-path differences are noise, not a claimed speedup.
+The actual read_spot-path replay requires repair on all five repeated images:
+nine nominal cases pass at447–577 ms after publication and three stale cases
+reject at873–899 ms. The worst accepted replay has only23 ms below the unchanged
+600 ms gate. It uses synthetic cadence/timestamps, repeated exact lit pixels,
+three copies of the retained dark median and emulated controller/response calls;
+it is not five independent physical observations or a live latency guarantee.
+No reviewer heavy tests, hardware, camera, UI or installation were performed.
