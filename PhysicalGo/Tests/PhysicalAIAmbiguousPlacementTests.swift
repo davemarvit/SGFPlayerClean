@@ -112,26 +112,68 @@ private struct AssignmentRecording: Decodable {
         check(live.ai.timing.anchor==runningAnchor && live.ai.pendingPoint==nil,"Ambiguity must preserve the running human clock without an AI target")
         live.ai.pause()
 
+        // Synthetic color reversal preserves every measured confidence and
+        // geometric fit; it is not a second camera recording. A leading Black
+        // pass reverses the logical stone colors at the same coordinates.
+        func reverseColors(_ input:BoardObservation)->BoardObservation {
+            var output=input
+            output.readings=input.readings.map {r in
+                .init(row:r.row,col:r.col,occupancy:r.occupancy == .white ? .black:r.occupancy == .black ? .white:r.occupancy,confidence:r.confidence,delta:r.delta)
+            }
+            return output
+        }
+        for hints in [false,true] {
+            let h=try AssignmentScenario(root:root,moves:[nil,72,180,300],humanBlack:true,hints:hints)
+            h.feed(h.clean(),count:4)
+            let before=h.ai.snapshot!.moves.map(\.point),anchor=h.ai.timing.anchor
+            for (i,f) in recording.ambiguousFrames.enumerated() {
+                h.feed(reverseColors(f.observation),step:i==0 ? 0.2:f.capturedAt-recording.ambiguousFrames[i-1].capturedAt)
+            }
+            check(h.ai.snapshot!.moves.map(\.point)==before && h.ai.status.contains("intersection is unclear"),"Color-reversed recorded geometry must abstain for Black with either hint preference")
+            check(h.ai.timing.anchor==anchor && h.ai.pendingPoint==nil,"Black halfway geometry must preserve the clock and avoid an AI target")
+            h.feed(h.clean(),count:4)
+            check(h.ai.phase == .human && h.ai.snapshot!.moves.map(\.point)==before,"Removing ambiguous Black stone must restore prior position")
+            h.ai.pause()
+            let good=try AssignmentScenario(root:root,moves:[nil,72],humanBlack:true,hints:hints)
+            for (i,f) in recording.validFrames.enumerated() {
+                good.feed(reverseColors(f.observation),step:i==0 ? 0.2:f.capturedAt-recording.validFrames[i-1].capturedAt)
+            }
+            check(good.ai.snapshot!.moves.map(\.point)==[nil,72,180],"Color-reversed legitimate geometry must still accept Black180")
+            good.ai.pause()
+        }
+
         // Synthetic variants isolate controller behavior without claiming to
         // reconstruct pixels: confidence boundary, both colors, edge bounds,
         // and uncertainty elsewhere that still may retain verified history.
         for black in [false,true] {
-            for point in [0,18,342,360,275] {
-                let history:[Int?]=black ? [nil,72,180,300]:[72,180,300]
-                let h=try AssignmentScenario(root:root,moves:history,humanBlack:black)
-                var cells=h.ai.cells;cells[point]=black ? "black":"white"
-                let clean=h.clean(cells),neighbor=point%19==18 ? point-1:point+1
-                let blocked=replace(clean,neighbor,.empty,0.79)
-                h.feed(blocked,count:4)
-                check(h.ai.snapshot!.moves.count==history.count,"Low-confidence adjacent expected-empty crossing must block either color, including corners")
-                // Two witnesses followed by a blocked observation must start
-                // a new streak, even when the board values then look identical.
-                let threshold=replace(clean,neighbor,.empty,0.8)
-                h.feed(threshold,count:2);h.feed(blocked);h.feed(threshold)
-                check(h.ai.snapshot!.moves.count==history.count,"A blocked neighbor must erase earlier placement witnesses")
-                h.feed(threshold,count:3)
-                check(h.ai.snapshot!.moves.last?.point==point && h.ai.snapshot!.moves.count==history.count+1,"Fresh .8-confidence neighbors must permit normal temporal confirmation")
-                h.ai.pause()
+            for hints in [false,true] {
+                for point in [0,18,342,360,275] {
+                    let history:[Int?]=black ? [nil,72,180,300]:[72,180,300]
+                    let h=try AssignmentScenario(root:root,moves:history,humanBlack:black,hints:hints)
+                    h.feed(h.clean(),count:4)
+                    let anchor=h.ai.timing.anchor
+                    var cells=h.ai.cells;cells[point]=black ? "black":"white"
+                    let clean=h.clean(cells),neighbor=point%19==18 ? point-1:point+1
+                    let blocked=replace(clean,neighbor,.empty,0.79)
+                    h.feed(blocked,count:4)
+                    check(h.ai.snapshot!.moves.map(\.point)==history,"Low-confidence adjacent expected-empty crossing must block either color with either hint preference, including corners")
+                    check(h.ai.timing.anchor==anchor && h.ai.pendingPoint==nil,"Neither hint preference may switch the human clock or create an AI target for ambiguous placement")
+                    // Changing an optional display preference while ambiguity
+                    // remains cannot authorize a previously rejected move.
+                    h.ai.centeringEnabled = !hints
+                    h.feed(blocked,count:4)
+                    let persisted=try JSONDecoder().decode(PhysicalAI.Snapshot.self,from:Data(contentsOf:h.folder.appendingPathComponent("current.json")))
+                    check(persisted.moves.map(\.point)==history && h.ai.timing.anchor==anchor,"Toggling hints during either-color ambiguity must preserve saved history and the running clock")
+                    h.ai.centeringEnabled=hints
+                    // Two witnesses followed by a blocked observation must start
+                    // a new streak, even when the board values then look identical.
+                    let threshold=replace(clean,neighbor,.empty,0.8)
+                    h.feed(threshold,count:2);h.feed(blocked);h.feed(threshold)
+                    check(h.ai.snapshot!.moves.count==history.count,"A blocked neighbor must erase earlier placement witnesses")
+                    h.feed(threshold,count:3)
+                    check(h.ai.snapshot!.moves.last?.point==point && h.ai.snapshot!.moves.count==history.count+1,"Fresh .8-confidence neighbors must permit normal temporal confirmation")
+                    h.ai.pause()
+                }
             }
         }
         let distant=try AssignmentScenario(root:root,moves:[72,180,300])
@@ -144,17 +186,27 @@ private struct AssignmentRecording: Decodable {
         // Pending AI stones already exist in game history; their physical
         // confirmation must still require fresh spatial evidence. Cover both
         // standalone placement and placement plus a prompt legal human reply.
-        for reply in [false,true] {
-            let h=try AssignmentScenario(root:root,moves:[72,180,300],pending:true)
-            var cells=h.ai.cells;if reply {cells[275]="white"}
-            let clean=h.clean(cells),blocked=replace(clean,319,.uncertain,0.7)
-            h.feed(blocked,count:5)
-            check(h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==3,"Unresolved AI placement must not confirm itself or authorize a reply")
-            h.feed(clean,count:2);h.feed(blocked);h.feed(clean)
-            check(h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==3,"Pending placement cannot reuse witnesses across an unresolved neighbor")
-            h.feed(clean,count:3)
-            check(!h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==(reply ? 4:3),"Fresh clear placement must complete with or without a prompt reply")
-            h.ai.pause()
+        for humanBlack in [false,true] {
+            for hints in [false,true] {
+                for reply in [false,true] {
+                    // Prepend a Black pass to reverse all stone colors while
+                    // retaining identical target and neighboring geometry.
+                    let history:[Int?]=humanBlack ? [nil,72,180,300]:[72,180,300]
+                    let h=try AssignmentScenario(root:root,moves:history,humanBlack:humanBlack,pending:true,hints:hints)
+                    let anchor=h.ai.timing.anchor
+                    var cells=h.ai.cells;if reply {cells[275]=humanBlack ? "black":"white"}
+                    let clean=h.clean(cells),blocked=replace(clean,319,.uncertain,0.7)
+                    h.feed(blocked,count:5)
+                    check(h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.map(\.point)==history,"Unresolved AI placement of either color must not confirm itself or authorize a reply with either hint preference")
+                    let persisted=try JSONDecoder().decode(PhysicalAI.Snapshot.self,from:Data(contentsOf:h.folder.appendingPathComponent("current.json")))
+                    check(persisted.pendingPlacement && persisted.moves.map(\.point)==history && h.ai.timing.anchor==anchor,"Ambiguous pending placement must preserve saved pending state, history and clock")
+                    h.feed(clean,count:2);h.feed(blocked);h.feed(clean)
+                    check(h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==history.count,"Pending placement cannot reuse witnesses across an unresolved neighbor")
+                    h.feed(clean,count:3)
+                    check(!h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==history.count+(reply ? 1:0),"Fresh clear placement must complete with or without a prompt reply")
+                    h.ai.pause()
+                }
+            }
         }
         print("Physical AI ambiguous placement: \(checks) checks passed")
     }
