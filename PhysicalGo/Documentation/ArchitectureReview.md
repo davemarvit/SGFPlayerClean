@@ -1,10 +1,10 @@
 # Architecture and development-process review
 
-November 24 follow-up: scoped recovery extraction, immutable build tooling,
-mandatory paired acceptance and background bridge exchange have been integrated.
-The 600 ms problem remains open; independent safety metadata is still a proposal.
-This review's original findings/source snapshot below are retained, not relabeled
-as an audit of 0.260. See [current reliability work](CameraFreshnessReliability.md).
+**Current follow-through, November25:** independent safety metadata, background native bridge exchange, scoped transient recovery, immutable build tooling and mandatory paired acceptance are implemented in installed0.265/native1f6fb91 + hostb9a524e. Sustained600ms reliability remains open; safety metadata is not a proposal. The [current source audit and assigned offline work](ArchitectureFollowThrough20261125.md) identify remaining supervision I/O, admission-state and evidence boundaries. The [issue register](IntegrationChecklist.md) owns installation and physical acceptance.
+
+## Historical review — November23 source snapshot
+
+The body below is preserved as the original review. Its then-current findings, source links and proposed sequencing must not be treated as unimplemented work or a mandatory new calibration tour today.
 
 Reviewed November 23, 2026 (Pacific). This is an independent source/document review,
 not a build, installation, hardware test or safety certification. Current running
