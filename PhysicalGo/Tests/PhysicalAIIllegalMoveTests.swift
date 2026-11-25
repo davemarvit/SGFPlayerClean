@@ -12,11 +12,13 @@ import Foundation
   let suicide=[0,9,80,10,79,2]
   let ko=[1,10,9,2,19,12,80,20,11]
   let snapback=[0,9,1,2,18,11,80,19,10]
-  func fixture(_ name:String,moves:[Int],humanBlack:Bool,rules:String="Japanese",pending:Bool=false,capture:Bool=false)throws->PhysicalAI {
+  func fixture(_ name:String,moves:[Int],humanBlack:Bool,rules:String="Japanese",pending:Bool=false,capture:Bool=false,invert:Bool=false)throws->PhysicalAI {
    let folder=root.appendingPathComponent(name);try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
    var settings=PhysicalAISettings();settings.size=9;settings.humanBlack=humanBlack;settings.rules=rules
-   let saved=PhysicalAI.Snapshot(id:UUID(),settings:settings,moves:moves.map{.init(point:$0,decisionReceivedAtUnix:999)},pendingPlacement:pending,
-      captureIndication:capture ? .init(moveNumber:moves.count,acceptedAtUnix:999):nil,
+   // A leading legal Black pass reverses every later color without inventing setup stones.
+   let history: [PhysicalAI.SavedMove] = (invert ? [.init(point:nil,decisionReceivedAtUnix:999)]:[]) + moves.map{.init(point:$0,decisionReceivedAtUnix:999)}
+   let saved=PhysicalAI.Snapshot(id:UUID(),settings:settings,moves:history,pendingPlacement:pending,
+      captureIndication:capture ? .init(moveNumber:history.count,acceptedAtUnix:999):nil,
       timing:PhysicalAITiming(blackToPlay:humanBlack))
    try JSONEncoder().encode(saved).write(to:folder.appendingPathComponent("current.json"))
    let laser=PhysicalLaserGuidance(directory:folder.appendingPathComponent("bridge"),automatic:false,wallTime:{clock.wall},uptime:{clock.now})
@@ -43,11 +45,11 @@ import Foundation
    try JSONSerialization.jsonObject(with:before) as! NSDictionary == JSONSerialization.jsonObject(with:data(ai)) as! NSDictionary
   }
 
-  for rules in ["Japanese","Chinese"] {
-   let ai=try fixture("suicide-"+rules,moves:suicide,humanBlack:true,rules:rules)
+  for rules in ["Japanese","Chinese"] { for humanBlack in [true,false] {
+   let ai=try fixture("suicide-"+rules+"-"+String(humanBlack),moves:suicide,humanBlack:humanBlack,rules:rules,invert:!humanBlack)
    feed(ai,ai.cells);check(ai.phase == .human,"Verified fixture reaches human turn")
    let snapshot=try data(ai),timing=ai.timing,cells=ai.cells
-   var attempt=cells;attempt[1]="black"
+   var attempt=cells;attempt[1]=humanBlack ? "black":"white"
    observe(ai,attempt);observe(ai,attempt)
    check(ai.illegalMoveWarning==nil,"Two fresh frames cannot create illegal warning")
    observe(ai,attempt,stamp:clock.now)
@@ -63,22 +65,42 @@ import Foundation
    check(ai.illegalMoveWarning==nil && !ai.status.contains(SGFPlayer.MoveRejection.suicide.rawValue),"Hand clears stale specific warning")
    feed(ai,cells)
    check(ai.illegalMoveWarning==nil && ai.mismatch==nil,"Removing illegal stone restores normal turn")
-   var legal=cells;legal[40]="black";feed(ai,legal)
-   check(ai.snapshot?.moves.count==suicide.count+1 && ai.snapshot?.moves.last?.point==40,"Ordinary legal placement still commits")
+   var legal=cells;legal[40]=humanBlack ? "black":"white";feed(ai,legal)
+   check(ai.snapshot?.moves.count==suicide.count+(humanBlack ? 1:2) && ai.snapshot?.moves.last?.point==40,"Ordinary legal placement still commits")
    ai.pause()
-  }
+  }}
 
-  for removed in [false,true] {
-   let ai=try fixture(removed ? "ko-removed":"ko-present",moves:ko,humanBlack:false)
+  for removed in [false,true] { for humanBlack in [false,true] {
+   let ai=try fixture("ko-"+String(removed)+"-"+String(humanBlack),moves:ko,humanBlack:humanBlack,invert:humanBlack)
    feed(ai,ai.cells);let snapshot=try data(ai),timing=ai.timing
-   var attempt=ai.cells;attempt[10]="white";if removed {attempt[11]="empty"}
+   let accepted=ai.cells
+   var attempt=accepted;attempt[10]=humanBlack ? "black":"white";if removed {attempt[11]="empty"}
    feed(ai,attempt)
    check(ai.illegalMoveWarning?.rejection == .ko && ai.illegalMoveWarning?.point==10,"Ko attempt is diagnostic, not accepted")
    check(ai.illegalMoveWarning?.restorePoints==(removed ? [11]:[]),"Prematurely removed ko stone requires explicit restoration")
    check(ai.mismatch?.remove==[10] && ai.mismatch?.place==(removed ? [11]:[]),"Existing screen marks the illegal stone and any restoration")
    check(try sameSnapshot(snapshot,ai) && ai.timing==timing,"Ko warning cannot rewrite history/captures/clocks")
+   // Removing just the attempted recapture cannot silently certify a still-missing stone.
+   var partial=attempt;partial[10]="empty";feed(ai,partial)
+   check(ai.illegalMoveWarning==nil,"Removed illegal stone clears specific accusation")
+   if removed {
+    check(ai.mismatch?.place==[11],"Partial restoration still marks the missing accepted stone")
+    check(try sameSnapshot(snapshot,ai) && ai.timing==timing && ai.cells==accepted,"Partial restoration preserves history, board and clocks")
+   }
+   feed(ai,accepted)
+   check(ai.illegalMoveWarning==nil && ai.mismatch==nil && ai.phase == .human,"Fully restored board returns to the same human turn")
+   check(try sameSnapshot(snapshot,ai) && ai.timing==timing,"Restoration does not invent a pass, capture or clock transition")
+   // Restoration does not lift ko: three new observations must independently warn again.
+   observe(ai,attempt);observe(ai,attempt)
+   check(ai.illegalMoveWarning==nil,"Restoration discards prior illegal-placement witnesses")
+   observe(ai,attempt)
+   check(ai.illegalMoveWarning?.rejection == .ko,"Restoring the board cannot make immediate recapture legal")
+   feed(ai,accepted)
+   var legal=accepted;legal[40]=humanBlack ? "black":"white";feed(ai,legal)
+   check(ai.snapshot?.moves.count==ko.count+(humanBlack ? 2:1) && ai.snapshot?.moves.last?.point==40,"Legal continuation works after complete ko restoration")
+   check(ai.illegalMoveWarning==nil,"Accepted legal continuation clears diagnostic state")
    ai.pause();check(ai.illegalMoveWarning==nil,"Pause clears diagnostic state")
-  }
+  }}
 
   let prisoner=try fixture("prisoner-not-ko",moves:ko,humanBlack:false,capture:true)
   var left=prisoner.cells;left[10]="white"
