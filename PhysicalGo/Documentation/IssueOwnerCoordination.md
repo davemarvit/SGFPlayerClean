@@ -142,6 +142,8 @@ The production helper fixes the observed endpoint defect:4/71 envelope violation
 
 Root reports the PG08 firmware fix installed and verified fully OFF. Workers performed no hardware, UI, installation or activation. Root owns exact combined acceptance, immutable package/binding, fresh preflight and READY. All focused worker jobs are complete and resource slots released; all issue-level physical acceptance remains tracked by the root-owned canonical register.
 
+Root final combined release is7074803b588e55e5317c0dea9fcd39d872cef7a1. Root reports109 focused checks including launcher/receipt coverage and paired native/host acceptance passed against installed appc53ac05. Firmware PG08 installation remains verified fully OFF at1795578282.7556946. Root is packaging the immutable host; Mac is locked and no physical activation or READY occurred this turn. The focused finite implementation/review batch is COMPLETE. The demonstrated movement-model defect is resolved in reviewed offline evidence; live game acceptance remains open. No further experiments or tests were started after root closed this batch. Review4b1f936, evidence d56d749 and the linked dense-response manifest are the durable handoff pointers.
+
 
 
 
