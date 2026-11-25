@@ -1340,6 +1340,12 @@ enum PhysicalPlayMode: String, CaseIterable {
         let trackingFresh=supplied != nil && running && cameraState == .live && !frozen &&
             stoneCalibrationSession == nil && !boardCorrections.isEditing && !lightingNeedsRecovery
         let trackingTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
+        let checkHands=(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil
+        // Keep the value-semantic input state only until the first rejection of
+        // an explicitly enabled recording. Encoding stays off the main thread.
+        let rejectionSession=diagnostics.cameraRejectionSession
+        let rejectionCheckpoint=rejectionSession == nil ? nil:handOutlineTracking.checkpoint
+        let rejectionReference=rejectionCheckpoint == nil ? nil:referenceImage
         cameraAnalysis.submit(.init(
             target:target,
             calibration:calibration,
@@ -1359,7 +1365,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingContext:trackingContext,
             trackingManualPoints:trackingManualPoints,
             trackingFresh:trackingFresh,
-            trackingTime:trackingTime,checkHands:(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil,
+            trackingTime:trackingTime,checkHands:checkHands,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
             emptyLighting:emptyLighting,lightingContext:lightingContext,
             traceFrameID:laserFrame?.frameID,traceStreamEpoch:laserFrame?.streamEpoch.uuidString),safety:{ [weak self] evidence in
@@ -1428,6 +1434,26 @@ enum PhysicalPlayMode: String, CaseIterable {
             let freshView=supplied != nil && self.running && self.cameraState == .live && !self.frozen
             if freshView,let captureUptime,ProcessInfo.processInfo.systemUptime-captureUptime>1.5 {
                 diagnosticOutcome="stale analysis frame discarded";return
+            }
+            if freshView,let checkpoint=rejectionCheckpoint,let rejectionSession,
+               analysis.handObstructed == true || checkAlignment && aligned == nil {
+                self.diagnostics.retainFirstCameraRejection(target,at:alignmentTime,session:rejectionSession,context:[
+                    "cameraID":self.cameraID,"analysisRevision":token,
+                    "frameTimestamp":DiagnosticRecorder.value(frameTimestamp),
+                    "laserFrame":DiagnosticRecorder.value(laserFrame),
+                    "alignment":alignmentReport,"checkAlignment":checkAlignment,
+                    "alignmentExpected":DiagnosticRecorder.value(alignmentExpected),"threshold":threshold,
+                    "handTimestampSource":frameTimestamp?.source ?? "callback",
+                    "handObservationUptime":trackingTime,"handCheckRequested":checkHands,
+                    "calibrationBeforeAnalysis":DiagnosticRecorder.value(calibration),
+                    "referenceCalibration":DiagnosticRecorder.value(referenceCalibration),
+                    "calibrationAfterAnalysis":DiagnosticRecorder.value(aligned),
+                    "handObstructed":analysis.handObstructed.map{$0 as Any} ?? NSNull(),
+                    "handPose":DiagnosticRecorder.value(analysis.handPose),
+                    "handOutline":DiagnosticRecorder.value(analysis.handOutline),
+                    "exposureFailure":exposureFailure,"lightingBlocked":result?.lightingBlocked ?? false],
+                    reference:rejectionReference,anchor:trackingAnchor,
+                    checkpoint:{try JSONEncoder().encode(checkpoint)})
             }
             // Recognition gates must not freeze the camera preview. The worker
             // rectifies current pixels using the retained grid even when a hand
