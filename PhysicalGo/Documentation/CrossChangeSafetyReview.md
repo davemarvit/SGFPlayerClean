@@ -497,3 +497,47 @@ No concrete blocker remains for this bounded host-compatible fix. Source review
 approves root integration/installation checks; actual held-refresh acceptance
 remains a root-owned physical check. Firmware source and installed firmware are
 not modified by this checkpoint.
+
+### Historical startup seed and fast-acquisition design
+
+Reviewer approved root's concrete startup-anchor candidate with SHA256
+`42a193f22c4b76dbc045b4eea91706f5c3584361a4c3e41f0059164522f9ea08`.
+Compared with installed `d9a5642/artifacts/binding.json`, only
+`feedback_first.initial_anchor` changes. Its pose [2551,2197] and reference pixel
+[1322.1947021484375,698.7677612304688] exactly match the last accepted observation
+of frame 42341 in result SHA256
+`1298809ee0cae6f3adc09f4985f3426cd6e8de2f5b7b335fc42bde2d10faf40f`.
+Only DARK follows that observation in the report. Root owns the separate full-OFF
+receipt and links it in external release provenance. This is a historical
+acquisition seed, not fresh optical evidence, a target command or a model refit.
+Actual-pose guards and fresh observation still precede correction.
+
+No code requires an empty intersection at the acquisition anchor. A later genuine
+point request can briefly observe the current pose on the newly occupied point
+before moving to its new target. Separately, native resume restores pending
+placement and can permit its cue on uncertain occupancy; positive stone evidence
+suppresses that cue. Root was advised to keep pointing inhibited through dark
+verification of the user's confirmed White-at-D4 placement, rather than treating
+the seed update as a guarantee against another pending D4 request.
+
+The design checkpoint `5bd77c4` is approved to proceed to implementation review,
+not installation: restore a distinct predicted dark acquisition using the pinned
+full dense model, then freshly observe and correct. Keep real motor bounds and
+command spans, actual settlement/recenter checks and a continuous nonlinear
+model corridor for asynchronous-axis travel. The corridor is a model enclosure,
+not a certified physical error bound. Neither the local 0..2-axis envelope nor
+the measured 5.865-pixel short-leg residual certifies an arbitrary whole-board
+jump. Acquisition needs its own explicit policy/proof context through prelight
+and post-POSE checks; predicted pixels must never replace an observed anchor.
+
+First post-coarse reacquisition should examine the board-wide candidate set:
+a successful near-only search can conceal a competing spot outside its radius.
+Retain temporal consensus, newest-frame support, ambiguity rejection, current
+600 ms evidence and 0.20-cell final acceptance. A large unambiguous on-board
+initial miss is recoverable, not an error-size-only abort. Finite evidence should
+include the exact D4 journey, existing corner/perimeter cohorts, retained landing
+residuals, large-miss recovery, competing reflection, actual-settlement drift and
+interruption. Command counts and optical cycles are distinct from live latency.
+Same-target remembered poses may later improve initial guesses under their own
+versioned provenance and mandatory remeasurement; no global learner or blanket
+per-intersection commissioning requirement is approved or introduced here.
