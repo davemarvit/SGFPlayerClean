@@ -751,3 +751,53 @@ runner, plus the control replay's five source hashes, sixteen inputs and runner.
 Root owns integration checks, installation and the single attended retry. These
 are offline retained-image results, not physical acceptance. No reviewer test,
 benchmark, hardware, camera, UI or installation action occurred.
+
+## Overnight PG36 final-OFF receipt — 82e1113
+
+Independent source review approves host
+`82e1113e06069d7aa0b7390d251aa5f1a114575c`, based on installed `968ba538`.
+No concrete source blocker was found. Producer and launcher must be packaged
+together: version-1 final receipts are intentionally no longer accepted.
+
+BridgeRuntime.close returns an OffReceipt only after worker/thread quiescence,
+fresh backend OFF confirmation, matching generation-gate acceptance, publication
+and successful backend close. The child serializes that actual returned proof;
+no shared status alone can manufacture it. Producer checks exact final processed
+identity, gate timestamp and shutdown interval. Parent checks child PID, version2,
+exact v44 OFF, matching timestamp, successful close and publication/exit ordering.
+Schema1 may omit motor fields only with this proof; explicit contradictory fields
+and schema2 omissions reject. Historical failed receipts are not promoted.
+
+The reviewer traced actual firmware disarm: laser and POWER_PIN go low before OFF
+reply; STATUS reports the resulting OFF state. The existing host barrier requires
+fresh OFF/DONE followed by a separately cursor-fenced exact STATUS response.
+Owner reports 111 focused tests passed. Reviewed new regressions exercise real
+runtime close, barrier, publication and child receipt with a fake serial peer,
+including stale batches, wrong status, gate rejection, nonquiescence and backend
+close failure. No reviewer tests, devices or installation were used.
+
+## Overnight PG23 ambiguity metadata — 55c2ba3 static assessment
+
+Static review of `55c2ba3f5569598881512914f8ec408fe29b6915` found no change to
+placement or laser admission. Fit score searches and acceptance guards remain;
+callbacks retain already-computed initial-outline/placement outcomes. Capture
+occurs before witness reset; verification provenance is separate metadata.
+A frame identity is included only for the exact current capture timestamp/epoch,
+never substituted from a newer broker frame. Archive encoding and disk writes
+run on the existing utility queue, with two files, eight representative events
+per episode and a two-megabyte bound. The feature is diagnostic evidence, not a
+recognition fix or complete tracker replay.
+
+Performance is not zero-cost: initial fitting retains bounded attempt metadata,
+and each rejected ambiguity frame constructs a local record before utility-queue
+deduplication. It also recomputes assignmentOffsets already calculated by consume;
+root requested a narrow follow-up to reuse that exact result before integration.
+No new cache or decision logic is requested. No additional vision search
+or image encoding is introduced. No runtime timing benchmark was supplied.
+
+Owner's 1,426 subset checks cover storage/identity and exact retained-image
+readings/footprints/placement-fit equality. Full PhysicalAI/Guidance integration
+and the new app-level regression have only syntax checks so far. Final native
+integration approval remains conditional on root's shared-module/full native
+compilation and PG23 regression run. Reviewer performed source review only;
+no native build, installation or hardware action.
