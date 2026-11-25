@@ -785,25 +785,45 @@ struct PhysicalAIGuidanceTarget: Equatable {
     @MainActor final class TestWorker {
         private var engine:PhysicalAITestBackend?
         private var activeRequest:UUID?
+        private var workerID:UUID?
+        private var retainedIdle=false
+        typealias Trace = (String,[String:String],[String:Double],Double)->Void
+        private let trace:Trace
         private let makeEngine:@MainActor ()->PhysicalAITestBackend
-        init(makeEngine:@escaping @MainActor ()->PhysicalAITestBackend = {KataBackend()}) {self.makeEngine=makeEngine}
+        init(makeEngine:@escaping @MainActor ()->PhysicalAITestBackend = {KataBackend()},
+             trace:@escaping Trace = {event,fields,metrics,uptime in
+                 PhysicalLatencyTrace.shared?.record(event,fields:fields,metrics:metrics,uptime:uptime)
+             }) {self.makeEngine=makeEngine;self.trace=trace}
         var isRunning:Bool {engine?.isRunning == true}
         func move(_ game:SGFGame) async throws -> String {
             try Task.checkCancellation()
             guard activeRequest == nil else {throw Failure(message:"A test search is already running.")}
+            let began=ProcessInfo.processInfo.systemUptime
             // Recheck path preferences and launch-time asset metadata before
             // using a retained worker. A paused engine never starts new work.
             if let engine,!engine.reusableConfiguration {stop()}
-            if engine == nil {engine=makeEngine()}
-            guard let engine else {throw Failure(message:"Test engine is unavailable.")}
-            let token=UUID();activeRequest=token
+            let reused=engine != nil,afterIdleRetention=retainedIdle
+            if engine == nil {engine=makeEngine();workerID=UUID()}
+            guard let engine,let workerID else {throw Failure(message:"Test engine is unavailable.")}
+            let token=UUID();activeRequest=token;retainedIdle=false
+            // A new worker includes startup; reuse is established by the actual
+            // validated backend, never guessed from elapsed time or move number.
+            let fields=["workerID":workerID.uuidString,"workerRequest":token.uuidString,
+                        "workerStart":reused ? "reused":"new",
+                        "afterIdleRetention":afterIdleRetention ? "true":"false",
+                        "moveNumber":String(game.moves.count+1),"boardSize":String(game.boardSize)]
+            trace("ai_test_worker_started",fields,[:],began)
             defer {if activeRequest == token {activeRequest=nil}}
             do {
                 let move=try await engine.move(game)
                 try Task.checkCancellation()
                 guard activeRequest == token else {throw CancellationError()}
+                let ended=ProcessInfo.processInfo.systemUptime
+                trace("ai_test_worker_returned",fields,["durationSeconds":ended-began],ended)
                 return move
             } catch {
+                let ended=ProcessInfo.processInfo.systemUptime
+                trace("ai_test_worker_failed",fields,["durationSeconds":ended-began],ended)
                 // An obsolete completion must not stop a replacement worker.
                 if activeRequest == token {stop()}
                 throw error
@@ -811,9 +831,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
         func cancelKeepingIdle() {
             // No metadata IO on Pause. Revalidation happens before next use.
-            if activeRequest != nil {stop()}
+            if activeRequest != nil {stop()} else if engine != nil {retainedIdle=true}
         }
-        func stop() {activeRequest=nil;engine?.stop();engine=nil}
+        func stop() {activeRequest=nil;engine?.stop();engine=nil;workerID=nil;retainedIdle=false}
 
         private final class KataBackend:PhysicalAITestBackend {
             private let engine:KataGoEngine

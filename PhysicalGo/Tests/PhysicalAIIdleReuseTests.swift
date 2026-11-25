@@ -28,7 +28,9 @@ import AppKit
         let root=FileManager.default.temporaryDirectory.appendingPathComponent("physical-ai-idle-reuse-"+UUID().uuidString)
         defer {try? FileManager.default.removeItem(at:root)}
         let backend=Backend();var made=0
-        let worker=PhysicalAI.TestWorker(makeEngine:{made+=1;return backend})
+        var traceEvents=[(String,[String:String],[String:Double],Double)]()
+        let worker=PhysicalAI.TestWorker(makeEngine:{made+=1;return backend},
+            trace:{traceEvents.append(($0,$1,$2,$3))})
         var game=SGFGame();game.boardSize=9
         _ = try await worker.move(game)
         worker.cancelKeepingIdle();worker.cancelKeepingIdle()
@@ -39,6 +41,20 @@ import AppKit
         _ = try await worker.move(game)
         check(made==2 && backend.stops==1,"Changed configuration must replace worker before search")
         worker.stop();check(!worker.isRunning,"Explicit shutdown releases worker")
+        check(traceEvents.map {$0.0} == ["ai_test_worker_started","ai_test_worker_returned",
+            "ai_test_worker_started","ai_test_worker_returned","ai_test_worker_started","ai_test_worker_returned"],
+            "Worker diagnostics pair each completed request")
+        check(traceEvents[0].1["workerStart"] == "new" && traceEvents[0].1["afterIdleRetention"] == "false",
+            "First backend is explicitly new")
+        check(traceEvents[2].1["workerStart"] == "reused" && traceEvents[2].1["afterIdleRetention"] == "true",
+            "Completed idle backend is explicitly reused after retention")
+        check(traceEvents[0].1["workerID"] == traceEvents[2].1["workerID"],"Reuse preserves diagnostic worker identity")
+        check(traceEvents[0].1["workerRequest"] != traceEvents[2].1["workerRequest"],"Each search has a unique diagnostic identity")
+        check(traceEvents[4].1["workerStart"] == "new" && traceEvents[4].1["afterIdleRetention"] == "false",
+            "Configuration replacement reports new startup without stale retention")
+        check(traceEvents[4].1["workerID"] != traceEvents[2].1["workerID"],"Replacement changes diagnostic worker identity")
+        check(traceEvents[1].1 == traceEvents[0].1 && traceEvents[1].2["durationSeconds"]! >= 0,
+            "Return retains exact request identity and monotonic duration")
 
         var time=100.0
         let liveBackend=Backend();var liveMade=0
@@ -73,7 +89,9 @@ import AppKit
         // Reusing an idle process must not permit stale search results after pause.
         var engines=[Backend(),Backend()];engines.forEach {$0.suspended=true}
         var index=0
-        let searchingWorker=PhysicalAI.TestWorker(makeEngine:{defer {index+=1};return engines[index]})
+        var cancellationTrace=[(String,[String:String])]()
+        let searchingWorker=PhysicalAI.TestWorker(makeEngine:{defer {index+=1};return engines[index]},
+            trace:{event,fields,_,_ in cancellationTrace.append((event,fields))})
         let searching=PhysicalAI(directory:root.appendingPathComponent("cancel"),laser:PhysicalLaserGuidance(directory:root.appendingPathComponent("laser-cancel"),automatic:false),testWorker:searchingWorker,uptime:{time})
         searching.draft.size=9;searching.draft.humanBlack=false;searching.setFastTestMode(true)
         check(searching.start(),"Cancellation game starts")
@@ -85,6 +103,15 @@ import AppKit
         check(engines[1].stops==0,"Stale completion cannot stop replacement")
         engines[1].complete("D4");await settled {searching.phase == .placing}
         check(searching.snapshot!.moves.count==1 && searching.snapshot!.moves[0].point==48,"Only current request commits")
+        let starts=cancellationTrace.filter {$0.0 == "ai_test_worker_started"}
+        let failed=cancellationTrace.filter {$0.0 == "ai_test_worker_failed"}
+        let returned=cancellationTrace.filter {$0.0 == "ai_test_worker_returned"}
+        check(starts.count==2 && starts.allSatisfy {$0.1["workerStart"] == "new"},
+            "Cancelled active search and replacement each report new workers")
+        check(failed.count==1 && failed.first?.1["workerRequest"] == starts.first?.1["workerRequest"],
+            "Obsolete cancellation is traced as failed under its own request")
+        check(returned.count==1 && returned.first?.1["workerRequest"] == starts.last?.1["workerRequest"],
+            "Only replacement completion enters successful timing samples")
         searching.finish()
         check(!searchingWorker.isRunning && searching.phase == .finished,"End game releases idle engine")
         checks += try await PhysicalAIIdleReuseReviewTests.run()
