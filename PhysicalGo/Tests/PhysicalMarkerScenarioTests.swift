@@ -8,13 +8,13 @@ import Foundation
     final class Clock {var now=100.0;var wall=1000.0;var frameID=10}
     let clock: Clock
     var cues=0
-    init(root:URL,name:String,moves:[Int?],humanBlack:Bool,capture:Bool=false) throws {
+    init(root:URL,name:String,moves:[Int?],humanBlack:Bool,capture:Bool=false,multiCapture:Bool=true) throws {
         folder=root.appendingPathComponent(name)
         try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
         var settings=PhysicalAISettings();settings.size=9;settings.humanBlack=humanBlack
         let saved=PhysicalAI.Snapshot(id:UUID(),settings:settings,
             moves:moves.map {.init(point:$0,decisionReceivedAtUnix:999)},
-            pendingPlacement:capture,pendingCaptureCleanup:capture,
+            pendingPlacement:capture,pendingCaptureCleanup:capture && multiCapture,
             captureIndication:capture ? .init(moveNumber:moves.count,acceptedAtUnix:999):nil,
             timing:PhysicalAITiming(blackToPlay:humanBlack))
         try JSONEncoder().encode(saved).write(to:folder.appendingPathComponent("current.json"))
@@ -143,6 +143,53 @@ import Foundation
             check(h.ai.snapshot!.captureIndication==nil && !h.ai.snapshot!.pendingPlacement,"Full held-dark board agreement closes capture")
             check(h.ai.phase == .human && h.ai.timing.anchor != nil,"Complete cleanup restores the existing next-player clock")
             check(h.cues==1,"Capture cleanup never repeats the AI arrival cue")
+            h.ai.pause()
+        }
+
+        // A single prisoner has the same placement/clearance/cue contract, but
+        // intentionally does not pause the next player's practice clock. Exercise
+        // both real legal histories through schema2, not only fixture loading.
+        for capturingBlack in [true,false] {
+            let moves:[Int?]=capturingBlack ? [9,0,80,2,1]:[nil,9,0,80,2,1]
+            let h=try MarkerScenario(root:root,name:capturingBlack ? "single-white-prisoner":"single-black-prisoner",
+                moves:moves,humanBlack:!capturingBlack,capture:true,multiCapture:false)
+            let prisoner=capturingBlack ? "white":"black",played=capturingBlack ? "black":"white"
+            var physical=h.ai.cells;physical[0]=prisoner;physical[1]="empty"
+            try h.feed(physical,count:4)
+            check(try h.request().schemaVersion==2,"Single capture exercises monitored schema2")
+            check(h.ai.laser.target?.purpose==nil && h.ai.guidanceTarget?.col==1,"Single capture also indicates AI placement first")
+            check(h.ai.remainingCapturedStones==1 && !h.ai.clockPausedForCaptureCleanup && h.ai.timing.anchor != nil,"One prisoner retains the running next-player clock")
+            let elapsedBefore=h.ai.timing.elapsed(black:!capturingBlack,at:h.clock.now)
+            try h.receipt(lit:true)
+            check(h.cues==1,"Single capture AI arrival announces exactly once")
+            physical[1]=played
+            try h.feed(physical,hand:true)
+            check(try h.request().action=="standby" && h.request().retainOnly==true,"Hand during single placement permits darkness only")
+            try h.feed(physical,count:5)
+            check(h.ai.captureGuidancePoint==0 && h.ai.laser.target?.purpose=="capture","Confirmed single placement transfers to its legal prisoner")
+            check(h.ai.laser.target?.black == !capturingBlack,"Single indication retains original prisoner color")
+            check(h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==moves.count,"Single prisoner indication cannot finish placement or invent a move")
+            try h.acknowledgeDark();try h.receipt(lit:true)
+            check(h.cues==1,"Single prisoner illumination is silent")
+            var uncertain=physical;uncertain[0]="uncertain"
+            try h.feed(uncertain,hand:true);try h.feed(uncertain,count:4)
+            check(h.ai.remainingCapturedStones==1 && h.ai.snapshot!.captureIndication!.removed.isEmpty,"Unknown single prisoner never proves removal")
+            check(try h.request().action != "point","Unknown single prisoner cannot authorize indication")
+            check(h.ai.timing.anchor != nil && h.ai.timing.elapsed(black:!capturingBlack,at:h.clock.now)>elapsedBefore,"Single-prisoner hand/uncertainty interval remains charged")
+            var wrongColor=physical;wrongColor[0]=played
+            try h.feed(wrongColor,count:5)
+            check(h.ai.remainingCapturedStones==1 && h.ai.snapshot!.moves.count==moves.count,"Opposite color at an unremoved prisoner is neither cleanup nor a new reply")
+            check(try h.request().action != "point","Original prisoner identity cannot authorize a different-colored disk")
+            try h.feed(physical,count:5)
+            check(h.ai.captureGuidancePoint==0 && h.ai.laser.target?.black == !capturingBlack,"Fresh dark evidence recovers the same prisoner identity")
+            try h.acknowledgeDark();try h.receipt(lit:true)
+            check(h.cues==1,"Recovered single-prisoner indication stays silent")
+            let elapsedBeforeCleanup=h.ai.timing.elapsed(black:!capturingBlack,at:h.clock.now)
+            try h.feed(h.ai.cells,hand:true);try h.feed(h.ai.cells,count:5)
+            check(h.ai.snapshot!.captureIndication==nil && !h.ai.snapshot!.pendingPlacement && h.ai.remainingCapturedStones==0,"Positive complete board agreement closes single capture")
+            check(h.ai.phase == .human && h.ai.snapshot!.moves.count==moves.count,"Cleanup returns to the next player without an extra move")
+            check(h.ai.timing.anchor != nil && h.ai.timing.elapsed(black:!capturingBlack,at:h.clock.now)>elapsedBeforeCleanup,"Single cleanup preserves running-clock continuity")
+            check(h.ai.laser.target==nil && h.cues==1,"Completed single capture clears its target without a second move cue")
             h.ai.pause()
         }
 
