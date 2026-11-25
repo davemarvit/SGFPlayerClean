@@ -26,7 +26,7 @@ struct PhysicalAICheckingProgress {
         var recovery:String {
             emptyGame
                 ? "Keep the board empty and hands clear. Use Camera & setup to check the view, grid and lighting. If needed, capture an empty reference only after every stone has been removed."
-                : "Keep the stones matched to the saved position and hands clear. Use Camera & setup to inspect the view, grid and lighting. For a board with stones, the existing Occupied reference controls preserve the empty reference."
+                : "Leave the stones in place and keep hands clear. Use Camera & setup to inspect the view, grid and lighting. For a board with stones, the existing Occupied reference controls preserve the empty reference."
         }
     }
     private var scope:String?
