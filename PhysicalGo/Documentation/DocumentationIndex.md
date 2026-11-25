@@ -7,9 +7,9 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 
 ## Reading and maintenance rules
 
-- **Current:** app 0.261/build 262, firmware v44, paired host `04b76c7`; app/driver
-  stopped, moved setup unqualified, 600 ms camera expiry open. Exact provenance
-  and completed versus pending validation belong in the checklist.
+- **Current:** the checklist alone owns installed versions, tested host identities,
+  setup qualification, hardware state and open acceptance scopes. Benchmark and
+  gameplay hosts may differ; this index does not activate either one.
 - **Source versus installation:** canonical repositories contain updated guides
   but older runtime code. Use the checklist's installed-source worktrees. Later
   documentation commits are not new compiled app versions or physical tests.
@@ -38,6 +38,7 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 | [CalibrationSpeedProposal.md](CalibrationSpeedProposal.md) | Dated study/design/incident evidence |
 | [CameraSafetyDelivery.md](CameraSafetyDelivery.md) | Current independent-delivery contract, test evidence and regional-change follow-up |
 | [CameraFreshnessReliability.md](CameraFreshnessReliability.md) | Current guide/status |
+| [CrossChangeIntegrationReview20261124.md](CrossChangeIntegrationReview20261124.md) | Dated source-boundary review and combined acceptance criteria; not an issue register |
 | [CandidateHistories.txt](CandidateHistories.txt) | Dated study/design/incident evidence |
 | [CaptureOnStart.txt](CaptureOnStart.txt) | Dated study/design/incident evidence |
 | [DeferredCleanupDeployment.txt](DeferredCleanupDeployment.txt) | Dated study/design/incident evidence |
@@ -54,7 +55,7 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 | [IntegrationHistoryThrough20261124.md](IntegrationHistoryThrough20261124.md) | Historical evidence |
 | [LaptopParallaxIncident-2026-11-16.md](LaptopParallaxIncident-2026-11-16.md) | Dated study/design/incident evidence |
 | [LaserCaptureCenteringTests.md](LaserCaptureCenteringTests.md) | Dated study/design/incident evidence |
-| [LaserMovementCheckpoint.md](LaserMovementCheckpoint.md) | Current guide/status |
+| [LaserMovementCheckpoint.md](LaserMovementCheckpoint.md) | Dated movement/qualification checkpoint; current qualification is in the issue register |
 | [LaserMovementHistory20261123.md](LaserMovementHistory20261123.md) | Historical evidence |
 | [LaserStandbyThermalDesign.md](LaserStandbyThermalDesign.md) | Design origin; integration status updated |
 | [LatencyDiagnostics.md](LatencyDiagnostics.md) | Current guide/status |
@@ -96,7 +97,7 @@ integration; unrelated SGF Player/iPad development history is not a new product 
 | `Experiments/IntersectionAppearance` | Offline-only contract remains; no classifier/clearance promotion. |
 | `Tests/Fixtures/*/README.*` | Historical inputs/provenance retained, not rewritten to claim new validation. |
 | `Tools/HandTimingLab/README.md` | Separate development camera tool; not the app broker and not the source for an active calibration. |
-| Pointer assembly/firmware guides | See [pointer documentation status](</Users/Dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Documentation status.md>); current v44/0.260 status replaces old v36 pilot instructions. |
+| Pointer assembly/firmware guides | See [pointer documentation status](</Users/Dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Documentation status.md>); consult the issue register for the installed pair rather than old pilot instructions. |
 | Frozen worktrees, build manifests, source snapshots and retained run reports | Deliberately unchanged. Mutating them would invalidate source hashes and launcher pins. |
 
 The reconciliation checks local links and test-flag/source references. It does

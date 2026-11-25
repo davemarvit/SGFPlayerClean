@@ -60,6 +60,13 @@ The protocol accepting `source: online` does not establish that end-to-end path.
 Clock ownership follows game events, not image publication or pointing progress.
 See [Game, AI and clocks](GameAIClocks.md) before changing acceptance or recovery.
 
+An optical aiming benchmark is a fifth, separate workflow: it can prove measured
+settlements under its own policies without producing gameplay requests or changing
+game state. Reusing its correction algorithm requires admission through the
+existing request, generation, lease, frame and hardware boundaries. It must not
+create a second controller owner or treat benchmark timing overrides as gameplay
+freshness policy. See the [source-boundary review](../CrossChangeIntegrationReview20261124.md).
+
 ## Concurrency and stale work
 
 Camera processing uses immutable inputs on a serial worker. `ExperimentModel`

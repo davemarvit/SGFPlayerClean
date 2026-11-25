@@ -74,10 +74,10 @@ The exact agreement lives in the laser repository's
 [Gameplay standby protocol.md](</Users/dave/Personal/Fab Files/DYNAMIXEL Go Pointer/Firmware/Gameplay standby protocol.md>).
 It is more authoritative than a paraphrase here. v39 lacks this monitored
 standby capability; private v43 thermal firmware cannot illuminate or play.
-Installed gameplay firmware v44 provides this contract. The current paired
-software is Physical Go 0.261 with host `04b76c7`. A short dark check and earlier
-interrupted gameplay were exercised; the latest recovery changes remain physically
-unverified. The completed prior calibration needs requalification after movement.
+Installed firmware v44 provides this contract. Exact app/host pairing, setup
+qualification and physical acceptance are maintained in the checklist. Short
+holding runs do not establish sustained gameplay reliability; an optical
+benchmark host does not replace the commissioned gameplay path.
 
 The new capability is `darkMotorStandbyV1`. Discovery uses schema-1 full OFF,
 then a new schema-2 OFF revision and matching confirmation before active use.
@@ -138,10 +138,21 @@ evidence. The app supports 9/13/19 boards, while the inspected hardware setup
 admission is commissioned for 19×19; do not assume app size support implies
 pointer calibration for that size.
 
-The November 24 full calibration passed five fitting targets and nine independent
-checks, and was bound for play. The subsequent movement invalidates its current
-qualification. The binding is retained and gameplay is blocked pending new
-geometry/attended optical review. See [the calibration checkpoint](../LaserMovementCheckpoint.md).
+The earlier five-fitting/nine-check calibration and movement episode are dated
+in [the calibration checkpoint](../LaserMovementCheckpoint.md). The later explicit
+reconnect requalification and three-point feedback benchmark are recorded in the
+current checklist. Preserve both their evidence and the frozen model. Do not
+repeat a full tour solely to improve a first guess.
+
+In the reviewed host `2da3c29`, `calibration_three_point_feedback.py` starts from
+actual pose and a measured spot, seeds a local response from three observations,
+and updates that response within each target. Its benchmark accepts 0.20 cells;
+additional three-pixel refinement is optional. The gameplay `HardwareBackend.point`
+path in that same source still uses the older model for initial predicted travel.
+These are separate entry points. PG-33 owns their gameplay integration, including
+fresh acquisition, cancellation, ordinary leases, monitored holding and full OFF.
+Calibration timing overrides and completed benchmark targets cannot authorize
+that gameplay path or certify its reliability.
 
 ## Latency and physical tests
 
@@ -152,9 +163,10 @@ illumination once per move; retries and centering stay silent. Dispatch/playback
 acknowledgement does not prove acoustic/optical simultaneity or audibility. Warm holding can avoid repeated cold ARM/HOLD work,
 but no historical timing is a measured speedup of the new implementation.
 
-The accepted sequence is software/fault tests, a short root-owned dark hold/stop
-check, fresh calibration, ordinary fast-AI recognition, centering, then controlled
-captures. Formal two-hour endurance is optional. The partial private thermal run
+The next sequence is maintained in [NextPhysicalTestPlan.md](../NextPhysicalTestPlan.md).
+Use its reviewed source pair and setup qualification rather than an old launcher
+or a repeated calibration tour. Software/fault tests precede root-owned attended
+acceptance. Formal two-hour endurance is optional. The partial private thermal run
 is useful evidence but did not establish a two-hour pass, thermal plateau,
 physical cooling recovery, case temperature or seated noise performance.
 
@@ -169,10 +181,10 @@ It cannot command hardware or activate a calibration binding.
 
 [Explicit manual requalification](../ManualRequalificationDesign.md) describes a
 design for replacing incident-specific restart adapters. Explicit manual
-requalification was subsequently implemented and physically entered. Later global
-steering completed full-board qualification on the prior setup; that setup then
-moved and requires fresh qualification. See
-[the movement checkpoint](../LaserMovementCheckpoint.md) and current checklist.
+requalification was subsequently implemented and physically entered. The
+[movement checkpoint](../LaserMovementCheckpoint.md) preserves that incident;
+the current checklist records later reconnect/requalification evidence. Never
+infer today's qualification from the design document or a historical run.
 This does not authorize automatic retry or an occupied-board calibration run.
 
 

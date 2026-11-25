@@ -20,17 +20,18 @@ facts.
    checkpoint and immediate next steps. Preserve game history, clocks and
    calibration; do not infer current hardware state from an old chat.
 2. Inspect both repositories' branch, status and recent commits. Check the
-   installed app/firmware separately. The November 24 checkpoint is app 0.261
-   and firmware v44, with the driver stopped and moved setup unqualified.
-   Use the installed-source worktrees named in the checklist; the canonical
-   repositories carry current documentation but older runtime code.
+   installed app/firmware separately. Use the exact installed-source and tested
+   host worktrees named in the checklist; canonical repositories can carry newer
+   documentation but older runtime code. A benchmark host and a gameplay host
+   are not interchangeable merely because they use the same firmware.
 3. For laser work, read the latest shared outgoing and incoming handoff files.
    A request is not an active dependency until the other agent acknowledges it.
 4. Select a page from the table below. Follow its source links and targeted
    regression suite before changing the relevant subsystem.
-5. Before physical work, establish the current hardware owner and verify the
-   moved setup/calibration. The root integration chat is the sole hardware owner
-   unless ownership is explicitly transferred. Other agents work offline.
+5. Before physical work, establish the current hardware owner, setup qualification
+   and actual launcher authorization. The root integration chat is the sole
+   hardware owner unless ownership is explicitly transferred. Other agents work
+   offline; a completed optical benchmark does not activate gameplay.
 
 | Immediate concern | Read |
 |---|---|

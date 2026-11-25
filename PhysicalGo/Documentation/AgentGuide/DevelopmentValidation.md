@@ -11,9 +11,11 @@ artifact.
 ## Application build and targeted tests
 
 Run from the source checkout matching the intended runtime. For installed 0.261
-that is `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`; the
-canonical `/Users/Dave/SGFPlayerClean` currently has older runtime code. Confirm
-the [checklist](../IntegrationChecklist.md) and Git status before building:
+source is identified in the [checklist](../IntegrationChecklist.md). Preserve
+frozen hardware-tested worktrees: branch from the exact reviewed runtime into a
+new `codex/` worktree before editing or generating build outputs. The canonical
+checkout may have older runtime code. Confirm source identity and Git status
+before building:
 
 ```sh
 python3 PhysicalGo/build.py --list-tests
@@ -136,6 +138,16 @@ The old mode test accidentally loaded the live saved AI snapshot; this was fixed
 in87fc4a9. Keep source-specific receipts when unchanged suites run before a later
 constructor-only isolation change. The historical 0.258 package is recorded in
 [IntegratedPhysicalTestCandidate.md](../IntegratedPhysicalTestCandidate.md).
-The current checklist records the exact 0.260 installation and paired host.
+The current checklist records the installed application and each tested host
+separately; use its exact pair and launcher qualification.
 Documentation-only revisions do not constitute a rebuild or new physical pass;
 keep the compiled source hash and tested runtime commit separate from later doc commits.
+
+For parallel work, agree one owner for each shared source boundary and serialize
+Swift builds through the integration owner. Inspect free space before creating
+checkouts; a documentation-only checkout can use Git sparse checkout. Reuse
+immutable artifacts only when their receipts match the exact source closure.
+Do not clear raw evidence, games or caches to make room without an authorized,
+reviewed cleanup. Final acceptance must test the combined candidate, because
+passing each branch independently does not test their interaction. See the
+[November 24 integration review](../CrossChangeIntegrationReview20261124.md).
