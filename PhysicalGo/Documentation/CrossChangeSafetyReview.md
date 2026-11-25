@@ -801,3 +801,13 @@ and the new app-level regression have only syntax checks so far. Final native
 integration approval remains conditional on root's shared-module/full native
 compilation and PG23 regression run. Reviewer performed source review only;
 no native build, installation or hardware action.
+
+PG23 follow-up `7ac2f6a3592a0d79d7cf60ad2b1b8351ab7608e3` was subsequently
+reviewed and approved at source level. The live controller binds its existing
+assignmentOffsets dictionary once, uses it for the unchanged ambiguity decision,
+and passes that exact result into metadata capture. The standalone optional
+fallback remains; no cache, new decision or payload expansion was introduced.
+A new assertion checks that supplied offsets are retained. Owner frontend parse
+and diff checks passed; that assertion and full runtime integration still await
+root's coordinated native build. This resolves the duplicate-computation finding
+without claiming zero metadata cost.
