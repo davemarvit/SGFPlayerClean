@@ -113,6 +113,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private var witnesses = 0
     private var lastFrame: Double?
     private var lastMatch: Double?
+    @Published private(set) var checkingHelp:PhysicalAICheckingProgress.Help?
+    private var checkingProgress=PhysicalAICheckingProgress()
     private var verifiedCells: [String]?
     private var verifiedCameraContext: String?
     private var verifiedSource="none"
@@ -372,6 +374,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         catch {fail(error.localizedDescription)}
     }
     func interruptObservation(reason:String="state_reset",preserveGuidance:Bool=false) {
+        if ["hand_or_unknown_hand","waiting_for_dark_laser_evidence","invalid_or_stale_frame","lighting_blocked","manual_corrections"].contains(reason) {clearCheckingProgress()}
         clearIllegalMoveWarning()
         if reason != "state_reset" {centeringWitness=nil}
         // Illuminated/buffered frames are deliberately not new capture evidence;
@@ -394,8 +397,34 @@ struct PhysicalAIGuidanceTarget: Equatable {
         event["moveNumber"]=snapshot?.moves.count;event["session"]=snapshot?.id.uuidString
         recognitionTrace?.record(event)
     }
+    private func clearCheckingProgress() {
+        checkingProgress.reset()
+        if checkingHelp != nil {checkingHelp=nil}
+    }
+    private func updateCheckingProgress(outcome:String,points:[Int],capturedAt:Double,now:Double) {
+        guard active,let snapshot else {clearCheckingProgress();return}
+        let reason:PhysicalAICheckingProgress.Reason
+        switch outcome {
+        case "uncertain_required_intersection":reason = .requiredIntersections
+        case "ambiguous_new_stone":reason = .ambiguousPlacement
+        case "waiting_for_stable_position":reason = .stablePosition
+        case "position_mismatch":reason = .positionMismatch
+        case "duplicate_frame":return
+        default:clearCheckingProgress();return
+        }
+        // Checking covers startup/resume. During a human turn, explain only
+        // an observed placement ambiguity and its subsequent confirmation wait.
+        guard phase == .checking || phase == .human && (reason == .ambiguousPlacement || checkingProgress.followsAmbiguousPlacement) else {
+            clearCheckingProgress();return
+        }
+        let scope="\(snapshot.id)/\(snapshot.moves.count)/\(generation)/\(laser.cameraContext ?? "unknown")/\(laser.frames.streamEpoch)"
+        let help=checkingProgress.observe(scope:scope,reason:reason,points:points,size:size,
+            emptyGame:snapshot.moves.isEmpty,capturedAt:capturedAt,now:now)
+        if checkingHelp != help {checkingHelp=help}
+    }
     private func clearCentering() {centeringStone=nil;centeringTarget=nil;centeringWitness=nil}
     private func cancel(preserveIdleTestWorker:Bool=false) {
+        clearCheckingProgress()
         laser.setPlaySession(nil);captureGuidance.invalidate(dropPlacement:true,after:uptime());clearCentering()
         generation=UUID();task?.cancel();task=nil
         if preserveIdleTestWorker && fastTestMode {testWorker.cancelKeepingIdle()} else {testWorker.stop()}
@@ -503,9 +532,12 @@ struct PhysicalAIGuidanceTarget: Equatable {
             verifiedCells=nil;verifiedCameraContext=nil;verifiedSource="none";verifiedAtUptime=nil
             traceRecognition("verified_context_changed")
         }
-        var outcome="observation_rejected",detail=[String:Any]()
+        var outcome="observation_rejected",detail=[String:Any](),checkingPoints=[Int]()
         if stamp.isFinite,now.isFinite {detail["capturedAtUptime"]=stamp;detail["ageSeconds"]=now-stamp}
-        defer {detail["witnesses"]=witnesses;traceRecognition(outcome,details:detail)}
+        defer {
+            detail["witnesses"]=witnesses;traceRecognition(outcome,details:detail)
+            updateCheckingProgress(outcome:outcome,points:checkingPoints,capturedAt:stamp,now:now)
+        }
         if observation.handObstructed == true {laser.suppress("hand_entered_board")}
         if laser.target?.purpose==nil,let point=pendingPoint, now>=stamp,now-stamp<1.5,
            observation.size==size,!observation.lightingBlocked,
@@ -598,6 +630,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 // Verified history may retain an obscured unchanged stone;
                 // it must not erase a positively seen, unresolved new stone.
                 outcome="ambiguous_new_stone";detail["blockingPoint"]=index
+                checkingPoints=Array(ambiguous.union(unresolvedNeighbors[index] ?? [])).sorted()
                 if let recognitionTrace,let snapshot {
                     let frame=laser.diagnosticFrame(capturedAt:stamp).map {
                         PlacementAmbiguityDiagnostic.FrameIdentity(streamEpoch:$0.streamEpoch.uuidString,frameID:$0.frameID,
@@ -624,6 +657,11 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 // history. New stones and capture removals need positive evidence.
                 guard let verifiedCells,verifiedCells[index]==cells[index],unknown<=max(12,size*size/5) else {
                     outcome="uncertain_required_intersection";detail["blockingPoint"]=index;detail["unknownCount"]=unknown
+                    checkingPoints=observation.readings.compactMap {reading in
+                        let p=reading.row*size+reading.col
+                        guard reading.occupancy == .uncertain || reading.confidence<0.8 || ambiguous.contains(p) else {return nil}
+                        return self.verifiedCells?[p] != cells[p] || unknown>max(12,size*size/5) ? p:nil
+                    }
                     interruptObservation(preserveGuidance:pendingMoveCue);return
                 }
                 values[index]=cells[index]
@@ -675,6 +713,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
             commit(p,ai:false,at:now)
         } else {
             outcome="position_mismatch";detail["mismatchPoints"]=values.indices.filter{values[$0] != cells[$0]}
+            checkingPoints=values.indices.filter{values[$0] != cells[$0]}
             mismatch = .init(expected:cells,observed:values)
             status=phase == .placing ? "Place the AI stone at the blue ring and remove captured stones.":"Match the physical board to the game before continuing."
         }
