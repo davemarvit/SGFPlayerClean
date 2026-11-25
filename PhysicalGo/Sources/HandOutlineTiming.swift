@@ -2,8 +2,8 @@ import Foundation
 
 /// Motion of the visible trailing edge, measured in grid spaces from the rim.
 /// A negative depth means the entire tracked outline is outside the playing area.
-struct HandOutlineTiming {
-    struct View {let time:Double,depth:Double}
+struct HandOutlineTiming:Codable {
+    struct View:Codable {let time:Double,depth:Double}
     private var views=[View]()
     private var lastInside:Double?
     mutating func reset() {views=[];lastInside=nil}
