@@ -1,312 +1,122 @@
-# Camera, AI and laser integration — current checklist
+# Physical Go issue register
 
-Current feedback-test update — November 24, 2026: **Controller fully OFF;
-remaining-target launcher waiting at READY in PTY 42459. No active controller.**
-Root owns hardware. Frozen source `5612839` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/feedback-remaining-targets` is pushed.
-Launcher: `work/PhysicalGo-Feedback-Remaining.command`. Three fresh camera checks
-passed (corner changes 0.115, 0.141, 0.070 px). Fresh user READY is pending.
-Remaining route: K2, S10, P15, K18. Earlier targets will not repeat; the model is
-still the original three wide observations, hash fedd0febe69daaa9ffa36e1ea6879b8def36d01f047226140e031f9d49c953e5.
+Updated November 24, 2026 (Pacific), after the 18:20 final-two-target run.
+This is the **single authoritative checklist**. Handoffs link here; they do not
+maintain competing work lists. Existing item numbers 0–27 are preserved as PG IDs.
 
-Retry `three-point-feedback-20261124-144034-67453`, source `352948b`, PTY 7981
-exited 1 after 202.595673 seconds READY-to-OFF. Completed K10: 19.123279 s,
-2.631 px; F14: 24.179058 s, 2.544 px; B10: 30.352483 s, 0.959 px. B10 first
-reached the 0.20-cell indication threshold at 25.118787 s. K2's last observation
-was 0.313809 cells / 17.619 px after 95.198393 s; the next view was interrupted.
-Terminal cause: `LaserTransportFault: Serial write completion exceeded deadline`;
-native clearance also became unknown after a 0.687-second exposure gap. No positive
-hand flag in that terminal frame. Original failed write details were evicted by
-later OFF writes from the 64-entry ring, so exact scheduling/kernel attribution
-is unavailable. Full OFF at `1795560237.089935`, no controller error, unchanged
-source manifests. The actual port-write deadline is 100 ms, distinct from the
-600 ms camera/lease checks. This fault is not declared solved.
+**Current state:** controller fully OFF, no active driver or pending READY.
+Last receipt: AimControl v44 OFF at `1795573364.868653`, no controller or cleanup
+errors. App 0.261/build262 and firmware v44 remain installed. The empty Human Black
+practice game is paused. **Laser-guided gameplay is not yet activated.**
 
-Source `5612839` adds an explicit remaining-target batch and pins the earliest
-eight write failures alongside 64 recent writes. Guards/commands/deadlines remain
-unchanged. Offline: 12 serial diagnostic tests, 18 local/wide/feedback tests,
-51 base model tests, and threaded controller/heartbeat smoke passed. No physical
-run of this new source yet; no firmware, installed app or gameplay binding change.
+## How an item gets checked off
 
-First attempt `three-point-feedback-20261124-141443-66813` stopped for a false
-native hand indication after K10, in 57.152896 s READY-to-OFF. K10 reached
-0.1083 cells / 5.309 px in 27.668217 s, then 0.0331 cells / 1.625 px in
-40.888455 s. Full OFF1795558540.6453667, no controller error. Exact rejection PNG
-saved. Apple Vision replay gives a false right-fabric hand in 3/3 trials, with
-one inferred joint at (18.708,14.555) inside the 0.75-cell outside-grid guard.
+- `[ ]` means open, including implemented or offline-tested work awaiting installation/physical verification.
+- `[x]` means the stated scope is complete, with dated evidence. A completed experiment is not a completed gameplay feature.
+- Every open item has a next action or acceptance criterion. Root owns it unless another owner is named.
+- After each material change/test, update this entry in place with source, installed version, result and remaining work. If a closed issue recurs, reopen its existing ID.
+- Do not remove deferred work. Preserve raw evidence and historical records; do not append an old “current status” above this register.
 
-Native offline audit `e841750` in `hand-rim-diagnostics` runs the production
-sampler/detector/tracker against explicitly substituted backgrounds. Older saved
-reference: 6/1,078 rim samples fail (one brightness, five color), tracker obstructed.
-Recent spot image and identical-image control: all pass, tracker clear. The first
-old-reference brightness difference is 0.06885 against a 0.06 limit. This reproduces
-background sensitivity but not the missing original live checkpoint. No hand
-threshold or app behavior changed. See `PhysicalGo/Documentation/HandRimRejectionReplay.md`
-in that worktree; evidence in `work/attended-recheck-20261124-105259/feedback-hand-rejection`.
-First-obstruction checkpoint capture remains a useful next instrumentation task;
-existing five-second stall capture misses these brief false entries.
+## Work needed for dependable laser play
 
-Benchmark: frozen affine seed supplies response, fresh optical spot anchors
-position, measured corrections update response only within a target; reset at each
-new target. Time to 0.20 cells precedes at most three extra refinements toward
-3 px. Near-edge inward waypoints/smaller steps prevent simulated overshoot. These
-are calibration-runner timings, not installed gameplay latency. Both prior run
-folders contain `timing-summary.json`; preserve interrupted travel time separately
-from any remaining-target batch. No dense model steers these feedback runs.
+- [ ] **PG-31 — False native alignment rejection. Investigating.** Exact 18:15 rejected camera frame reproduced a native failure: 339/658 profile matches, edge counts `[18,18,1,18]`, at least3 required per edge. Independent replay found331 inliers, all72 boundary points, 0.493px maximum grid movement and0.99548 image correlation. Reconstructed anchor, not an exact saved live tracker checkpoint. Next: quantify profile sensitivity and fix verification without admitting moved/covered boards; regression-test, install and physically verify. Native worktree `alignment-profile-jitter` currently has no runtime fix. [Replay evidence](</Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815>).
+- [ ] **PG-32 — Serial-write timeout. Diagnostics implemented; cause unresolved.** The14:40 run exceeded the100ms write-completion deadline; later OFF traffic evicted the initiating diagnostic. `5612839` pins early write failures; retained in tested host `2da3c29`. Recent runs had no recurrence, which does not prove resolution. Next: inspect captured failure if it recurs, establish cause/recovery, then verify sustained play. Distinct from600ms camera freshness.
+- [ ] **PG-06a — 600ms camera/lease reliability. Partial repairs installed.** Background IO and independent checked safety metadata are in0.261 with host `04b76c7`; injected-stall and paired tests passed. No sustained current-version gameplay pass. Next: measure tail ages during play and verify bounded recovery. Calibration's experimental timing policy does not validate gameplay's600ms policy. [Evidence and plan](CameraFreshnessReliability.md).
+- [ ] **PG-06b — Aiming speed. Measured; optimization active.** S10 took69.4s/11 moves; K18 took95.7s/15 moves. Full guarded correction cycles average about 6.42s. K18 used one coarse move then 14 fine moves: the 15px planning cap within 90px of an edge kept every later step in the fine regime. This is conservative step policy, not demonstrated analysis backlog. Owner: root for travel policy; `frame_diff_analysis` agent for offline optical-processing optimization in `feedback-optical-latency`. Next: reduce unnecessary small travel cycles and redundant image work, then measure live latency; do not claim a speedup from offline timings alone.
+- [ ] **PG-33 — Put optical-feedback aiming into gameplay. Not implemented.** The benchmark uses the three-point seed plus measured corrections. Installed gameplay still performs a predicted coarse landing using the older model. Next: integrate the validated approach with target cancellation, hand/lease guards, actual-pose reacquisition, monitored holding and full OFF; pass paired tests, install and conduct an attended game. Passing PG-30 does not close this item or authorize an old binding.
+- [ ] **PG-03 — False hand warnings and hand-stop recovery. Open.** Earlier false pose was on fabric beside the board; rim replay is sensitive to its background. Fresh reference captured, but no detector fix proven. Preserve distinction between false-positive, genuine obstruction and unknown clearance. Next: capture the first obstruction's exact tracker state, verify hand entry turns beam off and clear withdrawal recovers; confirm the orange message clears after accepted placement.
+- [ ] **PG-04 — End-to-end ordinary gameplay acceptance. Awaiting PG-33.** Earlier moves and F5 indication worked; current setup/version has no complete play pass. Done when Black/White placement, AI answer, actual dot, virtual marker, clock transition and pause/resume all work without lost state. Preserve existing games.
 
-Offline learning `3ad106c` in `gameplay-learning-offline` is pushed; 10 tests pass.
-Shadow residual and separate response learners improve medians but regress some
-fresh tail errors. No live promotion, installation or physical convergence claim.
-Qualified actual spot/pose pairs, score-before-update, holdout checks and rollback
-are required. See `Firmware/Experiments/GameplayLearning/README.md` there.
+## Completed, with limited scope
 
-Previous completed wide test — November 24, 2026: **Wide three-point physical test completed;
-hardware fully OFF, no active launcher/driver or pending READY.** Successful run
-`three-point-wide-20261124-135944-63058`, frozen source `b7183b1` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/three-point-wide`, PTY 8386 exited 0.
-READY-to-full-OFF **87.628823s**; acquisition 78.225342 s; first-to-third selected
-observation 72.048064 s. Preflight/operator waiting excluded. Final AimControl v44
-OFF at `1795557672.1890821`, controller_error/code null; no cleanup/source faults.
+- [x] **PG-28 — Recover the reconnected camera/controller and fresh baseline. Completed Nov24.** Webcam `0x21000000bda0567`,1920×1080; user confirmed equipment unmoved and captured reference at18:02:03 PST. Controller reappeared as OpenRB-150 `/dev/cu.usbmodem1101`, serial `4F32C94A5157375037202020FF121D36`. Explicit geometric requalification `3bbb6f6` preserves historical evidence and model coefficients, adopts fresh empty pixels, and passed live preflights and later runs. This closes this reconnect episode, not general automatic reconnect reliability.
+- [x] **PG-29 — Edge waypoint/refinement regression. Fixed and physically verified Nov24.** The18:09 run moved an already acceptable K2 dot inward during optional refinement; stopped fully OFF. `2da3c29` skips inward waypoints for nearby targets, clears them at acceptance and defaults to no extra refinements. Ten feedback regressions pass; corrected K2 subsequently reached0.148cells in13.4s. The broader speed issue remains PG-06b.
+- [x] **PG-30 — Wide three-point experiment and seven-location feedback benchmark. Completed Nov24 across multiple runs.** Three widely separated observations acquired in87.63s; only those three enter the affine fit. All seven targets now have successful observations; no single uninterrupted seven-target pass is claimed. Final two-target run took117.39s READY-to-full-OFF. [Combined results](</Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/feedback-seven-target-summary.json>).
+- [x] **PG-26a — Large AI clocks and labels on all four board sides. Installed and UI-smoke verified in0.260, retained in0.261.** Independent click controls included. Audio audibility remains PG-26b.
+- [x] **PG-27 — Requested saved-data pruning pass. Completed Nov24.** Three abandoned duplicate/prefix backups removed after verification:306,201,499 logical bytes. Unique games, recordings and calibration evidence retained. No material APFS free-space improvement claimed. [Audit](</Users/Dave/Documents/SGF PLayer/work/data-pruning-20261124>).
+- [x] **PG-14a — Consolidate issue tracking. Completed Nov24.** This register replaces conflicting “current” updates; full previous documents preserved in [snapshot](</Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/docs-before-issue-register>). Ongoing documentation upkeep remains PG-14b.
 
-Actual fitting points near H3, D16, Q16: (6.70664,16.00862),(2.96008,3.01514),
-(14.72738,3.12532). Minimum pair separation 11.7678 cells; area 76.2427 square cells.
-Selected indices 0, 6, 11 among 12 new camera views; 11 dark movements. Only those three
-landings enter the affine fit; nine transit views are retained/excluded. Old map
-assisted direction only. This measures assisted three-wide-point acquisition, not
-cold startup. No intersection-centering was required.
+## Remaining requested work and follow-up
 
-On the same 9 fresh guidance views withheld from both fits, median/max inverse spot
-prediction error: three-wide affine 0.742/0.940 cells (30.74/39.45px), dense 97 ray
-model 0.172/0.238 cells (6.54/8.38px). Against all 97 old measured samples, wide fit
-median 1.496 cells, max 14.984 cells; nearby-three fit median 4.983, max 10.942 cells.
-Wider coverage improved median error but leaves large extrapolation errors outside
-the triangle. These are predictions at recorded poses, not fresh first landings or
-corrected-target accuracy. All 361 nominal motor predictions are in bounds, but
-none were commanded under this new model; no gameplay binding/firmware changed.
+- [ ] **PG-00 — Fast AI test mode validation. Installed:** eight visits/no HumanSL, completed idle-worker reuse only. Next: measure cold and warm physical reply latency separately.
+- [ ] **PG-01 — Motor/stand instability. Unresolved:** released/held encoder and velocity evidence is inconclusive. Next: compare optical jitter with stationary/stepping motors and untouched stand if faults or accuracy suggest it; do not attribute noise to mechanical motion without measurements.
+- [ ] **PG-02 — Calibration model and board distortion. Evidence retained:**97 observations and four fitting targets, plus wide-three and new feedback data. Next: compare prediction/response errors spatially and reuse qualified observations. Full five-plus-nine tour is optional research, not the next mandatory step to play.
+- [ ] **PG-05 — Captures. Offline-tested:** physically verify single, multiple and partial removals, both colors, retained prisoner identity and correct clock behavior.
+- [ ] **PG-07 — Keep motors ready during play. Implemented in v44/schema2; short runs exercised.** Next: verify holding, hand interruption, transition/status freshness and resume on the current paired app/host. Full OFF must still release motor power.
+- [ ] **PG-08 — Thermal endurance and cooling. Short evidence only.** Next: monitor actual play and cooling/re-engagement; a formal two-hour test is optional and not scheduled unattended.
+- [ ] **PG-09 — Ended-game/reopened-app grid recovery. Fix installed since0.252.** Next: physically finish/reopen a game and verify recovery without losing unfinished-game state.
+- [ ] **PG-10 — Laser centering hints. Implemented, preference off.** Next: validate observed stone-center targeting, hand stop and removal. Do not infer intended intersection from an ambiguous stone.
+- [ ] **PG-11 — Captured-stone laser indications. Implemented.** Next: verify placement-first order, silent prisoner indications and partial cleanup on the board.
+- [ ] **PG-12 — Online-opponent laser play. Not implemented.** Next: add authoritative native target production and server-clock-safe integration; a schema accepting `online` is insufficient.
+- [ ] **PG-13 — Illegal-move feedback. Screen behavior installed since0.258.** Next: physically verify suicide/ko/restoration. Laser error patterns remain a proposal, not a shipped feature.
+- [ ] **PG-14b — Keep documentation current. Ongoing.** Update this register after each change/test; reconcile architecture/protocol/install guides when behavior changes. Keep historical reports explicitly dated.
+- [ ] **PG-15 — Minimal practical setup workflow. Three-wide experiment done.** Next: make that path usable through gameplay startup, retain calibration across recoverable interruptions and measure true setup-to-play time. Do not repeat a full tour merely because the first guess is inaccurate.
+- [ ] **PG-16 — Camera/occupied-board latency attribution. Instrumentation `1f28d4c` offline-tested, not installed.** Existing native analysis median60.1ms/max173.6ms showed no sustained backlog. Next: identify current occupied-board tail delays; distinguish native recognition from host optical-registration work.
+- [ ] **PG-17 — Gameplay fault continuity. Partial fixes installed.** Next: exercise transient camera/lease recovery, three-second transition bound, app closure/reopen and unrecoverable fault pause without losing game/clocks.
+- [ ] **PG-18 — Learn from gameplay observations. Offline shadow learner only (`3ad106c`).** Ten tests pass; some medians improve but tail errors regress. Next: collect settled actual pose/spot pairs with provenance, score before training and retain rollback. No live updates or learned spatial derivative promoted.
+- [ ] **PG-19 — Calibration progress UI. Existing five-plus-nine display installed.** Next: represent minimal/feedback workflows accurately, preserve completed points and show measured timing without treating progress as activation authority.
+- [ ] **PG-20 — Architecture/process follow-through. Recovery reducer, immutable builds and paired acceptance integrated.** Next: keep new gameplay work within these boundaries and verify the installed combination physically; no wholesale rewrite required.
+- [ ] **PG-21 — Timing/first-fault evidence. Optional tracing exists.** Next: retain first rejected frame plus alignment/hand reasons and tracker checkpoint, and separate command acknowledgement from actual light/click onset and cross-process clocks.
+- [ ] **PG-22 — Stone thickness/parallax. Named sets/manual thickness installed; passive study `d0ed574` complete offline.** Shape/displacement cannot yet separate physical thickness from placement bias/camera geometry. Next: passive collector and held-out evaluation; no automatic optical correction activated.
+- [ ] **PG-23 — Ambiguous/halfway placement. Guard installed since0.258;52 focused checks passed.** Next: physical Black/White halfway placements with hints off/on; correct color alone is not correct intersection.
+- [ ] **PG-24 — Regional frame differences. Offline studies only.** Empty-board audit averages4.26/361 requested regions across19 comparisons. Next: include stones, hands, shadows and lighting controls before live use; unchanged pixels do not establish fresh clearance or a new stone.
+- [ ] **PG-25 — Reversible practice fixtures. Four starts installed;166 controller/persistence checks recorded.** Next: use them for physical acceptance while preserving the original saved-game snapshot.
+- [ ] **PG-26b — Stone click in AirPod Pro3. Controls and first-light-per-move logic installed.** Next: verify audible click on a genuinely new AI move, distinguish it from controller beeps and retry deduplication. Keep AirPod Pro3; do not switch system audio without asking.
 
-Reports/comparison/raw evidence are in the run above under
-`work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`;
-read `summary.txt` or `three-point-comparison.json`. Earlier local three-point test
-completed in 30.064086 s; its failed predecessor and reset records remain preserved.
-The three local points were too close because root implemented independent motor
-probes. This wider repeat addresses that scope mistake. 11 local/wide tests plus
-51 base runner/model tests passed before the physical run. Root solely owns hardware.
+## Latest physical measurements
 
-The saved checkpoint retains **97 observations and four fitting targets**:
-K10 1.68px, A19 2.02px, T19 1.67px, T1 2.48px. A1 and the nine diagnostic checks are
-not completed. The last restart rejected actual POSE 1897/2077 against the old
-1933/2077 anchor. A preceding interrupted GOTO explains the partial position change;
-this is not evidence that all optical measurements were lost.
+Times below describe the successful attempt segment, not cold setup or total time
+spent on interrupted targets. K2 and P15 resumed near their targets. Earlier K10,
+F14,B10 runs allowed up to3 optional refinements; later runs stop at0.20cells.
 
-Dave clarified the objective: minimal startup, optical feedback during play, and
-learning from every reliable actual spot/POSE pair. Three non-collinear observations
-can seed a local response; a full five-plus-nine tour is an optional validation
-procedure, not a mathematical requirement. Do not keep restarting that tour as the
-only way to obtain a usable model. The installed gameplay loop records observations
-but does not yet update its model and performs a predicted coarse landing before
-spot acquisition. A minimal feedback-first gameplay/learning path remains open.
+| Target | Time to accepted indication | Final segment time | Final error (cells / pixels) |
+|---|---:|---:|---:|
+| K10 |19.12s|19.12s|0.052 /2.63|
+| F14 |24.18s|24.18s|0.071 /2.54|
+| B10 |25.12s|30.35s|0.023 /0.96|
+| K2 |13.42s|13.42s|0.148 /8.14|
+| S10 |69.39s|69.39s|0.179 /9.13|
+| P15 |6.96s|6.96s|0.159 /7.93|
+| K18 |95.71s|95.71s|0.016 /0.73|
 
-Minimal-seed assessment: offline source `5c167da` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/minimal-calibration-assessment` compares
-three local affine, three spread affine, five ray-model and 71-point dense-prefix
-fits on 21 later withheld observations. Three-point global extrapolation is poor;
-this does not measure adaptive optical convergence. First-to-third local saved
-observation span is 11.082s, excluding startup/preflight/OFF, not a new tour time.
-The proposed physical test times three observed positions (no intersection-centering
-needed), then scores new targets before learning from them. Full97-model comparison
-is diagnostic, not independent ground truth. Four math tests passed. No new physical
-run, hardware activation or minimal-runner implementation in this assessment.
-Report: [minimal comparison](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/minimal-calibration-assessment/Firmware/Experiments/MinimalCalibration/README.md>).
+Last run: `three-point-feedback-20261124-182047-85434`, source `2da3c29`.
+Previous run stopped at138.011636s for native alignment rejection during P15,
+with hand=false; full OFF confirmed. Earlier18:09 refinement-bug run stopped at
+33.421239s, full OFF confirmed. None of these latest runs had a serial timeout.
+Do not interpret calibration-only timing overrides as a gameplay reliability pass.
 
-Offline continuation changes are frozen at `58a9cf2` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity`:
-retain completed measurements/checks, reacquire actual spot after OFF, remove old
-position/3px prediction gates, skip redundant axis probes, and relax only transit
-waypoint centering. Clearance stops can ask for fresh READY after confirmed OFF.
-231 calibration tests (19 optional skipped), 51 model tests, 25 dark tests passed;
-11 focused tests also passed with actual saved recordings. No physical validation,
-new gameplay binding, firmware upload or installed app change is claimed.
-Details: [observed continuity](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/observed-calibration-continuity/Firmware/ObservedCalibrationContinuity.md>).
+## Installed versions, sources and durable evidence
 
-Physical Go 0.261/build262 and AimControl v44 remain installed. App/camera were left
-open, empty Human Black game `D710D336-2746-4004-9796-F63A8D2FB8F5` paused, holding
-preference on, hints off, AirPod Pro 3 retained. Previous games/clocks and all unique
-recordings are preserved. No desktop screenshots taken. Check processes and fresh
-camera state before any future attended hardware step; obtain READY at its prompt.
-
-Updated November 24, 2026 (Pacific time). This is the authority for current
-implementation, installation, open work and physical validation. Read the
-[handoff](NextConversationHandoff.md) to resume, the [project guide](AgentGuide/README.md)
-for architecture, and the [documentation index](DocumentationIndex.md) for scope.
-Prior checkpoints and exact earlier results are preserved in
-[integration history](IntegrationHistoryThrough20261124.md) and
-[LivePositionIssues.md](LivePositionIssues.md); their old “current” statements
-and running process IDs are not current operating instructions.
-
-## Current checkpoint
-
-**Installed: Physical Go 0.261/build 262 and AimControl v44. Hardware fully OFF, driver stopped; app/camera last left open, game paused, board empty.
-Camera alignment has been re-established; laser requalification is incomplete.
-The 600 ms reliability problem remains open.**
-
-| Item | Verified record |
+| Component | Current identity |
 |---|---|
-| App | `/Users/Dave/Applications/Physical Go.app`, signed 0.261/build 262 |
-| App source | `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`; runtime `9c516f1` |
-| Embedded source hash | `79f2ec079f3d116af313d612b4ad4a8f71ddb569211cce14f4c6f4a0569a30d7` |
-| Installed executable SHA-256 | `b381f986a7a5e513bd77428adb28f4c7916b889c039556c3e0e577a4c3a7fee3` |
-| Coordinated host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, branch `codex/camera-safety-delivery`, pinned `04b76c74257be04565385ec6d4a0e9cb0faf6848` |
-| Firmware | AimControl v44; documentation work does not upload firmware |
-| Last physical full OFF | Unix `1795560237.089935`, no controller error; feedback retry stopped on serial deadline. |
-| Launch guard | `gameplay-activation-20261124/gameplay-requalification-required.json` blocks `work/PhysicalGo-Play.command` until current geometry, attended optical qualification and binding review |
-| Rollback | Signed 0.260 bundle in `work/camera-safety-delivery-20261124`; preserve the saved game and paired host compatibility when rolling back |
+| Installed app | `/Users/Dave/Applications/Physical Go.app`,0.261/build262 |
+| Installed app source | `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`; runtime `9c516f1`, documentation HEAD `0628a33` |
+| Embedded app source hash | `79f2ec079f3d116af313d612b4ad4a8f71ddb569211cce14f4c6f4a0569a30d7` |
+| Existing paired gameplay host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, `04b76c7`; gameplay launcher remains blocked |
+| Physically tested feedback host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/feedback-indication-stop`, `2da3c29785aa7337871b299380dd3dc289437332` |
+| Feedback launcher | `work/PhysicalGo-Feedback-Remaining.command`; currently P15/K18-only; no live PTY |
+| Firmware | AimControl v44; unchanged |
+| Camera | FULL HD WEB CAM/AUSDOM AF660,`0x21000000bda0567`,1920×1080; current epoch `C3601E4D-5053-478F-9BDC-207867A7EE1F` |
+| Controller | `/dev/cu.usbmodem1101`; verify identity and exclusivity before next opening |
+| Saved game | `D710D336-2746-4004-9796-F63A8D2FB8F5`, empty Human Black practice, paused; older games preserved |
+| Rollback | Signed0.260 in `work/camera-safety-delivery-20261124`; do not overwrite |
+| Active experiments | Native `alignment-profile-jitter` (no fix yet); host agent `feedback-optical-latency` (offline only) |
 
-The canonical app and laser repositories contain current documentation but older
-runtime source than these isolated worktrees. **Do not build or launch the canonical
-checkout assuming it is the installed combination.** Frozen calibration source,
-old build receipts and pinned launchers must retain their provenance.
+Canonical repositories hold current documentation but older runtime sources.
+Never build them assuming they match the installed app. Frozen hardware-tested
+worktrees remain immutable; make a new branch/worktree for further changes.
 
-## Verification and limits
+Evidence root: `/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259`.
+Raw runs: `work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`.
+`session-status.json` tracks execution state; this register tracks issues and acceptance.
 
-- 0.261 publishes checked hand/alignment metadata independently of PNG delivery;
-  host `04b76c7` consumes it without borrowing timestamps/verdicts for old pixels.
-  No camera/status/lease/thermal threshold changed. This removes one dependency,
-  not proof that all 600 ms interruptions are solved.
-- Final native safety suite passed 26 checks including >600 ms image stalls,
-  bounded pending work, epoch reset, write failure and actual Swift exports.
-  Integrated broker 49, monitored standby 345, guidance continuity 184 and AI-laser
-  283 checks passed. Host 15 safety/wire, 134 gameplay and 149 bridge tests passed.
-  Mandatory fresh app → host → app acceptance passed with 68 generated host statuses.
-- Optimized build and strict signature verification passed. Signed 0.261/build 262
-  is installed with matching binary/source hashes and a signed 0.260 rollback.
-  The app was subsequently launched for the November 24 attended session below.
-  No desktop screenshots were taken; camera-only evidence and accessibility controls were used.
-- Earlier 0.260 first-launch AX smoke verified paused game, large clocks and click
-  controls; it is not a 0.261 first-launch or physical validation result.
-- Receipts/logs/actual wire messages: [camera-safety-delivery-20261124](</Users/Dave/Documents/SGF PLayer/work/camera-safety-delivery-20261124>).
-  [Implementation and test details](CameraSafetyDelivery.md) include the separate
-  empty-board regional-change audit. Live recovery and AirPod Pro 3 audibility
-  remain unverified on the latest version.
+## Operating constraints
 
-## Preserved game and equipment
-
-The 12-ply E3 test `EA70E983-9FAF-40ED-8939-312ED10A1A68` and original
-five-ply game were preserved through the app's practice/return controls and
-session backups. Current game `D710D336-2746-4004-9796-F63A8D2FB8F5` is an empty,
-paused Human Black practice. Holding preference is on; centering hints are off.
-Keep AirPod Pro 3 selected.
-
-Fresh camera geometry and empty-board reference are established. Current stream
-is `F1514C6F-7D81-4BEC-98ED-12BACE6F60E3`, AUSDOM `0x11000000bda0567`, 1920×1080.
-The previous gameplay binding remains blocked for the moved setup.
-
-## November 24 attended calibration
-
-Five attempts stopped safely: old seed/context mismatch; a 3.017 px local boundary
-measurement disagreement; an OFF lease expiring across a 641 ms request-read
-interval; a 4.018 px local boundary disagreement; and unknown native hand clearance.
-Read timings include scheduling and are not syscall-only measurements. The last
-stop followed a 0.8 s gap between delivered camera observations. A hand-tracker
-reset is plausible, but those published records alone do not identify the delayed
-pipeline stage or prove which intermediate frames were analyzed.
-
-- Calibration-only OFF-lease recovery: frozen source `982bdbf`, 206 calibration
-  tests (12 optional skipped), 25 dark tests and 30 focused checks passed.
-- Printed-boundary consensus: frozen source `3445585`. It rejects competing local
-  line models and retains the 3 px map limit. Both rejected images, 100 fresh
-  camera checks (max 2.129 px), 57 focused tests and four historical sequence tests
-  passed under the existing lighting. No room-light change was needed.
-- Latest stopped attempt retained 20 observations/19 moves and completed K10 at
-  1.68 px. A19 was observed but not completed. Full OFF is recorded above.
-- Pre-fit recovery source `8b8a4e2`, worktree
-  `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/calibration-fit-resume`, adds fresh
-  actual-pose/two-axis requalification and full-OFF restart for independently
-  classified unknown clearance. It does not treat unknown as clear. 214 calibration
-  tests (15 optional skipped), 25 dark tests and eight focused/actual-record replay
-  tests passed. One explicit hash-bound migration retains the old measurements,
-  unchanged original failure report and original finite run deadline.
-- `continued-fit-20261124-120522-42111` stopped after fresh position agreement
-  (1.608 px) and two consistent probes: actual tilt travel was only three counts,
-  below the independent response-basis requirement. Full OFF confirmed; PTY 55574 exited.
-  Updated source `371cccc` in `calibration-fit-probe-extension` permits one extra
-  same-direction contained tilt probe only for insufficient measured travel. All
-  nine focused/actual-record replay tests passed. Three fresh camera checks passed;
-  The next stationary observation stopped before new travel on old-anchor prediction disagreement; full OFF1795551006.046342. Source `d92e6a8` now uses that reviewed stationary position as the anchor, preserving all accuracy checks. Ten focused/record-replay and17 recovery tests passed. PTY38073 is running `continued-fit-20261124-121422-43815` after fresh READY; fresh position/two-axis checks passed and fitting resumed. No new binding is qualified.
-
-Evidence and launcher backups: `/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259`.
-Calibration attempts are under `work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign`.
-Native 0.261 and AimControl v44 were not replaced during this session. Independent
-native timing instrumentation is pushed at `1f28d4c` in
-`/Users/Dave/SGFPlayerClean-worktrees/camera-pipeline-attribution`; 54 photographed
-hand/stone checks and 26 trace checks passed. It is not installed.
-
-The passive stone-height study is pushed at `d0ed574` in `passive-stone-height`.
-Effective optical offset may be learnable; physical thickness is confounded by
-placement habits, camera pose and detector bias. Spatial correction did not
-consistently beat mean bias in the small existing sample. Eight analytic controls
-passed. A passive collector and any correction remain unimplemented.
-
-## Current work list
-
-| # | Work | Status / next evidence needed |
-|---|---|---|
-| 0 | Faster AI test mode | Installed: eight visits/no HumanSL; only completed idle workers survive ordinary Pause/Resume. Active searches and faults cancel. Measure cold/warm physical replies separately. |
-| 1 | Motor movement faults | Earlier released/held encoder and raw-velocity observations remain inconclusive; no guard relaxation. Attended optical comparison remains optional follow-up. |
-| 2 | Laser calibration | Prior setup passed five fit targets and nine independent checks, max final error 2.990 px. 97 current-setup observations retained; all hardware OFF. Minimal feedback-first startup/learning is now the objective; no new gameplay binding. |
-| 3 | Hand clearance | Ordinary hand withdrawal and placement were observed. Recheck beam darkness and fresh-clear recovery in 0.261; do not confuse the later real hand episode with the 600 ms expiry. |
-| 4 | Ordinary placement | Earlier Black/White moves and F5 laser indication passed. Broader 0.261 play, halfway-placement correction and clock behavior still need an attended run. |
-| 5 | Captures | Offline coverage exists; single/multiple/partial removals and both colors need physical validation. |
-| 6 | Move-to-light latency | Background request/status IO installed since 0.259; 0.260 added publication-stage tracing/ephemeral IPC; 0.261 separates safety metadata from PNG delivery. Injected-stall tests pass; no live latency improvement established; [600 ms reliability work remains open](CameraFreshnessReliability.md). |
-| 7 | Monitored motor holding | v44/schema 2 implemented; short dark commissioning and interrupted gameplay exercised. 0.261 + host `04b76c7` retains honest bounded `transitioning`; physical recovery test pending. Full OFF still releases bus power. |
-| 8 | Thermal endurance/cooling | Earlier short and partial endurance records retained; no two-hour physical pass or measured cooling recovery. Formal two-hour test optional. Monitor actual play; no unattended run scheduled. |
-| 9 | Ended-game grid recovery | Fix installed since 0.252 and offline-tested; live finish/reopen validation remains. Unfinished paused games still constrain expected position. |
-| 10 | Centering hints | Implemented behind preference; physically validate observed-disk target, hand stop and removal/centering. Never infer the intended intersection from an ambiguous disk. |
-| 11 | Captured-stone indication | Installed app/host behavior; AI placement precedes silent individual prisoners. Physical accuracy/partial cleanup remain unverified. |
-| 12 | Online-opponent laser integration | Still pending; accepting `source: online` in the wire schema is not a native authoritative target producer. Preserve server clock authority. |
-| 13 | Illegal-move feedback | Screen-only diagnostic installed since 0.258; 69 controller and 83 mechanism checks recorded. Physical suicide/ko/restoration pending. Illegal-move laser pattern remains a proposal. |
-| 14 | Documentation | November 24 reconciliation updates current guides, handoff, protocol and installation state; dated evidence retained and indexed. |
-| 15 | New-setup calibration | One full run completed; no general setup-time improvement proven. Launcher now preserves any saved game and tests fresh OFF leases; seven injected guard cases pass. Post-movement camera/optical qualification is next. |
-| 16 | Camera/occupied-board latency | Native timing now measured. Recent analysis median 60.1 ms, max 173.6 ms; no sustained analysis backlog established. Older occupied optical-registration reports describe a separate path. |
-| 17 | Gameplay fault continuity | Scoped hard-fault pause installed; 0.260 adds continuous three-second transition bound and pause on unrecoverable own-game link loss. Classified camera/lease recovery remains. Live validation pending. |
-| 18 | Adaptive map refinement | Offline/shadow only. No production learner or automatic model update. Recent residual interpolation worsened 4/8 supported endpoints and was not promoted. |
-| 19 | Calibration progress | Installed passive stage/target/check display; five fit + nine independent checks, no ETA or binding authority. One 1,230.9-second observation span is not a reliable ETA model. |
-| 20 | Architecture/process | Pure recovery reducer, immutable builds and paired acceptance integrated. Independent safety metadata is now installed in 0.261 and paired with host `04b76c7`; physical validation remains. |
-| 21 | Timing contract/logging | Optional bounded native/host tracing implemented. Cross-process clock domains and missing events must remain explicit; no ACK-to-actual-light equivalence. |
-| 22 | Stone profiles/parallax | Named sets and optional per-color thickness installed since 0.258; no optical/parallax correction activated. Independent setup/height identification remains open. |
-| 23 | Ambiguous assignment | Guard installed since 0.258; 52 focused checks recorded. Retest halfway stones in both colors with hints off/on; correct color is not correct intersection. |
-| 24 | Boundary geometry/difference studies | Diagnostic/offline work only. New full-resolution empty-board audit averages 4.26/361 regions requested across 19 comparisons; this is not stone/hand validation. Shadow/nonstone controls and fresh evidence remain required; unchanged pixels cannot supply fresh clearance or positive stone witnesses. |
-| 25 | Practice fixtures | Four paused, reversible starts installed; 166 persistence/controller checks recorded. Follow displayed rotated coordinates and preserve original snapshot. |
-| 26 | AI UI and sound | Introduced in 0.260, retained in 0.261: large clocks, four-sided labels, independent move-click controls. First-light cue once per move; E3 retry deduplication explains no repeat click. Actual headphone audibility still pending. |
-| 27 | Saved-data retention | Three abandoned partial backups pruned only after exact duplicate/prefix verification (306,201,499 logical bytes). All unique game/recording/calibration evidence retained. APFS clone consolidation did not produce measurable material free-space gain. Audit at `work/data-pruning-20261124/`. |
-
-## Immediate next steps
-
-1. Implement minimal feedback-first startup and qualified learning from gameplay
-   observations. Use the saved 97 observations; do not automatically repeat the full
-   diagnostic tour. Follow [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md).
-2. Physically validate the independently delivered metadata and inspect remaining tail delays described in
-   [CameraFreshnessReliability.md](CameraFreshnessReliability.md). Preserve original
-   timestamps and fail-dark behavior; do not call moving IO off-thread a complete fix.
-3. With qualified equipment and Dave present, test the click on AirPod Pro 3 and
-   start a new empty practice game. Record ordinary moves, hand stop/recovery,
-   transitions, clock pause on unrecoverable fault and final controller full OFF.
-4. Continue controlled capture, centering and ambiguous-placement cases after
-   ordinary play is stable. Record pass/fail/skipped rather than promoting offline
-   checks to physical validation.
-
-## Operating preferences and ownership
-
-Root is the sole hardware owner. Check for an existing process/serial owner before
-launching. Hardware is fully OFF and the attended driver has exited; there is no
-unattended run. Independent agent instrumentation is complete and not installed. An old READY is not a confirmation for a new physical run.
-Diagnostic image saving/warnings are off. Preserve games, clocks and calibration.
-Notify Dave before **any desktop screenshot**; use actual camera files for board
-evidence and accessibility text for UI checks. Keep AirPod Pro 3 selected.
-
-Retain 45°C cooling, both motors below 40°C for 30 seconds of measured evidence
-before renewed holding, and 50°C/lower configured-limit hard OFF. Sampled thresholds
-are not guarantees of absolute temperature ceilings. Actual firmware faults need
-their explicit reset workflow; a generic camera delay does not justify a power-cycle.
-Three pixels was Dave's preferred aiming accuracy, not an immutable hazard limit;
-implemented quality/geometry/control checks have distinct meanings and units.
-Calibration-only experimental timing overrides do not widen gameplay's 600 ms.
+Root is sole hardware owner. Check existing runs before opening serial; ask READY
+at the actual launcher prompt, monitor to completion, verify full OFF. No unattended
+physical run is scheduled. No desktop screenshots without advance notice; use the
+board webcam and accessibility text. Preserve game/clocks/calibration and unique
+recordings. Diagnostic image saving and warning sounds are currently off; no
+repetitive recording tail was removed in this session. Keep independent hand,
+lease, thermal and actual-pose safeguards. Three-pixel aiming is optional, not a
+universal requirement; geometry checks have different meanings and units.
