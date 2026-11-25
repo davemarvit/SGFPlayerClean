@@ -124,6 +124,15 @@ Reports: host Firmware/Experiments/FeedbackEdgeSteps/DomainAssessment.md (7313fc
 
 All issue owners have completed their finite deliverables. Only optional combined native validation remains active under one granted Swift slot: PG00/10/16/21 plus PG03 at combinedHEAD6f1b491. It does not gate root's native-only installation or authorize host/firmware activation.
 
+## Optional native validation completed
+
+Seven suites passed857native checks plus20Python checks on combinedsourcea60394ff93c62d72075dce52e7ca8549ae260e27, immutable runtimeeafcc91160e631dc76942c82464467a6eee88a48b56c6170fc029872c93b68dc. This validates PG00/10/16/21 with PG03 in the separate optional source combination; it is not the installed minimal native combination. Suite counts: idle78, AIplay169, AIlaser283, markers80, hand/stone67, latency26, async154.
+
+Initial run passed703checks but async fixture failed because a restarted5MBcustom-store session omitted its1MBallowance. Test-only fix7b20745 added that argument; no productionbudget change. Only async runner rebuilt, passed154, originalfailedattempt preserved with provenance. No worker installation, hardware, audio playback or visible UI operation occurred. Offline real-engine timings5.499s cold/0.070s warm are not physical reply latency.
+
+All27issue owners and additional cross-reviewer have delivered finite checkpoints. Every31open scope retains its declared acceptance; no physical issue is closed by these offline outcomes. Root owns final install/UI smoke, current hardware state and the canonical register. Next response-envelope experiment is documented/deferred, host/firmware activation remains blocked, and optional source integration is separate.
+
+
 
 
 
