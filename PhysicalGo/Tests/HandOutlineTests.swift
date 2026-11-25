@@ -25,6 +25,43 @@ import Foundation
                 return .init(id:i==0 ? "VNHLKWRI":"p\(i)",x:p.0,y:p.1,confidence:0.95)
             }])
         }
+        // New checkpoints must reproduce the very next decision, including
+        // duplicate/gap handling, pending confirmation and clock estimates.
+        // A snapshot is round-tripped before every observation, not only after
+        // a stable active track has already formed.
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        func restored(_ tracker:HandOutlineTracker)throws->HandOutlineTracker {
+            HandOutlineTracker(checkpoint:try JSONDecoder().decode(HandOutlineTracker.Checkpoint.self,
+                from:encoder.encode(tracker.checkpoint)))
+        }
+        for edge in 0..<4 {
+            var original=HandOutlineTracker(),copy=HandOutlineTracker()
+            let sequence:[(Double,Double?,Bool,String)]=[
+                (0,nil,false,"checkpoint"),(0.1,nil,false,"checkpoint"),(0.2,nil,false,"checkpoint"),
+                (0.3,nil,false,"checkpoint"),(0.4,nil,false,"checkpoint"),(0.8,nil,false,"checkpoint"),
+                (0.9,4,true,"checkpoint"),(1,2,true,"checkpoint"),(1.1,0.5,false,"checkpoint"),
+                (1.2,-0.5,false,"checkpoint"),(1.2,-0.5,false,"checkpoint"),
+                (1.3,nil,false,"checkpoint"),(1.4,nil,false,"checkpoint"),
+                (1.5,4,true,"checkpoint"),(1.6,nil,false,"new-source"),
+                (1.7,nil,false,"new-source"),(1.8,nil,false,"new-source"),
+                (1.9,4,true,"new-source"),(3,nil,false,"new-source")]
+            for (time,depth,hasPose,source) in sequence {
+                copy=try restored(copy)
+                let view=frame(depth,edge:edge),joints=hasPose ? pose(edge:edge):clear
+                let expected=original.observe(view,pose:joints,at:time,source:source)
+                let actual=copy.observe(view,pose:joints,at:time,source:source)
+                check(try encoder.encode(expected)==encoder.encode(actual),
+                    "Checkpoint changed next hand result at edge\(edge), time\(time)")
+            }
+            check(try encoder.encode(original.checkpoint)==encoder.encode(copy.checkpoint),
+                "Checkpoint lost background reference or temporal state")
+        }
+        let oldCheckpoint=try JSONDecoder().decode(HandOutlineTracker.Checkpoint.self,
+            from:Data(#"{"active":false,"edge":0,"center":[0,0]}"#.utf8))
+        check(oldCheckpoint.temporal==nil,"Historical spatial checkpoint invented temporal history")
+        var oldTracker=HandOutlineTracker(checkpoint:oldCheckpoint)
+        check(oldTracker.observe(frame(nil),pose:clear,at:10,source:"legacy").obstructed==nil,
+            "Historical checkpoint bypassed clear-reference initialization")
         for edge in 0..<4 {
             var tracker=HandOutlineTracker()
             for t in [0.0,0.1,0.2] {_=tracker.observe(frame(nil,edge:edge),pose:clear,at:t,source:"test")}
@@ -283,7 +320,15 @@ import Foundation
         check(saved != nil && saved!.disagreementSeconds>=5,"Long disagreement did not retain diagnostic state")
         let evidence=try JSONDecoder().decode(HandOutlineTracker.StallEvidence.self,from:JSONEncoder().encode(saved!))
         var replay=HandOutlineTracker(checkpoint:evidence.checkpoint)
-        check(replay.observe(evidence.frame,pose:evidence.pose,at:evidence.time,source:evidence.source).obstructed==true,"Saved stall state cannot reproduce the obstruction")
+        let replayed=replay.observe(evidence.frame,pose:evidence.pose,at:evidence.time,source:evidence.source)
+        check(try encoder.encode(replayed)==encoder.encode(evidence.result),
+            "Saved stall state changed obstruction, warning onset or timing")
+        check(replay.stallEvidence?.disagreementSeconds==evidence.disagreementSeconds,
+            "Saved stall state lost the original disagreement duration")
+        replay=try restored(replay)
+        let afterReplay=replay.observe(evidence.frame,pose:evidence.pose,at:evidence.time+0.2,source:evidence.source)
+        check(afterReplay.clearanceDelayed && replay.stallEvidence==nil,
+            "Restored reported stall duplicated evidence or cleared its warning")
         let duplicate=delayed.observe(frame(0.5),pose:clear,at:7.4,source:"delay")
         check(duplicate.obstructed==true && delayed.stallEvidence==nil,"Duplicate frame emitted another snapshot")
         _=delayed.observe(frame(nil),pose:clear,at:7.6,source:"delay")
