@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 910" width="1120" height="910" role="img" aria-labelledby="modes-title modes-desc">
+<title id="modes-title">7 · Local recording, online play and review</title><desc id="modes-desc">The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="400.0,73.0 200,73.0 200,140 200.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,121.0 550.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,73.0 900,73.0 900,140 900.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,316.0 200.0,415.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,316.0 550.0,415.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,316.0 900.0,415.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,511.0 200.0,615.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,463.0 375,463 375,580 550,580 550.0,615.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="462.5" y="572.0" text-anchor="middle">analysis</text>
+<polyline points="200.0,711.0 200.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,711.0 550,760 200,760 200.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="752.0" text-anchor="middle">proposal only</text>
+<g data-node="observation"><rect x="400" y="25" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="52">Admitted board observations</text>
+<text class="node-body" x="414" y="79">Same camera / grid / hand pipeline</text>
+<text class="node-body" x="414" y="100">Mode chooses the decision owner</text>
+</g>
+<g data-node="local"><rect x="50" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="247">Local: GameRecorder</text>
+<text class="node-body" x="64" y="274">Legal transition + chronology</text>
+<text class="node-body" x="64" y="295">Deferred / uncertain history retained</text>
+</g>
+<g data-node="ai"><rect x="400" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="247">AI: PhysicalAI</text>
+<text class="node-body" x="414" y="274">Human + KataGo legal history</text>
+<text class="node-body" x="414" y="295">Physical pending placement tracked</text>
+</g>
+<g data-node="online"><rect x="750" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="247">Online: SGF Player bridge</text>
+<text class="node-body" x="764" y="274">Ephemeral physical-board bridge</text>
+<text class="node-body" x="764" y="295">Server state / clocks authoritative</text>
+</g>
+<g data-node="clock"><rect x="50" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="442">Local clocks + recording</text>
+<text class="node-body" x="64" y="469">SGF + clock/review sidecars</text>
+<text class="node-body" x="64" y="490">Ordered writes; failure stops saves</text>
+</g>
+<g data-node="aisave"><rect x="400" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="442">AI snapshot + elapsed clocks</text>
+<text class="node-body" x="414" y="469">current.json authoritative</text>
+<text class="node-body" x="414" y="490">SGF export derived; no time forfeits</text>
+</g>
+<g data-node="gap"><rect x="750" y="415" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="764" y="442">Online laser integration gap</text>
+<text class="node-body" x="764" y="469">Wire source=online is not proof</text>
+<text class="node-body" x="764" y="490">of an end-to-end target producer</text>
+</g>
+<g data-node="review"><rect x="50" y="615" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="642">Review / corrections / undo</text>
+<text class="node-body" x="64" y="669">Resolve uncertainty explicitly</text>
+<text class="node-body" x="64" y="690">Do not retime accepted moves</text>
+</g>
+<g data-node="analysis"><rect x="400" y="615" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="642">KataGo review / forecast</text>
+<text class="node-body" x="414" y="669">Cancellable historical analysis</text>
+<text class="node-body" x="414" y="690">Coverage gaps stay visible</text>
+</g>
+<g data-node="score"><rect x="50" y="790" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="817">Explicit scoring agreement</text>
+<text class="node-body" x="64" y="844">Pause; analyze; approve corrections</text>
+<text class="node-body" x="64" y="865">Agree result only after review</text>
+</g>
+</svg>

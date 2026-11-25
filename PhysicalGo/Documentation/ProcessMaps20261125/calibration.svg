@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1120" width="1120" height="1120" role="img" aria-labelledby="calibration-title calibration-desc">
+<title id="calibration-title">2 · Two calibrations, then permission to play</title><desc id="calibration-desc">A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="200.0,126.0 200.0,205.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,301.0 200.0,380.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,253.0 400.0,253.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,301.0 550.0,380.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,476.0 550.0,555.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,651.0 550.0,730.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,778.0 750.0,778.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,651.0 900.0,730.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,826.0 900.0,915.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,428.0 375,428 375,778 400.0,778.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="525.0" text-anchor="middle">identity + geometry</text>
+<polyline points="50.0,778.0 25,778 25,253 50.0,253.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<g data-node="select"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="57">Select actual app camera</text>
+<text class="node-body" x="64" y="84">Verify device, dimensions, epoch</text>
+<text class="node-body" x="64" y="105">and advancing presentation times</text>
+</g>
+<g data-node="grid"><rect x="50" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="232">Fit camera → board grid</text>
+<text class="node-body" x="64" y="259">Find intersections / perspective</text>
+<text class="node-body" x="64" y="280">Validate boundaries + interior</text>
+</g>
+<g data-node="ref"><rect x="50" y="380" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="407">Retain geometry/reference</text>
+<text class="node-body" x="64" y="434">Native board coordinate system</text>
+<text class="node-body" x="64" y="455">Lighting / occupancy references</text>
+</g>
+<g data-node="measure"><rect x="400" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="232">Measure pointer → board</text>
+<text class="node-body" x="414" y="259">Observe spot at measured poses</text>
+<text class="node-body" x="414" y="280">Attended, guarded motor samples</text>
+</g>
+<g data-node="fit"><rect x="400" y="380" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="407">Fit candidate motor map</text>
+<text class="node-body" x="414" y="434">Predict target pose; quantify fit</text>
+<text class="node-body" x="414" y="455">Not a physical test of 361 points</text>
+</g>
+<g data-node="check"><rect x="400" y="555" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="582">Independent optical checks</text>
+<text class="node-body" x="414" y="609">Separate targets + actual spot</text>
+<text class="node-body" x="414" y="630">Reject moved / invalid setup</text>
+</g>
+<g data-node="bind"><rect x="400" y="730" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="757">Bind approved setup</text>
+<text class="node-body" x="414" y="784">Hashes: model/setup/reference</text>
+<text class="node-body" x="414" y="805">Camera/context/size/allowed targets</text>
+</g>
+<g data-node="verify"><rect x="750" y="555" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="582">Verify installed release</text>
+<text class="node-body" x="764" y="609">Pinned app + host + firmware</text>
+<text class="node-body" x="764" y="630">Read-only camera preflight ×3</text>
+</g>
+<g data-node="ready"><rect x="750" y="730" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="757">Attended READY gate</text>
+<text class="node-body" x="764" y="784">Recheck package + camera ×3</text>
+<text class="node-body" x="764" y="805">Exact controller identity + free port</text>
+</g>
+<g data-node="launch"><rect x="750" y="915" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="942">Open one host / controller</text>
+<text class="node-body" x="764" y="969">OFF handshake → capability check</text>
+<text class="node-body" x="764" y="990">Then current session admission</text>
+</g>
+<g data-node="moved"><rect x="50" y="730" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="64" y="757">If board/camera/pointer moves</text>
+<text class="node-body" x="64" y="784">Requalify affected relationships</text>
+<text class="node-body" x="64" y="805">A matching file hash is insufficient</text>
+</g>
+</svg>

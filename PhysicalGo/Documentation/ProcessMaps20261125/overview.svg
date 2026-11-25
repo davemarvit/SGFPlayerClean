@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 790" width="1120" height="790" role="img" aria-labelledby="overview-title overview-desc">
+<title id="overview-title">1 · The complete system</title><desc id="overview-desc">Separate observed stones, legal history, requested guidance and actual hardware state.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="200.0,131.0 200.0,225.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,273.0 400.0,273.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,273.0 750.0,273.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,321.0 900.0,415.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="750.0,463.0 700.0,463.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="405.0" text-anchor="middle">visible cue</text>
+<polyline points="400.0,463.0 350.0,463.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="50.0,463.0 30,463 30,273 50.0,273.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,463.0 375,463 375,205 550,205 550.0,225.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="377.6" text-anchor="middle">accepted</text>
+<polyline points="550.0,321.0 550,345 720,345 720,598 550,598 550.0,625.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="635.0" y="590.0" text-anchor="middle">review / end</text>
+<polyline points="900.0,511.0 900.0,625.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="900.0" y="560.0" text-anchor="middle">any hard fault</text>
+<polyline points="700.0,673.0 750.0,673.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="615.0" text-anchor="middle">pause / stop</text>
+<g data-node="setup"><rect x="50" y="35" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="62">A. Qualify the setup</text>
+<text class="node-body" x="64" y="89">Camera grid + pointer map</text>
+<text class="node-body" x="64" y="110">Independent checks + READY</text>
+</g>
+<g data-node="camera"><rect x="50" y="225" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="252">B. Observe the board</text>
+<text class="node-body" x="64" y="279">One app camera; fresh frames</text>
+<text class="node-body" x="64" y="300">Hand, grid, stones, uncertainty</text>
+</g>
+<g data-node="game"><rect x="400" y="225" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="252">C. Decide and preserve</text>
+<text class="node-body" x="414" y="279">Local recorder / AI / online</text>
+<text class="node-body" x="414" y="300">Legal history + clocks + save</text>
+</g>
+<g data-node="guide"><rect x="750" y="225" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="252">D. Request guidance</text>
+<text class="node-body" x="764" y="279">AI placement → capture → hint</text>
+<text class="node-body" x="764" y="300">Exact target + bounded lease</text>
+</g>
+<g data-node="host"><rect x="750" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="442">E. Aim and monitor</text>
+<text class="node-body" x="764" y="469">Dark admission → optical aim</text>
+<text class="node-body" x="764" y="490">Hold or stop; report real state</text>
+</g>
+<g data-node="human"><rect x="400" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="442">F. Human changes board</text>
+<text class="node-body" x="414" y="469">Place indicated stone; remove</text>
+<text class="node-body" x="414" y="490">captures; center when needed</text>
+</g>
+<g data-node="confirm"><rect x="50" y="415" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="442">G. Verify physical change</text>
+<text class="node-body" x="64" y="469">Clear, dark, fresh evidence</text>
+<text class="node-body" x="64" y="490">Stable legal / cleanup result</text>
+</g>
+<g data-node="save"><rect x="400" y="625" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="652">Review / end / restore</text>
+<text class="node-body" x="414" y="679">Preserve pending physical work</text>
+<text class="node-body" x="414" y="700">Explicit scoring / resume</text>
+</g>
+<g data-node="fault"><rect x="750" y="625" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="764" y="652">Fault or pause → full OFF</text>
+<text class="node-body" x="764" y="679">Beam off + motor bus released</text>
+<text class="node-body" x="764" y="700">Retain game and pending move</text>
+</g>
+</svg>

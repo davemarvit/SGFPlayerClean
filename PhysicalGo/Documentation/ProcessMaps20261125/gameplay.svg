@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1170" width="1120" height="1170" role="img" aria-labelledby="gameplay-title gameplay-desc">
+<title id="gameplay-title">4 · AI game and physical placement</title><desc id="gameplay-desc">The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="200.0,126.0 200.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,306.0 200.0,390.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,486.0 200.0,570.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="200.0" y="520.0" text-anchor="middle">unique</text>
+<polyline points="350.0,438.0 400.0,438.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="380.0" text-anchor="middle">unclear</text>
+<polyline points="550.0,390.0 550,350 200,350 200.0,306.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="342.0" text-anchor="middle">new evidence</text>
+<polyline points="200.0,666.0 200.0,750.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="200.0" y="700.0" text-anchor="middle">new human move</text>
+<polyline points="350.0,618.0 400.0,618.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="560.0" text-anchor="middle">saved position</text>
+<polyline points="350.0,798.0 400.0,798.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,798.0 750.0,798.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,750.0 900.0,666.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,570.0 900.0,486.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,390.0 900.0,306.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,210.0 900,180 200,180 200.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="550.0" y="172.0" text-anchor="middle">new dark evidence</text>
+<polyline points="400.0,618.0 375,618 375,258 350.0,258.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="538.0" text-anchor="middle">next human turn</text>
+<polyline points="550.0,846.0 550.0,965.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="550.0" y="897.5" text-anchor="middle">pass / end</text>
+<polyline points="700.0,618.0 710,618 710,1013 700.0,1013.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="710.0" y="728.5" text-anchor="middle">pause / fault</text>
+<g data-node="resume"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="57">Start / explicit Resume</text>
+<text class="node-body" x="64" y="84">Restore accepted save + clocks</text>
+<text class="node-body" x="64" y="105">Verify physical board matches</text>
+</g>
+<g data-node="observe"><rect x="50" y="210" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="237">Admit observation</text>
+<text class="node-body" x="64" y="264">Current context; clear and aligned</text>
+<text class="node-body" x="64" y="285">Confirmed dark + post-dark frame</text>
+</g>
+<g data-node="ambiguity"><rect x="50" y="390" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="417">Resolve assignment</text>
+<text class="node-body" x="64" y="444">New stone location must be unique</text>
+<text class="node-body" x="64" y="465">Weak empty neighbor can block</text>
+</g>
+<g data-node="stable"><rect x="50" y="570" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="597">Collect stable witnesses</text>
+<text class="node-body" x="64" y="624">≥3 distinct frames spanning 450 ms</text>
+<text class="node-body" x="64" y="645">Gaps &gt;600 ms reset continuity</text>
+</g>
+<g data-node="legal"><rect x="50" y="750" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="777">Accept legal human move</text>
+<text class="node-body" x="64" y="804">Rules + captures → history/save</text>
+<text class="node-body" x="64" y="825">Clock ownership changes here</text>
+</g>
+<g data-node="ai"><rect x="400" y="750" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="777">Ask KataGo</text>
+<text class="node-body" x="414" y="804">Normal or fast-test settings</text>
+<text class="node-body" x="414" y="825">Retained idle worker in fast mode</text>
+</g>
+<g data-node="commit"><rect x="750" y="750" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="777">Commit AI answer</text>
+<text class="node-body" x="764" y="804">Validate move; save decision time</text>
+<text class="node-body" x="764" y="825">Set pendingPlacement; switch turn</text>
+</g>
+<g data-node="request"><rect x="750" y="570" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="597">Select physical guidance</text>
+<text class="node-body" x="764" y="624">Placement → capture → centering</text>
+<text class="node-body" x="764" y="645">Keep pre-placement referenceCells</text>
+</g>
+<g data-node="aim"><rect x="750" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="417">Host aims / holds dot</text>
+<text class="node-body" x="764" y="444">Fresh target admission + optical aim</text>
+<text class="node-body" x="764" y="465">Native click: first light ack only</text>
+</g>
+<g data-node="human"><rect x="750" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="237">Human places / removes</text>
+<text class="node-body" x="764" y="264">Hand or stone suspicion darkens</text>
+<text class="node-body" x="764" y="285">Lit evidence cannot confirm a move</text>
+</g>
+<g data-node="match"><rect x="400" y="570" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="597">Expected board now matches?</text>
+<text class="node-body" x="414" y="624">Pending placement / cleanup ends</text>
+<text class="node-body" x="414" y="645">Only after admitted stable evidence</text>
+</g>
+<g data-node="wait"><rect x="400" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="417">Unclear / halfway / illegal</text>
+<text class="node-body" x="414" y="444">Wait or show correction markers</text>
+<text class="node-body" x="414" y="465">Never silently alter legal history</text>
+</g>
+<g data-node="end"><rect x="400" y="965" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="992">Pass / finish / pause / save</text>
+<text class="node-body" x="414" y="1019">Hard guidance fault pauses clocks</text>
+<text class="node-body" x="414" y="1040">Explicit Resume keeps pending work</text>
+</g>
+</svg>

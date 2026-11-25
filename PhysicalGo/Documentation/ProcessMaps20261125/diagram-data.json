@@ -1,0 +1,1784 @@
+[
+  {
+    "key": "overview",
+    "title": "1 \u00b7 The complete system",
+    "desc": "Separate observed stones, legal history, requested guidance and actual hardware state.",
+    "height": 790,
+    "nodes": [
+      {
+        "id": "setup",
+        "x": 50,
+        "y": 35,
+        "w": 300,
+        "h": 96,
+        "title": "A. Qualify the setup",
+        "body": "Camera grid + pointer map\nIndependent checks + READY",
+        "kind": "gate"
+      },
+      {
+        "id": "camera",
+        "x": 50,
+        "y": 225,
+        "w": 300,
+        "h": 96,
+        "title": "B. Observe the board",
+        "body": "One app camera; fresh frames\nHand, grid, stones, uncertainty",
+        "kind": "process"
+      },
+      {
+        "id": "game",
+        "x": 400,
+        "y": 225,
+        "w": 300,
+        "h": 96,
+        "title": "C. Decide and preserve",
+        "body": "Local recorder / AI / online\nLegal history + clocks + save",
+        "kind": "process"
+      },
+      {
+        "id": "guide",
+        "x": 750,
+        "y": 225,
+        "w": 300,
+        "h": 96,
+        "title": "D. Request guidance",
+        "body": "AI placement \u2192 capture \u2192 hint\nExact target + bounded lease",
+        "kind": "process"
+      },
+      {
+        "id": "host",
+        "x": 750,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "E. Aim and monitor",
+        "body": "Dark admission \u2192 optical aim\nHold or stop; report real state",
+        "kind": "process"
+      },
+      {
+        "id": "human",
+        "x": 400,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "F. Human changes board",
+        "body": "Place indicated stone; remove\ncaptures; center when needed",
+        "kind": "process"
+      },
+      {
+        "id": "confirm",
+        "x": 50,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "G. Verify physical change",
+        "body": "Clear, dark, fresh evidence\nStable legal / cleanup result",
+        "kind": "gate"
+      },
+      {
+        "id": "save",
+        "x": 400,
+        "y": 625,
+        "w": 300,
+        "h": 96,
+        "title": "Review / end / restore",
+        "body": "Preserve pending physical work\nExplicit scoring / resume",
+        "kind": "process"
+      },
+      {
+        "id": "fault",
+        "x": 750,
+        "y": 625,
+        "w": 300,
+        "h": 96,
+        "title": "Fault or pause \u2192 full OFF",
+        "body": "Beam off + motor bus released\nRetain game and pending move",
+        "kind": "fault"
+      }
+    ],
+    "edges": [
+      {
+        "a": "setup",
+        "b": "camera",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "camera",
+        "b": "game",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "game",
+        "b": "guide",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "guide",
+        "b": "host",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "host",
+        "b": "human",
+        "label": "visible cue",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "human",
+        "b": "confirm",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "confirm",
+        "b": "camera",
+        "label": "next evidence",
+        "route": [
+          [
+            30,
+            463
+          ],
+          [
+            30,
+            273
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "confirm",
+        "b": "game",
+        "label": "accepted",
+        "route": [
+          [
+            375,
+            463
+          ],
+          [
+            375,
+            205
+          ],
+          [
+            550,
+            205
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "game",
+        "b": "save",
+        "label": "review / end",
+        "route": [
+          [
+            550,
+            345
+          ],
+          [
+            720,
+            345
+          ],
+          [
+            720,
+            598
+          ],
+          [
+            550,
+            598
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "host",
+        "b": "fault",
+        "label": "any hard fault",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "save",
+        "b": "fault",
+        "label": "pause / stop",
+        "route": null,
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S1",
+      "S2",
+      "S22",
+      "S23",
+      "S24"
+    ]
+  },
+  {
+    "key": "calibration",
+    "title": "2 \u00b7 Two calibrations, then permission to play",
+    "desc": "A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.",
+    "height": 1120,
+    "nodes": [
+      {
+        "id": "select",
+        "x": 50,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Select actual app camera",
+        "body": "Verify device, dimensions, epoch\nand advancing presentation times",
+        "kind": "process"
+      },
+      {
+        "id": "grid",
+        "x": 50,
+        "y": 205,
+        "w": 300,
+        "h": 96,
+        "title": "Fit camera \u2192 board grid",
+        "body": "Find intersections / perspective\nValidate boundaries + interior",
+        "kind": "process"
+      },
+      {
+        "id": "ref",
+        "x": 50,
+        "y": 380,
+        "w": 300,
+        "h": 96,
+        "title": "Retain geometry/reference",
+        "body": "Native board coordinate system\nLighting / occupancy references",
+        "kind": "process"
+      },
+      {
+        "id": "measure",
+        "x": 400,
+        "y": 205,
+        "w": 300,
+        "h": 96,
+        "title": "Measure pointer \u2192 board",
+        "body": "Observe spot at measured poses\nAttended, guarded motor samples",
+        "kind": "process"
+      },
+      {
+        "id": "fit",
+        "x": 400,
+        "y": 380,
+        "w": 300,
+        "h": 96,
+        "title": "Fit candidate motor map",
+        "body": "Predict target pose; quantify fit\nNot a physical test of 361 points",
+        "kind": "process"
+      },
+      {
+        "id": "check",
+        "x": 400,
+        "y": 555,
+        "w": 300,
+        "h": 96,
+        "title": "Independent optical checks",
+        "body": "Separate targets + actual spot\nReject moved / invalid setup",
+        "kind": "gate"
+      },
+      {
+        "id": "bind",
+        "x": 400,
+        "y": 730,
+        "w": 300,
+        "h": 96,
+        "title": "Bind approved setup",
+        "body": "Hashes: model/setup/reference\nCamera/context/size/allowed targets",
+        "kind": "process"
+      },
+      {
+        "id": "verify",
+        "x": 750,
+        "y": 555,
+        "w": 300,
+        "h": 96,
+        "title": "Verify installed release",
+        "body": "Pinned app + host + firmware\nRead-only camera preflight \u00d73",
+        "kind": "gate"
+      },
+      {
+        "id": "ready",
+        "x": 750,
+        "y": 730,
+        "w": 300,
+        "h": 96,
+        "title": "Attended READY gate",
+        "body": "Recheck package + camera \u00d73\nExact controller identity + free port",
+        "kind": "gate"
+      },
+      {
+        "id": "launch",
+        "x": 750,
+        "y": 915,
+        "w": 300,
+        "h": 96,
+        "title": "Open one host / controller",
+        "body": "OFF handshake \u2192 capability check\nThen current session admission",
+        "kind": "process"
+      },
+      {
+        "id": "moved",
+        "x": 50,
+        "y": 730,
+        "w": 300,
+        "h": 96,
+        "title": "If board/camera/pointer moves",
+        "body": "Requalify affected relationships\nA matching file hash is insufficient",
+        "kind": "fault"
+      }
+    ],
+    "edges": [
+      {
+        "a": "select",
+        "b": "grid",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "grid",
+        "b": "ref",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "grid",
+        "b": "measure",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "measure",
+        "b": "fit",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "fit",
+        "b": "check",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "check",
+        "b": "bind",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "bind",
+        "b": "ready",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "verify",
+        "b": "ready",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ready",
+        "b": "launch",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ref",
+        "b": "bind",
+        "label": "identity + geometry",
+        "route": [
+          [
+            375,
+            428
+          ],
+          [
+            375,
+            778
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "moved",
+        "b": "grid",
+        "label": "fresh qualification",
+        "route": [
+          [
+            25,
+            778
+          ],
+          [
+            25,
+            253
+          ]
+        ],
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S3",
+      "S12",
+      "S19",
+      "S1"
+    ]
+  },
+  {
+    "key": "data",
+    "title": "3 \u00b7 Camera, processing and file boundaries",
+    "desc": "Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.",
+    "height": 1110,
+    "nodes": [
+      {
+        "id": "capture",
+        "x": 50,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Camera serial queue",
+        "body": "AVFoundation presentation time\nCapture + arrival + epoch/frame ID",
+        "kind": "process"
+      },
+      {
+        "id": "main",
+        "x": 50,
+        "y": 215,
+        "w": 300,
+        "h": 96,
+        "title": "Main actor: session snapshot",
+        "body": "Camera/grid/reference/expected board\nRevision rejects stale completions",
+        "kind": "process"
+      },
+      {
+        "id": "vision",
+        "x": 400,
+        "y": 215,
+        "w": 300,
+        "h": 96,
+        "title": "Serial vision worker",
+        "body": "Alignment + exposure + hand\nThen stone/shape/assignment evidence",
+        "kind": "process"
+      },
+      {
+        "id": "latest",
+        "x": 400,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Latest-only pending input",
+        "body": "One replaceable waiting frame\nNo accumulated analysis backlog",
+        "kind": "store"
+      },
+      {
+        "id": "safety",
+        "x": 750,
+        "y": 215,
+        "w": 300,
+        "h": 96,
+        "title": "Early safety \u2192 main actor",
+        "body": "Current revision checked\nClearance is not stone acceptance",
+        "kind": "process"
+      },
+      {
+        "id": "observe",
+        "x": 400,
+        "y": 430,
+        "w": 300,
+        "h": 96,
+        "title": "Final observation \u2192 game",
+        "body": "Same immutable analysis context\nGame applies own dark/stable gates",
+        "kind": "process"
+      },
+      {
+        "id": "png",
+        "x": 50,
+        "y": 430,
+        "w": 300,
+        "h": 96,
+        "title": "Image preparation / broker",
+        "body": "PNG work overlaps analysis\nCache key: epoch + frame ID",
+        "kind": "process"
+      },
+      {
+        "id": "manifest",
+        "x": 50,
+        "y": 630,
+        "w": 300,
+        "h": 96,
+        "title": "Image queue \u2192 latest.json",
+        "body": "Publish exact checked PNG first\nOne pending; retain four PNGs",
+        "kind": "store"
+      },
+      {
+        "id": "safejson",
+        "x": 750,
+        "y": 430,
+        "w": 300,
+        "h": 96,
+        "title": "Safety queue \u2192 safety.json",
+        "body": "Separate atomic publication\nNo matching pixels promised",
+        "kind": "store"
+      },
+      {
+        "id": "io",
+        "x": 400,
+        "y": 630,
+        "w": 300,
+        "h": 96,
+        "title": "Request / status IO queues",
+        "body": "One read + one write in flight\nOne replaceable pending request",
+        "kind": "store"
+      },
+      {
+        "id": "reader",
+        "x": 50,
+        "y": 840,
+        "w": 300,
+        "h": 96,
+        "title": "Host optical worker",
+        "body": "Read matching PNG + manifest\nCheck four ages \u2264600 ms",
+        "kind": "gate"
+      },
+      {
+        "id": "supervisor",
+        "x": 750,
+        "y": 630,
+        "w": 300,
+        "h": 96,
+        "title": "Host safety supervision",
+        "body": "Hand / camera / lease / thermal\nCan revoke busy optical worker",
+        "kind": "process"
+      },
+      {
+        "id": "status",
+        "x": 400,
+        "y": 840,
+        "w": 300,
+        "h": 96,
+        "title": "Host coordinator + worker",
+        "body": "Single hardware generation\nReceipt/status returns to native",
+        "kind": "process"
+      }
+    ],
+    "edges": [
+      {
+        "a": "capture",
+        "b": "main",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "capture",
+        "b": "latest",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "latest",
+        "b": "vision",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "main",
+        "b": "vision",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "vision",
+        "b": "safety",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "vision",
+        "b": "observe",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "main",
+        "b": "png",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "png",
+        "b": "manifest",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "safety",
+        "b": "safejson",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "safejson",
+        "b": "supervisor",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "observe",
+        "b": "io",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "manifest",
+        "b": "reader",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "reader",
+        "b": "status",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "io",
+        "b": "status",
+        "label": "lease / receipt",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "supervisor",
+        "b": "status",
+        "label": "revoke / monitor",
+        "route": [
+          [
+            900,
+            790
+          ],
+          [
+            650,
+            790
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "status",
+        "b": "io",
+        "label": "fresh ack",
+        "route": [
+          [
+            725,
+            888
+          ],
+          [
+            725,
+            678
+          ]
+        ],
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S4",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S9",
+      "S13",
+      "S14"
+    ]
+  },
+  {
+    "key": "gameplay",
+    "title": "4 \u00b7 AI game and physical placement",
+    "desc": "The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.",
+    "height": 1170,
+    "nodes": [
+      {
+        "id": "resume",
+        "x": 50,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Start / explicit Resume",
+        "body": "Restore accepted save + clocks\nVerify physical board matches",
+        "kind": "process"
+      },
+      {
+        "id": "observe",
+        "x": 50,
+        "y": 210,
+        "w": 300,
+        "h": 96,
+        "title": "Admit observation",
+        "body": "Current context; clear and aligned\nConfirmed dark + post-dark frame",
+        "kind": "gate"
+      },
+      {
+        "id": "ambiguity",
+        "x": 50,
+        "y": 390,
+        "w": 300,
+        "h": 96,
+        "title": "Resolve assignment",
+        "body": "New stone location must be unique\nWeak empty neighbor can block",
+        "kind": "gate"
+      },
+      {
+        "id": "stable",
+        "x": 50,
+        "y": 570,
+        "w": 300,
+        "h": 96,
+        "title": "Collect stable witnesses",
+        "body": "\u22653 distinct frames spanning 450 ms\nGaps >600 ms reset continuity",
+        "kind": "gate"
+      },
+      {
+        "id": "legal",
+        "x": 50,
+        "y": 750,
+        "w": 300,
+        "h": 96,
+        "title": "Accept legal human move",
+        "body": "Rules + captures \u2192 history/save\nClock ownership changes here",
+        "kind": "process"
+      },
+      {
+        "id": "ai",
+        "x": 400,
+        "y": 750,
+        "w": 300,
+        "h": 96,
+        "title": "Ask KataGo",
+        "body": "Normal or fast-test settings\nRetained idle worker in fast mode",
+        "kind": "process"
+      },
+      {
+        "id": "commit",
+        "x": 750,
+        "y": 750,
+        "w": 300,
+        "h": 96,
+        "title": "Commit AI answer",
+        "body": "Validate move; save decision time\nSet pendingPlacement; switch turn",
+        "kind": "process"
+      },
+      {
+        "id": "request",
+        "x": 750,
+        "y": 570,
+        "w": 300,
+        "h": 96,
+        "title": "Select physical guidance",
+        "body": "Placement \u2192 capture \u2192 centering\nKeep pre-placement referenceCells",
+        "kind": "process"
+      },
+      {
+        "id": "aim",
+        "x": 750,
+        "y": 390,
+        "w": 300,
+        "h": 96,
+        "title": "Host aims / holds dot",
+        "body": "Fresh target admission + optical aim\nNative click: first light ack only",
+        "kind": "process"
+      },
+      {
+        "id": "human",
+        "x": 750,
+        "y": 210,
+        "w": 300,
+        "h": 96,
+        "title": "Human places / removes",
+        "body": "Hand or stone suspicion darkens\nLit evidence cannot confirm a move",
+        "kind": "process"
+      },
+      {
+        "id": "match",
+        "x": 400,
+        "y": 570,
+        "w": 300,
+        "h": 96,
+        "title": "Expected board now matches?",
+        "body": "Pending placement / cleanup ends\nOnly after admitted stable evidence",
+        "kind": "gate"
+      },
+      {
+        "id": "wait",
+        "x": 400,
+        "y": 390,
+        "w": 300,
+        "h": 96,
+        "title": "Unclear / halfway / illegal",
+        "body": "Wait or show correction markers\nNever silently alter legal history",
+        "kind": "process"
+      },
+      {
+        "id": "end",
+        "x": 400,
+        "y": 965,
+        "w": 300,
+        "h": 96,
+        "title": "Pass / finish / pause / save",
+        "body": "Hard guidance fault pauses clocks\nExplicit Resume keeps pending work",
+        "kind": "process"
+      }
+    ],
+    "edges": [
+      {
+        "a": "resume",
+        "b": "observe",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "observe",
+        "b": "ambiguity",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ambiguity",
+        "b": "stable",
+        "label": "unique",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ambiguity",
+        "b": "wait",
+        "label": "unclear",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "wait",
+        "b": "observe",
+        "label": "new evidence",
+        "route": [
+          [
+            550,
+            350
+          ],
+          [
+            200,
+            350
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "stable",
+        "b": "legal",
+        "label": "new human move",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "stable",
+        "b": "match",
+        "label": "saved position",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "legal",
+        "b": "ai",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ai",
+        "b": "commit",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "commit",
+        "b": "request",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "request",
+        "b": "aim",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "aim",
+        "b": "human",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "human",
+        "b": "observe",
+        "label": "new dark evidence",
+        "route": [
+          [
+            900,
+            180
+          ],
+          [
+            200,
+            180
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "match",
+        "b": "observe",
+        "label": "next human turn",
+        "route": [
+          [
+            375,
+            618
+          ],
+          [
+            375,
+            258
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "ai",
+        "b": "end",
+        "label": "pass / end",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "match",
+        "b": "end",
+        "label": "pause / fault",
+        "route": [
+          [
+            710,
+            618
+          ],
+          [
+            710,
+            1013
+          ]
+        ],
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S10",
+      "S11",
+      "S22",
+      "S23",
+      "S25"
+    ]
+  },
+  {
+    "key": "laser",
+    "title": "5 \u00b7 Host aiming and holding",
+    "desc": "Every observation has its own fresh pixels and actual-pose checks. Geometry can be reused only while its fixed anchor still agrees.",
+    "height": 1480,
+    "nodes": [
+      {
+        "id": "admit",
+        "x": 50,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Admit current request",
+        "body": "Binding + fresh frame + identity\nWarm receipt or cold admission",
+        "kind": "gate"
+      },
+      {
+        "id": "arm",
+        "x": 400,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Cold GA / warm RS",
+        "body": "Dark motor engagement / resume\nNative unfinished episode \u226412 s",
+        "kind": "process"
+      },
+      {
+        "id": "prepare",
+        "x": 400,
+        "y": 205,
+        "w": 300,
+        "h": 96,
+        "title": "Prepare while dark",
+        "body": "PREPARE \u2192 three dark frames\nFit median geometry + fresh check",
+        "kind": "process"
+      },
+      {
+        "id": "initial",
+        "x": 400,
+        "y": 390,
+        "w": 300,
+        "h": 96,
+        "title": "Initial optical observation",
+        "body": "SWEEP light; flush \u2265300 ms\nFresh batch + pose before/after",
+        "kind": "process"
+      },
+      {
+        "id": "dark",
+        "x": 400,
+        "y": 575,
+        "w": 300,
+        "h": 96,
+        "title": "Initial observe darkens",
+        "body": "DARK + state/pose recheck\nEven if target already accepted",
+        "kind": "process"
+      },
+      {
+        "id": "coarse",
+        "x": 50,
+        "y": 750,
+        "w": 300,
+        "h": 96,
+        "title": "Try predicted dark travel",
+        "body": "Bounded model / support corridor\nGOTO + recenter actual settlement",
+        "kind": "process"
+      },
+      {
+        "id": "reacquire",
+        "x": 50,
+        "y": 925,
+        "w": 300,
+        "h": 96,
+        "title": "Observe actual landing",
+        "body": "Coarse: search across the board\nFine: measure near predicted spot",
+        "kind": "process"
+      },
+      {
+        "id": "fine",
+        "x": 400,
+        "y": 925,
+        "w": 300,
+        "h": 96,
+        "title": "If outside 0.20 cell: correct",
+        "body": "Local response at actual pose\nFine light allowed only if guarded",
+        "kind": "process"
+      },
+      {
+        "id": "accept",
+        "x": 750,
+        "y": 750,
+        "w": 300,
+        "h": 96,
+        "title": "Within 0.20 cell",
+        "body": "Measured target acceptance\nDoes not confirm physical stone",
+        "kind": "gate"
+      },
+      {
+        "id": "hold",
+        "x": 750,
+        "y": 925,
+        "w": 300,
+        "h": 96,
+        "title": "Verify and hold indication",
+        "body": "If dark: new PREPARE + SWEEP\nIf already lit: promote same beam",
+        "kind": "process"
+      },
+      {
+        "id": "monitor",
+        "x": 750,
+        "y": 1110,
+        "w": 300,
+        "h": 96,
+        "title": "Read fresh spot repeatedly",
+        "body": "Must stay within 0.20 cell\nEmit adequate; await placement",
+        "kind": "process"
+      },
+      {
+        "id": "refresh",
+        "x": 400,
+        "y": 1110,
+        "w": 300,
+        "h": 96,
+        "title": "Renew dark geometry",
+        "body": "At age \u22656 s (10 s max, 4 s reserve)\nOr light interval near 55 s",
+        "kind": "process"
+      },
+      {
+        "id": "placement",
+        "x": 750,
+        "y": 1300,
+        "w": 300,
+        "h": 96,
+        "title": "Hand / stone / new request",
+        "body": "Revoke old operation \u2192 dark/OFF\nNative confirms physical outcome",
+        "kind": "process"
+      },
+      {
+        "id": "guards",
+        "x": 50,
+        "y": 1300,
+        "w": 300,
+        "h": 96,
+        "title": "Independent guards throughout",
+        "body": "Lease / hand / thermal / actual pose\nAny fault \u2192 cancellation / full OFF",
+        "kind": "fault"
+      }
+    ],
+    "edges": [
+      {
+        "a": "admit",
+        "b": "arm",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "arm",
+        "b": "prepare",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "prepare",
+        "b": "initial",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "initial",
+        "b": "dark",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "dark",
+        "b": "coarse",
+        "label": "outside tolerance",
+        "route": [
+          [
+            200,
+            623
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "coarse",
+        "b": "reacquire",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "reacquire",
+        "b": "fine",
+        "label": "miss",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "fine",
+        "b": "reacquire",
+        "label": "remeasure",
+        "route": [
+          [
+            550,
+            1068
+          ],
+          [
+            200,
+            1068
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "dark",
+        "b": "accept",
+        "label": "already close",
+        "route": [
+          [
+            900,
+            623
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "reacquire",
+        "b": "accept",
+        "label": "measured pass",
+        "route": [
+          [
+            375,
+            973
+          ],
+          [
+            375,
+            867
+          ],
+          [
+            735,
+            867
+          ],
+          [
+            735,
+            798
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "accept",
+        "b": "hold",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "hold",
+        "b": "monitor",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "monitor",
+        "b": "refresh",
+        "label": "refresh due",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "refresh",
+        "b": "prepare",
+        "label": "new dark anchor",
+        "route": [
+          [
+            720,
+            1158
+          ],
+          [
+            720,
+            170
+          ],
+          [
+            550,
+            170
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "monitor",
+        "b": "placement",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S15",
+      "S16",
+      "S17",
+      "S18",
+      "S20",
+      "S21",
+      "S11"
+    ]
+  },
+  {
+    "key": "recovery",
+    "title": "6 \u00b7 Cancellation, darkness and full OFF",
+    "desc": "Dark motors-held state is useful during play. It is not a full power-off receipt, and a command submission is not an acknowledgement.",
+    "height": 1130,
+    "nodes": [
+      {
+        "id": "event",
+        "x": 50,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Interruption / state change",
+        "body": "Hand, target replacement, pause\nCamera/lease, optical or hard fault",
+        "kind": "process"
+      },
+      {
+        "id": "revoke",
+        "x": 400,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Invalidate generation first",
+        "body": "No late worker command/result\nmay authorize the next request",
+        "kind": "process"
+      },
+      {
+        "id": "quiet",
+        "x": 750,
+        "y": 30,
+        "w": 300,
+        "h": 96,
+        "title": "Quiesce worker / controller",
+        "body": "Coordinator owns stop and receipt\nWorker cleanup cannot send old IO",
+        "kind": "process"
+      },
+      {
+        "id": "branch",
+        "x": 750,
+        "y": 220,
+        "w": 300,
+        "h": 96,
+        "title": "Choose permitted stop path",
+        "body": "Healthy eligible handoff only\nOtherwise request full OFF",
+        "kind": "gate"
+      },
+      {
+        "id": "darkhold",
+        "x": 400,
+        "y": 405,
+        "w": 300,
+        "h": 96,
+        "title": "DARK / holding receipt",
+        "body": "Beam off, motors held, bus powered\nCooling can instead release motors",
+        "kind": "process"
+      },
+      {
+        "id": "off",
+        "x": 750,
+        "y": 405,
+        "w": 300,
+        "h": 96,
+        "title": "Full OFF receipt",
+        "body": "Beam off + motor bus released\nExact identity + fresh acknowledgement",
+        "kind": "gate"
+      },
+      {
+        "id": "frame",
+        "x": 400,
+        "y": 600,
+        "w": 300,
+        "h": 96,
+        "title": "Post-dark camera evidence",
+        "body": "Same stream + frame watermark\n\u2265300 ms presentation flush",
+        "kind": "gate"
+      },
+      {
+        "id": "transient",
+        "x": 50,
+        "y": 795,
+        "w": 300,
+        "h": 96,
+        "title": "Classified transient recovery",
+        "body": "Camera/lease barrier + fresh streak\nCurrent target must be reverified",
+        "kind": "process"
+      },
+      {
+        "id": "explicit",
+        "x": 750,
+        "y": 795,
+        "w": 300,
+        "h": 96,
+        "title": "Hard / unexplained failure",
+        "body": "Pause game + clock; retain target\nExplicit recheck / Resume required",
+        "kind": "fault"
+      },
+      {
+        "id": "retry",
+        "x": 400,
+        "y": 980,
+        "w": 300,
+        "h": 96,
+        "title": "Re-admit under current proof",
+        "body": "New scope, clear board, fresh status\nHardware recovery alone \u2260 Resume",
+        "kind": "process"
+      }
+    ],
+    "edges": [
+      {
+        "a": "event",
+        "b": "revoke",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "revoke",
+        "b": "quiet",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "quiet",
+        "b": "branch",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "branch",
+        "b": "off",
+        "label": "fault / pause",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "branch",
+        "b": "darkhold",
+        "label": "eligible warm handoff",
+        "route": [
+          [
+            550,
+            268
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "darkhold",
+        "b": "frame",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "off",
+        "b": "frame",
+        "label": "after full OFF",
+        "route": [
+          [
+            900,
+            555
+          ],
+          [
+            550,
+            555
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "frame",
+        "b": "transient",
+        "label": "classified recovery",
+        "route": [
+          [
+            200,
+            648
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "off",
+        "b": "explicit",
+        "label": "hard fault",
+        "route": [
+          [
+            1080,
+            453
+          ],
+          [
+            1080,
+            843
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "explicit",
+        "b": "retry",
+        "label": "explicit action",
+        "route": [
+          [
+            900,
+            1028
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "transient",
+        "b": "retry",
+        "label": "fresh witnesses",
+        "route": [
+          [
+            200,
+            1028
+          ]
+        ],
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S11",
+      "S13",
+      "S25",
+      "S26",
+      "S27",
+      "S1"
+    ]
+  },
+  {
+    "key": "modes",
+    "title": "7 \u00b7 Local recording, online play and review",
+    "desc": "The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.",
+    "height": 910,
+    "nodes": [
+      {
+        "id": "observation",
+        "x": 400,
+        "y": 25,
+        "w": 300,
+        "h": 96,
+        "title": "Admitted board observations",
+        "body": "Same camera / grid / hand pipeline\nMode chooses the decision owner",
+        "kind": "process"
+      },
+      {
+        "id": "local",
+        "x": 50,
+        "y": 220,
+        "w": 300,
+        "h": 96,
+        "title": "Local: GameRecorder",
+        "body": "Legal transition + chronology\nDeferred / uncertain history retained",
+        "kind": "process"
+      },
+      {
+        "id": "ai",
+        "x": 400,
+        "y": 220,
+        "w": 300,
+        "h": 96,
+        "title": "AI: PhysicalAI",
+        "body": "Human + KataGo legal history\nPhysical pending placement tracked",
+        "kind": "process"
+      },
+      {
+        "id": "online",
+        "x": 750,
+        "y": 220,
+        "w": 300,
+        "h": 96,
+        "title": "Online: SGF Player bridge",
+        "body": "Ephemeral physical-board bridge\nServer state / clocks authoritative",
+        "kind": "process"
+      },
+      {
+        "id": "clock",
+        "x": 50,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "Local clocks + recording",
+        "body": "SGF + clock/review sidecars\nOrdered writes; failure stops saves",
+        "kind": "process"
+      },
+      {
+        "id": "aisave",
+        "x": 400,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "AI snapshot + elapsed clocks",
+        "body": "current.json authoritative\nSGF export derived; no time forfeits",
+        "kind": "process"
+      },
+      {
+        "id": "gap",
+        "x": 750,
+        "y": 415,
+        "w": 300,
+        "h": 96,
+        "title": "Online laser integration gap",
+        "body": "Wire source=online is not proof\nof an end-to-end target producer",
+        "kind": "fault"
+      },
+      {
+        "id": "review",
+        "x": 50,
+        "y": 615,
+        "w": 300,
+        "h": 96,
+        "title": "Review / corrections / undo",
+        "body": "Resolve uncertainty explicitly\nDo not retime accepted moves",
+        "kind": "process"
+      },
+      {
+        "id": "analysis",
+        "x": 400,
+        "y": 615,
+        "w": 300,
+        "h": 96,
+        "title": "KataGo review / forecast",
+        "body": "Cancellable historical analysis\nCoverage gaps stay visible",
+        "kind": "process"
+      },
+      {
+        "id": "score",
+        "x": 50,
+        "y": 790,
+        "w": 300,
+        "h": 96,
+        "title": "Explicit scoring agreement",
+        "body": "Pause; analyze; approve corrections\nAgree result only after review",
+        "kind": "process"
+      }
+    ],
+    "edges": [
+      {
+        "a": "observation",
+        "b": "local",
+        "label": "",
+        "route": [
+          [
+            200,
+            140
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "observation",
+        "b": "ai",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "observation",
+        "b": "online",
+        "label": "",
+        "route": [
+          [
+            900,
+            140
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "local",
+        "b": "clock",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "ai",
+        "b": "aisave",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "online",
+        "b": "gap",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "clock",
+        "b": "review",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "clock",
+        "b": "analysis",
+        "label": "analysis",
+        "route": [
+          [
+            375,
+            463
+          ],
+          [
+            375,
+            580
+          ],
+          [
+            550,
+            580
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "review",
+        "b": "score",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "analysis",
+        "b": "score",
+        "label": "proposal only",
+        "route": [
+          [
+            550,
+            760
+          ],
+          [
+            200,
+            760
+          ]
+        ],
+        "kind": "normal"
+      }
+    ],
+    "refs": [
+      "S2",
+      "S22",
+      "S24"
+    ]
+  }
+]

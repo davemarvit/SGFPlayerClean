@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1110" width="1120" height="1110" role="img" aria-labelledby="data-title data-desc">
+<title id="data-title">3 · Camera, processing and file boundaries</title><desc id="data-desc">Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="200.0,126.0 200.0,215.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,78.0 400.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,126.0 550.0,215.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,263.0 400.0,263.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,263.0 750.0,263.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,311.0 550.0,430.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,311.0 200.0,430.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,526.0 200.0,630.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,311.0 900.0,430.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,526.0 900.0,630.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,526.0 550.0,630.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,726.0 200.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,888.0 400.0,888.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,726.0 550.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="550.0" y="775.0" text-anchor="middle">lease / receipt</text>
+<polyline points="900.0,726.0 900,790 650,790 550.0,790 550.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="775.0" y="782.0" text-anchor="middle">revoke / monitor</text>
+<polyline points="700.0,888.0 725,888 725,678 700.0,678.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="817.0" text-anchor="middle">fresh ack</text>
+<g data-node="capture"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="57">Camera serial queue</text>
+<text class="node-body" x="64" y="84">AVFoundation presentation time</text>
+<text class="node-body" x="64" y="105">Capture + arrival + epoch/frame ID</text>
+</g>
+<g data-node="main"><rect x="50" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="242">Main actor: session snapshot</text>
+<text class="node-body" x="64" y="269">Camera/grid/reference/expected board</text>
+<text class="node-body" x="64" y="290">Revision rejects stale completions</text>
+</g>
+<g data-node="vision"><rect x="400" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="242">Serial vision worker</text>
+<text class="node-body" x="414" y="269">Alignment + exposure + hand</text>
+<text class="node-body" x="414" y="290">Then stone/shape/assignment evidence</text>
+</g>
+<g data-node="latest"><rect x="400" y="30" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="414" y="57">Latest-only pending input</text>
+<text class="node-body" x="414" y="84">One replaceable waiting frame</text>
+<text class="node-body" x="414" y="105">No accumulated analysis backlog</text>
+</g>
+<g data-node="safety"><rect x="750" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="242">Early safety → main actor</text>
+<text class="node-body" x="764" y="269">Current revision checked</text>
+<text class="node-body" x="764" y="290">Clearance is not stone acceptance</text>
+</g>
+<g data-node="observe"><rect x="400" y="430" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="457">Final observation → game</text>
+<text class="node-body" x="414" y="484">Same immutable analysis context</text>
+<text class="node-body" x="414" y="505">Game applies own dark/stable gates</text>
+</g>
+<g data-node="png"><rect x="50" y="430" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="457">Image preparation / broker</text>
+<text class="node-body" x="64" y="484">PNG work overlaps analysis</text>
+<text class="node-body" x="64" y="505">Cache key: epoch + frame ID</text>
+</g>
+<g data-node="manifest"><rect x="50" y="630" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="64" y="657">Image queue → latest.json</text>
+<text class="node-body" x="64" y="684">Publish exact checked PNG first</text>
+<text class="node-body" x="64" y="705">One pending; retain four PNGs</text>
+</g>
+<g data-node="safejson"><rect x="750" y="430" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="764" y="457">Safety queue → safety.json</text>
+<text class="node-body" x="764" y="484">Separate atomic publication</text>
+<text class="node-body" x="764" y="505">No matching pixels promised</text>
+</g>
+<g data-node="io"><rect x="400" y="630" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="414" y="657">Request / status IO queues</text>
+<text class="node-body" x="414" y="684">One read + one write in flight</text>
+<text class="node-body" x="414" y="705">One replaceable pending request</text>
+</g>
+<g data-node="reader"><rect x="50" y="840" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="867">Host optical worker</text>
+<text class="node-body" x="64" y="894">Read matching PNG + manifest</text>
+<text class="node-body" x="64" y="915">Check four ages ≤600 ms</text>
+</g>
+<g data-node="supervisor"><rect x="750" y="630" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="657">Host safety supervision</text>
+<text class="node-body" x="764" y="684">Hand / camera / lease / thermal</text>
+<text class="node-body" x="764" y="705">Can revoke busy optical worker</text>
+</g>
+<g data-node="status"><rect x="400" y="840" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="867">Host coordinator + worker</text>
+<text class="node-body" x="414" y="894">Single hardware generation</text>
+<text class="node-body" x="414" y="915">Receipt/status returns to native</text>
+</g>
+</svg>
