@@ -234,6 +234,52 @@ def validate_faults(folder, firmware):
     return manifest
 
 
+
+def validate_points(folder, request_file):
+    """Required production-publisher point conversation, with simulated optics."""
+    manifest = read_json(folder/'manifest.json')
+    request = read_json(request_file)
+    require(manifest.get('schemaVersion') == 1 and
+            manifest.get('sourceRequestSHA256') == digest(request_file),
+            'Point conversation did not consume the fresh Swift point request')
+    require(manifest.get('target') == request.get('target'), 'Point conversation changed target identity')
+    require(manifest.get('lateFeedbackRejected') is True and manifest.get('lateWriteRejected') is True,
+            'Point conversation did not reject obsolete feedback and writes')
+    states = {'approaching-lit': ('approaching', True),
+              'approaching-dark': ('approaching', False),
+              'adequate': ('adequate', True),
+              'transitioning': ('transitioning', False), 'off': ('off', False)}
+    names = {f'host-{event}.json' for event in states}
+    require(set(manifest.get('files', {})) == names and
+            {p.name for p in folder.glob('*.json')} == names | {'manifest.json'},
+            'Point conversation is missing mandatory states')
+    point_sequence, off_sequence = manifest.get('pointSequence'), manifest.get('offSequence')
+    require(type(point_sequence) is int and point_sequence >= 0 and
+            type(off_sequence) is int and off_sequence == point_sequence+1,
+            'Point cancellation did not advance revision')
+    for event, (state, lit) in states.items():
+        name = f'host-{event}.json'
+        path = folder/name
+        require(digest(path) == manifest['files'][name], f'Point status hash changed: {name}')
+        status = read_json(path)
+        validate_status_shape(status, name)
+        require(all(status.get(k) == request.get(k) for k in
+                    ('producer', 'playSession', 'cameraContext', 'streamEpoch')),
+                f'Point status borrowed a different Swift scope: {name}')
+        cancelled = state in {'transitioning', 'off'}
+        require(status.get('state') == state and status['sequence'] == (off_sequence if cancelled else point_sequence),
+                f'Point state has obsolete/wrong revision: {name}')
+        require(status.get('illuminationConfirmed') is lit and status['requiresNewRevision'] is False,
+                f'Point state has invalid indication authority: {name}')
+        if state != 'transitioning':
+            require(status['laserOn'] is lit, f'Point feedback light mismatch: {name}')
+        if state != 'off':
+            require(status.get('offSinceUnix') is None and status.get('evidenceAfter') is None and
+                    status.get('darkEvidenceAfter') is None,
+                    f'Point conversation invented dark/OFF evidence: {name}')
+    return manifest
+
+
 def run_stage(name, command, folder, env, timeout, expected_pattern=None, minimum=None):
     print(f'Running {name}', flush=True)
     log = folder/(name+'.log')
@@ -334,6 +380,10 @@ def main(argv=None):
         report['hostStage'] = read_json(swift/'host-stage.json')
         require(report['hostStage'].get('tests')==16 and report['hostStage'].get('expiryAdapter'),
                 'Host stage did not record its full test coverage and explicit expiry adapter')
+        point_manifest = validate_points(swift/'PointStatus', swift/'swift-point.json')
+        require(report['hostStage'].get('pointConversation') == point_manifest,
+                'Host stage omitted or changed its point conversation receipt')
+        report['pointConversation'] = point_manifest
         fault_manifest = validate_faults(swift/'FaultStatus', firmware)
         exported_scope=read_json(swift/'swift-standby-clear.json')
         for entry in fault_manifest['fixtures']:
@@ -375,6 +425,8 @@ def main(argv=None):
         else:
             validate_native(app, args.native_root.resolve(), provenance, args.allow_reviewed_baseline)
         validate_faults(swift/'FaultStatus', firmware)
+        require(validate_points(swift/'PointStatus', swift/'swift-point.json') == point_manifest,
+                'Point conversation changed during acceptance')
         require({p.name:digest(p) for p in basic.glob('*.json')}==report['basicStatusHashes'],
                 'Basic host statuses changed during acceptance')
         require(validate_requests(swift) == request_hashes, 'Swift request fixtures changed during acceptance')

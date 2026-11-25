@@ -359,9 +359,9 @@ import ImageIO
         // Even stone-shaped readings from a laser-lit frame cannot confirm placement.
         gameLaser.setEnabled(true)
         gameLaser.observeCamera(hand:false,valid:true,capturedAt:now,now:now,context:"fixture/grid")
-        func gameStatus(_ state: String,off: Double? = nil)throws {
+        func gameStatus(_ state: String,off: Double? = nil,hardware:Bool=false,lit:Bool?=nil)throws {
             let reply=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:gameLaser.producer,sequence:gameLaser.sequence,
-                updatedAtUnix:wall,mode:"simulation",state:state,laserOn:state=="adequate",offSinceUnix:off,detail:state)
+                updatedAtUnix:wall,mode:hardware ? "hardware":"simulation",state:state,laserOn:lit ?? (state=="adequate"),offSinceUnix:off,detail:state,illuminationConfirmed:hardware ? lit:nil)
             try JSONEncoder().encode(reply).write(to:gameLaser.directory.appendingPathComponent("status.json"),options:.atomic)
         }
         try gameStatus("off",off:wall-1);gameLaser.tick()
@@ -370,6 +370,15 @@ import ImageIO
         ai.consume(emptyProof,now:now)
         let admitted=try JSONDecoder().decode(PhysicalLaserGuidance.Request.self,from:Data(contentsOf:gameLaser.directory.appendingPathComponent("request.json")))
         check(admitted.action=="point","AI publishes point only after post-decision empty proof")
+        // PG33's optical samples can illuminate away from the destination.
+        // Positive light is a cue receipt, never board-placement acceptance.
+        let beforeOpticalHistory=ai.snapshot!.moves.map(\.point),beforeOpticalTiming=ai.timing
+        let beforeOpticalMarker=ai.guidanceTarget
+        for (state,lit) in [("approaching",true),("approaching",false),("adequate",true)] {
+            try gameStatus(state,hardware:true,lit:lit);gameLaser.tick()
+            check(ai.phase == .placing && ai.snapshot!.pendingPlacement && ai.guidanceTarget==beforeOpticalMarker,"Optical feedback cannot accept placement or remove virtual marker: \(state)/\(lit)")
+            check(ai.snapshot!.moves.map(\.point)==beforeOpticalHistory && ai.timing==beforeOpticalTiming,"Optical feedback cannot commit history or reset clock: \(state)/\(lit)")
+        }
         try gameStatus("adequate");gameLaser.tick()
         var litCandidate=empty;litCandidate[48]="black";feed(litCandidate)
         check(ai.phase == .placing && ai.pendingPoint==48,"laser-lit stone-like reading cannot accept a move")
@@ -392,6 +401,60 @@ import ImageIO
         check(ai.timing.elapsed(black:false,at:now)==elapsed,"pause freezes elapsed time")
         let restored=PhysicalAI(directory:directory.appendingPathComponent("game"),uptime:{now},wallTime:{wall})
         check(restored.phase == .paused && restored.timing.anchor==nil && restored.timing.whiteSeconds==elapsed,"restart preserves time without downtime charge")
+        // Ordinary two-color game acceptance uses real controller/persistence
+        // types and an injected engine. This does not simulate optical success.
+        for humanBlack in [true,false] {
+            let label=humanBlack ? "human-black":"human-white"
+            let folder=directory.appendingPathComponent("ordinary-"+label)
+            let pointer=PhysicalLaserGuidance(directory:folder.appendingPathComponent("bridge"),automatic:false,wallTime:{wall},uptime:{now})
+            var engineCalls=0
+            let game=PhysicalAI(directory:folder,generate:{_,_ in engineCalls+=1;now+=2;wall+=2;return "D4"},laser:pointer,uptime:{now},wallTime:{wall})
+            game.draft.size=9;game.draft.humanBlack=humanBlack
+            check(game.start(),"Ordinary game starts: "+label)
+            func sample(_ cells:[String],hand:Bool=false) {
+                for _ in 0..<4 {
+                    now+=0.2;wall+=0.2
+                    var frame=BoardObservation(readings:cells.enumerated().map {.init(row:$0.offset/9,col:$0.offset%9,occupancy:Occupancy(rawValue:$0.element)!,confidence:1,delta:0)},size:9)
+                    frame.capturedAt=now;frame.handObstructed=hand;game.consume(frame,now:now)
+                }
+            }
+            var board=empty;sample(board)
+            if humanBlack {
+                check(game.phase == .human && engineCalls==0,"Human Black must place before AI search")
+                board[0]="black";sample(board)
+                check(game.snapshot?.moves.count==1 && game.phase == .checking,"Human move awaits fresh post-placement board evidence")
+                sample(board)
+            }
+            try await Task.sleep(nanoseconds:60_000_000)
+            let moveCount=humanBlack ? 2:1
+            check(engineCalls==1 && game.phase == .placing && game.snapshot?.moves.count==moveCount,"One authoritative AI answer awaits mirror: "+label+" phase=\(game.phase) calls=\(engineCalls) moves=\(game.snapshot!.moves.count) status=\(game.status)")
+            let identity=game.snapshot!.id,decision=game.snapshot!.moves.last!.decisionReceivedAtUnix
+            let target=pointer.target,marker=game.guidanceTarget
+            check(target?.row==5 && target?.col==3 && target?.black == !humanBlack,"AI target has canonical point and color: "+label)
+            check(marker?.session==identity && marker?.moveNumber==moveCount && marker?.row==target?.row && marker?.col==target?.col && marker?.black==target?.black,"Virtual marker agrees with physical target: "+label)
+            check(game.timing.blackToPlay==humanBlack && game.timing.anchor==now && decision==wall,"Decision receipt starts human clock: "+label)
+            sample(board,hand:true)
+            check(game.phase == .placing && game.pendingPoint==48 && game.snapshot!.moves.count==moveCount,"Hand cannot accept pending AI placement: "+label)
+            let elapsedBeforePause=game.timing.elapsed(black:humanBlack,at:now)
+            game.pause();now+=30;wall+=30
+            check(game.phase == .paused && pointer.target==nil && game.guidanceTarget==nil,"Pause revokes physical and virtual targets: "+label)
+            check(game.timing.elapsed(black:humanBlack,at:now)==elapsedBeforePause && game.snapshot!.pendingPlacement,"Paused time and pending placement are retained: "+label)
+            game.resume()
+            check(game.phase == .placing && pointer.target==target && game.guidanceTarget?.session==identity,"Resume restores the same pending move: "+label)
+            check(engineCalls==1 && game.snapshot!.moves.last!.decisionReceivedAtUnix==decision,"Resume neither repeats AI search nor changes decision receipt: "+label)
+            var wrong=board;wrong[48]=humanBlack ? "black":"white";sample(wrong)
+            check(game.phase == .placing && game.snapshot!.moves.count==moveCount,"Opposite-color stone cannot complete AI mirror: "+label)
+            board[48]=humanBlack ? "white":"black";sample(board)
+            check(game.phase == .human && !game.snapshot!.pendingPlacement && game.pendingPoint==nil,"Correct-color mirror completes placement: "+label)
+            check(pointer.target==nil && game.guidanceTarget==nil && game.snapshot!.moves.count==moveCount,"Accepted placement clears both targets without duplicate history: "+label)
+            check(game.timing.blackToPlay==humanBlack && game.timing.elapsed(black:humanBlack,at:now)>=elapsedBeforePause,"Physical acceptance retains human turn and accrued time: "+label)
+            game.pause()
+            let savedTiming=game.timing
+            now+=45;wall+=45
+            let reopened=PhysicalAI(directory:folder,generate:{_,_ in "pass"},laser:PhysicalLaserGuidance(directory:folder.appendingPathComponent("reopen-bridge"),automatic:false),uptime:{now},wallTime:{wall})
+            check(reopened.phase == .paused && reopened.snapshot!.id==identity && reopened.snapshot!.moves.map(\.point)==game.snapshot!.moves.map(\.point),"Reopen preserves game identity and legal history: "+label)
+            check(reopened.timing==savedTiming && reopened.cells==board,"Reopen preserves board and clock without downtime: "+label)
+        }
         // Confirmed illumination announces each move once, before settling.
         // Unknown output, simulation, retries and old acknowledgements are silent.
         let cue=PhysicalLaserGuidance(directory:directory.appendingPathComponent("cue"),automatic:false,wallTime:{wall},uptime:{now})

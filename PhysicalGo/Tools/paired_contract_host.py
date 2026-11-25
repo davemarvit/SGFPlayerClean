@@ -6,6 +6,7 @@ The host repository, its checked-in fixture directories and bytecode stay untouc
 """
 import copy
 import importlib
+import hashlib
 import json
 import math
 import os
@@ -17,6 +18,83 @@ import types
 import unittest
 
 sys.dont_write_bytecode = True
+
+
+
+def exercise_point_conversation(faults, fixtures):
+    """Run the fresh Swift point through production dispatch/publisher; no optics."""
+    fixture = faults.RuntimeFixture()
+    exported = json.loads((fixtures/'swift-point.json').read_text())
+    destination = fixtures/'PointStatus'
+    destination.mkdir()
+    records = {}
+    target = copy.deepcopy(exported['target'])
+    late_feedback_rejected = False
+    late_write_rejected = False
+
+    def save(expected, event=None):
+        status, raw = fixture.publish()
+        if status['state'] != expected:
+            raise AssertionError(f'Point conversation expected {expected}, got {status}')
+        name = f'host-{event or expected}.json'
+        (destination/name).write_bytes(raw)
+        records[name] = hashlib.sha256(raw).hexdigest()
+        return status
+
+    def point(request, token, gate, emit):
+        nonlocal late_feedback_rejected, late_write_rejected
+        if request['target'] != target or gate.request.action != 'point':
+            raise AssertionError('Production dispatch changed the Swift target')
+        fixture.backend.active = True
+        for event, state, lit in [('approaching-lit', 'approaching', True),
+                                  ('approaching-dark', 'approaching', False),
+                                  ('adequate', 'adequate', True)]:
+            emit(state, lit, 'Injected optical feedback; no camera or motor')
+            status = save(state, event)
+            if status['illuminationConfirmed'] is not lit or status['laserOn'] is not lit:
+                raise AssertionError('Publisher confused unknown/dark and positive feedback')
+        fixture.request = dict(fixture.request, sequence=fixture.request['sequence']+1, action='off')
+        fixture.request.pop('target', None)
+        fixture.accept(fixture.request)
+        transition = save('transitioning')
+        if transition['illuminationConfirmed'] or transition.get('offSinceUnix') is not None:
+            raise AssertionError('Cancellation borrowed old light or invented full OFF')
+        try:
+            emit('adequate', True, 'Obsolete optical result')
+        except faults.Rejected:
+            late_feedback_rejected = True
+        try:
+            gate.send(token, 'STALE_LIGHT')
+        except faults.Rejected:
+            late_write_rejected = True
+
+    try:
+        fixture.request = copy.deepcopy(exported)
+        fixture.request['sequence'] = 4
+        fixture.accept(fixture.request)
+        if not fixture.runtime._confirm_off(fixture.runtime.gate.generation):
+            raise AssertionError('Point admission lacks confirmed full OFF')
+        token = fixture.runtime.gate.activate()
+        fixture.backend.point = point
+        fixture.runtime._point(copy.deepcopy(fixture.request), token)
+        if not late_feedback_rejected or not late_write_rejected:
+            raise AssertionError('Old point worker remained authoritative after cancellation')
+        if 'STALE_LIGHT' in fixture.backend.commands or fixture.runtime.gate.workers:
+            raise AssertionError('Obsolete write escaped or point worker remained active')
+        if not fixture.runtime._confirm_off(fixture.runtime.gate.generation):
+            raise AssertionError('Point cancellation did not confirm full OFF')
+        stopped = save('off')
+        if stopped['laserOn'] or stopped['motorBusPowered'] or stopped['motorsHeld']:
+            raise AssertionError('Full OFF retained beam or powered motors')
+        report = dict(schemaVersion=1, target=target, pointSequence=4, offSequence=5,
+            sourceRequestSHA256=hashlib.sha256((fixtures/'swift-point.json').read_bytes()).hexdigest(),
+            lateFeedbackRejected=late_feedback_rejected, lateWriteRejected=late_write_rejected,
+            files=records, scope='Actual Swift target, production runtime/publisher, injected optical feedback; no physical observation')
+        (destination/'manifest.json').write_text(json.dumps(report, indent=2)+'\n')
+        return report
+    finally:
+        fixture.runtime.gate.cancel('Offline point acceptance complete')
+        fixture.close()
 
 
 def main():
@@ -91,14 +169,16 @@ def main():
         fixture.runtime.gate.cancel('Offline fixture complete')
         worker.join(1)
         fixture.close()
-    print('PASS mandatory host contract:16 tests,68 fault statuses,4 recovery chains,4 basic statuses')
+    point_conversation = exercise_point_conversation(faults, fixtures)
+    print('PASS mandatory host contract:16 tests,68 fault statuses,4 recovery chains,4 basic statuses,5 point statuses')
     print('Expiry adapter: wall parser tested at expiresAtUnix; monotonic gate tested at gate.deadline')
     (fixtures/'host-stage.json').write_text(json.dumps(dict(tests=result.testsRun,
         expiryAdapter=dict(originalTest='SwiftContractReviewTests.test_expired_literal_swift_request_never_restarts_hold',
             reason='A derived monotonic deadline can differ from wall expiry by an IEEE-754 ulp',
             assertions=['wall expiry remains rejected','just before monotonic deadline remains live',
                         'exact monotonic deadline blocks','after monotonic deadline remains blocked']),
-        runtimeInput='Fresh Swift-exported standby scope; runtime fixture rebases sequence and lease clocks',
+        pointConversation=point_conversation,
+        runtimeInput='Fresh Swift-exported standby and point scope; runtime fixture rebases sequence and lease clocks',
         hardware='Fake backend only'),indent=2)+'\n')
 
 
