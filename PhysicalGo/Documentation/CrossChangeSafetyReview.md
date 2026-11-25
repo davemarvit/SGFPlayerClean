@@ -297,3 +297,93 @@ is to integrate and prepare the explicit attended361-attempt policy, retaining
 the stated model-consistency, extrapolation and sampled-path limitations.
 Physical use remains root-owned and requires fresh READY; this report does not
 claim installation, actuation or a physically completed game.
+
+## PG06a optical processing and fixed dark geometry review
+
+This follow-up is an offline source/artifact review of the candidate based on
+installed host `3f5802f5d773e5b5464c3c9f49260a74cf8f7cfd`. The reviewer performed
+no camera acquisition, controller access, application change or test execution.
+Root retains installation and physical acceptance authority.
+
+The exact five-frame median (`f7bd508`) preserves pixel values, float64 result
+type, source immutability, selected-subset behavior and existing fallback counts.
+Owner tests cover all 3,125 ordering/tie patterns and additional byte, layout and
+dtype cases. The corrected benchmark explicitly records requested OpenCV threads
+1 versus reported 10; it does not claim verified single-thread timing. Median
+acceleration alone cannot resolve the logged 0.513–1.632 second registrations.
+
+The geometry candidate moves full reference registration into dark preparation.
+Its immutable baseline is the exact median of three distinct, ordered dark
+frames, with source IDs/hashes and a homography fitted to that median. Every
+subsequent decoded image is independently checked against the original anchor:
+current identity/clearance/native grid, forward/backward feature tracking with
+spatial coverage, and fixed photometric comparisons. There is no transform
+chaining, illuminated replacement baseline, reused hand verdict or retimestamped
+optical result. The trusted BrokerStream verifies each exact decoded frame before
+passing it to detection; transformation admission also matches frame object and
+snapshotted metadata, preventing mutated metadata from borrowing an old proof.
+
+Review identified and the owner repaired geometry expiry between image analysis
+and trailing POSE: geometry and all four optical ages are now checked after POSE
+and again inside current-generation anchor publication. The 600 ms optical limit
+is unchanged. The 10-second geometry lifetime is separate; a 4-second refresh
+reserve is a scheduling heuristic, not a worst-case guarantee. Any overrun raises
+and follows existing runtime cancellation/full OFF instead of accepting stale
+geometry. In-gate checks are in-memory and introduce no file or image I/O.
+
+Hold refresh uses explicit DARK, approaching/laser false, existing QG/RS cooling
+recovery, qualified dark preparation and silent TRACK. Adequate status returns
+only after a new accepted observation. Installed native source `c53ac050` admits
+this lifecycle without restarting cold arming, repeating the target click or
+changing game clocks. Faults retain the existing interruption path. A full-path
+replay also exposed a pre-existing duplicate `observed_at_uptime` keyword in
+observation logging; the candidate preserves the sample timestamp using a
+dictionary merge, with a regression and successful real `read_spot` replay.
+
+A transformed-image control displaced only a narrow top-rail strip by 8 pixels.
+Both original full registrations also accept this edit (root independently
+reproduced 1,524/2,160 inliers); it does not establish a regression in fixed reuse.
+An attempted 6-by-6 tile rule rejected a benign 3% exposure change at genuine
+0.948 correlation, introducing a false rejection rather than correcting numeric
+error. That extra rule was withdrawn. The reviewed contract retains whole-board
+and quadrant photometric checks, feature tracking and all current native guards,
+without claiming detection of every synthetic local deformation. Recorded
+dark-to-lit images remain a positive control. These are saved-image workload
+tests and transformed-snapshot controls, not newly captured physical motion or
+independently observed live frames.
+
+### Frozen PG06a source and evidence approved
+
+The final owner checkpoint is `0ed9ed01d6989fb7adc93c89b8918eb807bcb210`,
+following median checkpoint `f7bd508`. Reviewer independently verified all four
+production source hashes and the runner hash in
+`Firmware/Experiments/OpticalFreshnessPG06a/fixed-geometry-replay.json`, then
+confirmed those production hashes also match root integration
+`ab1e4bdd8fef892f3a41343c755a9f153a761bb1`.
+
+All nine modeled normal cases pass at 407–546 ms after gated publication; all
+three deliberately overloaded cases reject at 829–856 ms. The repeated cases
+inject 180/260 ms image delivery lag and 68/101/145 ms trailing POSE delays.
+The seven required transformed-snapshot negatives reject for pixel/coverage
+reasons: 2/8 pixel global translation, 0.5-degree rotation, blank image, covered
+quadrant, covered edge and a localized rectangle reduced to 45% brightness.
+Unchanged occupied lit pixels, global 0.97 gain/+2 offset and localized 3%
+shadow all pass; their minimum correlations are respectively 0.999087,
+0.998599 and 0.978650. The narrow rail edit remains an explicitly documented
+baseline-and-candidate accepted control, with no runtime test-image exception.
+
+The owner reports 171 focused passing tests, including expiry during collection,
+after POSE and at publication, metadata mutation, cold/warm lifecycle distinctions
+and failed refresh without relighting. Reviewer inspected source, tests and
+artifacts but did not execute tests. The offline runner exercises real decoding,
+per-frame geometry, detector, event logging, final optical checks and publication;
+motor response, supervisor and timing inputs are modeled. Its repeated composite
+images are not the unsaved lit batches from the physical failures.
+
+No concrete source blocker remains. This checkpoint is approved for root's
+integration and installation checks, preserving the 600 ms limit and full-OFF
+contracts. Root's paired checks, independent replay and attended live timing
+acceptance remain distinct. The final finite replay has about 54 ms minimum
+headroom and does not establish scheduling-tail reliability. The review does not
+claim installation or physical closure of PG06a; the coordinator separately owns
+the audit of the original safety-delivery I/O repair.
