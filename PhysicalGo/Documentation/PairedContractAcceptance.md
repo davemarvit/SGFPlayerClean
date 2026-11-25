@@ -89,6 +89,16 @@ the two pinned consumers generate their game/bridge fixtures in temporary storag
    uncertainty, new AI targets, explicit Pause/Resume, restart, partial captures,
    clock/history preservation and hard-fault retention.
 
+The host stage also dispatches the **fresh Swift point** through the production
+runtime and publisher. Five mandatory receipts cover approaching with light,
+approaching after DARK, adequate indication, cancellation in progress and full
+OFF. The backend injects those feedback states; there is no measured spot. The
+point target, including color, coordinates and decision time, must reach the
+backend unchanged. Cancellation must reject both late optical feedback and a
+late light write before full OFF releases motor power. The acceptance command
+independently validates receipt scope, revisions, light authority, source hashes
+and required coverage; the receipts are retained under `PointStatus/`.
+
 Coverage is defined independently of fixture manifest assertions: required
 filename, route, stage, reason, severity and old/new revision transitions must
 agree. A consistently rewritten manifest cannot disguise a missing hand case as
@@ -116,7 +126,9 @@ recovery cases additionally adapt schema2 fixtures to schema1. They are not
 literal schema1 publisher exports. The normal statuses and fault fixtures are
 actual Python publisher output, and the request files are actual Swift encoder
 output. The four point/OFF/retain-only request shapes pass the production parser
-and lease tests; the fake runtime fixture uses the standby request as its scope.
+and lease tests. Separate fake runtime conversations use the standby and point
+requests as their scopes. Point receipts are checked by the host/acceptance
+validator; they are not yet replayed through the native status fixture consumer.
 
 No test here proves optical centering, motor motion, physical safety, thermal
 behavior, camera recognition performance or timing under real scheduling. Those
@@ -128,6 +140,7 @@ Cheap command/negative tests:
 ```sh
 python3 -B PhysicalGo/Tests/test_paired_contract_acceptance.py
 python3 -B PhysicalGo/Tests/test_paired_contract_review.py
+PHYSICAL_GO_GAMEPLAY_HOST_ROOT=/path/to/reviewed/host python3 -B PhysicalGo/Tests/test_paired_gameplay_acceptance.py
 ```
 
 The independent review suite uses the existing local laser repository's68
@@ -138,3 +151,45 @@ or missing runtime output pins. The final command passed against explicitly
 reused reviewed baseline binaries (229 export/16 host/241 status/492 continuity
 checks); the final format2 output-pin extension awaits the root's combined fresh
 build. Earlier fresh-format2 execution passed before that last strengthening.
+
+## PG-04 ordinary gameplay additions (November 24, 2026)
+
+`PhysicalAILaserTests` exercises ordinary Human Black and Human White games with
+an injected AI answer. It checks canonical target/virtual-marker agreement,
+decision-time clock ownership, pending placement through Pause/Resume, wrong
+color rejection, correct placement, preserved history and restart clock values.
+It additionally checks that approaching light, approaching darkness and adequate
+feedback do not accept physical placement or reset the game clock. First-light
+feedback is not an accuracy certificate.
+
+The separate 12-case Python point review includes negative controls for omitted
+states, substituted game/target identity, old revisions, invented darkness,
+unreleased motors and missing late-result rejection. It is a cheap fake-backend
+check, not a native build or physical game. Full current-source paired acceptance
+and an attended current-version game remain required before closing PG-04.
+
+The checked-in host golden fault fixture
+`coordinator-obsolete_cancel-unconfirmed.json` in the November 24 baseline still
+says `approaching`; current runtime output correctly says `transitioning`.
+Consequently the older independent review's positive golden-fixture case fails
+against that directory. Do not weaken its check. Regenerate fixtures into a
+**temporary** directory with the actual runtime for review; never overwrite
+frozen sources or count this stale golden artifact as a new production failure.
+
+Offline evidence for this addition: runner-only `PhysicalAILaserTests` passed
+**323 checks** against hash-verified immutable baseline runtime `042461a3b620`,
+whose 172 source inputs match `0628a33` and whose 349 recorded artifacts were
+verified before use. The runner sources include the new tests; this is explicitly
+runtime reuse, not a rebuilt app. Local receipt/logs are in this worktree's
+`PhysicalGo/.build/pg04-acceptance/`.
+
+The 12 point-review and 10 command tests pass. A host-stage rehearsal against
+`2da3c29785aa7337871b299380dd3dc289437332` passed all 16 existing host tests and
+produced the five point receipts; all 24 independent review cases pass when
+consuming its fresh fault exports. Rehearsal input used the already checked-in
+Swift exports, so this is **not** a fresh-Swift full paired-acceptance pass. The
+mandatory integration command will generate fresh native exports for the final
+app/host pair. Rehearsal evidence:
+`/var/folders/yd/zrnp2hjn67b4ck4htrq9rmmr0000gn/T/pg04-point-contract-final-_crp4h12`.
+No app installation, camera acquisition, controller access or physical validation
+was performed. PG-04 remains open.
