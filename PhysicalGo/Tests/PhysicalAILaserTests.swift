@@ -455,7 +455,7 @@ import ImageIO
             check(reopened.phase == .paused && reopened.snapshot!.id==identity && reopened.snapshot!.moves.map(\.point)==game.snapshot!.moves.map(\.point),"Reopen preserves game identity and legal history: "+label)
             check(reopened.timing==savedTiming && reopened.cells==board,"Reopen preserves board and clock without downtime: "+label)
         }
-        // Confirmed illumination announces each move once, before settling.
+        // Confirmed adequate illumination announces each move once after settling.
         // Unknown output, simulation, retries and old acknowledgements are silent.
         let cue=PhysicalLaserGuidance(directory:directory.appendingPathComponent("cue"),automatic:false,wallTime:{wall},uptime:{now})
         var cues=[String]()
@@ -481,8 +481,12 @@ import ImageIO
         try cueStatus("adequate",on:false)
         check(cues.isEmpty,"dark status played cue")
         try cueStatus("approaching")
-        check(cues==[target.id],"confirmed illumination must click before settling")
-        try cueStatus("refining");try cueStatus("adequate");try cueStatus("adequate")
+        check(cues.isEmpty,"acquisition illumination clicked before optical acceptance")
+        try cueStatus("refining")
+        check(cues.isEmpty,"refinement illumination clicked before optical acceptance")
+        try cueStatus("adequate")
+        check(cues==[target.id],"confirmed adequate illumination must click once")
+        try cueStatus("adequate")
         check(cues==[target.id],"settling or repeated feedback replayed the click")
         cue.suppress("hand_entered_board");cue.setTarget(nil)
         try admitCue(target);try cueStatus("adequate")
@@ -516,7 +520,7 @@ import ImageIO
         let audioTarget=PhysicalLaserGuidance.Target(source:"ai",session:target.session,moveNumber:4,size:19,row:6,col:5,black:true,decisionReceivedAtUnix:wall)
         try admitCue(audioTarget)
         let audioCallStart=ProcessInfo.processInfo.systemUptime
-        try cueStatus("approaching")
+        try cueStatus("adequate")
         check(ProcessInfo.processInfo.systemUptime-audioCallStart<0.2,"audio work blocked the indication callback")
         try await Task.sleep(nanoseconds:20_000_000)
         check(audioStarted.wait(timeout:.now()) == .success,"injected audio operation never started")

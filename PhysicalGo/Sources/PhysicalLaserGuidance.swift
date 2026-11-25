@@ -788,13 +788,13 @@ import CoreGraphics
             if !mayHaveMotorSession {armingStartedAt=now}
             mayHaveMotorSession=true
         }
-        // Click at first confirmed illumination, before the silent settling.
-        // laserOn alone can also mean unknown output, so require the driver's
-        // positive acknowledgement rather than announcing during dark arming.
+        // Announce the first optically accepted illuminated indication. Initial
+        // acquisition flashes and refinement must not consume this move's cue.
+        // laserOn alone can mean unknown output, so retain positive confirmation.
         if action=="point",let target,target.purpose==nil,let driver,connected,
            driver.sequence==sequence,driver.mode=="hardware",driver.laserOn,
            driver.illuminationConfirmed == true,
-           ["approaching","adequate","refining"].contains(driver.state),driver.requiresNewRevision != true {
+           driver.state=="adequate",driver.requiresNewRevision != true {
             if indicatedSession != target.session {indicatedSession=target.session;indicatedMoves=[]}
             if indicatedMoves.insert(target.id).inserted {onTargetIndicated?(target)}
         }
