@@ -139,3 +139,69 @@ this does not establish a firmware upload. Root's planned combined tests, final
 commit/source manifest, paired acceptance and actual firmware/app installation
 remain necessary. Reviewer ran only source/status/hash/whitespace inspection,
 and did not run a build or test against the integrated tree.
+
+## Full-board domain review and finite defensive follow-up
+
+**Defensive source approved; full-board activation remains blocked.** Root's
+subsequent integrated host `4c650ed6061b559cee2cb9cd220b6650b8b3c7cf` includes
+uniform planner64983d0 and actual-pose/prelight4019f80. Reviewer inspected both
+changes and matched the integrated runtime/helper hashes to the combined domain
+audit: bridge_feedback.py `e915565d573e0473e3d69c30144d02901c2de33dad92e9bbbce9292b38560fba`;
+feedback_step_policy.py `cb34b8ab0cdb70d10f1cfb8ab96e7336bc72d4b96fd2c0194ec0754e71ef3053`.
+
+The initial PG06b envelope guarded only expanded edge proposals. The follow-up
+now applies independent0..2 axis gains plus5px optical uncertainty to **every**
+proposed step, including interior/fallback paths. It shrinks or rejects rather
+than relaxing uncertainty. PG33 rechecks that same envelope at initial anchor,
+fresh actual movement start, each coarse/fine settlement and recenter, optical
+pose brackets, and post-PREPARE actual prelight pose. No source blocker found;
+owner reports45 focused checks and baseline failures for three new regressions.
+Existing clearance600ms, thermal750ms, cancellation, held-pose monitoring and
+full OFF remain unchanged. This finite review adds no new hold-control design.
+
+Seven physically observed targets are evidence, not a mathematical requirement
+to commission each intersection separately. `SetupBinding.prepare` is currently
+the explicit target allow-list gate. The feedback algorithm otherwise accepts
+any admitted integer coordinate0..18, using the three-point model as a response
+seed and measured corrections rather than a predicted final landing. A broad
+allow-list would authorize attempts; it would not certify361 landings.
+
+The necessary domain criteria are fixed valid grid/reference/context; finite,
+conditioned seed response; a qualified actual acquisition anchor; contained
+proposed and actual poses under the declared response assumptions; current
+clearance/lease/thermal evidence; fresh optical consensus before0.20cell
+adequacy; and bounded failure to full OFF. Current code supplies dynamic guards,
+not proof that the physical response always satisfies0..2 gains plus5px error.
+In particular, prelight containment predicts from the last optical anchor;
+actual optical containment is measured after light. Correct encoders cannot
+detect an incorrect optical response before that measurement.
+
+Reviewer inspected owner-run combined reports under
+`/tmp/pg06b-domain-combined-*.json`, using the exact frozen three-point seed,
+fresh reference/grid, and saved anchor pose2069/2388 at image988.505432/160.051682.
+The historical dense model is a **diagnostic simulated plant**, never a new fit,
+live steering model or physical measurement. The6.42seconds-per-observation
+timing is an explicit simulated budget, not measured candidate latency.
+
+| Simulated plant and start | Reached | Failed closed | Margin violations | Minimum actual path margin |
+|---|---:|---:|---:|---:|
+| Seed plant, saved anchor,361 destinations |361|0|0|11.789px|
+| Dense diagnostic plant, saved anchor,361 |358|3|0|7.389px|
+| Dense diagnostic plant, center,361 |345|11|5 landing|−12.276px|
+| Dense diagnostic plant, opposite perimeter,72 |42|28|1 landing +1 dark path|0.487px|
+| Dense diagnostic plant, saved anchor,72 with2-count residual/3-count drift |20|52|0|9.755px|
+
+These counterexamples prevent promoting conditional guard consistency into a
+full-board containment claim. They are not reported physical failures. An
+observed anchor5–10px inside the polygon also legitimately fails subsequent
+uniform admission, because the uncertainty allowance requires10px nominal
+clearance. Rejections must remain distinct from reached targets.
+
+The minimal startup objective remains the existing three-point seed plus
+feedback during play. No new model tour or per-intersection commissioning is
+logically required by this review. The next finite action belongs to PG02/PG06b:
+investigate the retained response mismatch and define a supported admission
+domain or locally justified response bound without raising tolerances. Do not
+expand to361 merely because the saved-anchor sweep mostly passes; subsequent
+game targets start elsewhere. Root retains the paused game and activation block
+while that explicit domain condition remains unresolved.
