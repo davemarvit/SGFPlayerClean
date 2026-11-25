@@ -387,3 +387,71 @@ acceptance remain distinct. The final finite replay has about 54 ms minimum
 headroom and does not establish scheduling-tail reliability. The review does not
 claim installation or physical closure of PG06a; the coordinator separately owns
 the audit of the original safety-delivery I/O repair.
+
+### Attended follow-up: first-lit photometric rejection
+
+The next root-owned physical attempt on integrated `ab1e4bdd` failed at
+`Fresh optical geometry photometric mismatch`, before any target travel or
+600 ms expiry. The exact report is
+`LaserDriverLogs/1795583944716588000/events/1795583991301794000-feedback-31/result.json`.
+Dark geometry qualification and fresh prelight checks passed. First lit frame
+29205 passed fixed-anchor feature tracking and native-grid checks, then rejected
+about 225 ms after capture. The failed PNG and individual regional correlations
+were not retained, so the visual cause cannot be reconstructed or asserted.
+Root subsequently reported direct full OFF; PG36 receipt handling is a separate
+integration issue owned by root.
+
+The unmasked 0.95 threshold in every quadrant is a new restriction. Existing
+`AlignedView.reuse` has no correlation gate; original full registration uses a
+global 0.95 fit after optional bounded foreground exclusion, retaining at least
+85% total and 70% per-quadrant coverage. These are different admission policies.
+The bounded follow-up therefore evaluates the actual baseline contract and
+retains exact rejected-frame evidence rather than lowering a number or treating
+the unsaved failure as a diagnosed exposure event. Evidence retention must remain
+bounded memory before cancellation, with raw-image encoding and persistence only
+after confirmed full OFF and quiescence.
+
+The user subsequently clarified that brightness similarity must not independently
+veto otherwise measurable geometry. The agreed candidate therefore makes current
+whole/quadrant correlation diagnostic-only, including unavailable/nonfinite
+diagnostic values. This intentionally changes the lit-frame admission policy;
+it is not described as preserving the former photometric contract. Initial dark
+registration, original fixed-anchor feature tracking, spatial support, current
+hand/native-grid checks, frame ownership and freshness remain required. Detected
+board/camera movement still rejects; this change does not implement shifted-board
+remapping or claim compensation for a changed coordinate system.
+
+The reviewed repair is now frozen as
+`dce8955d5cec9d342e0239fdfb68cd6a3ae71ac6` in the host repository. Reviewer
+independently matched the four production hashes and runner hash in
+`Firmware/Experiments/OpticalFreshnessPG06a/PhotometricPolicyRepair/replay.json`
+to that clean worktree. Owner reports 119 unique passing focused tests. The
+source and tests explicitly cover low/NaN/failed correlation as diagnostics,
+preserved shifted-geometry refusal, exact immutable failure snapshots, strict
+full-OFF/quiescence flushing, exclusion of new operation admission during disk
+work and preservation of OFF on diagnostic write failure.
+
+Failure retention is bounded to two terminal operations, each at most 128 MiB.
+It captures exact broker PNG/metadata, decoded image, immutable dark baseline,
+reference, transforms and available diagnostic scores. A failure before score
+calculation records that stage rather than fabricated correlations. Capture does
+no encoding, hashing or disk I/O. The sole operation coordinator flushes after
+the real OFF barrier and before admitting another worker; the priority-stop lock
+is not held during image persistence. This path does not currently retain a
+successfully acquired batch that later fails only the post-POSE age check.
+
+The final workload replay accepts all nine modeled nominal cases at 400–538 ms
+post-gate age and rejects all three stale cases at 816–824 ms. Six motion/support
+controls reject: whole-board 2/8 pixel translation, 0.5-degree rotation, blank
+image, covered quadrant and severe localized shadow. Covered-edge and thin-strip
+edits pass with sufficient remaining feature support; this visibility limit is
+explicit, not an assertion of complete pixelwise visibility. Occupied lit,
+97% gain/+2 offset and localized 3% shadow controls pass. Diagnostic correlation
+does not admit a frame whose geometry or current hand/grid evidence failed.
+
+No concrete source blocker remains for `dce8955`. Reviewer approves root
+integration/installation checks under the user's explicit photometric policy.
+Physical acceptance remains open: the failed live image cannot be replayed, the
+finite timing cases are synthetic and repeated composite images, and actual
+shift compensation is separate work. Reviewer performed no tests, image
+acquisition, app changes or hardware operations.
