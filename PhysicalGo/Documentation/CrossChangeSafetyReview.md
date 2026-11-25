@@ -603,3 +603,64 @@ verified the separately pinned PG02 residual artifact hash. No runtime code
 changed while those final cohorts ran. This completes the finite source/evidence
 review for predicted acquisition; physical timing and same-target memory remain
 distinct subsequent work.
+
+## Subsequent native recovery and arming episodes
+
+Root requested two narrow native repairs from this reviewer, with independent
+root review before integration. `7269977` permits disabled recovery only after an
+explicit recheck, a fresh matching real hardware OFF and current clear post-OFF
+camera evidence. Its scoped OFF pump remains alive until recovery; the separate
+physical-switch confirmation and normal placement evidence are unchanged. The
+reviewer-run continuity suite passed 263 checks. Root subsequently reported
+physical dark-only confirmation of already-placed White D4 without a point cue.
+
+`02818a0` fixes an arming timer that retained the entire age of a healthy motor
+session. A later legitimate cold restart after a hand stop could immediately
+trip the old 12-second deadline. Matching admissible stable health now completes
+an admission episode; a later current matching arming receipt starts another.
+Unfinished cold episodes still span revision churn, and full OFF resets them.
+The 12-second arming and 3-second transition limits are unchanged. The reviewer
+reproduced the false timeout using the new test against the installed 0.263
+shared runtime. Root's matching candidate passed 379 standby plus 263 continuity
+checks, and root reported subsequent physical hand-stop/rearming success in
+0.264. Baseline runtime/test hashes and command are durable under
+`Tests/Fixtures/GuidanceHandRearming/baseline-control.json` in that source commit.
+
+## Runtime geometric registration and exact failed dark batches
+
+Approved host `a854f675adbf59bee6412fc098d5610341d1d036` for root integration and
+attended acceptance. Runtime `SetupBinding._check_prepared` now uses a dedicated
+geometric admission policy across initial checks, warm admission, alignment
+preparation and dark qualification. Generic registration/calibration defaults
+remain unchanged. ECC is an optional transform proposal and diagnostic score;
+brightness alone no longer vetoes a geometrically supported runtime mapping.
+
+Each selected transform retains the 25-pixel displacement limit and ORB inlier
+residual checks, plus independent forward/backward tracks at commissioned grid
+neighborhoods: at least 40 total, six per quadrant and three per outer edge,
+with median/p95 residual limits of 0.5/1 pixel. This is spatial observability,
+not proof every board surface pixel is unobscured. Native hand/alignment/grid
+checks, existing temporal dark-to-lit checks, geometry lifetime and final
+600-millisecond optical proof remain. No model or calibration is refitted.
+
+The constructor now retains the attempted new three-frame batch and median when
+registration/qualification fails before assignment. It does not borrow the old
+geometry's transform or frames. Missing/nonfinite transforms remain diagnostic
+null; existing full-OFF/quiescence ownership controls disk writes. Capture starts
+after the three sources have been prepared and is not an all-fault capture claim.
+
+The reviewer inspected final source/tests and independently matched all five
+runtime hashes, the replay runner, all 16 recorded inputs and live-failure
+provenance. The owner reports 155 passing tests. Durable replay in
+`Firmware/Experiments/DarkGeometryAdmission/` records nine accepted controls and
+four geometric rejections, including exposure/shadow/occupied-edge positives and
+blank/large-shift/major-occlusion negatives. Complete legacy registration also
+accepts later frame 7714 (`baseline_error:null`). The exact failed Q17 dark batch
+is unavailable: this later image does not reproduce or explain that failure.
+No reviewer hardware, camera, UI, installation or benchmark action occurred.
+
+A separate initial no-blocker assessment of visible-fine `fc6747e` was superseded
+when the assigned second reviewer identified missing preflight enclosure of
+firmware-permitted in-flight overshoot/held-axis drift. Its repair and final
+approval belong to that reviewer; this geometry approval does not approve the
+unrepaired visible-fine checkpoint.
