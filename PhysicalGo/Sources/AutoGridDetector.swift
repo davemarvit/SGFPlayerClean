@@ -424,12 +424,23 @@ enum AutoGridDetector {
             // contrast, normalized-profile and distributed-support thresholds.
             var eligible=false,accepted=false
             for along in (rail==0 || rail==n-1) ? [0.5,0.2,0.35,0.65,0.8,0.1,0.3,0.4,0.6,0.7,0.9]:[0.5] {
+                // Thin outer lines can change their sampled profile under subpixel
+                // jitter. Search at most one image pixel across the same rail,
+                // capped at 4% of grid spacing; never search a neighbouring rail.
+                let c0=vertical ? Double(rail):Double(segment)+along
+                let r0=vertical ? Double(segment)+along:Double(rail)
+                let center=calibration.point(col:c0,row:r0)
+                let normal=calibration.point(col:c0+(vertical ? 1:0),row:r0+(vertical ? 0:1))
+                let spacing=hypot((normal.x-center.x)*Double(frame.width-1),(normal.y-center.y)*Double(frame.height-1))
+                let shift=spacing.isFinite && spacing>0 ? min(0.04,1/spacing):0
+                let offsets=(rail==0 || rail==n-1) ? [0,shift/2,-shift/2,shift,-shift]:[0]
+                for offset in offsets {
                 var a=[Double](),b=[Double]()
                 for across in [-0.18,-0.12,-0.06,0,0.06,0.12,0.18] {
                     let c=vertical ? Double(rail)+across : Double(segment)+along
                     let r=vertical ? Double(segment)+along : Double(rail)+across
                     if let old=anchor.frame.patchMean(anchor.calibration.point(col:c,row:r)),
-                       let now=frame.patchMean(calibration.point(col:c,row:r)) { a.append(old); b.append(now) }
+                       let now=frame.patchMean(calibration.point(col:c+(vertical ? offset:0),row:r+(vertical ? 0:offset))) { a.append(old); b.append(now) }
                 }
                 guard a.count==7,let high=a.max(),let low=a.min(),let currentHigh=b.max(),let currentLow=b.min() else { continue }
                 let faint=high-low<=0.06
@@ -451,6 +462,8 @@ enum AutoGridDetector {
                 for i in a.indices { error += abs((a[i]-high)/depth-(b[i]-currentHigh)/currentDepth) }
                 guard error/7<min(0.10,0.03/depth) else { continue }
                 accepted=true;break
+                }
+                if accepted {break}
             }
             if eligible {tested += 1}
             guard accepted else {continue}
