@@ -98,4 +98,15 @@ Minimal source selection/merge order is pinned in [MinimalFeedbackCandidateManif
 
 Further completed optional candidates: native PG15/19 80f5bd1 plus hosta7d8d66 (46native+36host+viewtypecheck), PG26b23016f7 (19no-audio tests). PG12 native suite currently holds Swift slot. Optional combined validation follows, then each pending native source checkpoint will receive explicit test results. No issue is closed; no worker installed or accessed hardware.
 
+## Broad target-domain follow-up
+
+Root's exact critical combination nativec53ac05/hoste906f2b passed paired acceptance plus15additional host suites; no worker installation/activation. PG08 offline build/rollback is root-owned. PG12 native validation receipt36c1280 now completes its offline suite. Optional combined native validation remains held while root owns Swift build slot.
+
+Root requested practical arbitrary-intersection feedback admission from minimal three-point setup, separate from seven physically observed target evidence. Cross-review identified that baseline PG06b robust0..2axis/+5px envelope covered only expanded-edge proposals, while interior/fallback and actual settlement/prelight paths used nominal containment. PG06b's exact-seed/fresh-grid/anchor diagnostic-plant sweep of actuale906 approach found354/361 destinations without5px margin breach, four simulated landings and three simulated dark paths below5px (minimum0.898px). This is simulation evidence, not a physical failure or all-board qualification.
+
+Owners now active: PG06b uniform envelope predicate/planner with shrink/replan/failclosed and domain tests; PG33 actual settled/intermediate-axis/recenter/prelight/start-after-cooling revalidation using same predicate; cross_change_review independent combined review. Root frozenhost stays unchanged until new candidates are tested/reviewed. No uncertainty relaxation, new fit or mandatory calibration tour. Continuous-hold drift and physical response assumptions remain explicit limits.
+
+PG15 reconnect provenance follow-up afce786 passes8offline tests: fresh reference path required, old/new paths+SHA retained, pixels written before admitted setup. Historical/raw/root-derived binding artifacts untouched; no migration is implied.
+
+
 
