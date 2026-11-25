@@ -55,10 +55,30 @@ struct HandOutlineTracker {
         var center:[Double]
         var direction:[Double]?
         var appearance:[Double]?
+        // Absent in historical snapshots: those restore only spatial state.
+        var temporal:TemporalCheckpoint?=nil
+    }
+    struct Reference:Codable {
+        let time:Double
+        let frame:HandOutlineFrame
+    }
+    struct TemporalCheckpoint:Codable {
+        let references:[Reference]
+        let lastTime:Double?
+        let source:String?
+        let clearTimes:[Double]
+        let timing:HandOutlineTiming
+        let initialization:Int
+        let clearPoseSince:Double?
+        let clearPoseSamples:Int
+        let stallReported:Bool
     }
     var checkpoint:Checkpoint {
         .init(background:baseline,active:active,edge:edge,center:[center.x,center.y],
-              direction:direction.map{[$0.0,$0.1,$0.2]},appearance:appearance.map{[$0.0,$0.1]})
+              direction:direction.map{[$0.0,$0.1,$0.2]},appearance:appearance.map{[$0.0,$0.1]},
+              temporal:.init(references:references,lastTime:lastTime,source:source,clearTimes:clearTimes,
+                  timing:timing,initialization:initialization,clearPoseSince:clearPoseSince,
+                  clearPoseSamples:clearPoseSamples,stallReported:stallReported))
     }
     init() {}
     init(checkpoint c:Checkpoint) {
@@ -66,6 +86,11 @@ struct HandOutlineTracker {
         if c.center.count==2 {center=(c.center[0],c.center[1])}
         if let d=c.direction,d.count==3 {direction=(d[0],d[1],d[2])}
         if let a=c.appearance,a.count==2 {appearance=(a[0],a[1])}
+        if let t=c.temporal {
+            references=t.references;lastTime=t.lastTime;source=t.source;clearTimes=t.clearTimes
+            timing=t.timing;initialization=t.initialization;clearPoseSince=t.clearPoseSince
+            clearPoseSamples=t.clearPoseSamples;stallReported=t.stallReported
+        }
     }
     struct Result:Codable {
         var obstructed:Bool?
@@ -93,7 +118,7 @@ struct HandOutlineTracker {
     private var stallReported=false
     private struct Component {var indices:[Int];var x:Double;var y:Double;var minimum:Double;var maximum:Double;var coreInside=false}
     private var baseline:HandOutlineFrame?
-    private var references=[(time:Double,frame:HandOutlineFrame)]()
+    private var references=[Reference]()
     private var lastTime:Double?
     private var source:String?
     private var active=false
@@ -161,7 +186,7 @@ struct HandOutlineTracker {
                     // Pose recognition can lag entry too. Never learn the
                     // immediately preceding (possibly already covered) image
                     // as the background for a newly recognized hand.
-                    references.append((time,frame))
+                    references.append(.init(time:time,frame:frame))
                     if let safe=references.last(where:{time-$0.time>=0.5}) {baseline=safe.frame}
                     references.removeAll{time-$0.time>0.8}
                     if references.count>90 {references.removeFirst(references.count-90)}
