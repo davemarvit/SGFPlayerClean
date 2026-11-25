@@ -79,6 +79,7 @@ import Foundation
         firstMove.feed(firstMove.observation([40:.black],weak:[41]),count:20)
         check(firstMove.ai.checkingHelp?.emptyGame==false && firstMove.ai.checkingHelp?.reason == .ambiguousPlacement,"Unaccepted first human stone was mistaken for empty-board startup")
         check(!(firstMove.ai.checkingHelp?.recovery.contains("Keep the board empty") ?? true) && !(firstMove.ai.checkingHelp?.recovery.contains("capture an empty reference") ?? true),"Visible first human stone received empty-board recovery advice")
+        check(firstMove.ai.checkingHelp?.recovery.hasPrefix("Leave the stones in place and keep hands clear.")==true,"First human ambiguity advice could imply removing the unaccepted stone")
         check(firstMove.ai.snapshot!.moves.isEmpty,"Presentation accepted an ambiguous first move")
         firstMove.feed(firstMove.observation([40:.black]),count:4)
         check(firstMove.ai.snapshot!.moves.count==1 && firstMove.ai.checkingHelp==nil,"First human move failed to recover from later valid evidence")
