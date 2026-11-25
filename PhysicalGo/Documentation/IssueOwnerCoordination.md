@@ -116,6 +116,15 @@ Expanded diagnosticplant controls materially violate the assumed response envelo
 
 Finite next action assigned PG02+PG06b: analyze retained97observations and qualifiedfeedback for local responsevectors, cross-axis residuals, direction/travel length, nearest qualified coverage, held-out/error separation and diagnosticcounterexamples. Determine whether a data-supported bounded candidate exists; observedmaxima are not guarantees. No arbitrary blanketthreshold, livepromotion, mandatorynewtour or unrelatedholdredesign. Independent reviewer approves defensive source only; domain policy remains blocked. Optionalnative validation still awaits rootSwift release.
 
+## Finite retained-response investigation completed
+
+PG06b report7313fc7 pins all five simulation cohorts to nine runtime hashes matching root4c650ed. PG02 report927034a passes16tests and separates86fit observations,11interspersed observations and76later feedback observations. Four of71 retained physical movement endpoints violate the logged-J independent0..2axis hull plus5px (three near5–6px, one87.04px outside). Frozen dense local derivative covers these71endpoints with maximum2.047px hull distance, but that observed maximum is not a guarantee; all four corners lack nearby held-out legs and intermediate travel is unobserved. The response-envelope assumption is therefore contradicted by retained endpoint evidence, not only diagnostic simulation.
+
+Reports: host Firmware/Experiments/FeedbackEdgeSteps/DomainAssessment.md (7313fc7), and Firmware/Experiments/SpatialCalibrationAudit/RESPONSE_ENVELOPE.md (927034a). Explicit next offline comparison is same guarded planner/driver with retained86fit dense local derivative recomputed at observed pose, no secant adaptation, across existing anchor/center/opposite cohorts and four observed violating legs. This comparison is documented and DEFERRED, not started. It would be a retained prior, not a three-point-only fit or physical qualification. Full-board activation remains blocked.
+
+All issue owners have completed their finite deliverables. Only optional combined native validation remains active under one granted Swift slot: PG00/10/16/21 plus PG03 at combinedHEAD6f1b491. It does not gate root's native-only installation or authorize host/firmware activation.
+
+
 
 
 
