@@ -20,8 +20,10 @@ facts.
    checkpoint and immediate next steps. Preserve game history, clocks and
    calibration; do not infer current hardware state from an old chat.
 2. Inspect both repositories' branch, status and recent commits. Check the
-   installed app/firmware separately. The November 24 checkpoint is app 0.261
-   and firmware v44, with the driver stopped and moved setup unqualified.
+   installed app/firmware separately. Read the authoritative
+   [checklist](../IntegrationChecklist.md) and
+   [current release manifest](</Users/Dave/Documents/SGF PLayer/work/feedback-play-release-20261124/current-release.json>)
+   for installed identities, setup qualification and current execution state.
    Use the installed-source worktrees named in the checklist; the canonical
    repositories carry current documentation but older runtime code.
 3. For laser work, read the latest shared outgoing and incoming handoff files.
