@@ -108,5 +108,14 @@ Owners now active: PG06b uniform envelope predicate/planner with shrink/replan/f
 
 PG15 reconnect provenance follow-up afce786 passes8offline tests: fresh reference path required, old/new paths+SHA retained, pixels written before admitted setup. Historical/raw/root-derived binding artifacts untouched; no migration is implied.
 
+## Uniform defensive guards and remaining domain blocker
+
+PG06b uniformhelper64983d0 + PG33 actualpose guard4019f80 passed45focused checks; three new regressions fail baseline. Root integrated these and PG15provenance afce786 as host4c650ed. Exactfrozen4019f80 saved-anchor diagnostic simulation:358reached/3failclosed (T6/T4measured-anchor admission, A1finite150s), minimum sampledpath7.3887px. Driftperimeter stress20reached/52failclosed/0breaches. These checks demonstrate consistent conditional guarding, not universal physicalresponse qualification.
+
+Expanded diagnosticplant controls materially violate the assumed response envelope from other starting regions: center361 gives345reach/11failclosed/5landingbreaches (minimum−12.28px); oppositeperimeter72 gives42reach/28failclosed/1landing and1darkpathbreach. Root explicitly BLOCKED full-board host/firmware activation and chose native-only installation preparation. No worker hardware action occurred.
+
+Finite next action assigned PG02+PG06b: analyze retained97observations and qualifiedfeedback for local responsevectors, cross-axis residuals, direction/travel length, nearest qualified coverage, held-out/error separation and diagnosticcounterexamples. Determine whether a data-supported bounded candidate exists; observedmaxima are not guarantees. No arbitrary blanketthreshold, livepromotion, mandatorynewtour or unrelatedholdredesign. Independent reviewer approves defensive source only; domain policy remains blocked. Optionalnative validation still awaits rootSwift release.
+
+
 
 
