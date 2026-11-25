@@ -333,6 +333,72 @@ import Foundation
   fl.setEnabled(true);fl.setTarget(.init(source:"ai",session:fallback.snapshot!.id,moveNumber:3,size:9,row:2,col:2,black:true,decisionReceivedAtUnix:wall));camera(fl);try status(fl,reason:nil,state:"off");fl.verifyMoveTarget(capturedAt:now,now:now)
   check(try fl.gameFaultNeedsRecheck && fl.controllerResetRequired && request(fl).action=="off","New move/re-enable cannot reuse physical-off override or bypass hard latch")
 
+  // A real driver OFF plus explicit recheck permits disabled camera-only
+  // recovery without claiming the user physically switched off the power.
+  for schema2 in [false,true] {
+   let ai=try fixture("disabled-driver-off-\(schema2)",pending:true),l=ai.laser
+   func healthy()throws {
+    if schema2 {try v2status(l)} else {try status(l,reason:nil,state:"off")}
+   }
+   l.setStandbyEnabled(schema2);l.setEnabled(true);camera(l)
+   try healthy();try healthy()
+   if schema2 {try v2status(l,state:"fault")} else {try status(l)}
+   let saved=ai.snapshot!,frozen=ai.timing
+   check(ai.phase == .paused && saved.pendingPlacement,"Driver fault pauses pending placement")
+   l.setEnabled(false);camera(l);try healthy();ai.resume()
+   check(ai.phase == .paused && ai.timing==frozen,"Fresh genuine OFF cannot bypass explicit recheck while disabled")
+   l.setEnabled(true);camera(l);try healthy();try healthy();l.showAgain()
+   check(!l.gameFaultNeedsRecheck && !l.controllerResetRequired && ai.phase == .paused,"Explicit recheck clears hardware requirement without resuming play")
+   var actions:[String]=[]
+   l.onRequestPublished={actions.append($0.action)}
+   l.setEnabled(false)
+   check(!l.readyToResumeFaultPausedGame(session:saved.id),"Disable requires a new matching OFF revision")
+   camera(l);try healthy();try healthy()
+   let statusURL=l.directory.appendingPathComponent("status.json")
+   let good=try JSONSerialization.jsonObject(with:Data(contentsOf:statusURL)) as! [String:Any]
+   for invalid in ["producer","revision","schema","stale","simulation","lit","not-off","revision-required","controller-fault","missing-watermark","watermark-epoch","watermark-frame","watermark-source","too-early"] {
+    var bad=good
+    switch invalid {
+    case "producer":bad["producer"]=UUID().uuidString
+    case "revision":bad["sequence"]=l.sequence-1
+    case "schema":bad["schemaVersion"]=2
+    case "stale":bad["updatedAtUnix"]=wall-1
+    case "simulation":bad["mode"]="simulation"
+    case "lit":bad["laserOn"]=true
+    case "not-off":bad["state"]="holding"
+    case "revision-required":bad["requiresNewRevision"]=true
+    case "controller-fault":bad["reasonCode"]="controller_fault"
+    case "missing-watermark":bad.removeValue(forKey:"evidenceAfter")
+    case "too-early":bad["offSinceUnix"]=wall
+    default:
+     var watermark=bad["evidenceAfter"] as! [String:Any]
+     if invalid=="watermark-epoch" {watermark["streamEpoch"]=UUID().uuidString}
+     if invalid=="watermark-frame" {watermark["frameID"]=frameID}
+     if invalid=="watermark-source" {watermark["timestampSource"]="callback"}
+     bad["evidenceAfter"]=watermark
+    }
+    try JSONSerialization.data(withJSONObject:bad).write(to:statusURL,options:.atomic);l.tick()
+    check(!l.readyToResumeFaultPausedGame(session:saved.id),"Disabled recovery rejects \(invalid), schema2=\(schema2)")
+   }
+   try healthy()
+   check(l.readyToResumeFaultPausedGame(session:saved.id),"Explicit recheck and genuine post-OFF frame admit disabled recovery without manual confirmation")
+   now+=1.6;wall+=1.6;try healthy()
+   check(!l.readyToResumeFaultPausedGame(session:saved.id),"Fresh OFF cannot make an old clear camera frame current")
+   camera(l);try healthy()
+   l.noteFrame(.init(streamEpoch:l.frames.streamEpoch,frameID:frameID+1,capturedAtUptime:now+0.01,arrivedAtUptime:now+0.01,capturedAtUnix:wall+0.01,timestampSource:"cameraPresentation",presentationSeconds:now+0.01))
+   check(!l.readyToResumeFaultPausedGame(session:saved.id),"Current frame cannot borrow another frame's clear verdict")
+   camera(l);try healthy();ai.resume()
+   check(ai.phase == .placing && !l.enabled && ai.snapshot!.pendingPlacement,"Disabled recovery resumes verification, not assumed placement")
+   check(ai.snapshot!.id==saved.id && ai.snapshot!.moves.map(\.point)==saved.moves.map(\.point),"Dark recovery preserves accepted game history")
+   var uncertain=ai.cells;uncertain[40]="uncertain"
+   try healthy();feed(ai,uncertain,count:1)
+   check(ai.snapshot!.pendingPlacement && ai.phase == .placing,"Uncertain occupied target cannot advance the game during dark verification")
+   for _ in 0..<3 {try healthy();feed(ai,ai.cells,count:1)}
+   check(ai.phase == .human && !ai.snapshot!.pendingPlacement,"Normal whole-board evidence confirms the already placed stone")
+   check(!actions.isEmpty && actions.allSatisfy{$0=="off"},"Disabled recheck, Resume and placement verification never request point or standby")
+   l.onRequestPublished=nil
+  }
+
   // A queued engine result cannot commit after the fault callback returns.
   var continuation:CheckedContinuation<String,Never>?
   let thinkingFolder=root.appendingPathComponent("thinking")
