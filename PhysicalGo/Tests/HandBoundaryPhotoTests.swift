@@ -30,8 +30,8 @@ enum HandBoundaryPhotoTests {
    check(t.observe(frames["replayClear"]!,pose:clear,at:1,source:"photo").obstructed==false,"Photographed exit remained blocked after \(name)")
   }
   // Retained appearance/location from the actual offline replay must also
-  // survive the missed blurred hand. Checkpoint timing history is not stored;
-  // this tests a new, conservative observed bracket after reacquisition.
+  // survive the missed blurred hand. This historical checkpoint predates
+  // stored timing history, so it tests a new conservative observed bracket.
   let checkpointPipe=Pipe(),checkpointProcess=Process()
   checkpointProcess.executableURL=URL(fileURLWithPath:"/usr/bin/gzip")
   checkpointProcess.arguments=["-dc",folder.appendingPathComponent("learned-checkpoint.json.gz").path]
