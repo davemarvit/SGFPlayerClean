@@ -22,6 +22,10 @@ import AppKit
         check(heartbeat && recorder.isCapturing,"Main thread stalled while diagnostic storage was blocked")
         let context=CGContext(data:nil,width:16,height:16,bitsPerComponent:8,bytesPerRow:64,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue)!
         context.setFillColor(CGColor(gray:0.5,alpha:1));context.fill(CGRect(x:0,y:0,width:16,height:16))
+        let disabled=DiagnosticRecorder(root:root.appendingPathComponent("disabled"))
+        check(!disabled.retainFirstCameraRejection(context.makeImage()!,at:99,session:UUID(),context:[:],reference:nil,anchor:nil,
+            checkpoint:{fatalError("Disabled recording encoded a checkpoint")}),"Rejection enabled recording")
+        check(disabled.folder==nil && !FileManager.default.fileExists(atPath:root.appendingPathComponent("disabled").path),"Disabled rejection wrote files")
         let ticket=recorder.capture(context.makeImage()!,at:100,context:[:],reference:nil,anchor:nil,anchorRevision:0)
         recorder.event("queued during startup",ticket:ticket)
         check(recorder.capture(context.makeImage()!,at:101,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"Bounded queue rejected available capacity")
@@ -29,23 +33,57 @@ import AppKit
             check(recorder.capture(context.makeImage()!,at:102+Double(i)*0.2,context:[:],reference:nil,anchor:nil,anchorRevision:0)==nil,"Blocked writer retained images beyond its bound")
         }
         check(recorder.isCapturing && recorder.omittedImages==100,"Writer slowdown ended recording or concealed omissions")
+        let rejectionSession=recorder.cameraRejectionSession!
+        let grid=BoardCalibration(size:19,corners:[.init(x:0.1,y:0.1),.init(x:0.9,y:0.1),.init(x:0.9,y:0.9),.init(x:0.1,y:0.9)])!
+        let anchor=AutoGridDetector.TrackingAnchor(calibration:grid,fittedGrid:grid,frame:GrayFrame(image:context.makeImage()!)!)
+        var checkpointState=["sequence":12]
+        let before=checkpointState
+        check(recorder.retainFirstCameraRejection(context.makeImage()!,at:150,session:recorder.cameraRejectionSession!,context:["alignment":["reason":"edge profile"],"handObstructed":false],reference:context.makeImage()!,anchor:anchor,
+            checkpoint:{precondition(!Thread.isMainThread,"Checkpoint encoded on main queue");return try JSONEncoder().encode(before)}),"Full ordinary queue discarded the first rejection")
+        checkpointState["sequence"]=13
+        check(!recorder.canRetainCameraRejection,"First rejection did not close admission")
+        for _ in 0..<10 {
+            check(!recorder.retainFirstCameraRejection(context.makeImage()!,at:151,session:UUID(),context:[:],reference:nil,anchor:nil,
+                checkpoint:{fatalError("Later fault replaced first checkpoint")}),"Later fault replaced initiating evidence")
+        }
         release.signal()
         let deadline=Date().addingTimeInterval(5)
-        while recorder.savedFrames<2 && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
+        while recorder.savedFrames<3 && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
         check(recorder.capture(context.makeImage()!,at:200,context:[:],reference:nil,anchor:nil,anchorRevision:0) != nil,"Recording did not recover after writer caught up")
         recorder.stop()
         check(!recorder.canStart,"Stop released a writer prematurely")
         while !recorder.canStart && Date()<deadline {RunLoop.main.run(until:Date().addingTimeInterval(0.01))}
-        check(recorder.state == .stopped && recorder.savedFrames==3,"Writer recovery or stop lost accepted images")
+        check(recorder.state == .stopped && recorder.savedFrames==4,"Writer recovery or stop lost accepted images")
         let rows=try String(contentsOf:recorder.folder!.appendingPathComponent("events.jsonl"))
         check(rows.contains("queued during startup") && rows.contains("capture ended"),"Startup queue lost event ordering or close")
         let events=try rows.split(separator:"\n").map{try JSONSerialization.jsonObject(with:Data($0.utf8)) as! [String:Any]}
         let gaps=events.filter{$0["event"] as? String == "image writing gap"}
+        let faults=events.filter{$0["event"] as? String == "first camera rejection"}
+        check(faults.count==1 && faults[0]["captureUptime"] as? Double==150,"Initiating rejection identity was lost")
+        let first=faults[0],folder=recorder.folder!
+        let savedCheckpoint=try JSONDecoder().decode([String:Int].self,from:Data(contentsOf:folder.appendingPathComponent(first["handTrackerBeforeAnalysis"] as! String)))
+        check(savedCheckpoint["sequence"]==12 && checkpointState["sequence"]==13,"Checkpoint used later mutated state")
+        check(FileManager.default.fileExists(atPath:folder.appendingPathComponent(first["image"] as! String).path) && FileManager.default.fileExists(atPath:folder.appendingPathComponent(first["referenceImage"] as! String).path),"First rejection omitted raw image or reference")
+        let savedAnchor=first["trackingAnchor"] as! [String:Any]
+        let savedAnchorPixels=try Data(contentsOf:folder.appendingPathComponent(savedAnchor["pixels"] as! String))
+        let savedAnchorGrid=try JSONDecoder().decode(BoardCalibration.self,from:JSONSerialization.data(withJSONObject:savedAnchor["calibration"]!))
+        check(savedAnchorPixels==Data(anchor.frame.pixels) && savedAnchorGrid==grid,"First rejection altered the original tracking anchor")
+        check((first["alignment"] as? [String:String])?["reason"]=="edge profile" && first["handObstructed"] as? Bool==false,"Fault conflated hand and alignment reasons")
+        check((first["clockDomain"] as? String)?.contains("not controller acknowledgement or light onset")==true,"Fault timing implied cross-process/light synchronization")
+        check(!recorder.retainFirstCameraRejection(context.makeImage()!,at:201,session:UUID(),context:[:],reference:nil,anchor:nil,
+            checkpoint:{fatalError("Stopped recording encoded evidence")}),"Stopped recorder accepted a fault")
         check(gaps.count==1 && gaps[0]["omittedImages"] as? Int==100 && gaps[0]["firstCaptureUptime"] as? Double==102 && gaps[0]["lastCaptureUptime"] as? Double==121.8,"Missing images were not recorded as one exact bounded gap")
         let frameTimes=events.filter{$0["event"] as? String == "frame"}.compactMap{$0["captureUptime"] as? Double}
         check(frameTimes==[100,101,200],"Writer recovery renumbered or changed camera timestamps")
         let manifest=try JSONSerialization.jsonObject(with:Data(contentsOf:recorder.folder!.appendingPathComponent("session.json"))) as! [String:Any]
         check(manifest["omittedImages"] as? Int==100 && recorder.status.contains("100"),"Completion concealed recording gaps")
+
+        try recorder.start(context:["test":"new diagnostic session"],reserveBytes:0)
+        check(!recorder.retainFirstCameraRejection(context.makeImage()!,at:202,session:rejectionSession,context:[:],reference:nil,anchor:nil,
+            checkpoint:{fatalError("Prior-session analysis entered new archive")}),"Old analysis contaminated a new diagnostic session")
+        check(recorder.retainFirstCameraRejection(context.makeImage()!,at:203,session:recorder.cameraRejectionSession!,context:[:],reference:nil,anchor:nil,
+            checkpoint:{try JSONEncoder().encode(["sequence":14])}),"New recording failed to reset first-fault admission")
+        recorder.closeForExit()
 
         // Hold back main-queue publications while the real writer finishes.
         // A completed image must free capacity without waiting for its UI update.

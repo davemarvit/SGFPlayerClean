@@ -47,6 +47,11 @@ enum CaptureFolders {
     private var anchorPath:String?
     private var anchorInfo:[String:Any]?
     private let maximumPendingFrames:Int
+    private var retainedCameraRejection=false
+    /// Recording remains an explicit opt-in. One extra writer slot is reserved
+    /// for the initiating rejection, even when ordinary frames fill the queue.
+    var canRetainCameraRejection:Bool {isCapturing && !retainedCameraRejection}
+    var cameraRejectionSession:UUID? {canRetainCameraRejection ? sessionID:nil}
     init(root:URL=CaptureFolders.diagnostics,maximumPendingFrames:Int=12,archiveStorage:DiagnosticArchiveStorage?=nil) {
         self.root=root;self.maximumPendingFrames=max(1,maximumPendingFrames)
         self.archiveStorage=archiveStorage ?? (root==CaptureFolders.diagnostics ? .shared:nil)
@@ -69,7 +74,7 @@ enum CaptureFolders {
             archiveStorage:archiveStorage,minimumPayload:byteLimit==nil ? 64_000_000:nil)
         worker=writer;sessionID=id;folder=url;nextFrame=0;nextOperation=0;nextAsset=0;writingGap=nil
         operations=[:];finishing=false;endReason="Stopped by user";lastReference=nil;referencePath=nil;lastAnchorRevision=nil;anchorPath=nil;anchorInfo=nil
-        savedFrames=0;savedBytes=0;omittedImages=0;state = .capturing;status="Saving camera recording · game recording is separate."
+        savedFrames=0;savedBytes=0;omittedImages=0;retainedCameraRejection=false;state = .capturing;status="Saving camera recording · game recording is separate."
         writer.onFailure={ [weak self] message in
             guard let self,self.sessionID==id else {return}
             self.state = .failed;self.status="Camera recording stopped: \(message). Saved files are retained; game recording continues."
@@ -118,6 +123,44 @@ enum CaptureFolders {
             self.savedFrames=frames;self.savedBytes=bytes
         }
         return ticket
+    }
+    /// The checkpoint closure captures immutable pre-analysis state; its
+    /// potentially large JSON encoding runs on the writer queue, never on the
+    /// camera/main queue. This method neither enables recording nor changes any
+    /// clearance, alignment, game, clock or controller decision.
+    @discardableResult func retainFirstCameraRejection(_ image:CGImage,at time:Double,session:UUID,
+        context:[String:Any],reference:CGImage?,anchor:AutoGridDetector.TrackingAnchor?,
+        checkpoint:@escaping ()throws->Data)->Bool {
+        guard canRetainCameraRejection,session==sessionID,let worker,
+              worker.reserveFrame(maximum:maximumPendingFrames+1) else {return false}
+        retainedCameraRejection=true
+        nextFrame += 1
+        let ticket=Ticket(session:sessionID,frame:nextFrame)
+        let prefix="assets/first-camera-rejection"
+        var entry=context
+        entry["event"]="first camera rejection";entry["frameID"]=ticket.frame
+        entry["captureUptime"]=time;entry["time"]=Date().timeIntervalSince1970
+        entry["image"]=String(format:"frames/%06d.png",ticket.frame)
+        entry["width"]=image.width;entry["height"]=image.height
+        entry["handTrackerBeforeAnalysis"]=prefix+"-hand.json"
+        entry["checkpointTiming"]="Before this frame's analysis, not the post-verdict tracker"
+        entry["clockDomain"]="captureUptime is native monotonic; time is native wall clock at enqueue, not controller acknowledgement or light onset"
+        var assets:[DiagnosticWriter.Asset]=[.encoded(prefix+"-hand.json",checkpoint)]
+        if let reference {
+            entry["referenceImage"]=prefix+"-reference.png"
+            assets.append(.png(prefix+"-reference.png",reference))
+        }
+        if let anchor {
+            entry["trackingAnchor"]=["pixels":prefix+"-anchor.gray","width":anchor.frame.width,
+                "height":anchor.frame.height,"calibration":Self.value(anchor.calibration),
+                "fittedGrid":Self.value(anchor.fittedGrid)]
+            assets.append(.encoded(prefix+"-anchor.gray",{Data(anchor.frame.pixels)}))
+        }
+        worker.frame(image,entry:entry,assets:assets) { [weak self] frames,bytes in
+            guard let self,self.sessionID==ticket.session else {return}
+            self.savedFrames=frames;self.savedBytes=bytes
+        }
+        return true
     }
     private func flushWritingGap() {
         guard let gap=writingGap,let worker else {return}
@@ -185,7 +228,7 @@ enum CaptureFolders {
 /// All disk/PNG work is serialized off the detection and main queues. Errors end
 /// the diagnostic stream visibly; they never change the camera or recorder state.
 private final class DiagnosticWriter {
-    enum Asset {case png(String,CGImage),bytes(String,Data)}
+    enum Asset {case png(String,CGImage),bytes(String,Data),encoded(String,()throws->Data)}
     let folder:URL
     private let queue=DispatchQueue(label:"PhysicalGo.diagnostic-writer",qos:.utility)
     private let pendingLock=NSLock()
@@ -306,6 +349,7 @@ private final class DiagnosticWriter {
                         switch asset {
                         case .png(let path,let image):try self.save(self.png(image),path:path)
                         case .bytes(let path,let data):try self.save(data,path:path)
+                        case .encoded(let path,let encode):try self.save(encode(),path:path)
                         }
                     }
                     try self.save(self.png(image),path:entry["image"] as! String)
