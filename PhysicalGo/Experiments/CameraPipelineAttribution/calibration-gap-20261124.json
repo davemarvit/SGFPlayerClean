@@ -1,0 +1,183 @@
+{
+  "source": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/recovery-full-20261124-114432-37324/attempt-000/result.json",
+  "sha256": "015e06f5c6bb722b6c94900f0c0a27c259d7ef8e10cdd6493da82b97ea600bcc",
+  "nativeSource": "9c516f1",
+  "nativeTraceAvailable": false,
+  "uniqueOpticalManifestsObserved": 1471,
+  "lastFrames": [
+    {
+      "frameID": 29507,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.047000209,
+      "arrivedAtUptime": 1987631.0792005418,
+      "capturedAtUnix": 1795549623.0631936,
+      "publishedAtUnix": 1795549623.1971102,
+      "captureToManifestTimestampSeconds": 0.13391661643981934,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987631.206055958,
+      "firstGuardReadFinishedUptime": 1987631.207849333
+    },
+    {
+      "frameID": 29508,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.140033625,
+      "arrivedAtUptime": 1987631.178914875,
+      "capturedAtUnix": 1795549623.156192,
+      "publishedAtUnix": 1795549623.31532,
+      "captureToManifestTimestampSeconds": 0.15912795066833496,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987631.322203083,
+      "firstGuardReadFinishedUptime": 1987631.3252885
+    },
+    {
+      "frameID": 29509,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.2330335418,
+      "arrivedAtUptime": 1987631.2719749585,
+      "capturedAtUnix": 1795549623.2491944,
+      "publishedAtUnix": 1795549623.410742,
+      "captureToManifestTimestampSeconds": 0.16154766082763672,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987631.410529083,
+      "firstGuardReadFinishedUptime": 1987631.416874875
+    },
+    {
+      "frameID": 29510,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.3450335418,
+      "arrivedAtUptime": 1987631.38438625,
+      "capturedAtUnix": 1795549623.3611948,
+      "publishedAtUnix": 1795549623.52215,
+      "captureToManifestTimestampSeconds": 0.16095519065856934,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987631.518106666,
+      "firstGuardReadFinishedUptime": 1987631.522304416
+    },
+    {
+      "frameID": 29511,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.4560336252,
+      "arrivedAtUptime": 1987631.4965869167,
+      "capturedAtUnix": 1795549623.472192,
+      "publishedAtUnix": 1795549623.615642,
+      "captureToManifestTimestampSeconds": 0.14345002174377441,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987631.619786083,
+      "firstGuardReadFinishedUptime": 1987631.621693375
+    },
+    {
+      "frameID": 29512,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987631.549000584,
+      "arrivedAtUptime": 1987631.5889909584,
+      "capturedAtUnix": 1795549623.5651631,
+      "publishedAtUnix": 1795549624.5137548,
+      "captureToManifestTimestampSeconds": 0.9485917091369629,
+      "handObstructed": false,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987632.47659925,
+      "firstGuardReadFinishedUptime": 1987632.500177
+    },
+    {
+      "frameID": 29520,
+      "streamEpoch": "F1514C6F-7D81-4BEC-98ED-12BACE6F60E3",
+      "capturedAtUptime": 1987632.3490335005,
+      "arrivedAtUptime": 1987632.377143375,
+      "capturedAtUnix": 1795549624.3652074,
+      "publishedAtUnix": 1795549624.5909472,
+      "captureToManifestTimestampSeconds": 0.2257397174835205,
+      "handObstructed": null,
+      "alignmentValid": true,
+      "firstGuardReadStartedUptime": 1987632.585666541,
+      "firstGuardReadFinishedUptime": 1987632.599421875
+    }
+  ],
+  "largestObservedCaptureGaps": [
+    {
+      "previousFrame": 29512,
+      "nextFrame": 29520,
+      "captureGapSeconds": 0.8000329164788127,
+      "allocatedFramesBetween": 7
+    },
+    {
+      "previousFrame": 29259,
+      "nextFrame": 29262,
+      "captureGapSeconds": 0.2980334584135562,
+      "allocatedFramesBetween": 2
+    },
+    {
+      "previousFrame": 29226,
+      "nextFrame": 29228,
+      "captureGapSeconds": 0.2049999579321593,
+      "allocatedFramesBetween": 1
+    },
+    {
+      "previousFrame": 29269,
+      "nextFrame": 29271,
+      "captureGapSeconds": 0.20403337525203824,
+      "allocatedFramesBetween": 1
+    },
+    {
+      "previousFrame": 28667,
+      "nextFrame": 28669,
+      "captureGapSeconds": 0.18600000021979213,
+      "allocatedFramesBetween": 1
+    },
+    {
+      "previousFrame": 29219,
+      "nextFrame": 29221,
+      "captureGapSeconds": 0.1859999168664217,
+      "allocatedFramesBetween": 1
+    },
+    {
+      "previousFrame": 29309,
+      "nextFrame": 29310,
+      "captureGapSeconds": 0.1310336252208799,
+      "allocatedFramesBetween": 0
+    },
+    {
+      "previousFrame": 28349,
+      "nextFrame": 28350,
+      "captureGapSeconds": 0.1310333339497447,
+      "allocatedFramesBetween": 0
+    },
+    {
+      "previousFrame": 28705,
+      "nextFrame": 28706,
+      "captureGapSeconds": 0.1310000829398632,
+      "allocatedFramesBetween": 0
+    },
+    {
+      "previousFrame": 29085,
+      "nextFrame": 29086,
+      "captureGapSeconds": 0.1309999581426382,
+      "allocatedFramesBetween": 0
+    }
+  ],
+  "finalOff": {
+    "off_since_unix": 1795549624.6740122,
+    "status": "AimControl v44 OFF",
+    "controller_error": null,
+    "controller_error_code": null
+  },
+  "terminalCause": {
+    "kind": "fatal",
+    "reason": "RuntimeError: ValueError: Dark commissioning requires clear, aligned camera evidence"
+  },
+  "qualificationFailures": [
+    "supervisor_error",
+    "cancelled"
+  ],
+  "limitations": [
+    "Host guard records optical latest.json, not per-stage native execution or every analysis output.",
+    "Frame ID is allocated in receiveCameraFrame on main, before analysis; ID skips establish delivered frames but not their analysis outcomes.",
+    "Hand unknown is consistent with the >0.65s temporal reset; other reset/unavailable paths also exist.",
+    "publishedAtUnix is manifest construction time, not observed atomic visibility. Guard read-start precedes its reads and is not a completed-read time.",
+    "No evidence identifies syscall time, Vision pose, display rendering, CPU scheduling, or another stage as the cause."
+  ]
+}

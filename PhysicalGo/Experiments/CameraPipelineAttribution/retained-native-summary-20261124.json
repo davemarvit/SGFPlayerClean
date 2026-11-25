@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "warnings": [],
+  "runs": [
+    {
+      "clockDomain": "swift-systemUptime/16CFCB22-FF99-4759-B6FB-32A05FDC5CC2",
+      "retainedEvents": 3885,
+      "knownLoss": {
+        "missingRetainedEvents": 0,
+        "reportedDrops": 0,
+        "reportedWriterFailures": 0
+      },
+      "eventCounts": {
+        "driver_status_observed": 12,
+        "request_published": 2706,
+        "camera_safety_ready": 1153,
+        "bridge_status_read": 14
+      },
+      "invalidStageEvents": 0,
+      "timing": {
+        "camera_safety_ready.analysisSeconds": {
+          "count": 1153,
+          "p50": 0.060052999993786216,
+          "p95": 0.06741151651367544,
+          "p99": 0.07506922347471118,
+          "maximum": 0.17363291652873158
+        },
+        "camera_safety_ready.captureAgeSeconds": {
+          "count": 1153,
+          "p50": 0.11453441600315273,
+          "p95": 0.138480608491227,
+          "p99": 0.1697669908218086,
+          "maximum": 0.2937640412710607
+        },
+        "camera_safety_ready.mainDeliverySeconds": {
+          "count": 1153,
+          "p50": 4.9999915063381195e-05,
+          "p95": 7.634996436536312e-05,
+          "p99": 0.00028824495151639215,
+          "maximum": 0.019883249886333942
+        },
+        "camera_safety_ready.queueSeconds": {
+          "count": 1153,
+          "p50": 2.3458385840058327e-05,
+          "p95": 4.515838809311389e-05,
+          "p99": 0.00010944326408207431,
+          "maximum": 0.008800541516393423
+        }
+      },
+      "workerTimeByExpectedOccupancy": {},
+      "slowestWorkers": []
+    }
+  ],
+  "completeSession": false,
+  "limitations": [
+    "Only retained native events are summarized. Rolling prefixes/tails and final failures may be absent even when known loss is zero.",
+    "Expected occupancy is workload context, not a fresh stone or hand-clearance observation. Older traces remain occupancy unknown.",
+    "Native stage durations include scheduling. They do not measure host optical registration or CPU/syscall execution.",
+    "No cross-process or cross-run subtraction, no command-to-light onset, and no claim that summed phases form an end-to-end critical path.",
+    "Missing camera events or stage endpoints remain unknown; counts cannot establish hardware frame loss or sustained gameplay reliability."
+  ],
+  "provenance": {
+    "historicalAppVersion": "0.259",
+    "files": [
+      {
+        "path": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-activation-20261124/bedtime-play-20261124-023109/native-latency.previous.jsonl",
+        "sha256": "754122417aa5a6ccedaa68f713852284d75092950eb9fb8272eea4888faed1e4"
+      },
+      {
+        "path": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/gameplay-activation-20261124/bedtime-play-20261124-023109/native-latency.jsonl",
+        "sha256": "00bf083b6f5e55ec5bb4e263c191766e668e0b4a215c77ff555d77d8c94865fd"
+      }
+    ]
+  }
+}

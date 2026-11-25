@@ -17,12 +17,26 @@ import ImageIO
         func process(_ image:CGImage)->CameraAnalysisPipeline.Output {
             time+=0.21
             var safety:CameraAnalysisPipeline.CameraSafety?
+            var stages:[String:Double]?,traceOrder=[String]()
             let output=CameraAnalysisPipeline.process(.init(target:image,calibration:meta.calibration,threshold:meta.threshold,
                 reference:reference,referenceCalibration:meta.referenceCalibration,straighten:false,longAxisRows:false,
                 checkStoneAspect:false,previousStoneCount:0,pendingAxis:nil,trackingAnchor:nil,alignmentExpected:expected,
                 checkAlignment:false,trackingState:EstablishedStoneTracker(),trackingExpected:expected,trackingContext:"test",
-                trackingManualPoints:[],trackingFresh:true,trackingTime:time,checkHands:true,handTracking:tracker),safety:{safety=$0})
+                trackingManualPoints:[],trackingFresh:true,trackingTime:time,checkHands:true,handTracking:tracker),safety:{safety=$0;traceOrder.append("safety")},
+                stageTrace:{stages=$0;traceOrder.append("stages")})
             check(safety != nil && safety!.handObstructed==output.handObstructed && safety!.exposureFailure==output.exposureFailure && safety!.lightingBlocked==output.result?.lightingBlocked && (safety!.aligned != nil)==(output.aligned != nil),"early broker verdict must match the full same-frame result")
+            let names=["poseSeconds","grayExposureSeconds","alignmentSeconds","stoneDetectionSeconds","handOutlineSeconds","lightingSeconds","safetyCallbackSeconds","stoneTrackingSeconds","stoneAspectSeconds","rectificationSeconds"]
+            check(traceOrder == ["safety","stages"] && stages?["capturedAtUptime"]==time,
+                  "Timing must preserve safety-first order and original capture time")
+            let metrics=stages ?? [:]
+            let durations=names.compactMap{metrics[$0]}
+            let total=durations.reduce(0.0,+)
+            let validDurations=durations.count==names.count && durations.allSatisfy{$0.isFinite && $0>=0}
+            let validTotal=abs(total-(metrics["totalSeconds"] ?? -1))<0.000001
+            check(validDurations && validTotal && (metrics["afterSafetySeconds"] ?? -1)>=0,
+                  "Stage timings must partition full worker time")
+            check(metrics["expectedStoneCount"]==Double(expected.filter{$0 == .black || $0 == .white}.count),
+                  "Timing workload context must preserve expected occupancy without inventing a new observation")
             tracker=output.handTracking;return output
         }
         // Repeated photographs test pipeline wiring; the separate sampled
