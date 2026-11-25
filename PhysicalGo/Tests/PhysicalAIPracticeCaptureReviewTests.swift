@@ -89,6 +89,58 @@ import Foundation
             let reopened=controller(folder,writes:Writes())
             check(reopened.snapshot?.id==unrelated.id && !reopened.canReturnFromPracticePosition,"Reopened later game cannot inherit old test-return authority")
         }
+        // Restart at either fallible return write. The newly constructed
+        // controller must recover authority from disk, not the old instance.
+        for ended in [false,true] {
+            for stage in ["last-test.json","current.json"] {
+                let folder=root.appendingPathComponent("restart-\(ended)-"+stage)
+                var saved=original();saved.ended=ended;saved.result=ended ? "W+R":nil
+                let originalBytes=try seed(saved,in:folder),writes=Writes(),ai=controller(folder,writes:writes)
+                check(ai.loadPracticePosition(.twoStoneCapture),"Restart fixture loads from paused or finished game")
+                let test=ai.snapshot!,context=test.practiceTest!,current=folder.appendingPathComponent("current.json")
+                let testBytes=try Data(contentsOf:current),store=PhysicalAIPracticeStore(directory:folder)
+                let backup=store.backupURL(context),backupBytes=try Data(contentsOf:backup)
+                writes.fail=stage
+                check(!ai.returnFromPracticePosition(),"Injected return failure is visible before restart: "+stage)
+                check(try Data(contentsOf:current)==testBytes,"Interrupted return preserves authoritative test bytes")
+                let reopened=controller(folder,writes:Writes())
+                check(reopened.snapshot?.id==test.id && reopened.canReturnFromPracticePosition && reopened.phase == .paused,
+                    "Reconstructed controller owns the same paused test and durable return context")
+                check(reopened.returnFromPracticePosition(),"Return retries successfully after controller reconstruction")
+                check(try Data(contentsOf:current)==originalBytes,"Restarted retry restores unknown metadata and original bytes exactly")
+                check(reopened.snapshot?.id==saved.id && reopened.timing==saved.timing && reopened.phase == (ended ? .finished:.paused),
+                    "Restarted retry restores original identity, clocks and finished/paused state")
+                check(try Data(contentsOf:backup)==backupBytes,"Restarted retry cannot alter immutable backup")
+                check(try Data(contentsOf:backup.deletingLastPathComponent().appendingPathComponent("last-test.json"))==testBytes,
+                    "Restarted retry archives outgoing test before restoration")
+                let restored=controller(folder,writes:Writes())
+                check(restored.snapshot?.id==saved.id && !restored.canReturnFromPracticePosition,
+                    "A second reconstruction cannot resurrect old fixture-return authority")
+                check(restored.laser.target==nil && restored.laser.playSession==nil,
+                    "Restoration and reconstruction cannot activate an old laser target")
+            }
+        }
+        for missing in [false,true] {
+            let folder=root.appendingPathComponent(missing ? "missing-backup":"corrupt-backup"),saved=original()
+            let originalBytes=try seed(saved,in:folder),ai=controller(folder,writes:Writes())
+            check(ai.loadPracticePosition(.singleCapture),"Damaged-backup fixture loads")
+            let context=ai.snapshot!.practiceTest!,current=folder.appendingPathComponent("current.json")
+            let testBytes=try Data(contentsOf:current),backup=PhysicalAIPracticeStore(directory:folder).backupURL(context)
+            let backupBytes=try Data(contentsOf:backup)
+            if missing {try FileManager.default.removeItem(at:backup)}
+            else {try Data("damaged synthetic backup".utf8).write(to:backup,options:.atomic)}
+            let reopened=controller(folder,writes:Writes())
+            check(!reopened.returnFromPracticePosition(),"Missing or corrupted backup must fail closed after restart")
+            check(try Data(contentsOf:current)==testBytes && reopened.snapshot?.id==context.testID,
+                "Rejected restoration preserves authoritative test file and in-memory identity")
+            check(reopened.phase == .paused && reopened.practiceError != nil && reopened.laser.target==nil,
+                "Backup failure stays paused with actionable error and no laser target")
+            // Repair only this test's deliberately damaged temporary backup;
+            // production never guesses replacement bytes or discards a game.
+            try backupBytes.write(to:backup,options:.atomic)
+            check(reopened.returnFromPracticePosition(),"Exact backup repair permits retry without replacing the test")
+            check(try Data(contentsOf:current)==originalBytes,"Retry after exact repair restores original bytes")
+        }
         do {
             let folder=root.appendingPathComponent("wrong-backup-identity"),saved=original()
             _=try seed(saved,in:folder);let writes=Writes(),ai=controller(folder,writes:writes)
