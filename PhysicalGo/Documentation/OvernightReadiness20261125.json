@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-25",
+  "status": "installed_offline_app_closed_pending_live_alignment_and_READY",
+  "native": {
+    "app_version": "0.265",
+    "app_build": "266",
+    "app_source_commit": "1f6fb91cac57616791d47c2fea4cc4eca0426a28",
+    "app_source_hash": "f24ce0db668c4638306164c3457dd8cb1ea061adcbffc0f5700a3d248540ff0a",
+    "app_binary_sha256": "7fa48c519d4e70a95e8164c8411c19a54f8ea81420468adac1cf599f00c92871"
+  },
+  "host": {
+    "source_commit": "b9a524e2b521e535de913daa92098742f1f34233",
+    "release": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/b9a524e2b521e535de913daa92098742f1f34233-app0265",
+    "manifest_sha256": "74696b245c133f9fc3954357fd9233d295c248afc46201122841e711981b155b"
+  },
+  "validation": {
+    "native_suites": 8,
+    "native_checks_and_cases": 2588,
+    "combined_host_tests": 219,
+    "paired_acceptance": "passed",
+    "paired_acceptance_sha256": "cce3ace14f23d9162e4c2e45ff8498631efc1fa12c47021b613a2f5ce02e7068",
+    "physical_validation": false
+  },
+  "installation": {
+    "receipt_path": "/Users/Dave/Documents/SGF PLayer/work/overnight-readiness-20261125/install-receipt.json",
+    "receipt_sha256": "9aa6e0a4e8264cb6633549b4948f1d63d3912df76e48f58ea9e55230b7356e7c",
+    "all_saved_game_files_byte_identical": true,
+    "app_relaunched": false,
+    "camera_started": false,
+    "controller_actions": false,
+    "final_verification_path": "/Users/Dave/Documents/SGF PLayer/work/overnight-readiness-20261125/final-verification.json",
+    "final_verification_sha256": "761df8d9badfcf12e58c8664ceb4b5364a9e14330fc916e29b438ce084e980aa",
+    "app_process_absent": true,
+    "controller_owner_absent": true,
+    "remote_baseline_tags_confirmed": true
+  },
+  "last_actual_full_off_unix": 1795596934.1468098,
+  "baseline_tag": "physical-go-baseline-20261125-before-architecture",
+  "remaining_physical_acceptance": [
+    "temporal matcher reliability and live timing",
+    "PG36 child shutdown receipt",
+    "adequate-status click timing",
+    "same-initial-light holding and illuminated fine corrections",
+    "PG23 diagnostic retention; not a recognition fix"
+  ],
+  "next_test": [
+    "reopen app",
+    "start camera and verify fresh live alignment",
+    "preserve seven stones and empty pending Q17",
+    "fresh READY at launcher before any controller activation"
+  ]
+}
