@@ -1,0 +1,48 @@
+# Offline issue-owner coordination
+
+Dated November24,2026. This is an assignment/evidence ledger, not a replacement issue register. [IntegrationChecklist.md](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md) remains authoritative; root alone edits it and owns integration, install and all hardware. All31 open scopes have27 owners. No issue is closed by this ledger.
+
+Constraints: offline only; no camera acquisition, serial/controller, app launch/quit, UI mutation, installation, gameplay activation or screenshots. Preserve games, clocks, calibration and raw evidence. Frozen native0628a33 and host2da3c29 remain immutable. New codex sparse worktrees only for edits. Total new disk budget8GB. Coordinator grants at most1Swift build and2heavy jobs overall; no mass builds.
+
+|Scope|Owner under `/root/issue_coordinator/`|Next action|Existing evidence|Declared remaining acceptance|
+|---|---|---|---|---|
+|PG00|pg00_ai_latency|Trace actual cold/warm worker identity|Historical8.275s/0.114s;67reuse checks|Physical cold/warm reply latency|
+|PG01|pg01_stability|Audit synchronized optical/encoder evidence|Released30samples;held8458pairs;optical sync absent|Controlled optical stationary/stepping comparison|
+|PG02|pg02_calibration_model|Spatial frozen-model/response audit|97retained observations;three-point and feedback runs|Qualified spatial errors and reuse documented|
+|PG03|pg03_hand_state|Complete temporal tracker checkpoint/replay|Checkpoint misses temporal state|False warning fix plus physical entry/withdrawal/message clear|
+|PG04|pg04_acceptance|Paired point conversation/both-color lifecycle|Existing paired runtime only standby|Complete attended gameplay flow|
+|PG05|pg05_captures|Single-prisoner both-color lifecycle tests|Multi-capture tests already present|Physical single/multiple/partial removal and clocks|
+|PG06a|pg06a_freshness|Concurrent blocked-read freshness tests|Independent600ms safety cache implemented|Sustained600ms play and bounded recovery|
+|PG06b|pg06b_step_policy|Bounded edge step planner|K18=15moves;15px cap;7d8b530 optical candidate|Measured live latency with containment|
+|PG07|pg07_holding|Combined hand/cooling/resume/OFF regression|v44/schema2 existing|Current paired holding/hand/resume physical pass|
+|PG08|pg08_thermal|Cooling reheat eligibility regression/fix|Baseline reproduces >=40C stale eligibility|Reviewed firmware and physical cooling/reengagement|
+|PG09|pg09_17_continuity|Pause ordering/reopen regressions|Cancellation precedes freeze|Physical finish/reopen preserving unfinished state|
+|PG10|pg10_center_hints|Cancel moved/color-changed stale hint|0.12–0.18cell stale-target gap|Physical center targeting/hand/removal|
+|PG11|pg05_captures|Silent capture placement-first identity tests|Existing multi-capture suite|Physical ordering/partial cleanup|
+|PG12|pg12_online_targets|Inert authoritative online target producer|Existing OGS native state bridge|Server-clock-safe native laser integration|
+|PG13|pg13_illegal_moves|Both-color ko/suicide/full restoration tests|Existing tests asymmetric|Physical illegal/restoration pass|
+|PG14b|pg14b_20_architecture|Repair stale guides;review boundaries|Canonical register root-owned|Ongoing docs accurate after integration|
+|PG15|pg15_19_setup_progress|Minimal workflow passive progress contract|Three-point experiment complete|Usable startup/recovery and measured setup time|
+|PG16|pg16_camera_latency|Port1f28d4c and workload-aware summarizer|Prior54hand/stone+26trace checks|Occupied native/host tail attribution|
+|PG17|pg09_17_continuity|Freeze clocks before cancellation|Existing transient/3s tests|Fault/reopen physical continuity|
+|PG18|pg18_learning|Raw receipt validated passive collector/held-out score|Reuse3ad106c;tails regressed|Provenance/scoring/rollback;no live promotion|
+|PG19|pg15_19_setup_progress|Explicit three-point/feedback display modes|Current full5+9 display|Accurate counts/timing without activation authority|
+|PG20|pg14b_20_architecture|Cross-change architecture review|Reducer/immutable paired boundaries|Installed combination physical verification|
+|PG21|pg21_first_fault|Bounded opt-in first rejection archive|Post-verdict reason lacks exact pre-state|First image/checkpoint/timing retained|
+|PG22|pg22_parallax|Leakage-safe passive placement evaluator|Reused0ed574 static study|Held-out evidence;no auto correction|
+|PG23|pg23_ambiguity|Both-color hints off/on persistence regressions|52focused checks|Physical halfway placements|
+|PG24|pg24_frame_diff|Review7d8b530 and stationary-hand controls|Existing regional study includes occupied controls|No stale clearance inference;expanded evidence|
+|PG25|pg25_practice_fixtures|Restart/failed restore/backup-corruption tests|166existing checks|Physical fixtures preserve original snapshot|
+|PG26b|pg26b_audio|No-audio cancellation/generation click tests|Existing first-light logic|Audible AirPod Pro3 new-move click|
+|PG31|pg31_alignment_review|Independent saved-image control sweep|002e4c7;204native checks;exact18per edge|Moved/covered rejection and physical stability|
+|PG32|pg32_serial_fault|Independent diagnostic sinks/fault attribution|16mock tests;original cause unavailable|Captured cause/recovery and sustained play|
+|PG33|pg33_feedback_gameplay|Explicit safe feedback gameplay route|Seed benchmark separate from gameplay|Paired tests/install/attended game|
+
+## Integration dependencies
+
+PG33 depends on reviewed PG31/06a/06b/07/32 contracts and PG04 executable paired point conversation. PG03 owns tracker checkpoint internals; PG21 owns retention/capture. PG00,PG09/17,PG10 touch distinct PhysicalAI.swift regions and need combined native review. PG15/19 owns progress callbacks; PG06b owns collector step planning. PG18 and PG22 are passive offline collectors with separate laser/stone semantics. All candidate source/test/install/physical states must be reported separately.
+
+## Resource queue
+
+Root released Swift slot after PG31 four suites204checks. PG31 independent saved-image controls has first heavy vision slot. Other vision work waits. Native focused suites queued by readiness; no app install by workers.
+
