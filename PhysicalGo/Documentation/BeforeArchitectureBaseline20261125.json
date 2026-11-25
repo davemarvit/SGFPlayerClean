@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "purpose": "Frozen installed baseline before architectural changes; not a passing gameplay release",
+  "source_tag": "physical-go-baseline-20261125-before-architecture",
+  "native_commit": "0f9ac752414b12b85dae5e10b161bd7e6de69950",
+  "native_version": "0.264",
+  "native_build": "265",
+  "native_source_hash": "ad844706d64af69339254093fa2b92ebd337d0f66476ac1184e4eed4f73f7789",
+  "native_binary_sha256": "93da5b07a40e130f46b735b9efbaaf74d6be9efee6cf86117f57e8dfb687fc5b",
+  "host_commit": "968ba538d457c03fc34ed0b17b0d59e853817838",
+  "host_release": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/968ba538d457c03fc34ed0b17b0d59e853817838-app0264",
+  "host_manifest_sha256": "e5a5bda3c013ffc1f9a8a7cd20f11b127d094a83e88c17c98d8140e26d468e34",
+  "firmware_binary_sha256": "f3e4cd52285eaadd4aa9c5772c232201e6b1f758a275d2669543576343119be7",
+  "game_sha256": "b10bd5df9c4ddc112cc6fd1b575a0cc0cd36479d8cca1d0ea6a569c4148bf279",
+  "game_backup": "Local only; work/physical-go-baseline-20261125-before-architecture/current.json",
+  "physical_stones": 7,
+  "saved_moves": 8,
+  "pending_move": "White Q17",
+  "controller_off": {
+    "off_since_unix": 1795596934.1468098,
+    "status": "AimControl v44 OFF",
+    "controller_error": null,
+    "controller_error_code": null,
+    "close_error": null
+  },
+  "controller_off_sha256": "e28a3669021ba73c581141443fd05bc5ada6abd438c4e4987392bc9f3ba3c4cb",
+  "last_run": "/Users/dave/Library/Application Support/Physical Go/LaserDriverLogs/1795596781138197000",
+  "known_failure": "Temporal periodic-grid mismatches: median 0.062px, p95 27.330px; exact failed frame retained",
+  "local_snapshot_sha256": {
+    "binding.json": "a72c1b464ea36d2848f0bbab86142309ae796ab5bac4c4878794cadae87c67bd",
+    "PhysicalGo-Play.command": "970bf68fbfcb4e8d50b2b4b6d5f64bdf79343c527f891afa18b82e03316b0648",
+    "release.json": "e5a5bda3c013ffc1f9a8a7cd20f11b127d094a83e88c17c98d8140e26d468e34",
+    "startup-anchor-provenance.json": "9ccc6d58d4d8f1d7a75d2ec8b9874e05b54ed9ab97eb667926134bac55303065",
+    "current-release.json": "d540383239bc5dd72b54c831d003869dedfebd525f0825274cc137afa4c8a5f6",
+    "current.json": "b10bd5df9c4ddc112cc6fd1b575a0cc0cd36479d8cca1d0ea6a569c4148bf279",
+    "direct-full-off.json": "e28a3669021ba73c581141443fd05bc5ada6abd438c4e4987392bc9f3ba3c4cb",
+    "Physical Go 0.264.app/Contents/MacOS/PhysicalGo": "93da5b07a40e130f46b735b9efbaaf74d6be9efee6cf86117f57e8dfb687fc5b"
+  }
+}
