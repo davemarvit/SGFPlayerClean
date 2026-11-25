@@ -73,7 +73,7 @@ PG15 fixed stale serialized reconnect reference paths (`afce786`, integrated). H
 - [ ] **PG-14b — Keep documentation current. Ongoing.** Update this register after each change/test; reconcile architecture/protocol/install guides when behavior changes. Keep historical reports explicitly dated.
 - [ ] **PG-15 — Minimal practical setup workflow. Three-wide experiment done.** Next: make that path usable through gameplay startup, retain calibration across recoverable interruptions and measure true setup-to-play time. Do not repeat a full tour merely because the first guess is inaccurate.
 - [ ] **PG-16 — Camera/occupied-board latency attribution. Instrumentation `1f28d4c` offline-tested, not installed.** Existing native analysis median60.1ms/max173.6ms showed no sustained backlog. Next: identify current occupied-board tail delays; distinguish native recognition from host optical-registration work.
-- [ ] **PG-17 — Gameplay fault continuity. Partial fixes installed; new pause-order fix offline.** Candidate `19db846`, now installed in0.262, freezes clocks before cancellation/cleanup;211 checks passed and the new regression failed on its baseline. Next: exercise transient camera/lease recovery, three-second transition bound, app closure/reopen and unrecoverable fault pause without losing game/clocks.
+- [ ] **PG-17 — Gameplay fault continuity. Pause-order fix installed in0.262; physical continuity verification remains open.** Candidate `19db846`, now installed in0.262, freezes clocks before cancellation/cleanup;211 checks passed and the new regression failed on its baseline. Next: exercise transient camera/lease recovery, three-second transition bound, app closure/reopen and unrecoverable fault pause without losing game/clocks.
 - [ ] **PG-18 — Learn from gameplay observations. Offline shadow learner only (`3ad106c`).** Ten tests pass; some medians improve but tail errors regress. Next: collect settled actual pose/spot pairs with provenance, score before training and retain rollback. No live updates or learned spatial derivative promoted.
 - [ ] **PG-19 — Calibration progress UI. Existing five-plus-nine display installed.** Next: represent minimal/feedback workflows accurately, preserve completed points and show measured timing without treating progress as activation authority.
 - [ ] **PG-20 — Architecture/process follow-through. Recovery reducer, immutable builds and paired acceptance integrated.** Next: keep new gameplay work within these boundaries and verify the installed combination physically; no wholesale rewrite required.
@@ -110,18 +110,18 @@ Do not interpret calibration-only timing overrides as a gameplay reliability pas
 
 | Component | Current identity |
 |---|---|
-| Installed app | `/Users/Dave/Applications/Physical Go.app`,0.261/build262 |
-| Installed app source | `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`; runtime `9c516f1`, documentation HEAD `0628a33` |
-| Embedded app source hash | `79f2ec079f3d116af313d612b4ad4a8f71ddb569211cce14f4c6f4a0569a30d7` |
+| Installed app | `/Users/Dave/Applications/Physical Go.app`,0.262/build263 |
+| Installed app source | `/Users/Dave/SGFPlayerClean-worktrees/issue-integration-20261124`, `c53ac05` |
+| Embedded app source hash | `79960c73c337d906768560ac5dc82a6440ebd8bdad12e119a4a735d483430bd2` |
 | Existing paired gameplay host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/camera-safety-delivery`, `04b76c7`; gameplay launcher remains blocked |
 | Physically tested feedback host | `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/feedback-indication-stop`, `2da3c29785aa7337871b299380dd3dc289437332` |
 | Feedback launcher | `work/PhysicalGo-Feedback-Remaining.command`; currently P15/K18-only; no live PTY |
 | Firmware | AimControl v44; unchanged |
-| Camera | FULL HD WEB CAM/AUSDOM AF660,`0x21000000bda0567`,1920×1080; current epoch `C3601E4D-5053-478F-9BDC-207867A7EE1F` |
+| Camera | FULL HD WEB CAM/AUSDOM AF660,`0x21000000bda0567`,1920×1080; last qualified epoch `C3601E4D-5053-478F-9BDC-207867A7EE1F`; broker is stale after app restart |
 | Controller | `/dev/cu.usbmodem1101`; verify identity and exclusivity before next opening |
 | Saved game | `D710D336-2746-4004-9796-F63A8D2FB8F5`, empty Human Black practice, paused; older games preserved |
-| Rollback | Signed0.260 in `work/camera-safety-delivery-20261124`; do not overwrite |
-| Active experiments | Native `alignment-profile-jitter`,002e4c7 (204 checks passed, independent review pending); host `feedback-optical-latency`,7d8b530 (offline tested only) |
+| Rollback | Signed0.261 and game backup in `work/attended-recheck-20261124-105259/pre-0262-install`; older0.260 retained |
+| Reviewed unactivated host | `issue-integration-20261124`, `fe46919`; final paired tests passed, model-response blocker remains; no worker experiment currently running |
 
 Canonical repositories hold current documentation but older runtime sources.
 Never build them assuming they match the installed app. Frozen hardware-tested
