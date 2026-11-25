@@ -6,7 +6,8 @@ final class AIRecognitionTrace {
     private let url:URL
     private var entries=[[String:Any]]()
     private var pending=false
-    init(url:URL) {self.url=url}
+    private let placementAmbiguity:PlacementAmbiguityArchive
+    init(url:URL) {self.url=url;placementAmbiguity=PlacementAmbiguityArchive(directory:url.deletingLastPathComponent())}
     func record(_ entry:[String:Any]) {
         queue.async { [self] in
             guard JSONSerialization.isValidJSONObject(entry) else {return}
@@ -19,6 +20,15 @@ final class AIRecognitionTrace {
                 try? FileManager.default.createDirectory(at:url.deletingLastPathComponent(),withIntermediateDirectories:true)
                 try? data.write(to:url,options:.atomic)
             }
+        }
+    }
+    /// Event-based metadata retention independent of the rolling trace and
+    /// image recording. No disk IO or JSON encoding on the camera/UI path.
+    func recordPlacementAmbiguity(_ evidence:PlacementAmbiguityDiagnostic) {
+        queue.async { [self] in
+            do {_ = try placementAmbiguity.record(evidence)}
+            catch {record(["reason":"placement_ambiguity_diagnostic_write_failed",
+                "atUnix":evidence.atUnix,"detail":error.localizedDescription])}
         }
     }
     /// Two bounded sampled-state snapshots, independent of continuous image

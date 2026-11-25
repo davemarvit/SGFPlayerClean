@@ -26,7 +26,7 @@ private struct AssignmentRecording: Decodable {
     let clock=Clock()
     let ai:PhysicalAI
     let folder:URL
-    init(root:URL,moves:[Int?],humanBlack:Bool=false,pending:Bool=false,hints:Bool=false) throws {
+    init(root:URL,moves:[Int?],humanBlack:Bool=false,pending:Bool=false,hints:Bool=false,trace:AIRecognitionTrace?=nil) throws {
         folder=root.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true)
         var settings=PhysicalAISettings();settings.size=19;settings.humanBlack=humanBlack
@@ -38,7 +38,7 @@ private struct AssignmentRecording: Decodable {
         try JSONEncoder().encode(saved).write(to:folder.appendingPathComponent("current.json"))
         let c=clock
         let laser=PhysicalLaserGuidance(directory:folder.appendingPathComponent("bridge"),automatic:false,uptime:{c.now})
-        ai=PhysicalAI(directory:folder,generate:{_,_ in "pass"},laser:laser,uptime:{c.now})
+        ai=PhysicalAI(directory:folder,generate:{_,_ in "pass"},laser:laser,recognitionTrace:trace,uptime:{c.now})
         ai.centeringEnabled=hints
         laser.observeCamera(hand:false,valid:true,capturedAt:c.now,now:c.now,context:"recorded-assignment-grid")
         ai.resume()
@@ -156,6 +156,33 @@ private struct AssignmentRecording: Decodable {
             check(!h.ai.snapshot!.pendingPlacement && h.ai.snapshot!.moves.count==(reply ? 4:3),"Fresh clear placement must complete with or without a prompt reply")
             h.ai.pause()
         }
+        // This app-level case is separate from the standalone archive suite:
+        // it verifies the controller captures BEFORE resetting its witnesses.
+        let traceFolder=root.appendingPathComponent("ambiguity-trace")
+        let trace=AIRecognitionTrace(url:traceFolder.appendingPathComponent("recognition-trace.json"))
+        let diagnosed=try AssignmentScenario(root:root,moves:[72,180,300],trace:trace)
+        diagnosed.feed(diagnosed.clean(),count:4)
+        var proposed=diagnosed.ai.cells;proposed[275]="white"
+        let clean=diagnosed.clean(proposed)
+        diagnosed.feed(clean,count:2)
+        var rejected=replace(clean,294,.empty,0.75)
+        rejected.fitAttempts=[.init(row:14,col:9,stage:"outline",reason:"below_minimum_quality",minimumQuality:0.78,maskCount:0,
+            best:.init(row:14,col:9,center:.init(x:9,y:14.12),radiusCol:0.52,radiusRow:0.55,quality:0.73))]
+        diagnosed.clock.now+=0.2;rejected.capturedAt=diagnosed.clock.now
+        let frame=diagnosed.ai.laser.frames.frame(capturedAt:diagnosed.clock.now,timestamp:nil,now:diagnosed.clock.now,wall:1000)
+        diagnosed.ai.laser.noteFrame(frame)
+        diagnosed.ai.consume(rejected,now:diagnosed.clock.now)
+        let diagnosticFile=traceFolder.appendingPathComponent("placement-ambiguity.json")
+        let deadline=Date().addingTimeInterval(3)
+        while !FileManager.default.fileExists(atPath:diagnosticFile.path),Date()<deadline {Thread.sleep(forTimeInterval:0.01)}
+        let episode=try JSONDecoder().decode(PlacementAmbiguityArchive.Episode.self,from:Data(contentsOf:diagnosticFile))
+        let evidence=episode.events[0]
+        check(evidence.witnessesBeforeReset==2,"Diagnostic captured already-reset placement witnesses")
+        check(evidence.frame?.frameID==frame.frameID && evidence.frame?.streamEpoch==frame.streamEpoch.uuidString,"Controller diagnostic lost exact camera identity")
+        check(evidence.verifiedSource=="fresh_board_confirmed" && evidence.verifiedAtUptime != nil,"Controller diagnostic lost fresh verification provenance")
+        check(evidence.fitAttempts.first?.reason=="below_minimum_quality" && evidence.readings.first(where:{$0.point==294})?.confidence==0.75,"Controller lost failed-fit or neighbor cause")
+        check(diagnosed.ai.snapshot!.moves.count==3 && diagnosed.ai.pendingPoint==nil,"Diagnostic altered placement admission")
+        diagnosed.ai.pause()
         print("Physical AI ambiguous placement: \(checks) checks passed")
     }
 }

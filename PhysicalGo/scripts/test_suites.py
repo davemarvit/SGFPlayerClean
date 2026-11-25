@@ -42,6 +42,7 @@ SUITES = {
     'marker-scenarios-test': Suite('PhysicalMarkerScenarioTests','app',('Tests/PhysicalMarkerScenarioTests.swift',),optimized=False),
     'laser-standby-test': Suite('PhysicalLaserStandbyTests','app',('Tests/PhysicalLaserStandbyTests.swift',),optimized=False),
     'broker-epoch-test': Suite('PhysicalLaserEpochTests','app',('Tests/PhysicalLaserEpochTests.swift',),optimized=False),
+    'placement-ambiguity-diagnostic-test': Suite('PlacementAmbiguityDiagnosticTests','vision',('Tests/PlacementAmbiguityDiagnosticTests.swift',),extra=('Sources/PlacementAmbiguityDiagnostic.swift','Sources/AIRecognitionTrace.swift'),optimized=False),
     'hand-stall-storage-test': Suite('HandStallStorageTests','vision',('Tests/HandStallStorageTests.swift',),extra=('Sources/AIRecognitionTrace.swift',)),
     'crowded-empty-target-test': Suite('CrowdedEmptyTargetTests','vision',('Tests/CrowdedEmptyTargetTests.swift',)),
     'ai-white-s4-placement-test': Suite('AIWhiteS4PlacementTests','vision',('Tests/AIWhiteS4PlacementTests.swift',)),

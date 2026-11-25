@@ -163,7 +163,7 @@ struct KnownEmptyLighting {
         guard !report.resolved.isEmpty else {return raw}
         return BoardObservation(readings:readings,size:raw.size,notice:raw.notice,
             lightingBlocked:raw.lightingBlocked,lightingAdjusted:raw.lightingAdjusted,lightingField:raw.lightingField,
-            footprints:raw.footprints,placementFits:raw.placementFits,manualPoints:raw.manualPoints,
+            footprints:raw.footprints,placementFits:raw.placementFits,fitAttempts:raw.fitAttempts,manualPoints:raw.manualPoints,
             trackedAssignments:raw.trackedAssignments,capturedAt:raw.capturedAt,
             handObstructed:raw.handObstructed,clockPressEstimate:raw.clockPressEstimate,centeringEvidence:raw.centeringEvidence)
     }
