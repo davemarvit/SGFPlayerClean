@@ -132,6 +132,17 @@ Initial run passed703checks but async fixture failed because a restarted5MBcusto
 
 All27issue owners and additional cross-reviewer have delivered finite checkpoints. Every31open scope retains its declared acceptance; no physical issue is closed by these offline outcomes. Root owns final install/UI smoke, current hardware state and the canonical register. Next response-envelope experiment is documented/deferred, host/firmware activation remains blocked, and optional source integration is separate.
 
+## Focused movement-correction follow-up completed
+
+The user's subsequent authorization resumed only PG06b implementation, PG02 provenance/admission work and independent review. The previously deferred dense-response experiment was executed and converted into a concrete gameplay fix. [DenseResponseCandidateManifest.md](DenseResponseCandidateManifest.md) pins source order, binding policy, evidence and remaining attended checks.
+
+Qualified helper272e4c9, docs f9dde4f, attended policy115710f, gameplay runtime71fe937, wording a288718 and final evidence d56d749 are ready for root integration. Gameplay uses the dense derivative at each freshly observed actual encoder pose and a measured spot anchor, with no secant carryover or silent affine fallback. Frozen three-point benchmark remains unchanged. Original model/training/setup lineage and fresh-reference identity are pinned; extrapolation is logged under explicit attended_full_board_v1 instead of imposing79 artificial strict-hull route refusals.
+
+The production helper fixes the observed endpoint defect:4/71 envelope violations become0/71. Exact-source simulations reach361/361 from anchor and center; opposite routes70/72 and repeated-drift34/72 retain existing prelight/guard/time refusals, with zero sampled margin breaches across all four cohorts. All seven formerly violating trajectories reach.66 focused checks pass. Final independent review4b1f936 verifies ten production hashes and recommends integration plus supervised361-coordinate attempts; it supersedes the earlier response-domain block for this exact candidate, without claiming physical success at all intersections.
+
+Root reports the PG08 firmware fix installed and verified fully OFF. Workers performed no hardware, UI, installation or activation. Root owns exact combined acceptance, immutable package/binding, fresh preflight and READY. All focused worker jobs are complete and resource slots released; all issue-level physical acceptance remains tracked by the root-owned canonical register.
+
+
 
 
 
