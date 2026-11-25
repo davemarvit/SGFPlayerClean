@@ -1,0 +1,10 @@
+{
+  "source": "/Users/Dave/Documents/SGF PLayer/work/feedback-play-release-20261124/first-ai-fault/recovery-latch",
+  "sha256": {
+    "request.json": "36a56134c67eccd17af00d689a58c79df6951999a0e622e53d18362269de7e67",
+    "status.json": "4ccf5b23f0f980784bcdc7ee3b04d18a4979694803873f99feb541b66269c8ab",
+    "current.json": "20de7d09bec44623a6e4ea310c9f4b9e4753476ee87523ca79316e49cc12ea51",
+    "recognition-trace.json": "1d24f52bed61b0e15637268aed235c0d2548c8fcb7c37e0051b84fa69f44d030"
+  },
+  "diagnosis": "Exact native admission flags were not retained. Persistent OFF-loop cause remains unproven."
+}

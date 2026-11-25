@@ -143,17 +143,16 @@ import CoreGraphics
         .init(target:target,owner:target.map {PlaySession(source:$0.source,session:$0.session,size:$0.size)})
     }
     private(set) var playSession: PlaySession?
-    private(set) var mayHaveMotorSession=false
+    private var motorAdmission=PhysicalMotorAdmission()
+    var mayHaveMotorSession:Bool {motorAdmission.mayHaveMotorSession}
+    private(set) var admissionBlocker:PhysicalMotorAdmission.Blocker?
+    private var lastAdmissionTraceKey:String?
     private var wireSchema=1
     private var awaitingFaultResume=false
     private var standbyReady=false
     private var closingStandby=false
     private var standbyFault: String?
     private var standbySetup: String?
-    private var armingStartedAt: Double?
-    // A live transition heartbeat is uncertain output, never dark admission.
-    // Revision changes cannot extend this continuous handoff deadline.
-    private var transitionStartedAt: Double?
     private var unresolvedLinkLoss: (session:PlaySession,sequence:Int,since:Double)?
     private var lastRetainOnly: Bool?
     private var cameraAt: Double?
@@ -255,7 +254,7 @@ import CoreGraphics
         if let value,let barrier=manualDarkBarrier,barrier.session != value {refreshManualDarkBarrier(session:value)}
         playSession=value;standbyReady=false
         if value != nil {awaitingFaultResume=false}
-        transitionStartedAt=nil;unresolvedLinkLoss=nil
+        motorAdmission.reduce(.playSessionChanged);unresolvedLinkLoss=nil
         targetEmptyAt=nil;emptyEvidenceAfter=uptime();sequence+=1;tick()
     }
     func setEnabled(_ value: Bool) {
@@ -538,7 +537,7 @@ import CoreGraphics
             else {return false}
             guard frame.capturedAtUnix>=off+delay else {return false}
         } else if driver.mode != "simulation" {return false}
-        if !enabled,fullOff(driver,wall:wall) {mayHaveIlluminated=false;mayHaveMotorSession=false}
+        if !enabled,fullOff(driver,wall:wall) {mayHaveIlluminated=false;motorAdmission.reduce(.releasePossibleSession)}
         return true
     }
     private func updateMotorDisplay(wall: Double) {
@@ -673,25 +672,25 @@ import CoreGraphics
                         d.evidenceAfter != nil || d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {
                     hardHealth("invalid_transition_status")
                 } else {
-                    if transitionStartedAt==nil {transitionStartedAt=now}
-                    if now-transitionStartedAt!>=3 {hardHealth("transition_timeout")}
+                    motorAdmission.reduce(.authenticatedTransition(at:now))
+                    if motorAdmission.transitionTimedOut(now:now) {hardHealth("transition_timeout")}
                 }
             } else if connected,let d=driver,d.sequence==sequence,matchedStandby(d),
                       ["off","arming","holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) {
-                transitionStartedAt=nil
+                motorAdmission.reduce(.authenticatedNonTransition)
             }
             if mayHaveMotorSession,connected,driver?.sequence==sequence,!standbyAvailable {hardHealth("standby_capability_lost")}
-            if !transientRecovery.isPending,mayHaveMotorSession,let began=armingStartedAt,now-began>=12 {
+            if motorAdmission.armingTimedOut(now:now,transientRecovery:transientRecovery.isPending) {
                 hardHealth("arming_timeout")
             }
             if connected,let d=driver,d.sequence==sequence,d.state=="arming" {
                 if d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
                    d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {hardHealth("invalid_arming_status")}
-                else if !transientRecovery.isPending,matchedStandby(d),armingStartedAt==nil {
+                else if !transientRecovery.isPending,matchedStandby(d) {
                     // A hand stop can end the host session between native
                     // samples. A later genuine cold admission gets its own
                     // bounded episode, not the age of the previous warm hold.
-                    armingStartedAt=now
+                    motorAdmission.reduce(.authenticatedArming(at:now))
                 }
             }
             if connected,let d=driver,d.sequence==sequence,
@@ -712,11 +711,11 @@ import CoreGraphics
                 } else if !["fault","transitioning"].contains(d.state) {hardHealth("unknown_driver_state")}
                 if currentHealthFault==nil,matchedStandby(d),
                    ["holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) {
-                    armingStartedAt=nil
+                    motorAdmission.reduce(.authenticatedActive)
                 }
             }
             if let d=driver,fullOff(d,wall:wall) {
-                mayHaveMotorSession=false;armingStartedAt=nil;transitionStartedAt=nil
+                motorAdmission.reduce(.confirmedFullOFF)
                 if closingStandby || !wantsStandby {
                     wireSchema=1;standbyReady=false;closingStandby=false;standbySetup=nil;sequence+=1
                 } else if standbyAvailable,d.playSession==playSession,
@@ -767,11 +766,15 @@ import CoreGraphics
                 targetEmptyAt=nil;emptyEvidenceAfter=now
             }
         }
+        admissionBlocker=nil
         if wireSchema==2 {
             let cameraFresh=cameraAt.map {(0..<0.7).contains(now-$0)}==true
             let matchedTarget=target.map {$0.source==playSession?.source && $0.session==playSession?.session && $0.size==playSession?.size} ?? true
-            let admitted=wantsStandby && !transientRecovery.isPending && !gameFaultNeedsRecheck && !controllerResetRequired && !closingStandby && standbyReady && standbyAvailable && standbyFault==nil && cameraFresh && matchedTarget
-            if !admitted {action="off"}
+            admissionBlocker=PhysicalMotorAdmission.blocker(.init(requested:wantsStandby,
+                transientRecovery:transientRecovery.isPending,gameRecheck:gameFaultNeedsRecheck,
+                controllerReset:controllerResetRequired,closing:closingStandby,ready:standbyReady,
+                available:standbyAvailable,fault:standbyFault,cameraFresh:cameraFresh,matchedTarget:matchedTarget))
+            if admissionBlocker != nil {action="off"}
             else if action != "point" {
                 // A hand may retain an already held pose only. The host also
                 // checks its own broker observation and may fall back full OFF.
@@ -785,8 +788,21 @@ import CoreGraphics
         }
         if action == "point" {mayHaveIlluminated=true}
         if wireSchema==2,action != "off" {
-            if !mayHaveMotorSession {armingStartedAt=now}
-            mayHaveMotorSession=true
+            motorAdmission.reduce(.motorRequest(at:now))
+        }
+        if let trace {
+            let key=[String(wireSchema),admissionBlocker?.code ?? "admitted",standbyFault ?? "none",
+                String(standbyReady),String(closingStandby),String(mayHaveMotorSession),action,standbySetup ?? "none",
+                String(describing:motorAdmission.armingStartedAt),String(describing:motorAdmission.transitionStartedAt)].joined(separator:"/")
+            if key != lastAdmissionTraceKey {
+                trace.record("motor_admission",fields:["producer":producer.uuidString,"sequence":String(sequence),
+                    "schema":String(wireSchema),"action":action,"blocker":admissionBlocker?.code ?? "none",
+                    "standbyFault":standbyFault ?? "none","ready":String(standbyReady),"closing":String(closingStandby),
+                    "possibleMotorSession":String(mayHaveMotorSession),"setup":standbySetup ?? "none"],
+                    metrics:["armingAgeSeconds":motorAdmission.armingStartedAt.map {now-$0} ?? -1,
+                             "transitionAgeSeconds":motorAdmission.transitionStartedAt.map {now-$0} ?? -1])
+                lastAdmissionTraceKey=key
+            }
         }
         // Announce the first optically accepted illuminated indication. Initial
         // acquisition flashes and refinement must not consume this move's cue.
@@ -816,7 +832,7 @@ import CoreGraphics
         } catch {driver=nil;message="Laser bridge unavailable: \(error.localizedDescription)"}
         updateMotorDisplay(wall:wall)
         if !enabled,!awaitingFaultResume,(!mayHaveIlluminated && !mayHaveMotorSession) || driver.map({fullOff($0,wall:wall)}) == true {
-            mayHaveMotorSession=false
+            motorAdmission.reduce(.releasePossibleSession)
             timer?.cancel();timer=nil
         }
         // Capture provenance before OFF changes the request revision; notify

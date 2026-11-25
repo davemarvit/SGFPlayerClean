@@ -2,7 +2,7 @@
 from pathlib import Path
 
 DEPENDENCIES = {
-    'Sources/PhysicalLaserGuidance.swift': ('Sources/PhysicalGuidanceRecovery.swift','Sources/PhysicalLatencyTrace.swift'),
+    'Sources/PhysicalLaserGuidance.swift': ('Sources/PhysicalGuidanceRecovery.swift','Sources/PhysicalMotorAdmission.swift','Sources/PhysicalLatencyTrace.swift'),
     'Sources/AIRecognitionTrace.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift','Sources/PlacementAmbiguityDiagnostic.swift'),
     'Sources/PhysicalAI.swift': ('Sources/AIRecognitionTrace.swift','Sources/PhysicalCaptureGuidance.swift','Sources/PhysicalLatencyTrace.swift','Sources/PhysicalIllegalMoveWarning.swift','Sources/PhysicalAIPracticePosition.swift'),
     'Sources/ExperimentModel.swift': ('Sources/PhysicalAIMoveClick.swift',),
