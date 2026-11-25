@@ -1,0 +1,116 @@
+{
+  "nativeBase": "c53ac0502e920fda5a3ac5b50cba1ec330fdc051",
+  "opencv": "4.13.0",
+  "probeSha256": "f57d939b09c57f5c277c0703cf3c1e872122e3b579eddf6250348bb579f40882",
+  "diagnosticOnly": true,
+  "samples": [
+    {
+      "name": "passive-anchor",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0009531686815017933,
+      "p95PriorDisplacementGridUnits": 0.05101758640811151,
+      "maxPriorDisplacementGridUnits": 0.05763685040660425,
+      "imageSha256": "ab49b5b5ad3174096a32c32b59b7e63139122c4d2bb334b62be13b7fae61d21f"
+    },
+    {
+      "name": "passive-worst",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.00017440224063710347,
+      "p95PriorDisplacementGridUnits": 0.05106361577290103,
+      "maxPriorDisplacementGridUnits": 0.057837564027701883,
+      "imageSha256": "e9aedfd9713358e3fdca67381a9b19b1ea8c9243fa21ce2b998cc885159995b5"
+    },
+    {
+      "name": "occupied-move88",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        17,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.03341402883997028,
+      "maxPriorDisplacementGridUnits": 0.049009057556079566,
+      "imageSha256": "76ba438986a648f0cb60ebb96d2148f04a925aa5f9c1bc24361cbc6bf047c0b7"
+    },
+    {
+      "name": "d7-placed-1",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.0798325440058496,
+      "maxPriorDisplacementGridUnits": 0.09226077240123756,
+      "imageSha256": "432914d2c71a321d02b0a8be80d45f7038ff332e3e246c09413aff85881c8a3b"
+    },
+    {
+      "name": "d7-placed-11",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.07928343092960456,
+      "maxPriorDisplacementGridUnits": 0.09143899740616065,
+      "imageSha256": "58bdd44247d4ddf1f0903241e98b4bf417713b37d88b2a98bccfa743f137e478"
+    },
+    {
+      "name": "d7-placed-20",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.07975104877776164,
+      "maxPriorDisplacementGridUnits": 0.09148707875197593,
+      "imageSha256": "67040a667c0f8a9d9281fcdd93a849f43d24a694e7c9fce1e32a8f710ae6a75c"
+    },
+    {
+      "name": "d7-empty-1",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.07954192274847352,
+      "maxPriorDisplacementGridUnits": 0.09231279984039749,
+      "imageSha256": "5a4a79c0e0b8f974fe3a0c42825532fe7ca69bc1f7a5483a6f40c927b63b4374"
+    },
+    {
+      "name": "d7-empty-11",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.08119946616995297,
+      "maxPriorDisplacementGridUnits": 0.09479386455127256,
+      "imageSha256": "4b530ab9a0aef46eff3792d06aadd480485f08ff87ccd86a8489bdf08408e568"
+    },
+    {
+      "name": "d7-empty-21",
+      "geometrySupported": true,
+      "supportedRailCounts": [
+        19,
+        19
+      ],
+      "clippedFraction": 0.0,
+      "p95PriorDisplacementGridUnits": 0.0790546691960717,
+      "maxPriorDisplacementGridUnits": 0.09110761267552536,
+      "imageSha256": "daa42fac4b0d267b5a6ee525e220f51a5d0cf3280621e25a1576345d1d6eaf47"
+    }
+  ]
+}
