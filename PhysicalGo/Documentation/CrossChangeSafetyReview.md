@@ -455,3 +455,45 @@ Physical acceptance remains open: the failed live image cannot be replayed, the
 finite timing cases are synthetic and repeated composite images, and actual
 shift compensation is separate work. Reviewer performed no tests, image
 acquisition, app changes or hardware operations.
+
+### Held indication: bounded SWEEP fixes the warm DARK acknowledgement
+
+Root's next physical attempt produced 16 valid optical observations, nine dark
+corrections and an adequate point indication before `No reply for DARK` at the
+first held-geometry refresh. The reviewed report is
+`visibility-repair/live-dark-refresh-stop/run/events/1795585249455797000-feedback-43/result.json`.
+This failure is distinct from optical freshness or brightness admission. Root
+reported full OFF and owns current-anchor refresh; the reviewer did not change
+calibration, response coefficients, cached anchors or hardware.
+
+Actual v44 source explains the acknowledgement failure. In `AimControl.ino`,
+`heartbeatOnly` consumes DARK while `markerActive` (TRACK), switches the laser
+off and, when cooling policy is false, returns without `VIEW DONE`. The cooling
+branch schedules a later acknowledgement. SWEEP instead leaves `markerActive`
+false: idle monitoring queues DARK for the normal command handler, which emits
+`VIEW DONE` after optional cooling. GA already admits the corner-session SWEEP
+mode. No new firmware behavior is required.
+
+Reviewed host checkpoint `802537a290321e93011a604737e9dd7014e2b754` changes only
+the two hold illumination calls: initial `enable_target(target, False)` uses
+existing purpose-dependent cue behavior with SWEEP, and renewal uses silent
+SWEEP. Fresh dark preparation, causal prelight pose, current optical acceptance,
+truthful dark/approaching/adequate states, cooling QG/RS, generation cancellation
+and full OFF remain intact. Native target-click deduplication and game clocks
+receive the same status transitions; no cold arming is reintroduced. Each light
+interval also retains the existing firmware 60-second SWEEP limit, while normal
+geometry renewal occurs much sooner.
+
+Reviewer inspected the actual firmware harness, not just mocked host tests.
+Its negative control injects serial DARK during real idle `monitor` processing
+and reproduces TRACK's missing receipt. Positive scenarios execute three repeated
+six-second SWEEP/DARK/PREPARE cycles in both warm and cooling/RS states and assert
+the required receipt; another asserts timeout and full OFF. All four production
+firmware hashes match `bounded-hold-offline/review-results.json`. Owner reports
+1,850 assertions passing under ASan/UBSan across these four scenarios and 41
+feedback plus seven cue/capture host tests. Reviewer performed no build or test.
+
+No concrete blocker remains for this bounded host-compatible fix. Source review
+approves root integration/installation checks; actual held-refresh acceptance
+remains a root-owned physical check. Firmware source and installed firmware are
+not modified by this checkpoint.
