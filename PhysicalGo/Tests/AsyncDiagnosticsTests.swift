@@ -78,7 +78,7 @@ import AppKit
         let manifest=try JSONSerialization.jsonObject(with:Data(contentsOf:recorder.folder!.appendingPathComponent("session.json"))) as! [String:Any]
         check(manifest["omittedImages"] as? Int==100 && recorder.status.contains("100"),"Completion concealed recording gaps")
 
-        try recorder.start(context:["test":"new diagnostic session"],reserveBytes:0)
+        try recorder.start(context:["test":"new diagnostic session"],byteLimit:1_000_000,reserveBytes:0)
         check(!recorder.retainFirstCameraRejection(context.makeImage()!,at:202,session:rejectionSession,context:[:],reference:nil,anchor:nil,
             checkpoint:{fatalError("Prior-session analysis entered new archive")}),"Old analysis contaminated a new diagnostic session")
         check(recorder.retainFirstCameraRejection(context.makeImage()!,at:203,session:recorder.cameraRejectionSession!,context:[:],reference:nil,anchor:nil,
