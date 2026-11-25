@@ -1,8 +1,53 @@
-# Initial calibration progress display
+# Laser setup progress display
 
-Installed since 0.258 and retained in 0.260. Earlier candidate/build statements
-below are dated validation records, not the current installation. Optical calibration
-completed on the prior setup; the moved setup now needs requalification.
+Full-calibration and spot-check progress were installed in0.258 and retained in
+0.261. Earlier candidate/build statements below are dated validation records,
+not current installation authority. Read the issue register for the current
+setup qualification and gameplay status.
+
+## Minimal setup and feedback extension (offline candidate, November 24, 2026)
+
+PG15/PG19 candidate source extends the passive publisher and reader to the
+three-wide acquisition and optical feedback benchmark. It is not installed or
+physically verified. Current implementation/installation authority remains
+[IntegrationChecklist.md](IntegrationChecklist.md).
+
+- `three_point_seed`: three selected observations, excluding transit observations;
+  `seed_ready` means acquisition and fitting completed after full OFF. It does
+  not activate gameplay or approve the pointer binding.
+- `feedback_check`: zero fitting points and the actual number of targets in this
+  run (one through seven). A P15/K18 suffix reports two targets, not a seven-target
+  uninterrupted pass. `feedback_checked` means the listed targets were reached
+  and the run finished full OFF; it does not claim an ordinary-game pass.
+
+Both use schema1 with new mode/state values, retain measured monotonic elapsed
+and stage durations, and leave `bindingActivated` false. Older native readers
+reject unknown modes rather than displaying a misleading full-calibration bar.
+The reader preserves completed counts through unavailable/stale updates and
+rejects changes to a run's mode or totals. A fresh run remains a distinct run;
+counts are never silently combined across runs. Calibration artifacts are not
+changed by the display or by a missing publisher.
+
+The progress-only scope does not implement PG33's reviewed gameplay binding or
+turn a benchmark result into startup authority. Root still needs to integrate
+that binding and measure setup-to-play time. A full five-plus-nine tour is not
+implied by spot-only wording.
+
+Focused verification adds actual Python-produced native fixtures
+`ThreePointProgress.json` and `FeedbackProgress.json`, plus host
+`test_minimal_setup_progress.py`: count accuracy, retained partial observations,
+suffix routes, display-failure isolation, real runner shutdown ordering and
+failure termination. Existing full/spot progress tests remain applicable.
+
+Offline candidate verification: **46 native parsing/lifetime checks**, independent
+SwiftUI model/view typecheck, and **36 host tests** pass. The host set combines
+progress, progress-failure isolation, wide acquisition, feedback convergence and
+11 new minimal-workflow collector/runner tests. No app launch, installation,
+physical run or setup-to-play timing was performed. Host commit: `a7d8d66` on
+`codex/minimal-setup-progress`, based on the frozen feedback host `2da3c29`.
+Native candidate is based on installed-source documentation HEAD `0628a33`.
+
+## Existing full calibration and spot-check display
 
 The setup and play panels include passive progress for the externally operated
 initial laser calibration. It appears when the calibration runner publishes a

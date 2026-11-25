@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runID": "D0E591E0-55FB-48F4-814B-57417E449102",
+  "sequence": 1,
+  "startedAtUnix": 1000.0,
+  "startedAtUptime": 50.0,
+  "updatedAtUnix": 1010.0,
+  "elapsedSeconds": 10.0,
+  "stageElapsedSeconds": 2.0,
+  "bindingActivated": false,
+  "state": "running",
+  "stage": "seed",
+  "target": null,
+  "fitCompleted": 2,
+  "fitTotal": 3,
+  "validationCompleted": 0,
+  "validationTotal": 0,
+  "mode": "three_point_seed",
+  "error": null
+}

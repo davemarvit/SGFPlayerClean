@@ -23,16 +23,31 @@ struct PhysicalCalibrationProgress: Decodable, Equatable {
     var completed:Int {fitCompleted+validationCompleted}
     var total:Int {fitTotal+validationTotal}
     var running:Bool {state == "running"}
+    var workflowTitle:String {
+        switch mode {
+        case "spot_check":return "Laser spot check"
+        case "three_point_seed":return "Three-point laser setup"
+        case "feedback_check":return "Optical feedback checks"
+        default:return "Initial laser calibration"
+        }
+    }
+    var countSummary:String {
+        if mode == "three_point_seed" {return "\(fitCompleted) of 3 seed observations collected"}
+        if mode == "feedback_check" {return "\(validationCompleted) of \(validationTotal) feedback targets reached in this run"}
+        return "\(completed) of \(total) point checks complete · \(fitCompleted)/\(fitTotal) calibration, \(validationCompleted)/\(validationTotal) accuracy checks"
+    }
     var stageTitle:String {
         switch stage {
-        case "starting":return "Preparing calibration"
+        case "starting":return mode == "feedback_check" ? "Preparing optical feedback checks":"Preparing calibration"
         case "waiting_camera":return "Waiting for a clear board image"
         case "grid":return "Locating the board grid"
         case "locating":return "Locating the laser spot"
+        case "seed":return "Collecting three separated observations"
+        case "feedback":return "Aiming with optical feedback at \(target ?? "board points")"
         case "fit":return "Calibrating \(target ?? "board points")"
         case "validation":return "Checking accuracy at \(target ?? "board points")"
         case "shutdown":return "Finishing and turning the pointer off"
-        case "model_review":return "Checking the measured laser map"
+        case "model_review":return mode == "feedback_check" ? "Checking the feedback results":"Checking the measured laser map"
         default:return "Calibration"
         }
     }
@@ -42,19 +57,28 @@ struct PhysicalCalibrationProgress: Decodable, Equatable {
               numbers.allSatisfy({$0.isFinite && $0>=0}),
               startedAtUnix<=updatedAtUnix,updatedAtUnix<=now+2,
               elapsedSeconds<=86_400,stageElapsedSeconds<=elapsedSeconds+0.1,!bindingActivated,
-              ["running","stopped","off_unconfirmed","candidate_ready","spot_verified"].contains(state),
-              ["starting","waiting_camera","grid","locating","fit","validation","shutdown","model_review"].contains(stage),
+              ["running","stopped","off_unconfirmed","candidate_ready","spot_verified","seed_ready","feedback_checked"].contains(state),
+              ["starting","waiting_camera","grid","locating","fit","validation","shutdown","model_review","seed","feedback"].contains(stage),
               fitCompleted>=0,validationCompleted>=0,
               fitCompleted<=fitTotal,validationCompleted<=validationTotal else {return false}
         if let target {
             let columns="ABCDEFGHJKLMNOPQRST"
             guard let first=target.first,columns.contains(first),let row=Int(target.dropFirst()),(1...19).contains(row),target == "\(first)\(row)" else {return false}
         }
+        let commonStates=["running","stopped","off_unconfirmed"]
+        let terminal=mode == "full_calibration" ? "candidate_ready" : mode == "spot_check" ? "spot_verified" : mode == "three_point_seed" ? "seed_ready" : "feedback_checked"
+        guard commonStates.contains(state) || state == terminal else {return false}
         if mode == "full_calibration" {
             guard fitTotal == 5,validationTotal == 9,state != "spot_verified" else {return false}
             if state == "candidate_ready" && completed != total {return false}
         } else if mode == "spot_check" {
             guard total == 0,fitTotal == 0,validationTotal == 0,state != "candidate_ready" else {return false}
+        } else if mode == "three_point_seed" {
+            guard fitTotal == 3,validationTotal == 0 else {return false}
+            if state == "seed_ready" && completed != total {return false}
+        } else if mode == "feedback_check" {
+            guard fitTotal == 0,(1...7).contains(validationTotal) else {return false}
+            if state == "feedback_checked" && completed != total {return false}
         } else {return false}
         return true
     }
@@ -81,6 +105,7 @@ struct PhysicalCalibrationProgressReader {
         if let old=latest {
             if next.runID == old.runID {
                 guard next.startedAtUnix == old.startedAtUnix,next.startedAtUptime == old.startedAtUptime,
+                      next.mode == old.mode,next.fitTotal == old.fitTotal,next.validationTotal == old.validationTotal,
                       (next.sequence>old.sequence || next == old),
                       next.fitCompleted>=old.fitCompleted,next.validationCompleted>=old.validationCompleted,
                       next.elapsedSeconds>=old.elapsedSeconds,
