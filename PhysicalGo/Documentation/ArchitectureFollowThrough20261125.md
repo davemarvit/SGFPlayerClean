@@ -31,6 +31,13 @@ Root owns the bounded host fix. First isolate optional thermal logging behind bo
 
 These owners are assigned by root. Candidate commits, reviews, tests and installation are separate milestones; this document assigns no hardware authority and closes no issue. Root alone integrates and schedules the shared native build.
 
+## Batch checkpoint — candidates remain uninstalled
+
+- Native PG37 `9a6e5f3` + `54e4180` and PG34 `2c79bde` + `c7d471c` are source-approved (`a3548d7`) and integrated by root as `16ef377`/`d9b07b1`. Nine native suites are compiling. PG37 pure parity passed4,096 sequences/1,024 gate combinations; PG34 standalone54 checks passed. Facade/controller/UI execution remains pending. PG37 does not prove the persistent OFF-loop cause; PG34 improves explanation without curing reference mismatch.
+- Host supervision-I/O isolation `e57e341` passed105 tests including12 blocked-I/O races. Independent review and combined acceptance remain pending; no installed code has changed.
+- PG21 `e94c5dd` completed its retained timeline and16 tests. The report separates R16's27.900s recognition interval from its25.418s ambiguity-reset segment and leaves actual engine/physical onset unknown. [Timeline](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/pg21-correlated-turn-timeline/Firmware/Experiments/CorrelatedTurnTimeline/timeline.md>).
+- PG24 `a5e4a17`'s16-frame native shadow result is **DEFER**: 358.56/361 regions selected on average, three missed EMPTY-confidence0.95 crossings (not stone misses), and1.63ms/frame net overhead. No production gate or frame-skipping change is promoted. Three held-out controls and ten pure checks passed. [Native report](</Users/Dave/SGFPlayerClean-worktrees/pg24-native-shadow/PhysicalGo/Experiments/NativeRegionShadow/README.md>). Further work requires a concrete improvement hypothesis; the negative experiment is not a feature closure.
+
 ## Remaining work is not all physical-blocked
 
 Other executable offline work includes source/fixture reproductions for PG03/31/32/37, recognition cause studies PG23/34/39, setup/progress UX PG15/19, protocol ordering/unknown-code parity PG17/20, and scoped online/capture/illegal-move development PG05/10–13. These are queued possibilities, not new assignments or prerequisites that delay the active batch. PG00/06b latency analysis, PG02/18/22 model/provenance evaluation and PG16 stage analysis can use retained evidence; model promotion and runtime scheduling require separate review.
