@@ -541,3 +541,65 @@ interruption. Command counts and optical cycles are distinct from live latency.
 Same-target remembered poses may later improve initial guesses under their own
 versioned provenance and mandatory remeasurement; no global learner or blanket
 per-intersection commissioning requirement is approved or introduced here.
+
+### Predicted dark acquisition: final source review
+
+Runtime `845b9fad58db4086db71b795240e79861fe49600` is approved for root's
+integration checks under the explicit `pinned_dense_dark_acquisition_v1` binding
+policy. The primary three-point model and pinned dense coefficients remain
+unchanged. A fresh measured origin translates the model-only initial proposal;
+both absolute and translated nonlinear corridors must be enclosed. Interval
+subdivision covers the asynchronous motor rectangle mathematically rather than
+sampling only a synchronized trajectory. It is not a physical model-error bound.
+
+The acquisition proof remains separate from the measured anchor through actual
+coarse settlement, recenter, causal prelight and post-POSE checks. Only successful
+current-generation optical publication clears it. First post-coarse detection is
+board-wide and retains competing-cluster/newest-frame checks. A large unique
+on-board miss proceeds to ordinary measured correction rather than an error-size
+abort. No model-predicted location is published as an observed spot.
+
+Review found and the owner repaired three concrete issues. Unavailable fast
+proposals now have a typed decline: before travel, retain the measured start;
+after partial travel, reacquire its actual location before local correction.
+Malformed models and unsafe actual receipts still fault. Acquisition commands
+cap their waits to the remaining approach allowance and check the deadline before
+reacquisition. Finally, the local guard needs 10 pixels of endpoint clearance
+(existing 5-pixel uncertainty plus 5-pixel retained margin), although the dark
+model corridor needs 5. Candidate generation, every actual receipt and prelight
+now enforce that transition requirement. The planner may try a point within the
+existing 0.20-cell target radius; actual optical acceptance is unchanged. The
+existing inward recovery remains available after a far observed edge miss.
+
+Reviewer independently verified all 12 production hashes in each frozen cohort:
+361/361 targets reached from the saved anchor, 361/361 from center, 70/72 from
+opposite perimeter and 54/72 under repeated drift/residual stress. The two normal
+perimeter refusals precede any command or observation, matching existing initial
+prelight constraints. Stress stops retain deadline, local envelope, actual
+landing-headroom and drift protections. No sampled 5-pixel margin breach occurs.
+The exact historical D4 start/destination uses two dark waypoints, four motor
+commands and two optical observations with no local corrections. Its reported
+12.84 seconds is an observation-cycle model, not measured physical latency.
+
+PG02's separate `78d8c73` residual audit distinguishes 86 fit observations,
+11 interspersed nonfit observations and 71 later chronological endpoints. On the
+later legs, observed-origin nonlinear translation reduces median pixel residual
+from 4.805 to 1.712 and maximum from 10.701 to 5.865. Reviewer inspected the
+formulas and artifact; these compare predictions with recorded actual poses and
+pixels, not a model round-trip with itself. The longest retained leg is 3.053
+cells. Correlated short trajectories and model-consistent simulations do not
+establish a global physical jump guarantee or continuous physical-path accuracy.
+
+The owner reports 79 focused passing tests, including 13 acquisition tests.
+Reviewer ran no build or tests. This approval covers the bounded acquisition
+source; root owns integration, installation and attended practical timing.
+Persistent same-target learning/cache is not implemented by this checkpoint and
+is not claimed complete here.
+
+Final durable acquisition evidence is committed as `cbfbfab`, with readability
+follow-up `996e912`, under `Firmware/Experiments/PredictedDarkAcquisition/`.
+Reviewer matched all five saved cohorts' twelve hashes to the frozen runtime and
+verified the separately pinned PG02 residual artifact hash. No runtime code
+changed while those final cohorts ran. This completes the finite source/evidence
+review for predicted acquisition; physical timing and same-target memory remain
+distinct subsequent work.
