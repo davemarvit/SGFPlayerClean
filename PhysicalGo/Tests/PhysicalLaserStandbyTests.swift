@@ -50,7 +50,7 @@ import Foundation
   check(diagnostic.admissionBlocker == .awaitingFullOFF && request(diagnostic).action=="off","Schema2 negotiation explicitly waits for its own full OFF")
   try status(diagnostic);try status(diagnostic,state:"holding")
   check(diagnostic.admissionBlocker==nil,"Current healthy full OFF and camera admit holding")
-  clock.now+=0.71;clock.wall+=0.71;diagnostic.tick()
+  clock.now+=0.71;clock.wall+=0.71;try status(diagnostic,state:"holding")
   check(diagnostic.admissionBlocker == .cameraStale && request(diagnostic).action=="off","Fresh driver with stale camera reports the camera gate")
   try status(diagnostic);frame(diagnostic);try status(diagnostic,state:"holding")
   check(diagnostic.admissionBlocker==nil && request(diagnostic).action=="standby","Fresh frame resumes only after the current OFF handshake")
