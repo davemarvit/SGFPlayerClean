@@ -947,3 +947,54 @@ startup metadata source hash independently matches. It does not reproduce pixels
 or diagnose a bad reference. PG34 and PG37 source changes have no conflicting
 authority: one is presentation only, the other preserves authenticated admission
 bookkeeping. No reviewer build, hardware, camera, UI or installation occurred.
+
+
+## Supervision file-I/O isolation — e57e341 plus 9594381
+
+Independent source review approves the frozen host isolation and origin-fence
+follow-up in supervision-io-isolation-20261125. Periodic binding hashes and
+metadata reads run in a separate file-only daemon. Publication under the lease
+gate checks generation, request identity, admission object, reader, binding,
+scope, hash and stop state. Lease-only renewal remains valid. A new admission
+gets a separate persistent reader and nonblocking reader lock; old completion
+cannot overwrite newer hand evidence. Persistent readers retain their existing
+independent safety-channel and frame-order checks.
+
+The supervisor consumes cached evidence through the unchanged 600 ms age gates
+before thermal service. A stalled refresh therefore expires authority rather
+than extending it. File-only threads are excluded from actuator quiescence and
+shutdown joins; cancellation and publication fences reject their late work.
+Optional thermal JSONL work uses a bounded best-effort daemon queue with visible
+drop/failure counters and no shutdown join. Neither file daemon owns a controller
+or grants movement authority. This removes identified synchronous file paths; it
+does not establish the historical live fault's cause or guarantee live latency.
+
+Reviewer independently ran all 12 initial test_supervision_io tests (1.138 s),
+then reproduced a concrete diagnostic race: an old session's service completion
+could update replacement-session maxima and be logged under the new identity.
+Follow-up9594381 snapshots session and statistics key together, publishes new
+session/key under the same lock, discards replaced-session completions before
+statistics/log-state mutation and queues the captured immutable identity.
+Controller service and log offering remain outside that lock. The constructor
+placed under the lock performs no controller or file I/O. Reviewer inspected the
+final diff and independently passed its new origin-race regression. Root reports
+27 focused checks and 301 combined host checks passed in integrated2f8c4da.
+The separate timeline utility in that integrated commit was not independently
+reviewed here. No source blocker remains for the isolation/origin-fence change.
+
+## Native integration and PG34 wording follow-up
+
+Root reports all nine combined native suites passed after PG37 and PG34 repairs:
+motor admission312326 assertions, standby387, continuity263, checking helper54,
+checking controller30, ambiguous placement57, AI-laser325, accepted click28 and
+diagnostics1427. This fulfills the previously pending full-runtime integration
+condition for the reviewed production changes. These are root-run checks, not
+independent reviewer builds.
+
+Reviewer also approves copy-only79be6e5830ab5f87b5322d7866c952ce975178a4.
+Nonempty recovery now says “Leave the stones in place and keep hands clear.”
+The first-human ambiguity regression asserts that exact prefix. It avoids
+implying removal of a visible but not yet accepted stone and changes no decision
+logic. Root's final0.266 integration3fe6290 is rebuilding with this wording;
+installed0.265 remains unchanged pending root's checks. No reviewer hardware,
+camera, UI, installation or heavy build occurred.
