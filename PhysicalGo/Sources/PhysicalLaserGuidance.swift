@@ -145,6 +145,7 @@ import CoreGraphics
     private(set) var playSession: PlaySession?
     private(set) var mayHaveMotorSession=false
     private var wireSchema=1
+    private var awaitingFaultResume=false
     private var standbyReady=false
     private var closingStandby=false
     private var standbyFault: String?
@@ -254,6 +255,7 @@ import CoreGraphics
         // A new game revokes the old lease, but is not a hardware-fault retry.
         if let value,let barrier=manualDarkBarrier,barrier.session != value {refreshManualDarkBarrier(session:value)}
         playSession=value;standbyReady=false
+        if value != nil {awaitingFaultResume=false}
         transitionStartedAt=nil;unresolvedLinkLoss=nil
         targetEmptyAt=nil;emptyEvidenceAfter=uptime();sequence+=1;tick()
     }
@@ -404,6 +406,7 @@ import CoreGraphics
         if controllerResetRequired || gameFaultNeedsRecheck {
             guard let driver,driver.mode=="hardware",fullOff(driver,wall:wallTime()),driver.requiresNewRevision != true,
                   driver.reasonCode != "controller_fault" else {return}
+            if gameFaultNeedsRecheck {awaitingFaultResume=true}
             controllerResetRequired=false;gameFaultNeedsRecheck=false;gameFaultRecheckReason=nil
         }
         if standbyFault != nil {standbyFault=nil;holdingInterrupted=false;standbyReady=false;closingStandby=wireSchema==2}
@@ -415,6 +418,7 @@ import CoreGraphics
     /// healthy OFF receipt. This cannot reset firmware or start the game.
     func confirmPhysicalLaserOff(session:PlaySession)->Bool {
         guard !enabled,session.valid,let cameraContext else {return false}
+        awaitingFaultResume=false
         manualDarkBarrier = .init(session:session,context:cameraContext,epoch:frames.streamEpoch,
             frameID:currentFrame?.frameID ?? 0,uptime:uptime(),wall:wallTime())
         return true
@@ -436,12 +440,19 @@ import CoreGraphics
         return true
     }
     func readyToResumeFaultPausedGame(session:UUID)->Bool {
-        if !enabled,let frame=currentFrame {return manualDarkEvidence(capturedAt:frame.capturedAtUptime,now:uptime(),session:session)}
-        guard enabled,!gameFaultNeedsRecheck,!controllerResetRequired,!holdingInterrupted,
+        if !enabled,manualDarkBarrier != nil,let frame=currentFrame {
+            return manualDarkEvidence(capturedAt:frame.capturedAtUptime,now:uptime(),session:session)
+        }
+        guard !gameFaultNeedsRecheck,!controllerResetRequired,!holdingInterrupted,
               let clearAt,(0..<1.5).contains(uptime()-clearAt),let driver,
               driver.mode=="hardware",fullOff(driver,wall:wallTime()),driver.requiresNewRevision != true,
               driver.reasonCode != "controller_fault" else {return false}
-        return true
+        if enabled {return true}
+        // Explicit recheck can also be followed by disabling guidance. Resume
+        // then verifies the board in darkness without asserting a physical
+        // switch-off or authorizing the still-pending placement cue.
+        guard let frame=currentFrame,abs(frame.capturedAtUptime-clearAt)<0.000001 else {return false}
+        return acceptsObservation(capturedAt:frame.capturedAtUptime,now:uptime(),requireDarkEvidence:true)
     }
     private func currentHardFaultScope(_ d:DriverStatus?,wall:Double)->PlaySession? {
         guard enabled,let d,d.mode=="hardware",d.producer==producer,d.sequence==sequence,
@@ -589,7 +600,7 @@ import CoreGraphics
         targetEmptyAt=nil;emptyEvidenceAfter=stamp;resetHandRecoveryEvidence()
     }
     func tick() {
-        guard enabled || mayHaveIlluminated || mayHaveMotorSession || timer != nil else {return}
+        guard enabled || mayHaveIlluminated || mayHaveMotorSession || awaitingFaultResume || timer != nil else {return}
         // Read one status snapshot before sampling its age. The driver can
         // atomically publish a newer timestamp during our IO; comparing that
         // to an earlier clock sample falsely looks like a future/dropped driver.
@@ -786,7 +797,7 @@ import CoreGraphics
                 : "Camera delayed · waiting for fresh clear frames to restore the pending move"}
         } catch {driver=nil;message="Laser bridge unavailable: \(error.localizedDescription)"}
         updateMotorDisplay(wall:wall)
-        if !enabled,(!mayHaveIlluminated && !mayHaveMotorSession) || driver.map({fullOff($0,wall:wall)}) == true {
+        if !enabled,!awaitingFaultResume,(!mayHaveIlluminated && !mayHaveMotorSession) || driver.map({fullOff($0,wall:wall)}) == true {
             mayHaveMotorSession=false
             timer?.cancel();timer=nil
         }
