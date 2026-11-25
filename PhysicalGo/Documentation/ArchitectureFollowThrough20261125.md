@@ -31,12 +31,9 @@ Root owns the bounded host fix. First isolate optional thermal logging behind bo
 
 These owners are assigned by root. Candidate commits, reviews, tests and installation are separate milestones; this document assigns no hardware authority and closes no issue. Root alone integrates and schedules the shared native build.
 
-## Batch checkpoint — candidates remain uninstalled
+## Completed offline batch — installation pending receipt
 
-- Native PG37 `9a6e5f3` + `54e4180` and PG34 `2c79bde` + `c7d471c` are source-approved (`a3548d7`) and integrated by root as `16ef377`/`d9b07b1`. Nine native suites are compiling. PG37 pure parity passed4,096 sequences/1,024 gate combinations; PG34 standalone54 checks passed. Facade/controller/UI execution remains pending. PG37 does not prove the persistent OFF-loop cause; PG34 improves explanation without curing reference mismatch.
-- Host supervision-I/O isolation `e57e341` passed105 tests including12 blocked-I/O races. Independent review and combined acceptance remain pending; no installed code has changed.
-- PG21 `e94c5dd` completed its retained timeline and16 tests. The report separates R16's27.900s recognition interval from its25.418s ambiguity-reset segment and leaves actual engine/physical onset unknown. [Timeline](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/pg21-correlated-turn-timeline/Firmware/Experiments/CorrelatedTurnTimeline/timeline.md>).
-- PG24 `a5e4a17`'s16-frame native shadow result is **DEFER**: 358.56/361 regions selected on average, three missed EMPTY-confidence0.95 crossings (not stone misses), and1.63ms/frame net overhead. No production gate or frame-skipping change is promoted. Three held-out controls and ten pure checks passed. [Native report](</Users/Dave/SGFPlayerClean-worktrees/pg24-native-shadow/PhysicalGo/Experiments/NativeRegionShadow/README.md>). Further work requires a concrete improvement hypothesis; the negative experiment is not a feature closure.
+Final native3fe6290 (0.266/build267) passed9/9 native suites; host2f8c4da passed301 combined tests. Mandatory paired acceptance passed and independent review8ccc3ef has no source blocker. Signed build/final installation receipt remain root-owned. [Final results, exact counts and trace opt-in](ArchitectureOfflineResults20261125.md) replace the earlier compilation/review-pending checkpoint. PG37 cause and PG34 underlying recognition/reference defect remain open; PG24 production adoption is deferred. Installed0.265 remains unchanged at this checkpoint.
 
 ## Remaining work is not all physical-blocked
 

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-25",
+  "status": "reviewed_and_tested_candidate_installation_pending",
+  "native": {
+    "source_commit": "3fe6290d0ed8612b2aa852b7bb6a8b218a53c7cd",
+    "version": "0.266",
+    "build": "267",
+    "worktree": "/Users/Dave/SGFPlayerClean-worktrees/architecture-offline-20261125",
+    "suites_passed": 9,
+    "suites_total": 9,
+    "counts_by_suite": {
+      "motor_admission_assertions": 312326,
+      "accepted_click_checks": 28,
+      "continuity_checks": 263,
+      "checking_controller_checks": 31,
+      "checking_progress_checks": 54,
+      "ambiguous_placement_checks": 57,
+      "standby_checks": 387,
+      "ambiguity_diagnostics_checks": 1427,
+      "ai_laser_checks": 325
+    }
+  },
+  "host": {
+    "source_commit": "2f8c4daed12389f1c96bcd930b893ed9bf3bd580",
+    "worktree": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/architecture-offline-20261125",
+    "combined_tests_passed": 301
+  },
+  "review_commit": "8ccc3ef",
+  "paired_acceptance": {
+    "result": "passed",
+    "path": "/Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/paired-acceptance/acceptance.json",
+    "sha256": "2a5f3b656665fe8877fb387c2df5ce0849e72874979a98def620e301a5a08646",
+    "scope": "offline fake-hardware contract acceptance, not physical validation"
+  },
+  "evidence": {
+    "native-tests.log": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/native-tests.log",
+      "sha256": "fdd07d62f675001d75ec55394caca1d1f582e5a127982b4545975dba7dd3d7ea"
+    },
+    "host-integrated-tests.log": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/host-integrated-tests.log",
+      "sha256": "418afde0c1ef13ff1c8bd63df7319dd08312b67488b33cc4d7faee27df676548"
+    },
+    "paired-tests.log": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/paired-tests.log",
+      "sha256": "52628ccd7de1d09c2d8d2a4ae240a10aacb695a573757451d4f10c2e6b750f26"
+    }
+  },
+  "signed_build_status": "pending root final receipt",
+  "installed": false,
+  "physical_validation": false,
+  "motor_admission_trace": {
+    "enabled_by_default": false,
+    "launch_environment_variable": "PHYSICAL_GO_LATENCY_TRACE_DIRECTORY",
+    "requires_absolute_directory": true,
+    "metadata_only": true,
+    "camera_or_image_capture_enabled": false
+  },
+  "deferred": {
+    "PG24": "a5e4a17 native shadow result DEFER; no production gate"
+  },
+  "queued_offline_policy": "Local-AI camera-loss clock continuity distinct from normal hands, unclear frames and online server time"
+}
