@@ -93,7 +93,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
     var placementGuidancePoint:Int? {captureGuidance.pending && captureGuidance.placementConfirmed ? nil:pendingPoint}
     var remainingCapturedStones:Int {captureGuidance.remainingCount}
     private var centeringTarget:PhysicalLaserGuidance.Target?
-    private var centeringWitness:(center:ImagePoint,first:Double,last:Double,count:Int)?
+    private var centeringWitness:(center:ImagePoint,color:Occupancy,first:Double,last:Double,count:Int)?
     private let persistSettings:Bool
     let laser: PhysicalLaserGuidance
     @Published private(set) var timing=PhysicalAITiming()
@@ -422,10 +422,19 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
         guard let candidate=candidates.first else {clearCentering();return}
         let center=candidate.shape.center
-        if let old=centeringWitness,hypot(old.center.x-center.x,old.center.y-center.y)<0.12,
+        // A replacement disk is not evidence for the previously selected aim.
+        // Cancel immediately, then require fresh same-color stable observations
+        // before publishing the measured replacement center. Use the witness
+        // tolerance here too, so a small move cannot renew a stale target.
+        if let target=centeringTarget,let selected=target.stoneCenter,
+           hypot(selected.x-center.x,selected.y-center.y)>=0.12 || target.black != (candidate.color == .black) {
+            clearCentering();syncGuidance()
+        }
+        if let old=centeringWitness,old.color==candidate.color,
+           hypot(old.center.x-center.x,old.center.y-center.y)<0.12,
            stamp>old.last,stamp-old.last<=0.6 {
-            centeringWitness=(old.center,old.first,stamp,old.count+1)
-        } else {centeringWitness=(center,stamp,stamp,1)}
+            centeringWitness=(old.center,old.color,old.first,stamp,old.count+1)
+        } else {centeringWitness=(center,candidate.color,stamp,stamp,1)}
         guard let witness=centeringWitness,witness.count>=3,stamp-witness.first>=0.45 else {return}
         if centeringStone.map({hypot($0.x-center.x,$0.y-center.y)>0.18}) ?? true {
             centeringStone=center
