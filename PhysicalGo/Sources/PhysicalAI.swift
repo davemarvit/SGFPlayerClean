@@ -374,7 +374,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
         catch {fail(error.localizedDescription)}
     }
     func interruptObservation(reason:String="state_reset",preserveGuidance:Bool=false) {
-        if ["hand_or_unknown_hand","waiting_for_dark_laser_evidence","invalid_or_stale_frame","lighting_blocked","manual_corrections"].contains(reason) {clearCheckingProgress()}
+        if ["hand_or_unknown_hand","waiting_for_dark_laser_evidence","invalid_or_stale_frame","lighting_blocked","manual_corrections",
+            "camera_hand_obstruction","camera_waiting_for_dark_evidence","camera_alignment_rejected"].contains(reason) {clearCheckingProgress()}
         clearIllegalMoveWarning()
         if reason != "state_reset" {centeringWitness=nil}
         // Illuminated/buffered frames are deliberately not new capture evidence;
@@ -419,7 +420,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         }
         let scope="\(snapshot.id)/\(snapshot.moves.count)/\(generation)/\(laser.cameraContext ?? "unknown")/\(laser.frames.streamEpoch)"
         let help=checkingProgress.observe(scope:scope,reason:reason,points:points,size:size,
-            emptyGame:snapshot.moves.isEmpty,capturedAt:capturedAt,now:now)
+            emptyGame:phase == .checking && snapshot.moves.isEmpty,capturedAt:capturedAt,now:now)
         if checkingHelp != help {checkingHelp=help}
     }
     private func clearCentering() {centeringStone=nil;centeringTarget=nil;centeringWitness=nil}
