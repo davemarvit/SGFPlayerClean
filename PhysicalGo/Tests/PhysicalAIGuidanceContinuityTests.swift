@@ -35,6 +35,59 @@ import Foundation
     o.capturedAt=now;o.handObstructed=false;ai.consume(o,now:now)
    }
   }
+  // Closing the app uses this same shutdown() path. Delayed cancellation must
+  // never be charged as play time, and a nested pause cannot restart cleanup.
+  for (operation,capture) in [("pause",0),("shutdown",0),("shutdown",2)] {
+   let name="manual-"+operation+"-\(capture)",ai=try fixture(name,pending:true,capture:capture),l=ai.laser
+   l.setEnabled(true);camera(l);now+=2;wall+=2
+   let before=ai.snapshot!,frozen=ai.timing.saved(at:now)
+   var callbacks=0
+   l.onRequestPublished={_ in
+    guard callbacks==0 else {return};callbacks+=1
+    check(ai.phase == .paused && ai.timing==frozen,"\(operation) freezes phase and clocks before request/process cancellation")
+    now+=5;wall+=5;ai.pause()
+   }
+   if operation=="shutdown" {ai.shutdown()} else {ai.pause()}
+   l.onRequestPublished=nil
+   check(callbacks==1 && ai.timing==frozen,"\(operation) excludes delayed cleanup and tolerates nested pause")
+   check(try request(l).action=="off" && l.playSession==nil,"\(operation) revokes laser target/session")
+   let reopened=PhysicalAI(directory:root.appendingPathComponent(name),generate:{_,_ in "pass"},
+    laser:PhysicalLaserGuidance(directory:root.appendingPathComponent(name+"-reopened"),automatic:false,wallTime:{wall},uptime:{now}),uptime:{now},wallTime:{wall})
+   check(reopened.phase == .paused && reopened.timing==frozen,"\(operation) persists exact frozen clock across reconstruction")
+   check(reopened.snapshot!.id==before.id && reopened.snapshot!.moves.map(\.point)==before.moves.map(\.point) && reopened.snapshot!.pendingPlacement,
+    "\(operation) preserves pending placement and accepted history across reconstruction")
+   check(reopened.snapshot!.pendingCaptureCleanup==before.pendingCaptureCleanup && reopened.snapshot!.captureIndication?.removed==before.captureIndication?.removed,
+    "\(operation) preserves partial prisoner cleanup and its clock hold")
+   check(reopened.snapshot!.guidanceInterruption==nil,"Intentional \(operation) does not fabricate a hardware fault")
+  }
+
+  // An ended AI game stays available as history after reopen but must not
+  // require its old stones when recovering the grid on a cleared board.
+  do {
+   let name="ended-grid",ai=try fixture(name,pending:true),folder=root.appendingPathComponent(name)
+   let suite="PhysicalGo.EndedGridTests."+UUID().uuidString,settings=UserDefaults(suiteName:suite)!
+   defer {settings.removePersistentDomain(forName:suite)}
+   func model(_ ai:PhysicalAI,_ suffix:String)->ExperimentModel {
+    let isolated=folder.appendingPathComponent(suffix)
+    let m=ExperimentModel(discoverCameras:false,automaticGridDetection:false,restoreViewSettings:false,referenceArchive:nil,
+     recordingStorage:isolated.appendingPathComponent("recordings"),settings:settings,diagnosticRoot:isolated.appendingPathComponent("diagnostics"),
+     moveEvidenceRoot:isolated.appendingPathComponent("evidence"),stoneSetLibraryURL:isolated.appendingPathComponent("stones.json"),ai:ai,
+     onlineBoard:PhysicalOnlineBoard(directory:isolated.appendingPathComponent("online"),announceOpponent:{},announceCorrection:{}))
+    m.playMode = .ai;return m
+   }
+   let live=model(ai,"live")
+   check(live.recoveryExpected.count==81 && live.recoveryExpected[40] == .black,"Unfinished AI position remains the recovery anchor")
+   ai.pause()
+   check(live.recoveryExpected.count==81 && live.recoveryExpected[40] == .black,"Manual pause preserves unfinished-board recovery")
+   ai.finish()
+   let saved=ai.snapshot!,savedData=try Data(contentsOf:folder.appendingPathComponent("current.json")),sgf=try Data(contentsOf:ai.savedURL!)
+   check(live.recoveryExpected.isEmpty,"Ended AI history no longer anchors physical grid")
+   let reopened=PhysicalAI(directory:folder,generate:{_,_ in "pass"},laser:PhysicalLaserGuidance(directory:folder.appendingPathComponent("reopened-bridge"),automatic:false),uptime:{now},wallTime:{wall})
+   let restored=model(reopened,"restored")
+   check(reopened.phase == .finished && restored.recoveryExpected.isEmpty,"Reopened ended game permits cleared-board grid recovery")
+   check(reopened.snapshot!.id==saved.id && reopened.snapshot!.moves.map(\.point)==saved.moves.map(\.point) && reopened.timing==ai.timing,"Ended-game reopen preserves identity, moves and clocks")
+   check(try Data(contentsOf:folder.appendingPathComponent("current.json"))==savedData && Data(contentsOf:ai.savedURL!)==sgf,"Grid recovery inspection does not rewrite saved game or SGF")
+  }
   for (name,capture,pending) in [("human",0,false),("placing",0,true),("single",1,true),("multiple",2,true)] {
    let ai=try fixture(name,pending:pending,capture:capture)
    if !pending {feed(ai,ai.cells);check(ai.phase == .human,"Fixture reaches human turn")}
