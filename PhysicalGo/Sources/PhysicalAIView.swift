@@ -147,6 +147,13 @@ struct PhysicalAIPlayView: View {
             Button("Cancel",role:.cancel) {}
         }
     }
+    private var starPoints:[Int] {
+        let size=ai.size
+        if size==19 {return [3,9,15].flatMap {row in [3,9,15].map {row*size+$0}}}
+        guard [9,13].contains(size) else {return []}
+        let near=size==9 ? 2:3,far=size-1-near
+        return [near*size+near,near*size+far,far*size+near,far*size+far,(size/2)*size+size/2]
+    }
     private var board: some View {
         Canvas {context,extent in
             let size=ai.size,step=min(extent.width,extent.height)/CGFloat(size+1),inset=step
@@ -172,6 +179,13 @@ struct PhysicalAIPlayView: View {
                 lines.move(to:.init(x:p,y:inset));lines.addLine(to:.init(x:p,y:inset+CGFloat(size-1)*step))
             }
             context.stroke(lines,with:.color(.black.opacity(0.65)),lineWidth:1)
+            // Hoshi sit on the grid, beneath stones and all move/target marks.
+            let starRadius=min(2.5,max(1.6,step*0.13))
+            for point in starPoints {
+                let c=center(point)
+                context.fill(Path(ellipseIn:CGRect(x:c.x-starRadius,y:c.y-starRadius,width:starRadius*2,height:starRadius*2)),
+                             with:.color(.black.opacity(0.8)))
+            }
             // Shared Go labels cover all four edges. Rotate their canonical
             // anchors with the stones while keeping the glyphs upright.
             let labelMargin=min(0.72,max(0,1-8/Double(step)))
