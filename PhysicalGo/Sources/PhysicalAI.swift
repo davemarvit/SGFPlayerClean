@@ -533,7 +533,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
         lastFrame=stamp
         var values=Array(repeating:"",count:size*size),seen=Set<Int>(),unknown=0
         let expected=cells.map {Occupancy(rawValue:$0)!}
-        var ambiguous=Set(observation.assignmentOffsets(confirmedBoard:expected).filter {$0.value>=0.30}.map(\.key))
+        let assignmentOffsets=observation.assignmentOffsets(confirmedBoard:expected)
+        var ambiguous=Set(assignmentOffsets.filter {$0.value>=0.30}.map(\.key))
         for r in observation.readings {
             guard (0..<size).contains(r.row),(0..<size).contains(r.col),r.confidence.isFinite,
                   seen.insert(r.row*size+r.col).inserted else {interruptObservation();return}
@@ -608,7 +609,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
                         cameraContext:laser.cameraContext,verifiedContext:verifiedCameraContext,
                         verifiedSource:verifiedSource,verifiedAt:verifiedAtUptime,session:snapshot.id,
                         moveNumber:snapshot.moves.count,generation:generation,phase:phase.rawValue,
-                        now:now,wall:wallTime(),witnesses:witnesses,frame:frame))
+                        now:now,wall:wallTime(),witnesses:witnesses,frame:frame,assignmentOffsets:assignmentOffsets))
                 }
                 witness=nil;witnesses=0;lastMatch=nil;mismatch=nil
                 status="A new stone is visible, but its intersection is unclear. Checking its position."
