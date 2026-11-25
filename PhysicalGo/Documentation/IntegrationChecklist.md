@@ -17,6 +17,16 @@ practice game is paused. **Laser-guided gameplay is not yet activated.**
 - After each material change/test, update this entry in place with source, installed version, result and remaining work. If a closed issue recurs, reopen its existing ID.
 - Do not remove deferred work. Preserve raw evidence and historical records; do not append an old “current status” above this register.
 
+## Assigned team
+
+27 offline issue owners cover all31 open scopes, supervised by a fresh-context
+coordinator (`/root/issue_coordinator`). A separate `cross_change_review` agent
+reviews interactions before root integration. [Owner matrix, next actions and
+acceptance evidence](</Users/Dave/SGFPlayerClean-worktrees/issue-owner-coordination/PhysicalGo/Documentation/IssueOwnerCoordination.md>).
+The ledger assigns work; this register remains the authority for completion.
+Root retains installation and all camera/controller operations. Heavy builds
+are centrally scheduled; no worker activates hardware or changes the running app.
+
 ## Work needed for dependable laser play
 
 - [ ] **PG-31 — False native alignment rejection. Investigating.** Exact 18:15 rejected camera frame reproduced a native failure: 339/658 profile matches, edge counts `[18,18,1,18]`, at least3 required per edge. Independent replay found331 inliers, all72 boundary points, 0.493px maximum grid movement and0.99548 image correlation. Reconstructed anchor, not an exact saved live tracker checkpoint. Next: quantify profile sensitivity and fix verification without admitting moved/covered boards; regression-test, install and physically verify. Native candidate in `alignment-profile-jitter` searches at most one image pixel across an outer rail (also capped at4% of grid spacing), retaining contrast/shape/distribution thresholds. Exact rejected-frame replay changes the weak edge from1 to18 matches and accepts the stable grid. Committed candidate `002e4c7`: occupied74, crowded48, glare64 and resume18 checks passed (204 total); synthetic blank, covered-edge and30px-translation controls rejected. Independent issue-agent review pending; not installed or physically verified. [Replay evidence](</Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815>).
