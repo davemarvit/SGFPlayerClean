@@ -811,3 +811,26 @@ A new assertion checks that supplied offsets are retained. Owner frontend parse
 and diff checks passed; that assertion and full runtime integration still await
 root's coordinated native build. This resolves the duplicate-computation finding
 without claiming zero metadata cost.
+
+## PG26b accepted-target click — 36b0265
+
+Independent source/test audit approves
+`36b0265cdffed1d5c25dff9bcd2848fafe1b50d1` for root's combined native validation.
+Production changes only the eligible state from approaching/adequate/refining to
+adequate, plus its explanatory comment. Current point action, matching revision,
+connected hardware, positive illumination confirmation, ordinary-purpose intent
+and once-per-move identity guards remain. Action admission still checks current
+clearance, session/thermal state, cancellation and recovery before the cue branch.
+Acquisition/refinement no longer consumes the move's eventual click.
+
+Owner reports 28 focused subset checks passed and the unchanged baseline fails
+at acquisition-before-acceptance. Reviewed coverage includes both schemas,
+first accepted light, repeated receipts, supersession/cancellation, wrong
+producer/session, stale/future time, missing confirmation, darkness, simulation,
+special-purpose silence, same-move retry and new-move/session identity. Broader
+AI-laser expectations and the injected blocked-audio trigger now use adequate;
+root owns the combined full-runtime run. The compatibility diagnostic string
+first_light remains, while actual eligibility is accepted illumination. Dedup
+remains memory-only across app restart. Host double-beep policy is separate.
+No reviewer compile, audio playback, hardware or installation occurred; audible
+onset timing still requires attended observation.
