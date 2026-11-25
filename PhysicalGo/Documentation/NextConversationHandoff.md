@@ -1,54 +1,15 @@
 # Physical Go handoff
 
-Start with [IntegrationChecklist.md](IntegrationChecklist.md), the single issue
-register; [NextPhysicalTestPlan.md](NextPhysicalTestPlan.md) gives the next sequence.
-Do not maintain another competing list here. Updated Nov24,2026 after18:22 PST.
+Updated November24,2026 after the issue-agent batch. Start with the single authoritative [issue register](IntegrationChecklist.md) and [next test plan](NextPhysicalTestPlan.md). The linked owner ledger contains27 agents covering31 scopes plus independent review; all initial finite batches are delivered, with no worker jobs active.
 
-Hardware fully OFF at1795573364.868653, no fault; no active driver/PTY/READY.
-All seven benchmark locations now have successful observations across separate
-runs. Gameplay is NOT activated: PG-33 remains unimplemented. Native app remains
-0.261/build262, firmwarev44. Current user request: keep an explicit checklist and
-check items off only when their stated scope is actually complete.
+Installed: Physical Go0.262/build263, source `c53ac05`, worktree `/Users/Dave/SGFPlayerClean-worktrees/issue-integration-20261124`. Nine root suites passed1,720 checks; optimized build/signature passed. All saved game files remain byte-identical, including Human Black practice game `D710D336-2746-4004-9796-F63A8D2FB8F5`. Previous0.261 app and games are backed up under `work/attended-recheck-20261124-105259/pre-0262-install`.
 
-Frozen physical source: host `2da3c29785aa7337871b299380dd3dc289437332` in
-`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/feedback-indication-stop`.
-Final run `three-point-feedback-20261124-182047-85434`: P15 continuation6.96s,
-7.93px; K18 95.71s,0.73px;117.389440s READY-to-OFF. Earlier K2/S10 passed13.42s/
-69.39s, then native alignment=false stopped P15; hand=false. No serial timeout
-in these runs. Preserve interrupted timings and previous optional-refinement policy.
+The Mac is locked. App process/camera analysis run, but UI smoke and enabling its bridge must wait for unlock. Broker files are stale after restart; do not use them as current evidence. An announced app-window-only screenshot attempt failed and saved no image. Diagnostic saving and warning feedback remain off. Keep AirPod Pro3.
 
-PG-31 replay: exact rejected image + reconstructed user-baseline anchor reproduces
-native border counts18/18/1/18; independently measured grid moves0.493px.
-Native candidate worktree `alignment-profile-jitter` from0628a33 now contains an
-outer-rail search bounded to1 image pixel/4% grid spacing. Exact replay passes with
-18 matches on every edge. Candidate002e4c7 passes204 native checks and synthetic
-blank/covered-edge/30px-shift negative controls; independent review pending. Not
-installed or physically verified; PG-31 remains open. Camera-only image evidence is in
-`work/attended-recheck-20261124-105259/alignment-rejection-1815`.
+Host candidate `fe469196d539db4bbe5e4017dd75437bc54f1d1a` in `/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/issue-integration-20261124` passed final paired acceptance; **not activated**. Firmware PG08 candidate compiled and passed actual-source protocol tests but was **not uploaded**. Installed firmware remains prior AimControlv44, last fullOFF receipt1795573364.868653 with no fault. No controller was opened during this software batch; no live PTY/READY.
 
-Root asked the existing `frame_diff_analysis` agent to continue the user's earlier
-parallel performance request. Its isolated `feedback-optical-latency` worktree is
-based on2da3c29. First measurement: complete correction cycles~6.42s; many cycles
-plus combined capture/analysis/motor waits, not only native analysis. Agent completed/pushed7d8b530: median reuse/local centroid arithmetic,75 tests pass,
-exact-output benchmark0.504→0.278s (~3.5% cycle opportunity), not installed. No agent
-has hardware authority. Track under PG-06b/PG-24, not as an installed fix.
+PG06b/PG33 block full-board activation: four of71 retained physical movement endpoints violate the proposed response envelope, and broader diagnostic routes expose model-error counterexamples. Uniform guards are integrated but cannot turn an unsupported response assumption into a physical guarantee. The register links final reports and a finite next offline dense-derivative/no-adaptation comparison; that comparison has not started. No additional calibration tour is presumed necessary.
 
-Current webcam ID0x21000000bda0567; OpenRB-150 port/dev/cu.usbmodem1101. User
-confirmed only USB reconnect, equipment unmoved, and captured a fresh empty
-reference. Read live metadata before reuse. Preserve the original97 observations,
-three-point model coefficients and historical reference bytes. The explicit
-reconnect path adopts a fresh reference only after measured geometry correspondence.
+Preserve97 observations, frozen three-point coefficients, seven measured target outcomes, interrupted timings and historical references. Prepared corrected gameplay artifacts are in `work/attended-recheck-20261124-105259/feedback-gameplay-candidate`, with provenance and no binding. Future reconnect serialization is fixed. Old gameplay launcher/binding remains blocked.
 
-Warnings and diagnostic image saving are off. No desktop screenshots taken.
-Preserve old games and clocks; retain AirPod Pro3. Keep the canonical documentation
-repositories separate from frozen runtime worktrees. Commit/push meaningful updates.
-
-## Parallel issue ownership
-
-Dave explicitly requested an agent per/nearly per open issue plus a fresh-context
-supervisor. `/root/issue_coordinator` is assigning27 offline owners across31 open
-scopes and a cross-change review owner. It maintains an isolated ownership ledger;
-root remains the sole installer/hardware owner and canonical-register integrator.
-No worker may use the camera/controller/UI or install software. Heavy builds are
-centrally scheduled to avoid contention; disk budget limits new worktrees/builds.
-Do not duplicate assigned issue work. Ask coordinator for the current matrix.
+Webcam ID0x21000000bda0567; last controller port/dev/cu.usbmodem1101, OpenRB serial4F32C94A5157375037202020FF121D36. Verify current identity after unlock; user last confirmed USB reconnect without equipment movement. Root alone owns installation and all hardware. Any later physical activation needs fresh checks and READY at the launcher.
