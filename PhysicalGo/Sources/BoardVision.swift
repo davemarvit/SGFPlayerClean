@@ -256,6 +256,7 @@ struct BoardObservation {
     var lightingField:LightingCompensation.Field? = nil
     var footprints: [StoneFootprint] = []
     var placementFits: [StoneFootprint] = []
+    var fitAttempts: [StoneFitAttempt] = []
     var manualPoints: Set<Int> = []
     /// Geometry-supported associations; never ground-truth training labels.
     var trackedAssignments: [Int:Int] = [:]
@@ -963,7 +964,7 @@ enum BoardDetector {
         }
         let validShape:(StoneFootprint)->Bool = {liveWood[$0.row*calibration.size+$0.col] == nil}
         return BoardObservation(readings: resolved, size: calibration.size,
-            footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape),
+            footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape),fitAttempts:geometry.fitAttempts,
             centeringEvidence:centeringEvidence,coveredGridPoints:coveredGridPoints)
     }
 

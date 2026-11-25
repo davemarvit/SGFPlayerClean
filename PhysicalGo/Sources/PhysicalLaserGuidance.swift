@@ -384,6 +384,13 @@ import CoreGraphics
         if target != nil {suppressed=true;reason="camera_stream_changed"}
         tick()
     }
+    /// Metadata-only lookup. Never substitute a newer broker frame for the
+    /// observation being diagnosed, and never use this accessor for admission.
+    func diagnosticFrame(capturedAt:Double)->PhysicalLaserFrameBroker.Frame? {
+        guard capturedAt.isFinite,let frame=currentFrame,frame.streamEpoch==frames.streamEpoch,
+              abs(frame.capturedAtUptime-capturedAt)<0.000001 else {return nil}
+        return frame
+    }
     func noteFrame(_ frame: PhysicalLaserFrameBroker.Frame?) {
         currentFrame=frame?.streamEpoch == frames.streamEpoch ? frame:nil
     }

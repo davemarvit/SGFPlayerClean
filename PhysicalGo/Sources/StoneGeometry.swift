@@ -10,6 +10,22 @@ struct StoneFootprint: Codable {
     }
 }
 
+/// Already-computed fit outcome for metadata diagnostics. Never participates
+/// in classification, masking, placement admission or target generation.
+struct StoneFitAttempt:Codable {
+    let row,col:Int
+    let stage,reason:String
+    let minimumQuality:Double
+    let maskCount:Int
+    let best:StoneFootprint?
+    let maxAxisOffset:Double?
+    init(row:Int,col:Int,stage:String,reason:String,minimumQuality:Double,maskCount:Int,best:StoneFootprint?) {
+        self.row=row;self.col=col;self.stage=stage;self.reason=reason;self.minimumQuality=minimumQuality
+        self.maskCount=maskCount;self.best=best
+        maxAxisOffset=best.map {max(abs($0.center.x-Double(col)),abs($0.center.y-Double(row)))}
+    }
+}
+
 /// A visible disk whose intersection is unresolved. This is warning evidence,
 /// never an occupancy label or permission to change a recorded move.
 struct StoneCenteringEvidence: Codable {
@@ -20,7 +36,7 @@ struct StoneCenteringEvidence: Codable {
 /// Reference-backed geometry refinement. Accepted stones seed outline fits;
 /// only independently contradicted occupancy hypotheses can resolve uncertainty.
 enum StoneGeometry {
-    struct Result { let readings:[IntersectionReading]; let footprints:[StoneFootprint]; var placementFits:[StoneFootprint]=[] }
+    struct Result { let readings:[IntersectionReading]; let footprints:[StoneFootprint]; var placementFits:[StoneFootprint]=[]; var fitAttempts:[StoneFitAttempt]=[] }
     struct ColoredNeighbor { let shape:StoneFootprint; let color:Occupancy }
     // Offsets into a row-prefix buffer, relative to the candidate center.
     // The right endpoint is exclusive. Precompute the row stride once per
@@ -53,7 +69,7 @@ enum StoneGeometry {
     private static func fit(_ reading:IntersectionReading,frame:GrayFrame,reference:GrayFrame,
                             calibration:BoardCalibration,referenceCalibration:BoardCalibration,
                             correction:Double,colorShift:BoardChroma,masking:[StoneFootprint]=[],minimumQuality:Double=0.78,
-                            occlusion:[ColoredNeighbor]=[],searchSteps:Int=11,shadedWhite:Bool=false)->StoneFootprint? {
+                            occlusion:[ColoredNeighbor]=[],searchSteps:Int=11,shadedWhite:Bool=false,diagnostic:((StoneFitAttempt)->Void)?=nil,diagnosticStage:String="outline")->StoneFootprint? {
         // An occlusion fit keeps the expected FULL stone size. Only the minimum
         // visible body shrinks, by the union of independently observed neighbors.
         // This avoids accepting a small shadow as an unusually small stone.
@@ -145,6 +161,12 @@ enum StoneGeometry {
                     radiusCol:shape.rx,radiusRow:shape.ry,quality:score)
             }
         } } }
+        if let diagnostic {
+            let reason=best.map {$0.quality<minimumQuality ? "below_minimum_quality":
+                $0.radiusCol<=0.32 || $0.radiusCol>=maximumRadius ? "radius_at_search_boundary":"fit_passed"} ?? "no_candidate"
+            diagnostic(.init(row:reading.row,col:reading.col,stage:diagnosticStage,reason:reason,
+                minimumQuality:minimumQuality,maskCount:masking.count,best:best))
+        }
         guard let best,best.quality>=minimumQuality,best.radiusCol>0.32,best.radiusCol<maximumRadius else { return nil }
         return best
     }
@@ -247,17 +269,22 @@ enum StoneGeometry {
         // Bound concurrency; masks and contextual refinements below stay serial.
         let candidates=readings.filter{$0.occupancy.stone != nil}
         var fittedSlots=[StoneFootprint?](repeating:nil,count:candidates.count)
+        var attemptSlots=[StoneFitAttempt?](repeating:nil,count:candidates.count)
         let workers=candidates.count>=8 ? min(4,ProcessInfo.processInfo.activeProcessorCount):1
         let lock=NSLock()
         DispatchQueue.concurrentPerform(iterations:workers) { worker in
-            var local=[(Int,StoneFootprint?)]()
+            var local=[(Int,StoneFootprint?,StoneFitAttempt?)]()
             for i in stride(from:worker,to:candidates.count,by:workers) {
-                local.append((i,fit(candidates[i],frame:frame,reference:reference,calibration:calibration,
-                    referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift)))
+                var attempt:StoneFitAttempt?
+                let fitted=fit(candidates[i],frame:frame,reference:reference,calibration:calibration,
+                    referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift,
+                    diagnostic:{attempt=$0})
+                local.append((i,fitted,attempt))
             }
-            lock.lock();for (i,shape) in local {fittedSlots[i]=shape};lock.unlock()
+            lock.lock();for (i,shape,attempt) in local {fittedSlots[i]=shape;attemptSlots[i]=attempt};lock.unlock()
         }
         var footprints=fittedSlots.compactMap{$0}
+        var fitAttempts=attemptSlots.compactMap{$0}
         // Conflicting outlines are unsuitable as evidence about surrounding wood.
         let fitted=footprints
         footprints=fitted.enumerated().filter { i,a in
@@ -266,6 +293,11 @@ enum StoneGeometry {
                                 (a.center.y-b.center.y)/(a.radiusRow+b.radiusRow))<0.85
             }
         }.map(\.element)
+        let retainedPoints=Set(footprints.map {$0.row*calibration.size+$0.col})
+        for shape in fitted where !retainedPoints.contains(shape.row*calibration.size+shape.col) {
+            fitAttempts.append(.init(row:shape.row,col:shape.col,stage:"outline",reason:"conflicting_outline",
+                minimumQuality:0.78,maskCount:0,best:shape))
+        }
         var result=readings
         if let centers=samplingCenters,centers.count==readings.count {
             let independentlyFitted=Set(footprints.map{$0.row*calibration.size+$0.col})
@@ -348,8 +380,14 @@ enum StoneGeometry {
                     }
                 }
             }
-            guard !neighbors.isEmpty,let refined=fit(reading,frame:frame,reference:reference,calibration:calibration,
-                referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift,masking:neighbors) else {continue}
+            guard !neighbors.isEmpty else {
+                fitAttempts.append(.init(row:reading.row,col:reading.col,stage:"placement",reason:"no_neighbor_masks",
+                    minimumQuality:0.78,maskCount:0,best:nil));continue
+            }
+            guard let refined=fit(reading,frame:frame,reference:reference,calibration:calibration,
+                referenceCalibration:referenceCalibration,correction:correction,colorShift:colorShift,masking:neighbors,
+                diagnostic:{fitAttempts.append($0)},diagnosticStage:"placement") else {continue}
+            let previousPlacementCount=placementFits.count
             if neighbors.count >= (reading.occupancy == .white ? 1 : 2), refined.quality >= 0.90 {
                 placementFits.append(refined)
             } else if reading.occupancy == .black, reading.confidence >= 0.95,
@@ -366,8 +404,12 @@ enum StoneGeometry {
                     placementFits.append(refined)
                 }
             }
+            if placementFits.count==previousPlacementCount {
+                fitAttempts.append(.init(row:reading.row,col:reading.col,stage:"placement",reason:"placement_qualification_failed",
+                    minimumQuality:0.90,maskCount:neighbors.count,best:refined))
+            }
         }
-        return Result(readings:result,footprints:footprints,placementFits:placementFits)
+        return Result(readings:result,footprints:footprints,placementFits:placementFits,fitAttempts:fitAttempts)
     }
 
     private static func excludesAdditionalStone(row:Int,col:Int,neighbors:[StoneFootprint],

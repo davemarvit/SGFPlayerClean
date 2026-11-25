@@ -115,6 +115,8 @@ struct PhysicalAIGuidanceTarget: Equatable {
     private var lastMatch: Double?
     private var verifiedCells: [String]?
     private var verifiedCameraContext: String?
+    private var verifiedSource="none"
+    private var verifiedAtUptime:Double?
     private var loadFailed = false
     private var illegalMoveTracker=PhysicalIllegalMoveWarning.Tracker()
     private var illegalMoveContext: String?
@@ -152,14 +154,14 @@ struct PhysicalAIGuidanceTarget: Equatable {
     func canPass(at now: Double)->Bool {phase == .human && lastMatch.map {(0..<1.5).contains(now-$0)} == true}
     var savedURL: URL? {snapshot.map {directory.appendingPathComponent($0.id.uuidString+".sgf")}}
     init(directory: URL? = nil, generate: Generate? = nil, laser: PhysicalLaserGuidance? = nil, testWorker: TestWorker? = nil,
-         practiceStore:PhysicalAIPracticeStore?=nil,
+         practiceStore:PhysicalAIPracticeStore?=nil,recognitionTrace:AIRecognitionTrace?=nil,
          uptime: @escaping ()->Double = {ProcessInfo.processInfo.systemUptime},
          wallTime: @escaping ()->Double = {Date().timeIntervalSince1970}) {
         self.laser=laser ?? PhysicalLaserGuidance();self.uptime=uptime;self.wallTime=wallTime
         persistSettings=directory == nil
         self.directory=directory ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Physical Go/AI Games")
         self.practiceStore=practiceStore ?? PhysicalAIPracticeStore(directory:self.directory)
-        recognitionTrace=directory == nil ? AIRecognitionTrace(url:self.directory.appendingPathComponent("recognition-trace.json")):nil
+        self.recognitionTrace=recognitionTrace ?? (directory == nil ? AIRecognitionTrace(url:self.directory.appendingPathComponent("recognition-trace.json")):nil)
         let testWorker=testWorker ?? TestWorker();self.testWorker=testWorker
         self.generate=generate ?? {game,settings in
             if settings.fastTestMode == true {return try await testWorker.move(game)}
@@ -183,7 +185,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 if let reason=saved.laserRecheckReason ?? saved.guidanceInterruption {self.laser.restoreGameFaultRequirement(reason)}
                 if let verified=saved.verifiedPosition,verified.cells.count==cells.count,
                    verified.cells.allSatisfy({["empty","black","white"].contains($0)}),!verified.cameraContext.isEmpty {
-                    verifiedCells=verified.cells;verifiedCameraContext=verified.cameraContext
+                    verifiedCells=verified.cells;verifiedCameraContext=verified.cameraContext;verifiedSource="restored_saved_position";verifiedAtUptime=nil
                 }
                 timing=saved.timing?.saved ?? PhysicalAITiming(blackToPlay:player.turn == .black)
                 phase=saved.ended ? .finished:.paused
@@ -296,7 +298,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
     }
     private func installPracticeSnapshot(_ saved:Snapshot?,data:Data?,draft restoredDraft:PhysicalAISettings) {
         phase = .paused // Prevent reentrant guidance callbacks during cancellation.
-        cancel();captureGuidance.clear();verifiedCells=nil;verifiedCameraContext=nil
+        cancel();captureGuidance.clear();verifiedCells=nil;verifiedCameraContext=nil;verifiedSource="none";verifiedAtUptime=nil
         snapshot=saved;currentSnapshotData=data;draft=restoredDraft
         timing=saved?.timing?.saved ?? PhysicalAITiming(blackToPlay:(saved?.moves.count ?? 0)%2==0)
         cells=[];referenceCells=[];lastCapturePoints=[];error=nil;practiceError=nil
@@ -311,7 +313,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         defer {syncGuidance()}
         guard snapshot?.practiceTest==nil else {status="Return from the test position before starting another game.";return false}
         guard draft.valid,!loadFailed, !hasGame || phase == .finished else {return false}
-        cancel();timing=PhysicalAITiming();verifiedCells=nil;verifiedCameraContext=nil;error=nil
+        cancel();timing=PhysicalAITiming();verifiedCells=nil;verifiedCameraContext=nil;verifiedSource="none";verifiedAtUptime=nil;error=nil
         do {try save(Snapshot(id:UUID(),settings:draft));phase = .checking;status="Clear the board. Waiting for a verified empty position.";return true}
         catch {fail(error.localizedDescription);return false}
     }
@@ -498,7 +500,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         // Fresh positive contradictions still override this history below;
         // new stones and capture removals cannot borrow an unchanged-cell label.
         if let context=verifiedCameraContext,laser.cameraContext != context {
-            verifiedCells=nil;verifiedCameraContext=nil
+            verifiedCells=nil;verifiedCameraContext=nil;verifiedSource="none";verifiedAtUptime=nil
             traceRecognition("verified_context_changed")
         }
         var outcome="observation_rejected",detail=[String:Any]()
@@ -595,6 +597,19 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 // Verified history may retain an obscured unchanged stone;
                 // it must not erase a positively seen, unresolved new stone.
                 outcome="ambiguous_new_stone";detail["blockingPoint"]=index
+                if let recognitionTrace,let snapshot {
+                    let frame=laser.diagnosticFrame(capturedAt:stamp).map {
+                        PlacementAmbiguityDiagnostic.FrameIdentity(streamEpoch:$0.streamEpoch.uuidString,frameID:$0.frameID,
+                            capturedAtUptime:$0.capturedAtUptime,arrivedAtUptime:$0.arrivedAtUptime,
+                            capturedAtUnix:$0.capturedAtUnix,timestampSource:$0.timestampSource)
+                    }
+                    recognitionTrace.recordPlacementAmbiguity(.capture(observation:observation,point:index,
+                        unresolvedNeighbors:unresolvedNeighbors[index] ?? [],expected:cells,verified:verifiedCells,
+                        cameraContext:laser.cameraContext,verifiedContext:verifiedCameraContext,
+                        verifiedSource:verifiedSource,verifiedAt:verifiedAtUptime,session:snapshot.id,
+                        moveNumber:snapshot.moves.count,generation:generation,phase:phase.rawValue,
+                        now:now,wall:wallTime(),witnesses:witnesses,frame:frame))
+                }
                 witness=nil;witnesses=0;lastMatch=nil;mismatch=nil
                 status="A new stone is visible, but its intersection is unclear. Checking its position."
                 // The camera frame is valid. Keep the centering hint's own
@@ -620,7 +635,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         guard witnesses>=3,stamp-witnessStart>=0.45 else {outcome="waiting_for_stable_position";return}
         if values == cells {
             outcome="board_confirmed"
-            mismatch=nil;lastMatch=now;verifiedCells=cells;verifiedCameraContext=laser.cameraContext
+            mismatch=nil;lastMatch=now;verifiedCells=cells;verifiedCameraContext=laser.cameraContext;verifiedSource="fresh_board_confirmed";verifiedAtUptime=stamp
             if phase == .human {status="Your turn · \(human.rawValue.capitalized) to play."}
             if phase == .checking || phase == .placing {
                 if var s=snapshot,s.pendingPlacement || captureCleanupPending || s.captureIndication != nil {
@@ -654,7 +669,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 outcome="illegal_move";detail["rejection"]=rejection.rawValue
                 status=rejection.rawValue;mismatch = .init(expected:cells,observed:values);return
             }
-            if resumingHumanMove || pendingAIPlaced {verifiedCells=values;verifiedCameraContext=laser.cameraContext}
+            if resumingHumanMove || pendingAIPlaced {verifiedCells=values;verifiedCameraContext=laser.cameraContext;verifiedSource="fresh_accepted_transition";verifiedAtUptime=stamp}
             outcome="human_move_accepted";detail["point"]=p;detail["combinedAIPlacement"]=pendingAIPlaced
             commit(p,ai:false,at:now)
         } else {

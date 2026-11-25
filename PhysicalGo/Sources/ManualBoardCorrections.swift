@@ -57,7 +57,7 @@ import Combine
             lightingAdjusted:observation.lightingAdjusted,lightingField:observation.lightingField,
             footprints:observation.footprints.filter { overrides[$0.row*size+$0.col] == nil },
             placementFits:observation.placementFits.filter { overrides[$0.row*size+$0.col] == nil },
-            manualPoints:Set(overrides.keys),trackedAssignments:observation.trackedAssignments.filter{overrides[$0.key]==nil && overrides[$0.value]==nil})
+            fitAttempts:observation.fitAttempts,manualPoints:Set(overrides.keys),trackedAssignments:observation.trackedAssignments.filter{overrides[$0.key]==nil && overrides[$0.value]==nil})
         return result
     }
 }
