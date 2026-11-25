@@ -92,3 +92,10 @@ PG33 implementation remains review-blocked pending actualv44 state-machine proof
 
 Disk after sparse conversions:25GiB free vs29GiB starting, within8GiB incremental budget. Original recordings/caches/frozen checkouts untouched. Source-only candidates pending native tests are explicitly unvalidated until combined receipts arrive.
 
+## Critical handoff ready
+
+Minimal source selection/merge order is pinned in [MinimalFeedbackCandidateManifest.md](MinimalFeedbackCandidateManifest.md), committed5a84149. Native PG09/17 is19db846 (211checks; baseline reproduces bug); PG04 is34c56fe (323native plus paired Python coverage); host PG33 isf2a7531 (240Python and actualv44 firmware772assertions). Independent cross-change report353da15 at /Users/Dave/SGFPlayerClean-worktrees/cross-change-review/PhysicalGo/Documentation/CrossChangeSafetyReview.md approves source for combined offline/paired integration, not activation. Root integrated host in issue-integration-20261124 and is independently building PG08 firmware/rollback; reviewer now checks combined cache/nearNone/planner interactions read-only.
+
+Further completed optional candidates: native PG15/19 80f5bd1 plus hosta7d8d66 (46native+36host+viewtypecheck), PG26b23016f7 (19no-audio tests). PG12 native suite currently holds Swift slot. Optional combined validation follows, then each pending native source checkpoint will receive explicit test results. No issue is closed; no worker installed or accessed hardware.
+
+
