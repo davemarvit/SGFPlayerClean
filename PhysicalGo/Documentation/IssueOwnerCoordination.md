@@ -68,3 +68,27 @@ All entries below are offline-only and not installed or physically verified. No 
 Fresh-context cross_change_review is an additional read-only reviewer, prioritizing PG33 and PG08. Initial PG33 findings: post-PREPARE actual settlement/containment must precede every light; final optical sample must remain fresh; per-indication DARK cooling requires state-aware resume and fresh pose. Owner repairing; review not yet complete.
 
 Minimal initial-game candidate batch is root-owned: native002e4c7 plus necessary PG03/PG09-17 fixes; host7d8b530,c590b44,PG06a tests,PG06b planner and PG33. Online/parallax/centering/illegal/progress work continues independently and must not delay initial supervised play. Source commits never authorize activation.
+
+## Further checkpoint batch and build ownership
+
+|Scope|Commit|Validation / remaining work|
+|---|---|---|
+|PG00|0c1811e|10Python checks; native validation pending combined runtime|
+|PG02|c18fa8c|11checks,76held-out observations; retrospective only, no steering promotion|
+|PG06b|1d2770f|56pass/2archive skips; static review no blocker under conditional response envelope; physical timing pending|
+|PG10|29965ff|4host checks; native validation pending combined runtime|
+|PG12|3615d68|8registry checks; authoritative inert producer; native test queued, dispatch remains absent|
+|PG15/19 host|a7d8d66|36checks; native progress test queued; no activation authority|
+|PG16|6d4935d|10Python checks/historical replay; native validation pending combined runtime|
+|PG18|c643725 after67e7d61|23checks; reuse3ad106c; no runtime wiring/live learning|
+|PG21|a975ab7 after56e8740|Diff check only; native validation pending combined runtime|
+|PG22|6aa20a0|14offline checks; no physical thickness inference/runtime correction|
+|PG23|c597521|156focused checks; test-only, synthetic reversals labeled|
+|PG25|923bc0b|222persistence checks; test-only|
+
+PG04 native runner passed323checks; checkpoint commit forthcoming. PG09/17 currently holds exclusive Swift slot for baseline failure proof and corrected continuity suite. Next short standalone jobs: PG15/19, PG26b, PG12. PG16 prepares a separate optional combined native validation worktree from0628a33 with56e8740,0c1811e,29965ff,6d4935d,a975ab7; no build until explicit slot. This is validation preparation, not root integration or installation.
+
+PG33 implementation remains review-blocked pending actualv44 state-machine proof. Illegal POSE-after-PREPARE approach was removed before commit; candidate uses causally acknowledged thermal actual pose afterREADY. PG33 reports134existing+17focused tests. Actual firmware C++ harness slot granted, no hardware. Independent600ms gameplay evidence remains separate from calibration override. Automatic cooling resume conflicts with an unpatchedPG08 cold-only workaround, so root must choose reviewed firmware or enforce fullOFF on any cooling entry.
+
+Disk after sparse conversions:25GiB free vs29GiB starting, within8GiB incremental budget. Original recordings/caches/frozen checkouts untouched. Source-only candidates pending native tests are explicitly unvalidated until combined receipts arrive.
+
