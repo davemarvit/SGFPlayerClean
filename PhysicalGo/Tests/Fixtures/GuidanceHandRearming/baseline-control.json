@@ -1,0 +1,39 @@
+{
+  "scope": "Offline native regression linked against the installed 0.263 source runtime; no camera or controller access",
+  "baseline_commit": "523e61da62a21e4a898e65c6aa69adb0ff2ce2e5",
+  "runtime_identity": "faf4ef37f5e1fffbd3e6fb5f80167a244d1378d22950bd28c229a5f009f19a05",
+  "runtime_receipt_sha256": "4b528d18c5a48d4090ab7000fec8088781b5ebcfa7e4fa3a5518d6baadb60b01",
+  "runtime_library_sha256": "394d9cf9da0bd783c6ccbc2c87538802c65611427d4c953aa9b042ac4958a8e2",
+  "baseline_guidance_source_sha256": "24ac0ae413791c94514f0c31591e5d5fb90d0800b5422e196a98e8bad886428a",
+  "test_sha256": "694594a2d829bfd9f16dde4cab7dc3fb78f71ff3ff03ae5f50d2653d051bc152",
+  "compile_argv": [
+    "xcrun",
+    "swiftc",
+    "-swift-version",
+    "5",
+    "-D",
+    "PHYSICAL_GO",
+    "-Onone",
+    "-target",
+    "arm64-apple-macosx14.0",
+    "-parse-as-library",
+    "-I",
+    "/Users/Dave/SGFPlayerClean-worktrees/dark-resume-release-20261124/PhysicalGo/.build/RegressionModules/runtimes/faf4ef37f5e1fffbd3e6fb5f80167a244d1378d22950bd28c229a5f009f19a05",
+    "-L",
+    "/Users/Dave/SGFPlayerClean-worktrees/dark-resume-release-20261124/PhysicalGo/.build/RegressionModules/runtimes/faf4ef37f5e1fffbd3e6fb5f80167a244d1378d22950bd28c229a5f009f19a05",
+    "-lPhysicalGoTestRuntime",
+    "-Xlinker",
+    "-rpath",
+    "-Xlinker",
+    "/Users/Dave/SGFPlayerClean-worktrees/dark-resume-release-20261124/PhysicalGo/.build/RegressionModules/runtimes/faf4ef37f5e1fffbd3e6fb5f80167a244d1378d22950bd28c229a5f009f19a05",
+    "/tmp/native-arming-episode-baseline/PhysicalLaserStandbyTests.swift",
+    "/tmp/native-arming-episode-baseline/TestArtifacts.swift",
+    "-o",
+    "/tmp/native-arming-episode-baseline/standby-baseline"
+  ],
+  "run_argv": [
+    "/tmp/native-arming-episode-baseline/standby-baseline"
+  ],
+  "exit_code": -5,
+  "first_failure": "main/PhysicalLaserStandbyTests.swift:8: Precondition failed: New matched cold admission after hand OFF does not inherit the mature hold's age"
+}

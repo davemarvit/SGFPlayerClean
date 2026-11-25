@@ -138,6 +138,74 @@ import Foundation
   try status(stateFault)
   check(request(stateFault).schemaVersion==1 && stateFault.holdingInterrupted,"Later healthy OFF cannot erase initial explicit fault state")
 
+  func elapsed(_ x:PhysicalLaserGuidance,state:String,ticks:Int) throws {
+   for _ in 0..<ticks {
+    clock.now+=0.4;clock.wall+=0.4;frame(x)
+    try status(x,state:state,mutate:{if state=="arming" {$0.thermal?.unavailableReason="bootstrap"}})
+   }
+  }
+  func hostRearmReceipt(_ name:String,_ x:PhysicalLaserGuidance)throws {
+   let folder=URL(fileURLWithPath:#filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/GuidanceHandRearming")
+   var d=try JSONDecoder().decode(PhysicalLaserGuidance.DriverStatus.self,from:Data(contentsOf:folder.appendingPathComponent(name+".json")))
+   let r=request(x),shift=clock.wall-d.updatedAtUnix
+   change(&d,["producer":x.producer.uuidString,"sequence":r.sequence,"updatedAtUnix":clock.wall])
+   d.playSession=r.playSession;d.cameraContext=r.cameraContext;d.streamEpoch=r.streamEpoch;d.setupId="setup-1"
+   if let off=d.beamOffSinceUnix {d.beamOffSinceUnix=off+shift}
+   if let received=d.thermal?.receivedAtUnix {d.thermal?.receivedAtUnix=received+shift}
+   if let e=d.darkEvidenceAfter {d.darkEvidenceAfter = .init(streamEpoch:x.frames.streamEpoch,frameID:e.frameID,timestampSource:e.timestampSource,callbackFlushSeconds:e.callbackFlushSeconds)}
+   try JSONEncoder().encode(d).write(to:x.directory.appendingPathComponent("status.json"),options:.atomic);x.tick()
+  }
+  let rearm=fixture("mature-hand-rearm");try activate(rearm)
+  try elapsed(rearm,state:"holding",ticks:32)
+  rearm.setTarget(.init(source:"ai",session:session.session,moveNumber:4,size:9,row:7,col:3,black:false,decisionReceivedAtUnix:clock.wall))
+  frame(rearm);try status(rearm,state:"holding");rearm.verifyMoveTarget(capturedAt:clock.now,now:clock.now)
+  check(request(rearm).action=="point","Mature healthy session accepts the new authoritative point")
+  try status(rearm,state:"approaching",mutate:{$0.motorBusPowered=true;$0.thermal?.unavailableReason=nil})
+  frame(rearm,hand:true)
+  check(request(rearm).retainOnly==true,"Hand revokes the point into retain-only standby")
+  try hostRearmReceipt("transitioning",rearm)
+  frame(rearm,hand:false)
+  try hostRearmReceipt("rearming",rearm)
+  check(!rearm.holdingInterrupted && !rearm.gameFaultNeedsRecheck && request(rearm).action=="standby","New matched cold admission after hand OFF does not inherit the mature hold's age")
+  check(!rearm.acceptsObservation(capturedAt:clock.now,now:clock.now),"New cold admission still supplies no optical darkness evidence")
+  try elapsed(rearm,state:"arming",ticks:20)
+  check(!rearm.holdingInterrupted,"The new admission retains its own bounded budget after ten seconds")
+  try hostRearmReceipt("holding",rearm)
+  try elapsed(rearm,state:"holding",ticks:32)
+  check(!rearm.holdingInterrupted,"Healthy admissible holding completes the later admission episode")
+
+  let late=fixture("warm-prolonged-arming");try activate(late);try elapsed(late,state:"holding",ticks:32)
+  try hostRearmReceipt("rearming",late)
+  for i in 0..<25 {
+   try elapsed(late,state:"arming",ticks:1)
+   if i==10 {late.setTarget(.init(source:"ai",session:session.session,moveNumber:5,size:9,row:1,col:1,black:true,decisionReceivedAtUnix:clock.wall))}
+  }
+  check(late.holdingInterrupted && late.gameFaultRecheckReason=="arming_timeout" && request(late).action=="off","A later cold admission still expires at twelve seconds despite target revision churn")
+
+  for invalid in ["old-revision","stale","foreign"] {
+   let x=fixture("mature-"+invalid);try activate(x);try elapsed(x,state:"holding",ticks:32)
+   try status(x,state:"arming",mutate:{d in
+    d.thermal?.unavailableReason="bootstrap"
+    if invalid=="old-revision" {change(&d,["sequence":d.sequence-1])}
+    if invalid=="stale" {change(&d,["updatedAtUnix":clock.wall-1])}
+    if invalid=="foreign" {change(&d,["producer":UUID().uuidString])}
+   })
+   check(x.gameFaultRecheckReason != "arming_timeout","Unowned or stale arming cannot diagnose an old admission timeout: \(invalid)")
+   if invalid=="old-revision" {check(!x.holdingInterrupted,"Old-revision arming cannot retrospectively latch a healthy mature hold")}
+   else {check(x.holdingInterrupted && request(x).action=="off","Lost current status retains the independent fail-closed link guard: \(invalid)")}
+  }
+
+  let reset=fixture("rearm-full-off-reset");try activate(reset);try elapsed(reset,state:"holding",ticks:32)
+  try hostRearmReceipt("rearming",reset);try elapsed(reset,state:"arming",ticks:16)
+  reset.setEnabled(false);try status(reset)
+  check(!reset.mayHaveMotorSession && request(reset).schemaVersion==1,"Genuine full OFF closes an unfinished arming episode")
+  reset.setEnabled(true);frame(reset);try status(reset);try status(reset)
+  try status(reset,state:"arming",mutate:{$0.thermal?.unavailableReason="bootstrap"})
+  try elapsed(reset,state:"arming",ticks:20)
+  check(!reset.holdingInterrupted,"A new powered request after full OFF receives a fresh bounded admission budget")
+  try elapsed(reset,state:"arming",ticks:5)
+  check(reset.gameFaultRecheckReason=="arming_timeout" && request(reset).action=="off","Full OFF reset never removes the next twelve-second admission limit")
+
   func beginArming(_ name:String) throws -> PhysicalLaserGuidance {
    let x=fixture(name);x.setPlaySession(session);x.setStandbyEnabled(true);x.setEnabled(true);frame(x);try status(x);try status(x)
    try status(x,state:"arming",mutate:{$0.thermal?.unavailableReason="bootstrap"})

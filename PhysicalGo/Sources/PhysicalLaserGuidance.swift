@@ -155,7 +155,6 @@ import CoreGraphics
     // Revision changes cannot extend this continuous handoff deadline.
     private var transitionStartedAt: Double?
     private var unresolvedLinkLoss: (session:PlaySession,sequence:Int,since:Double)?
-    private var coldAdmissionConfirmed=false
     private var lastRetainOnly: Bool?
     private var cameraAt: Double?
     private var cameraHand: Bool?
@@ -675,16 +674,24 @@ import CoreGraphics
                 transitionStartedAt=nil
             }
             if mayHaveMotorSession,connected,driver?.sequence==sequence,!standbyAvailable {hardHealth("standby_capability_lost")}
-            if !transientRecovery.isPending,mayHaveMotorSession,let began=armingStartedAt,now-began>=12,
-               !coldAdmissionConfirmed || driver?.state=="arming" {hardHealth("arming_timeout")}
-            if connected,let d=driver,d.sequence==sequence,d.state=="arming",
-               d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
-               d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {hardHealth("invalid_arming_status")}
+            if !transientRecovery.isPending,mayHaveMotorSession,let began=armingStartedAt,now-began>=12 {
+                hardHealth("arming_timeout")
+            }
+            if connected,let d=driver,d.sequence==sequence,d.state=="arming" {
+                if d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
+                   d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {hardHealth("invalid_arming_status")}
+                else if !transientRecovery.isPending,matchedStandby(d),armingStartedAt==nil {
+                    // A hand stop can end the host session between native
+                    // samples. A later genuine cold admission gets its own
+                    // bounded episode, not the age of the previous warm hold.
+                    armingStartedAt=now
+                }
+            }
             if connected,let d=driver,d.sequence==sequence,
                ["holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) || (d.laserOn && !["fault","transitioning"].contains(d.state)) || (d.illuminationConfirmed==true && d.state != "transitioning") {
                 if d.thermal?.admissible(statusAge:wall-d.updatedAtUnix,updatedAtUnix:d.updatedAtUnix) != true {
                     hardHealth("thermal_telemetry_unavailable")
-                } else {coldAdmissionConfirmed=true}
+                }
             }
             if connected,let d=driver,d.sequence==sequence {
                 let activeStates=["arming","holding","cooling","approaching","adequate","refining","spot_not_found"]
@@ -696,9 +703,13 @@ import CoreGraphics
                 } else if d.state=="off" {
                     if !fullOff(d,wall:wall) {hardHealth("invalid_off_status")}
                 } else if !["fault","transitioning"].contains(d.state) {hardHealth("unknown_driver_state")}
+                if currentHealthFault==nil,matchedStandby(d),
+                   ["holding","cooling","approaching","adequate","refining","spot_not_found"].contains(d.state) {
+                    armingStartedAt=nil
+                }
             }
             if let d=driver,fullOff(d,wall:wall) {
-                mayHaveMotorSession=false;armingStartedAt=nil;transitionStartedAt=nil;coldAdmissionConfirmed=false
+                mayHaveMotorSession=false;armingStartedAt=nil;transitionStartedAt=nil
                 if closingStandby || !wantsStandby {
                     wireSchema=1;standbyReady=false;closingStandby=false;standbySetup=nil;sequence+=1
                 } else if standbyAvailable,d.playSession==playSession,
@@ -767,7 +778,7 @@ import CoreGraphics
         }
         if action == "point" {mayHaveIlluminated=true}
         if wireSchema==2,action != "off" {
-            if armingStartedAt==nil {armingStartedAt=now}
+            if !mayHaveMotorSession {armingStartedAt=now}
             mayHaveMotorSession=true
         }
         // Click at first confirmed illumination, before the silent settling.

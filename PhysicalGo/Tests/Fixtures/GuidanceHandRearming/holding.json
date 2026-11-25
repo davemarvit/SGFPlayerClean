@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "producer": "210A00E5-141A-4F6B-8AD6-179A26345E4F",
+  "sequence": 3,
+  "updatedAtUnix": 1795590593.577787,
+  "mode": "hardware",
+  "state": "holding",
+  "laserOn": false,
+  "detail": "Holding motors ready; laser off",
+  "requiresNewRevision": false,
+  "illuminationConfirmed": false,
+  "capabilities": [
+    "darkMotorStandbyV1",
+    "capturedStoneIndication",
+    "stoneCenteringWiggle"
+  ],
+  "playSession": {
+    "source": "ai",
+    "session": "2f17bdbd-b29a-4e62-ad1a-13e2bf7c0d02",
+    "size": 19
+  },
+  "cameraContext": "fixture-camera",
+  "streamEpoch": "705b65bd-caa1-4737-96bd-cea0f53c2ce5",
+  "setupId": "fixture-setup",
+  "motorsHeld": true,
+  "motorBusPowered": true,
+  "thermal": {
+    "policy": "warm_hold",
+    "sampleSequence": 2,
+    "receivedAtUnix": 1795590593.527787,
+    "sampleAgeUpperMs": 100,
+    "baseC": 21,
+    "tiltC": 22,
+    "maxBaseC": 23,
+    "maxTiltC": 24,
+    "baseTrendCPerMinute": null,
+    "tiltTrendCPerMinute": null,
+    "baseCurrentMA": 1,
+    "tiltCurrentMA": 2,
+    "baseVoltageV": 5.0,
+    "tiltVoltageV": 5.0,
+    "unavailableReason": null
+  },
+  "beamOffSinceUnix": 1795590593.1833792,
+  "darkEvidenceAfter": {
+    "streamEpoch": "705b65bd-caa1-4737-96bd-cea0f53c2ce5",
+    "frameID": 1,
+    "timestampSource": "cameraPresentation"
+  }
+}
