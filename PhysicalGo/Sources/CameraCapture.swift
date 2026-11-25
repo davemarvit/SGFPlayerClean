@@ -14,6 +14,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private var timingClock:LocalClockEngine?
     private var laserGuidance=false
     private var deliveryPending=false
+    private var pendingDeliveryDrops=0
     private var lastPTS: CMTime?
     private var health = CameraHealth()
     private var feedHealth = CameraFeedHealth()
@@ -119,6 +120,7 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     private func endSession() {
         stream += 1
         deliveryPending=false
+        pendingDeliveryDrops=0
         retryPending = false
         currentOutput?.setSampleBufferDelegate(nil, queue: nil)
         currentOutput = nil
@@ -198,7 +200,8 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard output === currentOutput, health.active else { return }
         let now = ProcessInfo.processInfo.systemUptime
-        guard !deliveryPending,let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        guard !deliveryPending else {pendingDeliveryDrops+=1;return}
+        guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         let timestamp=CameraFrameTimestamp.make(sampleBuffer,clock:session?.synchronizationClock,arrival:now)
         if pts.isValid && !pts.isIndefinite, let previous = lastPTS, CMTimeCompare(pts, previous) <= 0 { return }
@@ -215,6 +218,9 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         health.receivedFrame(now: now)
         if waitingForFirstFrame { waitingForFirstFrame = false; status("Live · \(deviceName)", state: .live) }
         let token = queueRequest,expectedStream=stream
+        let trace=PhysicalLatencyTrace.shared
+        let prepared=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
+        let skipped=pendingDeliveryDrops;pendingDeliveryDrops=0
         deliveryPending=true
         DispatchQueue.main.async { [weak self] in
             guard let self else {return}
@@ -225,7 +231,15 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 }
             }
             guard self.request == token else { return }
+            let delivered=trace == nil ? 0:ProcessInfo.processInfo.systemUptime
             if let callback=self.onTimedFrame {callback(image,timestamp)} else {self.onFrame?(image,timestamp.capturedAt)}
+            if let trace {
+                trace.record("camera_capture_delivery",metrics:[
+                    "capturedAtUptime":timestamp.capturedAt,"arrivedAtUptime":timestamp.arrivedAt,
+                    "conversionHealthSeconds":prepared-now,"mainDeliverySeconds":delivered-prepared,
+                    "mainCallbackSeconds":ProcessInfo.processInfo.systemUptime-delivered,
+                    "pendingDeliveryDroppedFrames":Double(skipped)])
+            }
         }
     }
 }
