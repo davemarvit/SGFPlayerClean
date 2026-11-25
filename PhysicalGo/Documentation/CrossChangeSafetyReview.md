@@ -250,7 +250,7 @@ The original uniform optical response envelope and actual-pose, clearance,
 thermal, cancellation and full-OFF guards are unchanged. Runtime logs extrapolation
 with stage and actual pose. Reviewer also verified the new response calculation
 precedes the final600ms optical-age check and cache publication; a delayed-response
-regression is included. Owner reports65 passing focused checks.
+regression is included. Owner's final focused set reports66 passing checks.
 
 Earlier fixed comparison cohorts for dense actual-pose response without secant
 carryover showed361/361 reached from the saved anchor,361/361 from center,
@@ -265,10 +265,35 @@ artifacts are being completed by PG06b; these earlier comparisons are not
 misrepresented as those final runs.
 
 The reviewable minimal first-game path therefore remains the retained qualified
-response prior plus fresh three-point setup evidence and measured corrections,
-with an explicit361-attempt binding. Root owns final integration/manifests,
+response prior and three-point calibration, current setup/anchor checks and
+measured corrections, with an explicit361-attempt binding. Root owns final integration/manifests,
 installation, current same-geometry/anchor checks and fresh attended READY.
 Known bounded failures remain failures; extrapolation is recorded, not relabeled
 as physical validation. No additional calibration tour, arbitrary tolerance
 increase, inaccurate fallback or hold-control redesign is required by this
 review. No physical operation was performed by the reviewer.
+
+### Final frozen-source evidence confirmed
+
+PG06b committed the final production-helper artifacts as `d56d749`, under
+`Firmware/Experiments/DenseResponseFeedback/` in the host repository. Reviewer
+inspected `README.md`, `results.json`, runner code and the exact final source.
+All four final runtime cohorts pin
+`a288718604cf5f62eb512bf4b2184818526cce59` (71fe937 plus a docstring correction).
+Reviewer independently hashed all ten listed production files and confirmed
+every cohort matches the current candidate; the observed-leg artifact's helper
+hash also matches. No reviewer test execution was performed.
+
+The final production runs confirm the earlier table:361/361 from the actual
+saved anchor,361/361 from center,70/72 opposite-perimeter with2 prelight refusals,
+and34/72 repeated-drift stress with38 bounded refusals. All have zero sampled
+margin violations. All seven previous center/opposite containment counterexamples
+are explicitly included and now reach their targets. The production-helper replay
+confirms0/71 endpoint violations, maximum gain-hull distance2.0471879349px.
+
+This completes the finite source/evidence review. There is no remaining concrete
+movement-response counterexample in the reviewed fixed cohorts. The recommendation
+is to integrate and prepare the explicit attended361-attempt policy, retaining
+the stated model-consistency, extrapolation and sampled-path limitations.
+Physical use remains root-owned and requires fresh READY; this report does not
+claim installation, actuation or a physically completed game.
