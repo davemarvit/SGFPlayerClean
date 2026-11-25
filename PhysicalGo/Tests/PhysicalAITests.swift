@@ -213,6 +213,14 @@ import SwiftUI
         check(hintAI.centeringStone==nil,"single ambiguous frame started a hint")
         for _ in 0..<3 {hintFrame(0.34)}
         check(abs((hintAI.centeringStone?.x ?? 0)-16.34)<0.001 && hintLaser.target?.purpose=="centering","stable off-center stone failed to request hint")
+        // A 0.16-cell movement exceeded witness tolerance but previously kept
+        // the old aim forever because target replacement required 0.18 cells.
+        hintFrame(0.50)
+        check(hintAI.centeringStone==nil && hintLaser.target==nil,"moved disk retained the old aim while replacement evidence accumulated")
+        for _ in 0..<2 {hintFrame(0.50)}
+        check(hintLaser.target==nil,"moved disk resumed before 450 ms of fresh evidence")
+        hintFrame(0.50)
+        check(hintLaser.target?.stoneCenter==ImagePoint(x:16.50,y:7),"stable moved disk did not acquire its measured replacement center")
         hintAI.centeringEnabled=false
         check(hintAI.centeringStone==nil && hintLaser.target==nil,"toggle did not immediately cancel hint")
         hintAI.centeringEnabled=true
@@ -224,16 +232,24 @@ import SwiftUI
         check(hintAI.snapshot?.moves.count==3,"centering changed game history")
         // A new disk halfway between two empty intersections has NO assigned
         // intersection. Guidance must retain the measured fractional center.
-        for _ in 0..<4 {
+        func unassignedFrame(_ color:Occupancy) {
             time+=0.2;hintLaser.observeCamera(hand:false,valid:true,capturedAt:time,now:time,context:"hint-camera")
             var frame=BoardObservation(readings:hintBoard.enumerated().map{.init(row:$0.offset/19,col:$0.offset%19,occupancy:Occupancy(rawValue:$0.element)!,confidence:1,delta:0)},size:19)
             for p in [160,161] {frame.readings[p] = .init(row:p/19,col:p%19,occupancy:.uncertain,confidence:0,delta:0)}
-            frame.centeringEvidence=[.init(color:.white,shape:.init(row:8,col:8,center:.init(x:8.5,y:8),radiusCol:0.5,radiusRow:0.5,quality:0.98))]
+            frame.centeringEvidence=[.init(color:color,shape:.init(row:8,col:8,center:.init(x:8.5,y:8),radiusCol:0.5,radiusRow:0.5,quality:0.98))]
             frame.capturedAt=time;frame.handObstructed=false;hintAI.consume(frame,now:time)
         }
+        for _ in 0..<4 {unassignedFrame(.white)}
         check(hintAI.centeringStone==ImagePoint(x:8.5,y:8),"Unassigned stone lost its measured center")
         check(hintLaser.target?.stoneCenter==ImagePoint(x:8.5,y:8),"Hint snapped to an intersection")
         check(hintAI.snapshot?.moves.count==3,"Unassigned stone was silently entered as a move")
+        unassignedFrame(.black)
+        check(hintAI.centeringStone==nil && hintLaser.target==nil,"different-color disk inherited an old centering target")
+        for _ in 0..<2 {unassignedFrame(.black)}
+        check(hintLaser.target==nil,"different-color disk reused previous color's stable witness")
+        unassignedFrame(.black)
+        check(hintLaser.target?.stoneCenter==ImagePoint(x:8.5,y:8) && hintLaser.target?.black==true,"stable replacement disk did not receive its own target identity")
+        check(hintAI.snapshot?.moves.count==3,"replacement disk changed accepted history")
         hintAI.pause()
         var requests=0,requestedVisits=0,historyCount=0
         let ai=PhysicalAI(directory:root.appendingPathComponent("main"),generate:{game,settings in
