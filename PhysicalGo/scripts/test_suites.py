@@ -28,6 +28,7 @@ SUITES = {
     'camera-safety-test': Suite('PhysicalCameraSafetyTests','app',('Tests/PhysicalCameraSafetyTests.swift',),optimized=False),
     'ephemeral-io-test': Suite('EphemeralAtomicFileTests','standalone',('Tests/EphemeralAtomicFileTests.swift',),extra=('Sources/EphemeralAtomicFile.swift',),optimized=False),
     'bridge-io-test': Suite('LatestFileExchangeTests','standalone',('Tests/LatestFileExchangeTests.swift',),extra=('Sources/LatestFileExchange.swift',),optimized=False),
+    'accepted-click-test': Suite('PhysicalAcceptedClickTests','vision',('Tests/PhysicalAcceptedClickTests.swift',),extra=('Sources/PhysicalLaserGuidance.swift','Sources/PhysicalLaserFrameBroker.swift','Sources/CameraFrameTimestamp.swift','Sources/EphemeralAtomicFile.swift','Sources/LatestFileExchange.swift'),optimized=False),
     'ai-move-click-test': Suite('PhysicalAIMoveClickTests','standalone',('Tests/PhysicalAIMoveClickTests.swift',),extra=('Sources/PhysicalAIMoveClick.swift',),optimized=False),
     'board-coordinate-labels-test': Suite('BoardCoordinateLabelsTests','vision',('Tests/BoardCoordinateLabelsTests.swift',),extra=('Sources/BoardCoordinates.swift','Sources/BoardOrientation.swift'),optimized=False),
     'stone-set-profile-test': Suite('StoneSetProfileTests','standalone',('Tests/StoneSetProfileTests.swift',),extra=('Sources/StoneSetProfile.swift','Sources/StoneSetProfileStore.swift'),optimized=False),
