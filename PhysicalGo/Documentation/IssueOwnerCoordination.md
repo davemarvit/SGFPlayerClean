@@ -29,7 +29,7 @@ Constraints: offline only; no camera acquisition, serial/controller, app launch/
 |PG19|pg15_19_setup_progress|Explicit three-point/feedback display modes|Current full5+9 display|Accurate counts/timing without activation authority|
 |PG20|pg14b_20_architecture|Cross-change architecture review|Reducer/immutable paired boundaries|Installed combination physical verification|
 |PG21|pg21_first_fault|Bounded opt-in first rejection archive|Post-verdict reason lacks exact pre-state|First image/checkpoint/timing retained|
-|PG22|pg22_parallax|Leakage-safe passive placement evaluator|Reused0ed574 static study|Held-out evidence;no auto correction|
+|PG22|pg22_parallax|Leakage-safe passive placement evaluator|Reuse d0ed574 static study|Held-out evidence;no auto correction|
 |PG23|pg23_ambiguity|Both-color hints off/on persistence regressions|52focused checks|Physical halfway placements|
 |PG24|pg24_frame_diff|Review7d8b530 and stationary-hand controls|Existing regional study includes occupied controls|No stale clearance inference;expanded evidence|
 |PG25|pg25_practice_fixtures|Restart/failed restore/backup-corruption tests|166existing checks|Physical fixtures preserve original snapshot|
@@ -46,3 +46,25 @@ PG33 depends on reviewed PG31/06a/06b/07/32 contracts and PG04 executable paired
 
 Root released Swift slot after PG31 four suites204checks. PG31 independent saved-image controls has first heavy vision slot. Other vision work waits. Native focused suites queued by readiness; no app install by workers.
 
+
+## Reviewed checkpoint batch
+
+All entries below are offline-only and not installed or physically verified. No issue closure is implied.
+
+|Scope|Commit|Evidence / integration status|
+|---|---|---|
+|PG01|212a160|8analyzer tests; no synchronized optical evidence, no mechanical attribution|
+|PG03|56e8740|623hand checks; complete temporal checkpoint; PG21 capture complementary|
+|PG05/11|d82473a|120checks,40new; test-only both-color single capture|
+|PG06a|9dcb5ab|33pass,1native-export skip; blocked refresh, unchanged600ms policy|
+|PG07|e74134a|47holding tests; rerun with PG33 candidate|
+|PG08|71e8df6|Firmware reheat eligibility defect;7600new+6686existing sanitizer assertions; root review/upload decision pending|
+|PG13|5424b03|139both-color illegal/restoration checks; test-only|
+|PG14b/20|0b3b668|150local links; stale guide repairs and integration review|
+|PG24|7f7623f|19regional+6median checks; recommends7d8b530 for paired integration, no live regional authority|
+|PG31|82be920|Independent review of002e4c7;38controls/76invocations,14expectations pass; no blocker|
+|PG32|c590b44|65checks; independent diagnostic sinks, original physical cause unresolved|
+
+Fresh-context cross_change_review is an additional read-only reviewer, prioritizing PG33 and PG08. Initial PG33 findings: post-PREPARE actual settlement/containment must precede every light; final optical sample must remain fresh; per-indication DARK cooling requires state-aware resume and fresh pose. Owner repairing; review not yet complete.
+
+Minimal initial-game candidate batch is root-owned: native002e4c7 plus necessary PG03/PG09-17 fixes; host7d8b530,c590b44,PG06a tests,PG06b planner and PG33. Online/parallax/centering/illegal/progress work continues independently and must not delay initial supervised play. Source commits never authorize activation.
