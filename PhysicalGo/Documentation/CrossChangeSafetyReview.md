@@ -664,3 +664,54 @@ when the assigned second reviewer identified missing preflight enclosure of
 firmware-permitted in-flight overshoot/held-axis drift. Its repair and final
 approval belong to that reviewer; this geometry approval does not approve the
 unrepaired visible-fine checkpoint.
+
+## Temporal grid-aliasing repair — frozen f3b8d43
+
+Independent source review approves host `f3b8d4366b6f948a63283e94d5c7ecb5358262b0`
+for root integration. Both production files were independently confirmed identical
+in root integration `5de5479de732c68518f22c433fbb40cbef42d4a0`. No remaining
+source blocker was identified. Root reports 112 affected tests and mandatory
+paired checks passed; the reviewer did not rerun those suites or use hardware.
+
+This failure has exact retained evidence: frame 21221 and dark batch 21188–21190
+from feedback-62 in run 1795593238703871000. Original raw tracking reproduces
+140/160 valid tracks, median 0.069 px and p95 53.709 px, with 13 grid-period
+outliers. Diagnostic robust fitting supports a small coherent displacement but
+is not used to admit runtime frames. The final change normalizes each grayscale
+tracking input with global board-ROI 5th/95th percentiles. Raw feature selection,
+original pyramid level 2, 85 percent global retention, six tracks per quadrant,
+0.5/1 px median/p95 limits, native-grid/current metadata checks, geometry lifetime
+and final 600 ms optical gate remain unchanged. Cached normalization uses a
+separate image. No runtime refit, robust outlier filter, brightness veto or new
+local survival threshold is introduced.
+
+Normalized exact tracking retains 147/160 with median 0.077 px and p95 0.207 px.
+Five ambiguous tracks remain; the unchanged p95 policy tolerates this minority.
+The result reduces mismatches rather than eliminating all grid ambiguity.
+Provisional shallower-pyramid and per-quadrant 50 percent proposals were discarded
+after an existing occlusion regression and benign-exposure failure respectively.
+
+The final recorded cohort accepts the exact frame, 3 percent exposure adjustment
+and local 3 percent shadow, and rejects all 22 motion/visibility negatives,
+including half/full/multiple board-pitch shifts, rotation, blank frames and
+major quadrant/edge occlusion. The existing synthetic covered-quadrant control
+also rejects. These are transformations of retained images with fixed native
+corners, not independent physical observations or a universal motion guarantee.
+
+The reviewer inspected source, tests and durable artifacts in
+`Firmware/Experiments/TemporalGridAliasing/`; independently matched the replay
+runner, four replay runtime hashes, four evidence hashes, four installed artifact
+hashes, benchmark source/runner and all eleven benchmark inputs, four whole-path
+runtime hashes and five inputs, and the supplemental whole-path provenance.
+The exact failure bundle's ten retained files also matched its evidence manifest.
+Recorded full-reuse median overhead is 0.61–0.84 ms, superseding provisional
+shallower-pyramid timings. Production read_spot replay accepts post-gate ages
+399/456/525 ms and rejects 829 ms. That finite replay uses repeated retained images
+and injected capture/POSE delays, not live independent camera frames.
+
+Per-call motion diagnostics now reach the existing failure capture before a
+throw, including bounded finite outlier vectors and fresh coverage/displacement
+statistics; no stale prior-frame proof is borrowed. Existing OFF/quiescence
+ownership of evidence writes remains. Physical acceptance is still root's
+attended preflight/run responsibility; no reviewer camera, controller, UI,
+installation or benchmark action occurred.
