@@ -1,6 +1,14 @@
 # Architecture offline batch results — November 25, 2026
 
-**Reviewed and tested; installation pending root's receipt.** Candidate native `3fe6290d0ed8612b2aa852b7bb6a8b218a53c7cd` (0.266/build267) and host `2f8c4daed12389f1c96bcd930b893ed9bf3bd580` are committed/pushed. Installed0.265/native1f6fb91 + hostb9a524e remain unchanged at this checkpoint. The app is closed and no hardware/camera work occurred. [Compact provenance](ArchitectureOfflineResults20261125.json) · [Current register](IntegrationChecklist.md).
+**Installed offline; physical acceptance pending.** Native `3fe6290d0ed8612b2aa852b7bb6a8b218a53c7cd` (0.266/build267) and host `2f8c4daed12389f1c96bcd930b893ed9bf3bd580` are now installed. The full signed build,9/9 native suites,301 combined host tests, paired acceptance and final installation verification passed. **App left closed**; no relaunch, camera or controller operation. All game files and setup/model/binding/startup artifacts are byte-identical to the prior checkpoint. [Compact provenance](ArchitectureOfflineResults20261125.json) · [Current register](IntegrationChecklist.md).
+
+| Installed pin | SHA256 |
+|---|---|
+| App source | `41b78c4ce771992eaa1204f555f69c3c8398b0ed668fd3231f57bf9669d4bf58` |
+| App binary | `7cc338c552398fd6c20d8cc1de7062d724d206d0234cbc35964e6d2650d5cbf0` |
+| Host manifest | `cc57a414961b32dc6842569512763ed1774b129f91274911b117a17b250f3c57` |
+
+[Install receipt](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/install-receipt.json>) · [Final verification](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/final-verification.json>). Both source repositories carry the pushed annotated tag `physical-go-0.266-offline-tested`. Previous0.265 app and the tagged0.264/968 baseline remain preserved.
 
 ## Completed source outcomes
 
@@ -26,7 +34,7 @@ Nine native suites passed after the final wording fix. Counts use each suite's o
 | Ambiguity diagnostics |1,427 checks|
 | AI laser lifecycle |325 checks|
 
-Final combined host: **301 tests passed**. Mandatory paired acceptance also **passed**; fake hardware and composed native/host stages do not establish live timing or physical reliability. Signed build is awaiting root's final receipt. [Native log](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/native-tests.log>) · [Host log](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/host-integrated-tests.log>) · [Paired acceptance](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/paired-acceptance/acceptance.json>).
+Final combined host: **301 tests passed**. Mandatory paired acceptance also **passed**; fake hardware and composed native/host stages do not establish live timing or physical reliability. Full signed build and offline installation passed. [Native log](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/native-tests.log>) · [Host log](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/host-integrated-tests.log>) · [Paired acceptance](</Users/Dave/Documents/SGF PLayer/work/architecture-offline-20261125/paired-acceptance/acceptance.json>).
 
 ## Next attended evidence and queued policy
 

@@ -49,5 +49,7 @@
     "start camera and verify fresh live alignment",
     "preserve seven stones and empty pending Q17",
     "fresh READY at launcher before any controller activation"
-  ]
+  ],
+  "record_scope": "historical 0.265 installation checkpoint",
+  "superseded_by": "ArchitectureOfflineResults20261125.json"
 }

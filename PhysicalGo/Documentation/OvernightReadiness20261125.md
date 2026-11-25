@@ -1,4 +1,6 @@
-# Overnight readiness — November 25, 2026
+# Previous overnight checkpoint — November 25, 2026
+
+**Historical0.265 checkpoint, superseded by installed0.266.** See [current installed release](ArchitectureOfflineResults20261125.md) and [authoritative register](IntegrationChecklist.md). Source/test/install facts below describe the earlier checkpoint, not the current app.
 
 The reviewed pair is **installed offline**. The app is **left closed**; it was not relaunched, and no camera/controller action accompanied installation. All saved-game files are byte-identical. [Final verification](</Users/Dave/Documents/SGF PLayer/work/overnight-readiness-20261125/final-verification.json>) confirms installed pins, absent app/controller owner and both remote baseline tags. This is not physical acceptance. The [issue register](IntegrationChecklist.md) owns open scopes; [compact provenance](OvernightReadiness20261125.json) pins this release without raw game or image data.
 

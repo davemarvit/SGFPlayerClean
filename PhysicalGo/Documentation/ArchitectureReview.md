@@ -1,6 +1,6 @@
 # Architecture and development-process review
 
-**Current follow-through, November25:** independent safety metadata, background native bridge exchange, scoped transient recovery, immutable build tooling and mandatory paired acceptance are implemented in installed0.265/native1f6fb91 + hostb9a524e. Sustained600ms reliability remains open; safety metadata is not a proposal. The [current source audit and assigned offline work](ArchitectureFollowThrough20261125.md) identify remaining supervision I/O, admission-state and evidence boundaries. The [issue register](IntegrationChecklist.md) owns installation and physical acceptance.
+**Current follow-through, November25:** independent safety metadata, background native bridge exchange, scoped transient recovery, immutable build tooling and mandatory paired acceptance are implemented by the0.265 audit baseline and retained in current0.266/native3fe6290 + host2f8c4da. Sustained600ms reliability remains open; safety metadata is not a proposal. The [current source audit and assigned offline work](ArchitectureFollowThrough20261125.md) identify remaining supervision I/O, admission-state and evidence boundaries. The [issue register](IntegrationChecklist.md) owns installation and physical acceptance.
 
 ## Historical review — November23 source snapshot
 
