@@ -66,12 +66,14 @@ struct PlacementAmbiguityDiagnostic: Codable {
     static func capture(observation:BoardObservation,point:Int,unresolvedNeighbors:[Int],
                         expected:[String],verified:[String]?,cameraContext:String?,verifiedContext:String?,
                         verifiedSource:String,verifiedAt:Double?,session:UUID,moveNumber:Int,generation:UUID,
-                        phase:String,now:Double,wall:Double,witnesses:Int,frame:FrameIdentity?)->Self {
+                        phase:String,now:Double,wall:Double,witnesses:Int,frame:FrameIdentity?,assignmentOffsets:[Int:Double]?=nil)->Self {
         let size=observation.size,row=point/size,col=point%size
         let local=Set((max(0,row-1)...min(size-1,row+1)).flatMap {r in
             (max(0,col-1)...min(size-1,col+1)).map {r*size+$0}
         })
-        let offsets=observation.assignmentOffsets(confirmedBoard:expected.compactMap(Occupancy.init(rawValue:)))
+        // The live controller supplies its already-computed assignment result.
+        // Standalone diagnostic callers may calculate it here when absent.
+        let offsets=assignmentOffsets ?? observation.assignmentOffsets(confirmedBoard:expected.compactMap(Occupancy.init(rawValue:)))
         let blocked=Set(unresolvedNeighbors)
         let readings=observation.readings.filter {local.contains($0.row*size+$0.col)}.map {r -> Reading in
             let p=r.row*size+r.col

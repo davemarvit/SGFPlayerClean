@@ -11,7 +11,7 @@ import ImageIO
         let session=UUID(),baselineGeneration=UUID(),epoch=UUID().uuidString
         func sample(point:Int=41,neighbor:Int=59,occupancy:Occupancy = .empty,confidence:Double=0.75,
                     wall:Double=100,generation:UUID?=nil,matchingFrame:Bool=true,fit:Bool=false,
-                    verifiedSource:String="fresh_board_confirmed")->PlacementAmbiguityDiagnostic {
+                    verifiedSource:String="fresh_board_confirmed",assignmentOffsets:[Int:Double]?=nil)->PlacementAmbiguityDiagnostic {
             var readings=(0..<361).map {IntersectionReading(row:$0/19,col:$0%19,occupancy:.empty,confidence:1,delta:0)}
             readings[point] = .init(row:point/19,col:point%19,occupancy:.black,confidence:0.9666666666666667,delta:-0.4)
             readings[neighbor] = .init(row:neighbor/19,col:neighbor%19,occupancy:occupancy,confidence:confidence,delta:0.01)
@@ -22,9 +22,10 @@ import ImageIO
             if fit {observation.footprints=[shape]}
             observation.trackedAssignments=[neighbor:60];observation.manualPoints=[0]
             let frame=PlacementAmbiguityDiagnostic.FrameIdentity(streamEpoch:epoch,frameID:UInt64(wall),capturedAtUptime:wall-(matchingFrame ? 0.12:0.1),arrivedAtUptime:wall-0.08,capturedAtUnix:1_000_000+wall-0.12,timestampSource:"cameraPresentation")
-            return .capture(observation:observation,point:point,unresolvedNeighbors:[neighbor],expected:Array(repeating:"empty",count:361),verified:Array(repeating:"empty",count:361),cameraContext:"same-grid",verifiedContext:"same-grid",verifiedSource:verifiedSource,verifiedAt:90,session:session,moveNumber:6,generation:generation ?? baselineGeneration,phase:"human",now:wall,wall:1_000_000+wall,witnesses:2,frame:frame)
+            return .capture(observation:observation,point:point,unresolvedNeighbors:[neighbor],expected:Array(repeating:"empty",count:361),verified:Array(repeating:"empty",count:361),cameraContext:"same-grid",verifiedContext:"same-grid",verifiedSource:verifiedSource,verifiedAt:90,session:session,moveNumber:6,generation:generation ?? baselineGeneration,phase:"human",now:wall,wall:1_000_000+wall,witnesses:2,frame:frame,assignmentOffsets:assignmentOffsets)
         }
         let first=sample()
+        check(sample(assignmentOffsets:[41:0.49]).assignmentOffsets[41]==0.49,"Diagnostic recomputed instead of retaining supplied assignment offsets")
         check(first.frame?.frameID==100 && first.frameIdentityStatus=="exact_capture_match","Lost exact camera identity")
         check(first.readings.count==9 && first.readings.first(where:{$0.point==59})?.confidence==0.75,"Lost exact bounded neighbor confidence")
         check(first.candidateGeometryStatus=="no_admitted_fit" && first.footprints.isEmpty,"Missing outline was represented as a centered fit")
