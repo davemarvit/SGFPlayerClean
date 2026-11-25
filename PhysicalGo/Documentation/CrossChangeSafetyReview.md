@@ -107,3 +107,35 @@ reviewed binding, installation/rollback and attended READY. The existing paired
 standby result alone does not validate the new feedback point route. Native
 first-light click remains once at the first acquisition flash; host final-target
 two-beep feedback is separate, as confirmed by the PG26b owner.
+
+## Subsequent combined-host inspection
+
+Root requested a fresh read-only review of
+`/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/issue-integration-20261124`.
+Reviewed HEAD was `b434aa6f2c8d9cd09635c8b777224b5217bd4589`, plus root's
+uncommitted `bridge_feedback.py` planner wrapper and corresponding documentation.
+No new source blocker was found. The combined tree contains the PG08 firmware
+repair, optical reuse, PG32 diagnostics, PG06a/PG07 tests, PG06b planner and PG33.
+
+The integration correctly passes cached `observation` together with nullable
+`near` to `detect`. Root's wrapper now calls `feedback_step_plan` directly with
+the same six arguments and four-result contract; unlike standalone PG33 above,
+this snapshot adopts PG06b. Larger proposals still pass current actual-pose
+drift, fine18/10 or coarse108/58 movement limits, actual settlement containment,
+post-PREPARE causal pose proof and fresh optical consensus. The convex response
+envelope remains conditional on its stated model/uncertainty assumptions; it
+does not prove physical response or latency. Runtime, lease, thermal-session
+and cancellation implementations are unchanged by this combined diff.
+
+Reviewed file SHA-256 values:
+
+- bridge_feedback.py: `feb4e11c3280810982090929bc5cb70b0b6ca940c87db4ca0b5a0056eaff2a05`
+- bridge_hardware.py: `c5e10a885eaa68753479671599cd544a6089fdb74ad2b7626c4a8f0da3defdf1`
+- feedback_step_policy.py: `3ba8b5ce00306b8fb656a10c682f23b978d403359ea0a716e15d7079cdc79eb7`
+- GameplaySupervision.h: `e6f7b0aecee94308b8ee74d4990a098d1595a006600d38e608475a7bac63ba65`
+
+PG08's repair is now present in source, resolving that source-policy dependency;
+this does not establish a firmware upload. Root's planned combined tests, final
+commit/source manifest, paired acceptance and actual firmware/app installation
+remain necessary. Reviewer ran only source/status/hash/whitespace inspection,
+and did not run a build or test against the integrated tree.
