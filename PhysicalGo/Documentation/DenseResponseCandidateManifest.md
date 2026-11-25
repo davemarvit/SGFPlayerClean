@@ -11,10 +11,11 @@ Start from clean frozen host `fe469196d539db4bbe5e4017dd75437bc54f1d1a`. Apply:
 3. `115710f` — explicit `attended_full_board_v1` policy with extrapolation diagnostics; optional strict policy remains distinct.
 4. `71fe937` — gameplay derivative at actual encoder pose, refreshed after observations, no secant carryover, final optical-age check after derivative/setup work.
 5. `a288718` — module wording only.
+6. `d56d749` — final source-pinned domain/physical-endpoint replay evidence and anchor-refresh regression.
 
 The assembled branch `codex/dense-response-feedback` uses equivalent dependency cherry-picks `f07f5c4`, `5d74355`, and `a62f700`. Do not apply both original and equivalent commits.
 
-Independent review `a98063b` on `codex/cross-change-review` approves the concrete source and explicitly supersedes the prior response-domain block for this candidate. Final production cohort artifact confirmation is being completed; no additional theoretical proof scope was requested.
+Independent review `a98063b` on `codex/cross-change-review` approves the concrete source and explicitly supersedes the prior response-domain block for this candidate. Final production artifacts are committed in `d56d749`, pinned to `a288718` and ten identical runtime source hashes across cohorts. No additional theoretical proof scope was requested.
 
 ## Binding and admission
 
@@ -32,11 +33,12 @@ The strict observed-hull mode is an optional policy choice, not a calibration re
 
 ## Evidence available
 
-- Helper provenance/policy tests:16 passed; runtime-focused combined tests:65 passed.
+- Helper provenance/policy tests:16 passed; runtime-focused combined checks:66 passed, including the added anchor-refresh regression.
 - A delayed derivative/setup regression advances an optical sample from100ms to601ms and verifies no anchor cache publication.
 - Exact production helper replays71 chronological retained movement endpoints: old response4 envelope violations, dense response0. Maximum distance outside the unexpanded dense gain hull is2.0471879349px, within unchanged5px allowance.
 - Production-helper exact-anchor cohort:361/361 reached, no simulated containment violations, minimum path margin12.9586px;79 targets record extrapolation.
-- Earlier corrected-response center cohort:361/361, minimum14.4118px. Opposite-perimeter cohort:70/72 reached, zero violations, minimum10.5753px; two rounded starting poses fail before movement/light at the unchanged clearance requirement. Final production-helper artifacts will distinguish these from earlier comparison runs.
+- Final production-helper center cohort:361/361, minimum14.4118px. Opposite-perimeter cohort:70/72 reached, zero violations, minimum10.5753px; two rounded starting poses fail before movement/light at the unchanged clearance requirement.
+- Final repeated-drift cohort:34/72 reached,38 existing guard/time refusals, zero violations, minimum18.797px. All seven previously violating trajectories reach with the corrected response. The refusals remain visible; the results are not a universal success claim.
 
 The diagnostic plant shares the retained model family and does not establish independent physical path/corner accuracy. Chronological endpoint evidence is correlated and does not observe every travel path. These are explicit attended-test limitations, not unsupported absolute safety claims or a mandatory new full calibration tour.
 
