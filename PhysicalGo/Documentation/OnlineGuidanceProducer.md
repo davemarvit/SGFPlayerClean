@@ -37,8 +37,12 @@ while a player mirrors an opponent move or removes captured stones.
 
 ## Verification
 
-Build registry: eight checks passed. Native online suite is queued with the
-coordinator; no native pass is claimed yet.
+Build registry: eight checks passed. The complete native online suite passed on
+source `3615d68` with `--online-test --debug-tests`; log:
+`/tmp/pg12-online-tests.log`. The run includes the new intent lifecycle cases,
+existing 109/203-frame recorded replays, 300-position shared-engine differential,
+capture cases, and every-intersection/four-rotation/three-size orientation checks.
+No installation, server connection, camera acquisition or hardware test occurred.
 
 Run `python3 PhysicalGo/build.py --online-test --debug-tests` for existing online
 regressions plus producer cases covering both stone colors, split snapshots,
