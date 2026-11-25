@@ -1,0 +1,4113 @@
+{
+  "cases": [
+    {
+      "baseline": {
+        "elapsed_seconds": 0.14308520779013634,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 339,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              52,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 339,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              52,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.019981325863678782,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11963275005109608,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 356,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              60,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 356,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              60,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.019981325863678782,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "accept",
+      "name": "unmodified",
+      "png_sha256": "ca4e12083be95db1121c0a601e18219d88244e049cb814a65c1cacf5802ae2c5",
+      "transform": {}
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11757808411493897,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              8,
+              8,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 287,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              66,
+              28,
+              132,
+              61
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              8,
+              8,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 287,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              66,
+              28,
+              132,
+              61
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.022346716464363543,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11986891692504287,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 307,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              71,
+              41,
+              132,
+              63
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 307,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              71,
+              41,
+              132,
+              63
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.022346716464363543,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_right_0.5px",
+      "png_sha256": "b087bdbebd3ba34876ef27b19451d830214a470318010af388ec2b5cf40078d9",
+      "transform": {
+        "dx": 0.5,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11670050001703203,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 327,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              53,
+              67,
+              122,
+              85
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 327,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              53,
+              67,
+              122,
+              85
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.019981325863678796,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11669045779854059,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 346,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              63,
+              76,
+              122,
+              85
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 346,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              63,
+              76,
+              122,
+              85
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.019981325863678796,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_left_0.5px",
+      "png_sha256": "d1db2bc18f535adbef55f9df383dffa5249fbec5b0f19e37a3703e0640d33757",
+      "transform": {
+        "dx": -0.5,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.09826854197308421,
+        "result": {
+          "alignmentAccepted": true,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 430,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              109,
+              87,
+              139,
+              95
+            ],
+            "tested": 658
+          },
+          "outcome": "existing grid supported",
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.09837408410385251,
+        "result": {
+          "alignmentAccepted": true,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 430,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              109,
+              87,
+              139,
+              95
+            ],
+            "tested": 658
+          },
+          "outcome": "existing grid supported",
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_down_0.5px",
+      "png_sha256": "368f77a1a7448e91f68df01e713950f712c3a3bfea04292dabc3997cb1ae60e8",
+      "transform": {
+        "dx": 0,
+        "dy": 0.5
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.12206225004047155,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              17
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 273,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              57,
+              41,
+              117,
+              58
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 273,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              57,
+              41,
+              117,
+              58
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.024463118580765615,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11248779203742743,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 292,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              66,
+              50,
+              117,
+              59
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 292,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              66,
+              50,
+              117,
+              59
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.024463118580765615,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_up_0.5px",
+      "png_sha256": "9317681b9c6b3592e6a28d41664992ef0fce399f16ece4123f0f5f226a3b51c6",
+      "transform": {
+        "dx": 0,
+        "dy": -0.5
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.10778383282013237,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              0,
+              12,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 267,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              62,
+              23,
+              130,
+              52
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              0,
+              12,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 267,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              62,
+              23,
+              130,
+              52
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.02769996887643944,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.13247312512248755,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 291,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              65,
+              35,
+              130,
+              61
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 291,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              65,
+              35,
+              130,
+              61
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.02769996887643944,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_right_1px",
+      "png_sha256": "acfcb8f774856c0aae1053c0bb733fc308f822f6bd4a86b83fe7f6f54a697d6f",
+      "transform": {
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11739170900546014,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              16,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 270,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              69,
+              96,
+              77
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              16,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 270,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              69,
+              96,
+              77
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.025210084033613484,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12354891700670123,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 290,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              39,
+              78,
+              96,
+              77
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 290,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              39,
+              78,
+              96,
+              77
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.025210084033613484,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_left_1px",
+      "png_sha256": "3ac21c8ff33a03b36756dda859dceeb4a476520d84656e17ed89bd6ad813cabc",
+      "transform": {
+        "dx": -1,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.13115904200822115,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.22608849757328106,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 344,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              85,
+              82,
+              102,
+              75
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.04013338067392542,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 2.170942023878058,
+          "outcome": "existing grid retained by profile error",
+          "profileErrorAfter": 0.01798941798941795,
+          "profileErrorBefore": 0.01979458450046683,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.13119479198940098,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.22608849757328106,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 345,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              85,
+              82,
+              102,
+              76
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.04013338067392542,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 2.170942023878058,
+          "outcome": "existing grid retained by profile error",
+          "profileErrorAfter": 0.01798941798941795,
+          "profileErrorBefore": 0.01979458450046683,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "expected": "measure",
+      "name": "translate_down_1px",
+      "png_sha256": "ddb6a1b024e3812f190caa5e75e3034f77590887c248145475a2697e4a2aff25",
+      "transform": {
+        "dx": 0,
+        "dy": 1
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11406629206612706,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24377837413490303,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              17,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 223,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              54,
+              33,
+              92,
+              44
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.06931471452688168,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 2.503345417654969,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.0181761593526299,
+          "profileErrorBefore": 0.03025210084033609,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11735762492753565,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24377837413490303,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              2,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 228,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              54,
+              36,
+              93,
+              45
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.06931471452688168,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 2.503345417654969,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.0181761593526299,
+          "profileErrorBefore": 0.03025210084033609,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "expected": "measure",
+      "name": "translate_up_1px",
+      "png_sha256": "c18808b74c0d895469e6f8d2f6fb54c6e8d5d864a4d242e053b93d90759b58c3",
+      "transform": {
+        "dx": 0,
+        "dy": -1
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.12347583286464214,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              1,
+              0,
+              16,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 192,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              39,
+              25,
+              80,
+              48
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              1,
+              0,
+              16,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 192,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              39,
+              25,
+              80,
+              48
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03093681917211331,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12902816687710583,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              17,
+              0,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 210,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              25,
+              87,
+              48
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              0,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 210,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              25,
+              87,
+              48
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03093681917211331,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_right_2px",
+      "png_sha256": "292c9ef36583104e461bd7d67ae2ee6bb200b8a8d1a34020cde8ff020d6b7b17",
+      "transform": {
+        "dx": 2,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11399837513454258,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              2,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 193,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              2,
+              49,
+              70,
+              72
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              2,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 193,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              2,
+              49,
+              70,
+              72
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.030314347961406782,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.1172453339677304,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              16,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 225,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              18,
+              58,
+              77,
+              72
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              16,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 225,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              18,
+              58,
+              77,
+              72
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.030314347961406782,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_left_2px",
+      "png_sha256": "49f06c8d0e07550bb4f41e6413e4a65dc2299070d170680433eeb1b18b290857",
+      "transform": {
+        "dx": -2,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11314104101620615,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              17,
+              18,
+              9,
+              1
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 231,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              57,
+              61,
+              60,
+              53
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              18,
+              9,
+              1
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 231,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              57,
+              61,
+              60,
+              53
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.02763772175536881,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.10833841608837247,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              17,
+              17
+            ],
+            "failedChecks": [],
+            "matched": 256,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              62,
+              64,
+              70,
+              60
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              17,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 256,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              62,
+              64,
+              70,
+              60
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.02763772175536881,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_down_2px",
+      "png_sha256": "854decc759b8bc245062160f6a032ef225ebcf32ad22eb4beb649e469260232c",
+      "transform": {
+        "dx": 0,
+        "dy": 2
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11895849998109043,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              15,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 157,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              26,
+              59,
+              22
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.041020852785558656,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11335304100066423,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 176,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              28,
+              67,
+              31
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.041020852785558656,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_up_2px",
+      "png_sha256": "57422091da44f934e281ccd67cb3d935e5c7610d97bb629eec1ddfd17fc9dafa",
+      "transform": {
+        "dx": 0,
+        "dy": -2
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11504525016061962,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              16
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 199,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              40,
+              68,
+              41
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              16
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 199,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              40,
+              68,
+              41
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.034796140678493605,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12311058305203915,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 200,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              40,
+              68,
+              42
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 200,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              50,
+              40,
+              68,
+              42
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.034796140678493605,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_right_5px",
+      "png_sha256": "6404728f6a285f3dde942c53a90e8070a1cf5c36c61a28e2d26505afb29ac2d5",
+      "transform": {
+        "dx": 5,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11239279084838927,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              17
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 73,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              51,
+              22
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04450669156551511,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11342908395454288,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 92,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              9,
+              9,
+              51,
+              23
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04450669156551511,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_left_5px",
+      "png_sha256": "ee76266a09b096b0505f722fba1da3d3b2d0d41977bef9fcf2ed83fbc2c67b23",
+      "transform": {
+        "dx": -5,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.10908362502232194,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 196,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              51,
+              49,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 196,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              51,
+              49,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03915343915343916,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11273845890536904,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 196,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              51,
+              49,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 196,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              51,
+              49,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03915343915343916,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_down_5px",
+      "png_sha256": "92fe3ffc0695a888c9f6262678009cbbf45f4f41f868308e40e31781fbad61b5",
+      "transform": {
+        "dx": 0,
+        "dy": 5
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11246770899742842,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              15,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 113,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              41,
+              11,
+              54,
+              7
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04400871459694987,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.15563254104927182,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 134,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              42,
+              20,
+              56,
+              16
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04400871459694987,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_up_5px",
+      "png_sha256": "a51dc63ce31b2d7e7111c304e7de918f1ab0fa9821faedfcf4d7c55de8632c79",
+      "transform": {
+        "dx": 0,
+        "dy": -5
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.1417911669705063,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              0,
+              15,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 128,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              25,
+              21,
+              49,
+              33
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              15,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 128,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              25,
+              21,
+              49,
+              33
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03043884220354809,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.15220949985086918,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 132,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              21,
+              49,
+              34
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 132,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              21,
+              49,
+              34
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03043884220354809,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_right_10px",
+      "png_sha256": "77a4ca52b6c3fcd4e2c62dac9b7e7d29c5db4039752a34bc726b776231c5d1b6",
+      "transform": {
+        "dx": 10,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.1497329999692738,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24364708824864476,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 56,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              37,
+              19
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.28669299540003607,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 10.288602649693898,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.01724245253657018,
+          "profileErrorBefore": 0.04575163398692805,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.17797141685150564,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24364708824864476,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 58,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              37,
+              21
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.28669299540003607,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 10.288602649693898,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.01724245253657018,
+          "profileErrorBefore": 0.04575163398692805,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "expected": "measure",
+      "name": "translate_left_10px",
+      "png_sha256": "e0f4ca03724c129f72e759277094ea9226df1296a1d5d75177d9752262fc2e00",
+      "transform": {
+        "dx": -10,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.17646045796573162,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              2,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 166,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              50,
+              43,
+              45
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              2,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 166,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              28,
+              50,
+              43,
+              45
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03336445689386865,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.18884758302010596,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 182,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              36,
+              50,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 182,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              36,
+              50,
+              51,
+              45
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.03336445689386865,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "measure",
+      "name": "translate_down_10px",
+      "png_sha256": "b0d04b6d4414f1857dc3057825c36aa3d2bc4325479386f7e07ff16aa72dc6d4",
+      "transform": {
+        "dx": 0,
+        "dy": 10
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.15054408297874033,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24319740756547964,
+          "initialSupport": {
+            "borderMatches": [
+              5,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 71,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              22,
+              6,
+              37,
+              6
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.34022211303540334,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 11.761586887696478,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.015935262994086492,
+          "profileErrorBefore": 0.041020852785558636,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.14977675001136959,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.24319740756547964,
+          "initialSupport": {
+            "borderMatches": [
+              15,
+              6,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 87,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              30,
+              7,
+              39,
+              11
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.34022211303540334,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 11.761586887696478,
+          "outcome": "tracking correction accepted",
+          "profileErrorAfter": 0.015935262994086492,
+          "profileErrorBefore": 0.041020852785558636,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "requiredErrorImprovement": 0.008,
+          "requiredErrorRatio": 0.8
+        }
+      },
+      "expected": "measure",
+      "name": "translate_up_10px",
+      "png_sha256": "ed2add42bf0953fe8087b481659dd58c00c2d809c52ccfb66dbecc410b8b999c",
+      "transform": {
+        "dx": 0,
+        "dy": -10
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11966895801015198,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 44,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              1,
+              19,
+              24
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04002489884842826,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12750941701233387,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              10,
+              17
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 55,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              2,
+              9,
+              19,
+              25
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04002489884842826,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_right_20px",
+      "png_sha256": "ee8a7e9b682cdb6b7302db98c40d0c4f8778a34cf420ddc13f3c2ad970168d6c",
+      "transform": {
+        "dx": 20,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.15322012500837445,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              1,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 37,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              1,
+              0,
+              22,
+              14
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04463118580765636,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.1783450001385063,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              1,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 37,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              1,
+              0,
+              22,
+              14
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04463118580765636,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_left_20px",
+      "png_sha256": "9488d855497b9bf59f07b0de97632db35d167a4bc46a4c9d1df649b6bee738df",
+      "transform": {
+        "dx": -20,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.16933191707357764,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 28,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              5,
+              7,
+              11,
+              5
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.040834111422346754,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.1322726251091808,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              17,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 45,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              5,
+              16,
+              11,
+              13
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.040834111422346754,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_down_20px",
+      "png_sha256": "cfa695c2f38b6a97f64a0e8485cf5f235ad4269a9d83326a7918966730ac613a",
+      "transform": {
+        "dx": 0,
+        "dy": 20
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.14763654093258083,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              1,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 30,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              4,
+              6,
+              16,
+              4
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04550264550264554,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.15867487504146993,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              3,
+              0,
+              2,
+              1
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 35,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              5,
+              6,
+              19,
+              5
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04550264550264554,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_up_20px",
+      "png_sha256": "2c7b8ca7c14d87988f42254f68e3a0a6683beb5cfbe6e6345013fa819aee4427",
+      "transform": {
+        "dx": 0,
+        "dy": -20
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.14396291691809893,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 26,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              15,
+              11
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04562713974478684,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12966891704127192,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 28,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              15,
+              13
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04562713974478684,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_right_30px",
+      "png_sha256": "28d49823e5847dfa4e8fcc22ac0103fbb0d89e2248acc7fec83d9655c001e82d",
+      "transform": {
+        "dx": 30,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.15308954194188118,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              14
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 15,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              9,
+              6
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.049112978524743243,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.14460591599345207,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              16
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 17,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              10,
+              7
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.049112978524743243,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_left_30px",
+      "png_sha256": "820d799c9ca0d097c4c521e3859cf3b16a05bc57ec03e24886c8aa2ab6a3297f",
+      "transform": {
+        "dx": -30,
+        "dy": 0
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.24670854210853577,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 57,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              6,
+              19,
+              17,
+              15
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04593837535014004,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11341537511907518,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 57,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              6,
+              19,
+              17,
+              15
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04593837535014004,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_down_30px",
+      "png_sha256": "824d3313ef663cd4490223fc30f5a5d6a9fbf67da87a92dd3499d3d41fa5926f",
+      "transform": {
+        "dx": 0,
+        "dy": 30
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.125566832954064,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              1,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 22,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              5,
+              5,
+              7,
+              5
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04793028322440085,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.12207775004208088,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              7,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 28,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              11,
+              5,
+              7,
+              5
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.04793028322440085,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "translate_up_30px",
+      "png_sha256": "c8fcf24859f00b5f8262e20903ddbab6b38d96e831ba4b9b816b5dd2a0fca5ef",
+      "transform": {
+        "dx": 0,
+        "dy": -30
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11632983293384314,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 333,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              68,
+              51,
+              137,
+              77
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 333,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              68,
+              51,
+              137,
+              77
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.02166199813258642,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11356845800764859,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 350,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              59,
+              137,
+              77
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 350,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              59,
+              137,
+              77
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.02166199813258642,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "brightness_0.7",
+      "png_sha256": "044b1bd6eb87eef35c8e4de216336017c5befa44cdbf63deaf07d8dc70d14f0b",
+      "transform": {
+        "factor": 0.7
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.10908887488767505,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 339,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              68,
+              52,
+              139,
+              80
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 339,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              68,
+              52,
+              139,
+              80
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.019234360410830993,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11130320909433067,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 356,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              60,
+              139,
+              80
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 356,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              60,
+              139,
+              80
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.019234360410830993,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "brightness_0.85",
+      "png_sha256": "2ff4507d7cd64411f06a7b750e2ccdcc4d87211815d1b95f91c6da36c9e293ac",
+      "transform": {
+        "factor": 0.85
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11185012478381395,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              2,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 334,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              51,
+              138,
+              76
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              2,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 334,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              51,
+              138,
+              76
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.023529411764705816,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.10858741588890553,
+        "result": {
+          "alignmentAccepted": true,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [],
+            "matched": 350,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              59,
+              138,
+              76
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 350,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              77,
+              59,
+              138,
+              76
+            ],
+            "tested": 658
+          },
+          "outcome": "fallback grid supported",
+          "profileError": 0.023529411764705816,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "brightness_1.15",
+      "png_sha256": "beebf0a0c1075bfb287f874b9cd22456cf07b14a042615ad9cbedc7e72351f34",
+      "transform": {
+        "factor": 1.15
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.13220641599036753,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.3138958998050902,
+          "initialSupport": {
+            "borderMatches": [
+              17,
+              18,
+              3,
+              16
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 296,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              74,
+              53,
+              116,
+              53
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.032263275757361126,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 1.5803058911854104,
+          "outcome": "subpixel jitter; existing grid retained",
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.1089081671088934,
+        "result": {
+          "alignmentAccepted": true,
+          "fitQuality": 0.3138958998050902,
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              17
+            ],
+            "failedChecks": [
+              "matching fraction below minimum"
+            ],
+            "matched": 313,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              81,
+              61,
+              117,
+              54
+            ],
+            "tested": 658
+          },
+          "jitterTolerancePixels": 2,
+          "maximumMovementCells": 0.032263275757361126,
+          "maximumMovementLimit": 0.4,
+          "movementPixels": 1.5803058911854104,
+          "outcome": "subpixel jitter; existing grid retained",
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint"
+        }
+      },
+      "expected": "measure",
+      "name": "brightness_1.3",
+      "png_sha256": "454677ba38d7efa50228ad484202ff98a1dad5f8cdbdf2cc851304ea0e3ddf5b",
+      "transform": {
+        "factor": 1.3
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.10581220802851021,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 336,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              67,
+              51,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 336,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              67,
+              51,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.02016806722689077,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.10638525011017919,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 336,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              67,
+              51,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              0,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 336,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              67,
+              51,
+              139,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.02016806722689077,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "reject",
+      "name": "covered_top",
+      "png_sha256": "3906b93b106b9b238af71c95d7f56f53cd469d549711af07d72d899f84680d3b",
+      "transform": {
+        "stripe_width_px": 32
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11189504177309573,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              0
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              52,
+              130,
+              70
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              1,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              52,
+              130,
+              70
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.021039526921879888,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11236570798791945,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              0
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              60,
+              130,
+              70
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              18,
+              18,
+              0
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              60,
+              130,
+              70
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.021039526921879888,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "reject",
+      "name": "covered_bottom",
+      "png_sha256": "db99a48a3873572d8a5788bed4ace85dd920b0a72e6cadbf565a1c4b7b2e71df",
+      "transform": {
+        "stripe_width_px": 32
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11076029087416828,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              60,
+              52,
+              130,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              18,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              60,
+              52,
+              130,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.020977279800809292,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.11122724995948374,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              0,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              60,
+              130,
+              79
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              18,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              60,
+              130,
+              79
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.020977279800809292,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "reject",
+      "name": "covered_left",
+      "png_sha256": "e37cb88e8944d490832d9c62baa9d05e45167ddc81fe04e776e55f8768cef5ae",
+      "transform": {
+        "stripe_width_px": 32
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.11097883386537433,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              0,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              43,
+              139,
+              70
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              0,
+              1,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 321,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              69,
+              43,
+              139,
+              70
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.020666044195455986,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.10816054209135473,
+        "result": {
+          "alignmentAccepted": false,
+          "fallbackSupport": {
+            "borderMatches": [
+              18,
+              0,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.33,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              51,
+              139,
+              70
+            ],
+            "tested": 658
+          },
+          "initialSupport": {
+            "borderMatches": [
+              18,
+              0,
+              18,
+              18
+            ],
+            "failedChecks": [
+              "matching fraction below minimum",
+              "one or more outer rails lack support"
+            ],
+            "matched": 338,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              78,
+              51,
+              139,
+              70
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.020666044195455986,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; insufficient distributed line support"
+        }
+      },
+      "expected": "reject",
+      "name": "covered_right",
+      "png_sha256": "076f01160a626c65a12196eb11b9a42ce556ed20c0870a8266cba07a28518170",
+      "transform": {
+        "stripe_width_px": 32
+      }
+    },
+    {
+      "baseline": {
+        "elapsed_seconds": 0.08270483301021159,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 0,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.045627139744786764,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "candidate": {
+        "elapsed_seconds": 0.08499908400699496,
+        "result": {
+          "alignmentAccepted": false,
+          "initialSupport": {
+            "borderMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "failedChecks": [
+              "too few matching line samples",
+              "matching fraction below minimum",
+              "one or more outer rails lack support",
+              "one or more quadrants lack support"
+            ],
+            "matched": 0,
+            "minimumFraction": 0.6,
+            "minimumMatched": 152,
+            "minimumPerBorder": 3,
+            "minimumPerQuadrant": 9,
+            "minimumTested": 76,
+            "quadrantMatches": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "tested": 658
+          },
+          "outcome": "rejected",
+          "profileError": 0.045627139744786764,
+          "profileErrorLimit": 0.04,
+          "provenance": "Exact rejected camera pixels; anchor reconstructed from user-captured empty reference, not a saved live tracker checkpoint",
+          "rejectionReason": "no grid fit; profile error too high"
+        }
+      },
+      "expected": "reject",
+      "name": "blank",
+      "png_sha256": "8cc8a2b1220262298e3fc92676ac65c90de33b817b4f647abaedb6bc194c8afd",
+      "transform": {}
+    }
+  ],
+  "diagnostic_only": true,
+  "failed_expectations": [],
+  "grants_live_authority": false,
+  "inputs": {
+    "anchor_calibration": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815/anchor-calibration.json",
+      "sha256": "ead10908af0e8b922a3d7b29f9313415a6d21c7e1c9491f0abc50b3dbe5d43e0"
+    },
+    "anchor_image": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/usb-reconnect-20261124/user-empty-reference-180203.png",
+      "sha256": "67e4130795790ddbcb034617e427f90e9ba0fcaed5fe12cb1d4629936384b9e6"
+    },
+    "baseline": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815/ReplayAlignment",
+      "sha256": "65d14ef3ce1761154d43674dd19a3a3fb5e109ade9e412e7d5f68b3bdb515dd5"
+    },
+    "candidate": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815/ReplayAlignmentCandidate",
+      "sha256": "c99487625146c3a9c5ce62fe1cccddfef77ee974364ffc96b2fa413f4ed129e6"
+    },
+    "current_image": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/ai-laser-integration/laser-position-recovery-20261123/calibration-acceptance-redesign/three-point-feedback-20261124-181319-84178/guard-rejected-frame.png",
+      "sha256": "1b1ef40236f0812c7802bc252160d8ff0abe36b228345ee662615c2365d58ba1"
+    },
+    "previous_calibration": {
+      "path": "/Users/Dave/Documents/SGF PLayer/work/attended-recheck-20261124-105259/alignment-rejection-1815/previous-calibration.json",
+      "sha256": "f45676416f81186b7fead1e057794c8d783d753d405a6f4686bab8dec87b4083"
+    }
+  },
+  "provenance": "Saved rejected camera pixels; reconstructed anchor, not exact live tracker checkpoint. Synthetic controls are not camera acquisitions."
+}
