@@ -41,6 +41,7 @@ import Foundation
         precondition(bridge.stoneTrackingIdentity.isEmpty,"Stale connection retained physical tracking context")
         try publish(4,game:43);bridge.consume(view(),now:11)
         precondition(!bridge.stoneTrackingIdentity.isEmpty && bridge.stoneTrackingIdentity != physicalTrackingSession,"New online game reused physical geometry context")
+        try opponentGuidanceTests(directory:directory)
         try unchangedServerVersionTests(directory:directory)
         try splitUpdateSoundTests(directory:directory)
         try clarityFeedbackTests(directory:directory)
@@ -57,6 +58,107 @@ import Foundation
         differentialTests()
         try orientationTests(directory:directory)
         print("Online board tests passed: synchronization, stable send, duplicate suppression, opponent turn, stale state")
+    }
+    @MainActor static func opponentGuidanceTests(directory:URL) throws {
+        let stateURL=directory.appendingPathComponent("state.json")
+        let moveURL=directory.appendingPathComponent("move.json")
+        let empty=Array(repeating:"empty",count:81)
+        func view(_ cells:[String],low:Int?=nil)->BoardObservation {
+            BoardObservation(readings:cells.indices.map {i in .init(row:i/9,col:i%9,
+                occupancy:Occupancy(rawValue:cells[i])!,confidence:i==low ? 0.5:1,delta:0)},size:9)
+        }
+        // Both colors, split turn/board delivery, and legacy constant revision.
+        for own in ["black","white"] {for boardFirst in [false,true] {
+            let bridge=PhysicalOnlineBoard(directory:directory,announceOpponent:{},announceCorrection:{})
+            bridge.enabled=true
+            var expected=empty,physical=empty
+            let opponent=own=="black" ? "white":"black"
+            func feed(turn:Bool,point:Int?,time:Double,stale:Bool=false,ready:Bool=true,token:String="guidance") throws {
+                let state:[String:Any]=["token":token,"game":991,"version":0,"size":9,
+                    "cells":expected,"ready":ready,"myTurn":turn,"color":own,
+                    "lastX":point.map{$0%9} ?? -1,"lastY":point.map{$0/9} ?? -1,
+                    "time":Date().timeIntervalSince1970-(stale ? 10:0),
+                    "clock":["black":81.25,"white":42.5]]
+                let data=try JSONSerialization.data(withJSONObject:state,options:.sortedKeys)
+                try data.write(to:stateURL,options:.atomic)
+                bridge.consume(view(physical),now:time)
+                let unchanged=try Data(contentsOf:stateURL)
+                precondition(unchanged==data,"Guidance changed authoritative board/server clocks")
+            }
+            try? FileManager.default.removeItem(at:moveURL)
+            try feed(turn:false,point:nil,time:1)
+            precondition(bridge.guidanceTarget()==nil,"Cold board is not a new opponent move")
+            if boardFirst {expected[40]=opponent}
+            try feed(turn:!boardFirst,point:boardFirst ? 40:nil,time:1.2)
+            precondition(bridge.guidanceTarget()==nil,"Partial snapshot indicated early")
+            expected[40]=opponent
+            try feed(turn:true,point:40,time:1.4)
+            let target=bridge.guidanceTarget()
+            precondition(target?.point==40 && target?.black==(opponent=="black"),"No authoritative opponent target")
+            precondition(target?.size==9 && target?.generation==1)
+            try feed(turn:true,point:40,time:1.6)
+            precondition(bridge.guidanceTarget()==target,"Heartbeat replaced target identity or decision receipt")
+            precondition(bridge.guidanceTarget(atUnix:Date().timeIntervalSince1970+3)==nil,"Stale bridge heartbeat kept target")
+            precondition(!FileManager.default.fileExists(atPath:moveURL.path),"Guidance submitted a move")
+            physical=expected;bridge.consume(view(physical,low:40),now:1.7)
+            precondition(bridge.guidanceTarget()==target,"Weak stone reading retired target")
+            try feed(turn:true,point:40,time:1.8)
+            precondition(bridge.guidanceTarget()==nil,"Placed opponent target was retained")
+            physical=empty;try feed(turn:true,point:40,time:2)
+            precondition(bridge.guidanceTarget()==nil,"Removed stone resurrected completed target")
+            // A second legal opponent transition after restoring the board gets
+            // a fresh operation generation but retains the opaque game session.
+            physical=expected;try feed(turn:false,point:40,time:2.2)
+            expected[50]=opponent;try feed(turn:true,point:50,time:2.4)
+            let second=bridge.guidanceTarget()
+            precondition(second?.generation==2 && second?.session==target?.session)
+            bridge.pauseForCorrection()
+            precondition(bridge.guidanceTarget()==nil,"Manual correction retained target")
+            try feed(turn:true,point:50,time:2.6)
+            precondition(bridge.guidanceTarget()==nil,"Heartbeat resurrected corrected target")
+            physical=expected;try feed(turn:false,point:50,time:2.8)
+            expected[60]=opponent;try feed(turn:true,point:60,time:3)
+            precondition(bridge.guidanceTarget() != nil)
+            try feed(turn:true,point:60,time:3.2,stale:true)
+            precondition(bridge.guidanceTarget()==nil,"Stale remote state retained target")
+            try feed(turn:true,point:60,time:3.4)
+            precondition(bridge.guidanceTarget()==nil,"Reconnect replayed historical opponent move")
+            bridge.enabled=false
+            precondition(bridge.guidanceTarget()==nil)
+        }}
+        // Pure transition defenses: no multi-move catch-up, pass, or takeback
+        // may be mistaken for one authoritative opponent placement.
+        var producer=PhysicalOnlineGuidance()
+        func update(_ board:[String],point:Int?,context:String="a",synced:Bool=true) {
+            producer.update(context:context,board:board,size:9,ownColor:"black",myTurn:true,
+                lastPoint:point,previouslySynchronized:synced,publishedAtUnix:100,receivedAtUnix:100)
+        }
+        update(empty,point:nil)
+        var multi=empty;multi[0]="white";multi[1]="white";update(multi,point:1)
+        precondition(producer.target(atUnix:100)==nil,"Catch-up yielded a target")
+        update(empty,point:nil)
+        precondition(producer.target(atUnix:100)==nil,"Takeback yielded a target")
+        var single=empty;single[0]="white";update(single,point:0)
+        precondition(producer.target(atUnix:100)?.point==0)
+        update(single,point:nil)
+        precondition(producer.target(atUnix:100)==nil,"Pass retained old target")
+        update(empty,point:nil,context:"b");update(single,point:0,context:"b",synced:false)
+        precondition(producer.target(atUnix:100)==nil,"Unsynchronized board yielded target")
+        var beforeCapture=empty;beforeCapture[0]="white";beforeCapture[10]="white";beforeCapture[1]="black"
+        update(beforeCapture,point:nil,context:"capture")
+        let captured=PhysicalMoveInference.position(after:2,board:beforeCapture,size:9,color:"white")!
+        precondition(captured[1]=="empty")
+        update(captured,point:2,context:"capture")
+        precondition(producer.target(atUnix:100)?.point==2,"Legal capture did not yield opponent placement intent")
+        var ownMove=empty;ownMove[0]="black"
+        update(empty,point:nil,context:"own");update(ownMove,point:0,context:"own")
+        precondition(producer.target(atUnix:100)==nil,"Own acknowledged move yielded opponent intent")
+        update(empty,point:nil,context:"c");update(single,point:0,context:"c")
+        precondition(producer.target(atUnix:100) != nil)
+        producer.update(context:"c",board:single,size:9,ownColor:"black",myTurn:true,lastPoint:0,
+            previouslySynchronized:true,publishedAtUnix:103,receivedAtUnix:103)
+        precondition(producer.target(atUnix:103)==nil,"Fresh heartbeat resurrected target after a connection gap")
+        print("Online guidance tests passed: both colors, split snapshots, identity, expiry, placement, correction, reconnect, no server writes, catch-up/pass/takeback")
     }
     @MainActor static func rejectedMoveTests(directory:URL) throws {
         let n=9,koPoint=10,captured=11

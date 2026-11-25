@@ -143,6 +143,12 @@ struct PhysicalBoardMismatch: Equatable {
     private var lastRemoteMoveNumber: Int?
     private var remoteUndoSession = ""
     var stoneTrackingIdentity:String {identity.isEmpty ? "":synchronizationContext}
+    private var opponentGuidance=PhysicalOnlineGuidance()
+    /// Offline-prepared intent. Live pointer dispatch is deliberately not wired
+    /// until online camera/dark-evidence and feedback-gameplay admission are paired.
+    func guidanceTarget(atUnix now:Double = Date().timeIntervalSince1970) -> PhysicalOnlineGuidance.Target? {
+        enabled ? opponentGuidance.target(atUnix:now):nil
+    }
     private var identity = ""
     private var lastSession = ""
     private var lastMyTurn: Bool?
@@ -200,6 +206,7 @@ struct PhysicalBoardMismatch: Equatable {
 
     }
     private func reset(preservingSynchronization: Bool = false) {
+        if !preservingSynchronization {opponentGuidance.invalidate()}
         identity=""; resetPendingMove(); sent=false; lastObservation=0
         sentRequestID=nil;sentAt=nil;rejected=false;moveIssue=nil
         illegalCandidate=nil;illegalFrames=0
@@ -230,6 +237,7 @@ struct PhysicalBoardMismatch: Equatable {
         pending=nil; pendingClearTimes=[]; pendingReadings=[]
     }
     func pauseForCorrection() {
+        opponentGuidance.cancel()
         resetPendingMove(); interruptMismatchEvidence(); clearPlacementIssue()
         moveTiming?.wait("Manual correction",now:ProcessInfo.processInfo.systemUptime)
         illegalCandidate=nil;illegalFrames=0
@@ -378,6 +386,7 @@ struct PhysicalBoardMismatch: Equatable {
                 reset(); status="Waiting for a connected live game in SGF Player."; return
             }
             if undo.awaitingCommand || undo.state?.pending == true {
+                opponentGuidance.invalidate()
                 resetPendingMove();status="Undo is being reviewed. Leave the stones in place until OGS updates the board."
                 return
             }
@@ -390,6 +399,7 @@ struct PhysicalBoardMismatch: Equatable {
                 if let previous=lastRemoteMoveNumber,number<previous {
                     // An accepted takeback must be matched physically before
                     // the old stone can be mistaken for a fresh legal move.
+                    opponentGuidance.invalidate()
                     synchronized=false;synchronizationContext="";history=HistoricalMoveEvidence()
                 }
                 lastRemoteMoveNumber=number
@@ -400,6 +410,13 @@ struct PhysicalBoardMismatch: Equatable {
             // Rebind every valid frame, including after an explicit local reset.
             // A move/version change within this context must preserve user facts.
             corrections?.bind(context:"\(token)/\(game)/\(n)/\(color)/\(((quarterTurns % 4)+4)%4)",size:n)
+            let guidanceContext="\(token)/\(game)/\(n)/\(color)/\(((quarterTurns % 4)+4)%4)"
+            let guidancePoint: Int?
+            if let x=state["lastX"] as? Int,let y=state["lastY"] as? Int,
+               (0..<n).contains(x),(0..<n).contains(y) {guidancePoint=y*n+x}
+            else {guidancePoint=nil}
+            let guidanceSynchronized=synchronized && synchronizationContext==guidanceContext &&
+                history.placements.isEmpty && history.removals.isEmpty
             if nextIdentity != identity {
                 let session="\(token)/\(game)"
                 let context="\(session)/\(n)/\(color)/\(((quarterTurns % 4)+4)%4)"
@@ -426,6 +443,9 @@ struct PhysicalBoardMismatch: Equatable {
                 lastSession=session; lastMyTurn=myTurn
                 if opponentMoved { announceOpponent() }
             }
+            opponentGuidance.update(context:guidanceContext,board:board,size:n,ownColor:color,
+                myTurn:myTurn,lastPoint:guidancePoint,previouslySynchronized:guidanceSynchronized,
+                publishedAtUnix:stamp,receivedAtUnix:Date().timeIntervalSince1970)
             timingContext = .init(game:game,revision:version,size:n,board:board,color:color,myTurn:myTurn,lastPoint:lastPoint)
             // The live turn is authoritative even while the camera is unclear
             // or the physical stones still need to be matched to the server.
@@ -455,6 +475,7 @@ struct PhysicalBoardMismatch: Equatable {
             if lastObservation>0 && now-lastObservation>1 { resetPendingMove(); interruptMismatchEvidence(); confirmationNote="Camera observation gap exceeded one second" }
             lastObservation=now
             if corrections?.isEditing == true {
+                opponentGuidance.cancel()
                 resetPendingMove(); interruptMismatchEvidence(); clearPlacementIssue()
                 status="Correcting the physical board. Moves paused."
                 return
@@ -479,6 +500,7 @@ struct PhysicalBoardMismatch: Equatable {
                 if rawAmbiguous.contains(reading.row*n+reading.col) {ambiguous.insert(point)}
             }
             guard seen.count==n*n else {resetPendingMove();return}
+            opponentGuidance.observe(readings,confidence:confidences,ambiguous:ambiguous)
             // A known prohibited stone can be explained even when a different
             // intersection is unclear. Unknowns below are used only to draw
             // restoration markers, never as confirmation or move evidence.

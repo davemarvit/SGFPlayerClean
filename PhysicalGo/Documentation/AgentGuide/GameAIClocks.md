@@ -22,6 +22,15 @@ Local uncertain chronology and review are handled by
 Do not replace their evidence with whichever frame arrived last or recompute
 recorded turn times simply because a stone's location is resolved later.
 
+## Online opponent indication intent
+
+`PhysicalOnlineBoard.guidanceTarget(atUnix:)` exposes a proven single opponent
+transition through `PhysicalOnlineGuidance`. It has no live pointer consumer.
+The online camera/frame and confirmed-dark gates still require integration before
+laser play; server clock authority is unchanged. See [producer lifecycle and
+remaining integration](../OnlineGuidanceProducer.md). Operation generation is
+local and must not be presented as the server's move count.
+
 ## AI lifecycle and fast testing
 
 `PhysicalAI` phases are idle, checking, human, thinking, placing, paused, finished

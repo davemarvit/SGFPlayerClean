@@ -21,7 +21,7 @@ DEPENDENCIES = {
     'Sources/MoveObservationHistory.swift': ('Sources/PlacementAlternatives.swift',),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
     'Sources/PhysicalOnlineBoard.swift': (
-        'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
+        'Sources/PhysicalOnlineGuidance.swift', 'Sources/HistoricalMoveEvidence.swift', 'Sources/PhysicalMoveTiming.swift', 'Sources/ManualBoardCorrections.swift',
         'Sources/PhysicalUndoController.swift', 'Sources/PhysicalUndoView.swift'),
     'Sources/RecordingStoneLedger.swift': ('Sources/LocalClockEngine.swift', 'Sources/BoardVision.swift','Sources/StoneTurnAppearance.swift'),
     'Sources/StoneTurnAppearance.swift': ('Sources/BoardVision.swift',),
