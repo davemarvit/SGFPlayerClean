@@ -1381,3 +1381,50 @@ Reviewed SHA256 pins:
 - bridge_hardware.py: a0d2e4b5210d86ff91983e975cfd6459fbc3e11315823c9b3d73406d81df6812
 - feedback_anchor_store.py: 15cc0614b4aea3ab7cfab6a5e9899d27b57d0396594c2762824e7fe3c0a8a710
 - import_feedback_anchor.py: 4ff971536c9dbcede19deed3c0e242d67b6b3d1f384c29f873a159989a9e4bfb
+
+
+## A1 nested OFF write-lock repair — focused approval
+
+Approved the A1 diff13129ec14514a3aec71d358b999f3834aa4a981c atop04d2134,
+not the complete overnight parent batch. bridge_lease.py SHA256:
+7ce376d5591f1860c788999e9b9bdb88ab8ef1341e86f47e73843f31eb0b80fa.
+The fresh overnight reviewer/root retain broader integration ownership.
+
+The retained actual-source reproducer demonstrates this chain: LeaseGate.send
+holds gate.lock; Controller._write acquires nonreentrant write_lock; its
+before_write validator polls a newly expired lease; _revoke calls the raw sender
+for OFF and attempts to reacquire the same write_lock. The test bypasses the
+controller constructor and intercepts os.write, so no device or camera opens.
+Reviewer inspected the reproducer and both source paths, without executing it.
+
+The repair marks token cancellation, generation, latch and receipt invalidation
+immediately. Only during the raw validation callback does it defer the OFF write.
+Worker and auxiliary validators recheck authority after the caller callback,
+including callbacks that cancel and then return normally. The enclosing send
+rejects; its finally drains one OFF attempt after the raw writer unwinds, while
+the gate lock remains held. A depth guard prevents an inner drain during still
+active validation. No raw lock becomes reentrant and no rejected motion retries.
+The original revoke reason/generation and triggering exception are preserved.
+OFF write failure records transport_error, leaves blocked true and off_since
+unset; successful delivery also does not manufacture a confirmed OFF receipt.
+
+Owner reports eight exact Controller._write regressions and179 focused
+lease/standby/transport/runtime/feedback checks passed in9.18s. Coverage includes
+expiry while acquiring the raw lock, immediate callback cancellation, callback
+exception, auxiliary expiry/cancellation, partial-write revalidation, failed OFF,
+ordinary write failure and another thread acquiring the gate after unwind.
+The original reproducer with its expected assertion inverted reports no reentrant
+attempt and one OFF attempt. Reviewer inspected frozen tests/source; no duplicate
+build/test/hardware activity occurred during root's physical baseline.
+
+Explicit limitation: a previously written partial command prefix followed by
+OFF bytes is not protocol framing repair or a controller OFF receipt. Existing
+independent shutdown barrier must confirm full OFF. No source blocker remains
+for A1; final integration checks are root-owned.
+
+Contract handoff clarification: the earlier proposed absolute150s target lifetime
+condition is superseded. Current overnight recovery discussion uses150s cumulative
+ACTIVE work,25 local correction plans and30s recovery; verified stable adequate
+holding pauses only active-work accounting. Light/lease/firmware/thermal clocks
+never pause. This note records the updated requirement, not approval of pending
+recovery implementation; the fresh overnight reviewer owns that review.
