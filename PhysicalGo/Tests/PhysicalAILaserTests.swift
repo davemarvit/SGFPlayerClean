@@ -461,8 +461,15 @@ import ImageIO
         var cues=[String]()
         cue.onTargetIndicated={cues.append($0.id)}
         func cueStatus(_ state:String,mode:String="hardware",sequence:Int?=nil,on:Bool=true,confirmed:Bool=true,centeringCapable:Bool=true)throws {
-            let value=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:cue.producer,sequence:sequence ?? cue.sequence,
+            var value=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:cue.producer,sequence:sequence ?? cue.sequence,
                 updatedAtUnix:wall,mode:mode,state:state,laserOn:on,offSinceUnix:on ? nil:wall-1,detail:state,illuminationConfirmed:confirmed,capabilities:centeringCapable ? ["stoneCenteringWiggle"]:[])
+            let req=try JSONDecoder().decode(PhysicalLaserGuidance.Request.self,from:Data(contentsOf:cue.directory.appendingPathComponent("request.json")))
+            if let target=req.target,let context=req.cameraContext,let epoch=req.streamEpoch {
+                value.opticalEvidence = .init(policy:"captured_optical_result_v1",producer:cue.producer,
+                    requestSequence:req.sequence,target:target,cameraContext:context,streamEpoch:epoch,frameID:1,
+                    capturedAtUptime:now,arrivedAtUptime:now,capturedAtUnix:wall,publishedAtUnix:wall,
+                    expiresAtUptime:now+0.6,expiresAtUnix:wall+0.6,controllerSession:"ABCDEF01",controllerGeneration:1)
+            }
             try JSONEncoder().encode(value).write(to:cue.directory.appendingPathComponent("status.json"),options:.atomic)
             cue.tick()
         }

@@ -18,12 +18,12 @@ import Foundation
             .init(source:"ai",session:session,moveNumber:move,size:19,row:9,col:9,black:true,decisionReceivedAtUnix:wall)
         }
         func status(state:String="adequate",sequence:Int?=nil,producer:UUID?=nil,
-                    age:Double=0,on:Bool=true,confirmed:Bool?=true,mode:String="hardware",wrongSession:Bool=false)throws {
+                    age:Double=0,on:Bool=true,confirmed:Bool?=true,mode:String="hardware",wrongSession:Bool=false,proofAge:Double=0,omitProof:Bool=false,wrongProofTarget:Bool=false,proofOverride:[String:Any]=[:])throws {
             let request=try JSONDecoder().decode(PhysicalLaserGuidance.Request.self,
                 from:Data(contentsOf:directory.appendingPathComponent("request.json")))
             let off=state=="off",dark=state=="holding"
             let mark=PhysicalLaserGuidance.EvidenceAfter(streamEpoch:laser.frames.streamEpoch,frameID:99,timestampSource:"cameraPresentation")
-            let value=PhysicalLaserGuidance.DriverStatus(schemaVersion:request.schemaVersion,producer:producer ?? laser.producer,
+            var value=PhysicalLaserGuidance.DriverStatus(schemaVersion:request.schemaVersion,producer:producer ?? laser.producer,
                 sequence:sequence ?? laser.sequence,updatedAtUnix:wall-age,mode:mode,state:state,
                 laserOn:on,offSinceUnix:off || !standby && !on ? wall-1:nil,detail:state,
                 evidenceAfter:standby && off ? mark:nil,setupId:standby ? "synthetic-setup":nil,
@@ -33,6 +33,26 @@ import Foundation
                 beamOffSinceUnix:standby && dark ? wall-1:nil,darkEvidenceAfter:standby && dark ? mark:nil,
                 thermal:standby ? .init(policy:"warm_hold",sampleSequence:1,receivedAtUnix:wall,
                     sampleAgeUpperMs:50,baseC:20,tiltC:21,unavailableReason:off ? "power_off":nil):nil)
+            value.thermal?.controllerSession="ABCDEF01";value.thermal?.controllerGeneration=1
+            if !omitProof,let target=request.target {
+                var proofTarget=target
+                if wrongProofTarget {proofTarget=PhysicalLaserGuidance.Target(source:target.source,session:target.session,
+                    moveNumber:target.moveNumber,size:target.size,row:target.row,col:target.col+1,
+                    black:target.black,decisionReceivedAtUnix:target.decisionReceivedAtUnix)}
+                value.opticalEvidence = .init(policy:"captured_optical_result_v1",producer:laser.producer,
+                    requestSequence:request.sequence,target:proofTarget,cameraContext:request.cameraContext!,
+                    streamEpoch:request.streamEpoch!,frameID:100,capturedAtUptime:now-proofAge,
+                    arrivedAtUptime:now-proofAge,capturedAtUnix:wall-proofAge,publishedAtUnix:wall-proofAge,
+                    expiresAtUptime:now-proofAge+0.6,expiresAtUnix:wall-proofAge+0.6,
+                    controllerSession:"ABCDEF01",controllerGeneration:1)
+            }
+            if !proofOverride.isEmpty {
+                var json=try JSONSerialization.jsonObject(with:JSONEncoder().encode(value)) as! [String:Any]
+                var proof=json["opticalEvidence"] as! [String:Any]
+                for (key,value) in proofOverride {proof[key]=value}
+                json["opticalEvidence"]=proof
+                value=try JSONDecoder().decode(PhysicalLaserGuidance.DriverStatus.self,from:JSONSerialization.data(withJSONObject:json))
+            }
             try JSONEncoder().encode(value).write(to:directory.appendingPathComponent("status.json"),options:.atomic)
             laser.tick()
         }
@@ -64,6 +84,43 @@ import Foundation
         var checks=0
         func check(_ condition:Bool,_ message:String) {
             precondition(condition,message);checks+=1
+        }
+        do {
+            let url=URL(fileURLWithPath:#filePath).deletingLastPathComponent()
+                .appendingPathComponent("Fixtures/TemporalEvidence/adequate-heartbeat-stale.json")
+            let status=try JSONDecoder().decode(PhysicalLaserGuidance.DriverStatus.self,from:Data(contentsOf:url))
+            let proof=status.opticalEvidence!
+            check(status.updatedAtUnix==1001.1 && proof.expiresAtUnix==1000.6,"Paired actual Python heartbeat fixture must retain old source deadline")
+            check(!proof.current(now:1001.1,wall:1001.1,producer:status.producer,sequence:status.sequence,
+                target:proof.target,context:status.cameraContext,epoch:status.streamEpoch!,thermal:status.thermal,schema:2),
+                "Actual Python heartbeat cannot rejuvenate optical source proof")
+        }
+        // Real status JSON decoding must use the source age, not refreshed
+        // driver liveness. Historical adequate does not darken or fault.
+        for rejection in ["expired","future","missing","wrong-target"] {
+            let f=Fixture(standby:true);defer {f.close()}
+            let target=f.target();try f.admit(target)
+            try f.status(proofAge:rejection=="expired" ? 0.601:rejection=="future" ? -0.001:0,
+                         omitProof:rejection=="missing",wrongProofTarget:rejection=="wrong-target")
+            check(f.cues.isEmpty,"Invalid source proof announced a fresh cue: \(rejection)")
+            check(!f.laser.holdingInterrupted,"Historical optical expiry must not manufacture a controller fault")
+            try f.status(proofAge:0.1)
+            check(f.cues==[target.id],"Expired result must not consume a later genuine fresh cue")
+        }
+        let proofOverrides:[[String:Any]] = [
+            ["capturedAtUptime":99.399,"expiresAtUptime":99.999],
+            ["arrivedAtUptime":99.399,"expiresAtUptime":99.999],
+            ["capturedAtUnix":999.399,"expiresAtUnix":999.999],
+            ["publishedAtUnix":999.399,"expiresAtUnix":999.999],
+            ["requestSequence":-1],["cameraContext":"another-camera"],
+            ["streamEpoch":UUID().uuidString],["controllerSession":"ABCDEF02"],
+            ["controllerGeneration":2],["expiresAtUnix":1001.0]
+        ]
+        for override in proofOverrides {
+            let f=Fixture(standby:true);defer {f.close()}
+            try f.admit(f.target());try f.status(proofOverride:override)
+            check(f.cues.isEmpty,"Actual JSON decode admitted changed source age/scope/deadline: \(override)")
+            check(!f.laser.holdingInterrupted,"Optical source rejection must not create controller fault")
         }
         // A delayed accepted-target acknowledgement cannot revive a cancelled move.
         do {

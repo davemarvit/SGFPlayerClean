@@ -209,7 +209,7 @@ import Foundation
   check(try request(ll).action=="point","Recorded replay starts with actual pending-move indication")
   var recordedClicks=0;ll.onTargetIndicated={_ in recordedClicks+=1}
   try recordedReceipt("adequate",ll)
-  check(recordedClicks==1,"Recorded adequate receipt announces first illumination once")
+  check(recordedClicks==0,"Historical adequate fixture lacks actual optical source proof and cannot announce a fresh cue")
   ll.observeCamera(hand:true,valid:true,capturedAt:now,now:now,context:"grid")
   check(try request(ll).action=="standby","Recorded hand interruption requests warm standby")
   let lostMoves=lost.snapshot!.moves.map(\.point)
@@ -221,7 +221,7 @@ import Foundation
   check(lost.phase == .paused && lost.snapshot!.guidanceInterruption=="driver_link_lost","Returning unclassified full OFF pauses the silently latched game")
   check(lost.timing==lostTiming && lost.snapshot!.moves.map(\.point)==lostMoves && lost.snapshot!.pendingPlacement,"Lost-link pause freezes clock and preserves pending move")
   now+=60;wall+=60;ll.tick()
-  check(lost.timing==lostTiming && recordedClicks==1,"Silent OFF cannot charge placement time or announce another click")
+  check(lost.timing==lostTiming && recordedClicks==0,"Silent OFF cannot charge placement time or announce another click")
 
   for code in ["hand_obstructed","camera_evidence_unavailable","camera_frame_stale","request_lease_expired"] {
    let ai=try fixture("returning-transient-"+code,pending:true),l=ai.laser
