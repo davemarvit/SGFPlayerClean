@@ -8,6 +8,16 @@ enum HandOutlineSampling {
             let p=calibration.point(col:vertex.x,row:vertex.y)
             return (p.x*Double(frame.width-1),p.y*Double(frame.height-1))
         }
+        if let boundary,let polygon {
+            // Extrapolated grid points can cross a projective horizon even
+            // when all four grid corners are valid. An unavailable wood
+            // projection supplies unknown pixels, never fabricated clearance.
+            let axes=calibration.projectiveAxes,scale=Double(calibration.size-1)
+            let denominators=boundary.vertices.map{1+axes[0].2*$0.x/scale+axes[1].2*$0.y/scale}
+            let visible=boundary.size==calibration.size && denominators.allSatisfy{$0.isFinite && $0>1e-8} &&
+                polygon.allSatisfy{$0.0.isFinite && $0.1.isFinite && (0...Double(frame.width-1)).contains($0.0) && (0...Double(frame.height-1)).contains($0.1)}
+            guard visible else {return .init(width:n,cells:calibration.size,pixels:Array(repeating:.invalid,count:n*n),boundary:boundary)}
+        }
         let edges=polygon.map {points in (0..<4).map {i -> (Double,Double,Double) in
             let a=points[i],b=points[(i+1)%4],dx=b.0-a.0,dy=b.1-a.1,length=hypot(dx,dy)
             return (-dy/length,dx/length,(dy*a.0-dx*a.1)/length)
@@ -30,6 +40,9 @@ enum HandOutlineSampling {
             let x=Double(col)/HandOutlineFrame.scale-HandOutlineFrame.margin
             let y=Double(row)/HandOutlineFrame.scale-HandOutlineFrame.margin
             let point=calibration.point(col:x,row:y)
+            guard point.x.isFinite,point.y.isFinite,(0...1).contains(point.x),(0...1).contains(point.y) else {
+                pixels.append(.invalid);continue
+            }
             if let boundary {
                 let interior=boundary.contains(x:x,y:y)
                 // Exterior samples are connectivity context only. Partition

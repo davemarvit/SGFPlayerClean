@@ -69,6 +69,17 @@ import ImageIO
         let sample=HandOutlineSampling.sample(GrayFrame(image:image)!,calibration:calibration,boundary:boundary)
         check(sample.boundary==boundary,"Boundary did not reach sampled hand frame")
 
+        let horizonCalibration=BoardCalibration(size:19,corners:[.init(x:0.475,y:0.1),.init(x:0.525,y:0.1),.init(x:0.9,y:0.9),.init(x:0.1,y:0.9)])!
+        let narrowBoundary=HandBoardBoundary(size:19,vertices:[.init(x:-0.05,y:-0.05),.init(x:18.05,y:-0.05),.init(x:18.05,y:18.05),.init(x:-0.05,y:18.05)])!
+        // row19.2 is a projective horizon, but lies inside the sampler's context
+        // extent. No extrapolated NaN/huge coordinate may reach Int conversion.
+        let horizonSample=HandOutlineSampling.sample(GrayFrame(image:image)!,calibration:horizonCalibration,boundary:narrowBoundary)
+        check(horizonSample.pixels.count>0 && horizonSample.pixels.contains{!$0.valid},"Projective horizon was not represented as unavailable context")
+        let invisibleWood=HandOutlineSampling.sample(GrayFrame(image:image)!,calibration:horizonCalibration,boundary:boundary)
+        check(invisibleWood.pixels.allSatisfy{!$0.valid},"Out-of-image wood projection did not become unknown")
+        var invisibleTracker=HandOutlineTracker()
+        check(invisibleTracker.observe(invisibleWood,pose:.init(hands:[]),at:1,source:"fixture").obstructed==nil,"Unavailable wood projection supplied clearance")
+
         // Actual image pixels, not precomputed hand samples: exterior changes
         // must not leak through the 3x3 sampling footprints at the wood edge.
         func photographedBoard(outside:(UInt8,UInt8,UInt8),intrusion:Bool=false)->GrayFrame {
@@ -133,6 +144,49 @@ import ImageIO
                 durations.sort()
                 print("Sampling milliseconds perimeter=\(enabled): median=\(durations[3]), max=\(durations[6])")
             }
+            // Full native tracking on actual image variants. Background
+            // changes must not invalidate the saved tracking anchor or hand
+            // state; fixed-grid timing alone would not establish this contract.
+            func exteriorImage(_ rgb:(UInt8,UInt8,UInt8)?)->CGImage {
+                let width=photo.width,height=photo.height
+                var rgba=[UInt8](repeating:0,count:width*height*4)
+                return rgba.withUnsafeMutableBytes {raw in
+                    let context=CGContext(data:raw.baseAddress,width:width,height:height,bitsPerComponent:8,bytesPerRow:width*4,
+                        space:CGColorSpace(name:CGColorSpace.sRGB)!,bitmapInfo:CGBitmapInfo.byteOrder32Big.rawValue|CGImageAlphaInfo.premultipliedLast.rawValue)!
+                    context.draw(photo,in:CGRect(x:0,y:0,width:width,height:height))
+                    if let rgb {
+                        let bytes=raw.bindMemory(to:UInt8.self)
+                        for y in 0..<height {for x in 0..<width {
+                            let p=meta.currentCalibration.gridPoint(for:.init(x:Double(x)/Double(width-1),y:Double(y)/Double(height-1)))!
+                            if !loaded.boundary.contains(x:p.x,y:p.y) {
+                                let i=(y*width+x)*4;bytes[i]=rgb.0;bytes[i+1]=rgb.1;bytes[i+2]=rgb.2;bytes[i+3]=255
+                            }
+                        }}
+                    }
+                    return context.makeImage()!
+                }
+            }
+            let trackingPhoto=exteriorImage(nil),trackingFrame=GrayFrame(image:trackingPhoto)!
+            let anchor=AutoGridDetector.trackingAnchor(frame:trackingFrame,calibration:meta.currentCalibration)!
+            let expected=BoardAppearanceDetector.detect(frame:trackingFrame,calibration:meta.currentCalibration,threshold:0.2).signature
+            var fullTracker=HandOutlineTracker(),fullTime=0.0
+            func tracked(_ target:CGImage)->CameraAnalysisPipeline.Output {
+                fullTime+=0.2
+                let output=CameraAnalysisPipeline.process(.init(target:target,calibration:meta.currentCalibration,threshold:0.2,
+                    reference:nil,referenceCalibration:meta.referenceCalibration,straighten:false,longAxisRows:false,
+                    checkStoneAspect:false,previousStoneCount:9,pendingAxis:nil,trackingAnchor:anchor,alignmentExpected:expected,
+                    checkAlignment:true,trackingState:EstablishedStoneTracker(),trackingExpected:expected,trackingContext:"exterior",
+                    trackingManualPoints:[],trackingFresh:true,trackingTime:fullTime,checkHands:true,handTracking:fullTracker,
+                    perimeter:.verified(loaded.boundary)))
+                fullTracker=output.handTracking;return output
+            }
+            for _ in 0..<6 {check(tracked(trackingPhoto).aligned != nil,"Saved real-frame tracking anchor rejected its baseline")}
+            for rgb:(UInt8,UInt8,UInt8) in [(0,0,0),(255,255,255),(240,25,20)] {
+                let result=tracked(exteriorImage(rgb))
+                check(result.aligned != nil,"Exterior-only real image motion invalidated native grid tracking")
+                check(result.handObstructed==false,"Exterior-only real image motion invalidated native hand clearance")
+            }
+
             // Differential early-safety cost on the retained real camera
             // frame. This uses local appearance (no empty reference) and fixed
             // grid, so it is not an end-to-end live-game latency claim.
