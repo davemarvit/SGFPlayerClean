@@ -1030,3 +1030,48 @@ malformed optical claims, three-second timeout, nullable closing scope and
 explicit Retry. No remaining source blocker was found. No reviewer builds,
 installation, camera, UI or hardware operations occurred; physical validation
 remains root-owned.
+
+
+## Standby completion and post-image motor proof — 6c11b8f / c235548
+
+Independent frozen source review approves host standby fence6c11b8f. Unchanged
+production firmware can answer QG inside SB's monitor before standby completes:
+normal RN10 precedes HN10, and a cooling-release query at61 ms yields BP10 before
+CP10. Only an explicit current pending handoff may wait through dark, powered R
+or cooling-policy B. The original two-second deadline shrinks, never renews.
+The barrier still checks lease, worker quiescence, camera and controller health;
+QG validates session and control generation. Intermediate states cannot publish
+darkness or holding. Final H/C requires matching fresh thermal proof; O retains
+full-OFF fallback. BN10, unsolicited R/B, lit/moving and foreign states reject.
+Owner reports113 host tests and444 actual-firmware fake-transport assertions;
+installed baseline fails the focused replay at the original error site. Reviewer
+inspected the actual native reproducer and host negative controls, without
+compiling or running hardware. The unretained live QG response is not claimed
+to be RN10; this fixes a proven source race consistent with that error site.
+
+Independent frozen source review also approves causal encoder candidatec235548.
+The original session/telemetry/generation is pinned before premeasurement POSE.
+After image processing, only a stationary illuminated two-axis telemetry pair
+whose referenced ACK dispatch is at or after both newest capture and pre-POSE
+completion can supply actual encoder positions. Reviewer inspected production
+thermalService: ACK advancement restarts the whole pair and staging requires
+matching acquired ACK and epoch. No sample is relabeled or predicted.
+
+The existing three-count pre/post drift, response envelope,600 ms four-clock
+optical checks and750 ms thermal age remain. Waits also retain geometry and
+original55-second light deadlines. Publication is gate-authorized and holds
+session.lock across identity/age/light checks and anchor assignment, preventing
+a supervisor session-end from interleaving with commit. The helper takes
+session then telemetry locks and releases them before gate checks, waits or I/O.
+Reviewer requested and verified pre-POSE pinning, final light-budget enforcement
+and atomic publication. No remaining lock-order or motion-authority blocker
+was found. Packaging must include feedback_pose_evidence.py.
+
+Root reports14 new plus67 existing tests passed. Reviewer inspected all new
+cases including real thread interleave, original-scope replacement, cancellation,
+stale/old/bootstrap ACK, wrong motor state, drift and expired publication. The
+recorded485.378 ms image work completion plus203.465 ms tail regression fails
+original read_spot and passes with an eligible already-arrived pair using injected
+time. It demonstrates removal of a serial dependency, not replay of missing
+failed pixels or measured new physical latency. Detector CPU optimization is a
+separate review. No installation or physical acceptance is claimed here.
