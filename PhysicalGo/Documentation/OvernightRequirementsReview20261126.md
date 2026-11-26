@@ -131,6 +131,7 @@ incident's 25-second delay.
 | Host admission/status `0fb532c` | Source approved pending paired native checks | Actual thermal token/generation/epoch published additively; GA-only receipt wait 14 s, others 12 s; no ambiguous-command retry. Owner reports 17 focused checks. |
 | Native admission grace `ba36928` + repair `4b180f4` | Source approved pending queued native guidance tests | Reported healthy state-epoch defect corrected. Fixed token/generation, advancing epoch reseeds liveness, no episode/deadline reset. Owner reports 312,346 pure assertions; not independently rerun during baseline. |
 | PG23 evidence schema `7c881be` | Static schema-only approval | No evidence emission or decision bypass exists yet. Full approval requires actual pixel producer/consumer, provenance propagation and conflict-mutation tests. Metadata-only controls do not establish classifier quality. |
+| Root helper integration host `cad26b0`, native `d270ee1` | Merged helper source approved | Host merge is the exact union of reviewed geometry and temporal runtime changes; stage-aware renewal and requalification APIs both retained. Native runtime files match reviewed `4b180f4`. Reviewer independently ran 67 combined focused host tests, all passed. Hold/recognition integration remains pending. |
 
 ### Independent focused checks after attended baseline
 
@@ -146,6 +147,16 @@ The reviewer independently ran these hardware-free tests sequentially with
 - Clean temporal worktree `bf4509b`: `test_feedback_result_age`,
   `test_feedback_pose_evidence`, `test_lit_geometry_renewal` — **40 passed**,
   including the exact retained 528.9565 ms optional-renewal timing case.
+- Clean root integration host `cad26b0`: `test_geometry_requalification`,
+  `test_fixed_optical_geometry`, `test_lit_geometry_renewal`,
+  `test_feedback_result_age`, `test_feedback_pose_evidence`,
+  `test_admission_envelope` — **67 passed**.
+
+Native owner subsequently reports **399 real guidance/standby checks passed** on
+`4b180f4`, including valid/invalid terminal boundaries, firmware-style epochs,
+12/16-second limits and stale/mismatched monitor controls. Root confirms these
+results. The reviewer inspected exact native integration source equivalence;
+native compilation was performed by the owner in the root-coordinated build slot.
 
 No native compile, camera, serial or installation was performed by this reviewer.
 
