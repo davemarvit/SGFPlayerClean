@@ -49,13 +49,15 @@ import Foundation
             changed=original;changed.footprints=[.init(row:point/9,col:point%9,
                 center:.init(x:Double(point%9),y:Double(point/9)),radiusCol:0.4,radiusRow:0.4,quality:0.95)]
             check(!changed.hasFreshEmptyCrossingEvidence(at:point),"A covering stone outline contradicts empty-crossing proof")
+            changed.footprints=[]
+            check(changed.hasFreshEmptyCrossingEvidence(at:point),"Same-image geometry refinement may remove a contradictory outline; exact pixels and reading still match")
         }
         for matches in 0..<4 {
             let incomplete=EmptyCrossingSupport(woodMatches:24,woodSamples:24,railMatches:[4,4],railSamples:[4,4],innerMatches:matches,innerSamples:4)
-            check(!incomplete.isComplete,"One obscured inner patch must withhold the certificate")
+            check(incomplete.isComplete,"Inner probes may straddle ink; independent existing wood and both rail gates decide support")
         }
         check(!EmptyCrossingSupport(woodMatches:24,woodSamples:24,railMatches:[4,2],railSamples:[4,4],innerMatches:4,innerSamples:4).isComplete,"One weak rail axis cannot be rescued by perfect other evidence")
-        check(!EmptyCrossingSupport(woodMatches:12,woodSamples:16,railMatches:[2,2],railSamples:[2,2],innerMatches:4,innerSamples:3).isComplete,"A masked/missing inner patch is not four fresh patches")
+        check(!EmptyCrossingSupport(woodMatches:12,woodSamples:15,railMatches:[2,2],railSamples:[2,2],innerMatches:4,innerSamples:4).isComplete,"Too few actual wood samples cannot establish support")
         let original=fixture(),receipt=original.emptyCrossingEvidence[40]!
         var mismatch=original
         mismatch.emptyCrossingEvidence=[41:receipt]

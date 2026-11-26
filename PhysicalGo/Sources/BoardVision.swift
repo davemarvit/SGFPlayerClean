@@ -277,8 +277,7 @@ struct EmptyCrossingSupport: Codable, Equatable {
     var isComplete:Bool {
         guard woodSamples>=16,woodMatches<=woodSamples,
               Double(woodMatches)/Double(woodSamples)>=0.75,
-              railMatches.count==2,railSamples.count==2,
-              innerSamples==4,innerMatches==4 else {return false}
+              railMatches.count==2,railSamples.count==2 else {return false}
         return (0..<2).allSatisfy {
             railSamples[$0]>=2 && railMatches[$0]<=railSamples[$0] &&
             Double(railMatches[$0])/Double(railSamples[$0])>=0.75
@@ -341,6 +340,9 @@ struct BoardObservation {
 
     /// This evidence has no hand, laser, target or temporal-clearance authority.
     /// Callers must still enforce those independent admission requirements.
+    /// Geometry conflicts are current-image guards, not permanent invalidators:
+    /// same-image refinement may discard a bad outline without changing pixels.
+    /// Reading/provenance replacement above permanently discards its receipt.
     func hasFreshEmptyCrossingEvidence(at point:Int)->Bool {
         guard size>0,(0..<size*size).contains(point),!lightingBlocked,handObstructed==false,!manualPoints.contains(point),
               trackedAssignments[point]==nil,!trackedAssignments.values.contains(point),
@@ -535,7 +537,7 @@ enum BoardDetector {
     /// Positive evidence for shaded wood: both printed rails survive and the
     /// surrounding wood retains its color/texture under a modest lighting shift.
     /// This cannot resolve disputed ownership merely because another stone exists.
-    private struct ExposedWood { let confidence:Double; let lighting:Double }
+    private struct ExposedWood { let confidence:Double; let lighting:Double; var support:EmptyCrossingSupport?=nil }
 
     /// Compare both printed rails inside a possible stone body with the empty
     /// reference. Local contrast survives shading. Positive line survival can
@@ -581,13 +583,14 @@ enum BoardDetector {
         func coveredByNeighbor(_ c:Double,_ r:Double)->Bool {
             shadowNeighbors.contains{$0.contains(ImagePoint(x:c,y:r),padding:0.04)}
         }
-        var samples=[Sample]()
+        var samples=[Sample](),innerSamples=[Sample]()
         for dy in -4...4 { for dx in -4...4 where dx != 0 && dy != 0 && dx*dx+dy*dy <= 16 {
             let c=col+Double(dx)*0.075,r=row+Double(dy)*0.075
             guard !coveredByNeighbor(c,r) else {continue}
             let p=calibration.point(col:c,row:r),q=referenceCalibration.point(col:c,row:r)
             if let current=frame.patchMean(p),let base=reference.patchMean(q) {
                 samples.append(Sample(current:current,reference:base,currentColor:frame.patchColor(p),referenceColor:reference.patchColor(q)))
+                if abs(dx)==1 && abs(dy)==1 {innerSamples.append(samples.last!)}
             }
         } }
         let woodLevel=quantile(samples.map(\.reference),0.75)
@@ -657,7 +660,17 @@ enum BoardDetector {
         if found.allSatisfy({$0>=2}),woodAgreement>=0.75 {
             let railAgreement=(0..<2).map{Double(matched[$0])/Double(found[$0])}
             if railAgreement.allSatisfy({$0>=0.75}) {
-                return ExposedWood(confidence:min(woodAgreement,railAgreement.min()!),lighting:lighting+correction)
+                let innerMatches=innerSamples.filter {sample in
+                    guard let current=sample.currentColor,let base=sample.referenceColor else {return false}
+                    return abs(sample.current-sample.reference-correction-lighting)<0.035 && (current-base-colorShift).magnitude<0.025
+                }.count
+                // Inner probes can straddle printed ink. Record them, but the
+                // existing reference-selected wood samples and both rails are
+                // the positive proof; do not invent an all-inner-wood condition.
+                let support=shadowNeighbors.isEmpty ? EmptyCrossingSupport(woodMatches:matching,
+                    woodSamples:wood.count,railMatches:matched,railSamples:found,
+                    innerMatches:innerMatches,innerSamples:innerSamples.count):nil
+                return ExposedWood(confidence:min(woodAgreement,railAgreement.min()!),lighting:lighting+correction,support:support)
             }
         }
         guard !shadowNeighbors.isEmpty,shadowAgreement>=0.90,shadowFound.allSatisfy({$0>=3}) else {return nil}
@@ -666,7 +679,7 @@ enum BoardDetector {
         return ExposedWood(confidence:min(shadowAgreement,shadowRails.min()!),lighting:lighting+correction)
     }
 
-    static func detect(frame: GrayFrame, reference: GrayFrame, calibration: BoardCalibration, threshold: Double, referenceCalibration: BoardCalibration? = nil, adaptLighting: Bool = true) -> BoardObservation? {
+    static func detect(frame: GrayFrame, reference: GrayFrame, calibration: BoardCalibration, threshold: Double, referenceCalibration: BoardCalibration? = nil, adaptLighting: Bool = true, capturedAt:Double?=nil) -> BoardObservation? {
         guard frame.width == reference.width, frame.height == reference.height else { return nil }
         let referenceCalibration=referenceCalibration ?? calibration
         guard referenceCalibration.size==calibration.size else { return nil }
@@ -1049,9 +1062,21 @@ enum BoardDetector {
                 correction:globalCorrection,colorShift:globalColorCorrection)
         }
         let validShape:(StoneFootprint)->Bool = {liveWood[$0.row*calibration.size+$0.col] == nil}
+        var emptyCrossingEvidence=[Int:EmptyCrossingEvidence]()
+        if let capturedAt,capturedAt.isFinite {
+            for (point,value) in exposedWood.enumerated() {
+                guard let wood=value else {continue}
+                let reading=resolved[point]
+                guard reading.occupancy == .empty,reading.confidence==wood.confidence,
+                      let support=wood.support,support.isComplete else {continue}
+                emptyCrossingEvidence[point] = .init(frameID:frame.patchIdentity,referenceID:reference.patchIdentity,
+                    capturedAt:capturedAt,reading:reading,support:support)
+            }
+        }
         return BoardObservation(readings: resolved, size: calibration.size,
             footprints:(geometry.footprints+recoveredShapes).filter(validShape),placementFits:geometry.placementFits.filter(validShape),fitAttempts:geometry.fitAttempts,
-            centeringEvidence:centeringEvidence,coveredGridPoints:coveredGridPoints)
+            capturedAt:capturedAt,centeringEvidence:centeringEvidence,coveredGridPoints:coveredGridPoints,
+            evidenceFrameID:frame.patchIdentity,evidenceReferenceID:reference.patchIdentity,emptyCrossingEvidence:emptyCrossingEvidence)
     }
 
     /// Bright or shaded wood is not a stone merely because its brightness
