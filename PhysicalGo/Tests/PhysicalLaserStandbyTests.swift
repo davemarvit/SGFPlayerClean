@@ -242,6 +242,42 @@ import Foundation
   clock.now+=12;clock.wall+=12
   try status(invalidTerminal,state:"holding",mutate:{$0.thermal?.unavailableReason="stale"})
   check(invalidTerminal.holdingInterrupted && request(invalidTerminal).action=="off","Invalid terminal thermal evidence cannot end admission or bypass fail-closed shutdown")
+  func monitoredArming(_ x:PhysicalLaserGuidance,_ sample:Int,mutate:((inout PhysicalLaserGuidance.DriverStatus)->Void)?=nil) throws {
+   try status(x,state:"arming",mutate:{d in
+    d.motorBusPowered=true;d.illuminationConfirmed=false;d.thermal?.unavailableReason=nil
+    d.thermal?.sampleSequence=sample;d.thermal?.controllerSession="ABCDEF01"
+    d.thermal?.controllerGeneration=1;d.thermal?.controllerEpoch=1
+    mutate?(&d)
+   })
+  }
+  let liveAdmission=try beginArming("live-monitored-admission")
+  for sample in 2...29 {
+   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample)
+  }
+  check(!liveAdmission.holdingInterrupted && request(liveAdmission).action=="standby","Fresh same-controller monitoring permits dark admission beyond12s")
+  check(!liveAdmission.acceptsObservation(capturedAt:clock.now,now:clock.now),"Admission grace is never board observation or illumination authority")
+  for sample in 30...34 {
+   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample)
+  }
+  check(liveAdmission.holdingInterrupted && request(liveAdmission).action=="off","Monitoring cannot extend the original16s admission ceiling")
+  for invalid in ["old-sequence","controller-session","controller-generation","controller-epoch","stale-thermal","unconfirmed-dark"] {
+   let x=try beginArming("grace-denied-"+invalid)
+   for sample in 2...24 {
+    clock.now+=0.4;clock.wall+=0.4;frame(x);try monitoredArming(x,sample)
+   }
+   clock.now+=0.4;clock.wall+=0.4;frame(x)
+   try monitoredArming(x,25,mutate:{d in
+    switch invalid {
+    case "old-sequence":change(&d,["sequence":d.sequence-1])
+    case "controller-session":d.thermal?.controllerSession="ABCDEF02"
+    case "controller-generation":d.thermal?.controllerGeneration=2
+    case "controller-epoch":d.thermal?.controllerEpoch=2
+    case "stale-thermal":d.thermal?.sampleAgeUpperMs=751
+    default:d.illuminationConfirmed=nil
+    }
+   })
+   check(x.holdingInterrupted && request(x).action=="off","Invalid current evidence cannot earn deadline grace: \(invalid)")
+  }
   let boot=try beginArming("bootstrap")
   check(!boot.holdingInterrupted && request(boot).action=="standby","Bounded dark cold arming may await first causal sample")
   check(!boot.acceptsObservation(capturedAt:clock.now,now:clock.now),"Arming never supplies dark recognition evidence")

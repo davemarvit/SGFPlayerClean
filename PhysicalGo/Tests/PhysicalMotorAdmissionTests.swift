@@ -69,6 +69,40 @@ import Foundation
         check(r.mayHaveMotorSession && !r.armingTimedOut(now:1000,transientRecovery:false),"Healthy active session no longer carries a cold-admission timer")
         r.reduce(.authenticatedArming(at:1000))
         check(!r.armingTimedOut(now:1011.999,transientRecovery:false) && r.armingTimedOut(now:1012,transientRecovery:false),"Later cold rearming receives exactly its own12s bound")
+        func monitor(_ sequence:Int,_ acquired:Double,session:String="ABCDEF01",generation:Int=1,epoch:Int=1)->Admission.Monitor {
+            .init(session:session,generation:generation,epoch:epoch,sequence:sequence,acquiredAfter:acquired)
+        }
+        func progressing()->Admission {
+            var a=Admission();a.reduce(.motorRequest(at:100))
+            a.observeMonitor(monitor(2,111.2),now:111.3)
+            a.observeMonitor(monitor(3,111.7),now:111.8)
+            return a
+        }
+        var grace=progressing()
+        check(!grace.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(3,111.7)),"Fresh advancing causal monitor grants bounded dark grace")
+        check(grace.armingTimedOut(now:112,transientRecovery:false),"No current matched monitor keeps original12s bound")
+        grace.observeMonitor(monitor(4,115.8),now:115.9)
+        check(!grace.armingTimedOut(now:115.99,transientRecovery:false,currentMonitor:monitor(4,115.8)),"Live monitor may use remaining fixed16s envelope")
+        check(grace.armingTimedOut(now:116,transientRecovery:false,currentMonitor:monitor(4,115.8)),"16s terminates despite fresh monitor progress")
+        for event in [Admission.Event.motorRequest(at:115.9),.authenticatedArming(at:115.9),.playSessionChanged] {
+            grace.reduce(event)
+            check(grace.armingStartedAt==100 && grace.armingTimedOut(now:116,transientRecovery:false,currentMonitor:monitor(4,115.8)),"Requests/revisions/arming ticks never restart envelope")
+        }
+        for bad in [monitor(3,111.7,session:"ABCDEF02"),monitor(3,111.7,generation:2),monitor(3,111.7,epoch:2),monitor(2,111.8),monitor(4,111.6)] {
+            var a=progressing();a.observeMonitor(bad,now:111.9)
+            a.observeMonitor(monitor(5,111.95),now:112)
+            check(a.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(5,111.95)),"Controller replacement/regression cannot rebuild grace in same episode")
+        }
+        for samples in [[monitor(2,111.7),monitor(2,111.7)],[monitor(2,99.9),monitor(3,111.7)],[monitor(2,111.7),monitor(3,111.7)]] {
+            var a=Admission();a.reduce(.motorRequest(at:100))
+            for sample in samples {a.observeMonitor(sample,now:111.8)}
+            check(a.armingTimedOut(now:112,transientRecovery:false,currentMonitor:samples.last),"Replay, pre-episode or unchanged causal bound cannot earn grace")
+        }
+        let stale=progressing()
+        check(stale.armingTimedOut(now:112.6,transientRecovery:false,currentMonitor:monitor(3,111.7)),"Stale sample/progress never extends grace")
+        var resetGrace=progressing();resetGrace.reduce(.confirmedFullOFF);resetGrace.reduce(.motorRequest(at:112))
+        resetGrace.observeMonitor(monitor(4,111.9),now:112.1)
+        check(resetGrace.armingTimedOut(now:124,transientRecovery:false,currentMonitor:monitor(4,111.9)),"Previous episode cannot seed new grace")
         print("PASS:4096 episode sequences,1024 gate combinations and scoped deadline/reset cases (\(checks) assertions)")
     }
 }

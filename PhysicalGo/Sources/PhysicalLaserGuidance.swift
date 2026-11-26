@@ -33,6 +33,9 @@ import CoreGraphics
         var baseVoltageV: Double?
         var tiltVoltageV: Double?
         var unavailableReason: String?
+        var controllerSession: String?
+        var controllerGeneration: Int?
+        var controllerEpoch: Int?
         func fresh(statusAge: Double, updatedAtUnix: Double) -> Bool {
             guard unavailableReason == nil, ["warm_hold","cooling"].contains(policy),
                   let sampleSequence, sampleSequence >= 0, let receivedAtUnix, receivedAtUnix.isFinite,
@@ -640,6 +643,7 @@ import CoreGraphics
         let faultScope=currentHardFaultScope(driver,wall:wall)
         let statusAtEntry=driver
         var currentHealthFault:String?
+        var admissionMonitor:PhysicalMotorAdmission.Monitor?
         var localLinkFault:HardFault?
         func hardHealth(_ code:String) {currentHealthFault=code;latchStandby(code)}
         // Unexpected or uncertain light still contaminates buffered camera
@@ -697,6 +701,19 @@ import CoreGraphics
                     // samples. A later genuine cold admission gets its own
                     // bounded episode, not the age of the previous warm hold.
                     motorAdmission.reduce(.authenticatedArming(at:now))
+                    // Arming never grants light or recognition authority. A
+                    // bounded grace requires independent current camera and
+                    // same-controller causal monitor liveness, not JSON ticks.
+                    if currentHealthFault==nil,standbyFault==nil,!gameFaultNeedsRecheck,enabled,
+                       cameraHand==false,cameraAt.map({(0..<0.7).contains(now-$0)})==true,
+                       d.motorBusPowered==true,d.illuminationConfirmed==false,let t=d.thermal,
+                       t.admissible(statusAge:wall-d.updatedAtUnix,updatedAtUnix:d.updatedAtUnix),
+                       let session=t.controllerSession,let generation=t.controllerGeneration,
+                       let epoch=t.controllerEpoch,let sample=t.sampleSequence,let age=t.sampleAgeUpperMs {
+                        admissionMonitor = .init(session:session,generation:generation,epoch:epoch,sequence:sample,
+                            acquiredAfter:now-((wall-d.updatedAtUnix)+age/1000))
+                    }
+                    motorAdmission.observeMonitor(admissionMonitor,now:now)
                 }
             }
             if connected,let d=driver,d.sequence==sequence,
@@ -732,7 +749,7 @@ import CoreGraphics
             // Consume an authenticated terminal active/OFF receipt first. A
             // receipt arriving on the deadline ends that episode; it must not
             // be faulted based on bookkeeping from the previous tick.
-            if motorAdmission.armingTimedOut(now:now,transientRecovery:transientRecovery.isPending) {
+            if motorAdmission.armingTimedOut(now:now,transientRecovery:transientRecovery.isPending,currentMonitor:admissionMonitor) {
                 hardHealth("arming_timeout")
             }
         }
