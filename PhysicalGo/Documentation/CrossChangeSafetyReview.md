@@ -1238,3 +1238,15 @@ run predates the new dark constructor, root is rerunning the same finite replay
 on final combined4ca1241, followed by full host and paired acceptance. Those
 results remain required before installation. No reviewer hardware/UI/camera or
 installation activity occurred.
+
+
+Final combined replay update: root executed the same eight cases on4ca1241 with
+the new dark constructor. Reviewer inspected
+work/lit-geometry-20261125/final-host-renewal-replay.json: all eight renewed without
+error, maximum final image age553.056ms,47ms below the unchanged600ms limit.
+Recorded seven runtime hashes match the reviewed combined files; root is pinning
+the combined commit and dark-constructor hash alongside the report. This closes
+the constructor-integration budget condition, within the same explicitly
+simulated evidence limits. Final full-host and paired acceptance are still
+running under root; source approval is for host4ca1241 and nativefb4697c plus
+corrected profile28bc46ff…5cd55a7, not permission to skip those checks.
