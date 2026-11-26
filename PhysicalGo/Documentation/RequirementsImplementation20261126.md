@@ -97,3 +97,9 @@ Dave explicitly requested the reviewed update be **installed**, with the app rea
 - Retain a durable readiness receipt with installed pins, single app identity, camera/preflight result, saved-game state, controller/launcher state and the concise next action. Update checklist/handoff; no source-only status may be mistaken for installed readiness.
 
 Based on existing fresh alignment/admission/aiming timings, about30–45s from go-ahead is a reasonable planning estimate if no new faults occur, not a guarantee. Fresh environmental changes or failed checks still require honest recovery; do not remove verification to meet the estimate.
+
+## Morning deadline and limited host-only tranche —16:43 UTC
+
+The full overnight release/readiness was not completed by the user's return. User allowed a brief16:38–16:48:30 UTC window. A2 implementation plus a new native build could not fit; no deadline-based waiver was granted. Fresh reviewer1ebd12e approved limited host8ce91a1 with existing nativefb4697c, distinguishing the inherited A2 status/cue boundary from independent physical authority. Root installed8ce91a17bb8e968dbb40bf0058ff5bd768b95f1c-app0268, manifest3fcacc728277c7e5812ccc5e2d938b2118eb53f683a1a0d93f8082766690d0ad; games unchanged.1,287 tests/57 skips (1,230 pass), eight renewal replays and mandatory paired acceptance passed. This does not install PG23, new native16s admission grace or A2 wire-proof changes and does not fulfill the full overnight batch.
+
+Launcher94826 passed2.613/2.794/2.622px, waits fresh READY before controller open. Nine stones, O17empty, gamepaused preserved; prior actual OFF1795683450.8051615 unchanged. Heavy work remains paused for the attended window. Root alone owns the next physical operation/outcome. [Limited install receipt](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/host-only-attended/install-receipt.json>).
