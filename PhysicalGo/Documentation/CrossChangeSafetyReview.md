@@ -1304,3 +1304,18 @@ source-identity assertion and separate grid-mask tests; production bytes are
 unchanged from previously approved4ca1241. Root completed its tests before
 installation. The later frame1762 failure occurred during camera preflight
 before controller opening; no physical success is inferred from this review.
+
+
+Preflight failure capture follow-up c338583641c0af9f9752c5b580915bd6eff69286:
+source and regression review approved. The new launcher wrapper invokes exactly
+the existing SetupBinding.check prepare/_check_prepared sequence, supplies a
+caller-owned diagnostic dictionary, and retains the actual failed PNG and copied
+metadata plus separate original OFF and synthetic geometry requests. It never
+rereads a newer broker frame as failure evidence. Serialization and writes occur
+only after admission has already failed; storage errors add a note and preserve
+the original exception. Existing subsequent require_off remains. Tests cover
+broker advancement, success without logging, prepare failure, storage failure,
+exception identity and rejection before controller identity/Popen. Owner reports
+29 launcher tests passed; reviewer inspected source/tests without hardware or
+additional builds. No source blocker to separate integration. This receipt does
+not claim the follow-up has been installed.
