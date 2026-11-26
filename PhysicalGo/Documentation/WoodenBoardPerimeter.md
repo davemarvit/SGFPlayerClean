@@ -62,7 +62,7 @@ of hand clearance, stone occupancy, board alignment or a completed move.
 
 ## Verification
 
-The final optimized `--wood-perimeter-test` suite passed 110,636 assertions
+The final optimized `--wood-perimeter-test` suite passed 110,651 assertions
 (most are exact per-pixel comparisons), including
 profile roundtrip and required-profile activation/deletion; missing, malformed, oversized, wrong-camera, wrong-resolution
 and wrong-reference files; crossed polygons; immutable loaded snapshots; unchanged
@@ -71,6 +71,12 @@ The actual image tests change every pixel outside the wooden surface to black,
 white or red while holding the interior fixed: every interior hand sample remains
 identical and the hand verdict stays clear. A 0.15-cell-deep fingertip crossing
 the top wooden edge stops clearance even when the supplied pose detects no hand.
+The retained 1920×1080 camera image also passes the complete native camera-analysis
+path with `checkAlignment:true` and its saved tracking anchor after all exterior
+pixels become black, white or red; both grid alignment and hand clearance remain
+valid. A valid trapezoid whose extrapolated sampling area crosses a projective
+horizon cannot trap an integer conversion; unavailable wood projections produce
+unknown hand evidence.
 An optional `PHYSICAL_GO_MEASURED_PERIMETER` path adds validation against the
 adjacent retained `wood-boundary-camera/frame.json` and `frame.png` artifacts.
 The November 25 measured profile passed the actual Swift loader, reference-grid
@@ -86,10 +92,10 @@ On the retained 1920×1080 frame, optimized seven-sample measurements were:
 
 | Work | Legacy median / maximum | Measured perimeter median / maximum |
 | --- | --- | --- |
-| Hand outline sampling | 3.203 / 3.697 ms | 3.136 / 3.483 ms |
-| Early camera safety | 75.237 / 114.898 ms | 83.581 / 115.475 ms |
+| Hand outline sampling | 3.069 / 3.195 ms | 3.333 / 8.216 ms |
+| Early camera safety | 60.582 / 100.471 ms | 61.022 / 67.037 ms |
 
-The early-safety benchmark uses the retained real frame with local appearance
+Seven repetitions are too few to characterize tail latency. The early-safety benchmark uses the retained real frame with local appearance
 recognition and a fixed grid, without an empty reference or live registration.
 It is a differential offline workload measurement, not current end-to-end game
 latency or proof that every live observation satisfies the 600 ms limit.
