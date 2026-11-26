@@ -1111,3 +1111,79 @@ No remaining source blocker was found across standby6c11b8f, causal posec235548
 and detectorac2b1a8+5a95218. Root still owns combined host/paired acceptance and
 packaging; these reviews do not authorize hardware testing or claim sustained
 physical play. No reviewer camera, UI, device or installation activity occurred.
+
+
+## Physical wood boundary and native sampling — fb4697c
+
+The authorized independent native subreview approves combinedfb4697c source,
+subject to root's combined suites. It byte-matched edge runtime toffef7ed and
+profile/sampling/pipeline to a22b4df (dependenciesc55f0b0/2912146; edge docs4620d2e).
+Review repaired canonical vertex order, persisted required-profile absence to
+unknown, interior-only visibility support, actual3x3 image-footprint side
+clipping and finite/projective-horizon checks before integer conversion. A valid
+extreme-perspective calibration exposed the latter crash; its regression now
+uses normal constructor data. Ordinary stone-recognition sampling is unchanged.
+
+The new inactive-entry texture veto is explicitly a changed policy:12 interior
+samples, reference variance>.0001, correlation>.99, slope.6–1.4 and luminance/
+chroma residual<=.025. Outside texture cannot supply its count or statistics.
+Active hand clearance and outside-only versus shallow-interior evidence were
+reviewed separately. Owner reports110651 final profile/image assertions, including
+retained-image full CameraAnalysisPipeline checkAlignment=true exterior black,
+white and red controls. Reviewer inspected source/tests/logs, did not compile.
+
+The profile is separate from BoardCalibration/context. Source image hash is
+measurement provenance; runtime identity binds camera, reference calibration
+and dimensions. A valid load persists a requirement so subsequent missing files
+cannot silently restore legacy mode. Never-configured legacy mode remains explicit.
+
+Final artifact review found generator width/height scaling disagreed with native
+width−1/height−1 sampling by under one pixel. Root regenerated grid-space vertices
+from the same saved frame29197 and edge fits, without new acquisition or model
+refit. Corrected profile SHA256:
+28bc46ff3836a66a0b742a8040093ac2830c798e65db4c62a6eb9acfb5cd55a7.
+Actual native reprojection matches measured wooden-top corners within2.3e−13 px.
+No remaining source/artifact blocker; physical fingertip/edge recall is not
+universally established by these offline controls.
+
+## Board-contained temporal core and lit renewal — 2359f35 / ee306ef
+
+Independent source review approves core2359f35 and lifecyclee816057+95ae5af+
+ee306ef, combined247ebb3, pending final whole-path budget/integration evidence.
+The temporal path conditions outside printed-grid pixels before filtering,
+resizing, normalization and tracking. Features are selected with complete
+56-half-pixel interior support; this is a changed spatial baseline, not identical
+coverage. An early draft lost an old shifted top-strip negative. Final source
+adds64 fixed one-row-inward probes with contained full-resolution15x15 level0
+tracking after the mandatory interior proof, restoring that unchanged negative.
+Both proofs retain fixed denominators,85%/40 total and six per quadrant/edge,
+.5/1px residual gates. Neither sparse proof guarantees visibility of every pixel.
+
+Masked renewal internally runs the full unmasked proof first, then adds a local
+14-half-pixel-footprint masked proof and edge veto. It cannot rescue failure or
+remove masked features from the denominator. Independent actual board-wide
+5/7-frame spot consensus supplies bounded component+12px halo, maximum36px radius
+and1% area; no predicted target supplies a mask. Edge clipping cannot expand
+the authoritative domain. Pixels used for hand, occupancy and subtraction remain
+unmasked. Original dark bytes/H/capture time/feature anchor remain unchanged.
+
+Fresh certificates advance a separate qualified_at using exact source capture
+time only after current gate/session/600ms/750ms/light checks. Old certificate
+must still be valid. No partial proposal grants time. Declined supplemental
+support uses existing DARK renewal; mandatory unmasked failure remains fatal and
+now retains exact rejected pixels through bounded capture. Reviewer found/fixed
+an accidental undefined variable in movement, failure misclassification and
+missing post-acquisition fatal capture. Original55s host/60s firmware illumination
+limits remain; normal holding begins dark renewal at53s with no cue duplication.
+The optional100ms compute budget is new, not a relaxation of600ms freshness.
+
+Reviewer matched four core source hashes,28 retained inputs and the executed
+runner. Artifact includes50 image cases (six positives/44 negatives), six exact
+current/anchor exterior invariances, eight masks, two contained alias controls
+and the unchanged strip negative. Owner reports153 core tests and lifecycle
+controls including20 synthetic seconds of exposure/shadow variation with immutable
+dark subtraction, center/edge/corner masks, deadline and cancellation rejection.
+Initial stage timings were contended and explicitly not acceptance. Final hashed
+production-path budget replay remains root/owner-owned. Initial and fallback
+dark registration is separately reviewed; temporal invariance alone is not a
+whole-gameplay-path claim. No reviewer hardware, camera, UI or installation.
