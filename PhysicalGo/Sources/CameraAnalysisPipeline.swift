@@ -30,6 +30,7 @@ final class CameraAnalysisPipeline {
         var handTimestampSource="callback"
         var emptyLighting=KnownEmptyLighting()
         var lightingContext:String?
+        var perimeter:WoodenBoardPerimeter.Snapshot = .absent
     }
     struct CameraSafety {
         let aligned:BoardCalibration?
@@ -120,7 +121,6 @@ final class CameraAnalysisPipeline {
         let trackingManualPoints = input.trackingManualPoints
         let trackingFresh = input.trackingFresh
         let trackingTime = input.trackingTime
-        let handPose=input.checkHands ? BoardHandDetector.pose(image:target,calibration:calibration):nil
         let frame=GrayFrame(image:target)
         let exposureFailure=frame.map {LightingCompensation.exposureFailure(frame:$0,calibration:calibration)} ?? false
         var alignmentReport:[String:Any]=["outcome":checkAlignment ? "unavailable":"tracking disabled"]
@@ -143,14 +143,17 @@ final class CameraAnalysisPipeline {
             }
         }
         let rawResult=result
+        let handPose=input.checkHands ? BoardHandDetector.pose(image:target,calibration:aligned ?? calibration):nil
         var handTracking=input.handTracking
         let handOutline:HandOutlineTracker.Result?
-        if input.checkHands,input.trackingFresh,let frame,!exposureFailure,
+        if input.checkHands,let failure=input.perimeter.failure {
+            handTracking.reset();handOutline = .init(obstructed:nil,reason:failure)
+        } else if input.checkHands,input.trackingFresh,let frame,!exposureFailure,
            aligned != nil || BoardAlignmentGate.likelyObstruction(alignmentReport) {
-            handOutline=handTracking.observe(HandOutlineSampling.sample(frame,calibration:aligned ?? calibration,observation:rawResult),
+            handOutline=handTracking.observe(HandOutlineSampling.sample(frame,calibration:aligned ?? calibration,observation:rawResult,boundary:input.perimeter.boundary),
                 pose:handPose,at:trackingTime,source:input.handTimestampSource)
         } else {handTracking.reset();handOutline=nil}
-        let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size)
+        let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size,boundary:input.perimeter.boundary)
         var emptyLighting=input.emptyLighting
         if let raw=result,let frame,let aligned {
             result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,

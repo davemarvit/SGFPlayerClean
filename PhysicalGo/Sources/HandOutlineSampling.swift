@@ -1,7 +1,7 @@
 import Foundation
 
 enum HandOutlineSampling {
-    static func sample(_ frame:GrayFrame,calibration:BoardCalibration,observation:BoardObservation?=nil)->HandOutlineFrame {
+    static func sample(_ frame:GrayFrame,calibration:BoardCalibration,observation:BoardObservation?=nil,boundary:HandBoardBoundary?=nil)->HandOutlineFrame {
         let n=Int((Double(calibration.size-1)+2*HandOutlineFrame.margin)*HandOutlineFrame.scale)+1
         var pixels=[HandOutlineFrame.Pixel]();pixels.reserveCapacity(n*n)
         for row in 0..<n {for col in 0..<n {
@@ -27,6 +27,6 @@ enum HandOutlineSampling {
                 $0.row==shape.row && $0.col==shape.col && $0.occupancy == .white && $0.confidence>=0.95
             }) == true
         }.map {HandOutlineFrame.WhiteStone(x:$0.center.x,y:$0.center.y,radiusX:$0.radiusCol,radiusY:$0.radiusRow)}
-        return .init(width:n,cells:calibration.size,pixels:pixels,whiteStones:stones)
+        return .init(width:n,cells:calibration.size,pixels:pixels,whiteStones:stones,boundary:boundary)
     }
 }

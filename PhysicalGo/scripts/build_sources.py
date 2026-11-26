@@ -3,10 +3,11 @@ from pathlib import Path
 
 DEPENDENCIES = {
     'Sources/HandMotionTiming.swift': ('Sources/HandBoardBoundary.swift',),
+    'Sources/WoodenBoardPerimeter.swift': ('Sources/HandBoardBoundary.swift','Sources/BoardVision.swift'),
     'Sources/PhysicalLaserGuidance.swift': ('Sources/PhysicalGuidanceRecovery.swift','Sources/PhysicalMotorAdmission.swift','Sources/PhysicalLatencyTrace.swift'),
     'Sources/AIRecognitionTrace.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift','Sources/PlacementAmbiguityDiagnostic.swift'),
     'Sources/PhysicalAI.swift': ('Sources/PhysicalAICheckingProgress.swift','Sources/AIRecognitionTrace.swift','Sources/PhysicalCaptureGuidance.swift','Sources/PhysicalLatencyTrace.swift','Sources/PhysicalIllegalMoveWarning.swift','Sources/PhysicalAIPracticePosition.swift'),
-    'Sources/ExperimentModel.swift': ('Sources/PhysicalAIMoveClick.swift',),
+    'Sources/ExperimentModel.swift': ('Sources/PhysicalAIMoveClick.swift','Sources/WoodenBoardPerimeter.swift'),
     'Sources/PhysicalAIMoveClick.swift': ('Sources/StonePlacementAudio.swift','Sources/PhysicalLatencyTrace.swift'),
     'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift','Sources/StoneTurnAppearance.swift'),
     'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
@@ -17,7 +18,7 @@ DEPENDENCIES = {
     'Sources/BoardHandDetector.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/LocalClockEngine.swift': ('Sources/HandMotionTiming.swift',),
     'Sources/RecordingRecoveryGuidance.swift': ('Sources/BoardCoordinates.swift', 'Sources/BoardOrientation.swift'),
-    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift','Sources/KnownEmptyLighting.swift'),
+    'Sources/CameraAnalysisPipeline.swift': ('Sources/BoardHandDetector.swift','Sources/HandOutlineSampling.swift','Sources/BoardAlignmentGate.swift','Sources/KnownEmptyLighting.swift','Sources/WoodenBoardPerimeter.swift','Sources/PhysicalLatencyTrace.swift'),
     'Sources/BoardVision.swift': ('Sources/BoardAppearanceDetector.swift', 'Sources/LightingCompensation.swift', 'Sources/HandMotionTiming.swift'),
     'Sources/MoveObservationHistory.swift': ('Sources/PlacementAlternatives.swift',),
     'Sources/BoardRectifier.swift': ('Sources/GridLineAspectEstimator.swift',),
