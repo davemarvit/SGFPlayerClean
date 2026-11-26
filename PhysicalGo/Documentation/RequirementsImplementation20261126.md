@@ -1,6 +1,6 @@
 # Requirements implementation batch — November 26, 2026
 
-Dave authorized reasonable implementation of both requirement audits after a brief attended baseline, with interaction review rather than indiscriminate limit increases. Working interval: **08:13:43–16:13:43 UTC** (00:13–08:13 PST). Expected brief return around08:33 UTC is a planning estimate, not READY. Root alone owns app/UI/camera/controller, installation and physical testing. All unattended work is offline. No issue is closed merely because implementation or offline tests finish.
+Dave authorized reasonable implementation of both requirement audits after a brief attended baseline, with interaction review rather than indiscriminate limit increases. Working interval: **08:13:43–16:13:43 UTC** (00:13–08:13 PST). Expected brief return around08:33 UTC is a planning estimate, not READY. Root alone owns app/UI/camera/controller, installation and physical testing. Worker implementation/testing is offline. Dave additionally authorized root-only final installation, sole-app paused relaunch and camera-only readiness checks with controller OFF; no motor/light activity without fresh user go-ahead/READY. No issue is closed merely because implementation or offline tests finish.
 
 ## Source and evidence boundary
 
@@ -12,7 +12,7 @@ Dave authorized reasonable implementation of both requirement audits after a bri
 
 **Recording preservation:** root reviewed retained camera-only frames338/374/393 and kept all393 frames. The final frame contains relevant outside-wood changes on the left chair, so no redundant final tail was established. Exact failure camera frames34694/35013 are absent from this recording; nearest frames are304(camera34695) and337(camera35011), respectively. They must not be presented as exact failure pixels. [Baseline recording review](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/baseline-recording-review.json>). No desktop screenshot was taken.
 
-**Latest physical boundary:** the user subsequently requested one unchanged-baseline O17 replay. Run1795683385102670000 seq38 crossed0.20 at0.20074545cell after only three same-pose observations; root verified full OFF1795683450.8051615/close1795683450.82144. User has left until morning, recording stopped, O17empty/nine stones preserved. [Latest attended replay outcome](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/attended-replay/outcome.json>). Heavy offline jobs resumed; no further physical work without a new attended authorization/READY.
+**Latest physical boundary:** the user subsequently requested one unchanged-baseline O17 replay. Run1795683385102670000 seq38 crossed0.20 at0.20074545cell after only three same-pose observations; root verified full OFF1795683450.8051615/close1795683450.82144. User has left until morning, recording stopped, O17empty/nine stones preserved. [Latest attended replay outcome](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/attended-replay/outcome.json>). Heavy offline jobs resumed; no further motor/light activity without fresh user go-ahead/READY. Root-only camera readiness/installation is separately authorized below.
 
 ## Owner ledger and implementation boundaries
 
@@ -72,3 +72,15 @@ Root relays sibling-owner contracts where tool routing fails. Final one-owner ad
 4. Final approximately2.5hours: independent review, root combined tests/timing/paired acceptance, signed native build if needed, coherent final installation and hash/game preservation verification. Record accepted/installed changes and every deferred suggestion with a concrete evidence or interaction reason. An eight-hour budget is not a reason to install a failing combination.
 
 Deferred unless new measured evidence justifies them: firmware/thermal limits, light55/60s bounds, camera exposure/drain reduction, consensus shortening, broad geometric uncertainty or blanket lease/age increases. Offline measurement/design may make these executable; otherwise document the missing observation and next bounded experiment. The user authorized reasonable implementation, not changing every audited constant. Physical acceptance that cannot be established offline remains explicitly open after installation.
+
+## Required final installation and morning readiness
+
+Dave explicitly requested the reviewed update be **installed**, with the app ready to start the laser within roughly a minute after the morning go-ahead. Preparing an uninstalled branch does not complete this batch. Root owns every item below; workers remain offline.
+
+- Freeze final source/version/manifest/profile pins; finish independent source and interaction reviews, relevant full native/host suites, timing/negative controls, signed build and mandatory paired acceptance. No pending build/review/packaging task should be left for the user at kickoff. Document deferred proposals and remaining physical acceptance separately.
+- Install the exact reviewed pair together, preserve rollback/source tags, all game/setup/model/binding/profile artifacts and qualified durable-anchor provenance. Verify installed hashes and import paths, including new helper modules.
+- Reopen exactly one installed app, paused, with appropriate native trace environment. Root may perform camera-only connection/alignment/preflight checks. Preserve nine stones and empty/pending O17. Keep controller OFF; no motor/light operation is authorized during unattended preparation.
+- Prepare the exact immutable launcher and its current receipt/port identity; no old PTY or hardware owner should remain. Leave clear morning instructions requiring fresh user go-ahead/READY and the launcher's fresh post-READY checks, not a pre-consumed overnight READY.
+- Retain a durable readiness receipt with installed pins, single app identity, camera/preflight result, saved-game state, controller/launcher state and the concise next action. Update checklist/handoff; no source-only status may be mistaken for installed readiness.
+
+Based on existing fresh alignment/admission/aiming timings, about30–45s from go-ahead is a reasonable planning estimate if no new faults occur, not a guarantee. Fresh environmental changes or failed checks still require honest recovery; do not remove verification to meet the estimate.
