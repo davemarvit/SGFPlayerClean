@@ -128,7 +128,7 @@ incident's 25-second delay.
 | Optical expiry helper/seams `943188b` | Source approved; recovery integration pending | Inclusive 600 ms ceiling and four original clocks preserved. Invalid/future clocks remain ordinary failure. All three expiry seams precede anchor/certificate publication. Owner reports 18 focused tests; source/tests inspected. Outer recovery is not supplied by this commit. |
 | Native terminal ordering `ef22e4e` | Source approved pending queued native guidance tests | Valid active/OFF receipt consumed before timeout; invalid thermal terminal receipt still fails. |
 | Host admission/status `0fb532c` | Source approved pending paired native checks | Actual thermal token/generation/epoch published additively; GA-only receipt wait 14 s, others 12 s; no ambiguous-command retry. Owner reports 17 focused checks. |
-| Native admission grace `ba36928` | Changes requested | Healthy firmware state-epoch changes during axis engagement permanently disqualify grace; source counterexample below. |
+| Native admission grace `ba36928` + repair `4b180f4` | Source approved pending queued native guidance tests | Reported healthy state-epoch defect corrected. Fixed token/generation, advancing epoch reseeds liveness, no episode/deadline reset. Owner reports 312,346 pure assertions; not independently rerun during baseline. |
 
 ### Admission state-epoch counterexample
 
@@ -147,6 +147,14 @@ two-sample progress, without changing the original cold origin or 16-second cap.
 Epoch regression, replaced session/generation and stale/invalid evidence still
 deny grace. Add a firmware-style multi-epoch positive control. This is a functional
 reliability defect in the proposed grace, not an unsafe authority expansion.
+
+**Resolved in `4b180f4`:** implementation now fixes token/control generation,
+accepts strictly advancing epoch as a new liveness segment, and requires its next
+advancing same-epoch sample without resetting the cold origin. Pure tests include
+B epochs2→3→4 and regression rejection. Source approval includes the correction;
+the uncorrected `ba36928` alone is not approved. A state transition exactly at the
+12-second boundary can still conservatively deny grace before the second sample;
+this is an explicit provisional policy limitation to observe, not a physical law.
 
 Offline approval will identify source revisions and evidence explicitly. It does
 not establish physical reliability, installation, a sustained-light acceptance
