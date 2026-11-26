@@ -1319,3 +1319,65 @@ exception identity and rejection before controller identity/Popen. Owner reports
 29 launcher tests passed; reviewer inspected source/tests without hardware or
 additional builds. No source blocker to separate integration. This receipt does
 not claim the follow-up has been installed.
+
+
+## Durable observed acquisition hint — source approval
+
+Approved1324c813b6a2e4c5db6b7c8ea9425c8974515039 plus frozen follow-up
+0902aef81535b07c474624805f6192ab01cbfc19 in durable-feedback-anchor. No remaining
+source blocker; root's final combined tests and timing replay remain required.
+Reviewer inspected source and focused regressions without devices/builds.
+
+The new store retains only an independently observed, successfully gate-published
+sample, not a target prediction or current admission. Publication sequence is
+assigned under the existing gate/session checks; one daemon owns one replaceable
+pending snapshot and atomic file replacement. Out-of-order offers cannot replace
+newer publications. Startup reads one checksummed file bounded to64KiB before
+controller admission. No file writes, fsync or thread join enter observation,
+OFF or shutdown paths. Failure can lose a hint but cannot authorize motion.
+
+Identity uses existing commissioned binding/setup/model fingerprint, reference,
+response source hashes, camera/context and dimensions. Game/producer/epoch remain
+historical provenance; this is intentionally a physical-setup-scoped hint across
+process/game identities, never an old lease, session, clearance or target truth.
+Fresh dark registration, supervised controller admission, actual encoder8/5-count
+check and response support/envelope are unchanged. approach() first reacquires a
+fresh optical observation before any predicted or correction movement.
+
+Review found an edge-clearance issue in the first draft: historical reference
+pixels were not related to a newly qualified dark H after board/camera movement.
+The repair persists the original observation H and, at the actual prelight
+boundary, tests all four conditional0..2-axis response vertices through
+inv(H_new)*H_old with finite positive projective denominators and unchanged10px
+headroom. Original and mapped envelopes must both fit; no silent rebasing occurs.
+Root identified that the in-memory cache has the same inter-operation history;
+0902aef applies the same first-light guard to memory and disk hints. Only successful
+fresh optical publication clears historical mode. This does not distinguish
+arbitrary unseen independent camera/laser mount changes; existing physical
+identity/alignment assumptions remain, and no unconditional physical proof is claimed.
+
+The offline importer supports only source-pinned193b10c control flow. A bare
+feedback_observation event is insufficient because it precedes gated publication.
+It requires the following same-worker POSE as evidence the read completed its
+gate, fresh causal pose data, preceding qualified H, matching commissioned and
+controller identities, and closed full-OFF provenance. Result, source flow,
+manifest, launcher and shutdown hashes are attached. No binding/model is edited.
+Reviewer independently inspected retained seq44: frame21425 at2074407.406149375
+measured pose[1801,2344], reference spot[675.4652709960938,328.3741455078125]; the
+following POSE at2074407.406465458 returned the same pose, with no later worker
+movement command. This is historical evidence only; current dark/pose/optical
+checks remain mandatory. Root owns the final reviewable import artifact and install.
+
+Owner reports11 dedicated persistence/publication/startup/geometry tests,
+70 existing feedback tests and18 hardware tests passed. Regressions include
+cancellation before publication, out-of-order offers, stalled writer/nonblocking
+close, owned snapshots, corrupt/partial/mismatched records, atomic failed replace,
+disk and memory startup/drift, projective envelope and pre-SWEEP edge rejection.
+The retained lit replay now exercises real record creation and store.offer with
+an explicitly no-op writer; root will measure the final combined path.
+
+Reviewed SHA256 pins:
+- bridge_feedback.py: a108dcf162cea1e733ebaa0b4c35257418e5ebb0a6429e20a1d46671373b8101
+- bridge_hardware.py: a0d2e4b5210d86ff91983e975cfd6459fbc3e11315823c9b3d73406d81df6812
+- feedback_anchor_store.py: 15cc0614b4aea3ab7cfab6a5e9899d27b57d0396594c2762824e7fe3c0a8a710
+- import_feedback_anchor.py: 4ff971536c9dbcede19deed3c0e242d67b6b3d1f384c29f873a159989a9e4bfb
