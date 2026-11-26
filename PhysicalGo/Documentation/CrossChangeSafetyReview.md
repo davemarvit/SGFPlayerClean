@@ -1075,3 +1075,39 @@ original read_spot and passes with an eligible already-arrived pair using inject
 time. It demonstrates removal of a serial dependency, not replay of missing
 failed pixels or measured new physical latency. Detector CPU optimization is a
 separate review. No installation or physical acceptance is claimed here.
+
+
+## Exact optical work budget — ac2b1a8 plus 5a95218
+
+Independent source/artifact review approves detectorac2b1a8 and evidence/test
+correction5a95218. The detector constructs the same full-resolution admission
+mask and processes its bounding rectangle, retaining the original even2x2 block
+origin. Only exterior pixels already masked to zero disappear. Global integer
+coordinate sums reconstruct component centroids before division; component area,
+ordering, consensus, newest support and final weighted centroid remain unchanged.
+The seven-frame uint8 median uses a fixed comparison network; binary exhaustion
+and other dtype/count fallback checks preserve exact output. Small per-frame
+read/decode/verification timing records add attribution, not evidence authority.
+
+Owner caught and repaired an odd-origin equal-area label-order issue before
+freeze. Reviewer requested and inspected all-candidate comparison across the
+connected-component parallel row threshold, so an unchanged rejection cannot
+hide reordered competitors. Reviewer independently matched both benchmark
+source hashes and17 historical input hashes. Owner reports105 combined checks
+and18 focused checks after the final evidence correction. No heavy benchmark
+was independently rerun.
+
+Reviewer found the frozen README incorrectly described one OpenCV thread; the
+artifact actually recorded ten despite requesting one. Follow-up5a95218 records
+requested1/reported10, corrects the README and makes the row-threshold regression
+use actual reported concurrency. Runtime bytes and measured timing values are
+unchanged. Final historical five-frame image work is102.46→46.27 ms; seven-frame
+work is432.62→49.90 ms. Full-board search gains little. These are retained-image
+CPU comparisons with exact outputs, not frame1605, a single-thread benchmark or
+a live timing guarantee. Collection/decoding/current geometry/motor work are
+excluded and the600 ms safety limit remains unchanged.
+
+No remaining source blocker was found across standby6c11b8f, causal posec235548
+and detectorac2b1a8+5a95218. Root still owns combined host/paired acceptance and
+packaging; these reviews do not authorize hardware testing or claim sustained
+physical play. No reviewer camera, UI, device or installation activity occurred.
