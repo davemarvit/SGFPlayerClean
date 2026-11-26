@@ -1250,3 +1250,57 @@ the constructor-integration budget condition, within the same explicitly
 simulated evidence limits. Final full-host and paired acceptance are still
 running under root; source approval is for host4ca1241 and nativefb4697c plus
 corrected profile28bc46ff…5cd55a7, not permission to skip those checks.
+
+
+## Gameplay registration budget — final source approval
+
+Approved candidate f2721507363d40fbfad69178513cd7ddc3b8c066 and integrated
+511131b2e312ad5f0a735365947d5284ee4586aa. Reviewer independently byte-matched
+runtime dark_geometry_registration.py and verified SHA256
+b3e5a31f230738fda33090f3ab11d3ed78dbe521d02987c4de33fda0e558ec78, plus all five
+artifact hashes in Experiments/GameplayGeometryBudget/review.json. No remaining
+source blocker for this explicitly user-authorized gameplay tolerance policy.
+
+The only runtime change replaces the inherited .5px median / 1px p95 dark-fit
+residual limits with median min(1px, .025 cell) and p95 min(2px, .05 cell).
+Cell spacing is the smallest neighboring-intersection spacing across both
+reference and transformed current grids. This is a deliberate policy change,
+not an assertion of equivalent thresholds. The nominal .20 native agreement +
+.20 final aiming + .05 fit allocation leaves .05 cell before half-cell identity;
+p95 is statistical and does NOT establish a hard per-target error bound.
+ORB fit consistency, source-footprint support, forward/backward tracking,
+quadrant/edge coverage, 25px transform gate, native-grid agreement, temporal
+motion limits, final .20-cell aiming, 5px clearance and freshness remain unchanged.
+The experimental dense feature fallback is not included.
+
+Exact retained preflight frame1762 has minimum cell spacing31.69155px, giving
+median/p95 limits .79229/1.58458px. Its original first ECC proposal has median
+.30330px and p95 1.03399px, with41 contained ORB inliers and native-grid error
+4.29249px. Owner-run evidence records23/23 actual retained frames accepted on
+the first ECC proposal,13 old controls with nine accepts/four rejects,12 exact
+outside-wood parity cases and17 focused tests. Reviewer inspected the frozen
+source, controls and evidence hashes; no reviewer hardware or benchmark run.
+Near-budget controls distinguish intended tolerance: coherent .65px and local
+1.2px pass the new allocation, while coherent .95px and local1.9px still reject.
+
+Important inherited limitation: local4px and32px synthetic warps can lose
+moving LK tracks and pass BOTH baseline and candidate remaining-support tests.
+These cases are explicitly retained in baseline_controls.py and review.json;
+they are not claimed safe or hidden by a p95 guarantee. This separate sparse
+visibility limitation is recorded for the broader spatial audit. The current
+approval does not claim validation of every board pixel or intersection.
+
+Root reports final exact511131b checks passed:1206 host tests with57 skips,
+eight of eight lit-renewal replays (maximum approximately566ms, below unchanged
+600ms), and mandatory paired acceptance. Receipt:
+work/lit-geometry-20261125/dark-fit-repair/checks.json. These are root-run checks;
+reviewer performed source/artifact inspection only. Native remains0.268.
+Physical preflight/admission remains root-owned and separate from source approval.
+
+Also reviewed and approved preceding bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc:
+its sole change fixes the renewal test's transforms call to use the binding's
+actual board_polygon rather than the printed-grid polygon. It preserves the
+source-identity assertion and separate grid-mask tests; production bytes are
+unchanged from previously approved4ca1241. Root completed its tests before
+installation. The later frame1762 failure occurred during camera preflight
+before controller opening; no physical success is inferred from this review.
