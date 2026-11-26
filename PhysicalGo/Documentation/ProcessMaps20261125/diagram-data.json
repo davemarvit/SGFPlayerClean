@@ -578,7 +578,7 @@
         "w": 300,
         "h": 96,
         "title": "Host coordinator + worker",
-        "body": "Generation + evidence revalidation\nMemory save \u2260 final wire publication",
+        "body": "Generation + evidence revalidation\nWire proof keeps original source ages",
         "kind": "process"
       }
     ],
@@ -759,7 +759,7 @@
         "w": 300,
         "h": 96,
         "title": "Resolve assignment",
-        "body": "Unique new-stone assignment\nQualified EMPTY proof is separate",
+        "body": "Unique new-stone assignment\nPG23: qualified EMPTY (forthcoming)",
         "kind": "gate"
       },
       {
@@ -819,7 +819,7 @@
         "w": 300,
         "h": 96,
         "title": "Host aims / holds dot",
-        "body": "Aim / hold / recover same target\nNative click: accepted adequate only",
+        "body": "Aim / hold / recover same target\nCue needs fresh proof (forthcoming)",
         "kind": "process"
       },
       {
@@ -1438,7 +1438,7 @@
         "w": 300,
         "h": 96,
         "title": "Current adequate publication",
-        "body": "Same-sample age / pose / hand checks\nAt authoritative publication boundary",
+        "body": "Same-sample age / pose / hand checks\nCue age recheck is forthcoming",
         "kind": "gate"
       },
       {

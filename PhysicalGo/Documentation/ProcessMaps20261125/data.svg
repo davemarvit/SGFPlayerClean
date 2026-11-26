@@ -85,6 +85,7 @@
 <g data-node="status"><rect x="400" y="840" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="867">Host coordinator + worker</text>
 <text class="node-body" x="414" y="894">Generation + evidence revalidation</text>
-<text class="node-body" x="414" y="915">Memory save ≠ final wire publication</text>
+<text class="node-body" x="414" y="915">Wire proof keeps original source ages</text>
 </g>
+<text x="30" y="1100" style="font-size:12px;fill:#5e6c7d">FULL-BATCH SOURCE CANDIDATE · native d014c63 / host 74d0b83 · Installed limited pair: fb4697c / 8ce91a1</text>
 </svg>

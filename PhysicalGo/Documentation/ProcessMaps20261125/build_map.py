@@ -92,19 +92,19 @@ diagram('data','3 · Camera, processing and file boundaries','Parallel lanes pre
  n('io',400,630,'Request / status IO queues','One read + one write in flight\nOne replaceable pending request','store'),
  n('reader',50,840,'Host optical worker','Read matching PNG + manifest\nCheck four ages ≤600 ms','gate'),
  n('supervisor',750,630,'Host safety supervision','Hand / camera / lease / thermal\nCan revoke busy optical worker'),
- n('status',400,840,'Host coordinator + worker','Generation + evidence revalidation\nMemory save ≠ final wire publication'),
+ n('status',400,840,'Host coordinator + worker','Generation + evidence revalidation\nWire proof keeps original source ages'),
 ],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','status'),e('io','status','lease / receipt'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','io','fresh ack',[(725,888),(725,678)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34'])
 
 diagram('gameplay','4 · AI game and physical placement','The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.',1170,[
  n('resume',50,30,'Start / explicit Resume','Restore accepted save + clocks\nVerify physical board matches'),
  n('observe',50,210,'Admit observation','Current context; clear and aligned\nConfirmed dark + post-dark frame','gate'),
- n('ambiguity',50,390,'Resolve assignment','Unique new-stone assignment\nQualified EMPTY proof is separate','gate'),
+ n('ambiguity',50,390,'Resolve assignment','Unique new-stone assignment\nPG23: qualified EMPTY (forthcoming)','gate'),
  n('stable',50,570,'Collect stable witnesses','≥3 distinct frames spanning 450 ms\nGaps >600 ms reset continuity','gate'),
  n('legal',50,750,'Accept legal human move','Rules + captures → history/save\nClock ownership changes here'),
  n('ai',400,750,'Ask KataGo','Normal or fast-test settings\nRetained idle worker in fast mode'),
  n('commit',750,750,'Commit AI answer','Validate move; save decision time\nSet pendingPlacement; switch turn'),
  n('request',750,570,'Select physical guidance','Placement → capture → centering\nKeep pre-placement referenceCells'),
- n('aim',750,390,'Host aims / holds dot','Aim / hold / recover same target\nNative click: accepted adequate only'),
+ n('aim',750,390,'Host aims / holds dot','Aim / hold / recover same target\nCue needs fresh proof (forthcoming)'),
  n('human',750,210,'Human places / removes','Hand or stone suspicion darkens\nLit evidence cannot confirm a move'),
  n('match',400,570,'Expected board now matches?','Pending placement / cleanup ends\nOnly after admitted stable evidence','gate'),
  n('wait',400,390,'Unclear / halfway / illegal','Wait or show correction markers\nNever silently alter legal history'),
@@ -137,7 +137,7 @@ diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Typ
  n('fresh',400,420,'Same operation / current proof','Original target, token and session\nOnly acknowledged own RS may advance','gate'),
  n('fit',750,420,'Qualify replacement geometry','Three newer dark frames; validate\nInstall only after replacement passes','gate'),
  n('hint',750,620,'Historical containment only','Old sample/H grants no movement\nFresh pose + full-board spot required'),
- n('adequate',400,820,'Current adequate publication','Same-sample age / pose / hand checks\nAt authoritative publication boundary','gate'),
+ n('adequate',400,820,'Current adequate publication','Same-sample age / pose / hand checks\nCue age recheck is forthcoming','gate'),
  n('lease',50,620,'Shared finite recovery episode','≤30s provisional wall cap\nNested retries never restart it','gate'),
  n('failure',50,1020,'Any unqualified failure','Unknown hand/spot, lost lease,\ntransport, identity or exhausted work','fault'),
  n('cancel',400,1020,'Revoke → quiesce → full OFF','Coordinator owns stop + receipt\nNo transport writes inside validators'),
@@ -212,6 +212,7 @@ def svg(d):
         for j,line in enumerate(v['body'].split('\n')):
             parts.append(f'<text class="node-body" x="{v["x"]+14}" y="{v["y"]+54+j*21}">{esc(line)}</text>')
         parts.append('</g>')
+    parts.append(f'<text x="30" y="{d["height"]-10}" style="font-size:12px;fill:#5e6c7d">{esc(SNAPSHOT["svg_scope"])}</text>')
     parts.append('</svg>');return '\n'.join(parts)
 
 def main():

@@ -1,12 +1,13 @@
 {
   "date": "2026-11-26",
-  "state": "Candidate flow audit \u2014 not installed; final source/review pending",
+  "state": "Installed limited pair; full-batch source candidate awaits final release receipt",
   "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
-  "native_commit": "d270ee1af7b58b9591427f39f1891327778fae34",
-  "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware",
-  "host_commit": "04d2134d04e0c0e76b63122bb29e36d65c705a58",
+  "native_commit": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+  "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware",
+  "host_commit": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3",
   "installed_native": "0.268/build269 fb4697c4ef314d83a253bd0aa219de1bb6b3d61f",
-  "installed_host": "32d79115100ac082dbc100c182cc299c7e0dfaee-app0268",
-  "physical_state": "Last attended replay: O17 crossed 0.20 cell after three same-pose observations. Game paused, ten logical moves/nine physical stones, O17 pending. Full OFF1795683450.8051615. No READY pending.",
-  "release_note": "Candidate flow includes the current cached-safety guard, but actual-write/status-wire review is unresolved. Not installed. Root owns final release and paused-app readiness; these maps authorize no hardware activity."
+  "installed_host": "8ce91a17bb8e968dbb40bf0058ff5bd768b95f1c-app0268",
+  "physical_state": "Last actual full OFF1795683450.8051615 remains unchanged. Morning camera preflight passed all three checks; no fresh READY arrived before16:48:35 UTC, so the launcher was cancelled before opening the controller. No physical test of the new hold recovery occurred. Game remains paused, ten logical moves/nine physical stones, O17 pending.",
+  "release_note": "Installed limited HOST-ONLY update includes hold recovery, latest cached safety and A1 transport repair. Full-batch candidate additionally includes PG23 qualified-EMPTY receipts, qualified native16s admission and paired A2 optical cue-age proof. Those native/paired changes are not installed at this receipt. Final source approval, installation and conditional camera readiness remain root-owned.",
+  "svg_scope": "FULL-BATCH SOURCE CANDIDATE \u00b7 native d014c63 / host 74d0b83 \u00b7 Installed limited pair: fb4697c / 8ce91a1"
 }

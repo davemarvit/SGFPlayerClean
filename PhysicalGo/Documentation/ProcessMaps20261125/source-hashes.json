@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "951a3b5a6187faa57e456c563a70ecaf5805e88f45f0e31535c2a876dad5bd4b"
+    "sha256": "6c84cbc632336eec33209c94515740d03af8397cfe112bcb920130562d393d2b"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -27,7 +27,7 @@
   "S6": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraAnalysisPipeline.swift",
     "description": "Serial analysis, early safety, immutable results",
-    "sha256": "d215223ef2e26a84ac449ec4b0d928471e5c7e5737d66f6d054bc5cad83776aa"
+    "sha256": "f75ddb97ec89b5754cda17dd90b30699aa3ed2f6d3eb1f2a751df3ce6d8b2813"
   },
   "S7": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestAnalysisInput.swift",
@@ -47,60 +47,60 @@
   "S10": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalAI.swift",
     "description": "Recognition, legal commit, pending physical placement and guidance",
-    "sha256": "26dc3937bd61bef65b845b3ab1b2d314ede37b4e3b7e2a76b19b308a5876e044"
+    "sha256": "f0f2408b8a3e0e9ac2d583bc584416521ee4993e5a99a6d4922cc01eca3b2534"
   },
   "S11": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLaserGuidance.swift",
     "description": "Dark admission, leases, arming episodes, faults",
-    "sha256": "aee2c0d2e963bdeba1f13a44c305b72c295a466694d245f9ae58726221a37f3c"
+    "sha256": "65303da68f916854ff2b9fd244cb56e55c66f323b7142b9c754a15726f9f30f9"
   },
   "S12": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/Tools/launch_reviewed_feedback.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Tools/launch_reviewed_feedback.py",
     "description": "Attended READY, repeated preflight and child shutdown receipt",
     "sha256": "6990f4a0a0fca50a14c9032c0961b5f848ce8c9fa45695a237c9be65fd71d212"
   },
   "S13": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_runtime.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_runtime.py",
     "description": "Input/coordinator/supervision/worker threads and cancellation",
-    "sha256": "55a1266194a0267529fecd4bd164d82e33908a3ce59dc63795fef7dd8e6d4b5f"
+    "sha256": "ba0de8434de17244ee8d4ca84fe89a76dd7fce6ae3c3c358365d6f6a1d02848f"
   },
   "S14": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_frames.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_frames.py",
     "description": "Frame identity and independent capture/publication/arrival ages",
     "sha256": "726ca2f5b79ece93dfb328d90e7414b6c2b082df3fc9c68005b51627380aa794"
   },
   "S15": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_feedback.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_feedback.py",
     "description": "One active-work ledger, sole recovery owner, optical publication and held correction",
-    "sha256": "15b05d8a019fe20a152bbb8762102fa253bad7258b92b685079e98a6583945af"
+    "sha256": "fb354504776959564685cbb55e204da8146766e6838424545adc0f3d3bcdef45"
   },
   "S16": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_optical_geometry.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_optical_geometry.py",
     "description": "Three-frame dark baseline; independent lit certificate; coherent dark requalification",
     "sha256": "9f31561ac690b878421ac70fd35d679da1c34833db80c9ae5d4ca06d0622505e"
   },
   "S17": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_alignment.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_alignment.py",
     "description": "Fixed-anchor temporal tracking and independent correspondence proof",
     "sha256": "a10063b16a715e83a4d02412a7331dc6ba63c2756b8c2dbe18d31cd39ee8f388"
   },
   "S18": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/dark_geometry_registration.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/dark_geometry_registration.py",
     "description": "ECC proposes; independent ORB/grid geometry admits",
     "sha256": "b3e5a31f230738fda33090f3ab11d3ed78dbe521d02987c4de33fda0e558ec78"
   },
   "S19": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_setup.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_setup.py",
     "description": "Setup hashes, camera/context/size and native grid agreement",
     "sha256": "83bbe1e12a19d6e2ef5267f0f0dd6b9c2384c67c0ba1db2fdad177c37631939f"
   },
   "S20": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/feedback_predicted_acquisition.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_predicted_acquisition.py",
     "description": "Conditional model travel; fresh optical reacquisition still required",
     "sha256": "7711fdf480c93f859225cab202bdd1db2232553714f9094b7a8f2b37501d424e"
   },
   "S21": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/AimControl/AimControl.ino",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/AimControl/AimControl.ino",
     "description": "Firmware motor, heartbeat, temperature and finite light controls",
     "sha256": "f163dff26b1b435c19a8f6fa9865fd8fd8eafb673d1d0c3a2d359623a770d39b"
   },
@@ -125,27 +125,27 @@
     "sha256": "47796561265cbefb4c4e782f3967e3756b9c2c16f9d2fbc7e86fc1dbbe3c49e7"
   },
   "S26": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_lease.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lease.py",
     "description": "Generation cancellation and independently enforced lease",
-    "sha256": "1557040f1434d43132e8c9d4762463413f86dd07cdb2a89065f484ea4beda6e4"
+    "sha256": "7ce376d5591f1860c788999e9b9bdb88ab8ef1341e86f47e73843f31eb0b80fa"
   },
   "S27": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_thermal.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_thermal.py",
     "description": "Thermal supervision and causal telemetry freshness",
-    "sha256": "83503bd160ff6a832ef740f7b41f665a85e7c8cc1c1cd55be6ebc2ee51ae802e"
+    "sha256": "45289f84b134c47f6f8348ccc1495083b96b84a0ab198f97759fb62d50746e34"
   },
   "S28": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/feedback_work_budget.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_work_budget.py",
     "description": "150s shared active ledger, 25 local plans, non-resetting recovery episode",
     "sha256": "9010d452080bd78a8a283d1ed3659a8c86249f2d7bffcc0e1aff37023db7b340"
   },
   "S29": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/feedback_result_age.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_result_age.py",
     "description": "Typed finite optical-result expiry; original timestamps",
     "sha256": "4af4ead998370f69f359765ea5fba37bb92e64cd9787c5ee5165bd12d9183bb7"
   },
   "S30": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/feedback_anchor_store.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_anchor_store.py",
     "description": "Ordered background persistence of historical measured hints",
     "sha256": "15cc0614b4aea3ab7cfab6a5e9899d27b57d0396594c2762824e7fe3c0a8a710"
   },
@@ -160,18 +160,18 @@
     "sha256": "d323449f3464d16808da6a2c344b785d5f8cde3d84ec5ccdcc8dface85275ad6"
   },
   "S33": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/bridge_lit_geometry.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lit_geometry.py",
     "description": "Measured laser-only geometry exclusion and bounded optional work",
     "sha256": "04ae6997b906ead12a7cb0361c815efc57fc1e6e41fd7b655ee032e44f383898"
   },
   "S34": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/point_session.py",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py",
     "description": "Actual write-lock and before-write boundary",
     "sha256": "c1e65fd13be533618c1c2a0261789127f8a467b39bb40a9cebda2b8d1282dee6"
   },
   "S35": {
-    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware/Feedback recovery contract.md",
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md",
     "description": "Candidate one-owner recovery contract and limits",
-    "sha256": "20f2433acfa8adc2c54fa84a5f51f91e7a854b56983957e9f0d1107bd4fb1ef4"
+    "sha256": "c3e1ccda8dd319f3bf66bae57eb14201b4e64d88ddd3e2e26460beb06e712773"
   }
 }

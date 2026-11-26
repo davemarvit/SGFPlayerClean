@@ -1,6 +1,6 @@
 {
   "date": "2026-11-26",
-  "map_state": "Candidate flow audit \u2014 not installed; final source/review pending",
+  "map_state": "Installed limited pair; full-batch source candidate awaits final release receipt",
   "diagrams": 7,
   "nodes": 85,
   "connector_labels": 31,
@@ -8,12 +8,12 @@
   "font_metrics_checked": true,
   "source_count": 35,
   "source_heads": {
-    "native": "d270ee1af7b58b9591427f39f1891327778fae34",
-    "host": "04d2134d04e0c0e76b63122bb29e36d65c705a58"
+    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+    "host": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3"
   },
   "declared_source_heads": {
-    "native": "d270ee1af7b58b9591427f39f1891327778fae34",
-    "host": "04d2134d04e0c0e76b63122bb29e36d65c705a58"
+    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+    "host": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3"
   },
   "source_heads_match": {
     "native": true,

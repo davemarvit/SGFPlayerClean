@@ -22,7 +22,7 @@ def main():
     try:
         from PIL import ImageFont
         f=Path('/System/Library/Fonts/Supplemental')
-        fonts={s:ImageFont.truetype(str(f/('Arial Bold.ttf' if s==18 else 'Arial.ttf')),s) for s in (14,15,18)}
+        fonts={s:ImageFont.truetype(str(f/('Arial Bold.ttf' if s==18 else 'Arial.ttf')),s) for s in (12,14,15,18)}
     except (ImportError,OSError):pass
     diagrams=sorted(ROOT.glob('*.svg'))
     if len(diagrams)!=7:issues.append('Expected seven SVGs')
@@ -46,6 +46,13 @@ def main():
                     horizontal=a[1]==b[1] and y<a[1]<y+h and max(min(a[0],b[0]),x)<min(max(a[0],b[0]),x+w)
                     if vertical or horizontal:issues.append(f'{path.name}: connector crosses {name}')
         for text in tree.findall('.//s:text',NS):
+            if 'font-size:12px' in text.attrib.get('style','') and fonts:
+                x,y=float(text.attrib['x']),float(text.attrib['y'])
+                if x<0 or x+fonts[12].getlength(text.text or '')>vb[2] or y-12<0 or y+3>vb[3]:
+                    issues.append(f'{path.name}: release footer outside canvas')
+                for name,nx,ny,nw,nh in boxes:
+                    if nx<x+fonts[12].getlength(text.text or '') and nx+nw>x and ny<y+3 and ny+nh>y-12:
+                        issues.append(f'{path.name}: release footer overlaps {name}')
             if text.attrib.get('class')!='edge-label':continue
             labels_count+=1
             if not fonts:continue

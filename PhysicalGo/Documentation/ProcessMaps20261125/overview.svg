@@ -64,4 +64,5 @@
 <text class="node-body" x="764" y="679">Beam off + motor bus released</text>
 <text class="node-body" x="764" y="700">Retain game and pending move</text>
 </g>
+<text x="30" y="780" style="font-size:12px;fill:#5e6c7d">FULL-BATCH SOURCE CANDIDATE · native d014c63 / host 74d0b83 · Installed limited pair: fb4697c / 8ce91a1</text>
 </svg>

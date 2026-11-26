@@ -63,7 +63,7 @@
 <g data-node="adequate"><rect x="400" y="820" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="414" y="847">Current adequate publication</text>
 <text class="node-body" x="414" y="874">Same-sample age / pose / hand checks</text>
-<text class="node-body" x="414" y="895">At authoritative publication boundary</text>
+<text class="node-body" x="414" y="895">Cue age recheck is forthcoming</text>
 </g>
 <g data-node="lease"><rect x="50" y="620" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="647">Shared finite recovery episode</text>
@@ -95,4 +95,5 @@
 <text class="node-body" x="414" y="1454">Preserve pending move and clocks</text>
 <text class="node-body" x="414" y="1475">Hardware recovery cannot resume game</text>
 </g>
+<text x="30" y="1520" style="font-size:12px;fill:#5e6c7d">FULL-BATCH SOURCE CANDIDATE · native d014c63 / host 74d0b83 · Installed limited pair: fb4697c / 8ce91a1</text>
 </svg>
