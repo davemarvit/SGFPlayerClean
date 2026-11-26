@@ -88,7 +88,7 @@ import Foundation
             grace.reduce(event)
             check(grace.armingStartedAt==100 && grace.armingTimedOut(now:116,transientRecovery:false,currentMonitor:monitor(4,115.8)),"Requests/revisions/arming ticks never restart envelope")
         }
-        for bad in [monitor(3,111.7,session:"ABCDEF02"),monitor(3,111.7,generation:2),monitor(3,111.7,epoch:2),monitor(2,111.8),monitor(4,111.6)] {
+        for bad in [monitor(3,111.7,session:"ABCDEF02"),monitor(3,111.7,generation:2),monitor(2,111.8),monitor(4,111.6)] {
             var a=progressing();a.observeMonitor(bad,now:111.9)
             a.observeMonitor(monitor(5,111.95),now:112)
             check(a.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(5,111.95)),"Controller replacement/regression cannot rebuild grace in same episode")
@@ -98,6 +98,17 @@ import Foundation
             for sample in samples {a.observeMonitor(sample,now:111.8)}
             check(a.armingTimedOut(now:112,transientRecovery:false,currentMonitor:samples.last),"Replay, pre-episode or unchanged causal bound cannot earn grace")
         }
+        var phases=Admission();phases.reduce(.motorRequest(at:100))
+        phases.observeMonitor(monitor(2,110.1,epoch:2),now:110.2)
+        phases.observeMonitor(monitor(3,110.6,epoch:3),now:110.7)
+        phases.observeMonitor(monitor(4,111.1,epoch:4),now:111.2)
+        check(phases.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(4,111.1,epoch:4)),"Epoch changes reseed liveness without manufacturing a second same-state sample")
+        phases.observeMonitor(monitor(5,111.6,epoch:4),now:111.7)
+        check(!phases.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(5,111.6,epoch:4)),"Ordinary B torque-enable epochs2→3→4 permit grace after two fresh same-state samples")
+        check(phases.armingStartedAt==100,"State-epoch progress never restarts cold episode")
+        phases.observeMonitor(monitor(6,111.8,epoch:3),now:111.9)
+        phases.observeMonitor(monitor(7,111.9,epoch:4),now:112)
+        check(phases.armingTimedOut(now:112,transientRecovery:false,currentMonitor:monitor(7,111.9,epoch:4)),"Regressing state epoch permanently denies same-episode grace")
         let stale=progressing()
         check(stale.armingTimedOut(now:112.6,transientRecovery:false,currentMonitor:monitor(3,111.7)),"Stale sample/progress never extends grace")
         var resetGrace=progressing();resetGrace.reduce(.confirmedFullOFF);resetGrace.reduce(.motorRequest(at:112))

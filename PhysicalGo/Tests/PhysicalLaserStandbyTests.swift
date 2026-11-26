@@ -252,12 +252,14 @@ import Foundation
   }
   let liveAdmission=try beginArming("live-monitored-admission")
   for sample in 2...29 {
-   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample)
+   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample,mutate:{d in
+    d.thermal?.controllerEpoch=sample==2 ? 2:sample==3 ? 3:4
+   })
   }
   check(!liveAdmission.holdingInterrupted && request(liveAdmission).action=="standby","Fresh same-controller monitoring permits dark admission beyond12s")
   check(!liveAdmission.acceptsObservation(capturedAt:clock.now,now:clock.now),"Admission grace is never board observation or illumination authority")
   for sample in 30...34 {
-   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample)
+   clock.now+=0.4;clock.wall+=0.4;frame(liveAdmission);try monitoredArming(liveAdmission,sample,mutate:{$0.thermal?.controllerEpoch=4})
   }
   check(liveAdmission.holdingInterrupted && request(liveAdmission).action=="off","Monitoring cannot extend the original16s admission ceiling")
   for invalid in ["old-sequence","controller-session","controller-generation","controller-epoch","stale-thermal","unconfirmed-dark"] {
