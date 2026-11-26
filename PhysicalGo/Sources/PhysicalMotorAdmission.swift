@@ -21,7 +21,7 @@ struct PhysicalMotorAdmission {
             (1...9_999_999).contains(sequence) && acquiredAfter.isFinite
         }
         func sameController(_ other:Monitor)->Bool {
-            session==other.session && generation==other.generation && epoch==other.epoch
+            session==other.session && generation==other.generation
         }
     }
     private var lastMonitor:Monitor?
@@ -37,13 +37,19 @@ struct PhysicalMotorAdmission {
               sample.acquiredAfter>=since,sample.acquiredAfter<=now,
               now-sample.acquiredAfter<=0.75,!monitorRejected else {return}
         if let previous=lastMonitor {
-            guard sample.sameController(previous),sample.sequence>=previous.sequence else {monitorRejected=true;return}
-            if sample.sequence==previous.sequence {return}
+            guard sample.sameController(previous),sample.sequence>=previous.sequence,
+                  sample.epoch>=previous.epoch else {monitorRejected=true;return}
+            if sample.sequence==previous.sequence {
+                if sample.epoch != previous.epoch {monitorRejected=true}
+                return
+            }
             if sample.sequence>previous.sequence {
                 // An advancing sequence with an unchanged causal lower bound
                 // is not new monitor evidence.
                 guard sample.acquiredAfter>previous.acquiredAfter else {monitorRejected=true;return}
-                monitorAdvancedAt=now
+                // Firmware state epoch advances during ordinary torque/phase
+                // changes. Re-seed liveness in that state, never the deadline.
+                monitorAdvancedAt=sample.epoch==previous.epoch ? now:nil
             }
         }
         lastMonitor=sample
@@ -87,7 +93,7 @@ struct PhysicalMotorAdmission {
         // envelope over the firmware's unchanged12s engagement bound. Only
         // live, causally advancing dark monitoring earns it; no timer resets.
         let sameSample = currentMonitor.flatMap {current in lastMonitor.map {
-            current.valid && current.sameController($0) && current.sequence==$0.sequence
+            current.valid && current.sameController($0) && current.epoch==$0.epoch && current.sequence==$0.sequence
         }} == true
         let grace = !monitorRejected && sameSample &&
             monitorAdvancedAt.map {now >= $0 && now-$0<=0.75}==true &&
