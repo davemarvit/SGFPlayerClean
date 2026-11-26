@@ -265,8 +265,46 @@ struct IntersectionReading: Codable, Equatable {
     let delta: Double
 }
 
+/// Positive, current-pixel support for an exposed intersection. The reference
+/// locates its printed rails; accepted game labels never create this evidence.
+struct EmptyCrossingSupport: Codable, Equatable {
+    let woodMatches:Int
+    let woodSamples:Int
+    let railMatches:[Int]
+    let railSamples:[Int]
+    let innerMatches:Int
+    let innerSamples:Int
+    var isComplete:Bool {
+        guard woodSamples>=16,woodMatches<=woodSamples,
+              Double(woodMatches)/Double(woodSamples)>=0.75,
+              railMatches.count==2,railSamples.count==2,
+              innerSamples==4,innerMatches==4 else {return false}
+        return (0..<2).allSatisfy {
+            railSamples[$0]>=2 && railMatches[$0]<=railSamples[$0] &&
+            Double(railMatches[$0])/Double(railSamples[$0])>=0.75
+        }
+    }
+}
+
+struct EmptyCrossingEvidence: Codable, Equatable {
+    let frameID:UUID
+    let referenceID:UUID
+    let capturedAt:Double
+    let reading:IntersectionReading
+    let support:EmptyCrossingSupport
+}
+
 struct BoardObservation {
-    var readings: [IntersectionReading]
+    var readings: [IntersectionReading] {
+        didSet {
+            // A later label replacement must not inherit pixel proof belonging
+            // to the prior reading, even if another transform restores it.
+            if !emptyCrossingEvidence.isEmpty {
+                let current=Dictionary(readings.map {($0.row*size+$0.col,$0)},uniquingKeysWith: {_,last in last})
+                emptyCrossingEvidence=emptyCrossingEvidence.filter {current[$0.key]==$0.value.reading}
+            }
+        }
+    }
     let size: Int
     var notice: String? = nil
     var lightingBlocked = false
@@ -275,16 +313,46 @@ struct BoardObservation {
     var footprints: [StoneFootprint] = []
     var placementFits: [StoneFootprint] = []
     var fitAttempts: [StoneFitAttempt] = []
-    var manualPoints: Set<Int> = []
+    var manualPoints: Set<Int> = [] {
+        didSet {emptyCrossingEvidence=emptyCrossingEvidence.filter {!manualPoints.contains($0.key)}}
+    }
     /// Geometry-supported associations; never ground-truth training labels.
-    var trackedAssignments: [Int:Int] = [:]
-    var capturedAt:Double?=nil
+    var trackedAssignments: [Int:Int] = [:] {
+        didSet {
+            emptyCrossingEvidence=emptyCrossingEvidence.filter {trackedAssignments[$0.key]==nil && !trackedAssignments.values.contains($0.key)}
+        }
+    }
+    var capturedAt:Double?=nil {
+        didSet {emptyCrossingEvidence=emptyCrossingEvidence.filter {$0.value.capturedAt==capturedAt}}
+    }
     var handObstructed:Bool?=nil
     var clockPressEstimate:ClockPressEstimate?=nil
     var centeringEvidence:[StoneCenteringEvidence]=[]
     /// Both previously visible printed rails disappeared, with no live wood
     /// or surviving-rail contradiction. This is evidence, not a stone label.
     var coveredGridPoints:Set<Int>=[]
+    var evidenceFrameID:UUID?=nil {
+        didSet {if oldValue != evidenceFrameID {emptyCrossingEvidence=[:]}}
+    }
+    var evidenceReferenceID:UUID?=nil {
+        didSet {if oldValue != evidenceReferenceID {emptyCrossingEvidence=[:]}}
+    }
+    var emptyCrossingEvidence:[Int:EmptyCrossingEvidence]=[:]
+
+    /// This evidence has no hand, laser, target or temporal-clearance authority.
+    /// Callers must still enforce those independent admission requirements.
+    func hasFreshEmptyCrossingEvidence(at point:Int)->Bool {
+        guard size>0,(0..<size*size).contains(point),!lightingBlocked,handObstructed==false,!manualPoints.contains(point),
+              trackedAssignments[point]==nil,!trackedAssignments.values.contains(point),
+              !coveredGridPoints.contains(point),let evidence=emptyCrossingEvidence[point],
+              evidence.frameID==evidenceFrameID,evidence.referenceID==evidenceReferenceID,
+              evidence.capturedAt.isFinite,evidence.capturedAt==capturedAt,
+              evidence.reading.occupancy == .empty,evidence.support.isComplete,
+              evidence.reading.row*size+evidence.reading.col==point,
+              readings.contains(where:{$0==evidence.reading}) else {return false}
+        let crossing=ImagePoint(x:Double(point%size),y:Double(point/size))
+        return !(footprints+placementFits).contains {$0.quality>=0.78 && $0.contains(crossing,padding:0.08)}
+    }
     func centeringPoints(confirmedBoard:[Occupancy])->Set<Int> {
         guard !lightingBlocked,handObstructed != true,manualPoints.isEmpty,
               size>0,readings.count==size*size,confirmedBoard.count==readings.count else {return []}
