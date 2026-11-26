@@ -44,7 +44,7 @@ import Foundation
         let state=off ? "off":lit ? "adequate":"holding"
         let mark=PhysicalLaserGuidance.EvidenceAfter(streamEpoch:laser.frames.streamEpoch,
             frameID:UInt64(clock.frameID-1),timestampSource:"cameraPresentation")
-        let s=PhysicalLaserGuidance.DriverStatus(schemaVersion:r.schemaVersion,producer:r.producer,
+        var s=PhysicalLaserGuidance.DriverStatus(schemaVersion:r.schemaVersion,producer:r.producer,
             sequence:r.sequence,updatedAtUnix:clock.wall,mode:"hardware",state:state,
             laserOn:lit && !off,offSinceUnix:off ? clock.wall-1:nil,detail:state,
             evidenceAfter:off ? mark:nil,setupId:"marker-setup",illuminationConfirmed:lit && !off,
@@ -55,6 +55,14 @@ import Foundation
             thermal:.init(policy:"warm_hold",sampleSequence:clock.frameID,receivedAtUnix:clock.wall,
                 sampleAgeUpperMs:50,baseC:20,tiltC:21,maxBaseC:20,maxTiltC:21,
                 unavailableReason:off ? "power_off":nil))
+        s.thermal?.controllerSession="ABCDEF01";s.thermal?.controllerGeneration=1
+        if let target=r.target,let context=r.cameraContext,let epoch=r.streamEpoch {
+            s.opticalEvidence = .init(policy:"captured_optical_result_v1",producer:r.producer,
+                requestSequence:r.sequence,target:target,cameraContext:context,streamEpoch:epoch,
+                frameID:UInt64(clock.frameID),capturedAtUptime:clock.now,arrivedAtUptime:clock.now,
+                capturedAtUnix:clock.wall,publishedAtUnix:clock.wall,expiresAtUptime:clock.now+0.6,
+                expiresAtUnix:clock.wall+0.6,controllerSession:"ABCDEF01",controllerGeneration:1)
+        }
         try JSONEncoder().encode(s).write(to:laser.directory.appendingPathComponent("status.json"),options:.atomic)
         laser.tick()
     }

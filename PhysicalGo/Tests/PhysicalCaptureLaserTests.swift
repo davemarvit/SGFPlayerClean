@@ -9,7 +9,14 @@ import Foundation
   func check(_ value:Bool,_ reason:String){precondition(value,reason);checks+=1}
   func request()->PhysicalLaserGuidance.Request {try! JSONDecoder().decode(PhysicalLaserGuidance.Request.self,from:Data(contentsOf:directory.appendingPathComponent("request.json")))}
   func status(capable:Bool=true,state:String="off",lit:Bool=false,sequence:Int?=nil,requiresNew:Bool=false) throws {
-   let value=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:laser.producer,sequence:sequence ?? laser.sequence,updatedAtUnix:wall,mode:lit ? "hardware":"simulation",state:state,laserOn:lit,offSinceUnix:wall-1,detail:state,requiresNewRevision:requiresNew,illuminationConfirmed:lit,capabilities:capable ? ["capturedStoneIndication"]:[])
+   var value=PhysicalLaserGuidance.DriverStatus(schemaVersion:1,producer:laser.producer,sequence:sequence ?? laser.sequence,updatedAtUnix:wall,mode:lit ? "hardware":"simulation",state:state,laserOn:lit,offSinceUnix:wall-1,detail:state,requiresNewRevision:requiresNew,illuminationConfirmed:lit,capabilities:capable ? ["capturedStoneIndication"]:[])
+   let req=request()
+   if let target=req.target,let context=req.cameraContext,let epoch=req.streamEpoch {
+    value.opticalEvidence = .init(policy:"captured_optical_result_v1",producer:req.producer,
+      requestSequence:req.sequence,target:target,cameraContext:context,streamEpoch:epoch,frameID:1,
+      capturedAtUptime:now,arrivedAtUptime:now,capturedAtUnix:wall,publishedAtUnix:wall,
+      expiresAtUptime:now+0.6,expiresAtUnix:wall+0.6,controllerSession:"ABCDEF01",controllerGeneration:1)
+   }
    try JSONEncoder().encode(value).write(to:directory.appendingPathComponent("status.json"),options:.atomic);laser.tick()
   }
   func frame(){now+=0.25;wall+=0.25;laser.observeCamera(hand:false,valid:true,capturedAt:now,now:now,context:"grid")}

@@ -90,6 +90,34 @@ import CoreGraphics
         let timestampSource: String
         var callbackFlushSeconds: Double?
     }
+    /// Immutable actual optical source evidence. Status heartbeats describe
+    /// driver liveness; they cannot renew these timestamps or a move's cue.
+    struct OpticalEvidence:Codable {
+        let policy:String,producer:UUID,requestSequence:Int,target:Target
+        let cameraContext:String,streamEpoch:UUID,frameID:UInt64
+        let capturedAtUptime:Double,arrivedAtUptime:Double,capturedAtUnix:Double,publishedAtUnix:Double
+        let expiresAtUptime:Double,expiresAtUnix:Double
+        let controllerSession:String,controllerGeneration:Int
+        func current(now:Double,wall:Double,producer:UUID,sequence:Int,target:Target,
+                     context:String?,epoch:UUID,thermal:ThermalStatus?,schema:Int)->Bool {
+            guard policy=="captured_optical_result_v1",self.producer==producer,
+                  requestSequence==sequence,self.target==target,cameraContext==context,
+                  streamEpoch==epoch,
+                  [capturedAtUptime,arrivedAtUptime,capturedAtUnix,publishedAtUnix,
+                   expiresAtUptime,expiresAtUnix,now,wall].allSatisfy({$0.isFinite}),
+                  [now-capturedAtUptime,now-arrivedAtUptime,wall-capturedAtUnix,wall-publishedAtUnix]
+                    .allSatisfy({(0...0.6).contains($0)}),
+                  expiresAtUptime==min(capturedAtUptime,arrivedAtUptime)+0.6,
+                  expiresAtUnix==min(capturedAtUnix,publishedAtUnix)+0.6,
+                  now<=expiresAtUptime,wall<=expiresAtUnix,
+                  controllerSession.count==8,controllerSession.allSatisfy({"0123456789ABCDEF".contains($0)}),
+                  (1...0xffffffff).contains(controllerGeneration) else {return false}
+            // Schema2 additionally binds the proof to the current monitored
+            // controller; state-epoch advances do not rewrite pixel evidence.
+            return schema != 2 || (thermal?.controllerSession==controllerSession &&
+                                   thermal?.controllerGeneration==controllerGeneration)
+        }
+    }
     struct DriverStatus: Codable {
         let schemaVersion: Int
         let producer: UUID
@@ -114,6 +142,7 @@ import CoreGraphics
         var beamOffSinceUnix: Double?
         var darkEvidenceAfter: EvidenceAfter?
         var thermal: ThermalStatus?
+        var opticalEvidence: OpticalEvidence?
     }
     @Published private(set) var enabled=false
     @Published private(set) var message="Laser bridge disabled"
@@ -839,7 +868,9 @@ import CoreGraphics
         if action=="point",let target,target.purpose==nil,let driver,connected,
            driver.sequence==sequence,driver.mode=="hardware",driver.laserOn,
            driver.illuminationConfirmed == true,
-           driver.state=="adequate",driver.requiresNewRevision != true {
+           driver.state=="adequate",driver.requiresNewRevision != true,
+           driver.opticalEvidence?.current(now:now,wall:wall,producer:producer,sequence:sequence,
+               target:target,context:cameraContext,epoch:frames.streamEpoch,thermal:driver.thermal,schema:wireSchema)==true {
             if indicatedSession != target.session {indicatedSession=target.session;indicatedMoves=[]}
             if indicatedMoves.insert(target.id).inserted {onTargetIndicated?(target)}
         }
