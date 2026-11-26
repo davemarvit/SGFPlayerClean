@@ -166,9 +166,10 @@ struct EstablishedStoneTracker {
         }
         report.remapped=remapped
         guard !remapped.isEmpty else {return raw}
-        var interpreted=BoardObservation(readings:readings,size:raw.size,notice:raw.notice,lightingBlocked:raw.lightingBlocked,
-            lightingAdjusted:raw.lightingAdjusted,lightingField:raw.lightingField,footprints:raw.footprints,
-            placementFits:raw.placementFits,fitAttempts:raw.fitAttempts,manualPoints:raw.manualPoints,centeringEvidence:raw.centeringEvidence)
+        // Preserve same-image provenance. Reading replacement and reassignment
+        // invalidate only receipts whose original pixel claim no longer applies.
+        var interpreted=raw
+        interpreted.readings=readings
         interpreted.trackedAssignments=remapped
         return interpreted
     }

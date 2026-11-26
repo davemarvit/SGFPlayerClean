@@ -31,6 +31,8 @@ final class CameraAnalysisPipeline {
         var emptyLighting=KnownEmptyLighting()
         var lightingContext:String?
         var perimeter:WoodenBoardPerimeter.Snapshot = .absent
+        /// Original camera capture time only; redraw/processing fallback is nil.
+        var originalCaptureUptime:Double?=nil
     }
     struct CameraSafety {
         let aligned:BoardCalibration?
@@ -137,7 +139,7 @@ final class CameraAnalysisPipeline {
             frame.flatMap { frame -> BoardObservation? in
                 if let reference {
                     return BoardDetector.detect(frame:frame,reference:reference,calibration:current,
-                        threshold:threshold,referenceCalibration:referenceCalibration)
+                        threshold:threshold,referenceCalibration:referenceCalibration,capturedAt:input.originalCaptureUptime)
                 }
                 return BoardAppearanceDetector.detect(frame:frame,calibration:current,threshold:threshold)
             }
