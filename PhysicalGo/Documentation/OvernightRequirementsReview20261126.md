@@ -124,7 +124,29 @@ incident's 25-second delay.
 
 | Batch / exact revision | Decision | Remaining conditions |
 |---|---|---|
-| Initial contracts, no new code pinned | Pending | Exact source review, focused owner regressions and combined matrix evidence. |
+| Geometry helper `16806f3` | Conditional source approval | Owner reports 10 new + 35 existing tests; inspected, not independently rerun during physical baseline. Combined adapter must darken before assessment, enforce shared budgets, invalidate old spots/predictions, reacquire actual-pose optical anchor, and terminate on failed replacement validation. |
+| Optical expiry helper/seams `943188b` | Source approved; recovery integration pending | Inclusive 600 ms ceiling and four original clocks preserved. Invalid/future clocks remain ordinary failure. All three expiry seams precede anchor/certificate publication. Owner reports 18 focused tests; source/tests inspected. Outer recovery is not supplied by this commit. |
+| Native terminal ordering `ef22e4e` | Source approved pending queued native guidance tests | Valid active/OFF receipt consumed before timeout; invalid thermal terminal receipt still fails. |
+| Host admission/status `0fb532c` | Source approved pending paired native checks | Actual thermal token/generation/epoch published additively; GA-only receipt wait 14 s, others 12 s; no ambiguous-command retry. Owner reports 17 focused checks. |
+| Native admission grace `ba36928` | Changes requested | Healthy firmware state-epoch changes during axis engagement permanently disqualify grace; source counterexample below. |
+
+### Admission state-epoch counterexample
+
+`PhysicalMotorAdmission.Monitor.sameController` in `ba36928` requires epoch equality,
+and `observeMonitor` permanently rejects the episode on a mismatch. Firmware
+`GameplaySupervision.h:updateGameState` increments `gameEpoch` whenever state code
+**or torqueMask** changes. During normal cold GA, `beginHold` enables the two axes
+separately while `gameEngaging` keeps phase B. A native observer can see a fresh
+admissible bootstrap sample at B/epoch2 followed by fresh B/epoch3 or epoch4 during
+engagement. This healthy progress disables grace permanently; the positive tests
+use only a fixed epoch and miss it.
+
+Requested correction: retain exact controller token and control generation; treat
+a strictly advancing state epoch as a new evidence segment requiring fresh
+two-sample progress, without changing the original cold origin or 16-second cap.
+Epoch regression, replaced session/generation and stale/invalid evidence still
+deny grace. Add a firmware-style multi-epoch positive control. This is a functional
+reliability defect in the proposed grace, not an unsafe authority expansion.
 
 Offline approval will identify source revisions and evidence explicitly. It does
 not establish physical reliability, installation, a sustained-light acceptance
