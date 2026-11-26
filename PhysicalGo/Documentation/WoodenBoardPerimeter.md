@@ -42,8 +42,18 @@ existing two-cell sampling margin. Current independently tracked grid geometry
 projects the canonical wood boundary into each image. A present invalid or
 mismatched profile produces an unknown hand verdict and an explanatory camera
 notice. It does not silently become a clear view. An absent profile preserves
-the existing legacy boundary behavior. Installation/replacement requires an app
+the existing legacy boundary behavior only when no profile has been configured.
+A successful load sets the persistent `PhysicalGo.woodenBoardPerimeterRequired`
+setting; later absence fails unknown instead of silently restoring legacy limits. Installation/replacement requires an app
 restart to load the new profile.
+
+`HandOutlineSampling` partitions each actual 3×3 image footprint at the measured
+wood edge. Interior-centered samples consume only interior pixels; exterior
+samples are retained only as connectivity context and consume only exterior
+pixels. A four-edge distance bound identifies wholly contained footprints; only
+boundary patches require per-pixel clipping. Fewer than four usable samples
+produce unknown color. The companion tracker requires independent raw interior
+foreground evidence before outside connectivity can seed an entry.
 
 `HandOutlineSampling` passes the profile boundary to the outline tracker; pose
 fallback uses the same boundary. Pose coordinates are measured with the same
@@ -52,17 +62,34 @@ of hand clearance, stone occupancy, board alignment or a completed move.
 
 ## Verification
 
-The focused `--wood-perimeter-test --debug-tests` suite passed 21 checks, including
-profile roundtrip; missing, malformed, oversized, wrong-camera, wrong-resolution
+The final optimized `--wood-perimeter-test` suite passed 110,636 assertions
+(most are exact per-pixel comparisons), including
+profile roundtrip and required-profile activation/deletion; missing, malformed, oversized, wrong-camera, wrong-resolution
 and wrong-reference files; crossed polygons; immutable loaded snapshots; unchanged
 grid encoding; and unknown early/full pipeline verdicts for invalid configuration.
+The actual image tests change every pixel outside the wooden surface to black,
+white or red while holding the interior fixed: every interior hand sample remains
+identical and the hand verdict stays clear. A 0.15-cell-deep fingertip crossing
+the top wooden edge stops clearance even when the supplied pose detects no hand.
 An optional `PHYSICAL_GO_MEASURED_PERIMETER` path adds validation against the
 adjacent retained `wood-boundary-camera/frame.json` and `frame.png` artifacts.
 The November 25 measured profile passed the actual Swift loader, reference-grid
 digest, camera/dimensions and source-image digest checks.
 
 These tests used the companion `HandBoardBoundary`, `HandMotionTiming` and
-`HandOutlineTracker` implementation from the edge-placement branch. Root owns
+`HandOutlineTracker` implementation from companion commit `ffef7ed`. Root owns
 combined native regression/build validation, package installation and attended
 edge/corner/outside-motion checks. No hardware, live app or calibration was
 modified by this source work.
+
+On the retained 1920×1080 frame, optimized seven-sample measurements were:
+
+| Work | Legacy median / maximum | Measured perimeter median / maximum |
+| --- | --- | --- |
+| Hand outline sampling | 3.203 / 3.697 ms | 3.136 / 3.483 ms |
+| Early camera safety | 75.237 / 114.898 ms | 83.581 / 115.475 ms |
+
+The early-safety benchmark uses the retained real frame with local appearance
+recognition and a fixed grid, without an empty reference or live registration.
+It is a differential offline workload measurement, not current end-to-end game
+latency or proof that every live observation satisfies the 600 ms limit.

@@ -25,6 +25,7 @@ struct WoodenBoardPerimeter: Codable, Equatable {
         }
     }
 
+    static let requiredSettingKey="PhysicalGo.woodenBoardPerimeterRequired"
     static var defaultURL:URL {
         FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
             .appendingPathComponent("Physical Go/wooden-board-perimeter.json")
@@ -68,8 +69,8 @@ struct WoodenBoardPerimeter: Codable, Equatable {
 struct WoodenBoardPerimeterStore {
     private let profile:WoodenBoardPerimeter?
     private let failure:String?
-    init(url:URL?) {
-        guard let url else {profile=nil;failure=nil;return}
+    init(url:URL?,required:Bool=false,onProfileLoaded:(()->Void)?=nil) {
+        guard let url else {profile=nil;failure=required ? "Configured wooden board perimeter is missing":nil;return}
         do {
             let attributes=try FileManager.default.attributesOfItem(atPath:url.path)
             guard let size=attributes[.size] as? NSNumber,size.intValue<=65536 else {
@@ -77,9 +78,9 @@ struct WoodenBoardPerimeterStore {
             }
             let value=try JSONDecoder().decode(WoodenBoardPerimeter.self,from:Data(contentsOf:url))
             guard value.isValid else {profile=nil;failure="Wooden board perimeter profile is invalid";return}
-            profile=value;failure=nil
+            profile=value;failure=nil;onProfileLoaded?()
         } catch let error as NSError where error.domain==NSCocoaErrorDomain && [NSFileNoSuchFileError,NSFileReadNoSuchFileError].contains(error.code) {
-            profile=nil;failure=nil
+            profile=nil;failure=required ? "Configured wooden board perimeter is missing":nil
         } catch {
             profile=nil;failure="Wooden board perimeter could not be read"
         }
