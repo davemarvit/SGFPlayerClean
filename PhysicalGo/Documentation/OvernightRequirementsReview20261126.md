@@ -142,6 +142,8 @@ incident's 25-second delay.
 | PG23 evidence schema `7c881be` | Static schema-only approval | No evidence emission or decision bypass exists yet. Full approval requires actual pixel producer/consumer, provenance propagation and conflict-mutation tests. Metadata-only controls do not establish classifier quality. |
 | Root helper integration host `cad26b0`, native `d270ee1` | Merged helper source approved | Host merge is the exact union of reviewed geometry and temporal runtime changes; stage-aware renewal and requalification APIs both retained. Native runtime files match reviewed `4b180f4`. Reviewer independently ran 67 combined focused host tests, all passed. Hold/recognition integration remains pending. |
 | Frozen hold `82540e1`, integrated host `f07affd` | Changes requested at dispatch/publication boundaries | Core bounded loop reviewed; root's PREPARE→DARK fix retained. Reviewer and root independently found command deadline check before actual writer boundary; reviewer reproduced it with production GatedController and a fake delayed writer. Adequate save has a related check-before-lock/mark-after-publication gap. |
+| Hold boundary repair `40adedf` | Prior boundary findings resolved; one final current-safety check requested | Actual prewrite validates operation budget; gated adequate save validates evidence and marks completion atomically. Whole held step shares the existing retry owner and nested RS scope. Reviewer independently ran 31 boundary/recovery/budget tests, all passed on clean exact commit. Latest independent cached hand/camera safety must also be checked inside adequate publication. |
+| PG23 producer experiment `397fb74` | Source approved as offline/unwired experiment only | Original unmasked reference-wood/two-rail predicate retained; explicit original capture time and immutable image/reference identity. No production consumer or pipeline wiring approved. Final original-timestamp replay and real controller integration tests remain required. |
 
 ### Hold dispatch and publication boundary findings
 
@@ -167,6 +169,24 @@ adequate contract and can produce a misleading completion cue. Coordinate the
 bounded budget check/completion with the actual gated status save. An alternative
 explicit completion-at-verified-result policy would need matching implementation
 and tests; the current publish-then-fault behavior is not an intentional policy.
+
+**Resolved in `40adedf`:** production `before_write` composes existing session
+validation with the bounded operation callback, without raw health/IO. Runtime
+`emit` supports a bounded `before_publish` callback inside its generation gate;
+the held adequate callback checks budget, controller scope, geometry, illumination,
+causal motor age and all four original optical clocks before marking completion.
+The entire held step now uses the original recovery owner. A late valid-clock
+optical expiry obtains a new board-wide observation rather than retrying the same
+sample; nested observation shares the same mutable scope for acknowledged RS.
+Production-adapter lock-delay tests and the own-RS-plus-late-publication case pass.
+
+**Remaining at `40adedf`:** the adequate callback does not yet consult the latest
+independent cached gameplay camera/hand safety. A newer obstructed safety frame
+can arrive after the pre-emit `healthy()` call while publication waits for the
+gate, even though the older optical sample remains under600 ms. Request the
+existing memory-only `gameplay_guard(require_clear=True)` at the gated publication
+boundary. Current hand/unknown/stale safety must prevent adequate and remain an
+ordinary authority failure, rather than being classified as expired optical work.
 
 ### Independent focused checks after attended baseline
 
