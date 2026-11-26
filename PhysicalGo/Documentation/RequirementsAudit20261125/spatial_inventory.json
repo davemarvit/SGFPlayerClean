@@ -1,0 +1,846 @@
+{
+  "native_commit": "fb4697c4ef314d83a253bd0aa219de1bb6b3d61f",
+  "host_commit": "bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc",
+  "hardware_actions": false,
+  "runtime_changes": false,
+  "rows": [
+    {
+      "id": "S01",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 115,
+      "rule": "Grid fit residual median\u22640.5px; p95\u22641px.",
+      "meaning": "Fresh dark image, after fitted H removes displacement. A statistical agreement proxy, not board displacement or final laser accuracy. Failure before controller open aborts launcher; during operation becomes optical hard fault.",
+      "recommendation": "CHANGE: current repair evaluates min(1px,.025cell) median/min(2px,.05cell) p95. Exact1762 repro shows inherited threshold unnecessarily rejects usable geometry. Keep independent support/identity checks; validate tail and target-local uncertainty."
+    },
+    {
+      "id": "S02",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 36,
+      "rule": "\u226540 ORB matches, \u226535 inliers; ratio<.7, RANSAC2px; contained descriptors.",
+      "meaning": "Texture proposal generation. More matches are not independent clearance; 41 contained matches can generate unstable H.",
+      "recommendation": "INVESTIGATE: rank proposal quality/spatial spread rather than demand a costly denser fit solely to achieve pixel precision. Current-only bounded second fit is reasonable only when proposed geometry really remains insufficient."
+    },
+    {
+      "id": "S03",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 53,
+      "rule": "ORB fit residual median\u22641.5px/p90\u22642.5px.",
+      "meaning": "Fit consistency against descriptor matches; empirical image-pixel gates. Can reject before grid validation.",
+      "recommendation": "INVESTIGATE cell/resolution scaling and robust held-out support. Do not lower descriptor match quality indiscriminately: grid aliases can satisfy repeated-texture fits."
+    },
+    {
+      "id": "S04",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 108,
+      "rule": "\u226540 grid tracks, \u22656/quadrant, \u22653/outer edge; FB<1px; windows15/9px with10/7px support inset.",
+      "meaning": "Distributed geometry coverage, especially boundary movement/occlusion; numerical sampling footprints prevent outside pixels entering evidence.",
+      "recommendation": "KEEP coverage concept and complete footprint containment. Reassess absolute counts with board size/visible-region uncertainty; a few missing glare rails should prompt alternate real support, not guessed visible pixels."
+    },
+    {
+      "id": "S05",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 48,
+      "rule": "Fitted reference-board corner movement\u226425px.",
+      "meaning": "Bounds reference registration/requalification domain; not a measured mechanical damage limit. Correct H may compensate smaller movement already.",
+      "recommendation": "INVESTIGATE/REPLACE eventual cutoff with verified board identity, uncertainty and camera\u2013laser relationship. Larger coherent movement can be recoverable, but image geometry alone cannot certify an independently bumped laser."
+    },
+    {
+      "id": "S06",
+      "scope": "H",
+      "path": "bridge_setup.py",
+      "line": 125,
+      "rule": "Native-vs-optical grid mismatch\u2264min(8px,.20\u00d7smallest spacing); spacing\u226510px.",
+      "meaning": "Independent coordinate identity; protects wrong/shifted native grid. Uses maximum corner disagreement.",
+      "recommendation": "KEEP intersection-scaled identity gate for now; allocate jointly with aim/fit error and use actual local disagreement. Do not stack .20 identity+.20 aiming+.10 fit and claim a strict nearest-cell guarantee."
+    },
+    {
+      "id": "S07",
+      "scope": "H",
+      "path": "bridge_alignment.py",
+      "line": 131,
+      "rule": "Frozen-anchor surviving tracks\u226540 and\u226585%; \u22656/quadrant; selected\u2264160 features.",
+      "meaning": "Dark-to-lit/current same-scene support; fixed denominator. Loss stops operation even when remaining spatial coverage could identify H.",
+      "recommendation": "INVESTIGATE over-conservative85% separately from needed coverage. Replace with sufficient distributed observable geometry where validated; no arbitrary denominator change to excuse hand/cover."
+    },
+    {
+      "id": "S08",
+      "scope": "H",
+      "path": "bridge_alignment.py",
+      "line": 137,
+      "rule": "Frozen-anchor displacement median\u2264.5px/p95\u22641px, before and after alias repair.",
+      "meaning": "Actual change relative to immutable image/H, unlike S01 fit residual. A median>.5 immediately rejects; p95-only may attempt correspondence repair.",
+      "recommendation": "CHANGE FAILURE HANDLING first: classify coherent small motion, go dark and independently re-register/reacquire. A cell-scaled reuse budget needs cumulative fixed-anchor uncertainty, not repeated chaining or simply copying S01 limits."
+    },
+    {
+      "id": "S09",
+      "scope": "H",
+      "path": "bridge_alignment.py",
+      "line": 160,
+      "rule": "Native corner change\u22642px against prepared native corners.",
+      "meaning": "Independent fixed-anchor invalidation; native detector itself suppresses jitter around2px at1080p.",
+      "recommendation": "HIGH-PRIORITY INVESTIGATE: near-equal tracker/update and host-invalidating thresholds can churn. Use coherent transformed agreement and bounded refresh; distinguish native-fit jitter from real movement."
+    },
+    {
+      "id": "S10",
+      "scope": "H",
+      "path": "bridge_alignment.py",
+      "line": 180,
+      "rule": "One-row-inward64 probes:\u226540,\u226585%,\u22656/side; median\u2264.5px/p95\u22641px.",
+      "meaning": "Additional edge veto after interior tracking. Added to reject an independently shifted110px strip that interior-only proof missed.",
+      "recommendation": "KEEP independent edge evidence, EVALUATE precision and recovery. Preserve genuine partial-board warp rejection; a test expecting4px strip failure is not proof that every1px coherent shift must hard-fault."
+    },
+    {
+      "id": "S11",
+      "scope": "H",
+      "path": "bridge_board_domain.py",
+      "line": 6,
+      "rule": "Flow support radius56 half-pixels (112 full); local14 half-pixels; edge10 full pixels.",
+      "meaning": "Prevents pyramid/window/derivative/search stencils sampling outside printed-grid domain. Includes2 half-pixel engineering margin.",
+      "recommendation": "KEEP actual dependency containment. Optimize stencil/algorithm to reduce required inset rather than trimming containment blindly. Large inset contributes to support scarcity and inability to mask dot at pyramid2."
+    },
+    {
+      "id": "S12",
+      "scope": "H",
+      "path": "bridge_correspondence.py",
+      "line": 19,
+      "rule": "\u226432 suspect repairs; peak\u2265.8; competing-peak advantage\u2265.1; reverse\u2264.5 half-px; refinement\u22641.5 half-px.",
+      "meaning": "Rejects full-intersection periodic-grid aliases; repair checks independent patches rather than deleting outliers.",
+      "recommendation": "KEEP alias-disambiguation requirement. INVESTIGATE signal-calibrated peak margins/number based on actual false matches and processing cost; an unresolved alias must not be treated as harmless pixel jitter."
+    },
+    {
+      "id": "S13",
+      "scope": "H",
+      "path": "bridge_lit_geometry.py",
+      "line": 17,
+      "rule": "Dot mask radius\u226436px, halo12px,\u22641% board area; spot/cluster center agreement\u22648px.",
+      "meaning": "Optional masked renewal proof only; cannot replace mandatory unmasked proof or grant hand/stone clearance. Decline causes dark renewal.",
+      "recommendation": "INVESTIGATE local spot footprint/PSF scaling and broad glare. Fixed pixel mask is a conservative bounded default, not optical physics. Keep finite affected area and independent target visibility."
+    },
+    {
+      "id": "S14",
+      "scope": "H",
+      "path": "bridge_reference.py",
+      "line": 82,
+      "rule": "Three automatic reference fits must agree\u22641px; changed reference grid\u22648px.",
+      "meaning": "Dark reference renewal only after confirmed human position; rejects unstable snapshot without overwriting original model.",
+      "recommendation": "HIGH-PRIORITY CHANGE candidate: derive reference uncertainty in cell units/robust jointly fitted geometry; retry bounded fresh snapshots. Current1px fit-to-fit requirement can recreate S01 instability."
+    },
+    {
+      "id": "S15",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 32,
+      "rule": "Final acquisition error\u2264.20cell.",
+      "meaning": "User-visible intersection indication objective; stops further refinement as soon as adequate.",
+      "recommendation": "KEEP as current product target; not hardware law. Evaluate user readability/worst-case total error before considering .25cell. Do not demand3px final accuracy for normal play."
+    },
+    {
+      "id": "S16",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 605,
+      "rule": "Any held observation>.20cell immediately raises hard optical fault.",
+      "meaning": "Same boundary as acquisition, without hysteresis; no return to existing optical correction loop.",
+      "recommendation": "CHANGE: separate acquire/hold bands and bounded re-aim for fresh, unique, on-board spot. Start with shadow replay of .20\u2192.25 hysteresis or uncertainty-aware band; retain immediate OFF for hand/unknown/corridor/pose problems. Do not present .25 as already validated."
+    },
+    {
+      "id": "S17",
+      "scope": "H",
+      "path": "feedback_step_policy.py",
+      "line": 13,
+      "rule": "Independent axis response gains0..2, plus5px unmodeled error and5px retained board clearance (10px envelope).",
+      "meaning": "Conditional motion-envelope assumption, explicitly not a physically certified motor-response bound. Covers either axis ordering.",
+      "recommendation": "KEEP containment objective; INVESTIGATE measured response uncertainty vs blunt0..2 and fixed5+5. Use local validated uncertainty and physical-wood boundary consistently, especially edges. Never treat interval mathematics as proof model physically correct."
+    },
+    {
+      "id": "S18",
+      "scope": "H",
+      "path": "feedback_step_policy.py",
+      "line": 62,
+      "rule": "Within90px of edge cap predicted travel40px; otherwise110px; up to20 shrink steps\u00d7.8.",
+      "meaning": "Speed/conservatism choice on top of same enclosure; no direct physical basis documented for90/40/110.",
+      "recommendation": "CHANGE candidate: distance-to-edge/error/uncertainty-scaled step selection. Keep enclosure, compare move counts/time and overshoot at edges. Shrink search exhaustion should offer smaller observed recovery, not erase calibration."
+    },
+    {
+      "id": "S19",
+      "scope": "H",
+      "path": "board_commission.py",
+      "line": 17,
+      "rule": "45px fast/slow split; coarse motor cap[108,58], fine[18,10]; optical cap110px.",
+      "meaning": "Planner inherited from commissioning; pixels vary with view scale. Active feedback calls this step plan.",
+      "recommendation": "INVESTIGATE adaptive multi-speed/cell-scaled selection and independently measured deadband. Preserve firmware command spans/headroom; distinguish planner convenience limits from firmware maxima."
+    },
+    {
+      "id": "S20",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 42,
+      "rule": "Lit fine corridor: moving axis\u00b118 at setup/goal\u00b16; held axis\u00b112; requested fine step\u2264[18,10].",
+      "meaning": "Derived from firmware anchors, successive\u00b16 permitted drift and goal-write ordering; actual worst-case corridor is larger than nominal motion.",
+      "recommendation": "KEEP until firmware/receipt semantics reduce uncertainty. Avoid relaxing because dot appears close; better synchronize/query actual anchor or change atomic command contract, then prove smaller bound."
+    },
+    {
+      "id": "S21",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 511,
+      "rule": "Actual pose change after optical anchor\u22643 counts.",
+      "meaning": "Maintains correspondence between observed dot and encoder pose before movement; exceeds this => hard fault. Firmware permits held drift\u00b16.",
+      "recommendation": "HIGH-PRIORITY REPLACE hard stop with fresh stationary pose+spot reacquisition. Numeric3-count vs6-count mismatch is conservative, not arbitrary permission to use stale anchor. Quantify optical displacement per local Jacobian."
+    },
+    {
+      "id": "S22",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 91,
+      "rule": "Startup actual pose within[8,5] counts of historical observed anchor.",
+      "meaning": "Limits safe initial illumination using saved spot; failure says setup fault although saved calibration need not be wrong.",
+      "recommendation": "CHANGE recovery: search/reacquire from fresh actual pose under safe dark/on-board constraints, preserve model. Keep check until replacement exists; hardware power-cycle settlement can legitimately exceed saved narrow envelope."
+    },
+    {
+      "id": "S23",
+      "scope": "H",
+      "path": "bridge_hardware.py",
+      "line": 39,
+      "rule": "Host motor domain base1006..2894, tilt1906..2744; coarse span[1800,350], fine[24,12]; coarse waypoint[1794,344].",
+      "meaning": "Six-count inset/headroom relative to firmware bounds/spans; integer rounding checked.",
+      "recommendation": "KEEP paired protocol bound. Mechanical domain itself needs commissioning rationale, not routine runtime widening. The6-count headroom is derived from allowed firmware drift."
+    },
+    {
+      "id": "S24",
+      "scope": "H",
+      "path": "feedback_predicted_acquisition.py",
+      "line": 47,
+      "rule": "Predicted landing\u226510px inside polygon; whole asynchronous model rectangle\u22655px; exact target or inward.05/.10/.15cell proposals.",
+      "meaning": "Prediction guides dark acquisition; none is final optical acceptance. Absolute and observed-offset model envelopes both required.",
+      "recommendation": "KEEP optical acceptance independent. INVESTIGATE duplicated absolute/offset constraints after an observed bias; absolute model disagreement need not invalidate reliable local correction, but requires honest error bounds."
+    },
+    {
+      "id": "S25",
+      "scope": "H",
+      "path": "feedback_predicted_acquisition.py",
+      "line": 82,
+      "rule": "Interval proof\u2264511 boxes, depth12, width floor.01 motor counts;\u22648 waypoints.",
+      "meaning": "Computational/finite-progress policy, not spatial safety law; failure declines predicted route and can use measured approach.",
+      "recommendation": "KEEP bounded work; optimize or subdivide travel on decline rather than hard-fault. Maintain distinction between no proof found and proof of unsafe route."
+    },
+    {
+      "id": "S26",
+      "scope": "H",
+      "path": "feedback_response_prior.py",
+      "line": 228,
+      "rule": "Response Jacobian condition\u226415; smallest singular value\u2265.15px/count; supported motor hull / explicit extrapolation policy.",
+      "meaning": "Avoids ill-conditioned steering and uncontrolled model extrapolation; constants are engineering trust criteria.",
+      "recommendation": "INVESTIGATE dimensionless conditioning vs unit-sensitive.15 cutoff, learned local derivatives and uncertainty. Do not require dense calibration of361points; current model is a prior, fresh observations determine success."
+    },
+    {
+      "id": "S27",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 65,
+      "rule": "Model kind affine, exactly3 samples, coefficients3\u00d72/condition\u226415, pinned dense derivative prior.",
+      "meaning": "Frozen experiment/binding schema; not a mathematical requirement that every useful model have exactly3points.",
+      "recommendation": "CHANGE architecture eventually: version capability/model policy; avoid treating provenance of this experiment as universal calibration requirement. Keep hashes/identity until explicit migration."
+    },
+    {
+      "id": "S28",
+      "scope": "H",
+      "path": "point_vision.py",
+      "line": 216,
+      "rule": "Spot pixels red>120/255, red increase>12 and red-minus-green increase>12; component area3..2000px; optional search radius100px.",
+      "meaning": "Laser/glint segmentation heuristic. Can miss dim spot or glare or clip predicted search; active first acquisition uses board-wide search.",
+      "recommendation": "INVESTIGATE exposure-adaptive/color/SNR thresholds and physical spot scale. Keep dark subtraction/competing-component checks. Do not increase search confidence by excluding alternative glints."
+    },
+    {
+      "id": "S29",
+      "scope": "H",
+      "path": "spot_clusters.py",
+      "line": 12,
+      "rule": "Cluster radius8px,\u22655 members, competitor\u226580% score and>8px separation rejects; newer component\u2265max(12,2\u00d7typical area) can reject.",
+      "meaning": "Spot identity/transition ambiguity protection; pixel scale and5-frame agreement are empirical.",
+      "recommendation": "INVESTIGATE scale-aware uncertainty and newest-frame actual spot confidence, with glint/hand negatives. Merely relaxing8px can merge distinct spots or conceal motion."
+    },
+    {
+      "id": "S30",
+      "scope": "H",
+      "path": "bridge_feedback.py",
+      "line": 134,
+      "rule": "Optional inward waypoint if origin<2 or>16cells and target>2cells away; origin clamped to3..15; waypoint reached within.5cell.",
+      "meaning": "Route planning only, adequate target bypasses waypoint. Previously forced accepted K2 away; corrected already.",
+      "recommendation": "KEEP adequate-target early exit. Review any remaining waypoint requirement by measured route benefit rather than fixed ideal tour geometry."
+    },
+    {
+      "id": "S31",
+      "scope": "N",
+      "path": "BoardVision.swift",
+      "line": 15,
+      "rule": "Board9/13/19; four finite normalized corners; convex cross>.0005; doubled polygon area>.04; inverse determinant>1e\u221212.",
+      "meaning": "Input validity and minimum observable shape, not physical Go size constraints. Prevents degenerate transforms.",
+      "recommendation": "KEEP finite/convex/invertibility. Minimum apparent area/cross products need resolution/conditioning rationale for new cameras; not implicated in current failures."
+    },
+    {
+      "id": "S32",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 40,
+      "rule": "Automatic rectangle confidence\u2265.4, aspect\u2265.35, size\u2265.25, quadrature35\u00b0; at most8 proposals.",
+      "meaning": "Setup candidate generator. Limits camera perspective/cropped boards; manual known geometry can use other paths.",
+      "recommendation": "INVESTIGATE for deployment; these are detector search defaults, not reasons to invalidate an established supported grid."
+    },
+    {
+      "id": "S33",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 397,
+      "rule": "Native tracked motion<.4cell; pixel jitter threshold max(.75,shortSide/540), currently2px.",
+      "meaning": "Tracks native camera grid, retaining previous grid below jitter threshold; larger unsupported movement returns nil.",
+      "recommendation": "KEEP identity distinction; CHANGE recovery to explicit same-board requalification for larger coherent changes. Align jitter uncertainty with host2px invalidation (S09), avoid contradictory layers."
+    },
+    {
+      "id": "S34",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 411,
+      "rule": "Accept correction only profile error drops\u226520% and absolute>.008; retain old grid if error<.04.",
+      "meaning": "Preference/hysteresis for grid estimate, not true camera/board movement proof.",
+      "recommendation": "INVESTIGATE noise-calibrated update benefit; report uncertainty rather than switching between exact-old/exact-new at hidden thresholds."
+    },
+    {
+      "id": "S35",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 417,
+      "rule": "Profile matching\u226560% (fallback33%),\u22658n matches,\u22654n tests,\u22653/outer rail,\u2265n/2/quadrant.",
+      "meaning": "Native alignment visibility. Current19board requires152 matches/76 tests/9per quadrant. Has caused false rejection of one edge despite stable board.",
+      "recommendation": "INVESTIGATE alternate support and glare-aware geometric inference with uncertainty. Retain independent visibility/hand evidence; inferred grid does not prove hidden cells empty."
+    },
+    {
+      "id": "S36",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 452,
+      "rule": "Line depth>max(.012 faint/.035 ordinary,reference\u00d7.25),<reference\u00d73; normalized profile error<min(.10,.03/depth).",
+      "meaning": "Photometric/shape proxies for grid match; local line probes allow bounded one-pixel jitter.",
+      "recommendation": "INVESTIGATE illumination/blur-calibrated likelihoods; not all brightness changes imply geometry change. Quantify false rejects by region, especially glare, before widening profile thresholds."
+    },
+    {
+      "id": "S37",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 584,
+      "rule": "All four outer-line scores>.035;\u226590% line scores supported; median>.07; pitch\u226512 rectified pixels; positional max error<.16pitch.",
+      "meaning": "Initial grid fit/rail-sequence uniqueness. Search tolerance min6px,.22pitch; blank border extension check rejects additional regular lines.",
+      "recommendation": "KEEP topology/uniqueness; relax missing-line support through explicit inferred-rail confidence, not pretending all lines observed. Requirement is unique board coordinates, not90% visually perfect rails."
+    },
+    {
+      "id": "S38",
+      "scope": "N",
+      "path": "AutoGridDetector.swift",
+      "line": 117,
+      "rule": "Known-position checks\u22654n matches/tests and65%; stones\u226580%; globally24/85% and quadrant6/80%; orientation advantage\u2265.025/.15.",
+      "meaning": "Occupied-board identity/orientation evidence, separate from empty-board initial detector.",
+      "recommendation": "KEEP nonambiguous orientation; INVESTIGATE joint grid+stone likelihood rather than independent vetoes. Weak stone model must not make clear grid unavailable unnecessarily."
+    },
+    {
+      "id": "S39",
+      "scope": "N",
+      "path": "HandBoardBoundary.swift",
+      "line": 13,
+      "rule": "Measured convex TL/TR/BR/BL wood outline; vertices in\u22122..size+1, edge length>1cell, encloses grid; exact camera/grid binding.",
+      "meaning": "Defines user-requested physical domain; required-profile mismatch becomes unknown rather than fallback to guessed rim.",
+      "recommendation": "KEEP. Outside-only motion must not be obstruction. Profile binding may be reprojected after verified coherent board movement; do not discard valid model because a profile needs fresh coordinate transform."
+    },
+    {
+      "id": "S40",
+      "scope": "N",
+      "path": "HandOutlineSampling.swift",
+      "line": 17,
+      "rule": "Wood projection finite, positive denominator>1e\u22128, entirely in frame;3\u00d73 pixel patches partitioned by wood boundary.",
+      "meaning": "Prevents invalid/outside pixels masquerading as evidence; unknown if wood cannot be observed.",
+      "recommendation": "KEEP true visible support. Do not weaken for unseen edges; allow regional visibility policy only with target/path independently clear."
+    },
+    {
+      "id": "S41",
+      "scope": "N",
+      "path": "BoardHandDetector.swift",
+      "line": 11,
+      "rule": "Vision\u22644hands; joints confidence\u2265.25; each detected hand\u22658joints to mark pose reliable.",
+      "meaning": "Hand detector quality proxy; unreliable pose becomes unknown. A person outsidewood may influence Vision reliability even without intrusion.",
+      "recommendation": "INVESTIGATE board-local relevance before global reliability veto and shallow-hand recall. Keep unknown if actual board entry cannot be excluded, but irrelevant exterior partial detections should not veto clear interior evidence."
+    },
+    {
+      "id": "S42",
+      "scope": "N",
+      "path": "HandOutlineTracker.swift",
+      "line": 167,
+      "rule": "Relevant hand samples>60% valid; outline component\u226510 samples/\u22659 raw cores; at least one interior raw core.",
+      "meaning": "Foreground connected-component evidence and actual wood penetration. Outside samples connect context but cannot alone establish entry.",
+      "recommendation": "KEEP interior-support principle. INVESTIGATE minimum component area vs shallow finger sampling; tune with real edge/corner hand datasets, not generic scene noise."
+    },
+    {
+      "id": "S43",
+      "scope": "N",
+      "path": "HandOutlineTracker.swift",
+      "line": 278,
+      "rule": "Crossing depth\u22651/scale (scale10 =>.10cell) OR\u22659interior samples; lateral distance<3.5cells; special\u2264.1cell/texture checks.",
+      "meaning": "Rejects edge artifacts and detects partial entry; a physical finger may enter less than one sampling unit.",
+      "recommendation": "INVESTIGATE target/path-local masks and resolution. Need recall for shallow entry and tiny target covers, plus outside-motion specificity; no blanket larger hand-area requirement."
+    },
+    {
+      "id": "S44",
+      "scope": "N",
+      "path": "HandOutlineTracker.swift",
+      "line": 479,
+      "rule": "Entry background preservation\u226512samples, variance>.0001, correlation>.99, gain.6..1.4, residual/chroma\u2264.025.",
+      "meaning": "Accepts texture-preserving exposure/shadow as non-hand; these are current finite engineering thresholds, not calibrated probabilities.",
+      "recommendation": "INVESTIGATE wider nuisance distribution and shadow+finger controls. Adapt exposure before classification; do not infer clearance merely from equal mean brightness."
+    },
+    {
+      "id": "S45",
+      "scope": "N",
+      "path": "HandOutlineTracker.swift",
+      "line": 525,
+      "rule": "Foreground: |luminance\u0394|>.10 or chroma\u0394>.035; directional chroma>.018; dark branch>.10; white exemptions light\u2265.65/chroma\u2264.12.",
+      "meaning": "Hand/foreground segmentation; unrelated board lighting can cause foreground.",
+      "recommendation": "HIGH-PRIORITY INVESTIGATE separate illumination vs occlusion, retaining spatial texture/visibility and target-local positive evidence. Generic lower sensitivity could miss fingers."
+    },
+    {
+      "id": "S46",
+      "scope": "N",
+      "path": "HandOutlineTracker.swift",
+      "line": 413,
+      "rule": "Background-preserving active component\u2265100 samples, texture corr>.98/.985; rim light\u0394\u2264.06/chroma\u2264.035 with\u226550samples.",
+      "meaning": "Lets shadows/exterior pose clear without calling them hands; exact counts and residual gates may reject unchanged textured edge under new lighting.",
+      "recommendation": "INVESTIGATE learned/empirical camera noise and regional exposure model. Sufficient evidence should be physical-domain relevant, not a requirement to match exterior lighting."
+    },
+    {
+      "id": "S47",
+      "scope": "N",
+      "path": "HandOutlineSampling.swift",
+      "line": 70,
+      "rule": "White-stone hand exemption: fit\u2265.95 and occupancy\u2265.95; outer centered\u2264.20cell fit\u2265.90 and occupancy\u2265.99; verifies9neutral brightcore samples.",
+      "meaning": "Prevents hand detector mistaking real white stone for foreground, without masking a hand-shaped blob.",
+      "recommendation": "INVESTIGATE per-set/glare-aware stone evidence and small edge fits. Strict99% may drive false hand warnings, but replace by independently verified stone geometry rather than masking arbitrary bright patches."
+    },
+    {
+      "id": "S48",
+      "scope": "N",
+      "path": "BoardVision.swift",
+      "line": 605,
+      "rule": "Recognition difference threshold clamped.04.. .5; centered patch\u226520samples/16wood; dark/light/unchanged votes\u2265.8.",
+      "meaning": "Heuristic appearance classifier; reported confidence is vote fraction, not calibrated probability.",
+      "recommendation": "INVESTIGATE per-camera/region noise and per-stone profiles. Never interpret0.8 as80% posterior. Keep uncertain state until enough local evidence, avoid making all361cells pristine prerequisite."
+    },
+    {
+      "id": "S49",
+      "scope": "N",
+      "path": "BoardVision.swift",
+      "line": 641,
+      "rule": "Lighting fallback blocks if empty<25% or uncertain>25% after appearance-only detection; >80% interstitial nearblack/white extreme exposure elsewhere.",
+      "meaning": "Visibility proxy can withhold frame and stop play. Empty percentage is sensitive to late-game occupancy, unlike actual visible support.",
+      "recommendation": "HIGH-PRIORITY INVESTIGATE separate visible-grid/stone evidence from empty count; densely occupied clear board is not inherently unreadable. Preserve real sensor saturation/opaque-cover rejection."
+    },
+    {
+      "id": "S50",
+      "scope": "N",
+      "path": "BoardAppearanceDetector.swift",
+      "line": 188,
+      "rule": "\u226524center/\u22659outer samples; dark/light\u226585%; gridcross requires both axes\u2265.5; local wood.15.. .96.",
+      "meaning": "Fallback/classifier geometric evidence. Fixed luminance range can exclude dim/glary valid wood.",
+      "recommendation": "INVESTIGATE sensor SNR and local normalized contrast. Stone/empty evidence needs bounded shape and visible grid, not identical reference brightness."
+    },
+    {
+      "id": "S51",
+      "scope": "N",
+      "path": "StoneGeometry.swift",
+      "line": 124,
+      "rule": "Ordinary disk radius(.32,.54)cell; masked\u2264.60; fitquality\u2265.78; contextual body\u226565%, inside\u226592%,visible\u226550%.",
+      "meaning": "Stone footprint/ownership model; shape quality is empirical score, hard bounds can reject legitimate sizes/occlusion/parallax.",
+      "recommendation": "INVESTIGATE per-set radius/ellipse distributions and held-out size/edge tests. Preserve unique ownership, do not infer stone under occlusion merely from game history."
+    },
+    {
+      "id": "S52",
+      "scope": "N",
+      "path": "StoneGeometry.swift",
+      "line": 178,
+      "rule": "Assignment fits\u2265.86/.90/.94/.95 by branch, radius commonly.36.. .52; masked hypotheses can use.65 quality.",
+      "meaning": "Multiple nested quality vetoes; score changes may be discontinuous and not independently calibrated.",
+      "recommendation": "HIGH-PRIORITY consolidate evidence semantics/diagnostics; calibrate distributions by branch instead of lowering all scores. PG23 savedlaterframe fit.739 failed these gates but exact delayed pixels absent."
+    },
+    {
+      "id": "S53",
+      "scope": "N",
+      "path": "BoardVision.swift",
+      "line": 337,
+      "rule": "Ordinary ambiguous offset\u2265.30cell; unique-cover exemption fit/conf\u2265.94 and target inside\u2212.08/neighbor outside+.08cell; nearest exemption\u2265.95 and advantage\u2265.10cell.",
+      "meaning": "Distinguishes off-center placement from ambiguous intersection. Fit search increments.04cell underlie.10margin.",
+      "recommendation": "KEEP unique-intersection objective; INVESTIGATE error-calibrated margin rather than fixed.30 as a centering demand. Off-center but uniquely assigned stone should play; optional centering must not become prerequisite."
+    },
+    {
+      "id": "S54",
+      "scope": "N",
+      "path": "BoardVision.swift",
+      "line": 380,
+      "rule": "Outward edge offset\u2264.46cell, strong fit/conf\u2265.90 and targetcovered; occupied-neighbor exception around.24cell.",
+      "meaning": "Recognizes no playable neighbor beyond board edge; current special-case rules already relax placement centering.",
+      "recommendation": "KEEP principle and test corners/partial coverage. Replace exceptions with uniform candidate-assignment reasoning once supported; no need to force inward centered placement."
+    },
+    {
+      "id": "S55",
+      "scope": "N",
+      "path": "PhysicalAI.swift",
+      "line": 582,
+      "rule": "Any uncertain/<.8 expected-empty8-neighbor makes new stone ambiguous, even strong central stone.",
+      "meaning": "Prevents between-intersection alias but ignores some already sufficient unique footprint evidence. Resets witness accumulation.",
+      "recommendation": "CHANGE targeted sufficient-evidence logic. Require a plausible competing assignment/extra stone rather than mere weak EMPTY; test genuine halfway stones, glare and captures. RetainedR16 delay is direct impact evidence."
+    },
+    {
+      "id": "S56",
+      "scope": "N",
+      "path": "PhysicalAI.swift",
+      "line": 655,
+      "rule": "Required readings confidence\u2265.8; unchanged verified-history reuse limited to max(12,n\u00b2/5)=72cells on19board.",
+      "meaning": "Board-state confirmation; positive new stones/removals cannot be inferred solely from history. More unknowns repeatedly reset confirmation.",
+      "recommendation": "INVESTIGATE region dependency/visibility rather than fixed20%unknown count. Keep new move/capture/contradiction evidence; history can constrain existing unchanged positions without claiming unseen cells observed."
+    },
+    {
+      "id": "S57",
+      "scope": "N",
+      "path": "EstablishedStoneTracker.swift",
+      "line": 41,
+      "rule": "Established stone fit/conf\u2265.90; radii.30.. .65; match shift\u2264.40cell.",
+      "meaning": "Maintains known stone identity despite small placement motion/parallax; helps avoid unnecessary relabeling.",
+      "recommendation": "KEEP concept; calibrate shape-specific association and coherent board movement. Do not make persistent history override clear contradictory new evidence."
+    },
+    {
+      "id": "S58",
+      "scope": "N",
+      "path": "OccupiedReference.swift",
+      "line": 310,
+      "rule": "White witness: second fit\u2264.02; locality\u2265.5known/.75new; score\u2265.92; strong ink branch quality\u2265.98,fit\u2264.005,grid\u2265.95,locality\u2265.9.",
+      "meaning": "Multi-cue white recovery under glare/shadow; weighted scores are evidence, not probabilities.",
+      "recommendation": "INVESTIGATE largest conjunctions and global score calibration; measure false negatives by stone/light condition. Keep distinction between known unchanged and new white."
+    },
+    {
+      "id": "S59",
+      "scope": "N",
+      "path": "StoneAspectEstimator.swift",
+      "line": 27,
+      "rule": "\u22653stone samples across\u22652rows/cols;\u226575%support; logratioMAD<.035 and agreement with expected aspect\u00b1.045.",
+      "meaning": "Optional aspect/orientation inference, not required laser calibration or thickness estimate.",
+      "recommendation": "KEEP optional; not a reason to block play when unavailable. Passive parallax study remains unidentifiable without camera/placement assumptions; do not require physical thickness input."
+    },
+    {
+      "id": "S60",
+      "scope": "N",
+      "path": "StoneSetProfile.swift",
+      "line": 40,
+      "rule": "Optional measured thickness>0mm; uncertainty0..value; optical candidates explicitlyuncalibrated.",
+      "meaning": "Data validation only; selected profile does not currently change recognition.",
+      "recommendation": "KEEP provenance/units. No gameplay spatial gate to loosen here; avoid promising automatic parallax correction from this metadata."
+    },
+    {
+      "id": "S61",
+      "scope": "H",
+      "path": "calibration_aim_quality.py",
+      "line": 71,
+      "rule": "Calibration desired<3px; usable\u2264.25cell, unique footprint within\u00b1.5cell, footprint margin\u22652px, unclippedsearch<98px.",
+      "meaning": "Endpoint quality grading already separates ideal measurement from usable intersection; finite calibration paths may still enforce stricter checkpoints.",
+      "recommendation": "KEEP desired vs usable explicit; default practical calibration should finish on usable evidence and report uncertainty. Do not let desired3px leak back into mandatory gameplay."
+    },
+    {
+      "id": "S62",
+      "scope": "H",
+      "path": "calibration_steering.py",
+      "line": 69,
+      "rule": "Local-vs-relative model disagreement<3px at endpoint; all absolute/local/relative predictions\u22655pxinside.",
+      "meaning": "Commissioning steering trust check, distinct from final accuracy. Model disagreement can stop perfectly correct optical feedback. Not active gameplay endpoint routine.",
+      "recommendation": "CHANGE candidate: observed local response plus conservative spatial envelope, remeasure derivative on disagreement. Frozen model is prior, not truth. Keep containment until validated replacement; do not require models agree3px everywhere."
+    },
+    {
+      "id": "S63",
+      "scope": "H",
+      "path": "calibration_response_region.py",
+      "line": 50,
+      "rule": "Entire motor-box local/relative model discrepancy<3px; margin\u22655px; boxwidth\u2264256counts,\u226432768boxes/depth18.",
+      "meaning": "Continuous enclosure proof for commissioning, not physical model validity. Can reject solely because two approximate models disagree.",
+      "recommendation": "INVESTIGATE collapse to one measured-response uncertainty envelope; classify proof-budget exhaustion separately from unsafe path. Avoid using mathematical interval precision as universal product requirement."
+    },
+    {
+      "id": "S64",
+      "scope": "H",
+      "path": "calibration_prelight.py",
+      "line": 107,
+      "rule": "Calibration grid/reference movement<3px and repeatedboundary witnesses<3px.",
+      "meaning": "Fresh calibration guard; stale coordinate mapping stops run, checkpoints retained. Registration and hand visibility separate.",
+      "recommendation": "CHANGE recovery route: requalify coherent board motion, transform saved observations when camera\u2013laser relationship unchanged and verified; otherwise remeasure small anchor set. No unconditional full tour restart."
+    },
+    {
+      "id": "S65",
+      "scope": "H",
+      "path": "calibration_fit_resume.py",
+      "line": 167,
+      "rule": "Resume/probe comparisons<3px, pose within[8,5], motor probe singularvalue\u22653counts; savednumeric coordinateagreement<.02px.",
+      "meaning": "Mixes model trust, motor observability and serialization consistency. Tight numeric equality is not claimed physical measurement accuracy.",
+      "recommendation": "KEEP numerical consistency checks; REASSESS physical/model3px as S62. Separate log integrity from noisy physical residuals to avoid misleading errors."
+    },
+    {
+      "id": "S66",
+      "scope": "H",
+      "path": "calibration_observed_recenter.py",
+      "line": 149,
+      "rule": "Savedcenter error<3px andwithin.15cell; restore endpoint discrepancy\u22643px.",
+      "meaning": "Historical checkpoint admission policy for particular experiment. Not universal need for recentering before play.",
+      "recommendation": "DECOUPLE historical experiment acceptance from production requalification. Use actual observed anchor/model metadata without requiring repeat ideal center tour."
+    },
+    {
+      "id": "S67",
+      "scope": "H",
+      "path": "AimControl/AimControl.ino",
+      "line": 18,
+      "rule": "Firmware commissioned bounds base1000..2900/tilt1900..2750; monitor allows\u00b13counts beyond; localmode1813..2280/2257..2417.",
+      "meaning": "Physical commissioned travel regions and distinct operating modes; source does not itself prove mechanical full-range safety.",
+      "recommendation": "KEEP installed bounds until physical/mechanical commissioning changes them. Do not widen to fix optical noise. Document hardware geometry/model units and which mode is active."
+    },
+    {
+      "id": "S68",
+      "scope": "H",
+      "path": "AimControl/AimControl.ino",
+      "line": 199,
+      "rule": "Dual tracked/held pose\u00b16counts; local tracking\u00b13/held\u00b11; moving path min(start,target)\u22126..max+6.",
+      "meaning": "Measured motor drift/overshoot constraints underpin host envelopes. Exact6 is engineering policy, not shown manufacturer physicallimit.",
+      "recommendation": "KEEP coordinated bound now; investigate actual drift distribution/quantization and mechanical stability. Any changed bound must propagate hostcorridors, not one isolated constant."
+    },
+    {
+      "id": "S69",
+      "scope": "H",
+      "path": "AimControl/AimControl.ino",
+      "line": 406,
+      "rule": "Firmware singlemove spans: bench[1800,350], fast[24,12], corner[114,64], local[57,20]; coarsepair[1800,350].",
+      "meaning": "Protocol bounded actuation and commissioning profiles; host reduces spans for drift headroom.",
+      "recommendation": "KEEP finite movement/actualquery. Adaptive speeds within existing permitted profiles can improve time without widening spatial bounds; measure before changing physical span."
+    },
+    {
+      "id": "S70",
+      "scope": "H",
+      "path": "AimControl/AimControl.ino",
+      "line": 434,
+      "rule": "Quiet velocity\u00b11unit, successive position\u00b11count; fine deadband\u00b13counts; unchanged\u22654count command causesno_progress.",
+      "meaning": "Settling/deadband classification; not exact targetaccuracy because optics verifies result.",
+      "recommendation": "INVESTIGATE empirical quantization/vibration and unnecessary second recenter commands; allow stable-but-off-goal optical correction. Keep detection of actually moving/unresponsive joint."
+    },
+    {
+      "id": "S71",
+      "scope": "H",
+      "path": "point_vision.py",
+      "line": 76,
+      "rule": "Generic calibration register: ORB35; ECC/foreground fallback thresholds; median1.5/p902.5px,shift\u226425px.",
+      "meaning": "Legacy/generic registration still used outside gameplay dark-fit admission; brightness veto repair in one path does not remove every other path.",
+      "recommendation": "MAP callers and unify explicitly named policies. Avoid accidentally reintroducing stricter generic path during calibration/recovery. Audit settings by active route, not same-sounding function name."
+    },
+    {
+      "id": "S72",
+      "scope": "N",
+      "path": "HandMotionTiming.swift",
+      "line": 98,
+      "rule": "Hand timing extrapolation residual<.35cell,\u22658consistentjoints; legacyrim\u00b1.75cell.",
+      "meaning": "Clock timestamp estimation only; should fall back to observed bracket, not grant motion/clearance.",
+      "recommendation": "KEEP fallback instead of blocking gameplay; ensure legacy timing rim is not reused as physical-wood laser obstruction boundary."
+    },
+    {
+      "id": "S73",
+      "scope": "H",
+      "path": "dark_geometry_registration.py",
+      "line": 108,
+      "rule": "Residual percentiles computed only over valid surviving tracks; minimum40/quadrant6/edge3.",
+      "meaning": "Untracked local deformation can vanish from residual distribution while unaffected tracks pass. Owner controls local4px/32px image warps passed BOTH old/new policies with354/342 valid tracks; not all affected tracks are proven simply dropped.",
+      "recommendation": "HIGH-PRIORITY INVESTIGATE survivor-selection blindspot. Target-local expected-support/missing-track topology and independent local evidence matter more than tightening surviving residuals. Cannot claim every target accurate from p95. Separate pre-existing gap from current tolerance repair."
+    },
+    {
+      "id": "S74",
+      "scope": "H",
+      "path": "fast_spot_feedback.py",
+      "line": 17,
+      "rule": "Optional provisional2-frame spot:area20..500px,cluster separation\u22642.5px,area ratio\u22642,competitor<1/3; correction\u2264[8,4]counts/12px.",
+      "meaning": "Early-correction experiment uses stronger spatial assumptions for fewer frames. Current bridge_feedback explicitly calls early=False; not active in current feedback gameplay.",
+      "recommendation": "KEEP route distinction. Evaluate as optional latency improvement using actual-newest-frame/glint tests; do not present it as an installed gameplay requirement or reason current test is slow."
+    },
+    {
+      "id": "S75",
+      "scope": "H",
+      "path": "bridge_hardware.py",
+      "line": 633,
+      "rule": "Generic non-feedback path adequate\u226410px; separate centering wiggle .12cell/max5px, advance\u22643px.",
+      "meaning": "Legacy/generic hardware path differs from current feedback_first .20cell path; centering hints are not currently commissioned for feedback_first.",
+      "recommendation": "CONSOLIDATE named quality policies by purpose. No need to alter a dormant route merely to fix active gameplay; avoid accidentally restoring10px/3px behavior on recovery."
+    },
+    {
+      "id": "S76",
+      "scope": "N",
+      "path": "LightingCompensation.swift",
+      "line": 61,
+      "rule": "Exposure fails if>80% interstitial samples<.08 or>.97; gain fit samples.08.. .94.",
+      "meaning": "Actual dynamic-range proxy: lost scene information differs from ordinary brightness change. Failure disables alignment/recognition for that frame.",
+      "recommendation": "KEEP saturation/underexposure detection purpose; calibrate limits vs sensor SNR and observable target regions. Do not treat all brightness changes as board motion; do not infer visibility from a dark unchanged image."
+    }
+  ],
+  "sources": {
+    "H/AimControl/AimControl.ino": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/AimControl/AimControl.ino",
+      "sha256": "f163dff26b1b435c19a8f6fa9865fd8fd8eafb673d1d0c3a2d359623a770d39b"
+    },
+    "H/board_commission.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/board_commission.py",
+      "sha256": "8a2d9d2ff710cf3ad1008cf7a7a1405c7f6cf450b604c24f9277ead17393ca41"
+    },
+    "H/bridge_alignment.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_alignment.py",
+      "sha256": "4fd2b1904374167fe9ecd0b37d254a4827bd65b8459256feb32ace571fd3b614"
+    },
+    "H/bridge_board_domain.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_board_domain.py",
+      "sha256": "15f2d1b113337184c6336baedfb43a6c799abdff65d734902bfc4ea2bebb4484"
+    },
+    "H/bridge_correspondence.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_correspondence.py",
+      "sha256": "6671dc19af0a18134de4285c6e370f5eacaa129a5fbe381dc65a365f7bd71fd5"
+    },
+    "H/bridge_feedback.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_feedback.py",
+      "sha256": "7d5cfa5012a41e8c705acca0b4d4564ce7de45717284ffa1a961a7f1db7d0f32"
+    },
+    "H/bridge_hardware.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_hardware.py",
+      "sha256": "5f466d2022dec9f442a94b57b36a8c96b1d65482c407634265f01e2fd9ab1892"
+    },
+    "H/bridge_lit_geometry.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_lit_geometry.py",
+      "sha256": "0879d6115132efb091fb967dee5bcaf47780f90e7053cae042fc7f0d7673a224"
+    },
+    "H/bridge_reference.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_reference.py",
+      "sha256": "4404750c70525c30fe9413148af3b62507839a75da942bf75860eeb14302bf11"
+    },
+    "H/bridge_setup.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/bridge_setup.py",
+      "sha256": "83bbe1e12a19d6e2ef5267f0f0dd6b9c2384c67c0ba1db2fdad177c37631939f"
+    },
+    "H/calibration_aim_quality.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_aim_quality.py",
+      "sha256": "591f33a050d52cd05d65076dd042a53a434b31263f68e2b475f01509c33d7583"
+    },
+    "H/calibration_fit_resume.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_fit_resume.py",
+      "sha256": "b2b28ccb0e5494b0b4cdf9329531fbdc521ba76a2c66aefcbc7c98d76758f0fe"
+    },
+    "H/calibration_observed_recenter.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_observed_recenter.py",
+      "sha256": "f5f2f753b5e50510787ea6c584e732ce1ed92798f639a9f97f2f541e8f36dc94"
+    },
+    "H/calibration_prelight.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_prelight.py",
+      "sha256": "aa317792825322ebca4e4f63a080b5d0e8d2809bbaf173c2ff612d0d33fdfa5f"
+    },
+    "H/calibration_response_region.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_response_region.py",
+      "sha256": "95e906d355c7cc75a45003787c1711c18bb81886ee38cc3d0f4a17502d074b87"
+    },
+    "H/calibration_steering.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/calibration_steering.py",
+      "sha256": "c585e2dd1307c61c76a4d0ed1a73ea45c64b6a7fc59d955e3d73e5f1a743aa92"
+    },
+    "H/dark_geometry_registration.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/dark_geometry_registration.py",
+      "sha256": "2acf3c0529713a363181f1b301721e9e5286f8b4201f70c6853cf5c6716e86cf"
+    },
+    "H/fast_spot_feedback.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/fast_spot_feedback.py",
+      "sha256": "d145cc81fb19196c908b0cc8b9b20c36bee9ffe6158e0868281eaa41be6f08ab"
+    },
+    "H/feedback_predicted_acquisition.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/feedback_predicted_acquisition.py",
+      "sha256": "7711fdf480c93f859225cab202bdd1db2232553714f9094b7a8f2b37501d424e"
+    },
+    "H/feedback_response_prior.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/feedback_response_prior.py",
+      "sha256": "4a8ade03b9e426fdabd28907034859535ca3aa4934a6f356a4668914119afd50"
+    },
+    "H/feedback_step_policy.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/feedback_step_policy.py",
+      "sha256": "cb34b8ab0cdb70d10f1cfb8ab96e7336bc72d4b96fd2c0194ec0754e71ef3053"
+    },
+    "H/point_vision.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/point_vision.py",
+      "sha256": "f2090cd8f401d73ab3180754edab14a4abcfe2aff1e9042b002edc0906a467c1"
+    },
+    "H/spot_clusters.py": {
+      "absolute_path": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/bd5a26c4ed20089ccdc7fe2a11c4fb91145fe4fc-app0268/Firmware/spot_clusters.py",
+      "sha256": "5fb9360224f70ce7b0ac40076abe662072c9b4d3cc1364d1dc2d380f92c9bcc8"
+    },
+    "N/AutoGridDetector.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/AutoGridDetector.swift",
+      "sha256": "8ed5af854e77795502103bfdcd2914b8511917deabece245c9b60f5bf1663be2"
+    },
+    "N/BoardAppearanceDetector.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/BoardAppearanceDetector.swift",
+      "sha256": "72609126347afe9188beeb98416a6cb3226d44ea45abbb4283ab8c0e18663d31"
+    },
+    "N/BoardHandDetector.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/BoardHandDetector.swift",
+      "sha256": "3284414cca94357fd1e91a466a7af8524d7f90a51ad09ee0090a2d8a63411da5"
+    },
+    "N/BoardVision.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/BoardVision.swift",
+      "sha256": "a76ccadfba3f2e72e3a0ca2e9b00cd6e61710c4afbb12a61e786f5898dd1aab9"
+    },
+    "N/EstablishedStoneTracker.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/EstablishedStoneTracker.swift",
+      "sha256": "823abc93039adaa5ac97632b53d48341b296ddc95e1e967962c7ccb088f6e5dc"
+    },
+    "N/HandBoardBoundary.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/HandBoardBoundary.swift",
+      "sha256": "43097a9f2a08ff0d928f3d3aa5815222aa08276942d30562dfb1c147a8e137ff"
+    },
+    "N/HandMotionTiming.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/HandMotionTiming.swift",
+      "sha256": "597fa82551f23babbe2dc5d54a8bbd765dd2a405a6f7b9114f15d8e1fd80358f"
+    },
+    "N/HandOutlineSampling.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/HandOutlineSampling.swift",
+      "sha256": "11ca8e5e75ead4c8410a557f3dfda85f8a7267e524a9097e730238c596115270"
+    },
+    "N/HandOutlineTracker.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/HandOutlineTracker.swift",
+      "sha256": "f30e2ff58093ca242336be0afd6bd7bb420aeeb2f06b33a2fb5cc733e53b92e8"
+    },
+    "N/LightingCompensation.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/LightingCompensation.swift",
+      "sha256": "94d7123ddc412066e5f100102fddc24ce63c576d9543279affab7a8efd5b2fbb"
+    },
+    "N/OccupiedReference.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/OccupiedReference.swift",
+      "sha256": "95e5235789192d40513fde195ed7bcd1442885c57949fd3fbe8b0cd9e0c3a4e6"
+    },
+    "N/PhysicalAI.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/PhysicalAI.swift",
+      "sha256": "26dc3937bd61bef65b845b3ab1b2d314ede37b4e3b7e2a76b19b308a5876e044"
+    },
+    "N/StoneAspectEstimator.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/StoneAspectEstimator.swift",
+      "sha256": "39573b1d6692a350d32c1a4f2c74b73c87f82d405402c14f8ca440e8318c16cd"
+    },
+    "N/StoneGeometry.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/StoneGeometry.swift",
+      "sha256": "e72edd9ba1d72ee0aad53595df6819e9b246581bf0da555e6a1f99ad347f714d"
+    },
+    "N/StoneSetProfile.swift": {
+      "absolute_path": "/Users/Dave/SGFPlayerClean-worktrees/lit-geometry-native-20261125/PhysicalGo/Sources/StoneSetProfile.swift",
+      "sha256": "4e40b42f1374cfb559c3807ae7b3b4ab8020c98c82fac8a2773bf6df8caf67cc"
+    }
+  }
+}
