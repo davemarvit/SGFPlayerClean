@@ -1,39 +1,23 @@
 {
+  "date": "2026-11-26",
+  "map_state": "Candidate flow audit \u2014 not installed; final source/review pending",
   "diagrams": 7,
-  "nodes": 80,
+  "nodes": 85,
+  "connector_labels": 31,
   "issues": [],
-  "source_paths_exist": true,
-  "source_count": 27,
-  "run_evidence_links_exist": true,
-  "connector_node_crossings": [],
-  "snapshot": "2026-11-25",
-  "native_commit": "0f9ac752414b12b85dae5e10b161bd7e6de69950",
-  "host_commit": "fc8cb7d2648c198c319e4f046098d8fabc8b8f89",
-  "validation_scope": "Own artifact headless rendering and static geometry/link/source checks; no application or hardware actions",
-  "visual_previews_inspected": [
-    "overview",
-    "calibration",
-    "data",
-    "gameplay",
-    "laser",
-    "recovery",
-    "modes"
-  ],
-  "status_update": {
-    "installed_host": "968ba538d457c03fc34ed0b17b0d59e853817838-app0264",
-    "physical_result": "Final attended retry failed temporal reuse at frame57014; sustained play remains unvalidated",
-    "full_off_unix": 1795596934.1468098,
-    "flow_baseline": "fc8cb7d source/diagram snapshot; later tracking/validation repairs preserve high-level flow"
+  "font_metrics_checked": true,
+  "source_count": 35,
+  "source_heads": {
+    "native": "d270ee1af7b58b9591427f39f1891327778fae34",
+    "host": "04d2134d04e0c0e76b63122bb29e36d65c705a58"
   },
-  "repository_copy": {
-    "content_scope": "Documentation/source/SVG/HTML only; no PNG, browser log, temporary DOM, pycache or camera image",
-    "original_artifact": "/Users/Dave/Documents/SGF PLayer/work/physical-go-process-map-20261125",
-    "render_validation": "Prior work artifact renders remain applicable; diagram content unchanged",
-    "svg_byte_identical_to_prior_rendered_artifact": true,
-    "svg_count": 7,
-    "all_html_local_links_and_anchors_resolve": true,
-    "python_source_ast_valid": true,
-    "excluded_artifacts_absent": true,
-    "latest_checkpoint": "968ba538; temporal recurrence57014; fullOFF1795596934.1468098; no sustained-play pass"
-  }
+  "declared_source_heads": {
+    "native": "d270ee1af7b58b9591427f39f1891327778fae34",
+    "host": "04d2134d04e0c0e76b63122bb29e36d65c705a58"
+  },
+  "source_heads_match": {
+    "native": true,
+    "host": true
+  },
+  "validation_scope": "Static SVG/XML, font metrics, connector geometry, links, AST and source hashes; no browser rendering, screenshot, app, camera, hardware or runtime tests."
 }

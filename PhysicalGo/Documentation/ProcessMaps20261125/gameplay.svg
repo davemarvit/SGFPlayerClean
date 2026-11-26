@@ -40,8 +40,8 @@
 </g>
 <g data-node="ambiguity"><rect x="50" y="390" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="417">Resolve assignment</text>
-<text class="node-body" x="64" y="444">New stone location must be unique</text>
-<text class="node-body" x="64" y="465">Weak empty neighbor can block</text>
+<text class="node-body" x="64" y="444">Unique new-stone assignment</text>
+<text class="node-body" x="64" y="465">Qualified EMPTY proof is separate</text>
 </g>
 <g data-node="stable"><rect x="50" y="570" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="597">Collect stable witnesses</text>
@@ -70,8 +70,8 @@
 </g>
 <g data-node="aim"><rect x="750" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="417">Host aims / holds dot</text>
-<text class="node-body" x="764" y="444">Fresh target admission + optical aim</text>
-<text class="node-body" x="764" y="465">Native click: first light ack only</text>
+<text class="node-body" x="764" y="444">Aim / hold / recover same target</text>
+<text class="node-body" x="764" y="465">Native click: accepted adequate only</text>
 </g>
 <g data-node="human"><rect x="750" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="237">Human places / removes</text>

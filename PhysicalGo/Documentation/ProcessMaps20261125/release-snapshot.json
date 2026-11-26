@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-26",
+  "state": "Candidate flow audit \u2014 not installed; final source/review pending",
+  "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
+  "native_commit": "d270ee1af7b58b9591427f39f1891327778fae34",
+  "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/hold-optical-recovery/Firmware",
+  "host_commit": "04d2134d04e0c0e76b63122bb29e36d65c705a58",
+  "installed_native": "0.268/build269 fb4697c4ef314d83a253bd0aa219de1bb6b3d61f",
+  "installed_host": "32d79115100ac082dbc100c182cc299c7e0dfaee-app0268",
+  "physical_state": "Last attended replay: O17 crossed 0.20 cell after three same-pose observations. Game paused, ten logical moves/nine physical stones, O17 pending. Full OFF1795683450.8051615. No READY pending.",
+  "release_note": "Candidate flow includes the current cached-safety guard, but actual-write/status-wire review is unresolved. Not installed. Root owns final release and paused-app readiness; these maps authorize no hardware activity."
+}

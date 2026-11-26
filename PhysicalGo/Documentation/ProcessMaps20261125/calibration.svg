@@ -27,8 +27,8 @@
 </g>
 <g data-node="ref"><rect x="50" y="380" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="407">Retain geometry/reference</text>
-<text class="node-body" x="64" y="434">Native board coordinate system</text>
-<text class="node-body" x="64" y="455">Lighting / occupancy references</text>
+<text class="node-body" x="64" y="434">Native grid + physical-wood profile</text>
+<text class="node-body" x="64" y="455">Unknown perimeter stays unknown</text>
 </g>
 <g data-node="measure"><rect x="400" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="232">Measure pointer → board</text>
@@ -47,7 +47,7 @@
 </g>
 <g data-node="bind"><rect x="400" y="730" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="757">Bind approved setup</text>
-<text class="node-body" x="414" y="784">Hashes: model/setup/reference</text>
+<text class="node-body" x="414" y="784">Hashes: model/setup/reference/profile</text>
 <text class="node-body" x="414" y="805">Camera/context/size/allowed targets</text>
 </g>
 <g data-node="verify"><rect x="750" y="555" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
@@ -62,8 +62,8 @@
 </g>
 <g data-node="launch"><rect x="750" y="915" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="942">Open one host / controller</text>
-<text class="node-body" x="764" y="969">OFF handshake → capability check</text>
-<text class="node-body" x="764" y="990">Then current session admission</text>
+<text class="node-body" x="764" y="969">Fresh OFF handshake + capabilities</text>
+<text class="node-body" x="764" y="990">Historical hint needs fresh proof</text>
 </g>
 <g data-node="moved"><rect x="50" y="730" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
 <text class="node-title" x="64" y="757">If board/camera/pointer moves</text>

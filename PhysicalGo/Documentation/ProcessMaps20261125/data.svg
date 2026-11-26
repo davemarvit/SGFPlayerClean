@@ -34,7 +34,7 @@
 </g>
 <g data-node="vision"><rect x="400" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="242">Serial vision worker</text>
-<text class="node-body" x="414" y="269">Alignment + exposure + hand</text>
+<text class="node-body" x="414" y="269">Physical wood / grid / hand support</text>
 <text class="node-body" x="414" y="290">Then stone/shape/assignment evidence</text>
 </g>
 <g data-node="latest"><rect x="400" y="30" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
@@ -44,8 +44,8 @@
 </g>
 <g data-node="safety"><rect x="750" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="242">Early safety → main actor</text>
-<text class="node-body" x="764" y="269">Current revision checked</text>
-<text class="node-body" x="764" y="290">Clearance is not stone acceptance</text>
+<text class="node-body" x="764" y="269">Current revision + actual timestamps</text>
+<text class="node-body" x="764" y="290">Independent of geometry exclusions</text>
 </g>
 <g data-node="observe"><rect x="400" y="430" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="457">Final observation → game</text>
@@ -84,7 +84,7 @@
 </g>
 <g data-node="status"><rect x="400" y="840" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="867">Host coordinator + worker</text>
-<text class="node-body" x="414" y="894">Single hardware generation</text>
-<text class="node-body" x="414" y="915">Receipt/status returns to native</text>
+<text class="node-body" x="414" y="894">Generation + evidence revalidation</text>
+<text class="node-body" x="414" y="915">Memory save ≠ final wire publication</text>
 </g>
 </svg>

@@ -1,74 +1,98 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1130" width="1120" height="1130" role="img" aria-labelledby="recovery-title recovery-desc">
-<title id="recovery-title">6 · Cancellation, darkness and full OFF</title><desc id="recovery-desc">Dark motors-held state is useful during play. It is not a full power-off receipt, and a command submission is not an acknowledgement.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1530" width="1120" height="1530" role="img" aria-labelledby="recovery-title recovery-desc">
+<title id="recovery-title">6 · One recovery owner; full OFF remains the fallback</title><desc id="recovery-desc">Typed eligibility allows a bounded attempt, not continued authority. Nested observations share one operation/controller scope and deadline.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
-<polyline points="350.0,78.0 400.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="700.0,78.0 750.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,126.0 900.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,316.0 900.0,405.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="900.0" y="352.5" text-anchor="middle">fault / pause</text>
-<polyline points="750.0,268.0 550,268 550.0,405.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="650.0" y="260.0" text-anchor="middle">eligible warm handoff</text>
-<polyline points="550.0,501.0 550.0,600.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,501.0 900,555 550,555 550.0,600.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="725.0" y="547.0" text-anchor="middle">after full OFF</text>
-<polyline points="400.0,648.0 200,648 200.0,795.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="640.0" text-anchor="middle">classified recovery</text>
-<polyline points="1050.0,453.0 1080,453 1080,843 1050.0,843.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="1059.0" y="395.0" text-anchor="middle">hard fault</text>
-<polyline points="900.0,891.0 900,1028 700.0,1028.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="800.0" y="1020.0" text-anchor="middle">explicit action</text>
-<polyline points="200.0,891.0 200,1028 400.0,1028.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="1020.0" text-anchor="middle">fresh witnesses</text>
-<g data-node="event"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="57">Interruption / state change</text>
-<text class="node-body" x="64" y="84">Hand, target replacement, pause</text>
-<text class="node-body" x="64" y="105">Camera/lease, optical or hard fault</text>
+<polyline points="400.0,73.0 200,73.0 200,155 200.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,121.0 550.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,73.0 900,73.0 900,155 900.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,316.0 200.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,468.0 375,468 375,780 550,780 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="553.6" text-anchor="middle">independent recheck</text>
+<polyline points="550.0,316.0 550.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,516.0 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,316.0 900.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,516.0 900.0,620.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,716.0 900,780 550,780 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="772.0" text-anchor="middle">new optical proof</text>
+<polyline points="350.0,1068.0 400.0,1068.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,1068.0 750.0,1068.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,1116.0 900.0,1220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,1316.0 900,1448 700.0,1448.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="800.0" y="1440.0" text-anchor="middle">fresh evidence</text>
+<g data-node="input"><rect x="400" y="25" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="52">Held crossing / typed failure</text>
+<text class="node-body" x="414" y="79">Withdraw adequate immediately</text>
+<text class="node-body" x="414" y="100">Enter existing shared work ledger</text>
 </g>
-<g data-node="revoke"><rect x="400" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="57">Invalidate generation first</text>
-<text class="node-body" x="414" y="84">No late worker command/result</text>
-<text class="node-body" x="414" y="105">may authorize the next request</text>
+<g data-node="cross"><rect x="50" y="220" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="247">Measured error &gt;0.20 cell</text>
+<text class="node-body" x="64" y="274">Newer full-board confirmation</text>
+<text class="node-body" x="64" y="295">No wider adequate band</text>
 </g>
-<g data-node="quiet"><rect x="750" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="57">Quiesce worker / controller</text>
-<text class="node-body" x="764" y="84">Coordinator owns stop and receipt</text>
-<text class="node-body" x="764" y="105">Worker cleanup cannot send old IO</text>
+<g data-node="expiry"><rect x="400" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="247">Finite optical-result expiry</text>
+<text class="node-body" x="414" y="274">Discard old result; check live safety</text>
+<text class="node-body" x="414" y="295">Reacquire pose + newer full-board data</text>
 </g>
-<g data-node="branch"><rect x="750" y="220" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="247">Choose permitted stop path</text>
-<text class="node-body" x="764" y="274">Healthy eligible handoff only</text>
-<text class="node-body" x="764" y="295">Otherwise request full OFF</text>
+<g data-node="geometry"><rect x="750" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="247">Coherent geometry candidate</text>
+<text class="node-body" x="764" y="274">DARK first, including PREPARE</text>
+<text class="node-body" x="764" y="295">Assess exact rejected pixels only</text>
 </g>
-<g data-node="darkhold"><rect x="400" y="405" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="432">DARK / holding receipt</text>
-<text class="node-body" x="414" y="459">Beam off, motors held, bus powered</text>
-<text class="node-body" x="414" y="480">Cooling can instead release motors</text>
+<g data-node="confirm"><rect x="50" y="420" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="447">Confirmation still outside?</text>
+<text class="node-body" x="64" y="474">Use contained local correction</text>
+<text class="node-body" x="64" y="495">Then independent held observation</text>
 </g>
-<g data-node="off"><rect x="750" y="405" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="432">Full OFF receipt</text>
-<text class="node-body" x="764" y="459">Beam off + motor bus released</text>
-<text class="node-body" x="764" y="480">Exact identity + fresh acknowledgement</text>
+<g data-node="fresh"><rect x="400" y="420" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="447">Same operation / current proof</text>
+<text class="node-body" x="414" y="474">Original target, token and session</text>
+<text class="node-body" x="414" y="495">Only acknowledged own RS may advance</text>
 </g>
-<g data-node="frame"><rect x="400" y="600" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="414" y="627">Post-dark camera evidence</text>
-<text class="node-body" x="414" y="654">Same stream + frame watermark</text>
-<text class="node-body" x="414" y="675">≥300 ms presentation flush</text>
+<g data-node="fit"><rect x="750" y="420" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="447">Qualify replacement geometry</text>
+<text class="node-body" x="764" y="474">Three newer dark frames; validate</text>
+<text class="node-body" x="764" y="495">Install only after replacement passes</text>
 </g>
-<g data-node="transient"><rect x="50" y="795" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="822">Classified transient recovery</text>
-<text class="node-body" x="64" y="849">Camera/lease barrier + fresh streak</text>
-<text class="node-body" x="64" y="870">Current target must be reverified</text>
+<g data-node="hint"><rect x="750" y="620" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="647">Historical containment only</text>
+<text class="node-body" x="764" y="674">Old sample/H grants no movement</text>
+<text class="node-body" x="764" y="695">Fresh pose + full-board spot required</text>
 </g>
-<g data-node="explicit"><rect x="750" y="795" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="764" y="822">Hard / unexplained failure</text>
-<text class="node-body" x="764" y="849">Pause game + clock; retain target</text>
-<text class="node-body" x="764" y="870">Explicit recheck / Resume required</text>
+<g data-node="adequate"><rect x="400" y="820" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="847">Current adequate publication</text>
+<text class="node-body" x="414" y="874">Same-sample age / pose / hand checks</text>
+<text class="node-body" x="414" y="895">At authoritative publication boundary</text>
 </g>
-<g data-node="retry"><rect x="400" y="980" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="1007">Re-admit under current proof</text>
-<text class="node-body" x="414" y="1034">New scope, clear board, fresh status</text>
-<text class="node-body" x="414" y="1055">Hardware recovery alone ≠ Resume</text>
+<g data-node="lease"><rect x="50" y="620" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="647">Shared finite recovery episode</text>
+<text class="node-body" x="64" y="674">≤30s provisional wall cap</text>
+<text class="node-body" x="64" y="695">Nested retries never restart it</text>
+</g>
+<g data-node="failure"><rect x="50" y="1020" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="64" y="1047">Any unqualified failure</text>
+<text class="node-body" x="64" y="1074">Unknown hand/spot, lost lease,</text>
+<text class="node-body" x="64" y="1095">transport, identity or exhausted work</text>
+</g>
+<g data-node="cancel"><rect x="400" y="1020" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1047">Revoke → quiesce → full OFF</text>
+<text class="node-body" x="414" y="1074">Coordinator owns stop + receipt</text>
+<text class="node-body" x="414" y="1095">No transport writes inside validators</text>
+</g>
+<g data-node="off"><rect x="750" y="1020" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="1047">Full OFF acknowledgement</text>
+<text class="node-body" x="764" y="1074">Beam off + motor power released</text>
+<text class="node-body" x="764" y="1095">Not merely DARK with motors held</text>
+</g>
+<g data-node="dark"><rect x="750" y="1220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1247">Post-dark physical evidence</text>
+<text class="node-body" x="764" y="1274">Same stream + watermark + flush</text>
+<text class="node-body" x="764" y="1295">No stone acceptance from a receipt</text>
+</g>
+<g data-node="resume"><rect x="400" y="1400" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1427">Native recovery / explicit Resume</text>
+<text class="node-body" x="414" y="1454">Preserve pending move and clocks</text>
+<text class="node-body" x="414" y="1475">Hardware recovery cannot resume game</text>
 </g>
 </svg>

@@ -17,8 +17,8 @@
 <text class="edge-label" x="375.0" y="752.0" text-anchor="middle">proposal only</text>
 <g data-node="observation"><rect x="400" y="25" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="52">Admitted board observations</text>
-<text class="node-body" x="414" y="79">Same camera / grid / hand pipeline</text>
-<text class="node-body" x="414" y="100">Mode chooses the decision owner</text>
+<text class="node-body" x="414" y="79">Same camera / wood / hand pipeline</text>
+<text class="node-body" x="414" y="100">Mode owns evidence + move acceptance</text>
 </g>
 <g data-node="local"><rect x="50" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="247">Local: GameRecorder</text>
