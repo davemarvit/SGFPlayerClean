@@ -998,3 +998,35 @@ implying removal of a visible but not yet accepted stone and changes no decision
 logic. Root's final0.266 integration3fe6290 is rebuilding with this wording;
 installed0.265 remains unchanged pending root's checks. No reviewer hardware,
 camera, UI, installation or heavy build occurred.
+
+
+## PG37 cold OFF transition liveness — a24572e
+
+Independent frozen source/artifact review approves a24572e based on native
+3fe6290. The production change adds nine lines only in matchedTransition.
+A schema2 OFF handoff may advertise a nonempty setup before native has adopted
+any setup. The exception requires OFF action, not ready, no possible motor
+session, no adopted setup, the existing capability and exact nullable session,
+camera context and epoch. The caller still authenticates producer, revision,
+mode and age. Successful matching supplies liveness only: uncertain illumination
+remains unsuitable for recognition, no setup is adopted and no motor permission
+is granted. The existing three-second transition deadline remains unchanged.
+Only a subsequent genuine full OFF completes setup admission or cancellation.
+
+The fixture generator exercises the production host parser, lease gate and
+publisher from installed2f8c4da using a fake command sink, two OFF writes and no
+threads or worker. It is explicitly not the missing raw live status. Retained
+native trace transitions precede the context latch, but cannot establish all
+fields of that live status. Reviewer independently matched four host source
+hashes, two native input hashes and both validation log hashes. Exact baseline
+3fe6290 fails “Actual host cold OFF transition must not latch
+standby_context_changed”. Candidate runtime ef06b96b41ea passes74 new checks;
+owner reports existing387 standby and263 continuity checks,724 total.
+
+Tests cover repeated current transitions without revision churn or authority,
+eventual OFF adopting a different setup, rejection after setup becomes known,
+foreign/stale revisions and identities, absent capability, simulation mode,
+malformed optical claims, three-second timeout, nullable closing scope and
+explicit Retry. No remaining source blocker was found. No reviewer builds,
+installation, camera, UI or hardware operations occurred; physical validation
+remains root-owned.
