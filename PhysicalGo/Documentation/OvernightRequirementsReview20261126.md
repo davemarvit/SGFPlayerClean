@@ -126,6 +126,7 @@ incident's 25-second delay.
 |---|---|---|
 | Geometry helper `16806f3` | Conditional source approval | Owner reports 10 new + 35 existing tests; inspected, not independently rerun during physical baseline. Combined adapter must darken before assessment, enforce shared budgets, invalidate old spots/predictions, reacquire actual-pose optical anchor, and terminate on failed replacement validation. |
 | Optical expiry helper/seams `943188b` | Source approved; recovery integration pending | Inclusive 600 ms ceiling and four original clocks preserved. Invalid/future clocks remain ordinary failure. All three expiry seams precede anchor/certificate publication. Owner reports 18 focused tests; source/tests inspected. Outer recovery is not supplied by this commit. |
+| Optional renewal budget/fourth expiry seam `bf4509b` | Source approved; hold integration pending | Reviewer independently ran all 40 age/pose/lit-renewal focused tests on clean exact commit. Deferred optional work starts only from a current finite ordinary result; proposal/commit expiry stays rejected; final publication remains 600 ms. Hold owner must implement bounded deferral and root's 2-second geometry reserve. |
 | Native terminal ordering `ef22e4e` | Source approved pending queued native guidance tests | Valid active/OFF receipt consumed before timeout; invalid thermal terminal receipt still fails. |
 | Host admission/status `0fb532c` | Source approved pending paired native checks | Actual thermal token/generation/epoch published additively; GA-only receipt wait 14 s, others 12 s; no ambiguous-command retry. Owner reports 17 focused checks. |
 | Native admission grace `ba36928` + repair `4b180f4` | Source approved pending queued native guidance tests | Reported healthy state-epoch defect corrected. Fixed token/generation, advancing epoch reseeds liveness, no episode/deadline reset. Owner reports 312,346 pure assertions; not independently rerun during baseline. |
@@ -142,6 +143,9 @@ The reviewer independently ran these hardware-free tests sequentially with
 - Clean geometry worktree `16806f3`: `test_geometry_requalification`,
   `test_fixed_optical_geometry`, `test_lit_geometry_renewal`,
   `test_optical_failure_evidence` — **57 passed**.
+- Clean temporal worktree `bf4509b`: `test_feedback_result_age`,
+  `test_feedback_pose_evidence`, `test_lit_geometry_renewal` — **40 passed**,
+  including the exact retained 528.9565 ms optional-renewal timing case.
 
 No native compile, camera, serial or installation was performed by this reviewer.
 
