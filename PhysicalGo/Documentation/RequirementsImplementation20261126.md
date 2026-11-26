@@ -28,6 +28,12 @@ Dave authorized reasonable implementation of both requirement audits after a bri
 
 Owners use isolated worktrees from the correct runtime. No new agents duplicate these assignments. Direct routing to root-owned audit agents may be unavailable; root relays interface contracts. Root released heavy-test capacity after the verified baseline shutdown; at most one Swift build and two heavy jobs, centrally scheduled. Reuse immutable caches; no raw-evidence deletion.
 
+## User-requested flow and race review
+
+Dave explicitly requested the audits be evaluated in the context of the process flowcharts, and the charts updated to reflect the overall flow rather than only thresholds. `/root/process_flowchart` owns an isolated update of all seven `ProcessMaps20261125` maps and independent flow/race review. That directory is reserved to its owner until their frozen commit; coordinator owns this ledger/checklist/guide. Final maps must name the final installed source pins, not an interim candidate.
+
+Required diagram boundaries: the single outer optical recovery owner and shared active-time/local-plan ledger; initial coarse route versus recovery; exact gate/cancellation, serial lock/pre-write, and adequate-publication checks; geometry authority revocation before dark reassessment/replacement; typed expiry without retimestamping; original illumination clocks; native placement proof/legality/hand clearance as separate decisions. Valid measured optical observation/durable-anchor publication is distinct from adequate requested-target indication (the baseline stored a valid off-target observation before the held-error veto). Show positive and failing transitions and ownership; do not present a source-approved branch as installed. Flow findings that reveal a concrete race feed the current source review; speculative rewrites remain scoped/deferred.
+
 ## Interaction matrix and merge order
 
 | Interaction | Failure to prevent | Required shared contract / combined test |

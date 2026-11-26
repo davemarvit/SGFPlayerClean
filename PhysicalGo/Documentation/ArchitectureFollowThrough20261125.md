@@ -1,6 +1,8 @@
-# Current architecture follow-through — November 25, 2026
+# Architecture follow-through checkpoint — November 25, 2026
+**Historical checkpoint:** the body below describes the November25 audit/batch, not today's installed runtime or remaining tasks. Current implementation, source pins, overall-flow/race review and final readiness are tracked in the [November26 implementation ledger](RequirementsImplementation20261126.md) and authoritative [register](IntegrationChecklist.md). Existing completed fixes must not be proposed again from this snapshot.
 
-Original batch-start source audit against then-installed native `1f6fb91cac57616791d47c2fea4cc4eca0426a28` and host `b9a524e2b521e535de913daa92098742f1f34233`. Current installed0.266/native3fe6290 + host2f8c4da are recorded in the [completed batch results](ArchitectureOfflineResults20261125.md). Both original immutable source worktrees are named `overnight-readiness-20261125`; canonical runtime files are not this audit's source. This is a read-only audit and bounded work assignment, not new tests, installation or physical acceptance. The [register](IntegrationChecklist.md) owns issue status; the [November23 review](ArchitectureReview.md) remains historical.
+
+Original batch-start source audit against then-installed native `1f6fb91cac57616791d47c2fea4cc4eca0426a28` and host `b9a524e2b521e535de913daa92098742f1f34233`. That batch's installed0.266/native3fe6290 + host2f8c4da are recorded in the [completed batch results](ArchitectureOfflineResults20261125.md). Both original immutable source worktrees are named `overnight-readiness-20261125`; canonical runtime files are not this audit's source. This is a read-only audit and bounded work assignment, not new tests, installation or physical acceptance. The [register](IntegrationChecklist.md) owns issue status; the [November23 review](ArchitectureReview.md) remains historical.
 
 ## What is already implemented
 
