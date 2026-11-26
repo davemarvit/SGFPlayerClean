@@ -232,6 +232,16 @@ import Foundation
    try status(x,state:"arming",mutate:{$0.thermal?.unavailableReason="bootstrap"})
    return x
   }
+  for terminal in ["holding","off"] {
+   let x=try beginArming("deadline-terminal-"+terminal)
+   clock.now+=12;clock.wall+=12
+   try status(x,state:terminal)
+   check(x.gameFaultRecheckReason != "arming_timeout","Authenticated \(terminal) at the cold deadline is consumed before timeout")
+  }
+  let invalidTerminal=try beginArming("deadline-invalid-terminal")
+  clock.now+=12;clock.wall+=12
+  try status(invalidTerminal,state:"holding",mutate:{$0.thermal?.unavailableReason="stale"})
+  check(invalidTerminal.holdingInterrupted && request(invalidTerminal).action=="off","Invalid terminal thermal evidence cannot end admission or bypass fail-closed shutdown")
   let boot=try beginArming("bootstrap")
   check(!boot.holdingInterrupted && request(boot).action=="standby","Bounded dark cold arming may await first causal sample")
   check(!boot.acceptsObservation(capturedAt:clock.now,now:clock.now),"Arming never supplies dark recognition evidence")

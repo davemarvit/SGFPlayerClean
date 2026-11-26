@@ -689,9 +689,6 @@ import CoreGraphics
                 motorAdmission.reduce(.authenticatedNonTransition)
             }
             if mayHaveMotorSession,connected,driver?.sequence==sequence,!standbyAvailable {hardHealth("standby_capability_lost")}
-            if motorAdmission.armingTimedOut(now:now,transientRecovery:transientRecovery.isPending) {
-                hardHealth("arming_timeout")
-            }
             if connected,let d=driver,d.sequence==sequence,d.state=="arming" {
                 if d.laserOn || d.illuminationConfirmed==true || d.offSinceUnix != nil || d.evidenceAfter != nil ||
                    d.beamOffSinceUnix != nil || d.darkEvidenceAfter != nil {hardHealth("invalid_arming_status")}
@@ -731,6 +728,12 @@ import CoreGraphics
                           let setup=d.setupId,!setup.isEmpty {
                     standbyReady=true;standbySetup=setup
                 }
+            }
+            // Consume an authenticated terminal active/OFF receipt first. A
+            // receipt arriving on the deadline ends that episode; it must not
+            // be faulted based on bookkeeping from the previous tick.
+            if motorAdmission.armingTimedOut(now:now,transientRecovery:transientRecovery.isPending) {
+                hardHealth("arming_timeout")
             }
         }
         let currentFault=connected && driver?.sequence==sequence && (driver?.state == "fault" || driver?.requiresNewRevision == true)
