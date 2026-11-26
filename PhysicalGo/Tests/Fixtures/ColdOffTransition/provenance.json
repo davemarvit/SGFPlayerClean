@@ -1,0 +1,14 @@
+{
+  "host_root": "/Users/dave/Library/Application Support/Physical Go/LaserDriver/2f8c4daed12389f1c96bcd930b893ed9bf3bd580-app0266",
+  "source_hashes": {
+    "bridge_runtime.py": "f52a26a0370a4ed9200c9a6b5a8a4a6ba2b7cc0852cd6b7d4a749c34123b89bc",
+    "bridge_lease.py": "1557040f1434d43132e8c9d4762463413f86dd07cdb2a89065f484ea4beda6e4",
+    "bridge_thermal.py": "83503bd160ff6a832ef740f7b41f665a85e7c8cc1c1cd55be6ebc2ee51ae802e",
+    "bridge_errors.py": "d83afde8c58287f98dcd6f3adb195d44f490aabd4cad88587a6df69005d18e9f"
+  },
+  "commands": [
+    "OFF",
+    "OFF"
+  ],
+  "claim": "Production parser/gate/publisher with fake command sink; not a retained live bad status."
+}

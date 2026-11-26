@@ -496,6 +496,15 @@ import CoreGraphics
     }
     private func matchedTransition(_ status:DriverStatus)->Bool {
         if matchedStandby(status) {return true}
+        // A cold schema2 OFF replacement can report uncertain output before
+        // its first confirmed OFF supplies the setup identity. Accept only
+        // liveness for the exact current scope; do not adopt this setup, grant
+        // motor admission or treat the transition as darkness. The same3s
+        // deadline still bounds the wait, including a nullable closing scope.
+        if lastAction=="off",!standbyReady,!mayHaveMotorSession,standbySetup==nil,
+           status.schemaVersion==2,status.capabilities?.contains("darkMotorStandbyV1")==true,
+           status.playSession==playSession,cameraContext != nil,status.cameraContext==cameraContext,
+           status.streamEpoch==frames.streamEpoch,status.setupId.map({!$0.isEmpty})==true {return true}
         // Pause revokes the play session before its OFF acknowledgement. The
         // host can report an uncertain, bounded handoff for this nullable scope.
         return closingStandby && lastAction=="off" && playSession==nil && status.playSession==nil &&

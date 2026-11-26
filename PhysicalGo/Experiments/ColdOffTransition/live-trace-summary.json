@@ -1,0 +1,202 @@
+{
+  "source": "/Users/Dave/Documents/SGF PLayer/work/attended-0266-1795627659791165000",
+  "limits": "Selected native trace fields are retained; the full offending live status payload was not sampled. Generated fixtures are offline production-host output, not recovered live bytes.",
+  "episodes": {
+    "first-stall": {
+      "source_sha256": {
+        "native-latency.jsonl": "f9744ef6cea1c8bb86dc2ad51ebbd48774e3ae2f74ec4f9a4e779c96714108bb",
+        "native-latency.previous.jsonl": "df4293412c70190c7c156e0207f2cd00781dde7747d63183b6f001faefd9fda4"
+      },
+      "events": [
+        {
+          "unixSeconds": 1795629189.3128939,
+          "event": "motor_admission",
+          "fields": {
+            "setup": "none",
+            "standbyFault": "none",
+            "action": "off",
+            "possibleMotorSession": "false",
+            "ready": "false",
+            "closing": "false",
+            "blocker": "awaiting_full_off",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "sequence": "8",
+            "schema": "2"
+          },
+          "metrics": {
+            "transitionAgeSeconds": -1,
+            "armingAgeSeconds": -1
+          }
+        },
+        {
+          "unixSeconds": 1795629189.469284,
+          "event": "driver_status_observed",
+          "fields": {
+            "illuminationConfirmed": "false",
+            "sequence": "8",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "state": "transitioning",
+            "reason": "none"
+          },
+          "metrics": {
+            "statusWallAgeSeconds": 0.15155386924743652,
+            "readSeconds": 0.0004602500703185797
+          }
+        },
+        {
+          "unixSeconds": 1795629189.469353,
+          "event": "motor_admission",
+          "fields": {
+            "possibleMotorSession": "false",
+            "blocker": "awaiting_full_off",
+            "action": "off",
+            "closing": "false",
+            "standbyFault": "standby_context_changed",
+            "schema": "2",
+            "setup": "none",
+            "ready": "false",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "sequence": "8"
+          },
+          "metrics": {
+            "armingAgeSeconds": -1,
+            "transitionAgeSeconds": -1
+          }
+        },
+        {
+          "unixSeconds": 1795629189.512833,
+          "event": "driver_status_observed",
+          "fields": {
+            "illuminationConfirmed": "false",
+            "state": "off",
+            "reason": "none",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "sequence": "8"
+          },
+          "metrics": {
+            "statusWallAgeSeconds": 0.05861616134643555,
+            "readSeconds": 0.0001038750633597374
+          }
+        },
+        {
+          "unixSeconds": 1795629189.512912,
+          "event": "motor_admission",
+          "fields": {
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "closing": "false",
+            "possibleMotorSession": "false",
+            "ready": "true",
+            "standbyFault": "standby_context_changed",
+            "setup": "8d98ed7584c4265a",
+            "action": "off",
+            "blocker": "standby_fault:standby_context_changed",
+            "sequence": "8",
+            "schema": "2"
+          },
+          "metrics": {
+            "transitionAgeSeconds": -1,
+            "armingAgeSeconds": -1
+          }
+        }
+      ]
+    },
+    "retry-stall": {
+      "source_sha256": {
+        "native-latency.jsonl": "0e9c885c6eb5ae28a8a31c78c0a7ad5514feccdd27ff56c17b51c3f8d5255d5d",
+        "native-latency.previous.jsonl": "563cc2a37fd2eeb003d3b7c17275fde809a3fe3b51f18748919fe1b6e7b30813"
+      },
+      "events": [
+        {
+          "unixSeconds": 1795629249.11167,
+          "event": "motor_admission",
+          "fields": {
+            "setup": "none",
+            "standbyFault": "none",
+            "sequence": "11",
+            "ready": "false",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "closing": "false",
+            "possibleMotorSession": "false",
+            "schema": "2",
+            "action": "off",
+            "blocker": "awaiting_full_off"
+          },
+          "metrics": {
+            "transitionAgeSeconds": -1,
+            "armingAgeSeconds": -1
+          }
+        },
+        {
+          "unixSeconds": 1795629249.255806,
+          "event": "driver_status_observed",
+          "fields": {
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "illuminationConfirmed": "false",
+            "reason": "none",
+            "state": "transitioning",
+            "sequence": "11"
+          },
+          "metrics": {
+            "readSeconds": 6.529176607728004e-05,
+            "statusWallAgeSeconds": 0.1301131248474121
+          }
+        },
+        {
+          "unixSeconds": 1795629249.255857,
+          "event": "motor_admission",
+          "fields": {
+            "action": "off",
+            "closing": "false",
+            "possibleMotorSession": "false",
+            "sequence": "11",
+            "schema": "2",
+            "blocker": "awaiting_full_off",
+            "ready": "false",
+            "standbyFault": "standby_context_changed",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "setup": "none"
+          },
+          "metrics": {
+            "armingAgeSeconds": -1,
+            "transitionAgeSeconds": -1
+          }
+        },
+        {
+          "unixSeconds": 1795629249.31159,
+          "event": "driver_status_observed",
+          "fields": {
+            "sequence": "11",
+            "reason": "none",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "illuminationConfirmed": "false",
+            "state": "off"
+          },
+          "metrics": {
+            "statusWallAgeSeconds": 0.09411883354187012,
+            "readSeconds": 0.00010062498040497303
+          }
+        },
+        {
+          "unixSeconds": 1795629249.311658,
+          "event": "motor_admission",
+          "fields": {
+            "sequence": "11",
+            "producer": "35A4401A-C7A5-4E83-B748-E8C1A019267B",
+            "possibleMotorSession": "false",
+            "blocker": "standby_fault:standby_context_changed",
+            "ready": "true",
+            "closing": "false",
+            "action": "off",
+            "setup": "8d98ed7584c4265a",
+            "schema": "2",
+            "standbyFault": "standby_context_changed"
+          },
+          "metrics": {
+            "armingAgeSeconds": -1,
+            "transitionAgeSeconds": -1
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "base_native": "3fe6290d0ed8612b2aa852b7bb6a8b218a53c7cd",
+  "baseline_runtime": "a83b26699dc9ff7fe7cd9655287ae4dc74f1492382be00564a46af6c485d0065",
+  "baseline_result": "Expected failure: Actual host cold OFF transition must not latch standby_context_changed",
+  "candidate_runtime": "ef06b96b41eac6a9b9a392c810c50de06d6c634fc2754bc5234a7d04c79b7635",
+  "native_suites": {
+    "cold-off-transition": 74,
+    "laser-standby": 387,
+    "guidance-continuity": 263
+  },
+  "total_checks": 724,
+  "host_fixture_generation": "passed; production parser/gate/publisher, two fake OFF commands, no worker",
+  "native_logs": {
+    "baseline": {
+      "path": "/tmp/pg37-cold-off-baseline.log",
+      "sha256": "80883294516a4ea213700fb1b8da212bcdbe478fedd81135a9bbff6c258a3352"
+    },
+    "candidate": {
+      "path": "/tmp/pg37-cold-off-candidate.log",
+      "sha256": "172d05b4a46366ec19cb061ee79d4dac5d05e7207632a6284b57524dd553587c"
+    }
+  },
+  "runtime_files": {
+    "PhysicalGo/Sources/PhysicalLaserGuidance.swift": "8c28e377f52f0ffe6893dc0321fe934327c91f73621beefdc0818df10c487ecd",
+    "PhysicalGo/Tests/PhysicalColdOFFTransitionTests.swift": "413432585a1dca4b4e938b465997e525b4d06b31b27e2ecf2290aa8847594bf9"
+  },
+  "installed": false,
+  "physical_tested": false
+}
