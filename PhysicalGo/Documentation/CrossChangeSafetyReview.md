@@ -1428,3 +1428,52 @@ ACTIVE work,25 local correction plans and30s recovery; verified stable adequate
 holding pauses only active-work accounting. Light/lease/firmware/thermal clocks
 never pause. This note records the updated requirement, not approval of pending
 recovery implementation; the fresh overnight reviewer owns that review.
+
+
+## PG23 complete producer/consumer supplemental review
+
+Read-only supplemental review of993b8a2c43b1cde17b59561059e8d2607e77f200
+(chain7c881be/397fb74/993b8a2) found no additional blocker. This does not delay or
+replace the fresh reviewer's existing1ebd12e approval or root's combined builds.
+No reviewer build, test execution, camera or hardware operation occurred.
+
+BoardVision emits receipts only from its existing unmasked reference-wood and
+two-rail predicate, with unchanged classifier thresholds/results. The reference
+locates rails; expected labels cannot manufacture support. Neighbor-masked/shadow
+fallback and reference-free empty labels cannot issue this receipt. Inner sample
+counts are diagnostic, not a new admission threshold. Receipts bind exact image
+UUID, reference UUID, original capture uptime, point and unchanged reading.
+ExperimentModel passes optional original capture time; processing/redraw fallback
+never supplies it. Pipeline/tracker/lighting copies retain same-image metadata,
+and reading replacement, manual points, reassignment or provenance changes
+invalidate incompatible receipts. Current covering outlines and covered-grid
+conflicts still prevent receipt use.
+
+PhysicalAI only exempts a currently EMPTY, expected-empty low-confidence neighbor
+from its unresolved-neighbor veto when that exact receipt qualifies. It does not
+exempt uncertain/nonempty neighbors or the new stone's own assignment offset.
+The original confirmed-dark gate, known-clear hand requirement, frame-age and
+nonduplicate checks, normal multi-frame stability, legal single-addition/capture
+rules and clock/history commit path remain independent. No fresh target truth
+or move is inferred from prior empty history alone.
+
+Reviewer independently matched all six changed runtime sources to their hashes
+in the compiled f0f733ded0318b301994f2306c6bb0ead04b2e13ac636acc648284a867c89f98
+runtime manifest, and all three validation-receipt log hashes. Owner's complete
+native receipt records572 checks across controller/pipeline113, ambiguity57,
+checking31, schema188, lighting101 and tracker82. The separate original-timestamp
+spatial replay records30 checks, zero failures. Source/tests were inspected,
+including both colors, edge/corner/interior placements, unsupported streak reset,
+duplicates/staleness, wrong image/reference/time, manual/reassignment mutations,
+conflicting geometry, unknown hand, lighting and dark barriers.
+
+Negative claims are precise: all nine synthetic cover/halfway controls actually
+printed receipt=false. The runner asserts receipt rejection for seven central/
+axial cases, and assignment ineligibility for all nine; diagonal receipt rejection
+is observed, not required by those assertions. Four archived halfway placements
+remain ineligible and four legitimate placements remain eligible. The later R16
+photograph is not the missing original delayed frames or tracker checkpoint.
+Neither this review nor the artifact demonstrates reduction of the original
+25.418-second physical delay. Root-owned integrated validation and later physical
+acceptance remain distinct. No new reviewer condition is imposed on the already
+approved batch.
