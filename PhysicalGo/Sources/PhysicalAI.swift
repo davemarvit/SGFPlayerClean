@@ -578,7 +578,7 @@ struct PhysicalAIGuidanceTarget: Equatable {
         // displacement. Previously verified empty neighbors cannot resolve that
         // new assignment. Established stones may still retain unchanged labels.
         let byPoint=Dictionary(uniqueKeysWithValues:observation.readings.map {($0.row*size+$0.col,$0)})
-        var unresolvedNeighbors=[Int:[Int]]()
+        var unresolvedNeighbors=[Int:[Int]](),freshEmptyNeighbors=[Int:[Int]]()
         for r in observation.readings where r.occupancy.stone != nil && r.confidence>=0.8 {
             let point=r.row*size+r.col
             guard r.occupancy.rawValue != cells[point] || point==pendingPoint else {continue}
@@ -587,7 +587,16 @@ struct PhysicalAIGuidanceTarget: Equatable {
                 for col in max(0,r.col-1)...min(size-1,r.col+1) {
                     let other=row*size+col
                     guard other != point,cells[other]=="empty",let reading=byPoint[other] else {continue}
-                    if reading.occupancy == .uncertain || reading.confidence<0.8 {neighbors.append(other)}
+                    if reading.occupancy == .uncertain || reading.confidence<0.8 {
+                        // The reference-backed detector can positively observe
+                        // wood and both printed rails yet report a 0.75 score.
+                        // Preserve that exact fresh proof rather than treating
+                        // it as an unresolved competitor. No unknown/nonempty
+                        // label, history-only empty or conflicting outline qualifies.
+                        if reading.occupancy == .empty,observation.hasFreshEmptyCrossingEvidence(at:other) {
+                            freshEmptyNeighbors[point,default:[]].append(other)
+                        } else {neighbors.append(other)}
+                    }
                 }
             }
             if !neighbors.isEmpty {unresolvedNeighbors[point]=neighbors;ambiguous.insert(point)}
@@ -595,6 +604,9 @@ struct PhysicalAIGuidanceTarget: Equatable {
         detail["ambiguousPoints"]=ambiguous.sorted()
         if !unresolvedNeighbors.isEmpty {
             detail["unresolvedPlacementNeighbors"]=unresolvedNeighbors.map { ["point":$0.key,"neighbors":$0.value] as [String:Any] }
+        }
+        if !freshEmptyNeighbors.isEmpty {
+            detail["freshEmptyPlacementNeighbors"]=freshEmptyNeighbors.map { ["point":$0.key,"neighbors":$0.value] as [String:Any] }
         }
         detail["readingsOfInterest"]=observation.readings.filter {
             $0.occupancy.rawValue != cells[$0.row*size+$0.col] || $0.confidence<0.8 || $0.row*size+$0.col==pendingPoint

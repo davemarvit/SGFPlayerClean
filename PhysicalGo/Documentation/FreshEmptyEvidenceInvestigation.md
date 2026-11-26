@@ -1,11 +1,11 @@
 # PG23 fresh empty-crossing evidence investigation
 
 Source baseline: `fb4697c4ef314d83a253bd0aa219de1bb6b3d61f`.
-This checkpoint is an **offline producer and eligibility experiment**. The
-producer emits receipts only when supplied an explicit original capture uptime.
-The application pipeline does not supply it and PhysicalAI does not consume
-receipts, so application recognition remains unchanged. No installation or
-physical validation is claimed.
+This checkpoint is a **reviewable native recognition candidate**, not installed.
+It carries existing positive reference-wood proof through the actual analysis
+pipeline to the AI controller's expected-empty neighbor check. Original capture
+time, image/reference identity, unchanged readings and existing spatial/temporal
+admission rules remain required. No physical delay improvement is claimed.
 
 ## Retained photograph result
 
@@ -34,7 +34,8 @@ Local artifacts remain in `PhysicalGo/.build/pg23-empty-proof/`:
 * `command.json` and `provenance.json` describe the immutable runtime and inputs.
 
 The source photograph and reference were not duplicated. The worktree contains
-approximately 1.3 GB of existing regression fixtures and under 1 MB of diagnostics.
+approximately 1.3 GB of existing regression fixtures; the full worktree including
+tracked resources and its native regression cache is approximately 1.5 GB.
 
 ## Findings and bounded producer experiment
 
@@ -43,11 +44,9 @@ wood samples, requires at least 75% matching color/level support and independent
 requires at least 75% survival of both printed rails. It sometimes reports 0.75,
 which the controller's blanket 0.8 neighbor veto discards.
 
-A receipt may be defensible for its standard **unmasked** path only when all four
-existing innermost samples at offsets ±0.075 cell also match the same color/level
-gates. This adds no image passes and changes no classification thresholds. The
-inner requirement must reject a halfway stone occupying the near side of a
-neighboring intersection. **The next diagnostic falsified this proposal for the
+An initial, stricter engineering hypothesis required all four innermost samples
+at offsets ±0.075 cell to match wood. It was intended to challenge a halfway
+stone, but those patches can straddle printed ink. **The next diagnostic falsified this proposal for the
 retained frame:** point 59 has 21/27 matching wood samples, 3/4 horizontal and 4/4
 vertical rail support, but only 3/4 matching innermost samples. A four-inner-sample
 receipt would abstain and would not repair this case. Four-of-four was an
@@ -76,7 +75,7 @@ bad outline while preserving an unchanged pixel receipt. Reading and provenance
 replacement permanently discard it. The test draft explicitly covers this
 distinction rather than claiming every observation mutation is irreversible.
 
-Even if validated, the proposed consumer is only the expected-empty neighbor
+The candidate consumer is only the expected-empty neighbor
 veto. It cannot clear hand/dark gates, authorize a target, lower stone-confidence
 or fit thresholds, reset witness timing, or add a move. Existing spatial offset,
 legal single-addition and capture validation remain authoritative. Expected stone
@@ -98,8 +97,11 @@ The focused producer and pure spatial-eligibility experiment passed 30 checks:
   eligible under the existing legal single-addition function.
 * Nine synthetic pixel controls on the same photographed board cover partial
   black, full black, neutral gray, white/glare, wood-colored cover, axial halfway
-  black/white and diagonal halfway black/white. All withhold point59's receipt
-  and keep target41 ineligible with the added ambiguous/extra object.
+  black/white and diagonal halfway black/white. All nine *observed* outputs
+  withheld point59's receipt. The runner requires receipt rejection for the
+  seven central/axial covers and separately requires target41 ineligibility for
+  all nine. It intentionally permits a diagonal receipt if that crossing remains
+  clear, provided competing assignment still prevents the move.
 * Four archived actual halfway-White275 observations still reject; four archived
   legitimate White180 observations remain eligible. These are observation
   boundary fixtures, not fresh reruns of their original pixels.
@@ -110,26 +112,66 @@ later photo minus target41. The historical delayed controller checkpoint is
 missing. It does not exercise the live controller's clocks, dark/hand episode,
 consecutive fresh witnesses or persistence, and it measures no delay improvement.
 
-The original schema passed188 focused provenance checks. The producer experiment
-used an extracted BoardObservation/BoardDetector and unchanged appearance detector
-against the immutable runtime; no full application was compiled. During source
-freeze the reusable tool was tightened to pass the photograph's original capture
-uptime and original timestamps from the archived observations instead of test
-clock100. That final tool rerun and updated support-contract suite are pending
-because the physical O17 baseline owns machine load.
+The final original-timestamp producer/eligibility replay passed all 30 checks in
+`PhysicalGo/.build/pg23-original-time-replay/`; `provenance.json` records the source,
+input and immutable-runtime hashes. No synthetic time is substituted for the
+photograph or archived observations. Schema/provenance tests passed 188 checks.
+
+## Runtime wiring and native verification
+
+`ExperimentModel` passes its optional original `captureUptime` to the worker's
+`originalCaptureUptime`. `trackingTime` may fall back to processing time, so it is
+not used to make a receipt. The detector binds each receipt to the immutable
+GrayFrame image UUID, reference UUID, capture uptime, point and exact reading.
+
+`EstablishedStoneTracker` and `KnownEmptyLighting` now copy the raw observation
+before replacing readings. The reading setter drops incompatible receipts and
+tracker reassignment invalidates receipts at both source and destination points.
+This also retains other existing image metadata rather than reconstructing an
+incomplete observation. Manual photo preview still reconstructs without receipts.
+
+In `PhysicalAI.consume`, only a low-confidence **EMPTY** expected-empty neighbor
+can be resolved by `hasFreshEmptyCrossingEvidence`. Unknown/nonempty neighbors,
+covering outlines, target assignment offsets and all later move/capture/temporal
+rules are unchanged. The trace's `freshEmptyPlacementNeighbors` lists the target
+and neighbor points whose positive proof avoided the scalar-confidence reset;
+`unresolvedPlacementNeighbors` still records remaining blockers.
+
+The complete shared native regression runtime compiled as
+`f0f733ded0318b301994f2306c6bb0ead04b2e13ac636acc648284a867c89f98`.
+The following 572 checks passed:
+
+| Suite | Checks |
+|---|---:|
+| `--ai-empty-evidence-test` (actual controller/pipeline) | 113 |
+| `--ai-ambiguous-placement-test` | 57 |
+| `--ai-checking-controller-test` | 31 |
+| `--empty-evidence-test` | 188 |
+| `--known-empty-lighting-test` | 101 |
+| `--stone-tracking-test` | 82 |
+
+The new controller suite covers both colors at nine edge/corner/interior points,
+normal multi-frame stability, unsupported-neighbor streak resets, duplicate and
+stale frames, wrong image/reference/time, reading mutation, uncertain/extra
+objects, conflicting geometry, hand/unknown-hand, lighting and the real manual
+dark barrier. The pipeline test proves original capture time and immutable image
+identity survive analysis, while absent original time produces no receipts.
+The existing photographed ambiguity and tracker suites remain green.
+
+Logs: `.build/pg23-controller-validation.log` and
+`.build/pg23-controller-rerun.log`. The first app-suite attempt encountered missing
+tracked Kokoro resource files in the sparse checkout; materializing those files
+fixed setup. There was no native source compilation failure. The final five-suite
+rerun passed; the separately completed provenance suite supplies the sixth suite.
 
 Reproduction tool: `PhysicalGo/Tools/replay_fresh_empty_evidence.py`, with explicit
 immutable runtime, later-frame metadata/image, archived empty reference and a new
 output directory. It verifies all baseline sources and runtime artifacts before
 compiling its small subset, records input hashes, and never operates the app.
 
-## Required before production acceptance changes
+## Required before installation and issue closure
 
-1. Independently review the exact producer and intended narrow consumer.
-2. Validate real controller sequences, both colors, edges/corners, stale and
-   mismatched receipts, hand/dark interruptions and extra-stone legality.
-3. Preserve receipts only through unchanged same-image observations; pass the
-   original capture uptime, with no redraw/processing-time fallback.
-4. Test the complete combined native runtime and existing recognition suites.
-5. Root-owned physical replay must establish actual recognition improvement.
+1. Independent review of the complete producer, propagation and consumer diff.
+2. Root-owned combined native/host integration validation and installation.
+3. Root-owned physical replay must establish actual recognition improvement.
    The original R16 25.418-second delay cannot be measured retroactively.

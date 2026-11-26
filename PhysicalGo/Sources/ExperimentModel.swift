@@ -1368,7 +1368,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingTime:trackingTime,checkHands:(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
             emptyLighting:emptyLighting,lightingContext:lightingContext,
-            perimeter:perimeter),safety:{ [weak self] evidence in
+            perimeter:perimeter,originalCaptureUptime:captureUptime),safety:{ [weak self] evidence in
                 guard let self,self.revision==token,self.playMode == .ai,let captureUptime,
                       supplied != nil,self.running,self.cameraState == .live,!self.frozen,
                       ProcessInfo.processInfo.systemUptime-captureUptime<=1.5 else {return}

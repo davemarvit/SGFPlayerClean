@@ -66,6 +66,24 @@ separate analysis, IO and handoff failures. Regional/frame-difference work remai
 an offline optimization candidate; unchanged appearance cannot create fresh hand
 clearance, new stone witnesses or optical target measurements.
 
+## Fresh empty-crossing proof
+
+The PG23 candidate preserves the detector's existing unmasked reference-wood and
+both-rail proof in `BoardObservation.emptyCrossingEvidence`. A heuristic score
+below0.8 is not by itself a competing stone when that exact current-image proof
+survives. Only the AI expected-empty neighbor veto consumes this receipt; it does
+not authorize a move, capture, hand clearance or laser target.
+
+`CameraAnalysisPipeline.Input.originalCaptureUptime` comes directly from the
+capture, never the worker's tracking/processing-time fallback. Receipts bind the
+immutable image/reference UUIDs, time, point and exact reading. Label replacement,
+manual correction and tracker reassignment invalidate them. Geometry conflicts
+and hand/lighting gates still prohibit their use. The trace key
+`freshEmptyPlacementNeighbors` identifies the narrow exemption.
+
+See [the candidate, negative controls and verification limits](../FreshEmptyEvidenceInvestigation.md).
+Installation/physical validation status remains in the integration checklist.
+
 ## Expected position is useful context, not fresh evidence
 
 Expected stones help tracking, but must not manufacture a newly placed stone or

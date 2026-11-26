@@ -45,6 +45,8 @@ SUITES = {
     'ai-idle-reuse-test': Suite('PhysicalAIIdleReuseTests','app',('Tests/PhysicalAIIdleReuseTests.swift','Tests/PhysicalAIIdleReuseReviewTests.swift'),optimized=False),
     'ai-checking-controller-test': Suite('PhysicalAICheckingControllerTests','app',('Tests/PhysicalAICheckingControllerTests.swift',),optimized=False),
     'ai-checking-progress-test': Suite('PhysicalAICheckingProgressTests','vision',('Tests/PhysicalAICheckingProgressTests.swift',),extra=('Sources/PhysicalAICheckingProgress.swift','Sources/BoardCoordinates.swift','Sources/BoardOrientation.swift'),optimized=False),
+    'ai-empty-evidence-test': Suite('PhysicalAIEmptyEvidenceTests','app',('Tests/PhysicalAIEmptyEvidenceTests.swift',),optimized=False),
+    'empty-evidence-test': Suite('EmptyCrossingEvidenceTests','vision',('Tests/EmptyCrossingEvidenceTests.swift',),optimized=False),
     'ai-ambiguous-placement-test': Suite('PhysicalAIAmbiguousPlacementTests', 'app', ('Tests/PhysicalAIAmbiguousPlacementTests.swift',), optimized=False),
     'marker-scenarios-test': Suite('PhysicalMarkerScenarioTests','app',('Tests/PhysicalMarkerScenarioTests.swift',),optimized=False),
     'laser-standby-test': Suite('PhysicalLaserStandbyTests','app',('Tests/PhysicalLaserStandbyTests.swift',),optimized=False),
