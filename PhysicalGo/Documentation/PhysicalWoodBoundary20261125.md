@@ -56,12 +56,15 @@ The unchanged legacy path passed all 623 outline and retained-photo checks:
 direct build used the candidate helper, timing and tracker sources plus the
 existing three outline test files; no hardware or UI operation occurred.
 
-`EdgePlacementGuardTests` audits the existing pending-move lifecycle using
+`EdgePlacementGuardTests` passed 148 checks against the cached original
+`939106a` native runtime (`016996bf1f2436823d32d01881e9cc0b9ef01df927639e034ece12393a283955`).
+It audits the existing pending-move lifecycle using
 injected recognition and an injected AI: A1/T1/A19/T19/K1/K19/A10/T10. A fresh
 positive stone at a lit target requests OFF before dark evidence admission;
 then stable dark White placement completes without any prior hand episode.
 No hand event or optical status may append a move or reset the decision clock.
 This behavior already existed; no AI acceptance threshold was changed.
+Root must rerun that suite against the combined candidate before installation.
 
 ## Limits and remaining work
 
