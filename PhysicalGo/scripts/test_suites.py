@@ -98,6 +98,7 @@ SUITES = {
     'provisional-play-test': Suite('ProvisionalPlayTests', 'app', ('Tests/ProvisionalPlayTests.swift',), optimized=False),
     'latest-analysis-input-test': Suite('LatestAnalysisInputTests', 'standalone', ('Tests/LatestAnalysisInputTests.swift',), extra=('Sources/LatestAnalysisInput.swift',), optimized=False),
     'adaptive-frame-rate-test': Suite('AdaptiveFrameRateTests', 'standalone', ('Tests/AdaptiveFrameRateTests.swift',), extra=('Sources/CameraProcessingCadence.swift',), optimized=False),
+    'wood-perimeter-test': Suite('WoodenBoardPerimeterTests', 'vision', ('Tests/WoodenBoardPerimeterTests.swift',), extra=('Sources/WoodenBoardPerimeter.swift','Sources/CameraAnalysisPipeline.swift','Sources/AutoGridDetector.swift','Sources/EstablishedStoneTracker.swift','Sources/BoardRectifier.swift','Sources/StoneAspectEstimator.swift')),
     'hand-outline-test': Suite('HandOutlineTests', 'standalone', ('Tests/HandOutlineTests.swift','Tests/HandOutlineRecordedTests.swift','Tests/HandBoundaryPhotoTests.swift'), extra=('Sources/HandOutlineTracker.swift','Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'), optimized=True),
     'hand-motion-test': Suite('HandMotionTimingTests', 'standalone', ('Tests/HandMotionTimingTests.swift',), extra=('Sources/HandMotionTiming.swift',), optimized=False),
     'hand-clock-test': Suite('HandClockTests', 'recorder', ('Tests/HandClockTests.swift','Tests/ClockCatchUpIncidentTests.swift'), optimized=False),

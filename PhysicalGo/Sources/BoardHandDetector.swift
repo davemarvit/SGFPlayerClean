@@ -4,8 +4,8 @@ import CoreGraphics
 /// A hand pose is an obstruction cue, not evidence that a legal move occurred.
 /// Vision uses bottom-left coordinates; board calibration uses top-left.
 enum BoardHandDetector {
-    static func obstructed(image:CGImage,calibration:BoardCalibration)->Bool? {
-        pose(image:image,calibration:calibration)?.obstructed(size:calibration.size)
+    static func obstructed(image:CGImage,calibration:BoardCalibration,boundary:HandBoardBoundary?=nil)->Bool? {
+        pose(image:image,calibration:calibration)?.obstructed(size:calibration.size,boundary:boundary)
     }
     static func pose(image:CGImage,calibration:BoardCalibration)->HandMotionPose? {
         let request=VNDetectHumanHandPoseRequest();request.maximumHandCount=4

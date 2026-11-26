@@ -10,6 +10,7 @@ enum PhysicalPlayMode: String, CaseIterable {
 }
 
 @MainActor final class ExperimentModel: ObservableObject {
+    private let woodenBoardPerimeter:WoodenBoardPerimeterStore
     private var occupiedReference=OccupiedReference()
     private var occupiedReferenceLoaded=false
     let aiMoveClick:PhysicalAIMoveClick
@@ -585,7 +586,8 @@ enum PhysicalPlayMode: String, CaseIterable {
         let names = ["top-left", "top-right", "bottom-right", "bottom-left"]
         return corners.count < 4 ? "Hover to magnify · Click the \(names[corners.count]) corner intersection" : "Grid aligned"
     }
-    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil, stoneSetLibraryURL:URL = StoneSetProfileStore.defaultLibraryURL, ai suppliedAI:PhysicalAI?=nil, onlineBoard suppliedOnlineBoard:PhysicalOnlineBoard?=nil) {
+    init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil, stoneSetLibraryURL:URL = StoneSetProfileStore.defaultLibraryURL, ai suppliedAI:PhysicalAI?=nil, onlineBoard suppliedOnlineBoard:PhysicalOnlineBoard?=nil,woodenBoardPerimeterURL:URL?=WoodenBoardPerimeter.defaultURL) {
+        self.woodenBoardPerimeter=WoodenBoardPerimeterStore(url:restoreViewSettings ? woodenBoardPerimeterURL:nil)
         self.ai=suppliedAI ?? PhysicalAI()
         self.aiMoveClick=PhysicalAIMoveClick(settings:restoreViewSettings ? settings:nil)
         self.onlineBoard=suppliedOnlineBoard ?? PhysicalOnlineBoard()
@@ -1340,6 +1342,8 @@ enum PhysicalPlayMode: String, CaseIterable {
         let trackingFresh=supplied != nil && running && cameraState == .live && !frozen &&
             stoneCalibrationSession == nil && !boardCorrections.isEditing && !lightingNeedsRecovery
         let trackingTime=captureUptime ?? ProcessInfo.processInfo.systemUptime
+        let perimeter=woodenBoardPerimeter.snapshot(cameraID:cameraID,referenceCalibration:referenceCalibration ?? calibration,
+            width:target.width,height:target.height)
         cameraAnalysis.submit(.init(
             target:target,
             calibration:calibration,
@@ -1361,7 +1365,8 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingFresh:trackingFresh,
             trackingTime:trackingTime,checkHands:(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
-            emptyLighting:emptyLighting,lightingContext:lightingContext),safety:{ [weak self] evidence in
+            emptyLighting:emptyLighting,lightingContext:lightingContext,
+            perimeter:perimeter),safety:{ [weak self] evidence in
                 guard let self,self.revision==token,self.playMode == .ai,let captureUptime,
                       supplied != nil,self.running,self.cameraState == .live,!self.frozen,
                       ProcessInfo.processInfo.systemUptime-captureUptime<=1.5 else {return}
@@ -1463,7 +1468,7 @@ enum PhysicalPlayMode: String, CaseIterable {
             if freshView,self.playMode == .local,self.recorder.state == .recording,
                self.diagnosticSettings.enabled,self.diagnosticSettings.unusualMoves {
                 self.moveEvidenceCapture.observeHandClearance(obstructed:analysis.handObstructed,
-                    poseObstructed:analysis.handPose?.obstructed(size:self.size),at:alignmentTime,
+                    poseObstructed:analysis.handPose?.obstructed(size:self.size,boundary:perimeter.boundary),at:alignmentTime,
                     context:["game":self.recorder.autosaveURL?.lastPathComponent ?? "local",
                         "moveCount":self.recorder.moveCount,"viewQuarterTurns":self.viewQuarterTurns,
                         "handPose":DiagnosticRecorder.value(analysis.handPose),
@@ -1479,7 +1484,9 @@ enum PhysicalPlayMode: String, CaseIterable {
             } else {handEstimate=nil}
             if freshView,analysis.handObstructed == false {self.recorder.noteHandClear()}
             if freshView {
-                if analysis.handOutline?.clearanceDelayed == true {
+                if let failure=perimeter.failure {
+                    self.aiCameraNotice=failure+". Laser paused until the board boundary is verified."
+                } else if analysis.handOutline?.clearanceDelayed == true {
                     self.aiCameraNotice="Hand clearance is taking longer than expected. If the board is clear, use Camera & setup → Restart camera."
                 } else {
                     self.aiCameraNotice=analysis.handObstructed == true ? "Camera clearance: possible hand in view. Laser paused until the board is clear.":nil
