@@ -1,6 +1,7 @@
 # Independent overnight requirements review — November 26, 2026
 
-Status: **contract review in progress; no new implementation approved yet**.
+Status: **temporal/geometry helpers and their integration approved; combined hold
+recovery has boundary findings pending correction; recognition runtime pending**.
 Reviewer `/root/overnight_requirements_review`; root owns integration, installation,
 all hardware, and physical acceptance. This document is an independent review
 artifact, not a replacement issue register. No camera, serial, installation or
@@ -42,6 +43,14 @@ Use cumulative active acquisition/correction time and moves plus a bounded
 per-recovery wall-clock episode. Preserve budget across repeated recoveries for
 the same intent; do not refresh it merely by retrying or briefly reporting success.
 Do not substitute this accounting for unchanged light, lease or thermal deadlines.
+
+The ledger belongs to one original `FeedbackOperation`, spanning its internal
+retries. A deliberately new native revision after full OFF and separate admission
+creates a new operation; no persisted whole-pending-turn budget is required.
+Initial predicted acquisition retains its separate existing `MAX_WAYPOINTS` bound
+and shared active time. The 25-plan ledger counts local correction plans. Recovery
+must not restart the predicted route, but fresh optically anchored local plans may
+use existing contained fast motion when the observed displacement warrants it.
 
 Root selected a provisional 30-second per-recovery wall cap, additionally clipped
 by the remaining cumulative 150 seconds of active work and 25-plan ledger. This
@@ -132,6 +141,32 @@ incident's 25-second delay.
 | Native admission grace `ba36928` + repair `4b180f4` | Source approved pending queued native guidance tests | Reported healthy state-epoch defect corrected. Fixed token/generation, advancing epoch reseeds liveness, no episode/deadline reset. Owner reports 312,346 pure assertions; not independently rerun during baseline. |
 | PG23 evidence schema `7c881be` | Static schema-only approval | No evidence emission or decision bypass exists yet. Full approval requires actual pixel producer/consumer, provenance propagation and conflict-mutation tests. Metadata-only controls do not establish classifier quality. |
 | Root helper integration host `cad26b0`, native `d270ee1` | Merged helper source approved | Host merge is the exact union of reviewed geometry and temporal runtime changes; stage-aware renewal and requalification APIs both retained. Native runtime files match reviewed `4b180f4`. Reviewer independently ran 67 combined focused host tests, all passed. Hold/recognition integration remains pending. |
+| Frozen hold `82540e1`, integrated host `f07affd` | Changes requested at dispatch/publication boundaries | Core bounded loop reviewed; root's PREPARE→DARK fix retained. Reviewer and root independently found command deadline check before actual writer boundary; reviewer reproduced it with production GatedController and a fake delayed writer. Adequate save has a related check-before-lock/mark-after-publication gap. |
+
+### Hold dispatch and publication boundary findings
+
+At `f07affd`, the work budget wraps `GatedController.operation_check`, which
+`healthy()` invokes **before** acquiring `raw.condition` and the serial writer.
+The actual `before_write` callback checks session safety but not the work budget.
+An independently reproduced hardware-free case calls production GatedController
+with a valid budget at29.95 seconds, simulates100 ms of scheduling/lock delay, and
+records `PSW1591` dispatch at30.05 seconds after the30-second deadline. The next
+health check raises only after dispatch. The independent600 ms lease can remain
+valid throughout this short boundary crossing.
+
+Required correction: enforce the bounded operation check at actual pre-write,
+alongside existing session validation and generation/lease checks. A test using
+the production GatedController path must inject delay before that callback and
+assert no axis dispatch, rather than calling the hook directly in a fake command.
+
+The final adequate path similarly checks health before entering the runtime's
+generation gate, publishes adequate, and only afterward calls `mark_adequate()`.
+A gate delay across the deadline can publish a cue then immediately fault. This
+does not establish unsafe beam authority, but contradicts the stated no-expired-
+adequate contract and can produce a misleading completion cue. Coordinate the
+bounded budget check/completion with the actual gated status save. An alternative
+explicit completion-at-verified-result policy would need matching implementation
+and tests; the current publish-then-fault behavior is not an intentional policy.
 
 ### Independent focused checks after attended baseline
 
