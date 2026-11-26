@@ -43,6 +43,13 @@ per-recovery wall-clock episode. Preserve budget across repeated recoveries for
 the same intent; do not refresh it merely by retrying or briefly reporting success.
 Do not substitute this accounting for unchanged light, lease or thermal deadlines.
 
+Root selected a provisional 30-second per-recovery wall cap, additionally clipped
+by the remaining cumulative 150 seconds of active work and 25-plan ledger. This
+applies to small held drift, fresh resampling and coherent requalification; it
+does not authorize a new full coarse route. The 30 seconds is a bounded recovery
+and responsiveness policy, not a demonstrated physical necessity. Log legitimate
+exhaustion so replay or physical evidence can justify revision.
+
 ## Interaction test matrix
 
 | Contract | Positive control | Adversarial combination / required result |
@@ -86,6 +93,32 @@ The spatial owner's initial proposal uses a typed exception carrying evidence,
 then a fresh dark constructor and identity/displacement guard before optical
 reacquisition. This is a useful separation of eligibility from permission. Exact
 implementation and combined counterexamples remain to be reviewed.
+
+The temporal proposal subsequently narrowed to typed optical-result expiry and
+bounded **fresh resampling**, retaining the 600 ms acceptance ceiling. It does
+not reuse an older spot as current spatial authority. Only processing/causal-pose
+waiting expiry is eligible; ordinary camera/safety expiry is not thereby changed.
+The recovery owner remains the single outer loop.
+
+The proposed native cold-admission margin is a fixed 16-second outer envelope
+from the original cold origin, only with fresh authenticated dark arming and
+same-controller thermal progress. The GA-only host receipt wait would be 14
+seconds; firmware's 12-second engagement limit and RS remain unchanged. These
+are provisional overhead policies, not measured worst-case allowances. Thermal
+sequence advancement establishes monitor liveness, not GA phase progress. New
+optional controller token/generation/epoch fields are needed to establish that
+scope; old host statuses must retain the default 12-second behavior. Consuming
+validated terminal active/OFF evidence before testing the cold timeout addresses
+a separate ordering defect in the baseline.
+
+PG23's narrowed proposal uses a same-frame exposed-wood receipt from an existing
+successful two-rail and inner-body-wood path to explain a low-confidence EMPTY
+neighbor. This is more concrete than guessing location from a confidence scalar.
+The receipt must bind exact image/frame, point and reading and be invalidated by
+mutations. UNCERTAIN, nonempty, covering geometry and conflicting assignments stay
+blocked. No hand/laser authority follows from the receipt. Exact delayed R16 pixels
+are unavailable, so a later retained-frame result cannot prove removal of that
+incident's 25-second delay.
 
 ## Approval ledger
 
