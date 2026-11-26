@@ -1,7 +1,9 @@
 # Independent overnight requirements review — November 26, 2026
 
-Status: **temporal/geometry helpers and their integration approved; combined hold
-recovery has boundary findings pending correction; recognition runtime pending**.
+Status: **host-only `8ce91a1` approved at source level for attended testing with
+native `fb4697c`; full PG23 source chain approved separately. A2 wire optical-proof
+age remains open. Packaging, paired acceptance, installation and physical results
+remain root-owned and are not established by this review**.
 Reviewer `/root/overnight_requirements_review`; root owns integration, installation,
 all hardware, and physical acceptance. This document is an independent review
 artifact, not a replacement issue register. No camera, serial, installation or
@@ -144,6 +146,10 @@ incident's 25-second delay.
 | Frozen hold `82540e1`, integrated host `f07affd` | Changes requested at dispatch/publication boundaries | Core bounded loop reviewed; root's PREPARE→DARK fix retained. Reviewer and root independently found command deadline check before actual writer boundary; reviewer reproduced it with production GatedController and a fake delayed writer. Adequate save has a related check-before-lock/mark-after-publication gap. |
 | Hold boundary repair `40adedf` | Prior boundary findings resolved; one final current-safety check requested | Actual prewrite validates operation budget; gated adequate save validates evidence and marks completion atomically. Whole held step shares the existing retry owner and nested RS scope. Reviewer independently ran 31 boundary/recovery/budget tests, all passed on clean exact commit. Latest independent cached hand/camera safety must also be checked inside adequate publication. |
 | PG23 producer experiment `397fb74` | Source approved as offline/unwired experiment only | Original unmasked reference-wood/two-rail predicate retained; explicit original capture time and immutable image/reference identity. No production consumer or pipeline wiring approved. Final original-timestamp replay and real controller integration tests remain required. |
+| Final current-safety guard `04d2134` | Source approved; final host finding resolved | Latest cached hand/camera evidence checked inside adequate save. Actual runtime-gate tests replace clear evidence with hand/stale evidence before publication, and verify no adequate, budget pause or optical-expiry retry. |
+| A1 raw-write revocation `13129ec`, integrated `8ce91a1` | Source approved | Token/generation revocation remains immediate; physical OFF attempt defers only until the rejected non-reentrant raw writer unwinds. Post-validator authority check blocks cancellation that returns normally. No OFF acknowledgement is invented, including partial delivery and failed OFF. |
+| PG23 full chain through `993b8a2` | Production source approved pending combined native integration/installation | Actual capture→producer→metadata-preserving transforms→narrow PhysicalAI neighbor exemption reviewed. 572 native checks and 30 original-timestamp producer checks reported passing; real-controller suite source inspected. Physical improvement remains unmeasured. |
+| Host-only `8ce91a1` + installed native `fb4697c` | Source approved for attended O17 test with A2 explicitly open | Existing native accepts additive thermal fields and retains its 12-second admission deadline. New host correction/clearance does not depend on native adequate status. Root must complete packaging/paired acceptance and fresh attended readiness. No claim that A2 is fixed. |
 
 ### Hold dispatch and publication boundary findings
 
@@ -187,6 +193,47 @@ gate, even though the older optical sample remains under600 ms. Request the
 existing memory-only `gameplay_guard(require_clear=True)` at the gated publication
 boundary. Current hand/unknown/stale safety must prevent adequate and remain an
 ordinary authority failure, rather than being classified as expired optical work.
+
+**Resolved in `04d2134`:** the existing memory-only cached gameplay guard now runs
+inside adequate publication with `require_clear=True`. Reviewer independently ran
+the production publication-boundary and A1 raw-write suites on exact integrated
+`8ce91a1`: **12 tests passed**. No tracked source differences were present; an
+unrelated untracked `Camera checks` item was left untouched.
+
+### Host-only approval and the remaining A2 wire-age issue
+
+The host-only release retains a pre-existing gap: runtime status publication can
+refresh its envelope timestamp while carrying an older adequate state, and the
+installed native app does not receive the original optical proof age. Therefore a
+click or UI status can be later than the underlying optical acceptance. Source
+approval does not waive or close this issue.
+
+The relevant installed native consumers were inspected: `PhysicalLaserGuidance`
+lines818–824 use adequate to invoke `onTargetIndicated`; `ExperimentModel`
+lines656–659 connect that callback only to `aiMoveClick.indicate()`. Native point
+intent and host movement/light authorization continue to use independent current
+camera/hand, lease, controller/thermal, target and geometry checks. The new hold
+loop does not take a native adequate status as permission to move. Its gated host
+adequate publication is stricter than the baseline, preserving original optical
+age and latest safety at that boundary.
+
+Thus A2 is an existing end-to-end optical-status/cue truthfulness defect, not a new
+hardware-authority expansion caused by the bounded hold recovery. A host-only
+attended O17 test with native0.268/fb4697c is supportable while A2 remains explicitly
+open. Observe the actual beam and root-owned run evidence; do not treat the click
+as proof of contemporaneous acceptance. This conclusion is based on the source
+authority paths, not the user's limited attendance window. A2's separate repair
+must carry original scoped optical timestamps through the wire and check them at
+native consumption rather than retimestamping old proof.
+
+PG23 is approved separately at source level but is not part of that narrow
+host-only test. Its `993b8a2` consumer exempts only a low-confidence EMPTY expected-
+empty neighbor with its own same-image positive wood/two-rail proof. Unknown or
+nonempty readings, covering geometry, target offsets, legal additions, temporal
+witnesses, dark evidence and game-clock rules retain their existing checks.
+Actual original capture time is passed by the pipeline; redraw/processing fallback
+does not create receipts. The later retained photograph and synthetic controller
+sequences cannot establish a measured improvement to the original R16 delay.
 
 ### Independent focused checks after attended baseline
 
