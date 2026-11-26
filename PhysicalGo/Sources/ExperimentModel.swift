@@ -587,7 +587,9 @@ enum PhysicalPlayMode: String, CaseIterable {
         return corners.count < 4 ? "Hover to magnify · Click the \(names[corners.count]) corner intersection" : "Grid aligned"
     }
     init(discoverCameras: Bool = true, automaticGridDetection: Bool = true, restoreViewSettings: Bool = true, referenceArchive: ReferenceArchive? = .standard, recordingStorage: URL? = GameRecorder.recordingsDirectory, settings:UserDefaults = .standard, diagnosticRoot:URL = CaptureFolders.diagnostics, moveEvidenceRoot:URL = MoveEvidenceCapture.directory, recoveryAudio:(any RecoverySpeechOutput)?=nil, stoneSetLibraryURL:URL = StoneSetProfileStore.defaultLibraryURL, ai suppliedAI:PhysicalAI?=nil, onlineBoard suppliedOnlineBoard:PhysicalOnlineBoard?=nil,woodenBoardPerimeterURL:URL?=WoodenBoardPerimeter.defaultURL) {
-        self.woodenBoardPerimeter=WoodenBoardPerimeterStore(url:restoreViewSettings ? woodenBoardPerimeterURL:nil)
+        self.woodenBoardPerimeter=WoodenBoardPerimeterStore(url:restoreViewSettings ? woodenBoardPerimeterURL:nil,
+            required:restoreViewSettings && settings.bool(forKey:WoodenBoardPerimeter.requiredSettingKey),
+            onProfileLoaded:restoreViewSettings ? {settings.set(true,forKey:WoodenBoardPerimeter.requiredSettingKey)}:nil)
         self.ai=suppliedAI ?? PhysicalAI()
         self.aiMoveClick=PhysicalAIMoveClick(settings:restoreViewSettings ? settings:nil)
         self.onlineBoard=suppliedOnlineBoard ?? PhysicalOnlineBoard()

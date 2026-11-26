@@ -210,6 +210,24 @@ struct GrayFrame {
         return Double(sum)/Double(count*255)
     }
 
+    /// Hand-boundary sampling only. The ordinary recognition samplers remain
+    /// unchanged; callers partition actual footprints at the wooden surface.
+    func boundedHandPatch(_ p:ImagePoint,containsPixel:(Int,Int)->Bool)->(light:Double,color:BoardChroma)? {
+        guard let colorBytes,p.x.isFinite,p.y.isFinite,(0...1).contains(p.x),(0...1).contains(p.y) else {return nil}
+        let x=Int((p.x*Double(width-1)).rounded()),y=Int((p.y*Double(height-1)).rounded())
+        var light=0,red=0,green=0,blue=0,count=0
+        for row in max(0,y-1)...min(height-1,y+1) {for col in max(0,x-1)...min(width-1,x+1) where containsPixel(col,row) {
+            let i=row*width+col,j=i*4
+            light+=Int(pixels[i]);red+=Int(colorBytes[j]);green+=Int(colorBytes[j+1]);blue+=Int(colorBytes[j+2]);count+=1
+        }}
+        // Four samples permit an actual corner patch but do not turn an almost
+        // entirely invisible footprint into a confident color observation.
+        guard count>=4 else {return nil}
+        let total=Double(red+green+blue)
+        guard total>Double(count)*255*0.12 else {return nil}
+        return (Double(light)/Double(count*255),BoardChroma(red:Double(red)/total-1.0/3.0,green:Double(green)/total-1.0/3.0))
+    }
+
     func patchColor(_ p: ImagePoint) -> BoardChroma? {
         guard let colorBytes, p.x.isFinite, p.y.isFinite,
               (0...1).contains(p.x), (0...1).contains(p.y) else { return nil }
