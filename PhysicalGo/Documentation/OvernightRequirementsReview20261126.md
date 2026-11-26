@@ -1,9 +1,11 @@
 # Independent overnight requirements review — November 26, 2026
 
-Status: **host-only `8ce91a1` approved at source level for attended testing with
-native `fb4697c`; full PG23 source chain approved separately. A2 wire optical-proof
-age remains open. Packaging, paired acceptance, installation and physical results
-remain root-owned and are not established by this review**.
+Status: **combined source approved: host
+`74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3` and native
+`d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4` (0.269/build270), including
+bounded recovery, admission, PG23 and A2 optical-proof age. Final combined test
+completion, packaging, paired acceptance, installation and physical results remain
+root-owned and are not established by this source review**.
 Reviewer `/root/overnight_requirements_review`; root owns integration, installation,
 all hardware, and physical acceptance. This document is an independent review
 artifact, not a replacement issue register. No camera, serial, installation or
@@ -150,6 +152,53 @@ incident's 25-second delay.
 | A1 raw-write revocation `13129ec`, integrated `8ce91a1` | Source approved | Token/generation revocation remains immediate; physical OFF attempt defers only until the rejected non-reentrant raw writer unwinds. Post-validator authority check blocks cancellation that returns normally. No OFF acknowledgement is invented, including partial delivery and failed OFF. |
 | PG23 full chain through `993b8a2` | Production source approved pending combined native integration/installation | Actual capture→producer→metadata-preserving transforms→narrow PhysicalAI neighbor exemption reviewed. 572 native checks and 30 original-timestamp producer checks reported passing; real-controller suite source inspected. Physical improvement remains unmeasured. |
 | Host-only `8ce91a1` + installed native `fb4697c` | Source approved for attended O17 test with A2 explicitly open | Existing native accepts additive thermal fields and retains its 12-second admission deadline. New host correction/clearance does not depend on native adequate status. Root must complete packaging/paired acceptance and fresh attended readiness. No claim that A2 is fixed. |
+| A2 host `c24478c` + native `2adde6c` | Source approved for paired commissioned feedback deployment | Immutable original optical clocks, deadlines and exact scope survive publication and heartbeat; native checks actual proof only for the first acceptance cue. Missing/stale proof cannot become current through status refresh. Legacy paths without causal proof receive no acceptance cue. |
+| Combined host `74d0b83` + native `d014c63` | Combined source approved; final root checks pending | Host Firmware matches reviewed A2 source exactly. Native A2 guidance, cue tests and paired fixture match reviewed A2 source exactly; reviewed PG23 remains in the same tree. Final native change is version/build metadata only. |
+
+### Final combined A2 review
+
+The approved host pin is `74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3`;
+the approved native pin is `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`.
+The reviewer compared the final integrated source with the reviewed branches.
+Host Firmware has no differences from `c24478c86191081c4cea1d5c34b739a7885d220a`.
+Native A2 guidance, accepted-click tests and paired fixture have no differences
+from `2adde6cdeb6eae86b8cc70cc396d5eb001890e62`; the remaining production changes
+are the previously approved PG23 chain and version 0.269/build270 metadata.
+Tracked source is clean; the host contains a root-owned untracked `Camera checks`
+artifact that this review did not alter.
+
+The host copies the actual sample's four original capture/arrival/publication
+clocks, stream/frame identity, full target/request scope and controller identity.
+Its deadlines are derived from the original clocks, never from status writing.
+The proof is frozen as a JSON string in the feedback tuple; the existing final
+rename snapshot fence includes that immutable value. A delayed write or later
+heartbeat may still carry historical adequate state, but cannot make its optical
+proof younger. Current independent hardware authority checks remain unchanged.
+
+Native checks exact producer, request sequence, target, camera context, stream and
+controller identity, all four 600 ms ages and the original derived deadlines at
+cue consumption. Only the acceptance-cue condition consumes this new proof.
+Missing optional proof or well-formed stale/mismatched proof suppresses the cue
+without changing motion, darkening, faulting or consuming the once-per-move cue;
+a later current proof can still announce the target. Malformed present JSON
+continues through the existing decode-error path; this approval does not claim
+that every structurally invalid record is handled as cue-only.
+
+The new consumer intentionally gives no acceptance cue for legacy/non-feedback
+paths that lack genuine causal optical proof. The approved pairing is the
+commissioned v44 feedback route. No timestamps or controller proof are fabricated
+for older paths. State-epoch advances do not rewrite optical evidence; controller
+session and control generation remain bound.
+
+Owner results are 95 focused host tests and 62 native accepted-click checks. The
+reviewer independently ran `test_adequate_wire_evidence` on clean `c24478c`:
+**2 tests passed**, covering actual worker publication, delayed writing and a
+heartbeat with expired original proof. The paired fixture SHA-256 is
+`859f466b8793a018ac11c3fdfd6fc7570ecbfe538768804d9cf7d3f9e1af5e4e`.
+Root owns the final combined native suites, full host suite and paired acceptance.
+No new physical acceptance or installation follows from this source approval.
+The earlier host-only decision below records the narrower historical release
+decision; its open-A2 condition is superseded only for the approved paired source.
 
 ### Hold dispatch and publication boundary findings
 
