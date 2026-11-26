@@ -10,6 +10,8 @@ Dave authorized reasonable implementation of both requirement audits after a bri
 - Audit source snapshots remain nativefb4697c/hostbd5a26c: [spatial76 groups](RequirementsAudit20261125/SpatialRequirementsAudit.md), [temporal63 groups](TemporalRequirementsAudit20261125/README.md). The existing [ranked findings](RequirementsAudit20261125/CurrentPriorities.md) are superseded by this authorization/ownership plan where they say only proposals are authorized.
 - Root pushed annotated tag `physical-go-baseline-20261126-before-requirements` in both source repositories (nativefb4697c, host32d7911). Root isolated `requirements-integration` worktrees now receive reviewed candidates; installed baseline remains unchanged. Preserve baseline commits, exact binaries/manifests, game/setup/model/profile/binding hashes and attended evidence before integrating the unattended batch. No new calibration or benchmark rewrite is assumed. Historical measurements retain original times and never become current safety authority.
 
+**Recording preservation:** root reviewed retained camera-only frames338/374/393 and kept all393 frames. The final frame contains relevant outside-wood changes on the left chair, so no redundant final tail was established. Exact failure camera frames34694/35013 are absent from this recording; nearest frames are304(camera34695) and337(camera35011), respectively. They must not be presented as exact failure pixels. [Baseline recording review](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/baseline-recording-review.json>). No desktop screenshot was taken.
+
 ## Owner ledger and implementation boundaries
 
 | Work / PG scope | Owner and phase | Owned source/interface | Acceptance and next action |

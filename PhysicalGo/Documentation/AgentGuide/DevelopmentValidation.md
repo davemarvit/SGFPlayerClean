@@ -10,10 +10,12 @@ artifact.
 
 ## Application build and targeted tests
 
-Run from the source checkout matching the intended runtime. For installed 0.261
-that is `/Users/Dave/SGFPlayerClean-worktrees/camera-safety-delivery`; the
-canonical `/Users/Dave/SGFPlayerClean` currently has older runtime code. Confirm
-the [checklist](../IntegrationChecklist.md) and Git status before building:
+Run from the source checkout and commit matching the intended runtime. Resolve
+them from the [authoritative checklist](../IntegrationChecklist.md) and
+[current release receipt](</Users/Dave/Documents/SGF PLayer/work/feedback-play-release-20261124/current-release.json>),
+then verify Git status and the receipt's source hashes. The canonical documentation
+checkout may contain older runtime code; do not assume it builds the installed app.
+For example, from the verified source checkout:
 
 ```sh
 python3 PhysicalGo/build.py --list-tests
@@ -136,6 +138,7 @@ The old mode test accidentally loaded the live saved AI snapshot; this was fixed
 in87fc4a9. Keep source-specific receipts when unchanged suites run before a later
 constructor-only isolation change. The historical 0.258 package is recorded in
 [IntegratedPhysicalTestCandidate.md](../IntegratedPhysicalTestCandidate.md).
-The current checklist records the exact 0.260 installation and paired host.
+The authoritative checklist and linked current release receipt record the exact
+installed app, paired host and latest physical outcome.
 Documentation-only revisions do not constitute a rebuild or new physical pass;
 keep the compiled source hash and tested runtime commit separate from later doc commits.
