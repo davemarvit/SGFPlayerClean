@@ -59,7 +59,7 @@ exhaustion so replay or physical evidence can justify revision.
 | Spatial age | Genuine delayed processing with unchanged actual pose and geometry can use an explicitly bounded older result | Any intervening command, changed telemetry/session object, pose drift or geometry epoch invalidates stationary reuse. Publication clock cannot replace capture clock. |
 | Geometry identity | Small coherent supported change can request dark requalification | One-cell alias, rotation/reflection, reference/model/camera/stream identity change, missing interior support or nonlinear local warp cannot become eligible merely from small global residual. |
 | Local support | Harmless missing rail/glare can use sufficient alternate real support | Global fit passes while target neighborhood or relevant containment boundary lacks support: global p95 is not a target bound or proof of visibility. |
-| Requalification | Verified dark transition, fresh three-frame fit, unchanged identities, fresh actual-pose spot | Old spot/reference pairing cannot survive replacing geometry; no re-aim from transformed historical spot alone. A coherent image shift alone cannot prove camera–laser rigidity. |
+| Requalification | Verified dark transition, fresh three-frame fit, unchanged identities, fresh actual-pose spot | Old spot loses current measurement/correction authority. It may remain an explicitly historical first-light containment hint under the existing dual-envelope guard; no movement or predicted travel before fresh board-wide optical reacquisition. A coherent image shift alone cannot prove camera–laser rigidity. |
 | Pose and corridor | Fresh contained spot and supported local response permit bounded correction | Edge/corner target plus hold tolerance plus geometry allowance plus encoder drift must retain full asynchronous motor corridor containment; do not add independent nominal margins and claim a proof. |
 | Hold hysteresis | Jitter straddling acquisition boundary avoids futile fault/restart | Sustained drift triggers finite correction; unavailable evidence interrupts first. Adequate/accepted semantics must remain explicit while outside acquisition accuracy. |
 | Recovery budget | Long stable waiting followed by one justified correction can succeed | Alternating coherent-shift and drift recoveries cannot independently reset active-time/move allowances or each other's episode deadline. Failed requalification terminates its bounded episode. |
@@ -129,6 +129,47 @@ incident's 25-second delay.
 | Native terminal ordering `ef22e4e` | Source approved pending queued native guidance tests | Valid active/OFF receipt consumed before timeout; invalid thermal terminal receipt still fails. |
 | Host admission/status `0fb532c` | Source approved pending paired native checks | Actual thermal token/generation/epoch published additively; GA-only receipt wait 14 s, others 12 s; no ambiguous-command retry. Owner reports 17 focused checks. |
 | Native admission grace `ba36928` + repair `4b180f4` | Source approved pending queued native guidance tests | Reported healthy state-epoch defect corrected. Fixed token/generation, advancing epoch reseeds liveness, no episode/deadline reset. Owner reports 312,346 pure assertions; not independently rerun during baseline. |
+| PG23 evidence schema `7c881be` | Static schema-only approval | No evidence emission or decision bypass exists yet. Full approval requires actual pixel producer/consumer, provenance propagation and conflict-mutation tests. Metadata-only controls do not establish classifier quality. |
+
+### Independent focused checks after attended baseline
+
+The reviewer independently ran these hardware-free tests sequentially with
+`OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1`, using Python unittest and
+`PYTHONPATH=Firmware:'Firmware/Host tests'`:
+
+- Clean temporal worktree `74ed60b`: `test_feedback_result_age`,
+  `test_feedback_pose_evidence`, `test_admission_envelope` — **21 passed**.
+- Clean geometry worktree `16806f3`: `test_geometry_requalification`,
+  `test_fixed_optical_geometry`, `test_lit_geometry_renewal`,
+  `test_optical_failure_evidence` — **57 passed**.
+
+No native compile, camera, serial or installation was performed by this reviewer.
+
+### Exact attended cases added to combined review
+
+Root's run `1795681719870529000` confirmed durable startup-anchor recovery and six
+real lit renewals, then exposed two distinct remaining cases:
+
+- Sequence23, frame34694: post-pose freshness passed at **528.9565 ms**, followed by
+  `Lit geometry renewal exceeded600ms evidence window` before observation
+  publication. Optional proof consumed the remaining age; this is a fourth expiry
+  seam beyond the initial three changed by `943188b`.
+- Sequence26: a fresh observation at actual pose `[1801,2344]` had error
+  **0.208727 cell**, triggering `Monitored indication left accepted intersection`
+  after 32 accepted observations. This directly exercises the hold-boundary policy.
+
+Exact result files remain in the root-owned run's `events` directory under
+`~/Library/Application Support/Physical Go/LaserDriverLogs`. Root verified full
+OFF at1795681933.7643583. These are runtime failure cases, not completed physical
+acceptance of the proposed fixes.
+
+The proposed fourth-seam fix uses an optional-proof budget hint before spending
+100 ms, deferring renewal if insufficient time remains while publishing the
+ordinary spot only through the unchanged final 600 ms checks. Actual proposal and
+commit expiry remain typed failures. Review conditions: malformed/future clocks
+cannot become deferral; late publication after skip still rejects; repeated
+deferrals must fall back to dark refresh before another five-frame batch exhausts
+the existing geometry/light lifetime. Scheduling estimates grant no authority.
 
 ### Admission state-epoch counterexample
 
