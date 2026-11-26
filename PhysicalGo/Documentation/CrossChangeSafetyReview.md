@@ -1171,7 +1171,7 @@ Fresh certificates advance a separate qualified_at using exact source capture
 time only after current gate/session/600ms/750ms/light checks. Old certificate
 must still be valid. No partial proposal grants time. Declined supplemental
 support uses existing DARK renewal; mandatory unmasked failure remains fatal and
-now retains exact rejected pixels through bounded capture. Reviewer found/fixed
+now retains exact rejected pixels through bounded capture. Review prompted repairs for
 an accidental undefined variable in movement, failure misclassification and
 missing post-acquisition fatal capture. Original55s host/60s firmware illumination
 limits remain; normal holding begins dark renewal at53s with no cue duplication.
@@ -1187,3 +1187,54 @@ Initial stage timings were contended and explicitly not acceptance. Final hashed
 production-path budget replay remains root/owner-owned. Initial and fallback
 dark registration is separately reviewed; temporal invariance alone is not a
 whole-gameplay-path claim. No reviewer hardware, camera, UI or installation.
+
+
+## Final dark registration and combined source — f38ba2d / 4ca1241
+
+Independent source/artifact review approves dark registrationf38ba2d, production
+SHA2562acf3c0529713a363181f1b301721e9e5286f8b4201f70c6853cf5c6716e86cf.
+It conditions exterior pixels before ORB/ECC and, following reviewer findings,
+before image warping. Warped source-support interpolation is intersected with
+reference support; normalization and complete p/q/back tracking footprints use
+that shared mask. Artificial boundary features may propose H, but at least35
+ORB correspondences must have real contained descriptor/pyramid support.
+
+All361 literal grid intersections remain. The largest supported full-resolution
+15px/radius10 or9px/radius7 stencil is chosen before tracking; failed large-window
+tracking is not retried with a smaller one. Distribution40/six per quadrant/three
+per outer edge and .5/1px residual limits remain. A bounded third homography
+proposal refits the already contained ORB correspondences without proposal-border
+bias; it must pass the same grid/native/25px displacement gates. ORB residuals
+are fit-consistency checks, not held-out validation. No brightness threshold
+was added. This is an explicit changed support/stencil policy.
+
+Owner reports57 focused tests, all13 retained controls (nine accept/four reject),
+12 exterior invariance cases and exact3dark-source+median/full-constructor passes.
+An intermediate occupied-edge positive exceeded1px and was not promoted; final
+contained-only fit passes at about.532px with the original limit unchanged.
+Reviewer inspected final source and independently matched36 input/source hash
+checks across these artifacts. Source review found and repaired the raw-current
+warp footprint leak; final nonidentity tests include translation3,2 and native
+grid following known motion, with identical H across six exterior variants.
+
+The exterior runner uses approximate wood coordinates. Reviewer additionally
+projected root's exact corrected profile through the saved setup and confirmed
+ZERO raw-support pixels outside actual wood for both tested board translations
+0,0 and3,2. This connects the conditioned support to the final physical-boundary
+artifact without claiming arbitrary untested geometry or physical acceptance.
+
+All seven changed host runtime files in combined4ca1241 were independently
+byte-matched to approved core2359f35, lifecycle through ee306ef and darkf38ba2d.
+No remaining source blocker. Root reports nativefb4697c nine suites and profile
+110651 assertions passed, with signed0.268 built. Reviewer did not compile.
+
+Lifecycle evidence85f6bd8 was independently checked against seven runtime source
+hashes, six retained input hashes and the executed runner. Eight actual read_spot
+renewal simulations pass at final image ages352.9–548.0ms, worst52ms below600ms;
+extra proof46.4–56.0ms. Retained pixels are repeated with synthetic cadence/time;
+motor/lease/hand are mocked, so no physical latency guarantee follows. Original
+dark/H/source identity and continuous-light origin assertions pass. Because this
+run predates the new dark constructor, root is rerunning the same finite replay
+on final combined4ca1241, followed by full host and paired acceptance. Those
+results remain required before installation. No reviewer hardware/UI/camera or
+installation activity occurred.
