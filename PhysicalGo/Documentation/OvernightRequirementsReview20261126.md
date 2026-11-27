@@ -1,9 +1,10 @@
 # Independent overnight requirements review — November 26, 2026
 
 Status: **combined source approved: host
-`74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3` and native
+`31d84de4c35ee249312dc19b7c501efd9cce1dc1` and native
 `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4` (0.269/build270), including
-bounded recovery, admission, PG23 and A2 optical-proof age. Final combined test
+bounded recovery, admission, PG23, A2 optical-proof age, signal-safe shutdown and
+IPC isolation with late-publisher fences. Final combined test
 completion, packaging, paired acceptance, installation and physical results remain
 root-owned and are not established by this source review**.
 Reviewer `/root/overnight_requirements_review`; root owns integration, installation,
@@ -87,6 +88,14 @@ exhaustion so replay or physical evidence can justify revision.
 ## Source-first review anchors
 
 ### IPC isolation follow-up and combined shutdown review
+
+**Final integrated pair approved:** host
+`31d84de4c35ee249312dc19b7c501efd9cce1dc1` and native
+`d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`. Final host `31d84de` differs from
+verified `5a2a21a` only by the approved manual transport-test adaptation. The
+production files and adapted test match the frozen source exactly. Final full
+host/replay/paired checks are running under root ownership; this is source
+approval, not a claim of their completion or installation.
 
 The source chain `90c7bffd05cc8e3aa3d63de741d41594ac7855f2` plus
 `01f1bd4d48d82725cae03e2981136e8566d2a99b`, on the approved shutdown chain,
