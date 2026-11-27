@@ -1,19 +1,19 @@
 {
   "date": "2026-11-27",
-  "map_state": "Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled",
+  "map_state": "Installed 0.269 \u2014 offline validated; latest attended attempt failed, physical acceptance open",
   "diagrams": 7,
   "nodes": 91,
   "connector_labels": 32,
   "issues": [],
   "font_metrics_checked": true,
-  "source_count": 37,
+  "source_count": 41,
   "source_heads": {
     "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3"
+    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
   },
   "declared_source_heads": {
     "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3"
+    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
   },
   "source_heads_match": {
     "native": true,

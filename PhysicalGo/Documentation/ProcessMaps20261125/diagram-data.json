@@ -91,8 +91,8 @@
         "y": 625,
         "w": 300,
         "h": 96,
-        "title": "Fault or pause \u2192 full OFF",
-        "body": "Beam off + motor bus released\nRetain game and pending move",
+        "title": "Fault or pause \u2192 request OFF",
+        "body": "Require beam / motor OFF receipt\nMissing receipt remains unknown",
         "kind": "fault"
       }
     ],
@@ -448,7 +448,7 @@
   {
     "key": "data",
     "title": "3 \u00b7 Camera, processing and file boundaries",
-    "desc": "Native safety and pixels use separate lanes. Installed host request read and status write share one loop; the labelled split is a proposal.",
+    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.",
     "height": 1220,
     "nodes": [
       {
@@ -577,38 +577,38 @@
         "y": 840,
         "w": 300,
         "h": 96,
-        "title": "Host shared I/O loop (installed)",
-        "body": "Request read \u2192 synchronous status write\nSlow publish delays next request read",
+        "title": "Host request reader",
+        "body": "Dedicated bounded request read\nGate checks identity / lease / stop",
         "kind": "process"
       },
       {
-        "id": "pubproposal",
+        "id": "publisher",
         "x": 50,
         "y": 1050,
         "w": 300,
         "h": 96,
-        "title": "Proposed: separate publisher",
-        "body": "One bounded status writer\nIndependent request reader",
+        "title": "Host status writer: one owner",
+        "body": "No queue; skip concurrent publish\nOld snapshot fenced at replacement",
         "kind": "process"
       },
       {
-        "id": "retryproposal",
+        "id": "reread",
         "x": 400,
         "y": 1050,
         "w": 300,
         "h": 96,
-        "title": "Proposed: newer-frame retry",
-        "body": "Discard expired raw frame; newer only\nOriginal 600 ms checks stay in force",
+        "title": "Raw expiry: one newer reread",
+        "body": "Same scope; newer frame ID + capture\nOriginal 600 ms checks stay in force",
         "kind": "process"
       },
       {
-        "id": "independent",
+        "id": "stopfence",
         "x": 750,
         "y": 1050,
         "w": 300,
         "h": 96,
-        "title": "Keep independent safety",
-        "body": "Fresh safety \u2260 fresh optical pixels\nNo retimestamping or lease extension",
+        "title": "Stop fences on background I/O",
+        "body": "Before snapshot / lease poll / rename\nOnly close may publish final OFF",
         "kind": "gate"
       }
     ],
@@ -699,7 +699,7 @@
       },
       {
         "a": "reader",
-        "b": "status",
+        "b": "publisher",
         "label": "",
         "route": null,
         "kind": "normal"
@@ -707,7 +707,7 @@
       {
         "a": "io",
         "b": "status",
-        "label": "lease / receipt",
+        "label": "request",
         "route": null,
         "kind": "normal"
       },
@@ -729,16 +729,60 @@
       },
       {
         "a": "status",
-        "b": "io",
-        "label": "fresh ack",
+        "b": "publisher",
+        "label": "",
         "route": [
           [
-            725,
+            375,
             888
           ],
           [
-            725,
-            678
+            375,
+            1010
+          ],
+          [
+            200,
+            1010
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "publisher",
+        "b": "io",
+        "label": "status",
+        "route": [
+          [
+            30,
+            1098
+          ],
+          [
+            30,
+            790
+          ],
+          [
+            550,
+            790
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "reader",
+        "b": "reread",
+        "label": "",
+        "route": [
+          [
+            375,
+            888
+          ],
+          [
+            375,
+            1010
+          ],
+          [
+            550,
+            1010
           ]
         ],
         "kind": "normal"
@@ -754,7 +798,8 @@
       "S13",
       "S14",
       "S34",
-      "S37"
+      "S37",
+      "S38"
     ]
   },
   {
@@ -790,7 +835,7 @@
         "w": 300,
         "h": 96,
         "title": "Resolve assignment",
-        "body": "Unique new-stone assignment\nPG23: qualified EMPTY (forthcoming)",
+        "body": "Unique new-stone assignment\nPG23: current qualified EMPTY only",
         "kind": "gate"
       },
       {
@@ -850,7 +895,7 @@
         "w": 300,
         "h": 96,
         "title": "Host aims / holds dot",
-        "body": "Aim / hold / recover same target\nCue needs fresh proof (forthcoming)",
+        "body": "Aim / hold / recover same target\nCue needs original fresh optical proof",
         "kind": "process"
       },
       {
@@ -1049,7 +1094,8 @@
       "S11",
       "S22",
       "S23",
-      "S25"
+      "S25",
+      "S40"
     ]
   },
   {
@@ -1379,7 +1425,7 @@
   {
     "key": "recovery",
     "title": "6 \u00b7 One recovery owner; full OFF remains the fallback",
-    "desc": "Recovery retains one scope/deadline. Returned O17 exposed a separate signal shutdown failure; labelled cancellation repair is uninstalled.",
+    "desc": "One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.",
     "height": 1730,
     "nodes": [
       {
@@ -1469,7 +1515,7 @@
         "w": 300,
         "h": 96,
         "title": "Current adequate publication",
-        "body": "Same-sample age / pose / hand checks\nCue age recheck is forthcoming",
+        "body": "Same-sample age / pose / hand checks\nRecheck original cue age at native",
         "kind": "gate"
       },
       {
@@ -1543,23 +1589,23 @@
         "kind": "fault"
       },
       {
-        "id": "signalstall",
+        "id": "signal",
         "x": 50,
         "y": 1575,
         "w": 300,
         "h": 96,
-        "title": "Observed: SIGINT shutdown stall",
-        "body": "Handler calls Event.set under signal\nNo final controller OFF receipt",
-        "kind": "fault"
+        "title": "Signal: assign plain stop flag",
+        "body": "Handler takes no Event/runtime locks\nNormal control flow performs cleanup",
+        "kind": "process"
       },
       {
-        "id": "signalproposal",
+        "id": "startupstop",
         "x": 750,
         "y": 1575,
         "w": 300,
         "h": 96,
-        "title": "Proposed: flag-only signal",
-        "body": "Main loop owns stop and cleanup\nStartup cancellation checked too",
+        "title": "Startup and late-I/O cancellation",
+        "body": "Stop predicate checked before launch\nStopped readers cannot admit or poll",
         "kind": "process"
       }
     ],
@@ -1732,7 +1778,8 @@
       "S34",
       "S35",
       "S36",
-      "S37"
+      "S37",
+      "S38"
     ]
   },
   {

@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "539da1f180154f5088c568b420c8f58883bd98ed46a85d947b0dfa7b5e54b867"
+    "sha256": "0c76f2070e771917e1a7a12f38b3b3f3b52ae8409c870b2faffb95511f25d7b6"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -62,12 +62,12 @@
   "S13": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_runtime.py",
     "description": "Input/coordinator/supervision/worker threads and cancellation",
-    "sha256": "ba0de8434de17244ee8d4ca84fe89a76dd7fce6ae3c3c358365d6f6a1d02848f"
+    "sha256": "6b16b542b7972fecd540f09d19436c0173cd3b6e4cf803612b5c48fd645cc533"
   },
   "S14": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_frames.py",
     "description": "Frame identity and independent capture/publication/arrival ages",
-    "sha256": "726ca2f5b79ece93dfb328d90e7414b6c2b082df3fc9c68005b51627380aa794"
+    "sha256": "05c5dd873da019357a7e085a7e0d7f3dd050a1476eae82b9a2afa097d7f7f45c"
   },
   "S15": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_feedback.py",
@@ -171,17 +171,37 @@
   },
   "S35": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md",
-    "description": "Candidate one-owner recovery contract and limits",
+    "description": "One-owner recovery contract and limits",
     "sha256": "c3e1ccda8dd319f3bf66bae57eb14201b4e64d88ddd3e2e26460beb06e712773"
   },
   "S36": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py",
-    "description": "Signal handler and main shutdown ownership; uncorrected candidate snapshot",
-    "sha256": "30274f8104555168d280e2c4d73af1be36bc60a90951e6023651355edd02e445"
+    "description": "Flag-only signal, startup cancellation and shutdown receipt ownership",
+    "sha256": "6bd624e045139209763d86ae8bf1cbfb3a6cd2d7bc6ae445fc0244386eb8cee8"
   },
   "S37": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md",
-    "description": "Returned O17 saved evidence and unresolved release blockers",
-    "sha256": "778d47d2ffe5b54e78f9c668a67f6604fe6c97849c8818fb0f7fe000e3c460fc"
+    "description": "Historical returned O17 evidence; installed repair does not validate that failed run",
+    "sha256": "a544b3e7eb807c6ea5c5bd6569a3f41b1f91938e6e68970259fcee7a64b18b44"
+  },
+  "S38": {
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/IPCLatencyIsolation/README.md",
+    "description": "I/O isolation, newer-frame reread, shutdown fences and remaining filesystem limits",
+    "sha256": "3f60f03d0a2da3e58e678ea0ecfda2989b7017397af24b3b4080cb63bd459135"
+  },
+  "S39": {
+    "path": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
+    "description": "Root installation receipt; physical validation remains separate",
+    "sha256": "b99861a51f4dfeb69bc83421d60d2b40abdf1af578cd6fc8bb3f06c0ef58d510"
+  },
+  "S40": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift",
+    "description": "Positive EMPTY receipt producer, original capture binding and invalidation",
+    "sha256": "83309afc76e3544c5276163a46b386a2714ef7ef39e320a5ba9fdc422f1e7585"
+  },
+  "S41": {
+    "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md",
+    "description": "Current installed release and latest attended failure; acceptance remains open",
+    "sha256": "7ab16206de1fa3b4518fe5df951e9156055cb047efbaea89aa55d5c483a1ea57"
   }
 }

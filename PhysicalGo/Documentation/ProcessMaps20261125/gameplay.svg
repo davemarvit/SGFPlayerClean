@@ -41,7 +41,7 @@
 <g data-node="ambiguity"><rect x="50" y="390" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="417">Resolve assignment</text>
 <text class="node-body" x="64" y="444">Unique new-stone assignment</text>
-<text class="node-body" x="64" y="465">PG23: qualified EMPTY (forthcoming)</text>
+<text class="node-body" x="64" y="465">PG23: current qualified EMPTY only</text>
 </g>
 <g data-node="stable"><rect x="50" y="570" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="597">Collect stable witnesses</text>
@@ -71,7 +71,7 @@
 <g data-node="aim"><rect x="750" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="417">Host aims / holds dot</text>
 <text class="node-body" x="764" y="444">Aim / hold / recover same target</text>
-<text class="node-body" x="764" y="465">Cue needs fresh proof (forthcoming)</text>
+<text class="node-body" x="764" y="465">Cue needs original fresh optical proof</text>
 </g>
 <g data-node="human"><rect x="750" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="237">Human places / removes</text>
@@ -93,5 +93,5 @@
 <text class="node-body" x="414" y="1019">Hard guidance fault pauses clocks</text>
 <text class="node-body" x="414" y="1040">Explicit Resume keeps pending work</text>
 </g>
-<text x="30" y="1160" style="font-size:12px;fill:#5e6c7d">INSTALLED fb4697c / 8ce91a1 failed returned O17 · Candidate d014c63 / 74d0b83 + labelled proposals NOT installed</text>
+<text x="30" y="1160" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
 </svg>

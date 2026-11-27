@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1730" width="1120" height="1730" role="img" aria-labelledby="recovery-title recovery-desc">
-<title id="recovery-title">6 · One recovery owner; full OFF remains the fallback</title><desc id="recovery-desc">Recovery retains one scope/deadline. Returned O17 exposed a separate signal shutdown failure; labelled cancellation repair is uninstalled.</desc>
+<title id="recovery-title">6 · One recovery owner; full OFF remains the fallback</title><desc id="recovery-desc">One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
@@ -65,7 +65,7 @@
 <g data-node="adequate"><rect x="400" y="820" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="414" y="847">Current adequate publication</text>
 <text class="node-body" x="414" y="874">Same-sample age / pose / hand checks</text>
-<text class="node-body" x="414" y="895">Cue age recheck is forthcoming</text>
+<text class="node-body" x="414" y="895">Recheck original cue age at native</text>
 </g>
 <g data-node="lease"><rect x="50" y="620" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="647">Shared finite recovery episode</text>
@@ -102,15 +102,15 @@
 <text class="node-body" x="64" y="1274">Report shutdown failure honestly</text>
 <text class="node-body" x="64" y="1295">Physical power report is separate</text>
 </g>
-<g data-node="signalstall"><rect x="50" y="1575" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="64" y="1602">Observed: SIGINT shutdown stall</text>
-<text class="node-body" x="64" y="1629">Handler calls Event.set under signal</text>
-<text class="node-body" x="64" y="1650">No final controller OFF receipt</text>
+<g data-node="signal"><rect x="50" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="1602">Signal: assign plain stop flag</text>
+<text class="node-body" x="64" y="1629">Handler takes no Event/runtime locks</text>
+<text class="node-body" x="64" y="1650">Normal control flow performs cleanup</text>
 </g>
-<g data-node="signalproposal"><rect x="750" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="1602">Proposed: flag-only signal</text>
-<text class="node-body" x="764" y="1629">Main loop owns stop and cleanup</text>
-<text class="node-body" x="764" y="1650">Startup cancellation checked too</text>
+<g data-node="startupstop"><rect x="750" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1602">Startup and late-I/O cancellation</text>
+<text class="node-body" x="764" y="1629">Stop predicate checked before launch</text>
+<text class="node-body" x="764" y="1650">Stopped readers cannot admit or poll</text>
 </g>
-<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">INSTALLED fb4697c / 8ce91a1 failed returned O17 · Candidate d014c63 / 74d0b83 + labelled proposals NOT installed</text>
+<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
 </svg>

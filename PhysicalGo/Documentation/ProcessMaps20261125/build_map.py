@@ -42,9 +42,13 @@ sources = {
  'S32': (NATIVE/'WoodenBoardPerimeter.swift', 'Explicit physical-wood support; not a guessed grid/rim perimeter'),
  'S33': (HOST/'bridge_lit_geometry.py', 'Measured laser-only geometry exclusion and bounded optional work'),
  'S34': (HOST/'point_session.py', 'Actual write-lock and before-write boundary'),
- 'S35': (HOST/'Feedback recovery contract.md', 'Candidate one-owner recovery contract and limits'),
- 'S36': (HOST/'laser_bridge.py', 'Signal handler and main shutdown ownership; uncorrected candidate snapshot'),
- 'S37': (DOCS/'ReturnedO17Failure20261127.md', 'Returned O17 saved evidence and unresolved release blockers'),
+ 'S35': (HOST/'Feedback recovery contract.md', 'One-owner recovery contract and limits'),
+ 'S36': (HOST/'laser_bridge.py', 'Flag-only signal, startup cancellation and shutdown receipt ownership'),
+ 'S37': (DOCS/'ReturnedO17Failure20261127.md', 'Historical returned O17 evidence; installed repair does not validate that failed run'),
+ 'S38': (HOST/'Experiments/IPCLatencyIsolation/README.md', 'I/O isolation, newer-frame reread, shutdown fences and remaining filesystem limits'),
+ 'S39': (Path(SNAPSHOT['installation_receipt']), 'Root installation receipt; physical validation remains separate'),
+ 'S40': (NATIVE/'BoardVision.swift', 'Positive EMPTY receipt producer, original capture binding and invalidation'),
+ 'S41': (DOCS/'RequirementsRelease20261127.md', 'Current installed release and latest attended failure; acceptance remains open'),
 }
 
 diagrams=[]
@@ -64,7 +68,7 @@ diagram('overview','1 · The complete system','Separate observed stones, legal h
  n('human',400,415,'F. Human changes board','Place indicated stone; remove\ncaptures; center when needed'),
  n('confirm',50,415,'G. Verify physical change','Clear, dark, fresh evidence\nStable legal / cleanup result','gate'),
  n('save',400,625,'Review / end / restore','Preserve pending physical work\nExplicit scoring / resume'),
- n('fault',750,625,'Fault or pause → full OFF','Beam off + motor bus released\nRetain game and pending move','fault'),
+ n('fault',750,625,'Fault or pause → request OFF','Require beam / motor OFF receipt\nMissing receipt remains unknown','fault'),
 ],[e('setup','camera'),e('camera','game'),e('game','guide'),e('guide','host'),e('host','human','visible cue'),e('human','confirm'),e('confirm','camera','next evidence',[(30,463),(30,273)]),e('confirm','game','accepted',[(375,463),(375,205),(550,205)]),e('game','save','review / end',[(550,345),(720,345),(720,598),(550,598)]),e('host','fault','any hard fault'),e('save','fault','pause / stop')],['S1','S2','S22','S23','S24'])
 
 diagram('calibration','2 · Two calibrations, then permission to play','A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.',1120,[
@@ -81,7 +85,7 @@ diagram('calibration','2 · Two calibrations, then permission to play','A grid f
  n('moved',50,730,'If board/camera/pointer moves','Requalify affected relationships\nA matching file hash is insufficient','fault'),
 ],[e('select','grid'),e('grid','ref'),e('grid','measure'),e('measure','fit'),e('fit','check'),e('check','bind'),e('bind','ready'),e('verify','ready'),e('ready','launch'),e('ref','bind','identity + geometry',[(375,428),(375,778)]),e('moved','grid','fresh qualification',[(25,778),(25,253)])],['S3','S12','S19','S30','S32','S1'])
 
-diagram('data','3 · Camera, processing and file boundaries','Native safety and pixels use separate lanes. Installed host request read and status write share one loop; the labelled split is a proposal.',1220,[
+diagram('data','3 · Camera, processing and file boundaries','Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.',1220,[
  n('capture',50,30,'Camera serial queue','AVFoundation presentation time\nCapture + arrival + epoch/frame ID'),
  n('main',50,215,'Main actor: session snapshot','Camera/grid/reference/expected board\nRevision rejects stale completions'),
  n('vision',400,215,'Serial vision worker','Physical wood / grid / hand support\nThen stone/shape/assignment evidence'),
@@ -94,27 +98,27 @@ diagram('data','3 · Camera, processing and file boundaries','Native safety and 
  n('io',400,630,'Request / status IO queues','One read + one write in flight\nOne replaceable pending request','store'),
  n('reader',50,840,'Host optical worker','Read matching PNG + manifest\nCheck four ages ≤600 ms','gate'),
  n('supervisor',750,630,'Host safety supervision','Hand / camera / lease / thermal\nCan revoke busy optical worker'),
- n('status',400,840,'Host shared I/O loop (installed)','Request read → synchronous status write\nSlow publish delays next request read'),
- n('pubproposal',50,1050,'Proposed: separate publisher','One bounded status writer\nIndependent request reader'),
- n('retryproposal',400,1050,'Proposed: newer-frame retry','Discard expired raw frame; newer only\nOriginal 600 ms checks stay in force'),
- n('independent',750,1050,'Keep independent safety','Fresh safety ≠ fresh optical pixels\nNo retimestamping or lease extension','gate'),
-],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','status'),e('io','status','lease / receipt'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','io','fresh ack',[(725,888),(725,678)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34','S37'])
+ n('status',400,840,'Host request reader','Dedicated bounded request read\nGate checks identity / lease / stop'),
+ n('publisher',50,1050,'Host status writer: one owner','No queue; skip concurrent publish\nOld snapshot fenced at replacement'),
+ n('reread',400,1050,'Raw expiry: one newer reread','Same scope; newer frame ID + capture\nOriginal 600 ms checks stay in force'),
+ n('stopfence',750,1050,'Stop fences on background I/O','Before snapshot / lease poll / rename\nOnly close may publish final OFF','gate'),
+],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','publisher'),e('io','status','request'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','publisher',route=[(375,888),(375,1010),(200,1010)]),e('publisher','io','status',[(30,1098),(30,790),(550,790)]),e('reader','reread',route=[(375,888),(375,1010),(550,1010)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34','S37','S38'])
 
 diagram('gameplay','4 · AI game and physical placement','The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.',1170,[
  n('resume',50,30,'Start / explicit Resume','Restore accepted save + clocks\nVerify physical board matches'),
  n('observe',50,210,'Admit observation','Current context; clear and aligned\nConfirmed dark + post-dark frame','gate'),
- n('ambiguity',50,390,'Resolve assignment','Unique new-stone assignment\nPG23: qualified EMPTY (forthcoming)','gate'),
+ n('ambiguity',50,390,'Resolve assignment','Unique new-stone assignment\nPG23: current qualified EMPTY only','gate'),
  n('stable',50,570,'Collect stable witnesses','≥3 distinct frames spanning 450 ms\nGaps >600 ms reset continuity','gate'),
  n('legal',50,750,'Accept legal human move','Rules + captures → history/save\nClock ownership changes here'),
  n('ai',400,750,'Ask KataGo','Normal or fast-test settings\nRetained idle worker in fast mode'),
  n('commit',750,750,'Commit AI answer','Validate move; save decision time\nSet pendingPlacement; switch turn'),
  n('request',750,570,'Select physical guidance','Placement → capture → centering\nKeep pre-placement referenceCells'),
- n('aim',750,390,'Host aims / holds dot','Aim / hold / recover same target\nCue needs fresh proof (forthcoming)'),
+ n('aim',750,390,'Host aims / holds dot','Aim / hold / recover same target\nCue needs original fresh optical proof'),
  n('human',750,210,'Human places / removes','Hand or stone suspicion darkens\nLit evidence cannot confirm a move'),
  n('match',400,570,'Expected board now matches?','Pending placement / cleanup ends\nOnly after admitted stable evidence','gate'),
  n('wait',400,390,'Unclear / halfway / illegal','Wait or show correction markers\nNever silently alter legal history'),
  n('end',400,965,'Pass / finish / pause / save','Hard guidance fault pauses clocks\nExplicit Resume keeps pending work'),
-],[e('resume','observe'),e('observe','ambiguity'),e('ambiguity','stable','unique'),e('ambiguity','wait','unclear'),e('wait','observe','new evidence',[(550,350),(200,350)]),e('stable','legal','new human move'),e('stable','match','saved position'),e('legal','ai'),e('ai','commit'),e('commit','request'),e('request','aim'),e('aim','human'),e('human','observe','new dark evidence',[(900,180),(200,180)]),e('match','observe','next human turn',[(375,618),(375,258)]),e('ai','end','pass / end'),e('match','end','pause / fault',[(710,618),(710,1013)])],['S10','S11','S22','S23','S25'])
+],[e('resume','observe'),e('observe','ambiguity'),e('ambiguity','stable','unique'),e('ambiguity','wait','unclear'),e('wait','observe','new evidence',[(550,350),(200,350)]),e('stable','legal','new human move'),e('stable','match','saved position'),e('legal','ai'),e('ai','commit'),e('commit','request'),e('request','aim'),e('aim','human'),e('human','observe','new dark evidence',[(900,180),(200,180)]),e('match','observe','next human turn',[(375,618),(375,258)]),e('ai','end','pass / end'),e('match','end','pause / fault',[(710,618),(710,1013)])],['S10','S11','S22','S23','S25','S40'])
 
 diagram('laser','5 · Aim, publish and hold one target','Measured optical anchors and target-adequate evidence are different results. The same operation owns initial aiming and every recovery.',1390,[
  n('admit',50,30,'Admit current request','Binding + fresh frame + identity\nHistorical anchor is only a hint','gate'),
@@ -133,7 +137,7 @@ diagram('laser','5 · Aim, publish and hold one target','Measured optical anchor
  n('budget',50,1190,'One work ledger','150s active / 25 local plans\nStable adequate waiting excluded','gate'),
 ],[e('admit','arm'),e('arm','prepare'),e('prepare','initial'),e('initial','coarse','outside band',[(200,443)]),e('initial','accept','accepted beam',[(900,443)]),e('coarse','observe'),e('observe','fine','outside band'),e('fine','observe','remeasure',[(550,940),(200,940)]),e('observe','accept','measured pass',[(375,838),(375,720),(735,720),(735,633)]),e('accept','hold'),e('hold','monitor'),e('monitor','placement'),e('monitor','renew','renewal due',[(725,1048),(725,1238)]),e('renew','prepare','DARK when needed',[(720,1238),(720,175),(550,175)]),e('observe','anchor','published sample')],['S15','S16','S20','S28','S29','S30','S33','S34','S35'])
 
-diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Recovery retains one scope/deadline. Returned O17 exposed a separate signal shutdown failure; labelled cancellation repair is uninstalled.',1730,[
+diagram('recovery','6 · One recovery owner; full OFF remains the fallback','One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.',1730,[
  n('input',400,25,'Held crossing / typed failure','Withdraw adequate immediately\nEnter existing shared work ledger'),
  n('cross',50,220,'Measured error >0.20 cell','Newer full-board confirmation\nNo wider adequate band','gate'),
  n('expiry',400,220,'Finite optical-result expiry','Discard old result; check live safety\nReacquire pose + newer full-board data'),
@@ -142,7 +146,7 @@ diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Rec
  n('fresh',400,420,'Same operation / current proof','Original target, token and session\nOnly acknowledged own RS may advance','gate'),
  n('fit',750,420,'Qualify replacement geometry','Three newer dark frames; validate\nInstall only after replacement passes','gate'),
  n('hint',750,620,'Historical containment only','Old sample/H grants no movement\nFresh pose + full-board spot required'),
- n('adequate',400,820,'Current adequate publication','Same-sample age / pose / hand checks\nCue age recheck is forthcoming','gate'),
+ n('adequate',400,820,'Current adequate publication','Same-sample age / pose / hand checks\nRecheck original cue age at native','gate'),
  n('lease',50,620,'Shared finite recovery episode','≤30s provisional wall cap\nNested retries never restart it','gate'),
  n('failure',50,1020,'Any unqualified failure','Unknown hand/spot, lost lease,\ntransport, identity or exhausted work','fault'),
  n('cancel',400,1020,'Revoke → quiesce → full OFF','Coordinator owns stop + receipt\nNo transport writes inside validators'),
@@ -150,9 +154,9 @@ diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Rec
  n('dark',750,1220,'Post-dark physical evidence','Same stream + watermark + flush\nNo stone acceptance from a receipt'),
  n('resume',400,1400,'Native recovery / explicit Resume','Preserve pending move and clocks\nHardware recovery cannot resume game'),
  n('nooff',50,1220,'Missing receipt: state unknown','Report shutdown failure honestly\nPhysical power report is separate','fault'),
- n('signalstall',50,1575,'Observed: SIGINT shutdown stall','Handler calls Event.set under signal\nNo final controller OFF receipt','fault'),
- n('signalproposal',750,1575,'Proposed: flag-only signal','Main loop owns stop and cleanup\nStartup cancellation checked too'),
-],[e('input','cross',route=[(200,155)]),e('input','expiry'),e('input','geometry',route=[(900,155)]),e('cross','confirm'),e('confirm','adequate','independent recheck',[(375,468),(375,780),(550,780)]),e('expiry','fresh'),e('fresh','adequate'),e('geometry','fit'),e('fit','hint'),e('hint','adequate','new optical proof',[(900,780),(550,780)]),e('failure','cancel'),e('cancel','off'),e('cancel','nooff','no receipt',[(350,1068),(350,1160),(200,1160)]),e('off','dark'),e('dark','resume','fresh evidence',[(900,1448)])],['S11','S13','S15','S16','S25','S26','S28','S29','S34','S35','S36','S37'])
+ n('signal',50,1575,'Signal: assign plain stop flag','Handler takes no Event/runtime locks\nNormal control flow performs cleanup'),
+ n('startupstop',750,1575,'Startup and late-I/O cancellation','Stop predicate checked before launch\nStopped readers cannot admit or poll'),
+],[e('input','cross',route=[(200,155)]),e('input','expiry'),e('input','geometry',route=[(900,155)]),e('cross','confirm'),e('confirm','adequate','independent recheck',[(375,468),(375,780),(550,780)]),e('expiry','fresh'),e('fresh','adequate'),e('geometry','fit'),e('fit','hint'),e('hint','adequate','new optical proof',[(900,780),(550,780)]),e('failure','cancel'),e('cancel','off'),e('cancel','nooff','no receipt',[(350,1068),(350,1160),(200,1160)]),e('off','dark'),e('dark','resume','fresh evidence',[(900,1448)])],['S11','S13','S15','S16','S25','S26','S28','S29','S34','S35','S36','S37','S38'])
 
 diagram('modes','7 · Local recording, online play and review','The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.',910,[
  n('observation',400,25,'Admitted board observations','Same camera / wood / hand pipeline\nMode owns evidence + move acceptance'),
@@ -242,7 +246,7 @@ def main():
     page+='<a href="#findings">Architectural findings</a><a href="#timing">Timing boundaries</a><a href="#sources">Sources</a></nav><div class="legend"><span class="process">Process</span><span class="gate">Evidence / admission gate</span><span class="store">Queue / stored exchange</span><span class="fault">Fault / limitation</span></div><p class="refs">Arrows show control or evidence flow, not measured duration. Diagrams remain readable at full size; horizontally scroll on narrow windows or open the SVG. Browser zoom and print are supported.</p>'
     status_banner='<strong>'+esc(SNAPSHOT['state'])+'</strong><br>Source '+esc(SNAPSHOT['date'])+' · native <code>'+esc(SNAPSHOT['native_commit'][:7])+'</code> · host <code>'+esc(SNAPSHOT['host_commit'][:7])+'</code><br>Installed baseline: '+esc(SNAPSHOT['installed_native'])+' / '+esc(SNAPSHOT['installed_host'])+'<br>'+esc(SNAPSHOT['physical_state'])+'<br>'+esc(SNAPSHOT['release_note'])
     page=page.replace('__STATUS_BANNER__',status_banner)
-    page+=''.join(fragments)+findings+'<section id="sources"><h2>Source index and limits</h2><p>Diagrams are a source-grounded architecture review, not a complete executable state-machine specification. Native and host source are pinned above. Older guide status paragraphs are superseded by the current checklist; candidate and installed source are separated in the banner. This work performed no camera, serial, app UI, installation or hardware actions.</p><ol>'+source_html+'</ol></section><output id="validation"></output></main><script>window.addEventListener("load",()=>{const issues=[];document.querySelectorAll("svg [data-node]").forEach(n=>{const r=n.querySelector("rect");const x=+r.getAttribute("x"),y=+r.getAttribute("y"),w=+r.getAttribute("width"),h=+r.getAttribute("height");n.querySelectorAll("text").forEach(t=>{const b=t.getBBox();if(b.x<x||b.y<y||b.x+b.width>x+w||b.y+b.height>y+h)issues.push(n.dataset.node+": text outside box")})});document.querySelectorAll("a[href^=\\"#\\"]").forEach(a=>{if(!document.getElementById(a.hash.slice(1)))issues.push("missing anchor "+a.hash)});const out=document.getElementById("validation");out.textContent=JSON.stringify({diagrams:document.querySelectorAll(".diagram").length,nodes:document.querySelectorAll("[data-node]").length,issues});out.dataset.result=issues.length?"fail":"pass"});</script></body></html>'
+    page+=''.join(fragments)+findings+'<section id="sources"><h2>Source index and limits</h2><p>Diagrams are a source-grounded architecture review, not a complete executable state-machine specification. Native and host source are pinned above. Older guide status paragraphs are superseded by the current checklist; the installed source snapshot and remaining physical-validation limits are stated in the banner. This work performed no camera, serial, app UI, installation or hardware actions.</p><ol>'+source_html+'</ol></section><output id="validation"></output></main><script>window.addEventListener("load",()=>{const issues=[];document.querySelectorAll("svg [data-node]").forEach(n=>{const r=n.querySelector("rect");const x=+r.getAttribute("x"),y=+r.getAttribute("y"),w=+r.getAttribute("width"),h=+r.getAttribute("height");n.querySelectorAll("text").forEach(t=>{const b=t.getBBox();if(b.x<x||b.y<y||b.x+b.width>x+w||b.y+b.height>y+h)issues.push(n.dataset.node+": text outside box")})});document.querySelectorAll("a[href^=\\"#\\"]").forEach(a=>{if(!document.getElementById(a.hash.slice(1)))issues.push("missing anchor "+a.hash)});const out=document.getElementById("validation");out.textContent=JSON.stringify({diagrams:document.querySelectorAll(".diagram").length,nodes:document.querySelectorAll("[data-node]").length,issues});out.dataset.result=issues.length?"fail":"pass"});</script></body></html>'
     label_check='''document.querySelectorAll(".diagram svg").forEach(svg=>{const labels=[];const vb=svg.viewBox.baseVal;svg.querySelectorAll(".edge-label").forEach(t=>{const b=t.getBBox();if(b.x<0||b.y<0||b.x+b.width>vb.width||b.y+b.height>vb.height)issues.push("edge label outside canvas: "+t.textContent);svg.querySelectorAll("[data-node] rect").forEach(r=>{const a=r.getBBox();if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge label overlaps node: "+t.textContent)});labels.forEach(a=>{if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge labels overlap: "+t.textContent)});labels.push(b)})});'''
     page=page.replace('const out=document.getElementById("validation");',label_check+'const out=document.getElementById("validation");')
     (OUT/'index.html').write_text(page)

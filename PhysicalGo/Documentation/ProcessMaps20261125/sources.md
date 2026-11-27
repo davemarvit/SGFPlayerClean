@@ -1,6 +1,6 @@
 # Source index
 
-Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled. Source snapshot 2026-11-27: native `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`, host `74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
+Installed 0.269 — offline validated; latest attended attempt failed, physical acceptance open. Source snapshot 2026-11-27: native `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`, host `31d84de4c35ee249312dc19b7c501efd9cce1dc1`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
 
 - **S1** — Current authoritative issue register; live status outranks map snapshot. [IntegrationChecklist.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md>)
 - **S2** — State ownership and architecture. [Architecture.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md>)
@@ -36,6 +36,10 @@ Installed limited pair failed returned O17 test; full candidate and new repairs 
 - **S32** — Explicit physical-wood support; not a guessed grid/rim perimeter. [WoodenBoardPerimeter.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/WoodenBoardPerimeter.swift>)
 - **S33** — Measured laser-only geometry exclusion and bounded optional work. [bridge_lit_geometry.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lit_geometry.py>)
 - **S34** — Actual write-lock and before-write boundary. [point_session.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py>)
-- **S35** — Candidate one-owner recovery contract and limits. [Feedback recovery contract.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md>)
-- **S36** — Signal handler and main shutdown ownership; uncorrected candidate snapshot. [laser_bridge.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py>)
-- **S37** — Returned O17 saved evidence and unresolved release blockers. [ReturnedO17Failure20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md>)
+- **S35** — One-owner recovery contract and limits. [Feedback recovery contract.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md>)
+- **S36** — Flag-only signal, startup cancellation and shutdown receipt ownership. [laser_bridge.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py>)
+- **S37** — Historical returned O17 evidence; installed repair does not validate that failed run. [ReturnedO17Failure20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md>)
+- **S38** — I/O isolation, newer-frame reread, shutdown fences and remaining filesystem limits. [README.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/IPCLatencyIsolation/README.md>)
+- **S39** — Root installation receipt; physical validation remains separate. [install-receipt.json](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json>)
+- **S40** — Positive EMPTY receipt producer, original capture binding and invalidation. [BoardVision.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift>)
+- **S41** — Current installed release and latest attended failure; acceptance remains open. [RequirementsRelease20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md>)

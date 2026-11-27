@@ -1,13 +1,16 @@
 {
   "date": "2026-11-27",
-  "state": "Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled",
+  "state": "Installed 0.269 \u2014 offline validated; latest attended attempt failed, physical acceptance open",
   "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
   "native_commit": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
   "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware",
-  "host_commit": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3",
-  "installed_native": "0.268/build269 fb4697c4ef314d83a253bd0aa219de1bb6b3d61f",
-  "installed_host": "8ce91a17bb8e968dbb40bf0058ff5bd768b95f1c-app0268",
-  "physical_state": "Returned O17 run1795765307207891000 reached14 accepted observations, then raw frame2071 expired at728ms versus600ms. Thermal unavailable and later lease expiry followed. SIGINT shutdown stalled; user confirmed physical power OFF before root killed the child. No verified final controller OFF receipt. Game paused, ten logical moves/nine physical stones, O17 unplaced.",
-  "release_note": "Installed remains native0.268/fb4697c + host8ce91a1. Candidate source includes PG23/native admission/A2 but is not release-ready: final lit-renewal replay failed. New independent status-publisher/newer-frame retry and flag-only signal/startup-cancellation repairs are proposals under owner/reviewer work, not accepted or installed. Final source pins pending.",
-  "svg_scope": "INSTALLED fb4697c / 8ce91a1 failed returned O17 \u00b7 Candidate d014c63 / 74d0b83 + labelled proposals NOT installed"
+  "host_commit": "31d84de4c35ee249312dc19b7c501efd9cce1dc1",
+  "installed_native": "0.269/build270 d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+  "installed_host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1-app0269",
+  "physical_state": "Installed0.269 run1795767435349051000 point12 failed before adequate: cached gameplay safety frame1864 capture age604.260ms exceeded600ms, then lease/transport fault. Ctrl-C exited promptly, without the prior signal hang, but controller_off=null and full_off_verified=false. User physical power-off confirmation pending at this map snapshot. Game paused, O17 unplaced.",
+  "release_note": "Installed changes include hold recovery, PG23 receipts, qualified native admission, A1/A2 repairs, independent request/status I/O, strict newer-frame reread, signal/startup cancellation and stopped-background fences. Root reports1320 host tests/57 skips,8 native suites,8 renewal replays and mandatory paired PASS; final source approval587c778a3c635ea496e217a66d436339e3e67c9b. Source review/offline results do not establish physical reliability or latency.",
+  "svg_scope": "INSTALLED 0.269 \u00b7 native d014c63 / host 31d84de \u00b7 Latest attended attempt failed; physical acceptance OPEN",
+  "installation_receipt": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
+  "source_approval": "587c778a3c635ea496e217a66d436339e3e67c9b",
+  "physical_validation": false
 }
