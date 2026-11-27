@@ -1,6 +1,6 @@
 # Source index
 
-Installed limited pair; full-batch source candidate awaits final release receipt. Source snapshot 2026-11-26: native `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`, host `74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
+Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled. Source snapshot 2026-11-27: native `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`, host `74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
 
 - **S1** — Current authoritative issue register; live status outranks map snapshot. [IntegrationChecklist.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md>)
 - **S2** — State ownership and architecture. [Architecture.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md>)
@@ -37,3 +37,5 @@ Installed limited pair; full-batch source candidate awaits final release receipt
 - **S33** — Measured laser-only geometry exclusion and bounded optional work. [bridge_lit_geometry.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lit_geometry.py>)
 - **S34** — Actual write-lock and before-write boundary. [point_session.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py>)
 - **S35** — Candidate one-owner recovery contract and limits. [Feedback recovery contract.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md>)
+- **S36** — Signal handler and main shutdown ownership; uncorrected candidate snapshot. [laser_bridge.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py>)
+- **S37** — Returned O17 saved evidence and unresolved release blockers. [ReturnedO17Failure20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md>)

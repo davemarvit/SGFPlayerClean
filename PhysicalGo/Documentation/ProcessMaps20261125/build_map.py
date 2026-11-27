@@ -43,6 +43,8 @@ sources = {
  'S33': (HOST/'bridge_lit_geometry.py', 'Measured laser-only geometry exclusion and bounded optional work'),
  'S34': (HOST/'point_session.py', 'Actual write-lock and before-write boundary'),
  'S35': (HOST/'Feedback recovery contract.md', 'Candidate one-owner recovery contract and limits'),
+ 'S36': (HOST/'laser_bridge.py', 'Signal handler and main shutdown ownership; uncorrected candidate snapshot'),
+ 'S37': (DOCS/'ReturnedO17Failure20261127.md', 'Returned O17 saved evidence and unresolved release blockers'),
 }
 
 diagrams=[]
@@ -79,7 +81,7 @@ diagram('calibration','2 · Two calibrations, then permission to play','A grid f
  n('moved',50,730,'If board/camera/pointer moves','Requalify affected relationships\nA matching file hash is insufficient','fault'),
 ],[e('select','grid'),e('grid','ref'),e('grid','measure'),e('measure','fit'),e('fit','check'),e('check','bind'),e('bind','ready'),e('verify','ready'),e('ready','launch'),e('ref','bind','identity + geometry',[(375,428),(375,778)]),e('moved','grid','fresh qualification',[(25,778),(25,253)])],['S3','S12','S19','S30','S32','S1'])
 
-diagram('data','3 · Camera, processing and file boundaries','Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.',1110,[
+diagram('data','3 · Camera, processing and file boundaries','Native safety and pixels use separate lanes. Installed host request read and status write share one loop; the labelled split is a proposal.',1220,[
  n('capture',50,30,'Camera serial queue','AVFoundation presentation time\nCapture + arrival + epoch/frame ID'),
  n('main',50,215,'Main actor: session snapshot','Camera/grid/reference/expected board\nRevision rejects stale completions'),
  n('vision',400,215,'Serial vision worker','Physical wood / grid / hand support\nThen stone/shape/assignment evidence'),
@@ -92,8 +94,11 @@ diagram('data','3 · Camera, processing and file boundaries','Parallel lanes pre
  n('io',400,630,'Request / status IO queues','One read + one write in flight\nOne replaceable pending request','store'),
  n('reader',50,840,'Host optical worker','Read matching PNG + manifest\nCheck four ages ≤600 ms','gate'),
  n('supervisor',750,630,'Host safety supervision','Hand / camera / lease / thermal\nCan revoke busy optical worker'),
- n('status',400,840,'Host coordinator + worker','Generation + evidence revalidation\nWire proof keeps original source ages'),
-],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','status'),e('io','status','lease / receipt'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','io','fresh ack',[(725,888),(725,678)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34'])
+ n('status',400,840,'Host shared I/O loop (installed)','Request read → synchronous status write\nSlow publish delays next request read'),
+ n('pubproposal',50,1050,'Proposed: separate publisher','One bounded status writer\nIndependent request reader'),
+ n('retryproposal',400,1050,'Proposed: newer-frame retry','Discard expired raw frame; newer only\nOriginal 600 ms checks stay in force'),
+ n('independent',750,1050,'Keep independent safety','Fresh safety ≠ fresh optical pixels\nNo retimestamping or lease extension','gate'),
+],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','status'),e('io','status','lease / receipt'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','io','fresh ack',[(725,888),(725,678)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34','S37'])
 
 diagram('gameplay','4 · AI game and physical placement','The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.',1170,[
  n('resume',50,30,'Start / explicit Resume','Restore accepted save + clocks\nVerify physical board matches'),
@@ -128,7 +133,7 @@ diagram('laser','5 · Aim, publish and hold one target','Measured optical anchor
  n('budget',50,1190,'One work ledger','150s active / 25 local plans\nStable adequate waiting excluded','gate'),
 ],[e('admit','arm'),e('arm','prepare'),e('prepare','initial'),e('initial','coarse','outside band',[(200,443)]),e('initial','accept','accepted beam',[(900,443)]),e('coarse','observe'),e('observe','fine','outside band'),e('fine','observe','remeasure',[(550,940),(200,940)]),e('observe','accept','measured pass',[(375,838),(375,720),(735,720),(735,633)]),e('accept','hold'),e('hold','monitor'),e('monitor','placement'),e('monitor','renew','renewal due',[(725,1048),(725,1238)]),e('renew','prepare','DARK when needed',[(720,1238),(720,175),(550,175)]),e('observe','anchor','published sample')],['S15','S16','S20','S28','S29','S30','S33','S34','S35'])
 
-diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Typed eligibility allows a bounded attempt, not continued authority. Nested observations share one operation/controller scope and deadline.',1530,[
+diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Recovery retains one scope/deadline. Returned O17 exposed a separate signal shutdown failure; labelled cancellation repair is uninstalled.',1730,[
  n('input',400,25,'Held crossing / typed failure','Withdraw adequate immediately\nEnter existing shared work ledger'),
  n('cross',50,220,'Measured error >0.20 cell','Newer full-board confirmation\nNo wider adequate band','gate'),
  n('expiry',400,220,'Finite optical-result expiry','Discard old result; check live safety\nReacquire pose + newer full-board data'),
@@ -141,10 +146,13 @@ diagram('recovery','6 · One recovery owner; full OFF remains the fallback','Typ
  n('lease',50,620,'Shared finite recovery episode','≤30s provisional wall cap\nNested retries never restart it','gate'),
  n('failure',50,1020,'Any unqualified failure','Unknown hand/spot, lost lease,\ntransport, identity or exhausted work','fault'),
  n('cancel',400,1020,'Revoke → quiesce → full OFF','Coordinator owns stop + receipt\nNo transport writes inside validators'),
- n('off',750,1020,'Full OFF acknowledgement','Beam off + motor power released\nNot merely DARK with motors held','gate'),
+ n('off',750,1020,'Require full OFF receipt','Beam off + motor power released\nNot merely DARK with motors held','gate'),
  n('dark',750,1220,'Post-dark physical evidence','Same stream + watermark + flush\nNo stone acceptance from a receipt'),
  n('resume',400,1400,'Native recovery / explicit Resume','Preserve pending move and clocks\nHardware recovery cannot resume game'),
-],[e('input','cross',route=[(200,155)]),e('input','expiry'),e('input','geometry',route=[(900,155)]),e('cross','confirm'),e('confirm','adequate','independent recheck',[(375,468),(375,780),(550,780)]),e('expiry','fresh'),e('fresh','adequate'),e('geometry','fit'),e('fit','hint'),e('hint','adequate','new optical proof',[(900,780),(550,780)]),e('failure','cancel'),e('cancel','off'),e('off','dark'),e('dark','resume','fresh evidence',[(900,1448)])],['S11','S13','S15','S16','S25','S26','S28','S29','S34','S35'])
+ n('nooff',50,1220,'Missing receipt: state unknown','Report shutdown failure honestly\nPhysical power report is separate','fault'),
+ n('signalstall',50,1575,'Observed: SIGINT shutdown stall','Handler calls Event.set under signal\nNo final controller OFF receipt','fault'),
+ n('signalproposal',750,1575,'Proposed: flag-only signal','Main loop owns stop and cleanup\nStartup cancellation checked too'),
+],[e('input','cross',route=[(200,155)]),e('input','expiry'),e('input','geometry',route=[(900,155)]),e('cross','confirm'),e('confirm','adequate','independent recheck',[(375,468),(375,780),(550,780)]),e('expiry','fresh'),e('fresh','adequate'),e('geometry','fit'),e('fit','hint'),e('hint','adequate','new optical proof',[(900,780),(550,780)]),e('failure','cancel'),e('cancel','off'),e('cancel','nooff','no receipt',[(350,1068),(350,1160),(200,1160)]),e('off','dark'),e('dark','resume','fresh evidence',[(900,1448)])],['S11','S13','S15','S16','S25','S26','S28','S29','S34','S35','S36','S37'])
 
 diagram('modes','7 · Local recording, online play and review','The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.',910,[
  n('observation',400,25,'Admitted board observations','Same camera / wood / hand pipeline\nMode owns evidence + move acceptance'),

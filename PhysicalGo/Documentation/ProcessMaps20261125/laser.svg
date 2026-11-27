@@ -96,5 +96,5 @@
 <text class="node-body" x="64" y="1244">150s active / 25 local plans</text>
 <text class="node-body" x="64" y="1265">Stable adequate waiting excluded</text>
 </g>
-<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">FULL-BATCH SOURCE CANDIDATE · native d014c63 / host 74d0b83 · Installed limited pair: fb4697c / 8ce91a1</text>
+<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">INSTALLED fb4697c / 8ce91a1 failed returned O17 · Candidate d014c63 / 74d0b83 + labelled proposals NOT installed</text>
 </svg>

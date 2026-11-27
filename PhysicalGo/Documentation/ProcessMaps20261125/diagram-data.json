@@ -448,8 +448,8 @@
   {
     "key": "data",
     "title": "3 \u00b7 Camera, processing and file boundaries",
-    "desc": "Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.",
-    "height": 1110,
+    "desc": "Native safety and pixels use separate lanes. Installed host request read and status write share one loop; the labelled split is a proposal.",
+    "height": 1220,
     "nodes": [
       {
         "id": "capture",
@@ -577,9 +577,39 @@
         "y": 840,
         "w": 300,
         "h": 96,
-        "title": "Host coordinator + worker",
-        "body": "Generation + evidence revalidation\nWire proof keeps original source ages",
+        "title": "Host shared I/O loop (installed)",
+        "body": "Request read \u2192 synchronous status write\nSlow publish delays next request read",
         "kind": "process"
+      },
+      {
+        "id": "pubproposal",
+        "x": 50,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Proposed: separate publisher",
+        "body": "One bounded status writer\nIndependent request reader",
+        "kind": "process"
+      },
+      {
+        "id": "retryproposal",
+        "x": 400,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Proposed: newer-frame retry",
+        "body": "Discard expired raw frame; newer only\nOriginal 600 ms checks stay in force",
+        "kind": "process"
+      },
+      {
+        "id": "independent",
+        "x": 750,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Keep independent safety",
+        "body": "Fresh safety \u2260 fresh optical pixels\nNo retimestamping or lease extension",
+        "kind": "gate"
       }
     ],
     "edges": [
@@ -723,7 +753,8 @@
       "S9",
       "S13",
       "S14",
-      "S34"
+      "S34",
+      "S37"
     ]
   },
   {
@@ -1348,8 +1379,8 @@
   {
     "key": "recovery",
     "title": "6 \u00b7 One recovery owner; full OFF remains the fallback",
-    "desc": "Typed eligibility allows a bounded attempt, not continued authority. Nested observations share one operation/controller scope and deadline.",
-    "height": 1530,
+    "desc": "Recovery retains one scope/deadline. Returned O17 exposed a separate signal shutdown failure; labelled cancellation repair is uninstalled.",
+    "height": 1730,
     "nodes": [
       {
         "id": "input",
@@ -1477,7 +1508,7 @@
         "y": 1020,
         "w": 300,
         "h": 96,
-        "title": "Full OFF acknowledgement",
+        "title": "Require full OFF receipt",
         "body": "Beam off + motor power released\nNot merely DARK with motors held",
         "kind": "gate"
       },
@@ -1499,6 +1530,36 @@
         "h": 96,
         "title": "Native recovery / explicit Resume",
         "body": "Preserve pending move and clocks\nHardware recovery cannot resume game",
+        "kind": "process"
+      },
+      {
+        "id": "nooff",
+        "x": 50,
+        "y": 1220,
+        "w": 300,
+        "h": 96,
+        "title": "Missing receipt: state unknown",
+        "body": "Report shutdown failure honestly\nPhysical power report is separate",
+        "kind": "fault"
+      },
+      {
+        "id": "signalstall",
+        "x": 50,
+        "y": 1575,
+        "w": 300,
+        "h": 96,
+        "title": "Observed: SIGINT shutdown stall",
+        "body": "Handler calls Event.set under signal\nNo final controller OFF receipt",
+        "kind": "fault"
+      },
+      {
+        "id": "signalproposal",
+        "x": 750,
+        "y": 1575,
+        "w": 300,
+        "h": 96,
+        "title": "Proposed: flag-only signal",
+        "body": "Main loop owns stop and cleanup\nStartup cancellation checked too",
         "kind": "process"
       }
     ],
@@ -1620,6 +1681,26 @@
         "kind": "normal"
       },
       {
+        "a": "cancel",
+        "b": "nooff",
+        "label": "no receipt",
+        "route": [
+          [
+            350,
+            1068
+          ],
+          [
+            350,
+            1160
+          ],
+          [
+            200,
+            1160
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
         "a": "off",
         "b": "dark",
         "label": "",
@@ -1649,7 +1730,9 @@
       "S28",
       "S29",
       "S34",
-      "S35"
+      "S35",
+      "S36",
+      "S37"
     ]
   },
   {

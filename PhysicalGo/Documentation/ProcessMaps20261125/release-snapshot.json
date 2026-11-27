@@ -1,13 +1,13 @@
 {
-  "date": "2026-11-26",
-  "state": "Installed limited pair; full-batch source candidate awaits final release receipt",
+  "date": "2026-11-27",
+  "state": "Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled",
   "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
   "native_commit": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
   "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware",
   "host_commit": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3",
   "installed_native": "0.268/build269 fb4697c4ef314d83a253bd0aa219de1bb6b3d61f",
   "installed_host": "8ce91a17bb8e968dbb40bf0058ff5bd768b95f1c-app0268",
-  "physical_state": "Last actual full OFF1795683450.8051615 remains unchanged. Morning camera preflight passed all three checks; no fresh READY arrived before16:48:35 UTC, so the launcher was cancelled before opening the controller. No physical test of the new hold recovery occurred. Game remains paused, ten logical moves/nine physical stones, O17 pending.",
-  "release_note": "Installed limited HOST-ONLY update includes hold recovery, latest cached safety and A1 transport repair. Full-batch candidate additionally includes PG23 qualified-EMPTY receipts, qualified native16s admission and paired A2 optical cue-age proof. Those native/paired changes are not installed at this receipt. Final source approval, installation and conditional camera readiness remain root-owned.",
-  "svg_scope": "FULL-BATCH SOURCE CANDIDATE \u00b7 native d014c63 / host 74d0b83 \u00b7 Installed limited pair: fb4697c / 8ce91a1"
+  "physical_state": "Returned O17 run1795765307207891000 reached14 accepted observations, then raw frame2071 expired at728ms versus600ms. Thermal unavailable and later lease expiry followed. SIGINT shutdown stalled; user confirmed physical power OFF before root killed the child. No verified final controller OFF receipt. Game paused, ten logical moves/nine physical stones, O17 unplaced.",
+  "release_note": "Installed remains native0.268/fb4697c + host8ce91a1. Candidate source includes PG23/native admission/A2 but is not release-ready: final lit-renewal replay failed. New independent status-publisher/newer-frame retry and flag-only signal/startup-cancellation repairs are proposals under owner/reviewer work, not accepted or installed. Final source pins pending.",
+  "svg_scope": "INSTALLED fb4697c / 8ce91a1 failed returned O17 \u00b7 Candidate d014c63 / 74d0b83 + labelled proposals NOT installed"
 }

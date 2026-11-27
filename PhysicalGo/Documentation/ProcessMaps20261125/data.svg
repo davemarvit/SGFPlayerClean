@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1110" width="1120" height="1110" role="img" aria-labelledby="data-title data-desc">
-<title id="data-title">3 · Camera, processing and file boundaries</title><desc id="data-desc">Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1220" width="1120" height="1220" role="img" aria-labelledby="data-title data-desc">
+<title id="data-title">3 · Camera, processing and file boundaries</title><desc id="data-desc">Native safety and pixels use separate lanes. Installed host request read and status write share one loop; the labelled split is a proposal.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
@@ -83,9 +83,24 @@
 <text class="node-body" x="764" y="705">Can revoke busy optical worker</text>
 </g>
 <g data-node="status"><rect x="400" y="840" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="867">Host coordinator + worker</text>
-<text class="node-body" x="414" y="894">Generation + evidence revalidation</text>
-<text class="node-body" x="414" y="915">Wire proof keeps original source ages</text>
+<text class="node-title" x="414" y="867">Host shared I/O loop (installed)</text>
+<text class="node-body" x="414" y="894">Request read → synchronous status write</text>
+<text class="node-body" x="414" y="915">Slow publish delays next request read</text>
 </g>
-<text x="30" y="1100" style="font-size:12px;fill:#5e6c7d">FULL-BATCH SOURCE CANDIDATE · native d014c63 / host 74d0b83 · Installed limited pair: fb4697c / 8ce91a1</text>
+<g data-node="pubproposal"><rect x="50" y="1050" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="1077">Proposed: separate publisher</text>
+<text class="node-body" x="64" y="1104">One bounded status writer</text>
+<text class="node-body" x="64" y="1125">Independent request reader</text>
+</g>
+<g data-node="retryproposal"><rect x="400" y="1050" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1077">Proposed: newer-frame retry</text>
+<text class="node-body" x="414" y="1104">Discard expired raw frame; newer only</text>
+<text class="node-body" x="414" y="1125">Original 600 ms checks stay in force</text>
+</g>
+<g data-node="independent"><rect x="750" y="1050" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="1077">Keep independent safety</text>
+<text class="node-body" x="764" y="1104">Fresh safety ≠ fresh optical pixels</text>
+<text class="node-body" x="764" y="1125">No retimestamping or lease extension</text>
+</g>
+<text x="30" y="1210" style="font-size:12px;fill:#5e6c7d">INSTALLED fb4697c / 8ce91a1 failed returned O17 · Candidate d014c63 / 74d0b83 + labelled proposals NOT installed</text>
 </svg>

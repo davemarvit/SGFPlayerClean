@@ -1,6 +1,6 @@
-# Physical Go process maps — November26 audit
+# Physical Go process maps — November26 audit, November27 failure update
 
-Open [index.html](index.html) for the self-contained seven-map review. [Audit20261126.md](Audit20261126.md) records source boundaries, race findings and measurement-led optimizations. [release-snapshot.json](release-snapshot.json) separates diagrammed candidate sources from the installed baseline. **The limited host update is installed; the full-batch diagrams include clearly identified forthcoming native/paired changes. This documentation is not release approval.**
+Open [index.html](index.html) for the self-contained seven-map review. [Audit20261126.md](Audit20261126.md) records source boundaries, race findings and measurement-led optimizations. [release-snapshot.json](release-snapshot.json) separates diagrammed candidate sources from the installed baseline. **The installed limited pair failed the returned O17 test. Full-batch source and the newly labelled I/O/shutdown proposals remain uninstalled and unaccepted. This documentation is not release approval.**
 
 | Map | Scope |
 |---|---|
@@ -28,7 +28,13 @@ The currently installed limited pair is native **0.268/build269 fb4697c** plus h
 
 The full-batch diagram source snapshot is native **d014c63** / host **74d0b83**. The source index and per-file hashes identify the examined files. Packaging version0.269 in candidate source is not an installed-version claim.
 
-The morning launcher passed all three camera checks, then waited for fresh READY. No reply arrived by **16:48:35 UTC**; root cancelled it **before opening the controller**. No physical test of the newly installed recovery took place. The last actual full OFF remains **1795683450.8051615**. The earlier nativefb4697c/host32d7911 replay produced three same-pose O17 errors **0.1959703,0.1971448,0.20074545 cell** and faulted at the crossing; it cannot validate the later recovery. Game paused at ten logical moves/nine physical stones, O17 empty/pending.
+An earlier morning launch was cancelled before controller open after no READY. That historical cancellation has been superseded by the later attended **returned O17 run1795765307207891000**, authorized by fresh READY. The installed limited pair retained **14 accepted optical observations**, one lit renewal and about **7.556s first-adequate-to-fault monitor interval**. This is not proof of uninterrupted optical validity or exact visible-light duration. No correction plans were consumed; active work was4.429s, so the150s work budget did not cause the stop.
+
+Raw frame2071 was published fresh by native, but later rejected at **728.298ms capture age versus600ms** (publication age573.043ms). Native thermal-unavailable OFF request and delayed request publication appeared nearby, followed by a lease fault. Fresh independent safety frame2077 does not make2071 current. Saved evidence does not fully attribute the initiating delay; failed pixels were not retained.
+
+**Shutdown did not complete:** SIGINT stalled; user confirmed all physical power OFF before root killed the child. There is **no verified final controller OFF receipt** for this run. Earlier OFF timestamps are historical, not the current receipt. Game remains paused at ten logical moves/nine physical stones, O17 unplaced. See [the frozen evidence review](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md).
+
+Installed source couples request reading to synchronous status publication inside `_inputs`; a slow publish can delay the next request read. The proposed split keeps one independent bounded publisher and preserves generation/identity fences. Proposed raw-frame retry discards expired input and requires strictly newer, independently fresh pixels in the same identity/scope; it cannot extend600ms. The signal proposal makes the handler set only a flag, with stop/cleanup in normal control flow and explicit startup cancellation. Both repairs remain owner/reviewer work. Signal candidate8354e8b was not approved because startup could admit OFF→POINT work after stop; its predicate-aware startup follow-up is pending. The separate final lit-renewal replay failure also blocks full-candidate release. Maps3 and6 label these additions as proposals; final source pins remain pending.
 
 The recovery implementation shares **150 seconds active work /25 local correction plans**, with a provisional **30-second recovery wall cap**. Stable verified adequate waiting pauses only this ledger. Initial predicted waypoints retain their separate existing cap and run once. Optical age, lease, motor/thermal evidence, geometry certificate and illumination origins never pause or restart through retry.
 

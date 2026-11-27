@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "6c84cbc632336eec33209c94515740d03af8397cfe112bcb920130562d393d2b"
+    "sha256": "539da1f180154f5088c568b420c8f58883bd98ed46a85d947b0dfa7b5e54b867"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -173,5 +173,15 @@
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md",
     "description": "Candidate one-owner recovery contract and limits",
     "sha256": "c3e1ccda8dd319f3bf66bae57eb14201b4e64d88ddd3e2e26460beb06e712773"
+  },
+  "S36": {
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py",
+    "description": "Signal handler and main shutdown ownership; uncorrected candidate snapshot",
+    "sha256": "30274f8104555168d280e2c4d73af1be36bc60a90951e6023651355edd02e445"
+  },
+  "S37": {
+    "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md",
+    "description": "Returned O17 saved evidence and unresolved release blockers",
+    "sha256": "778d47d2ffe5b54e78f9c668a67f6604fe6c97849c8818fb0f7fe000e3c460fc"
   }
 }

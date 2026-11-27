@@ -1,12 +1,12 @@
 {
-  "date": "2026-11-26",
-  "map_state": "Installed limited pair; full-batch source candidate awaits final release receipt",
+  "date": "2026-11-27",
+  "map_state": "Installed limited pair failed returned O17 test; full candidate and new repairs remain uninstalled",
   "diagrams": 7,
-  "nodes": 85,
-  "connector_labels": 31,
+  "nodes": 91,
+  "connector_labels": 32,
   "issues": [],
   "font_metrics_checked": true,
-  "source_count": 35,
+  "source_count": 37,
   "source_heads": {
     "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
     "host": "74d0b83ad037ee69fb8e8c2e97ca27610a3cbfb3"
