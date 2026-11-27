@@ -1,5 +1,7 @@
 # Physical Go handoff
 
+**Departure checkpoint — November 27:** root verified final controller full OFF at1795801002.8529265, stopped diagnostic recording/warnings, and quit Physical Go. App/camera, driver and monitor are stopped. Game/anchor/wood profile hashes are unchanged across quit; clocks paused Black29:30/White0:38. Ten physical stones remain, with White at O17 still awaiting camera acceptance. No active READY or hardware work; user may unplug the laptop. [Departure verification](</Users/Dave/Documents/SGF PLayer/work/morning-readiness-20261127/attended/1795800002735537000/departure.json>).
+
 Updated November27,2026 after the0.270 attended run: verified full OFF, WhiteO17 physically placed but camera acceptance pending; late safety expiry remains open.
 
 **Current attended outcome —0.270 stopped with verified full OFF; White O17 is now occupied:** installed native `7188dc4ddd613f158cc2418ce8c7844cdcd66f33` / host `936bf10e3942a0a32a47e57eb1b58cfba5af07d8` ran1795800786263089000. All six alignment checks passed. First internal feedback acceptance3.618s; point request→first published adequate6.715s. All178 post-pose optical freshness checks passed (maximum544.267ms) over119.377s of observations. Error median0.1007cell/final0.09065; maximum0.20254 triggered one held-correction episode. Sixteen lit renewals, two scheduled dark refreshes and an early post-correction dark recheck mean this was **not an uninterrupted minute of light**. User heard the sound and saw solid light after a brief gap, then placed WhiteO17.

@@ -1,5 +1,7 @@
 # Physical Go issue register
 
+**Departure checkpoint — November 27:** root verified final controller full OFF at1795801002.8529265, stopped diagnostic recording/warnings, and quit Physical Go. App/camera, driver and monitor are stopped. Game/anchor/wood profile hashes are unchanged across quit; clocks paused Black29:30/White0:38. Ten physical stones remain, with White at O17 still awaiting camera acceptance. No active READY or hardware work; user may unplug the laptop. [Departure verification](</Users/Dave/Documents/SGF PLayer/work/morning-readiness-20261127/attended/1795800002735537000/departure.json>).
+
 Updated November27,2026 after the0.270 attended run: verified full OFF, WhiteO17 physically placed but camera acceptance pending; late safety expiry remains open.
 This is the **single authoritative checklist**. Handoffs link here; they do not
 maintain competing work lists. Existing item numbers 0–27 are preserved as PG IDs.
