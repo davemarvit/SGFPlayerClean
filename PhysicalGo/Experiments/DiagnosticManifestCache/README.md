@@ -118,5 +118,15 @@ Initial validation checkpoint:
   observation took 1.538 seconds, exceeding the unchanged 1.5-second limit. A
   test-only initial-completion wait also failed on both and was reverted.
 - The unchanged broad test is declared optimized; its optimized candidate run
-  is pending. Debug failures are preserved in [validation.json](validation.json),
+  subsequently passed all 62 checks. Debug failures are preserved in [validation.json](validation.json),
   not hidden by weakening an assertion or changing a production freshness gate.
+
+Final validation: unchanged optimized `diagnostic-test` **passed all 62 checks**
+on frozen production source `90ade4e`. No test-only wait, assertion change or
+production gate relaxation was retained.
+
+Optimized shared runtime: `427b64b0c2fb78f739c8c996818e796bcf282ee24498be320760941a768945b5`.
+The receipt in `validation.json` includes runner/runtime identities, compiler
+configuration and source hashes. Focused 16 writer, 25 Foundation, three retained
+context equality comparisons, 131 asynchronous and eight build-tool checks also
+pass. Installation, paired integration and physical acceptance remain root-owned.

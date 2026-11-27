@@ -78,9 +78,27 @@
     }
   ],
   "testOnlyWaitReverted": true,
-  "optimizedBroadStatus": "pending",
+  "optimizedBroadStatus": "passed",
   "sourceSHA256": {
     "PhysicalGo/Sources/DiagnosticManifest.swift": "902e17709fa39cbd81b0104bbe2b8602e71d4089582ad6e84764ec6364f9bd4c",
     "PhysicalGo/Sources/DiagnosticRecorder.swift": "ed70506874ac35014d678819e9cb00f67b75b0ae7ad0ad6a5a31949375200afa"
-  }
+  },
+  "optimizedBroad": {
+    "sourceCommit": "90ade4ec3751e4ce82e694fbef2c2edcd1c05e7a",
+    "suite": "diagnostic-test",
+    "configuration": "optimized",
+    "returncode": 0,
+    "stdout": "Diagnostic integration session: /Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/DiagnosticTests-8DB62136-0A48-40C4-B0CD-E53FDDA610F3/Diagnostic 2026-11-27 01-51-03 80D1F434\nPASS: 62 diagnostic checks: lossless frames, reference/anchor versions, accepted and rejected outcomes, busy/stale inputs, storage/space/backpressure/write failures, stop/exit draining, session isolation, passive game integration and native controls.\n",
+    "stderr": "",
+    "executable": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/DiagnosticTests-07b4a2db07e149873b28fc8645e47038f2be891f5adec3bb6fb5dddba643edec",
+    "receipt": {
+      "executableSHA256": "95859b67e70a975743f16477369ef340dd1e7a902ae63248d7da498edc3a6caf",
+      "runnerIdentity": "07b4a2db07e149873b28fc8645e47038f2be891f5adec3bb6fb5dddba643edec",
+      "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runners/07b4a2db07e149873b28fc8645e47038f2be891f5adec3bb6fb5dddba643edec/complete.json",
+      "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runtimes/427b64b0c2fb78f739c8c996818e796bcf282ee24498be320760941a768945b5/complete.json",
+      "schemaVersion": 1
+    }
+  },
+  "sourceFrozenCommit": "90ade4ec3751e4ce82e694fbef2c2edcd1c05e7a",
+  "finalSourceHashesMatch": true
 }
