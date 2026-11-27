@@ -1,6 +1,6 @@
 # Source index
 
-Diagnostics-only 0.270 candidate approved; installed remains0.269 until root receipt. Source snapshot 2026-11-27: native `be8befeaf3640df0b9b88efd0d9d380e76fa409d`, host `936bf10e3942a0a32a47e57eb1b58cfba5af07d8`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
+0.270 diagnostics + recorder-cache candidate; installed remains0.269 pending combined checks and receipt. Source snapshot 2026-11-27: native `7188dc4ddd613f158cc2418ce8c7844cdcd66f33`, host `936bf10e3942a0a32a47e57eb1b58cfba5af07d8`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
 
 - **S1** — Current authoritative issue register; live status outranks map snapshot. [IntegrationChecklist.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md>)
 - **S2** — State ownership and architecture. [Architecture.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md>)
@@ -47,3 +47,6 @@ Diagnostics-only 0.270 candidate approved; installed remains0.269 until root rec
 - **S43** — Camera-stage attribution, original provenance and interpretation limits. [README.md](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/CameraStageTiming/README.md>)
 - **S44** — Post-worker serial tail, raw OFF observation and separate gate verdict. [README.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/SerialShutdownEvidence/README.md>)
 - **S45** — Diagnostic receipt fields do not change full-OFF verification. [bridge_shutdown_receipt.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_shutdown_receipt.py>)
+- **S46** — Image admission, gap journal and periodic/final atomic manifest publication. [DiagnosticRecorder.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticRecorder.swift>)
+- **S47** — Compact immutable inline recording context cache; unchanged schema. [DiagnosticManifest.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticManifest.swift>)
+- **S48** — Retained manifest amplification, compatible cache repair and remaining queue limits. [README.md](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/DiagnosticManifestCache/README.md>)

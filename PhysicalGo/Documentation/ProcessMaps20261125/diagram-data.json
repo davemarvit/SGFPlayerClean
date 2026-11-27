@@ -448,7 +448,7 @@
   {
     "key": "data",
     "title": "3 \u00b7 Camera, processing and file boundaries",
-    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent. Optional stage traces measure cost; they do not renew evidence or change publication fences.",
+    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent. Optional stage traces measure cost. Recording caches immutable manifest context; gaps stay journaled and do not trigger full rewrites.",
     "height": 1220,
     "nodes": [
       {
@@ -801,7 +801,10 @@
       "S37",
       "S38",
       "S42",
-      "S43"
+      "S43",
+      "S46",
+      "S47",
+      "S48"
     ]
   },
   {

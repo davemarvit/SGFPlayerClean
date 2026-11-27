@@ -96,5 +96,5 @@
 <text class="node-body" x="64" y="1244">150s active / 25 local plans</text>
 <text class="node-body" x="64" y="1265">Stable adequate waiting excluded</text>
 </g>
-<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">DIAGNOSTICS CANDIDATE 0.270 · be8befe / 936bf10 · Installed0.269; physical acceptance OPEN</text>
+<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">CANDIDATE 0.270 · native7188dc4 / host936bf10 · Installed0.269; combined review/install pending</text>
 </svg>

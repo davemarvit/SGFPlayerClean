@@ -1,18 +1,18 @@
 {
   "date": "2026-11-27",
-  "map_state": "Diagnostics-only 0.270 candidate approved; installed remains0.269 until root receipt",
+  "map_state": "0.270 diagnostics + recorder-cache candidate; installed remains0.269 pending combined checks and receipt",
   "diagrams": 7,
   "nodes": 91,
   "connector_labels": 32,
   "issues": [],
   "font_metrics_checked": true,
-  "source_count": 45,
+  "source_count": 48,
   "source_heads": {
-    "native": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+    "native": "7188dc4ddd613f158cc2418ce8c7844cdcd66f33",
     "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "declared_source_heads": {
-    "native": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+    "native": "7188dc4ddd613f158cc2418ce8c7844cdcd66f33",
     "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "source_heads_match": {

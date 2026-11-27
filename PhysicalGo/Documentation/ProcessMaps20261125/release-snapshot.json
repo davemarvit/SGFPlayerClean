@@ -1,16 +1,16 @@
 {
   "date": "2026-11-27",
-  "state": "Diagnostics-only 0.270 candidate approved; installed remains0.269 until root receipt",
+  "state": "0.270 diagnostics + recorder-cache candidate; installed remains0.269 pending combined checks and receipt",
   "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
-  "native_commit": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+  "native_commit": "7188dc4ddd613f158cc2418ce8c7844cdcd66f33",
   "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware",
   "host_commit": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8",
   "installed_native": "0.269/build270 d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
   "installed_host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1-app0269",
   "physical_state": "Latest physical attempt remains0.269 run1795767435349051000: failed before adequate, prompt exit but no verified controller OFF. User disconnected controller USB; that does not establish full power OFF. Bedtime/lights off: no hardware tonight. Morning single chat READY, after lights/controller restored, hands clear, watching and unchanged board, authorizes root checks and O17; no repeat READY question.",
-  "release_note": "Source candidate adds opt-in native stage wall/thread-CPU timing and post-worker serial/raw-OFF diagnostics only. No control-flow, safety, deadline or physical-acceptance fix. Approval164af9f; final installation receipt pending. The source snapshot includes candidate diagnostic additions; all shown control-flow boundaries are unchanged from installed0.269.",
-  "svg_scope": "DIAGNOSTICS CANDIDATE 0.270 \u00b7 be8befe / 936bf10 \u00b7 Installed0.269; physical acceptance OPEN",
+  "release_note": "Candidate adds stage/serial diagnostics plus compact immutable recording-context cache and removes gap-triggered manifest rewrites. Gap JSONL,25-frame/final/abort atomic counts and replay fields remain. No gameplay, safety or deadline fix, no format migration, no physical acceptance. Combined checks/review and installation receipt pending.",
+  "svg_scope": "CANDIDATE 0.270 \u00b7 native7188dc4 / host936bf10 \u00b7 Installed0.269; combined review/install pending",
   "installation_receipt": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
-  "source_approval": "164af9f",
+  "source_approval": "164af9f covers diagnostics pair; combined recorder-cache review pending",
   "physical_validation": false
 }

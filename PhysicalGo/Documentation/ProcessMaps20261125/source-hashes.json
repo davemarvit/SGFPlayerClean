@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "1061b7b5d305b8c8c5706dcda30a2ccb40f459438d979912ef4efcd43064b277"
+    "sha256": "33e42b86a3ba758457ba9fe3ed2d7ed4642b952856c8d40b975ffee9e32d0a7b"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -223,5 +223,20 @@
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_shutdown_receipt.py",
     "description": "Diagnostic receipt fields do not change full-OFF verification",
     "sha256": "85e3390120fb5d91556a18b4156a525ea2021880bea3cb31d2df5732567f9b59"
+  },
+  "S46": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticRecorder.swift",
+    "description": "Image admission, gap journal and periodic/final atomic manifest publication",
+    "sha256": "ed70506874ac35014d678819e9cb00f67b75b0ae7ad0ad6a5a31949375200afa"
+  },
+  "S47": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticManifest.swift",
+    "description": "Compact immutable inline recording context cache; unchanged schema",
+    "sha256": "902e17709fa39cbd81b0104bbe2b8602e71d4089582ad6e84764ec6364f9bd4c"
+  },
+  "S48": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/DiagnosticManifestCache/README.md",
+    "description": "Retained manifest amplification, compatible cache repair and remaining queue limits",
+    "sha256": "39e7f91dbb167818375f02c19d55870f11a5bc89cfab496a0513678c0b2df6b9"
   }
 }

@@ -14,13 +14,17 @@ Open [index.html](index.html) for the self-contained seven-map review. [Audit202
 
 Open each SVG at full size or horizontally scroll the HTML. All diagrams are embedded; no network is required. The directory name is retained for link continuity. Git preserves the earlier November25/26 snapshots. No camera images, desktop screenshots, browser logs, temporary DOM output or PNG previews are included.
 
-## Diagnostics-only0.270 candidate
+## 0.270 diagnostics and recorder-cache candidate
 
-Source **nativebe8befe / host936bf10**, independently approved164af9f, adds measurement and retained failure evidence only. Installation is pending the root receipt; the current installed0.269 control flow below is unchanged. No deadline, safety, admission, retry or physical-acceptance fix is claimed.
+Source **native7188dc4 / host936bf10** adds a concrete recorder-cache change to the earlier diagnostics pair be8befe/936bf10 approved164af9f. Combined checks/review and installation receipt remain pending. Gameplay, deadline, safety, admission and retry behavior below is unchanged; no physical-acceptance claim follows.
 
 Native stage tracing is opt-in (`PHYSICAL_GO_CAMERA_STAGE_TRACE=1` plus the existing trace directory). It separates capture preparation/delivery, admitted latest-slot residence, vision/safety stages and completion, with original capture identity when present. Missing photo/redraw provenance remains absent. The existing bounded writer may drop records; missing events do not prove work absent. Thread CPU excludes other worker threads/GPU, so wall minus CPU is not a scheduler-delay measurement; overlapping queues cannot be summed.
 
 Host diagnostics preserve up to eight observed serial failures across request lifetimes and the bounded controller tail after raw close, including receiver/close uncertainty. Shutdown records raw OFF-barrier observation separately from the gate's acceptance and rejection reason. These optional fields do not participate in `full_off_verified`: a raw acknowledgement, process exit or USB disconnect is not a complete OFF receipt. Failed storage, abrupt kill and a live receiver can still leave incomplete evidence. No extra diagnostic serial command is added.
+
+The recorder fix addresses demonstrated write amplification: one retained recording's56,372,567-byte manifest was source-implied to publish57 times (open + seven25-frame checkpoints +48 gaps + close), about3.21GB logical JSON payload, not measured physical-disk writes. Candidate7188dc4 caches immutable compact inline context once (28,087,701 bytes in that recording), releases the boxed dictionary and serializes only changing counts/status before joining each output. Gaps still append exact ranges/counts to JSONL but no longer rewrite the manifest; existing25-frame/final/abort atomic publications retain exact lifecycle counts. Source-implied publications become nine for that same recording. All original fields remain inline; no schema migration or replay change.
+
+This is not a complete writer-bound solution: image admission is bounded, but metadata events still queue without an admission bound. Each remaining atomic manifest write needs an output buffer/file; initial checkpoint conversion and capture-start serialization still occur. Live gap counts remain in UI/journal while periodic manifest counts can lag until the next existing checkpoint. The recorded amplification overlaps the stall but does not prove its sole cause or a live timing improvement.
 
 Bedtime plan: lights off and no hardware tonight. In the morning, one chat **READY**, after lights/controller are restored, hands clear, user watching and board unchanged, authorizes root's checks and O17 attempt without a repeat READY question. Current controller USB disconnection is recorded separately from full power OFF. Root owns all runtime actions.
 

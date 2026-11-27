@@ -53,6 +53,9 @@ sources = {
  'S43': (NATIVE.parent/'Experiments/CameraStageTiming/README.md', 'Camera-stage attribution, original provenance and interpretation limits'),
  'S44': (HOST/'Experiments/SerialShutdownEvidence/README.md', 'Post-worker serial tail, raw OFF observation and separate gate verdict'),
  'S45': (HOST/'bridge_shutdown_receipt.py', 'Diagnostic receipt fields do not change full-OFF verification'),
+ 'S46': (NATIVE/'DiagnosticRecorder.swift', 'Image admission, gap journal and periodic/final atomic manifest publication'),
+ 'S47': (NATIVE/'DiagnosticManifest.swift', 'Compact immutable inline recording context cache; unchanged schema'),
+ 'S48': (NATIVE.parent/'Experiments/DiagnosticManifestCache/README.md', 'Retained manifest amplification, compatible cache repair and remaining queue limits'),
 }
 
 diagrams=[]
@@ -89,7 +92,7 @@ diagram('calibration','2 · Two calibrations, then permission to play','A grid f
  n('moved',50,730,'If board/camera/pointer moves','Requalify affected relationships\nA matching file hash is insufficient','fault'),
 ],[e('select','grid'),e('grid','ref'),e('grid','measure'),e('measure','fit'),e('fit','check'),e('check','bind'),e('bind','ready'),e('verify','ready'),e('ready','launch'),e('ref','bind','identity + geometry',[(375,428),(375,778)]),e('moved','grid','fresh qualification',[(25,778),(25,253)])],['S3','S12','S19','S30','S32','S1'])
 
-diagram('data','3 · Camera, processing and file boundaries','Native safety and pixels use separate lanes. Host request and status loops are independent. Optional stage traces measure cost; they do not renew evidence or change publication fences.',1220,[
+diagram('data','3 · Camera, processing and file boundaries','Native safety and pixels use separate lanes. Host request and status loops are independent. Optional stage traces measure cost. Recording caches immutable manifest context; gaps stay journaled and do not trigger full rewrites.',1220,[
  n('capture',50,30,'Camera serial queue','AVFoundation presentation time\nCapture + arrival + epoch/frame ID'),
  n('main',50,215,'Main actor: session snapshot','Camera/grid/reference/expected board\nRevision rejects stale completions'),
  n('vision',400,215,'Serial vision worker','Physical wood / grid / hand support\nThen stone/shape/assignment evidence'),
@@ -106,7 +109,7 @@ diagram('data','3 · Camera, processing and file boundaries','Native safety and 
  n('publisher',50,1050,'Host status writer: one owner','No queue; skip concurrent publish\nOld snapshot fenced at replacement'),
  n('reread',400,1050,'Raw expiry: one newer reread','Same scope; newer frame ID + capture\nOriginal 600 ms checks stay in force'),
  n('stopfence',750,1050,'Stop fences on background I/O','Before snapshot / lease poll / rename\nOnly close may publish final OFF','gate'),
-],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','publisher'),e('io','status','request'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','publisher',route=[(375,888),(375,1010),(200,1010)]),e('publisher','io','status',[(30,1098),(30,790),(550,790)]),e('reader','reread',route=[(375,888),(375,1010),(550,1010)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34','S37','S38','S42','S43'])
+],[e('capture','main'),e('capture','latest'),e('latest','vision'),e('main','vision'),e('vision','safety'),e('vision','observe'),e('main','png'),e('png','manifest'),e('safety','safejson'),e('safejson','supervisor'),e('observe','io'),e('manifest','reader'),e('reader','publisher'),e('io','status','request'),e('supervisor','status','revoke / monitor',[(900,790),(650,790)]),e('status','publisher',route=[(375,888),(375,1010),(200,1010)]),e('publisher','io','status',[(30,1098),(30,790),(550,790)]),e('reader','reread',route=[(375,888),(375,1010),(550,1010)])],['S4','S5','S6','S7','S8','S9','S13','S14','S34','S37','S38','S42','S43','S46','S47','S48'])
 
 diagram('gameplay','4 · AI game and physical placement','The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.',1170,[
  n('resume',50,30,'Start / explicit Resume','Restore accepted save + clocks\nVerify physical board matches'),
