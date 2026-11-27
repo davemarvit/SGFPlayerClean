@@ -112,5 +112,5 @@
 <text class="node-body" x="764" y="1629">Stop predicate checked before launch</text>
 <text class="node-body" x="764" y="1650">Stopped readers cannot admit or poll</text>
 </g>
-<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">CANDIDATE 0.270 · native7188dc4 / host936bf10 · Installed0.269; combined review/install pending</text>
+<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.270 · native7188dc4 / host936bf10 · Offline verified; morning READY and physical validation pending</text>
 </svg>

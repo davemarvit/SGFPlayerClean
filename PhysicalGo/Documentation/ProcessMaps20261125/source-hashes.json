@@ -190,9 +190,9 @@
     "sha256": "3f60f03d0a2da3e58e678ea0ecfda2989b7017397af24b3b4080cb63bd459135"
   },
   "S39": {
-    "path": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
+    "path": "/Users/Dave/Documents/SGF PLayer/work/morning-readiness-20261127/install-receipt.json",
     "description": "Root installation receipt; physical validation remains separate",
-    "sha256": "b99861a51f4dfeb69bc83421d60d2b40abdf1af578cd6fc8bb3f06c0ef58d510"
+    "sha256": "ba3ae46d32ee4306202b5e4f743d5c1438704b46146d97f6dc99645b4ac3d3a3"
   },
   "S40": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift",

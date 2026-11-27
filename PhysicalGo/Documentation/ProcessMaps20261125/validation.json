@@ -1,6 +1,6 @@
 {
   "date": "2026-11-27",
-  "map_state": "0.270 diagnostics + recorder-cache candidate; installed remains0.269 pending combined checks and receipt",
+  "map_state": "Installed 0.270 diagnostics + recorder cache; awaiting morning READY, physical validation open",
   "diagrams": 7,
   "nodes": 91,
   "connector_labels": 32,
