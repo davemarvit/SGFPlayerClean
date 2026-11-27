@@ -1,0 +1,82 @@
+{
+  "base": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+  "nativeSuites": [
+    {
+      "suite": "camera-stage-timing-test",
+      "args": [],
+      "executable": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/CameraStageTimingPipelineTests-2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db",
+      "returncode": 0,
+      "stdout": "PASS 25 pipeline stage timing checks; enabled=true\n",
+      "stderr": "",
+      "receipt": {
+        "executableSHA256": "76ba35717e1d9b43ea79724faf67b0a279c3069e4ca7c51954428f309e2e2d54",
+        "runnerIdentity": "2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db",
+        "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runners/2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db/complete.json",
+        "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runtimes/b90e015becb0715a4e1ea335e5e557f59d7e7fa157360ceb353bea3fe8c9f88e/complete.json",
+        "schemaVersion": 1
+      }
+    },
+    {
+      "suite": "camera-stage-timing-test",
+      "args": [
+        "--disabled"
+      ],
+      "executable": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/CameraStageTimingPipelineTests-2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db",
+      "returncode": 0,
+      "stdout": "PASS 7 pipeline stage timing checks; enabled=false\n",
+      "stderr": "",
+      "receipt": {
+        "executableSHA256": "76ba35717e1d9b43ea79724faf67b0a279c3069e4ca7c51954428f309e2e2d54",
+        "runnerIdentity": "2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db",
+        "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runners/2c7d25cbb545223b01e4a4d34c718cffdeb90133e8d99d3a17839c77eaf198db/complete.json",
+        "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runtimes/b90e015becb0715a4e1ea335e5e557f59d7e7fa157360ceb353bea3fe8c9f88e/complete.json",
+        "schemaVersion": 1
+      }
+    },
+    {
+      "suite": "wood-perimeter-test",
+      "args": [],
+      "executable": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/WoodenBoardPerimeterTests-f372bfb187364b52d3812329a865444cef8e1fb0fbf2f7168f34252f0e9e69ca",
+      "returncode": 0,
+      "stdout": "PASS: 110620 wooden-board perimeter profile and pipeline checks\n",
+      "stderr": "",
+      "receipt": {
+        "executableSHA256": "fa45bdab3fcbf5f1c93174d02f315d8886019163dec496131dde39a3ed991282",
+        "runnerIdentity": "f372bfb187364b52d3812329a865444cef8e1fb0fbf2f7168f34252f0e9e69ca",
+        "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runners/f372bfb187364b52d3812329a865444cef8e1fb0fbf2f7168f34252f0e9e69ca/complete.json",
+        "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runtimes/b90e015becb0715a4e1ea335e5e557f59d7e7fa157360ceb353bea3fe8c9f88e/complete.json",
+        "schemaVersion": 1
+      }
+    },
+    {
+      "suite": "camera-safety-test",
+      "args": [],
+      "executable": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/PhysicalCameraSafetyTests-69b4de3fb9a2e289035f248193d2ea859c0494d3c29dede5d6976c7146d36be3",
+      "returncode": 0,
+      "stdout": "PASS 18 independent camera safety delivery checks\n",
+      "stderr": "",
+      "receipt": {
+        "executableSHA256": "180f481ac3cb162a49e1579d789755210ca6ac13e2c48b6eb0fad70306c41c4a",
+        "runnerIdentity": "69b4de3fb9a2e289035f248193d2ea859c0494d3c29dede5d6976c7146d36be3",
+        "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runners/69b4de3fb9a2e289035f248193d2ea859c0494d3c29dede5d6976c7146d36be3/complete.json",
+        "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/native-camera-stage-timing/PhysicalGo/.build/RegressionModules/runtimes/b90e015becb0715a4e1ea335e5e557f59d7e7fa157360ceb353bea3fe8c9f88e/complete.json",
+        "schemaVersion": 1
+      }
+    }
+  ],
+  "standaloneLatencyTraceChecks": 38,
+  "buildToolPythonTests": 8,
+  "latestAnalysisInput": "passed ordering, duplicate consumption, age and context rejection",
+  "limitations": [
+    "Offline synthetic correctness tests only; no camera/app/controller started.",
+    "Debug runtime durations are not performance evidence.",
+    "Capture callback instrumentation compiled but requires root-owned later acquisition to exercise.",
+    "No installed app changes; live incident not reproduced or fixed."
+  ],
+  "sourceSHA256": {
+    "PhysicalGo/Sources/PhysicalLatencyTrace.swift": "8cf3fd1657cf7507a46d78ed99bb81ae1dcf2b00e61ea1ff90007e361ac04956",
+    "PhysicalGo/Sources/CameraCapture.swift": "d80e685c3c4e35785523b83d18ed2b140f124f7ecbe5538dc6edad5dab42ecc4",
+    "PhysicalGo/Sources/ExperimentModel.swift": "75ad0a7245208d7da5d994a76729439f1a0a5384d6bebbab64f1f7b9e0db514b",
+    "PhysicalGo/Sources/CameraAnalysisPipeline.swift": "502cf782e4fa15b3aab56f83a451716b27ab4cd9d403601e814865747c05ff7b"
+  }
+}
