@@ -86,6 +86,38 @@ exhaustion so replay or physical evidence can justify revision.
 
 ## Source-first review anchors
 
+### Later offline replay assertion follow-up
+
+The final candidate was not installed when root's retained replay reported one
+non-renewing row. Inspection found seven actual renewals and one intentional
+`LitRenewalDeferred`: after-pose capture age 0.511271417 seconds left less than the
+100 ms optional-proof reserve. The ordinary result returned at 0.511962959 seconds,
+with no error or certificate and one durable hint publication/offer. Requiring
+every row to renew was an obsolete replay assertion; this row does not demonstrate
+a runtime deadline regression.
+
+At root's request, the reviewer implemented only offline runner/contract tests in
+host commit `1759411d60cd70e08a35394126898c764cec3702`, based on `74d0b83`.
+The runner now records the returned deferral marker, all four original result
+ages, qualification before/after and certificate frame. A deferred success must
+have the typed decline event, current ordinary result, no certificate, unchanged
+qualification and successful durable publication/offer. Errors and generic
+declines still fail. Each retained fixture must perform at least one actual
+renewal so a wholly deferred/broken renewal path cannot pass.
+
+Eight deterministic contract tests plus the existing pose-evidence and lit-renewal
+tests passed (**44 tests total**). A new retained replay passed with eight actual
+renewals and no contract failures. This run does not itself exercise physical
+observations or a real deferred case; deterministic controls and existing runtime
+deferral/late-expiry tests cover that branch. The original report remains unchanged
+at `work/requirements-implementation-20261126/lit-renewal-replay.json`, SHA-256
+`0610ee4b032254af65e1582a704ba5831e54bd8bfb2073b5edb756189cc66e50`.
+The new report is `lit-renewal-replay-contract-20261126.json`, SHA-256
+`9d15771ec955a12e454092a56a257de1c0d6c0eebcd40485e8cec7f146a8ecd4`.
+Independent cross-change review of this reviewer-authored tooling patch was
+requested. It makes no production change and does not resolve the separate later
+installed-baseline shutdown or publication-gap investigations.
+
 At host `32d7911`, `bridge_feedback.py` has separate checks before post-image pose,
 after optical work, and inside atomic generation-checked anchor publication.
 `bridge_gameplay.py:gameplay_guard` already checks fresh cached safety independent
