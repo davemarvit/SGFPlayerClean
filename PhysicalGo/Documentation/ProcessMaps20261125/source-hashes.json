@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "0c76f2070e771917e1a7a12f38b3b3f3b52ae8409c870b2faffb95511f25d7b6"
+    "sha256": "f48453608a951ab90016cced249010030dd34b5f139082442e33b504efd96317"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -17,7 +17,7 @@
   "S4": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraCapture.swift",
     "description": "Camera serial queue and delivery",
-    "sha256": "38364796036b1ca2711ce1a27062553495ea0ce2295ed331c2cc2a1b5e062e5a"
+    "sha256": "d80e685c3c4e35785523b83d18ed2b140f124f7ecbe5538dc6edad5dab42ecc4"
   },
   "S5": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraFrameTimestamp.swift",
@@ -27,7 +27,7 @@
   "S6": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraAnalysisPipeline.swift",
     "description": "Serial analysis, early safety, immutable results",
-    "sha256": "f75ddb97ec89b5754cda17dd90b30699aa3ed2f6d3eb1f2a751df3ce6d8b2813"
+    "sha256": "107eef7401bc7bfc2af476369fb642e97a2e21790f4c58dcd1f18cfe4bf228dc"
   },
   "S7": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestAnalysisInput.swift",
@@ -62,7 +62,7 @@
   "S13": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_runtime.py",
     "description": "Input/coordinator/supervision/worker threads and cancellation",
-    "sha256": "6b16b542b7972fecd540f09d19436c0173cd3b6e4cf803612b5c48fd645cc533"
+    "sha256": "1ba97eb0f851f00d842424e96362bf27f93f35c53316d10ebaa28f400ef7fe8f"
   },
   "S14": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_frames.py",
@@ -167,7 +167,7 @@
   "S34": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py",
     "description": "Actual write-lock and before-write boundary",
-    "sha256": "c1e65fd13be533618c1c2a0261789127f8a467b39bb40a9cebda2b8d1282dee6"
+    "sha256": "52724f32185b46de1e6a3a5c265c0e60fa947e70f495b73aef40f4a4b7b784f7"
   },
   "S35": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md",
@@ -177,7 +177,7 @@
   "S36": {
     "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py",
     "description": "Flag-only signal, startup cancellation and shutdown receipt ownership",
-    "sha256": "6bd624e045139209763d86ae8bf1cbfb3a6cd2d7bc6ae445fc0244386eb8cee8"
+    "sha256": "74352ba87e8524cb0eb109a562ae37a827b0a598c33d3305a382170722b32346"
   },
   "S37": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md",
@@ -190,9 +190,9 @@
     "sha256": "3f60f03d0a2da3e58e678ea0ecfda2989b7017397af24b3b4080cb63bd459135"
   },
   "S39": {
-    "path": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
+    "path": "/Users/Dave/Documents/SGF PLayer/work/morning-readiness-20261127/install-receipt.json",
     "description": "Root installation receipt; physical validation remains separate",
-    "sha256": "b99861a51f4dfeb69bc83421d60d2b40abdf1af578cd6fc8bb3f06c0ef58d510"
+    "sha256": "ba3ae46d32ee4306202b5e4f743d5c1438704b46146d97f6dc99645b4ac3d3a3"
   },
   "S40": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift",
@@ -202,6 +202,41 @@
   "S41": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md",
     "description": "Current installed release and latest attended failure; acceptance remains open",
-    "sha256": "7ab16206de1fa3b4518fe5df951e9156055cb047efbaea89aa55d5c483a1ea57"
+    "sha256": "89441aecaf59594ab5b434d6bfb76c46d74937da1955ae5656c7d98eafd2847d"
+  },
+  "S42": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLatencyTrace.swift",
+    "description": "Opt-in bounded wall/thread-CPU stage records; no timing authority",
+    "sha256": "8cf3fd1657cf7507a46d78ed99bb81ae1dcf2b00e61ea1ff90007e361ac04956"
+  },
+  "S43": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/CameraStageTiming/README.md",
+    "description": "Camera-stage attribution, original provenance and interpretation limits",
+    "sha256": "a920f9d73c05a3f5553e33b69e721fcd8069f0694852fd7c9d7b70e28fb722ed"
+  },
+  "S44": {
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/SerialShutdownEvidence/README.md",
+    "description": "Post-worker serial tail, raw OFF observation and separate gate verdict",
+    "sha256": "683b2168d14987097930f568912cc81dfa73c51d0e01844561313ecfcb829ce3"
+  },
+  "S45": {
+    "path": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_shutdown_receipt.py",
+    "description": "Diagnostic receipt fields do not change full-OFF verification",
+    "sha256": "85e3390120fb5d91556a18b4156a525ea2021880bea3cb31d2df5732567f9b59"
+  },
+  "S46": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticRecorder.swift",
+    "description": "Image admission, gap journal and periodic/final atomic manifest publication",
+    "sha256": "ed70506874ac35014d678819e9cb00f67b75b0ae7ad0ad6a5a31949375200afa"
+  },
+  "S47": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticManifest.swift",
+    "description": "Compact immutable inline recording context cache; unchanged schema",
+    "sha256": "902e17709fa39cbd81b0104bbe2b8602e71d4089582ad6e84764ec6364f9bd4c"
+  },
+  "S48": {
+    "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/DiagnosticManifestCache/README.md",
+    "description": "Retained manifest amplification, compatible cache repair and remaining queue limits",
+    "sha256": "39e7f91dbb167818375f02c19d55870f11a5bc89cfab496a0513678c0b2df6b9"
   }
 }

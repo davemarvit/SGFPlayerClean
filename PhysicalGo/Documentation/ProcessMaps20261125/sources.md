@@ -1,6 +1,6 @@
 # Source index
 
-Installed 0.269 — offline validated; latest attended attempt failed, physical acceptance open. Source snapshot 2026-11-27: native `d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4`, host `31d84de4c35ee249312dc19b7c501efd9cce1dc1`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
+Installed 0.270 diagnostics + recorder cache; awaiting morning READY, physical validation open. Source snapshot 2026-11-27: native `7188dc4ddd613f158cc2418ce8c7844cdcd66f33`, host `936bf10e3942a0a32a47e57eb1b58cfba5af07d8`. Installed baseline is separately recorded in release-snapshot.json. The issue register and final root installation receipt own current status.
 
 - **S1** — Current authoritative issue register; live status outranks map snapshot. [IntegrationChecklist.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md>)
 - **S2** — State ownership and architecture. [Architecture.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md>)
@@ -40,6 +40,13 @@ Installed 0.269 — offline validated; latest attended attempt failed, physical 
 - **S36** — Flag-only signal, startup cancellation and shutdown receipt ownership. [laser_bridge.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py>)
 - **S37** — Historical returned O17 evidence; installed repair does not validate that failed run. [ReturnedO17Failure20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md>)
 - **S38** — I/O isolation, newer-frame reread, shutdown fences and remaining filesystem limits. [README.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/IPCLatencyIsolation/README.md>)
-- **S39** — Root installation receipt; physical validation remains separate. [install-receipt.json](</Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json>)
+- **S39** — Root installation receipt; physical validation remains separate. [install-receipt.json](</Users/Dave/Documents/SGF PLayer/work/morning-readiness-20261127/install-receipt.json>)
 - **S40** — Positive EMPTY receipt producer, original capture binding and invalidation. [BoardVision.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift>)
 - **S41** — Current installed release and latest attended failure; acceptance remains open. [RequirementsRelease20261127.md](</Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md>)
+- **S42** — Opt-in bounded wall/thread-CPU stage records; no timing authority. [PhysicalLatencyTrace.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLatencyTrace.swift>)
+- **S43** — Camera-stage attribution, original provenance and interpretation limits. [README.md](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/CameraStageTiming/README.md>)
+- **S44** — Post-worker serial tail, raw OFF observation and separate gate verdict. [README.md](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/SerialShutdownEvidence/README.md>)
+- **S45** — Diagnostic receipt fields do not change full-OFF verification. [bridge_shutdown_receipt.py](</Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_shutdown_receipt.py>)
+- **S46** — Image admission, gap journal and periodic/final atomic manifest publication. [DiagnosticRecorder.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticRecorder.swift>)
+- **S47** — Compact immutable inline recording context cache; unchanged schema. [DiagnosticManifest.swift](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/DiagnosticManifest.swift>)
+- **S48** — Retained manifest amplification, compatible cache repair and remaining queue limits. [README.md](</Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Experiments/DiagnosticManifestCache/README.md>)

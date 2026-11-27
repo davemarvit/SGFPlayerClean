@@ -1,19 +1,19 @@
 {
   "date": "2026-11-27",
-  "map_state": "Installed 0.269 \u2014 offline validated; latest attended attempt failed, physical acceptance open",
+  "map_state": "Installed 0.270 diagnostics + recorder cache; awaiting morning READY, physical validation open",
   "diagrams": 7,
   "nodes": 91,
   "connector_labels": 32,
   "issues": [],
   "font_metrics_checked": true,
-  "source_count": 41,
+  "source_count": 48,
   "source_heads": {
-    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
+    "native": "7188dc4ddd613f158cc2418ce8c7844cdcd66f33",
+    "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "declared_source_heads": {
-    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
+    "native": "7188dc4ddd613f158cc2418ce8c7844cdcd66f33",
+    "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "source_heads_match": {
     "native": true,
