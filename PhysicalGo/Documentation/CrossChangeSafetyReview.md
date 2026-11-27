@@ -1477,3 +1477,30 @@ Neither this review nor the artifact demonstrates reduction of the original
 25.418-second physical delay. Root-owned integrated validation and later physical
 acceptance remain distinct. No new reviewer condition is imposed on the already
 approved batch.
+
+
+## Offline lit-renewal replay contract
+
+Approved replay-only1759411d60cd70e08a35394126898c764cec3702. Only the replay
+runner, a pure verdict helper and its tests change; no production source changes.
+The old assertion required every row to renew even though production can return
+an independently fresh ordinary sample after explicitly deferring optional proof.
+The new assertion admits only that explicit returned-sample marker plus one typed
+deferred event, with all four final ages finite and within0..600ms, measured anchor
+publication and offer completed, no certificate and unchanged qualified_at.
+Generic decline, error, expired sample, missing publication or altered qualification
+fails. Each retained fixture must still execute at least one actual proof and
+commit; renewed rows require their exact sample's committed certificate.
+
+Reviewer inspected eight deterministic verdict tests (errors, all clock bounds,
+untyped declines, qualification mutation, publication omission, certificate mismatch,
+empty/all-deferred fixtures). Owner reports44 total affected checks passed; reviewer
+did not rerun or build. Independently verified new report SHA256
+9d15771ec955a12e454092a56a257de1c0d6c0eebcd40485e8cec7f146a8ecd4 at
+work/requirements-implementation-20261126/lit-renewal-replay-contract-20261126.json,
+plus its runner/contract hashes, eight runtime source hashes and six retained input
+hashes. Eight of eight rows actually renewed, no contract failures, maximum final
+four-clock evidence age0.5304875001s. The prior seven-renewed/one-deferred report
+is retained separately; the new result does not rewrite that evidence. Retained
+pixels and synthetic cadence/mocked hardware remain offline evidence, not physical
+latency validation. No remaining source condition for this replay-only patch.
