@@ -94,9 +94,9 @@ the candidate does not establish a latency improvement or fix the reported stall
 
 Validation completed November 27, 2026:
 
-- Full native shared runtime `b90e015becb0715a4e1ea335e5e557f59d7e7fa157360ceb353bea3fe8c9f88e` compiled from the candidate source snapshot with `-Onone`; changed files produced no compiler warnings. Existing unrelated warnings remain.
+- Full native shared runtime `af9341e92ded36d165de51708fa08bab0b0a86fa9cab2fefd46a8a0612203605` compiled from the candidate source snapshot with `-Onone`; changed files produced no compiler warnings. Existing unrelated warnings remain.
 - Foundation latency/stage writer: 38 checks passed.
-- Pipeline stage timing: 25 enabled and 7 disabled checks passed.
+- Pipeline stage timing: 26 enabled, 7 disabled and 26 absent-original-capture checks passed.
 - Existing wooden-board perimeter/profile/pipeline: 110,620 checks passed.
 - Independent camera safety delivery: 18 checks passed.
 - Latest-only input ordering, one-time consumption, age/context rejection: passed.
@@ -107,3 +107,10 @@ and changed-source hashes. No asset downloads or resource preflight were needed.
 Capture delegate and live latest-slot instrumentation compiled but were not
 exercised by acquiring a camera. Main pipeline handoff and completion timing
 were exercised by the synthetic asynchronous test.
+
+A final diagnostic provenance correction ensures the completion-delivery record
+omits capture uptime for photo/redraw inputs without an original capture time.
+It never relabels the tracking-time fallback as capture evidence. The final shared
+runtime and all native suites were rebuilt/rerun after this correction.
+[Initial successful pre-correction receipts](validation-initial.json) are retained
+separately; final receipts are in `validation.json`.

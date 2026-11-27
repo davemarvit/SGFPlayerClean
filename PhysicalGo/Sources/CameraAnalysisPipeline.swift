@@ -90,8 +90,9 @@ final class CameraAnalysisPipeline {
             DispatchQueue.main.async {
                 let timing=CameraStageTiming.start("camera_completion_apply",capturedAt:input.originalCaptureUptime,fields:input.traceFields)
                 if let completed,timing != nil {
-                    PhysicalLatencyTrace.shared?.record("camera_completion_delivery",fields:input.traceFields,metrics:[
-                        "captureUptime":input.trackingTime,"mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-completed])
+                    var metrics=["mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-completed]
+                    if let captured=input.originalCaptureUptime {metrics["captureUptime"]=captured}
+                    PhysicalLatencyTrace.shared?.record("camera_completion_delivery",fields:input.traceFields,metrics:metrics)
                 }
                 completion(output)
                 timing?.mark("apply");timing?.finish()

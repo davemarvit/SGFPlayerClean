@@ -5,6 +5,7 @@ import CoreGraphics
 @main struct CameraStageTimingPipelineTests {
     static func main()throws {
         let enabled = !CommandLine.arguments.contains("--disabled")
+        let originalCapture = !CommandLine.arguments.contains("--without-capture")
         let folder=FileManager.default.temporaryDirectory.appendingPathComponent("CameraStages-"+UUID().uuidString)
         defer {try? FileManager.default.removeItem(at:folder)}
         setenv("PHYSICAL_GO_CAMERA_STAGE_TRACE",enabled ? "1":"0",1)
@@ -20,7 +21,7 @@ import CoreGraphics
             reference:nil,referenceCalibration:calibration,straighten:true,longAxisRows:false,checkStoneAspect:false,
             previousStoneCount:0,pendingAxis:nil,trackingAnchor:nil,alignmentExpected:[],checkAlignment:false,
             trackingState:EstablishedStoneTracker(),trackingExpected:[],trackingContext:"test",trackingManualPoints:[],
-            trackingFresh:true,trackingTime:capture,checkHands:false,originalCaptureUptime:capture,
+            trackingFresh:true,trackingTime:capture,checkHands:false,originalCaptureUptime:originalCapture ? capture:nil,
             traceFields:["frameID":"fixture","streamEpoch":"offline"])
         var early:CameraAnalysisPipeline.CameraSafety?,completed=false
         let pipeline=CameraAnalysisPipeline()
@@ -45,7 +46,7 @@ import CoreGraphics
             for row in stages {
                 let metrics=row["metrics"] as! [String:Double],fields=row["fields"] as! [String:String]
                 check(fields["frameID"]=="fixture" && fields["streamEpoch"]=="offline","Stage provenance lost")
-                check(metrics["captureUptime"]==capture,"Original capture timestamp changed")
+                check(metrics["captureUptime"] == (originalCapture ? capture:nil),"Original capture timestamp changed or fallback invented")
                 check(metrics.count<=24 && metrics.values.allSatisfy {$0.isFinite && $0>=0},"Stage event invalid or unbounded")
                 check(metrics["totalThreadCPUSeconds"] != nil,"Stage CPU clock omitted")
             }
@@ -53,9 +54,11 @@ import CoreGraphics
             for stage in ["gray","exposure","alignment","detect","pose","outline","lighting","safetyDispatch"] {
                 check(worker[stage+"WallSeconds"] != nil && worker[stage+"ThreadCPUSeconds"] != nil,"Worker stage missing: "+stage)
             }
-            check(rows.contains {$0["event"] as? String == "camera_completion_delivery"},"Completion dispatch gap missing")
+            let delivery=rows.first {$0["event"] as? String == "camera_completion_delivery"}
+            check(delivery != nil,"Completion dispatch gap missing")
+            check((delivery?["metrics"] as? [String:Double])?["captureUptime"] == (originalCapture ? capture:nil),"Completion event invented original capture time")
             check(rows.contains {$0["event"] as? String == "camera_completion_apply"},"Completion application duration missing")
         }
-        print("PASS \(checks) pipeline stage timing checks; enabled=\(enabled)")
+        print("PASS \(checks) pipeline stage timing checks; enabled=\(enabled), originalCapture=\(originalCapture)")
     }
 }
