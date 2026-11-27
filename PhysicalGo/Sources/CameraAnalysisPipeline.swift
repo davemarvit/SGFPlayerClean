@@ -33,6 +33,7 @@ final class CameraAnalysisPipeline {
         var perimeter:WoodenBoardPerimeter.Snapshot = .absent
         /// Original camera capture time only; redraw/processing fallback is nil.
         var originalCaptureUptime:Double?=nil
+        var traceFields:[String:String]=[:]
     }
     struct CameraSafety {
         let aligned:BoardCalibration?
@@ -78,14 +79,23 @@ final class CameraAnalysisPipeline {
             let output = Self.process(input,safety:{ evidence in
                 let ready=ProcessInfo.processInfo.systemUptime,captured=input.trackingTime
                 if let safety {DispatchQueue.main.async {
-                    PhysicalLatencyTrace.shared?.record("camera_safety_ready",metrics:[
+                    PhysicalLatencyTrace.shared?.record("camera_safety_ready",fields:input.traceFields,metrics:[
                         "queueSeconds":began-submitted,"analysisSeconds":ready-began,
                         "mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-ready,
                         "captureAgeSeconds":ProcessInfo.processInfo.systemUptime-captured])
                     safety(evidence)
                 }}
             })
-            DispatchQueue.main.async { completion(output) }
+            let completed=CameraStageTiming.enabled ? ProcessInfo.processInfo.systemUptime:nil
+            DispatchQueue.main.async {
+                let timing=CameraStageTiming.start("camera_completion_apply",capturedAt:input.originalCaptureUptime,fields:input.traceFields)
+                if let completed,timing != nil {
+                    PhysicalLatencyTrace.shared?.record("camera_completion_delivery",fields:input.traceFields,metrics:[
+                        "captureUptime":input.trackingTime,"mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-completed])
+                }
+                completion(output)
+                timing?.mark("apply");timing?.finish()
+            }
             // The current camera result never waits for preparation. The next
             // observations use ordinary exact sampling until the cache is ready.
             self.prepareReferenceIfNeeded()
@@ -123,14 +133,18 @@ final class CameraAnalysisPipeline {
         let trackingManualPoints = input.trackingManualPoints
         let trackingFresh = input.trackingFresh
         let trackingTime = input.trackingTime
+        let timing=CameraStageTiming.start("camera_analysis_stages",capturedAt:input.originalCaptureUptime,fields:input.traceFields)
         let frame=GrayFrame(image:target)
+        timing?.mark("gray")
         let exposureFailure=frame.map {LightingCompensation.exposureFailure(frame:$0,calibration:calibration)} ?? false
+        timing?.mark("exposure")
         var alignmentReport:[String:Any]=["outcome":checkAlignment ? "unavailable":"tracking disabled"]
         let aligned:BoardCalibration? = exposureFailure ? nil : checkAlignment
             ? frame.flatMap { frame in trackingAnchor.flatMap { AutoGridDetector.track(frame:frame,from:calibration,anchor:$0,expected:alignmentExpected,report:{alignmentReport=$0}) } } : calibration
         if checkAlignment,aligned==nil,alignmentReport["rejectionReason"]==nil {
             alignmentReport["rejectionReason"]=frame==nil ? "camera frame decoding failed":"tracking anchor unavailable"
         }
+        timing?.mark("alignment")
         var result:BoardObservation? = exposureFailure
             ? BoardObservation(readings:(0..<calibration.size*calibration.size).map {
                 .init(row:$0/calibration.size,col:$0%calibration.size,occupancy:.uncertain,confidence:0,delta:0)
@@ -144,8 +158,10 @@ final class CameraAnalysisPipeline {
                 return BoardAppearanceDetector.detect(frame:frame,calibration:current,threshold:threshold)
             }
         }
+        timing?.mark("detect")
         let rawResult=result
         let handPose=input.checkHands ? BoardHandDetector.pose(image:target,calibration:aligned ?? calibration):nil
+        timing?.mark("pose")
         var handTracking=input.handTracking
         let handOutline:HandOutlineTracker.Result?
         if input.checkHands,let failure=input.perimeter.failure {
@@ -156,6 +172,7 @@ final class CameraAnalysisPipeline {
                 pose:handPose,at:trackingTime,source:input.handTimestampSource)
         } else {handTracking.reset();handOutline=nil}
         let handObstructed=handOutline != nil ? handOutline!.obstructed:handPose?.obstructed(size:calibration.size,boundary:input.perimeter.boundary)
+        timing?.mark("outline")
         var emptyLighting=input.emptyLighting
         if let raw=result,let frame,let aligned {
             result=emptyLighting.observe(raw,frame:frame,calibration:aligned,expected:trackingExpected,
@@ -163,11 +180,14 @@ final class CameraAnalysisPipeline {
                 valid:trackingFresh && handObstructed != true && trackingManualPoints.isEmpty,
                 appearanceThreshold:threshold)
         } else {emptyLighting.suspend()}
+        timing?.mark("lighting")
         // Publish only the same-frame hand, exposure, alignment and lighting
         // verdict. Stone tracking and display rendering cannot improve these
         // checks and should not delay the laser's camera stream.
         safety?(.init(aligned:aligned,handObstructed:handObstructed,
                       exposureFailure:exposureFailure,lightingBlocked:result?.lightingBlocked))
+        timing?.mark("safetyDispatch");timing?.finish()
+        let post=CameraStageTiming.start("camera_post_safety_stages",capturedAt:input.originalCaptureUptime,fields:input.traceFields)
         var tracker=trackingState
         let trackedObservation:BoardObservation?
         if var raw=result {
@@ -175,11 +195,13 @@ final class CameraAnalysisPipeline {
             trackedObservation=tracker.observe(raw,expected:trackingExpected,context:trackingContext,
                 now:trackingTime,valid:trackingFresh && aligned != nil)
         } else {tracker.reset();trackedObservation=nil}
+        post?.mark("tracking")
         let trackingResult=tracker
         let stoneAspect:StoneAspectEstimator.Estimate?
         if checkStoneAspect,let frame,let aligned,let result,!result.lightingBlocked {
             stoneAspect=StoneAspectEstimator.estimate(frame:frame,calibration:aligned,readings:result.readings)
         } else { stoneAspect=nil }
+        post?.mark("aspect")
         // Changing an established stone-based choice needs agreement on a second check.
         let applyAspect=stoneAspect.map { previousStoneCount==0 || $0.longAxisRows==longAxisRows || pendingAxis==$0.longAxisRows } ?? false
         let displayRows=applyAspect ? stoneAspect!.longAxisRows : longAxisRows
@@ -188,6 +210,7 @@ final class CameraAnalysisPipeline {
         // recognition or recording from an unverified frame (both remain nil).
         let geometry = straighten ? BoardRectifiedGeometry(calibration:aligned ?? calibration,longAxisRows:displayRows) : nil
         let corrected = geometry.flatMap { BoardRectifier.render(target,geometry:$0) }
+        post?.mark("rectify");post?.finish()
         return Output(handPose:handPose,handObstructed:handObstructed,handOutline:handOutline,handTracking:handTracking,frame: frame, exposureFailure: exposureFailure, alignmentReport: alignmentReport, aligned: aligned, result: result, trackedObservation: trackedObservation, trackingResult:trackingResult, stoneAspect:stoneAspect, applyAspect:applyAspect, geometry:geometry, corrected:corrected,emptyLighting:emptyLighting,rawResult:rawResult,preparedReferenceBytes:reference?.preparedPatchBytes ?? 0)
     }
 }

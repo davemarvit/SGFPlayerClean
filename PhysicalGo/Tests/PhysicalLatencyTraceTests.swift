@@ -56,6 +56,38 @@ import Foundation
         check(validating.waitForTesting(),"Validation drain failed")
         check(rows(valid)[0]["droppedEvents"] as? Int == 2,"Rejected events not accounted")
 
+        // Stage clocks stay on one synchronous thread. Fake readings verify
+        // elapsed versus CPU accounting without timing-sensitive assertions.
+        setenv("PHYSICAL_GO_CAMERA_STAGE_TRACE","0",1)
+        check(CameraStageTiming.start("disabled",capturedAt:1)==nil,"Stage profiling enabled without explicit opt-in")
+        var stageRows=[Data]()
+        let stageSink=PhysicalLatencyTrace {stageRows.append($0)}
+        var ticks=0
+        let stage=CameraStageTiming(event:"stages",capturedAt:9,fields:["frameID":"1866"],trace:stageSink,clock:{
+            defer {ticks+=1}
+            return .init(wall:10+Double(ticks)*2,threadCPU:1+Double(ticks)*0.25)
+        })
+        stage.mark("convert");stage.mark("detect");stage.finish();stage.finish()
+        check(stageSink.waitForTesting(),"Stage sink did not drain")
+        check(stageRows.count==1 && ticks==4,"Stage finished twice or read extra clocks")
+        let stageRow=rows(stageRows)[0],stageMetrics=rows(stageRows)[0]["metrics"] as! [String:Double]
+        check((stageRow["fields"] as? [String:String])?["frameID"]=="1866","Stage frame identity lost")
+        check(stageMetrics["captureUptime"]==9 && stageMetrics["stageStartUptime"]==10,"Stage replaced original capture time")
+        check(stageMetrics["convertWallSeconds"]==2 && stageMetrics["convertThreadCPUSeconds"]==0.25,"Stage CPU/wall separation failed")
+        check(stageMetrics["detectWallSeconds"]==2 && stageMetrics["totalWallSeconds"]==6 && stageMetrics["totalThreadCPUSeconds"]==0.75,"Total stage accounting failed")
+        let bounded=CameraStageTiming(event:"bounded_stages",capturedAt:9,trace:stageSink,clock:{.init(wall:10,threadCPU:1)})
+        for n in 0..<30 {bounded.mark("stage"+String(n))}
+        bounded.finish()
+        let unavailable=CameraStageTiming(event:"cpu_unavailable",capturedAt:nil,trace:stageSink,clock:{.init(wall:10,threadCPU:nil)})
+        unavailable.mark("work");unavailable.finish()
+        check(stageSink.waitForTesting(),"Bounded stages did not drain")
+        let allStages=rows(stageRows)
+        check(allStages.count==3,"Stage bound caused entire event rejection")
+        check((allStages[1]["metrics"] as! [String:Double]).count==24,"Stage event exceeded its metric budget")
+        check((allStages[2]["metrics"] as! [String:Double])["totalThreadCPUSeconds"]==nil,"Unavailable CPU clock invented a duration")
+        let clock=CameraStageTiming.Sample.read()
+        check(clock.wall.isFinite && clock.threadCPU.map {$0.isFinite && $0>=0} == true,"macOS thread CPU clock unavailable")
+
         // Real rotating-writer path remains confined to a temporary directory.
         // Control characters expand during JSON encoding despite fitting the
         // bounded field input, so oversized encoding must report a failure.

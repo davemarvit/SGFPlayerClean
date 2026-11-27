@@ -203,19 +203,31 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
         let timestamp=CameraFrameTimestamp.make(sampleBuffer,clock:session?.synchronizationClock,arrival:now)
         if pts.isValid && !pts.isIndefinite, let previous = lastPTS, CMTimeCompare(pts, previous) <= 0 { return }
         guard cadence.accept(at:now,interval:CameraProcessingCadence.interval(clock:timingClock,at:now,laserGuidance:laserGuidance)) else {return}
+        let timing=CameraStageTiming.start("camera_capture_stages",capturedAt:timestamp.capturedAt,
+            fields:["cameraStream":String(stream)])
+        defer {timing?.finish()}
+        if timing != nil {
+            PhysicalLatencyTrace.shared?.record("camera_delegate_arrival",fields:["cameraStream":String(stream)],metrics:[
+                "captureUptime":timestamp.capturedAt,"delegateEntryUptime":now,
+                "captureToDelegateSeconds":now-timestamp.capturedAt])
+        }
         let ci = CIImage(cvPixelBuffer: buffer)
         // Detach CGImage storage from the camera's buffer pool before retaining it in the UI.
         guard let image = context.createCGImage(ci, from: ci.extent, format: .BGRA8,
             colorSpace: CGColorSpaceCreateDeviceRGB(), deferred: false) else { return }
+        timing?.mark("detach")
         if pts.isValid && !pts.isIndefinite { lastPTS = pts }
         guard let sample=CameraFeedHealth.Sample.measure(image) else {return}
+        timing?.mark("feedHealthMeasure")
         let assessment=feedHealth.observe(sample,at:now)
+        timing?.mark("feedHealthObserve")
         if let reason=assessment.reconnectReason {recover(reason:reason,force:true);return}
         guard assessment.usable else {return}
         health.receivedFrame(now: now)
         if waitingForFirstFrame { waitingForFirstFrame = false; status("Live · \(deviceName)", state: .live) }
         let token = queueRequest,expectedStream=stream
         deliveryPending=true
+        let enqueued=timing != nil ? ProcessInfo.processInfo.systemUptime:nil
         DispatchQueue.main.async { [weak self] in
             guard let self else {return}
             defer {
@@ -225,6 +237,13 @@ final class CameraCapture: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                 }
             }
             guard self.request == token else { return }
+            let delivered=CameraStageTiming.start("camera_capture_delivery",capturedAt:timestamp.capturedAt,
+                fields:["cameraStream":String(expectedStream)])
+            if let enqueued {
+                PhysicalLatencyTrace.shared?.record("camera_capture_main_wait",fields:["cameraStream":String(expectedStream)],metrics:[
+                    "captureUptime":timestamp.capturedAt,"mainDeliverySeconds":ProcessInfo.processInfo.systemUptime-enqueued])
+            }
+            defer {delivered?.mark("callback");delivered?.finish()}
             if let callback=self.onTimedFrame {callback(image,timestamp)} else {self.onFrame?(image,timestamp.capturedAt)}
         }
     }
