@@ -86,6 +86,56 @@ exhaustion so replay or physical evidence can justify revision.
 
 ## Source-first review anchors
 
+### IPC isolation follow-up and combined shutdown review
+
+The source chain `90c7bffd05cc8e3aa3d63de741d41594ac7855f2` plus
+`01f1bd4d48d82725cae03e2981136e8566d2a99b`, on the approved shutdown chain,
+is approved. Integrated host `5a2a21a851c6c600dd558fc700297bd887a0764a` is clean;
+its runtime, frame reader, hardware adapter and entrypoint are byte-identical to
+the reviewed source. Native `d014c63` remains unchanged and approved. Test-only
+follow-up `b77a73d1f2562128ce10fd34720315aefb2f7e3f` is also approved.
+
+Request reads and status publication now have independent file-only loops. One
+nonblocking publication owner prevents concurrent writers or a status backlog.
+The existing final generation/request/OFF/immutable-feedback fence remains.
+Delayed successful or failed request reads cannot admit, renew or recancel after
+stop. The frame reader may discard one expired, clear snapshot and read a strictly
+newer source under the same epoch/context/camera/dimensions; all four original age
+checks remain, and original operation guards run before and after replacement.
+Failed replacement guards restore the unconsumed identity. No optical source is
+retimed and no hand, thermal, lease, geometry or proof deadline is extended.
+
+The first IPC candidate had a reproduced close race: after a status writer was
+blocked, close succeeded; releasing the writer 0.7 seconds later let `gate.poll()`
+expire the former lease before checking the stale snapshot. It issued OFF after
+backend closure and changed generation4 to5 while clearing `off_since`. The
+existing immediate-release test missed this. A second independent reviewer found
+the related background publisher delayed before its snapshot could publish after
+close and potentially overwrite a successor's status.
+
+`01f1bd4` resolves both: stopped background publication is rejected before
+snapshot and before lease polling. Only `close()` opts into final shutdown
+publication, which requires confirmed OFF and skips lease polling. Tests delay a
+writer beyond the old lease and delay another before snapshot; commands,
+generation, confirmed-OFF state and successor status remain unchanged.
+
+The reviewer independently passed **48 tests** spanning IPC isolation, newer-frame
+replacement, immutable A2 proof, actual startup cancellation, real signals and OFF
+receipts. Root's older manual concurrent-publication test needed adaptation to the
+single-owner contract: it now requires the competing call to skip, the released
+obsolete writer to leave the exact original status bytes unchanged, and the next
+normal publisher call to produce sequence3/OFF. It does not accept sequence2 as a
+successful final result. No production behavior changed in that test follow-up.
+
+Explicit remaining limitations: final atomic rename still holds the generation
+gate, so an OS-stalled rename can delay cancellation. An idle-owner synchronous
+final shutdown write can still stall. When an existing writer is blocked, close
+can perform controller OFF without waiting for it; absent a matching shared OFF
+status, the full shutdown receipt remains unverified. This does not claim bounded
+behavior for every filesystem call or establish the exact kernel cause of the
+physical run's concurrent I/O delays. Root owns final full-suite, paired, install
+and physical decisions.
+
 ### Signal-shutdown follow-up: startup cancellation counterexample
 
 Candidate `8354e8b942c92d210ade295004796f670ac7be6c` removes the signal
