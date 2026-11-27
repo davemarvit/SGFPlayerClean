@@ -92,3 +92,58 @@ final class PhysicalLatencyTrace: @unchecked Sendable {
         }
     }
 }
+
+/// Opt-in synchronous stage accounting. Never carry an instance across queues:
+/// thread CPU excludes work performed by CI/Vision workers and the GPU. A wall
+/// minus thread-CPU gap is not by itself proof of scheduling contention.
+final class CameraStageTiming {
+    struct Sample {
+        let wall:Double
+        let threadCPU:Double?
+        static func read()->Sample {
+            var value=timespec()
+            let cpu=clock_gettime(CLOCK_THREAD_CPUTIME_ID,&value)==0
+                ? Double(value.tv_sec)+Double(value.tv_nsec)/1_000_000_000:nil
+            return Sample(wall:ProcessInfo.processInfo.systemUptime,threadCPU:cpu)
+        }
+    }
+    static let enabled=ProcessInfo.processInfo.environment["PHYSICAL_GO_CAMERA_STAGE_TRACE"] == "1"
+    static func start(_ event:String,capturedAt:Double?,fields:[String:String]=[:])->CameraStageTiming? {
+        guard enabled,let trace=PhysicalLatencyTrace.shared else {return nil}
+        return CameraStageTiming(event:event,capturedAt:capturedAt,fields:fields,trace:trace)
+    }
+    private let event:String,fields:[String:String],trace:PhysicalLatencyTrace
+    private let clock:()->Sample
+    private let began:Sample
+    private var previous:Sample
+    private var metrics:[String:Double]
+    private var count=0,finished=false
+    // Injectable clock/sink keep CPU accounting and event bounds testable without
+    // sleeping, camera acquisition, application startup or global configuration.
+    init(event:String,capturedAt:Double?,fields:[String:String]=[:],trace:PhysicalLatencyTrace,
+         clock:@escaping ()->Sample=Sample.read) {
+        self.event=event;self.fields=fields;self.trace=trace;self.clock=clock
+        let now=clock();began=now;previous=now
+        metrics=["stageStartUptime":now.wall]
+        if let capturedAt {metrics["captureUptime"]=capturedAt}
+    }
+    func mark(_ name:String) {
+        guard !finished,count<10,name.utf8.count<=40 else {return}
+        let now=clock()
+        metrics[name+"WallSeconds"]=now.wall-previous.wall
+        if let current=now.threadCPU,let prior=previous.threadCPU,current>=prior {
+            metrics[name+"ThreadCPUSeconds"]=current-prior
+        }
+        previous=now;count+=1
+    }
+    func finish() {
+        guard !finished else {return};finished=true
+        let now=clock()
+        metrics["totalWallSeconds"]=now.wall-began.wall
+        if let current=now.threadCPU,let prior=began.threadCPU,current>=prior {
+            metrics["totalThreadCPUSeconds"]=current-prior
+        }
+        // At most 24 metrics (ten stages plus start/capture/total wall/CPU).
+        trace.record(event,fields:fields,metrics:metrics)
+    }
+}

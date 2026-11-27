@@ -525,12 +525,18 @@ enum PhysicalPlayMode: String, CaseIterable {
         let capturedAt:Double
         let timestamp:CameraFrameTimestamp?
         let laserFrame:PhysicalLaserFrameBroker.Frame
+        let traceOfferedAt:Double?
     }
     private var waitingLaserAnalysis=LatestAnalysisInput<WaitingLaserAnalysis>()
     private func drainWaitingLaserAnalysis() {
         guard let next=waitingLaserAnalysis.take(now:ProcessInfo.processInfo.systemUptime,revision:revision),
               playMode == .ai,running,!frozen,cameraState == .live,
               next.laserFrame.streamEpoch==ai.laser.frames.streamEpoch else {return}
+        if let offered=next.traceOfferedAt {
+            PhysicalLatencyTrace.shared?.record("camera_latest_slot_take",fields:[
+                "frameID":String(next.laserFrame.frameID),"streamEpoch":next.laserFrame.streamEpoch.uuidString],metrics:[
+                "captureUptime":next.capturedAt,"residenceSeconds":ProcessInfo.processInfo.systemUptime-offered])
+        }
         analyze(next.image,diagnosticTicket:next.ticket,captureUptime:next.capturedAt,
                 frameTimestamp:next.timestamp,laserFrame:next.laserFrame)
     }
@@ -1315,7 +1321,12 @@ enum PhysicalPlayMode: String, CaseIterable {
         if processingBusy,playMode == .ai,running,!frozen,cameraState == .live,
            let supplied,let captureUptime,let laserFrame {
             waitingLaserAnalysis.offer(.init(image:supplied,ticket:suppliedTicket,capturedAt:captureUptime,
-                timestamp:frameTimestamp,laserFrame:laserFrame),capturedAt:captureUptime,revision:revision)
+                timestamp:frameTimestamp,laserFrame:laserFrame,
+                traceOfferedAt:CameraStageTiming.enabled ? ProcessInfo.processInfo.systemUptime:nil),capturedAt:captureUptime,revision:revision)
+            if CameraStageTiming.enabled {
+                PhysicalLatencyTrace.shared?.record("camera_latest_slot_offer",fields:[
+                    "frameID":String(laserFrame.frameID),"streamEpoch":laserFrame.streamEpoch.uuidString],metrics:["captureUptime":captureUptime])
+            }
             return
         }
         guard !(awaitingReferenceFrame && supplied == nil), !(running && cameraState != .live), !detectingGrid, !processingBusy, let target = supplied ?? image, let calibration else {
@@ -1368,7 +1379,8 @@ enum PhysicalPlayMode: String, CaseIterable {
             trackingTime:trackingTime,checkHands:(self.playMode == .ai || self.playMode == .local && self.recorder.clock.enabled) && supplied != nil,
             handTracking:handOutlineTracking,handTimestampSource:frameTimestamp?.source ?? "callback",
             emptyLighting:emptyLighting,lightingContext:lightingContext,
-            perimeter:perimeter,originalCaptureUptime:captureUptime),safety:{ [weak self] evidence in
+            perimeter:perimeter,originalCaptureUptime:captureUptime,
+            traceFields:CameraStageTiming.enabled ? laserFrame.map { ["frameID":String($0.frameID),"streamEpoch":$0.streamEpoch.uuidString] } ?? [:]:[:]),safety:{ [weak self] evidence in
                 guard let self,self.revision==token,self.playMode == .ai,let captureUptime,
                       supplied != nil,self.running,self.cameraState == .live,!self.frozen,
                       ProcessInfo.processInfo.systemUptime-captureUptime<=1.5 else {return}

@@ -66,6 +66,16 @@ separate analysis, IO and handoff failures. Regional/frame-difference work remai
 an offline optimization candidate; unchanged appearance cannot create fresh hand
 clearance, new stone witnesses or optical target measurements.
 
+## Optional native stage profiling
+
+`CameraStageTiming` in [PhysicalLatencyTrace.swift](../../Sources/PhysicalLatencyTrace.swift)
+adds bounded stage wall/thread-CPU records only with the stage flag and trace
+output configured. It separates capture preparation, latest-input residence,
+recognition and post-safety completion without changing clearance semantics.
+[Activation, event identities and interpretation limits](../../Experiments/CameraStageTiming/README.md)
+explain why wall-minus-thread-CPU is not automatically scheduler delay. Root owns
+any app installation or live collection; offline test timings do not prove a fix.
+
 ## Fresh empty-crossing proof
 
 The PG23 candidate preserves the detector's existing unmasked reference-wood and
