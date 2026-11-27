@@ -2,7 +2,7 @@
   "S1": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md",
     "description": "Current authoritative issue register; live status outranks map snapshot",
-    "sha256": "33e42b86a3ba758457ba9fe3ed2d7ed4642b952856c8d40b975ffee9e32d0a7b"
+    "sha256": "f48453608a951ab90016cced249010030dd34b5f139082442e33b504efd96317"
   },
   "S2": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md",
@@ -202,7 +202,7 @@
   "S41": {
     "path": "/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md",
     "description": "Current installed release and latest attended failure; acceptance remains open",
-    "sha256": "9b5c02d4d592a248cacd0c0dbf5252b546a7cb7507b55387a5e8399433701e4a"
+    "sha256": "89441aecaf59594ab5b434d6bfb76c46d74937da1955ae5656c7d98eafd2847d"
   },
   "S42": {
     "path": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLatencyTrace.swift",

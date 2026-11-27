@@ -26,7 +26,7 @@ The recorder fix addresses demonstrated write amplification: one retained record
 
 This is not a complete writer-bound solution: image admission is bounded, but metadata events still queue without an admission bound. Each remaining atomic manifest write needs an output buffer/file; initial checkpoint conversion and capture-start serialization still occur. Live gap counts remain in UI/journal while periodic manifest counts can lag until the next existing checkpoint. The recorded amplification overlaps the stall but does not prove its sole cause or a live timing improvement.
 
-Bedtime plan: lights off and no hardware tonight. In the morning, one chat **READY**, after lights/controller are restored, hands clear, user watching and board unchanged, authorizes root's checks and O17 attempt without a repeat READY question. Current controller USB disconnection is recorded separately from full power OFF. Root owns all runtime actions.
+Bedtime plan: lights off and no hardware tonight. In the morning, one chat **READY**, after lights/controller are restored, Mac unlocked, hands clear, user watching and board unchanged, authorizes root's checks and O17 attempt without a repeat READY question. Current controller USB disconnection is recorded separately from full power OFF. Root owns all runtime actions.
 
 ## Release evidence and physical boundary
 
