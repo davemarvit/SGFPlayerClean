@@ -12,7 +12,7 @@
         "w": 300,
         "h": 96,
         "title": "A. Qualify the setup",
-        "body": "Camera grid + pointer map\nIndependent checks + READY",
+        "body": "Grid + motor map + wood profile\nIndependent checks + fresh READY",
         "kind": "gate"
       },
       {
@@ -52,7 +52,7 @@
         "w": 300,
         "h": 96,
         "title": "E. Aim and monitor",
-        "body": "Dark admission \u2192 optical aim\nHold or stop; report real state",
+        "body": "Measure \u2192 hold \u2192 bounded recovery\nLost authority \u2192 full OFF",
         "kind": "process"
       },
       {
@@ -91,8 +91,8 @@
         "y": 625,
         "w": 300,
         "h": 96,
-        "title": "Fault or pause \u2192 full OFF",
-        "body": "Beam off + motor bus released\nRetain game and pending move",
+        "title": "Fault or pause \u2192 request OFF",
+        "body": "Require beam / motor OFF receipt\nMissing receipt remains unknown",
         "kind": "fault"
       }
     ],
@@ -255,7 +255,7 @@
         "w": 300,
         "h": 96,
         "title": "Retain geometry/reference",
-        "body": "Native board coordinate system\nLighting / occupancy references",
+        "body": "Native grid + physical-wood profile\nUnknown perimeter stays unknown",
         "kind": "process"
       },
       {
@@ -295,7 +295,7 @@
         "w": 300,
         "h": 96,
         "title": "Bind approved setup",
-        "body": "Hashes: model/setup/reference\nCamera/context/size/allowed targets",
+        "body": "Hashes: model/setup/reference/profile\nCamera/context/size/allowed targets",
         "kind": "process"
       },
       {
@@ -325,7 +325,7 @@
         "w": 300,
         "h": 96,
         "title": "Open one host / controller",
-        "body": "OFF handshake \u2192 capability check\nThen current session admission",
+        "body": "Fresh OFF handshake + capabilities\nHistorical hint needs fresh proof",
         "kind": "process"
       },
       {
@@ -440,14 +440,16 @@
       "S3",
       "S12",
       "S19",
+      "S30",
+      "S32",
       "S1"
     ]
   },
   {
     "key": "data",
     "title": "3 \u00b7 Camera, processing and file boundaries",
-    "desc": "Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.",
-    "height": 1110,
+    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.",
+    "height": 1220,
     "nodes": [
       {
         "id": "capture",
@@ -476,7 +478,7 @@
         "w": 300,
         "h": 96,
         "title": "Serial vision worker",
-        "body": "Alignment + exposure + hand\nThen stone/shape/assignment evidence",
+        "body": "Physical wood / grid / hand support\nThen stone/shape/assignment evidence",
         "kind": "process"
       },
       {
@@ -496,7 +498,7 @@
         "w": 300,
         "h": 96,
         "title": "Early safety \u2192 main actor",
-        "body": "Current revision checked\nClearance is not stone acceptance",
+        "body": "Current revision + actual timestamps\nIndependent of geometry exclusions",
         "kind": "process"
       },
       {
@@ -575,9 +577,39 @@
         "y": 840,
         "w": 300,
         "h": 96,
-        "title": "Host coordinator + worker",
-        "body": "Single hardware generation\nReceipt/status returns to native",
+        "title": "Host request reader",
+        "body": "Dedicated bounded request read\nGate checks identity / lease / stop",
         "kind": "process"
+      },
+      {
+        "id": "publisher",
+        "x": 50,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Host status writer: one owner",
+        "body": "No queue; skip concurrent publish\nOld snapshot fenced at replacement",
+        "kind": "process"
+      },
+      {
+        "id": "reread",
+        "x": 400,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Raw expiry: one newer reread",
+        "body": "Same scope; newer frame ID + capture\nOriginal 600 ms checks stay in force",
+        "kind": "process"
+      },
+      {
+        "id": "stopfence",
+        "x": 750,
+        "y": 1050,
+        "w": 300,
+        "h": 96,
+        "title": "Stop fences on background I/O",
+        "body": "Before snapshot / lease poll / rename\nOnly close may publish final OFF",
+        "kind": "gate"
       }
     ],
     "edges": [
@@ -667,7 +699,7 @@
       },
       {
         "a": "reader",
-        "b": "status",
+        "b": "publisher",
         "label": "",
         "route": null,
         "kind": "normal"
@@ -675,7 +707,7 @@
       {
         "a": "io",
         "b": "status",
-        "label": "lease / receipt",
+        "label": "request",
         "route": null,
         "kind": "normal"
       },
@@ -697,16 +729,60 @@
       },
       {
         "a": "status",
-        "b": "io",
-        "label": "fresh ack",
+        "b": "publisher",
+        "label": "",
         "route": [
           [
-            725,
+            375,
             888
           ],
           [
-            725,
-            678
+            375,
+            1010
+          ],
+          [
+            200,
+            1010
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "publisher",
+        "b": "io",
+        "label": "status",
+        "route": [
+          [
+            30,
+            1098
+          ],
+          [
+            30,
+            790
+          ],
+          [
+            550,
+            790
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "reader",
+        "b": "reread",
+        "label": "",
+        "route": [
+          [
+            375,
+            888
+          ],
+          [
+            375,
+            1010
+          ],
+          [
+            550,
+            1010
           ]
         ],
         "kind": "normal"
@@ -720,7 +796,10 @@
       "S8",
       "S9",
       "S13",
-      "S14"
+      "S14",
+      "S34",
+      "S37",
+      "S38"
     ]
   },
   {
@@ -756,7 +835,7 @@
         "w": 300,
         "h": 96,
         "title": "Resolve assignment",
-        "body": "New stone location must be unique\nWeak empty neighbor can block",
+        "body": "Unique new-stone assignment\nPG23: current qualified EMPTY only",
         "kind": "gate"
       },
       {
@@ -816,7 +895,7 @@
         "w": 300,
         "h": 96,
         "title": "Host aims / holds dot",
-        "body": "Fresh target admission + optical aim\nNative click: first light ack only",
+        "body": "Aim / hold / recover same target\nCue needs original fresh optical proof",
         "kind": "process"
       },
       {
@@ -1015,14 +1094,15 @@
       "S11",
       "S22",
       "S23",
-      "S25"
+      "S25",
+      "S40"
     ]
   },
   {
     "key": "laser",
-    "title": "5 \u00b7 Host aiming and holding",
-    "desc": "Every observation has its own fresh pixels and actual-pose checks. Geometry can be reused only while its fixed anchor still agrees.",
-    "height": 1480,
+    "title": "5 \u00b7 Aim, publish and hold one target",
+    "desc": "Measured optical anchors and target-adequate evidence are different results. The same operation owns initial aiming and every recovery.",
+    "height": 1390,
     "nodes": [
       {
         "id": "admit",
@@ -1031,7 +1111,7 @@
         "w": 300,
         "h": 96,
         "title": "Admit current request",
-        "body": "Binding + fresh frame + identity\nWarm receipt or cold admission",
+        "body": "Binding + fresh frame + identity\nHistorical anchor is only a hint",
         "kind": "gate"
       },
       {
@@ -1041,128 +1121,128 @@
         "w": 300,
         "h": 96,
         "title": "Cold GA / warm RS",
-        "body": "Dark motor engagement / resume\nNative unfinished episode \u226412 s",
+        "body": "Dark engagement; phase evidence\nNo admission-clock reset on retry",
         "kind": "process"
       },
       {
         "id": "prepare",
         "x": 400,
-        "y": 205,
+        "y": 210,
         "w": 300,
         "h": 96,
         "title": "Prepare while dark",
-        "body": "PREPARE \u2192 three dark frames\nFit median geometry + fresh check",
+        "body": "Three new dark frames + grid fit\nFresh actual pose + first-light proof",
         "kind": "process"
       },
       {
         "id": "initial",
         "x": 400,
-        "y": 390,
+        "y": 395,
         "w": 300,
         "h": 96,
-        "title": "Initial optical observation",
-        "body": "SWEEP light; flush \u2265300 ms\nFresh batch + pose before/after",
-        "kind": "process"
-      },
-      {
-        "id": "dark",
-        "x": 400,
-        "y": 575,
-        "w": 300,
-        "h": 96,
-        "title": "Initial observe darkens",
-        "body": "DARK + state/pose recheck\nEven if target already accepted",
+        "title": "Measure actual spot",
+        "body": "SWEEP + fresh stationary batch\nPost-image causal motor evidence",
         "kind": "process"
       },
       {
         "id": "coarse",
         "x": 50,
-        "y": 750,
+        "y": 585,
         "w": 300,
         "h": 96,
-        "title": "Try predicted dark travel",
-        "body": "Bounded model / support corridor\nGOTO + recenter actual settlement",
+        "title": "Initial predicted travel once",
+        "body": "Dark contained coarse waypoints\nSame active time; separate step cap",
         "kind": "process"
       },
       {
-        "id": "reacquire",
+        "id": "observe",
         "x": 50,
-        "y": 925,
+        "y": 790,
         "w": 300,
         "h": 96,
         "title": "Observe actual landing",
-        "body": "Coarse: search across the board\nFine: measure near predicted spot",
+        "body": "Coarse / recovery: full-board batch\nOrdinary fine: measured near estimate",
         "kind": "process"
       },
       {
         "id": "fine",
         "x": 400,
-        "y": 925,
+        "y": 790,
         "w": 300,
         "h": 96,
-        "title": "If outside 0.20 cell: correct",
-        "body": "Local response at actual pose\nFine light allowed only if guarded",
+        "title": "Contained local correction",
+        "body": "Charge shared correction-plan ledger\nFresh settled frame fence; remeasure",
         "kind": "process"
       },
       {
         "id": "accept",
         "x": 750,
-        "y": 750,
+        "y": 585,
         "w": 300,
         "h": 96,
         "title": "Within 0.20 cell",
-        "body": "Measured target acceptance\nDoes not confirm physical stone",
+        "body": "Fresh optical target acceptance\nKeep accepted beam if eligible",
         "kind": "gate"
       },
       {
         "id": "hold",
         "x": 750,
-        "y": 925,
+        "y": 790,
         "w": 300,
         "h": 96,
-        "title": "Verify and hold indication",
-        "body": "If dark: new PREPARE + SWEEP\nIf already lit: promote same beam",
-        "kind": "process"
+        "title": "Independent held verification",
+        "body": "Recheck exact evidence + scope\nPublish adequate; then native cue",
+        "kind": "gate"
       },
       {
         "id": "monitor",
         "x": 750,
-        "y": 1110,
+        "y": 1000,
         "w": 300,
         "h": 96,
-        "title": "Read fresh spot repeatedly",
-        "body": "Must stay within 0.20 cell\nEmit adequate; await placement",
+        "title": "Monitor current held target",
+        "body": "Outside band \u2192 withdraw adequate\nFresh confirmation \u2192 bounded repair",
         "kind": "process"
       },
       {
-        "id": "refresh",
+        "id": "renew",
         "x": 400,
-        "y": 1110,
+        "y": 1190,
         "w": 300,
         "h": 96,
-        "title": "Renew dark geometry",
-        "body": "At age \u22656 s (10 s max, 4 s reserve)\nOr light interval near 55 s",
+        "title": "Renew geometry certificate",
+        "body": "Fresh fixed-anchor lit proof if valid\nDefer optional work / DARK fallback",
         "kind": "process"
+      },
+      {
+        "id": "anchor",
+        "x": 50,
+        "y": 1000,
+        "w": 300,
+        "h": 96,
+        "title": "Persist historical measured hint",
+        "body": "After gated optical publication\nValid even if requested target missed",
+        "kind": "store"
       },
       {
         "id": "placement",
         "x": 750,
-        "y": 1300,
+        "y": 1190,
         "w": 300,
         "h": 96,
-        "title": "Hand / stone / new request",
-        "body": "Revoke old operation \u2192 dark/OFF\nNative confirms physical outcome",
+        "title": "Hand / placement / new intent",
+        "body": "Revoke old operation \u2192 dark/OFF\nNative independently confirms stone",
         "kind": "process"
       },
       {
-        "id": "guards",
+        "id": "budget",
         "x": 50,
-        "y": 1300,
+        "y": 1190,
         "w": 300,
         "h": 96,
-        "title": "Independent guards throughout",
-        "body": "Lease / hand / thermal / actual pose\nAny fault \u2192 cancellation / full OFF",
-        "kind": "fault"
+        "title": "One work ledger",
+        "body": "150s active / 25 local plans\nStable adequate waiting excluded",
+        "kind": "gate"
       }
     ],
     "edges": [
@@ -1189,85 +1269,78 @@
       },
       {
         "a": "initial",
-        "b": "dark",
-        "label": "",
-        "route": null,
-        "kind": "normal"
-      },
-      {
-        "a": "dark",
         "b": "coarse",
-        "label": "outside tolerance",
+        "label": "outside band",
         "route": [
           [
             200,
-            623
+            443
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "initial",
+        "b": "accept",
+        "label": "accepted beam",
+        "route": [
+          [
+            900,
+            443
           ]
         ],
         "kind": "normal"
       },
       {
         "a": "coarse",
-        "b": "reacquire",
+        "b": "observe",
         "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "reacquire",
+        "a": "observe",
         "b": "fine",
-        "label": "miss",
+        "label": "outside band",
         "route": null,
         "kind": "normal"
       },
       {
         "a": "fine",
-        "b": "reacquire",
+        "b": "observe",
         "label": "remeasure",
         "route": [
           [
             550,
-            1068
+            940
           ],
           [
             200,
-            1068
+            940
           ]
         ],
         "kind": "normal"
       },
       {
-        "a": "dark",
-        "b": "accept",
-        "label": "already close",
-        "route": [
-          [
-            900,
-            623
-          ]
-        ],
-        "kind": "normal"
-      },
-      {
-        "a": "reacquire",
+        "a": "observe",
         "b": "accept",
         "label": "measured pass",
         "route": [
           [
             375,
-            973
+            838
           ],
           [
             375,
-            867
+            720
           ],
           [
             735,
-            867
+            720
           ],
           [
             735,
-            798
+            633
           ]
         ],
         "kind": "normal"
@@ -1288,35 +1361,51 @@
       },
       {
         "a": "monitor",
-        "b": "refresh",
-        "label": "refresh due",
+        "b": "placement",
+        "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "refresh",
-        "b": "prepare",
-        "label": "new dark anchor",
+        "a": "monitor",
+        "b": "renew",
+        "label": "renewal due",
         "route": [
           [
-            720,
-            1158
+            725,
+            1048
           ],
           [
-            720,
-            170
-          ],
-          [
-            550,
-            170
+            725,
+            1238
           ]
         ],
         "kind": "normal"
       },
       {
-        "a": "monitor",
-        "b": "placement",
-        "label": "",
+        "a": "renew",
+        "b": "prepare",
+        "label": "DARK when needed",
+        "route": [
+          [
+            720,
+            1238
+          ],
+          [
+            720,
+            175
+          ],
+          [
+            550,
+            175
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "observe",
+        "b": "anchor",
+        "label": "published sample",
         "route": null,
         "kind": "normal"
       }
@@ -1324,232 +1413,354 @@
     "refs": [
       "S15",
       "S16",
-      "S17",
-      "S18",
       "S20",
-      "S21",
-      "S11"
+      "S28",
+      "S29",
+      "S30",
+      "S33",
+      "S34",
+      "S35"
     ]
   },
   {
     "key": "recovery",
-    "title": "6 \u00b7 Cancellation, darkness and full OFF",
-    "desc": "Dark motors-held state is useful during play. It is not a full power-off receipt, and a command submission is not an acknowledgement.",
-    "height": 1130,
+    "title": "6 \u00b7 One recovery owner; full OFF remains the fallback",
+    "desc": "One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.",
+    "height": 1730,
     "nodes": [
       {
-        "id": "event",
-        "x": 50,
-        "y": 30,
-        "w": 300,
-        "h": 96,
-        "title": "Interruption / state change",
-        "body": "Hand, target replacement, pause\nCamera/lease, optical or hard fault",
-        "kind": "process"
-      },
-      {
-        "id": "revoke",
+        "id": "input",
         "x": 400,
-        "y": 30,
+        "y": 25,
         "w": 300,
         "h": 96,
-        "title": "Invalidate generation first",
-        "body": "No late worker command/result\nmay authorize the next request",
+        "title": "Held crossing / typed failure",
+        "body": "Withdraw adequate immediately\nEnter existing shared work ledger",
         "kind": "process"
       },
       {
-        "id": "quiet",
-        "x": 750,
-        "y": 30,
+        "id": "cross",
+        "x": 50,
+        "y": 220,
         "w": 300,
         "h": 96,
-        "title": "Quiesce worker / controller",
-        "body": "Coordinator owns stop and receipt\nWorker cleanup cannot send old IO",
+        "title": "Measured error >0.20 cell",
+        "body": "Newer full-board confirmation\nNo wider adequate band",
+        "kind": "gate"
+      },
+      {
+        "id": "expiry",
+        "x": 400,
+        "y": 220,
+        "w": 300,
+        "h": 96,
+        "title": "Finite optical-result expiry",
+        "body": "Discard old result; check live safety\nReacquire pose + newer full-board data",
         "kind": "process"
       },
       {
-        "id": "branch",
+        "id": "geometry",
         "x": 750,
         "y": 220,
         "w": 300,
         "h": 96,
-        "title": "Choose permitted stop path",
-        "body": "Healthy eligible handoff only\nOtherwise request full OFF",
+        "title": "Coherent geometry candidate",
+        "body": "DARK first, including PREPARE\nAssess exact rejected pixels only",
+        "kind": "process"
+      },
+      {
+        "id": "confirm",
+        "x": 50,
+        "y": 420,
+        "w": 300,
+        "h": 96,
+        "title": "Confirmation still outside?",
+        "body": "Use contained local correction\nThen independent held observation",
+        "kind": "process"
+      },
+      {
+        "id": "fresh",
+        "x": 400,
+        "y": 420,
+        "w": 300,
+        "h": 96,
+        "title": "Same operation / current proof",
+        "body": "Original target, token and session\nOnly acknowledged own RS may advance",
         "kind": "gate"
       },
       {
-        "id": "darkhold",
-        "x": 400,
-        "y": 405,
+        "id": "fit",
+        "x": 750,
+        "y": 420,
         "w": 300,
         "h": 96,
-        "title": "DARK / holding receipt",
-        "body": "Beam off, motors held, bus powered\nCooling can instead release motors",
+        "title": "Qualify replacement geometry",
+        "body": "Three newer dark frames; validate\nInstall only after replacement passes",
+        "kind": "gate"
+      },
+      {
+        "id": "hint",
+        "x": 750,
+        "y": 620,
+        "w": 300,
+        "h": 96,
+        "title": "Historical containment only",
+        "body": "Old sample/H grants no movement\nFresh pose + full-board spot required",
+        "kind": "process"
+      },
+      {
+        "id": "adequate",
+        "x": 400,
+        "y": 820,
+        "w": 300,
+        "h": 96,
+        "title": "Current adequate publication",
+        "body": "Same-sample age / pose / hand checks\nRecheck original cue age at native",
+        "kind": "gate"
+      },
+      {
+        "id": "lease",
+        "x": 50,
+        "y": 620,
+        "w": 300,
+        "h": 96,
+        "title": "Shared finite recovery episode",
+        "body": "\u226430s provisional wall cap\nNested retries never restart it",
+        "kind": "gate"
+      },
+      {
+        "id": "failure",
+        "x": 50,
+        "y": 1020,
+        "w": 300,
+        "h": 96,
+        "title": "Any unqualified failure",
+        "body": "Unknown hand/spot, lost lease,\ntransport, identity or exhausted work",
+        "kind": "fault"
+      },
+      {
+        "id": "cancel",
+        "x": 400,
+        "y": 1020,
+        "w": 300,
+        "h": 96,
+        "title": "Revoke \u2192 quiesce \u2192 full OFF",
+        "body": "Coordinator owns stop + receipt\nNo transport writes inside validators",
         "kind": "process"
       },
       {
         "id": "off",
         "x": 750,
-        "y": 405,
+        "y": 1020,
         "w": 300,
         "h": 96,
-        "title": "Full OFF receipt",
-        "body": "Beam off + motor bus released\nExact identity + fresh acknowledgement",
+        "title": "Require full OFF receipt",
+        "body": "Beam off + motor power released\nNot merely DARK with motors held",
         "kind": "gate"
       },
       {
-        "id": "frame",
-        "x": 400,
-        "y": 600,
+        "id": "dark",
+        "x": 750,
+        "y": 1220,
         "w": 300,
         "h": 96,
-        "title": "Post-dark camera evidence",
-        "body": "Same stream + frame watermark\n\u2265300 ms presentation flush",
-        "kind": "gate"
-      },
-      {
-        "id": "transient",
-        "x": 50,
-        "y": 795,
-        "w": 300,
-        "h": 96,
-        "title": "Classified transient recovery",
-        "body": "Camera/lease barrier + fresh streak\nCurrent target must be reverified",
+        "title": "Post-dark physical evidence",
+        "body": "Same stream + watermark + flush\nNo stone acceptance from a receipt",
         "kind": "process"
       },
       {
-        "id": "explicit",
-        "x": 750,
-        "y": 795,
+        "id": "resume",
+        "x": 400,
+        "y": 1400,
         "w": 300,
         "h": 96,
-        "title": "Hard / unexplained failure",
-        "body": "Pause game + clock; retain target\nExplicit recheck / Resume required",
+        "title": "Native recovery / explicit Resume",
+        "body": "Preserve pending move and clocks\nHardware recovery cannot resume game",
+        "kind": "process"
+      },
+      {
+        "id": "nooff",
+        "x": 50,
+        "y": 1220,
+        "w": 300,
+        "h": 96,
+        "title": "Missing receipt: state unknown",
+        "body": "Report shutdown failure honestly\nPhysical power report is separate",
         "kind": "fault"
       },
       {
-        "id": "retry",
-        "x": 400,
-        "y": 980,
+        "id": "signal",
+        "x": 50,
+        "y": 1575,
         "w": 300,
         "h": 96,
-        "title": "Re-admit under current proof",
-        "body": "New scope, clear board, fresh status\nHardware recovery alone \u2260 Resume",
+        "title": "Signal: assign plain stop flag",
+        "body": "Handler takes no Event/runtime locks\nNormal control flow performs cleanup",
+        "kind": "process"
+      },
+      {
+        "id": "startupstop",
+        "x": 750,
+        "y": 1575,
+        "w": 300,
+        "h": 96,
+        "title": "Startup and late-I/O cancellation",
+        "body": "Stop predicate checked before launch\nStopped readers cannot admit or poll",
         "kind": "process"
       }
     ],
     "edges": [
       {
-        "a": "event",
-        "b": "revoke",
+        "a": "input",
+        "b": "cross",
+        "label": "",
+        "route": [
+          [
+            200,
+            155
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "input",
+        "b": "expiry",
         "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "revoke",
-        "b": "quiet",
+        "a": "input",
+        "b": "geometry",
+        "label": "",
+        "route": [
+          [
+            900,
+            155
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "cross",
+        "b": "confirm",
         "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "quiet",
-        "b": "branch",
+        "a": "confirm",
+        "b": "adequate",
+        "label": "independent recheck",
+        "route": [
+          [
+            375,
+            468
+          ],
+          [
+            375,
+            780
+          ],
+          [
+            550,
+            780
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "expiry",
+        "b": "fresh",
         "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "branch",
+        "a": "fresh",
+        "b": "adequate",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "geometry",
+        "b": "fit",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "fit",
+        "b": "hint",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "hint",
+        "b": "adequate",
+        "label": "new optical proof",
+        "route": [
+          [
+            900,
+            780
+          ],
+          [
+            550,
+            780
+          ]
+        ],
+        "kind": "normal"
+      },
+      {
+        "a": "failure",
+        "b": "cancel",
+        "label": "",
+        "route": null,
+        "kind": "normal"
+      },
+      {
+        "a": "cancel",
         "b": "off",
-        "label": "fault / pause",
-        "route": null,
-        "kind": "normal"
-      },
-      {
-        "a": "branch",
-        "b": "darkhold",
-        "label": "eligible warm handoff",
-        "route": [
-          [
-            550,
-            268
-          ]
-        ],
-        "kind": "normal"
-      },
-      {
-        "a": "darkhold",
-        "b": "frame",
         "label": "",
         "route": null,
         "kind": "normal"
       },
       {
-        "a": "off",
-        "b": "frame",
-        "label": "after full OFF",
+        "a": "cancel",
+        "b": "nooff",
+        "label": "no receipt",
         "route": [
           [
-            900,
-            555
+            350,
+            1068
           ],
           [
-            550,
-            555
-          ]
-        ],
-        "kind": "normal"
-      },
-      {
-        "a": "frame",
-        "b": "transient",
-        "label": "classified recovery",
-        "route": [
+            350,
+            1160
+          ],
           [
             200,
-            648
+            1160
           ]
         ],
         "kind": "normal"
       },
       {
         "a": "off",
-        "b": "explicit",
-        "label": "hard fault",
-        "route": [
-          [
-            1080,
-            453
-          ],
-          [
-            1080,
-            843
-          ]
-        ],
+        "b": "dark",
+        "label": "",
+        "route": null,
         "kind": "normal"
       },
       {
-        "a": "explicit",
-        "b": "retry",
-        "label": "explicit action",
+        "a": "dark",
+        "b": "resume",
+        "label": "fresh evidence",
         "route": [
           [
             900,
-            1028
-          ]
-        ],
-        "kind": "normal"
-      },
-      {
-        "a": "transient",
-        "b": "retry",
-        "label": "fresh witnesses",
-        "route": [
-          [
-            200,
-            1028
+            1448
           ]
         ],
         "kind": "normal"
@@ -1558,10 +1769,17 @@
     "refs": [
       "S11",
       "S13",
+      "S15",
+      "S16",
       "S25",
       "S26",
-      "S27",
-      "S1"
+      "S28",
+      "S29",
+      "S34",
+      "S35",
+      "S36",
+      "S37",
+      "S38"
     ]
   },
   {
@@ -1577,7 +1795,7 @@
         "w": 300,
         "h": 96,
         "title": "Admitted board observations",
-        "body": "Same camera / grid / hand pipeline\nMode chooses the decision owner",
+        "body": "Same camera / wood / hand pipeline\nMode owns evidence + move acceptance",
         "kind": "process"
       },
       {

@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Physical Go — complete process map</title><style>
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f5f7fa;color:#182b40;font:16px/1.55 system-ui,-apple-system,sans-serif}main{max-width:1200px;margin:auto;padding:32px 24px 70px}h1{font-size:32px;margin:0 0 8px}h2{font-size:24px;margin:0 0 8px}h3{font-size:19px;margin:24px 0 8px}p{margin:8px 0 14px}a{color:#175a91}nav{display:flex;flex-wrap:wrap;gap:8px 20px;margin:22px 0}.snapshot{border-left:4px solid #805d16;padding:6px 18px;background:#fff4d9}section{margin-top:42px;padding-top:12px;border-top:1px solid #d4dde5}.diagram{overflow:auto;background:white;margin:16px 0;max-width:100%;border:1px solid #d4dde5}.diagram svg{display:block;min-width:1120px}li{margin:10px 0}.refs{font-size:14px}code{font-size:0.94em;overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;font-size:15px}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #d4dde5;padding:10px}th{background:#edf2f8}.table-wrap{overflow:auto}#sources a{overflow-wrap:anywhere}summary{cursor:pointer;font-weight:600}.legend{display:flex;flex-wrap:wrap;gap:10px 20px}.legend span{padding:3px 10px;border-radius:4px}.process{background:#eaf2ff}.gate{background:#fff4d9}.store{background:#edf5ef}.fault{background:#fff0ef}button{font:inherit;padding:5px 12px;background:#fff;border:1px solid #889aae;border-radius:5px;color:#182b40;cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #23538a;outline-offset:3px}#validation{display:none}@media(max-width:600px){main{padding:20px 14px}h1{font-size:27px}h2{font-size:22px}}@media print{body{background:white}main{max-width:none;padding:0}.diagram{overflow:visible;border:0}.diagram svg{min-width:0;width:100%;height:auto}section{break-before:page}nav,button{display:none}}
-    </style></head><body><main><h1>Physical Go · complete process map</h1><p>Read the overview first; follow each detailed map to the decisions and evidence that matter.</p><div class="snapshot"><strong>Architecture snapshot · November 25, 2026</strong><br>Native 0.264/build265 · <code>0f9ac75</code> · host <code>fc8cb7d</code> · firmware v44. Original flow snapshot: game paused, Q17 pending, separate full OFF verified. Latest installed/frozen host: <code>968ba538-app0264</code>. Final attended retry again failed temporal reuse at frame57014; separate full OFF <code>1795596934.1468098</code>. Q17 remains pending; no sustained-play pass. The diagrams/source index retain the <code>fc8cb7d</code> process-flow snapshot; later tracking/validation repairs leave this high-level flow unchanged. The attended baseline window and authorized retry have ended; subsequent work is offline. This document cannot establish current hardware state.</div><nav><a href="#overview">The complete system</a><a href="#calibration">Two calibrations, then permission to play</a><a href="#data">Camera, processing and file boundaries</a><a href="#gameplay">AI game and physical placement</a><a href="#laser">Host aiming and holding</a><a href="#recovery">Cancellation, darkness and full OFF</a><a href="#modes">Local recording, online play and review</a><a href="#findings">Architectural findings</a><a href="#timing">Timing boundaries</a><a href="#sources">Sources</a></nav><div class="legend"><span class="process">Process</span><span class="gate">Evidence / admission gate</span><span class="store">Queue / stored exchange</span><span class="fault">Fault / limitation</span></div><p class="refs">Arrows show control or evidence flow, not measured duration. Diagrams remain readable at full size; horizontally scroll on narrow windows or open the SVG. Browser zoom and print are supported.</p><section id="overview"><h2>1 · The complete system</h2><p>Separate observed stones, legal history, requested guidance and actual hardware state.</p><p class="refs">Sources: <a href="#source-S1">S1</a> · <a href="#source-S2">S2</a> · <a href="#source-S22">S22</a> · <a href="#source-S23">S23</a> · <a href="#source-S24">S24</a> · <a href="overview.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 1 · The complete system"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 790" width="1120" height="790" role="img" aria-labelledby="overview-title overview-desc">
+    </style></head><body><main><h1>Physical Go · complete process map</h1><p>Read the overview first; follow each detailed map to the decisions and evidence that matter.</p><div class="snapshot"><strong>Installed 0.269 — offline validated; latest attended attempt failed, physical acceptance open</strong><br>Source 2026-11-27 · native <code>d014c63</code> · host <code>31d84de</code><br>Installed baseline: 0.269/build270 d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4 / 31d84de4c35ee249312dc19b7c501efd9cce1dc1-app0269<br>Installed0.269 run1795767435349051000 point12 failed before adequate: cached gameplay safety frame1864 capture age604.260ms exceeded600ms, then lease/transport fault. Ctrl-C exited promptly, without the prior signal hang, but controller_off=null and full_off_verified=false. User physical power-off confirmation pending at this map snapshot. Game paused, O17 unplaced.<br>Installed changes include hold recovery, PG23 receipts, qualified native admission, A1/A2 repairs, independent request/status I/O, strict newer-frame reread, signal/startup cancellation and stopped-background fences. Root reports1320 host tests/57 skips,8 native suites,8 renewal replays and mandatory paired PASS; final source approval587c778a3c635ea496e217a66d436339e3e67c9b. Source review/offline results do not establish physical reliability or latency.</div><nav><a href="#overview">The complete system</a><a href="#calibration">Two calibrations, then permission to play</a><a href="#data">Camera, processing and file boundaries</a><a href="#gameplay">AI game and physical placement</a><a href="#laser">Aim, publish and hold one target</a><a href="#recovery">One recovery owner; full OFF remains the fallback</a><a href="#modes">Local recording, online play and review</a><a href="#findings">Architectural findings</a><a href="#timing">Timing boundaries</a><a href="#sources">Sources</a></nav><div class="legend"><span class="process">Process</span><span class="gate">Evidence / admission gate</span><span class="store">Queue / stored exchange</span><span class="fault">Fault / limitation</span></div><p class="refs">Arrows show control or evidence flow, not measured duration. Diagrams remain readable at full size; horizontally scroll on narrow windows or open the SVG. Browser zoom and print are supported.</p><section id="overview"><h2>1 · The complete system</h2><p>Separate observed stones, legal history, requested guidance and actual hardware state.</p><p class="refs">Sources: <a href="#source-S1">S1</a> · <a href="#source-S2">S2</a> · <a href="#source-S22">S22</a> · <a href="#source-S23">S23</a> · <a href="#source-S24">S24</a> · <a href="overview.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 1 · The complete system"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 790" width="1120" height="790" role="img" aria-labelledby="overview-title overview-desc">
 <title id="overview-title">1 · The complete system</title><desc id="overview-desc">Separate observed stones, legal history, requested guidance and actual hardware state.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
@@ -23,8 +23,8 @@
 <text class="edge-label" x="725.0" y="615.0" text-anchor="middle">pause / stop</text>
 <g data-node="setup"><rect x="50" y="35" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="62">A. Qualify the setup</text>
-<text class="node-body" x="64" y="89">Camera grid + pointer map</text>
-<text class="node-body" x="64" y="110">Independent checks + READY</text>
+<text class="node-body" x="64" y="89">Grid + motor map + wood profile</text>
+<text class="node-body" x="64" y="110">Independent checks + fresh READY</text>
 </g>
 <g data-node="camera"><rect x="50" y="225" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="252">B. Observe the board</text>
@@ -43,8 +43,8 @@
 </g>
 <g data-node="host"><rect x="750" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="442">E. Aim and monitor</text>
-<text class="node-body" x="764" y="469">Dark admission → optical aim</text>
-<text class="node-body" x="764" y="490">Hold or stop; report real state</text>
+<text class="node-body" x="764" y="469">Measure → hold → bounded recovery</text>
+<text class="node-body" x="764" y="490">Lost authority → full OFF</text>
 </g>
 <g data-node="human"><rect x="400" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="442">F. Human changes board</text>
@@ -62,11 +62,12 @@
 <text class="node-body" x="414" y="700">Explicit scoring / resume</text>
 </g>
 <g data-node="fault"><rect x="750" y="625" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="764" y="652">Fault or pause → full OFF</text>
-<text class="node-body" x="764" y="679">Beam off + motor bus released</text>
-<text class="node-body" x="764" y="700">Retain game and pending move</text>
+<text class="node-title" x="764" y="652">Fault or pause → request OFF</text>
+<text class="node-body" x="764" y="679">Require beam / motor OFF receipt</text>
+<text class="node-body" x="764" y="700">Missing receipt remains unknown</text>
 </g>
-</svg></div></section><section id="calibration"><h2>2 · Two calibrations, then permission to play</h2><p>A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.</p><p class="refs">Sources: <a href="#source-S3">S3</a> · <a href="#source-S12">S12</a> · <a href="#source-S19">S19</a> · <a href="#source-S1">S1</a> · <a href="calibration.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 2 · Two calibrations, then permission to play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1120" width="1120" height="1120" role="img" aria-labelledby="calibration-title calibration-desc">
+<text x="30" y="780" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="calibration"><h2>2 · Two calibrations, then permission to play</h2><p>A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.</p><p class="refs">Sources: <a href="#source-S3">S3</a> · <a href="#source-S12">S12</a> · <a href="#source-S19">S19</a> · <a href="#source-S30">S30</a> · <a href="#source-S32">S32</a> · <a href="#source-S1">S1</a> · <a href="calibration.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 2 · Two calibrations, then permission to play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1120" width="1120" height="1120" role="img" aria-labelledby="calibration-title calibration-desc">
 <title id="calibration-title">2 · Two calibrations, then permission to play</title><desc id="calibration-desc">A grid fit maps pixels to intersections. A motor fit maps encoder poses to the laser spot. Neither proves current clearance.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
@@ -95,8 +96,8 @@
 </g>
 <g data-node="ref"><rect x="50" y="380" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="407">Retain geometry/reference</text>
-<text class="node-body" x="64" y="434">Native board coordinate system</text>
-<text class="node-body" x="64" y="455">Lighting / occupancy references</text>
+<text class="node-body" x="64" y="434">Native grid + physical-wood profile</text>
+<text class="node-body" x="64" y="455">Unknown perimeter stays unknown</text>
 </g>
 <g data-node="measure"><rect x="400" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="232">Measure pointer → board</text>
@@ -115,7 +116,7 @@
 </g>
 <g data-node="bind"><rect x="400" y="730" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="757">Bind approved setup</text>
-<text class="node-body" x="414" y="784">Hashes: model/setup/reference</text>
+<text class="node-body" x="414" y="784">Hashes: model/setup/reference/profile</text>
 <text class="node-body" x="414" y="805">Camera/context/size/allowed targets</text>
 </g>
 <g data-node="verify"><rect x="750" y="555" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
@@ -130,16 +131,17 @@
 </g>
 <g data-node="launch"><rect x="750" y="915" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="942">Open one host / controller</text>
-<text class="node-body" x="764" y="969">OFF handshake → capability check</text>
-<text class="node-body" x="764" y="990">Then current session admission</text>
+<text class="node-body" x="764" y="969">Fresh OFF handshake + capabilities</text>
+<text class="node-body" x="764" y="990">Historical hint needs fresh proof</text>
 </g>
 <g data-node="moved"><rect x="50" y="730" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
 <text class="node-title" x="64" y="757">If board/camera/pointer moves</text>
 <text class="node-body" x="64" y="784">Requalify affected relationships</text>
 <text class="node-body" x="64" y="805">A matching file hash is insufficient</text>
 </g>
-</svg></div></section><section id="data"><h2>3 · Camera, processing and file boundaries</h2><p>Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.</p><p class="refs">Sources: <a href="#source-S4">S4</a> · <a href="#source-S5">S5</a> · <a href="#source-S6">S6</a> · <a href="#source-S7">S7</a> · <a href="#source-S8">S8</a> · <a href="#source-S9">S9</a> · <a href="#source-S13">S13</a> · <a href="#source-S14">S14</a> · <a href="data.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 3 · Camera, processing and file boundaries"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1110" width="1120" height="1110" role="img" aria-labelledby="data-title data-desc">
-<title id="data-title">3 · Camera, processing and file boundaries</title><desc id="data-desc">Parallel lanes prevent slow image writing from blocking safety delivery. Original timestamps survive every queue.</desc>
+<text x="30" y="1110" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="data"><h2>3 · Camera, processing and file boundaries</h2><p>Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.</p><p class="refs">Sources: <a href="#source-S4">S4</a> · <a href="#source-S5">S5</a> · <a href="#source-S6">S6</a> · <a href="#source-S7">S7</a> · <a href="#source-S8">S8</a> · <a href="#source-S9">S9</a> · <a href="#source-S13">S13</a> · <a href="#source-S14">S14</a> · <a href="#source-S34">S34</a> · <a href="#source-S37">S37</a> · <a href="#source-S38">S38</a> · <a href="data.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 3 · Camera, processing and file boundaries"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1220" width="1120" height="1220" role="img" aria-labelledby="data-title data-desc">
+<title id="data-title">3 · Camera, processing and file boundaries</title><desc id="data-desc">Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
@@ -155,13 +157,15 @@
 <polyline points="900.0,526.0 900.0,630.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
 <polyline points="550.0,526.0 550.0,630.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
 <polyline points="200.0,726.0 200.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="350.0,888.0 400.0,888.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,936.0 200.0,1050.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
 <polyline points="550.0,726.0 550.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="550.0" y="775.0" text-anchor="middle">lease / receipt</text>
+<text class="edge-label" x="550.0" y="775.0" text-anchor="middle">request</text>
 <polyline points="900.0,726.0 900,790 650,790 550.0,790 550.0,840.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
 <text class="edge-label" x="775.0" y="782.0" text-anchor="middle">revoke / monitor</text>
-<polyline points="700.0,888.0 725,888 725,678 700.0,678.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="725.0" y="817.0" text-anchor="middle">fresh ack</text>
+<polyline points="400.0,888.0 375,888 375,1010 200,1010 200.0,1050.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="50.0,1098.0 30,1098 30,790 550,790 550.0,726.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="290.0" y="782.0" text-anchor="middle">status</text>
+<polyline points="350.0,888.0 375,888 375,1010 550,1010 550.0,1050.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
 <g data-node="capture"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="57">Camera serial queue</text>
 <text class="node-body" x="64" y="84">AVFoundation presentation time</text>
@@ -174,7 +178,7 @@
 </g>
 <g data-node="vision"><rect x="400" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="242">Serial vision worker</text>
-<text class="node-body" x="414" y="269">Alignment + exposure + hand</text>
+<text class="node-body" x="414" y="269">Physical wood / grid / hand support</text>
 <text class="node-body" x="414" y="290">Then stone/shape/assignment evidence</text>
 </g>
 <g data-node="latest"><rect x="400" y="30" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
@@ -184,8 +188,8 @@
 </g>
 <g data-node="safety"><rect x="750" y="215" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="242">Early safety → main actor</text>
-<text class="node-body" x="764" y="269">Current revision checked</text>
-<text class="node-body" x="764" y="290">Clearance is not stone acceptance</text>
+<text class="node-body" x="764" y="269">Current revision + actual timestamps</text>
+<text class="node-body" x="764" y="290">Independent of geometry exclusions</text>
 </g>
 <g data-node="observe"><rect x="400" y="430" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="457">Final observation → game</text>
@@ -223,11 +227,27 @@
 <text class="node-body" x="764" y="705">Can revoke busy optical worker</text>
 </g>
 <g data-node="status"><rect x="400" y="840" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="867">Host coordinator + worker</text>
-<text class="node-body" x="414" y="894">Single hardware generation</text>
-<text class="node-body" x="414" y="915">Receipt/status returns to native</text>
+<text class="node-title" x="414" y="867">Host request reader</text>
+<text class="node-body" x="414" y="894">Dedicated bounded request read</text>
+<text class="node-body" x="414" y="915">Gate checks identity / lease / stop</text>
 </g>
-</svg></div></section><section id="gameplay"><h2>4 · AI game and physical placement</h2><p>The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.</p><p class="refs">Sources: <a href="#source-S10">S10</a> · <a href="#source-S11">S11</a> · <a href="#source-S22">S22</a> · <a href="#source-S23">S23</a> · <a href="#source-S25">S25</a> · <a href="gameplay.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 4 · AI game and physical placement"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1170" width="1120" height="1170" role="img" aria-labelledby="gameplay-title gameplay-desc">
+<g data-node="publisher"><rect x="50" y="1050" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="1077">Host status writer: one owner</text>
+<text class="node-body" x="64" y="1104">No queue; skip concurrent publish</text>
+<text class="node-body" x="64" y="1125">Old snapshot fenced at replacement</text>
+</g>
+<g data-node="reread"><rect x="400" y="1050" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1077">Raw expiry: one newer reread</text>
+<text class="node-body" x="414" y="1104">Same scope; newer frame ID + capture</text>
+<text class="node-body" x="414" y="1125">Original 600 ms checks stay in force</text>
+</g>
+<g data-node="stopfence"><rect x="750" y="1050" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="1077">Stop fences on background I/O</text>
+<text class="node-body" x="764" y="1104">Before snapshot / lease poll / rename</text>
+<text class="node-body" x="764" y="1125">Only close may publish final OFF</text>
+</g>
+<text x="30" y="1210" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="gameplay"><h2>4 · AI game and physical placement</h2><p>The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.</p><p class="refs">Sources: <a href="#source-S10">S10</a> · <a href="#source-S11">S11</a> · <a href="#source-S22">S22</a> · <a href="#source-S23">S23</a> · <a href="#source-S25">S25</a> · <a href="#source-S40">S40</a> · <a href="gameplay.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 4 · AI game and physical placement"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1170" width="1120" height="1170" role="img" aria-labelledby="gameplay-title gameplay-desc">
 <title id="gameplay-title">4 · AI game and physical placement</title><desc id="gameplay-desc">The AI move enters legal history before its stone is physically placed. pendingPlacement preserves that difference.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
@@ -269,8 +289,8 @@
 </g>
 <g data-node="ambiguity"><rect x="50" y="390" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="417">Resolve assignment</text>
-<text class="node-body" x="64" y="444">New stone location must be unique</text>
-<text class="node-body" x="64" y="465">Weak empty neighbor can block</text>
+<text class="node-body" x="64" y="444">Unique new-stone assignment</text>
+<text class="node-body" x="64" y="465">PG23: current qualified EMPTY only</text>
 </g>
 <g data-node="stable"><rect x="50" y="570" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="597">Collect stable witnesses</text>
@@ -299,8 +319,8 @@
 </g>
 <g data-node="aim"><rect x="750" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="417">Host aims / holds dot</text>
-<text class="node-body" x="764" y="444">Fresh target admission + optical aim</text>
-<text class="node-body" x="764" y="465">Native click: first light ack only</text>
+<text class="node-body" x="764" y="444">Aim / hold / recover same target</text>
+<text class="node-body" x="764" y="465">Cue needs original fresh optical proof</text>
 </g>
 <g data-node="human"><rect x="750" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="237">Human places / removes</text>
@@ -322,176 +342,221 @@
 <text class="node-body" x="414" y="1019">Hard guidance fault pauses clocks</text>
 <text class="node-body" x="414" y="1040">Explicit Resume keeps pending work</text>
 </g>
-</svg></div></section><section id="laser"><h2>5 · Host aiming and holding</h2><p>Every observation has its own fresh pixels and actual-pose checks. Geometry can be reused only while its fixed anchor still agrees.</p><p class="refs">Sources: <a href="#source-S15">S15</a> · <a href="#source-S16">S16</a> · <a href="#source-S17">S17</a> · <a href="#source-S18">S18</a> · <a href="#source-S20">S20</a> · <a href="#source-S21">S21</a> · <a href="#source-S11">S11</a> · <a href="laser.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 5 · Host aiming and holding"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1480" width="1120" height="1480" role="img" aria-labelledby="laser-title laser-desc">
-<title id="laser-title">5 · Host aiming and holding</title><desc id="laser-desc">Every observation has its own fresh pixels and actual-pose checks. Geometry can be reused only while its fixed anchor still agrees.</desc>
+<text x="30" y="1160" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="laser"><h2>5 · Aim, publish and hold one target</h2><p>Measured optical anchors and target-adequate evidence are different results. The same operation owns initial aiming and every recovery.</p><p class="refs">Sources: <a href="#source-S15">S15</a> · <a href="#source-S16">S16</a> · <a href="#source-S20">S20</a> · <a href="#source-S28">S28</a> · <a href="#source-S29">S29</a> · <a href="#source-S30">S30</a> · <a href="#source-S33">S33</a> · <a href="#source-S34">S34</a> · <a href="#source-S35">S35</a> · <a href="laser.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 5 · Aim, publish and hold one target"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1390" width="1120" height="1390" role="img" aria-labelledby="laser-title laser-desc">
+<title id="laser-title">5 · Aim, publish and hold one target</title><desc id="laser-desc">Measured optical anchors and target-adequate evidence are different results. The same operation owns initial aiming and every recovery.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
 <polyline points="350.0,78.0 400.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,126.0 550.0,205.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,301.0 550.0,390.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,486.0 550.0,575.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="400.0,623.0 200,623 200.0,750.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="615.0" text-anchor="middle">outside tolerance</text>
-<polyline points="200.0,846.0 200.0,925.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="350.0,973.0 400.0,973.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="375.0" y="915.0" text-anchor="middle">miss</text>
-<polyline points="550.0,1021.0 550,1068 200,1068 200.0,1021.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="375.0" y="1060.0" text-anchor="middle">remeasure</text>
-<polyline points="700.0,623.0 900,623 900.0,750.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="800.0" y="615.0" text-anchor="middle">already close</text>
-<polyline points="350.0,973.0 375,973 375,867 735,867 735,798 750.0,798.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="555.0" y="859.0" text-anchor="middle">measured pass</text>
-<polyline points="900.0,846.0 900.0,925.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,1021.0 900.0,1110.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="750.0,1158.0 700.0,1158.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="725.0" y="1100.0" text-anchor="middle">refresh due</text>
-<polyline points="700.0,1158.0 720,1158 720,170 550,170 550.0,205.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="635.0" y="162.0" text-anchor="middle">new dark anchor</text>
-<polyline points="900.0,1206.0 900.0,1300.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,126.0 550.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,306.0 550.0,395.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="400.0,443.0 200,443 200.0,585.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="300.0" y="435.0" text-anchor="middle">outside band</text>
+<polyline points="700.0,443.0 900,443 900.0,585.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="800.0" y="435.0" text-anchor="middle">accepted beam</text>
+<polyline points="200.0,681.0 200.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,838.0 400.0,838.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="780.0" text-anchor="middle">outside band</text>
+<polyline points="550.0,886.0 550,940 200,940 200.0,886.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="932.0" text-anchor="middle">remeasure</text>
+<polyline points="350.0,838.0 375,838 375,720 735,720 735,633 750.0,633.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="555.0" y="712.0" text-anchor="middle">measured pass</text>
+<polyline points="900.0,681.0 900.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,886.0 900.0,1000.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,1096.0 900.0,1190.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="750.0,1048.0 725,1048 725,1238 700.0,1238.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="1135.0" text-anchor="middle">renewal due</text>
+<polyline points="700.0,1238.0 720,1238 720,175 550,175 550.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="720.0" y="911.1" text-anchor="middle">DARK when needed</text>
+<polyline points="200.0,886.0 200.0,1000.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="200.0" y="935.0" text-anchor="middle">published sample</text>
 <g data-node="admit"><rect x="50" y="30" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="57">Admit current request</text>
 <text class="node-body" x="64" y="84">Binding + fresh frame + identity</text>
-<text class="node-body" x="64" y="105">Warm receipt or cold admission</text>
+<text class="node-body" x="64" y="105">Historical anchor is only a hint</text>
 </g>
 <g data-node="arm"><rect x="400" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="57">Cold GA / warm RS</text>
-<text class="node-body" x="414" y="84">Dark motor engagement / resume</text>
-<text class="node-body" x="414" y="105">Native unfinished episode ≤12 s</text>
+<text class="node-body" x="414" y="84">Dark engagement; phase evidence</text>
+<text class="node-body" x="414" y="105">No admission-clock reset on retry</text>
 </g>
-<g data-node="prepare"><rect x="400" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="232">Prepare while dark</text>
-<text class="node-body" x="414" y="259">PREPARE → three dark frames</text>
-<text class="node-body" x="414" y="280">Fit median geometry + fresh check</text>
+<g data-node="prepare"><rect x="400" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="237">Prepare while dark</text>
+<text class="node-body" x="414" y="264">Three new dark frames + grid fit</text>
+<text class="node-body" x="414" y="285">Fresh actual pose + first-light proof</text>
 </g>
-<g data-node="initial"><rect x="400" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="417">Initial optical observation</text>
-<text class="node-body" x="414" y="444">SWEEP light; flush ≥300 ms</text>
-<text class="node-body" x="414" y="465">Fresh batch + pose before/after</text>
+<g data-node="initial"><rect x="400" y="395" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="422">Measure actual spot</text>
+<text class="node-body" x="414" y="449">SWEEP + fresh stationary batch</text>
+<text class="node-body" x="414" y="470">Post-image causal motor evidence</text>
 </g>
-<g data-node="dark"><rect x="400" y="575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="602">Initial observe darkens</text>
-<text class="node-body" x="414" y="629">DARK + state/pose recheck</text>
-<text class="node-body" x="414" y="650">Even if target already accepted</text>
+<g data-node="coarse"><rect x="50" y="585" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="612">Initial predicted travel once</text>
+<text class="node-body" x="64" y="639">Dark contained coarse waypoints</text>
+<text class="node-body" x="64" y="660">Same active time; separate step cap</text>
 </g>
-<g data-node="coarse"><rect x="50" y="750" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="777">Try predicted dark travel</text>
-<text class="node-body" x="64" y="804">Bounded model / support corridor</text>
-<text class="node-body" x="64" y="825">GOTO + recenter actual settlement</text>
+<g data-node="observe"><rect x="50" y="790" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="817">Observe actual landing</text>
+<text class="node-body" x="64" y="844">Coarse / recovery: full-board batch</text>
+<text class="node-body" x="64" y="865">Ordinary fine: measured near estimate</text>
 </g>
-<g data-node="reacquire"><rect x="50" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="952">Observe actual landing</text>
-<text class="node-body" x="64" y="979">Coarse: search across the board</text>
-<text class="node-body" x="64" y="1000">Fine: measure near predicted spot</text>
+<g data-node="fine"><rect x="400" y="790" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="817">Contained local correction</text>
+<text class="node-body" x="414" y="844">Charge shared correction-plan ledger</text>
+<text class="node-body" x="414" y="865">Fresh settled frame fence; remeasure</text>
 </g>
-<g data-node="fine"><rect x="400" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="952">If outside 0.20 cell: correct</text>
-<text class="node-body" x="414" y="979">Local response at actual pose</text>
-<text class="node-body" x="414" y="1000">Fine light allowed only if guarded</text>
+<g data-node="accept"><rect x="750" y="585" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="612">Within 0.20 cell</text>
+<text class="node-body" x="764" y="639">Fresh optical target acceptance</text>
+<text class="node-body" x="764" y="660">Keep accepted beam if eligible</text>
 </g>
-<g data-node="accept"><rect x="750" y="750" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="777">Within 0.20 cell</text>
-<text class="node-body" x="764" y="804">Measured target acceptance</text>
-<text class="node-body" x="764" y="825">Does not confirm physical stone</text>
+<g data-node="hold"><rect x="750" y="790" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="817">Independent held verification</text>
+<text class="node-body" x="764" y="844">Recheck exact evidence + scope</text>
+<text class="node-body" x="764" y="865">Publish adequate; then native cue</text>
 </g>
-<g data-node="hold"><rect x="750" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="952">Verify and hold indication</text>
-<text class="node-body" x="764" y="979">If dark: new PREPARE + SWEEP</text>
-<text class="node-body" x="764" y="1000">If already lit: promote same beam</text>
+<g data-node="monitor"><rect x="750" y="1000" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1027">Monitor current held target</text>
+<text class="node-body" x="764" y="1054">Outside band → withdraw adequate</text>
+<text class="node-body" x="764" y="1075">Fresh confirmation → bounded repair</text>
 </g>
-<g data-node="monitor"><rect x="750" y="1110" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="1137">Read fresh spot repeatedly</text>
-<text class="node-body" x="764" y="1164">Must stay within 0.20 cell</text>
-<text class="node-body" x="764" y="1185">Emit adequate; await placement</text>
+<g data-node="renew"><rect x="400" y="1190" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1217">Renew geometry certificate</text>
+<text class="node-body" x="414" y="1244">Fresh fixed-anchor lit proof if valid</text>
+<text class="node-body" x="414" y="1265">Defer optional work / DARK fallback</text>
 </g>
-<g data-node="refresh"><rect x="400" y="1110" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="1137">Renew dark geometry</text>
-<text class="node-body" x="414" y="1164">At age ≥6 s (10 s max, 4 s reserve)</text>
-<text class="node-body" x="414" y="1185">Or light interval near 55 s</text>
+<g data-node="anchor"><rect x="50" y="1000" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="64" y="1027">Persist historical measured hint</text>
+<text class="node-body" x="64" y="1054">After gated optical publication</text>
+<text class="node-body" x="64" y="1075">Valid even if requested target missed</text>
 </g>
-<g data-node="placement"><rect x="750" y="1300" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="1327">Hand / stone / new request</text>
-<text class="node-body" x="764" y="1354">Revoke old operation → dark/OFF</text>
-<text class="node-body" x="764" y="1375">Native confirms physical outcome</text>
+<g data-node="placement"><rect x="750" y="1190" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1217">Hand / placement / new intent</text>
+<text class="node-body" x="764" y="1244">Revoke old operation → dark/OFF</text>
+<text class="node-body" x="764" y="1265">Native independently confirms stone</text>
 </g>
-<g data-node="guards"><rect x="50" y="1300" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="64" y="1327">Independent guards throughout</text>
-<text class="node-body" x="64" y="1354">Lease / hand / thermal / actual pose</text>
-<text class="node-body" x="64" y="1375">Any fault → cancellation / full OFF</text>
+<g data-node="budget"><rect x="50" y="1190" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="1217">One work ledger</text>
+<text class="node-body" x="64" y="1244">150s active / 25 local plans</text>
+<text class="node-body" x="64" y="1265">Stable adequate waiting excluded</text>
 </g>
-</svg></div></section><section id="recovery"><h2>6 · Cancellation, darkness and full OFF</h2><p>Dark motors-held state is useful during play. It is not a full power-off receipt, and a command submission is not an acknowledgement.</p><p class="refs">Sources: <a href="#source-S11">S11</a> · <a href="#source-S13">S13</a> · <a href="#source-S25">S25</a> · <a href="#source-S26">S26</a> · <a href="#source-S27">S27</a> · <a href="#source-S1">S1</a> · <a href="recovery.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 6 · Cancellation, darkness and full OFF"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1130" width="1120" height="1130" role="img" aria-labelledby="recovery-title recovery-desc">
-<title id="recovery-title">6 · Cancellation, darkness and full OFF</title><desc id="recovery-desc">Dark motors-held state is useful during play. It is not a full power-off receipt, and a command submission is not an acknowledgement.</desc>
+<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="recovery"><h2>6 · One recovery owner; full OFF remains the fallback</h2><p>One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.</p><p class="refs">Sources: <a href="#source-S11">S11</a> · <a href="#source-S13">S13</a> · <a href="#source-S15">S15</a> · <a href="#source-S16">S16</a> · <a href="#source-S25">S25</a> · <a href="#source-S26">S26</a> · <a href="#source-S28">S28</a> · <a href="#source-S29">S29</a> · <a href="#source-S34">S34</a> · <a href="#source-S35">S35</a> · <a href="#source-S36">S36</a> · <a href="#source-S37">S37</a> · <a href="#source-S38">S38</a> · <a href="recovery.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 6 · One recovery owner; full OFF remains the fallback"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1730" width="1120" height="1730" role="img" aria-labelledby="recovery-title recovery-desc">
+<title id="recovery-title">6 · One recovery owner; full OFF remains the fallback</title><desc id="recovery-desc">One scope/deadline governs recovery. Flag-only signals and stopped-background fences protect shutdown; success still requires an actual OFF receipt.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
-<polyline points="350.0,78.0 400.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="700.0,78.0 750.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,126.0 900.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,316.0 900.0,405.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="900.0" y="352.5" text-anchor="middle">fault / pause</text>
-<polyline points="750.0,268.0 550,268 550.0,405.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="650.0" y="260.0" text-anchor="middle">eligible warm handoff</text>
-<polyline points="550.0,501.0 550.0,600.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,501.0 900,555 550,555 550.0,600.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="725.0" y="547.0" text-anchor="middle">after full OFF</text>
-<polyline points="400.0,648.0 200,648 200.0,795.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="640.0" text-anchor="middle">classified recovery</text>
-<polyline points="1050.0,453.0 1080,453 1080,843 1050.0,843.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="1059.0" y="395.0" text-anchor="middle">hard fault</text>
-<polyline points="900.0,891.0 900,1028 700.0,1028.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="800.0" y="1020.0" text-anchor="middle">explicit action</text>
-<polyline points="200.0,891.0 200,1028 400.0,1028.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="1020.0" text-anchor="middle">fresh witnesses</text>
-<g data-node="event"><rect x="50" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="57">Interruption / state change</text>
-<text class="node-body" x="64" y="84">Hand, target replacement, pause</text>
-<text class="node-body" x="64" y="105">Camera/lease, optical or hard fault</text>
+<polyline points="400.0,73.0 200,73.0 200,155 200.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,121.0 550.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,73.0 900,73.0 900,155 900.0,220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="200.0,316.0 200.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,468.0 375,468 375,780 550,780 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="553.6" text-anchor="middle">independent recheck</text>
+<polyline points="550.0,316.0 550.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,516.0 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,316.0 900.0,420.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,516.0 900.0,620.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,716.0 900,780 550,780 550.0,820.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="772.0" text-anchor="middle">new optical proof</text>
+<polyline points="350.0,1068.0 400.0,1068.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="700.0,1068.0 750.0,1068.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="400.0,1068.0 350,1068 350,1160 200,1160 200.0,1220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="275.0" y="1152.0" text-anchor="middle">no receipt</text>
+<polyline points="900.0,1116.0 900.0,1220.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,1316.0 900,1448 700.0,1448.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="800.0" y="1440.0" text-anchor="middle">fresh evidence</text>
+<g data-node="input"><rect x="400" y="25" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="52">Held crossing / typed failure</text>
+<text class="node-body" x="414" y="79">Withdraw adequate immediately</text>
+<text class="node-body" x="414" y="100">Enter existing shared work ledger</text>
 </g>
-<g data-node="revoke"><rect x="400" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="57">Invalidate generation first</text>
-<text class="node-body" x="414" y="84">No late worker command/result</text>
-<text class="node-body" x="414" y="105">may authorize the next request</text>
+<g data-node="cross"><rect x="50" y="220" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="247">Measured error &gt;0.20 cell</text>
+<text class="node-body" x="64" y="274">Newer full-board confirmation</text>
+<text class="node-body" x="64" y="295">No wider adequate band</text>
 </g>
-<g data-node="quiet"><rect x="750" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="57">Quiesce worker / controller</text>
-<text class="node-body" x="764" y="84">Coordinator owns stop and receipt</text>
-<text class="node-body" x="764" y="105">Worker cleanup cannot send old IO</text>
+<g data-node="expiry"><rect x="400" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="247">Finite optical-result expiry</text>
+<text class="node-body" x="414" y="274">Discard old result; check live safety</text>
+<text class="node-body" x="414" y="295">Reacquire pose + newer full-board data</text>
 </g>
-<g data-node="branch"><rect x="750" y="220" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="247">Choose permitted stop path</text>
-<text class="node-body" x="764" y="274">Healthy eligible handoff only</text>
-<text class="node-body" x="764" y="295">Otherwise request full OFF</text>
+<g data-node="geometry"><rect x="750" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="247">Coherent geometry candidate</text>
+<text class="node-body" x="764" y="274">DARK first, including PREPARE</text>
+<text class="node-body" x="764" y="295">Assess exact rejected pixels only</text>
 </g>
-<g data-node="darkhold"><rect x="400" y="405" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="432">DARK / holding receipt</text>
-<text class="node-body" x="414" y="459">Beam off, motors held, bus powered</text>
-<text class="node-body" x="414" y="480">Cooling can instead release motors</text>
+<g data-node="confirm"><rect x="50" y="420" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="447">Confirmation still outside?</text>
+<text class="node-body" x="64" y="474">Use contained local correction</text>
+<text class="node-body" x="64" y="495">Then independent held observation</text>
 </g>
-<g data-node="off"><rect x="750" y="405" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="432">Full OFF receipt</text>
-<text class="node-body" x="764" y="459">Beam off + motor bus released</text>
-<text class="node-body" x="764" y="480">Exact identity + fresh acknowledgement</text>
+<g data-node="fresh"><rect x="400" y="420" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="447">Same operation / current proof</text>
+<text class="node-body" x="414" y="474">Original target, token and session</text>
+<text class="node-body" x="414" y="495">Only acknowledged own RS may advance</text>
 </g>
-<g data-node="frame"><rect x="400" y="600" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="414" y="627">Post-dark camera evidence</text>
-<text class="node-body" x="414" y="654">Same stream + frame watermark</text>
-<text class="node-body" x="414" y="675">≥300 ms presentation flush</text>
+<g data-node="fit"><rect x="750" y="420" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="447">Qualify replacement geometry</text>
+<text class="node-body" x="764" y="474">Three newer dark frames; validate</text>
+<text class="node-body" x="764" y="495">Install only after replacement passes</text>
 </g>
-<g data-node="transient"><rect x="50" y="795" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="822">Classified transient recovery</text>
-<text class="node-body" x="64" y="849">Camera/lease barrier + fresh streak</text>
-<text class="node-body" x="64" y="870">Current target must be reverified</text>
+<g data-node="hint"><rect x="750" y="620" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="647">Historical containment only</text>
+<text class="node-body" x="764" y="674">Old sample/H grants no movement</text>
+<text class="node-body" x="764" y="695">Fresh pose + full-board spot required</text>
 </g>
-<g data-node="explicit"><rect x="750" y="795" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="764" y="822">Hard / unexplained failure</text>
-<text class="node-body" x="764" y="849">Pause game + clock; retain target</text>
-<text class="node-body" x="764" y="870">Explicit recheck / Resume required</text>
+<g data-node="adequate"><rect x="400" y="820" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="414" y="847">Current adequate publication</text>
+<text class="node-body" x="414" y="874">Same-sample age / pose / hand checks</text>
+<text class="node-body" x="414" y="895">Recheck original cue age at native</text>
 </g>
-<g data-node="retry"><rect x="400" y="980" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="1007">Re-admit under current proof</text>
-<text class="node-body" x="414" y="1034">New scope, clear board, fresh status</text>
-<text class="node-body" x="414" y="1055">Hardware recovery alone ≠ Resume</text>
+<g data-node="lease"><rect x="50" y="620" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="647">Shared finite recovery episode</text>
+<text class="node-body" x="64" y="674">≤30s provisional wall cap</text>
+<text class="node-body" x="64" y="695">Nested retries never restart it</text>
 </g>
+<g data-node="failure"><rect x="50" y="1020" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="64" y="1047">Any unqualified failure</text>
+<text class="node-body" x="64" y="1074">Unknown hand/spot, lost lease,</text>
+<text class="node-body" x="64" y="1095">transport, identity or exhausted work</text>
+</g>
+<g data-node="cancel"><rect x="400" y="1020" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1047">Revoke → quiesce → full OFF</text>
+<text class="node-body" x="414" y="1074">Coordinator owns stop + receipt</text>
+<text class="node-body" x="414" y="1095">No transport writes inside validators</text>
+</g>
+<g data-node="off"><rect x="750" y="1020" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="1047">Require full OFF receipt</text>
+<text class="node-body" x="764" y="1074">Beam off + motor power released</text>
+<text class="node-body" x="764" y="1095">Not merely DARK with motors held</text>
+</g>
+<g data-node="dark"><rect x="750" y="1220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1247">Post-dark physical evidence</text>
+<text class="node-body" x="764" y="1274">Same stream + watermark + flush</text>
+<text class="node-body" x="764" y="1295">No stone acceptance from a receipt</text>
+</g>
+<g data-node="resume"><rect x="400" y="1400" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1427">Native recovery / explicit Resume</text>
+<text class="node-body" x="414" y="1454">Preserve pending move and clocks</text>
+<text class="node-body" x="414" y="1475">Hardware recovery cannot resume game</text>
+</g>
+<g data-node="nooff"><rect x="50" y="1220" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
+<text class="node-title" x="64" y="1247">Missing receipt: state unknown</text>
+<text class="node-body" x="64" y="1274">Report shutdown failure honestly</text>
+<text class="node-body" x="64" y="1295">Physical power report is separate</text>
+</g>
+<g data-node="signal"><rect x="50" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="1602">Signal: assign plain stop flag</text>
+<text class="node-body" x="64" y="1629">Handler takes no Event/runtime locks</text>
+<text class="node-body" x="64" y="1650">Normal control flow performs cleanup</text>
+</g>
+<g data-node="startupstop"><rect x="750" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1602">Startup and late-I/O cancellation</text>
+<text class="node-body" x="764" y="1629">Stop predicate checked before launch</text>
+<text class="node-body" x="764" y="1650">Stopped readers cannot admit or poll</text>
+</g>
+<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
 </svg></div></section><section id="modes"><h2>7 · Local recording, online play and review</h2><p>The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.</p><p class="refs">Sources: <a href="#source-S2">S2</a> · <a href="#source-S22">S22</a> · <a href="#source-S24">S24</a> · <a href="modes.svg">Open full-size SVG</a></p><div class="diagram" tabindex="0" aria-label="Scrollable 7 · Local recording, online play and review"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 910" width="1120" height="910" role="img" aria-labelledby="modes-title modes-desc">
 <title id="modes-title">7 · Local recording, online play and review</title><desc id="modes-desc">The camera pipeline is shared. Move acceptance, clocks and persistence have different owners in each mode.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
@@ -511,8 +576,8 @@
 <text class="edge-label" x="375.0" y="752.0" text-anchor="middle">proposal only</text>
 <g data-node="observation"><rect x="400" y="25" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="52">Admitted board observations</text>
-<text class="node-body" x="414" y="79">Same camera / grid / hand pipeline</text>
-<text class="node-body" x="414" y="100">Mode chooses the decision owner</text>
+<text class="node-body" x="414" y="79">Same camera / wood / hand pipeline</text>
+<text class="node-body" x="414" y="100">Mode owns evidence + move acceptance</text>
 </g>
 <g data-node="local"><rect x="50" y="220" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="247">Local: GameRecorder</text>
@@ -559,47 +624,46 @@
 <text class="node-body" x="64" y="844">Pause; analyze; approve corrections</text>
 <text class="node-body" x="64" y="865">Agree result only after review</text>
 </g>
-</svg></div></section><section id="findings"><h2>Five architectural findings worth studying</h2>
-<p><strong>The current bottlenecks are different problems:</strong> recognition repeatedly rejects ambiguous evidence; aiming spends time collecting new evidence and changing hardware state; temporal tracking can reject a good hold. One broad “camera is slow” explanation would send optimization to the wrong place.</p>
-<h3>1. Measure proof collection and state transitions separately from image computation</h3>
-<p><strong>High confidence in the distinction; speedup unmeasured.</strong> The earlier Q17 retry was already at its target, accepted with zero moves, yet crossed two PREPARE/SWEEP cycles. <code>approach()</code> starts with <code>observe()</code>, whose default darkens after measurement. <code>hold()</code> then prepares and illuminates again because it receives a dark operation. This is an implementation boundary worth profiling. The same installed host can already promote an accepted <em>later</em> lit landing into holding without another light command.</p>
-<p><strong>Potential simplification:</strong> investigate retaining the first accepted beam through the transition to monitored holding, only if the same operation, pose, geometry, remaining illumination budget and fresh target evidence remain valid. The fresh holding check is still independent proof; deleting it would change the contract. This proposal could remove a dark/prepare cycle for near-target starts, but it is not part of the diagrammed baseline; no physical speedup is established. <a href="#source-S15">S15: approach / observe / hold</a>.</p>
-<h3>2. Treat recognition delay as an evidence-state problem before changing cadence</h3>
-<p><strong>High confidence in the observed cause; no recognition fix established.</strong> PG23 R16 took 25.418 seconds across 255 fresh frames, with 130 ambiguity resets. Capture-to-consume age was median 122 ms, maximum 151 ms; AI answered about 0.495 s after board confirmation. A strong Black stone was blocked by a weak expected-empty neighbor. Increasing frame rate alone may produce more resets.</p>
-<p><strong>Potential simplification:</strong> make the one blocking assignment visible in diagnostics and retain its exact outline/grid checkpoint. Investigate expected counts by color as a consistency constraint, explicitly accounting for pending AI stones, captures awaiting removal and corrections. Counts cannot locate a stone or prove hidden emptiness. Any change must preserve real halfway-placement rejection. <a href="#source-S10">S10: consume 534–620</a> · <a href="#source-S1">S1: PG16 / PG23</a>.</p>
-<h3>3. Keep independent proofs, but make their scope and invalidation explicit</h3>
-<p><strong>High confidence in the boundaries; medium confidence in consolidation benefits.</strong> Native grid/hand checks, host dark registration, fixed-anchor temporal checks, fresh spot measurement, actual motor pose and firmware limits answer different questions. A matching file hash cannot prove an unmoved pointer; a fresh safety message cannot substitute for fresh optical pixels; correct aiming cannot confirm a stone. These are necessary independent checks.</p>
-<p><strong>Potential simplification:</strong> one documented evidence record should identify which camera epoch, frame set, setup, motor pose, target revision and deadline each proof covers. Cache only compatible geometry and make the reason for renewal explicit. Today several state transitions and cache policies express overlapping identity checks in separate modules. Consolidating their <em>description and diagnostics</em> first can expose redundant work without collapsing separate safety responsibilities. PG35 demonstrates the consequence of scope confusion: a session-age timer had been used for a later admission; the installed repair scopes the unchanged 12 s deadline to an unfinished admission episode. <a href="#source-S11">S11</a> · <a href="#source-S13">S13</a> · <a href="#source-S16">S16</a> · <a href="#source-S1">PG35</a>.</p>
-<h3>4. Separate appearance, geometry and coverage failures in one first-fault record</h3>
-<p><strong>High confidence that they differ; temporal repair remains under review.</strong> Live brightness scores are diagnostic-only. Installed dark registration uses ECC to propose a transform, then independent features and distributed grid tracking to admit geometry. The latest failure was later temporal reuse: roughly one-grid-pitch jumps in 13 tracks drove p95 to 53.709 px despite median 0.069 px and a consistent majority.</p>
-<p><strong>Potential simplification:</strong> report “appearance changed,” “motion estimate failed,” “spatial coverage inadequate” and “geometry moved” as distinct evidence outcomes. Retain the first exact rejected batch and track distribution; avoid treating a pooled percentile as a complete physical explanation. The reviewed and installed normalization repair normalizes exposure for tracking while preserving the original pyramid and coverage rules: exact frame 21221 gives 147/160 valid tracks, median 0.077 px and p95 0.207 px; 22 controls and the legacy covered-quadrant rejection passed. This supersedes the shallower-pyramid experiment. The final owner-reported 30-repeat offline timing adds about 0.61–0.84 ms: exact-frame full reuse median 3.84→4.68 ms (p95 4.34→5.29 ms), and historical occupied-frame median 3.43→4.04 ms (p95 3.74→4.62 ms). This is a reliability repair, not a compute speedup. Exposure repair <code>5de5479</code> passed 112 focused tests and paired acceptance, then its attended run failed a separate scheduled dark-registration check. The subsequently installed <code>968ba538d457c03fc34ed0b17b0d59e853817838-app0264</code> passed its bounded dark-validator checks but the final attended retry again failed temporal reuse at frame57014: median 0.062 px, p95 27.330 px. Neither repair establishes sustained physical reliability or total-latency improvement. The diagrams and source index retain the <code>fc8cb7d</code> process-flow baseline. Later normalization and dark-validation changes do not change that high-level flow; their algorithmic details are outside the pinned source snapshot. <a href="#source-S16">S16</a> · <a href="#source-S17">S17</a> · <a href="#source-S18">S18</a> · <a href="#source-S1">PG06a / PG21</a>.</p>
-<h3>5. Use one correlated turn timeline, with separate sound and optical milestones</h3>
-<p><strong>High confidence in missing measurements; instrumentation proposal only.</strong> Native once-per-move click occurs on the first acquisition-light acknowledgement, potentially many seconds before final target acceptance. The host final cue is separate. PG26b does not establish audio onset or Bluetooth latency. PG41 lit fine corrections are installed but the zero-move retry did not exercise them.</p>
-<p><strong>Potential simplification:</strong> correlate human placement witness → recognition acceptance → AI answer → host dispatch → first-light acknowledgement → optical target acceptance → verified hold → physical confirmation. Record active computation, new-frame wait, serial/settling wait, mandatory flush and rejected-evidence retry time separately. Keep acknowledgement timestamps distinct from actual visible/audible onset. This would reveal whether the largest gain comes from recognition quality, fewer state transitions or less repeated work. Preserve Mac monotonic versus wall time, and never subtract MCU elapsed time from Mac uptime. <a href="#source-S1">PG21 / PG26b / PG41</a> · <a href="#source-S5">S5</a> · <a href="#source-S15">S15</a> · <a href="#source-S27">S27</a>.</p>
-</section>
-<section id="final-checkpoint"><h2>Final attended checkpoint · installed 968ba538</h2><p>The final retry acquired Q17 in <strong>3.323906 s / 0.103718 cell</strong> with zero moves and three fresh optical results (maximum capture age 0.471306 s). Temporal correspondence ambiguity recurred at <strong>frame57014</strong>. Driver and camera stopped; separate full OFF at <strong>1795596934.1468098</strong>. Q17 remains empty/pending with eight saved moves and seven physical stones. No passing sustained-play result is claimed. The original approximately 20-minute baseline window and the separately authorized final retry have ended; subsequent work is offline on isolated branches. <a href="file:///Users/Dave/Documents/SGF%20PLayer/work/feedback-play-release-20261124/dark-residual/final-retry/outcome.json">Final outcome and OFF receipt</a> · <a href="../BeforeArchitectureBaseline20261125.md">Frozen baseline</a> · <a href="../IntegrationChecklist.md">Current issue register</a>.</p></section>
-<section id="retry"><h2>Measured example · earlier Q17 retry</h2>
-<p>Run <code>1795593238703871000</code>, event <code>1795593272413605000-feedback-62</code>. This is a near-target, zero-move case; it is not a travel-speed comparison.</p>
-<div class="table-wrap"><table><thead><tr><th>Milestone</th><th>Evidence</th><th>What it establishes</th></tr></thead><tbody>
-<tr><td>Initial acquisition</td><td>3.048924 s; 0.098258 cell; zero moves</td><td>Fresh optical acceptance at unchanged pose 1824/2373.</td></tr>
-<tr><td>Preparation / illumination</td><td>Two qualified dark registrations; two PREPARE/SWEEP cycles</td><td>Initial observation darkened, then holding prepared again.</td></tr>
-<tr><td>Optical freshness</td><td>Three accepted results; capture ages about 0.405–0.463 s</td><td>These results passed the 600 ms budget; this stop was not an expiry.</td></tr>
-<tr><td>Temporal reuse failure</td><td>Frame 21221; median flow 0.069 px; p95 53.709 px</td><td>Periodic-grid alias evidence; exact pixels retained. Continued hold failed.</td></tr>
-<tr><td>Stop</td><td>Separate full OFF at Unix 1795593357.6117432</td><td>Q17 remains pending; 8 logical moves / 7 physical stones. Driver stopped at snapshot.</td></tr>
-</tbody></table></div><p>Source: <a href="file:///Users/Dave/Documents/SGF%20PLayer/work/feedback-play-release-20261124/geometry-visible/first-retry/live-run/events/1795593272413605000-feedback-62/result.json">exact result</a>, <a href="file:///Users/Dave/Documents/SGF%20PLayer/work/feedback-play-release-20261124/geometry-visible/first-retry/direct-full-off.json">direct OFF receipt</a>, and <a href="#source-S1">current checklist</a>. Shutdown receipt completeness remains PG36; a process exit alone was not used as OFF proof.</p></section>
-<section id="timing"><h2>Timing boundaries · do not add these together</h2>
-<div class="table-wrap"><table><thead><tr><th>Limit / cadence</th><th>Scope and purpose</th><th>Source</th></tr></thead><tbody>
-<tr><td>About 200 ms / 600 ms</td><td>Native request renewal / lease expiry. Host must expire the lease independently of firmware heartbeats.</td><td>S11, S26</td></tr>
-<tr><td>600 ms</td><td>Gameplay optical capture/publication/arrival ages, checked again after pose read and before anchor publication. A recent write cannot refresh old pixels.</td><td>S14, S15</td></tr>
-<tr><td>&lt;750 ms</td><td>Native driver status age, separate from camera age.</td><td>S11</td></tr>
-<tr><td>≥300 ms + watermark</td><td>Post-light/dark camera presentation flush. Callback-time streams require their explicit measured bound.</td><td>S11, S15</td></tr>
-<tr><td>3 frames / 450 ms</td><td>Native AI stable-position evidence. A gap &gt;600 ms resets continuity; wait alone does not confirm a stone.</td><td>S10</td></tr>
-<tr><td>10 s; refresh at ≥6 s</td><td>Fixed dark-geometry maximum age measured from oldest dark source; 4 s refresh reserve. Does not relax 600 ms fresh optical evidence.</td><td>S16</td></tr>
-<tr><td>12 s</td><td>Native unfinished arming/admission episode; installed PG35 resets only on confirmed completion, not revision churn. Not a whole-game/session limit.</td><td>S11, S1</td></tr>
-<tr><td>150 s / 25 corrections</td><td>Feedback approach allowance, checked by the approach loop; predicted travel commands also use the remaining deadline. Individual operations remain bounded. Not a 150 s lit interval.</td><td>S15</td></tr>
-<tr><td>55 s host / 60 s firmware</td><td>Original finite SWEEP light interval. Fine movement does not renew it; geometry normally forces earlier dark refresh.</td><td>S15, S21</td></tr>
-<tr><td>Command-specific waits</td><td>Feedback PREPARE ≤4 s; DARK/POSE normally ≤3 s; predicted GOTO ≤10 s. These are reply waits, not grace periods for stale clearance.</td><td>S15</td></tr>
-<tr><td>45°C / below 40°C for 30 s / 50°C</td><td>Cooling entry / eligible hold recovery / hard stop (or lower configured limit). Fresh sampled telemetry required; thermal endurance remains open.</td><td>S27, S1</td></tr>
-</tbody></table></div>
-<p><strong>Calibration-only history:</strong> the attended static-analysis A/B policy and experimental 10 s camera-age override belong to their pinned commissioning launchers. They are not gameplay camera permission. The calibration document contains historical state paragraphs; use the current checklist for installation and qualification status.</p></section>
-<section id="sources"><h2>Source index and limits</h2><p>Diagrams are a source-grounded architecture review, not a complete executable state-machine specification. Native and host source are pinned above. Older guide version/status paragraphs were superseded by the current checklist. This work performed no camera, serial, app UI, installation or hardware actions.</p><ol><li id="source-S1"><strong>S1</strong> · Current implementation and physical results; snapshot Nov 25<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md</a></li><li id="source-S2"><strong>S2</strong> · State ownership and architecture<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md</a></li><li id="source-S3"><strong>S3</strong> · Calibration stages; historical overrides are calibration-only<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/CalibrationAndTiming.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/CalibrationAndTiming.md</a></li><li id="source-S4"><strong>S4</strong> · Camera serial queue and delivery<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraCapture.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraCapture.swift</a></li><li id="source-S5"><strong>S5</strong> · Presentation capture time versus callback arrival<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraFrameTimestamp.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraFrameTimestamp.swift</a></li><li id="source-S6"><strong>S6</strong> · Serial analysis, early safety, immutable results<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraAnalysisPipeline.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/CameraAnalysisPipeline.swift</a></li><li id="source-S7"><strong>S7</strong> · One replaceable pending analysis input<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/LatestAnalysisInput.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/LatestAnalysisInput.swift</a></li><li id="source-S8"><strong>S8</strong> · Independent safety and image publication queues<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalLaserFrameBroker.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalLaserFrameBroker.swift</a></li><li id="source-S9"><strong>S9</strong> · Independent bounded request/status IO<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/LatestFileExchange.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/LatestFileExchange.swift</a></li><li id="source-S10"><strong>S10</strong> · Recognition 491–665; commit/advance 667–715; guidance 742 onward<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalAI.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalAI.swift</a></li><li id="source-S11"><strong>S11</strong> · Dark admission, leases, arming episodes, faults<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalLaserGuidance.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalLaserGuidance.swift</a></li><li id="source-S12"><strong>S12</strong> · READY and preflight 98–180; shutdown receipt 132 onward<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/Tools/launch_reviewed_feedback.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/Tools/launch_reviewed_feedback.py</a></li><li id="source-S13"><strong>S13</strong> · Input/coordinator/supervision/worker threads and cancellation<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_runtime.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_runtime.py</a></li><li id="source-S14"><strong>S14</strong> · Frame identity and independent capture/publication/arrival ages<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_frames.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_frames.py</a></li><li id="source-S15"><strong>S15</strong> · Approach 106; preparation 254; observation 306; hold 505; admission 543<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_feedback.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_feedback.py</a></li><li id="source-S16"><strong>S16</strong> · Three-frame dark median; age 10s, refresh reserve 4s; per-frame verification<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_optical_geometry.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_optical_geometry.py</a></li><li id="source-S17"><strong>S17</strong> · Fixed-anchor temporal tracking; installed maxLevel=2<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_alignment.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_alignment.py</a></li><li id="source-S18"><strong>S18</strong> · ECC proposes; independent ORB/grid geometry admits<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/dark_geometry_registration.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/dark_geometry_registration.py</a></li><li id="source-S19"><strong>S19</strong> · Setup hashes, camera/context/size and native grid agreement<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_setup.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_setup.py</a></li><li id="source-S20"><strong>S20</strong> · Conditional model travel; fresh optical reacquisition still required<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/feedback_predicted_acquisition.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/feedback_predicted_acquisition.py</a></li><li id="source-S21"><strong>S21</strong> · Firmware motor, heartbeat, temperature and finite light controls<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/AimControl/AimControl.ino">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/AimControl/AimControl.ino</a></li><li id="source-S22"><strong>S22</strong> · AI/local/online clock boundaries and persistence<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/GameAIClocks.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/GameAIClocks.md</a></li><li id="source-S23"><strong>S23</strong> · Placement/capture/centering evidence and priority<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Markers.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Markers.md</a></li><li id="source-S24"><strong>S24</strong> · Local recording, chronology, explicit scoring approval<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/RecordingReviewScoring.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/RecordingReviewScoring.md</a></li><li id="source-S25"><strong>S25</strong> · Classified transient OFF barrier and fresh witness recovery<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalGuidanceRecovery.swift">/Users/Dave/SGFPlayerClean-worktrees/arming-episode-release-20261124/PhysicalGo/Sources/PhysicalGuidanceRecovery.swift</a></li><li id="source-S26"><strong>S26</strong> · Generation cancellation and independently enforced lease<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_lease.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_lease.py</a></li><li id="source-S27"><strong>S27</strong> · Thermal supervision and causal telemetry freshness<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_thermal.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/geometry-visible-release-20261124/Firmware/bridge_thermal.py</a></li></ol></section><output id="validation"></output></main><script>window.addEventListener("load",()=>{const issues=[];document.querySelectorAll("svg [data-node]").forEach(n=>{const r=n.querySelector("rect");const x=+r.getAttribute("x"),y=+r.getAttribute("y"),w=+r.getAttribute("width"),h=+r.getAttribute("height");n.querySelectorAll("text").forEach(t=>{const b=t.getBBox();if(b.x<x||b.y<y||b.x+b.width>x+w||b.y+b.height>y+h)issues.push(n.dataset.node+": text outside box")})});document.querySelectorAll("a[href^=\"#\"]").forEach(a=>{if(!document.getElementById(a.hash.slice(1)))issues.push("missing anchor "+a.hash)});document.querySelectorAll(".diagram svg").forEach(svg=>{const labels=[];const vb=svg.viewBox.baseVal;svg.querySelectorAll(".edge-label").forEach(t=>{const b=t.getBBox();if(b.x<0||b.y<0||b.x+b.width>vb.width||b.y+b.height>vb.height)issues.push("edge label outside canvas: "+t.textContent);svg.querySelectorAll("[data-node] rect").forEach(r=>{const a=r.getBBox();if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge label overlaps node: "+t.textContent)});labels.forEach(a=>{if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge labels overlap: "+t.textContent)});labels.push(b)})});const out=document.getElementById("validation");out.textContent=JSON.stringify({diagrams:document.querySelectorAll(".diagram").length,nodes:document.querySelectorAll("[data-node]").length,issues});out.dataset.result=issues.length?"fail":"pass"});</script></body></html>
+<text x="30" y="900" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+</svg></div></section><section id="findings"><h2>Flow audit · current findings and optimizations</h2>
+<p><strong>Installed release:</strong> native0.269/build270 d014c63 + host31d84de, final source approval587c778a. Root reports1320 host tests/57 skips,8 native suites,8 renewal replays and mandatory paired PASS. All repairs below are installed. Latest attended0.269 attempt1795767435349051000 failed before adequate on cached safety capture age604.260ms versus600ms, then lease/transport faults. Exit was prompt but controller_off was null: no final OFF proof. User physical power-off confirmation was pending at this snapshot; physical acceptance remains open. The prior returned-O17 failure had no verified final controller OFF receipt; user-confirmed physical power OFF is a separate fact. <a href="README.md">Release and remaining limits</a> · <a href="Audit20261126.md">Detailed audit</a> · <a href="#source-S39">Installation receipt</a>.</p>
+<h3>1. One recovery owner removes reset loops, but authority must reach the real boundary</h3>
+<p>The same operation owns initial acquisition, held confirmation/correction, expired-result retry and dark geometry requalification. Nested observations share one scope and one finite work ledger. The first outside-0.20-cell result withdraws adequate; a newer full-board confirmation precedes correction, followed by an independent held observation. Stable adequate waiting does not spend active-work time.</p>
+<p><strong>Review finding A1:</strong> at candidate40adedf a lease expiry inside the raw pre-write callback can call OFF while holding the non-reentrant write lock. An offline fake-transport reproduction demonstrated the nested acquisition attempt. A validator must reject/revoke without recursively writing transport; the stop owner writes OFF after lock release. Repair13129ec first entered host8ce91a1 and remains in installed31d84de, independently reviewed. <a href="#source-S15">S15</a> · <a href="#source-S26">S26</a> · <a href="#source-S28">S28</a> · <a href="#source-S34">S34</a>.</p>
+<h3>2. In-memory adequate, wire status and native consumption need one evidence identity</h3>
+<p><strong>Review finding A2:</strong>40adedf rechecks the exact sample before saving adequate in memory. The former limited pair lacked optical deadlines on the wire. The installed paired repair freezes the actual source receipt through file replacement and heartbeats; native checks original600ms ages and exact scope before its first-indication/click cue. Status updatedAtUnix remains a separate liveness clock. Historical adequate may remain visible after expiry without a blink or controller fault; a later fresh measurement can still supply the cue. Final combined approval and installation are recorded; no optical limit was changed. <a href="#source-S13">S13</a> · <a href="#source-S11">S11</a>.</p>
+<p>A measured spot can still be a valid historical startup hint when it misses the requested target. Durable anchor publication71/frame35013 preceded the0.208727-cell hold rejection. Persisted measurement, current safety, requested-target adequacy and physical stone confirmation are four different facts. <a href="#source-S30">S30</a>.</p>
+<h3>3. Keep proof renewal optional until the existing certificate needs replacement</h3>
+<p>Lit renewal compares against the fixed original dark baseline; a laser-only exclusion does not mask hands or create target visibility. The separate geometry certificate may advance using the new proof's real capture time, while the subtraction image keeps its original age. Optional work can defer if its100ms allowance would exhaust a valid optical sample; a2-second remaining certificate reserve forces the ordinary dark route.</p>
+<p><strong>Optimization:</strong> measure successful/declined/deferred renewal, dark fallback count and each proof cost before changing cadence. A scheduler estimate is not permission. Retain independent unmasked geometry, hand/visibility, target, pose, lease and final freshness checks. <a href="#source-S16">S16</a> · <a href="#source-S29">S29</a> · <a href="#source-S33">S33</a>.</p>
+<h3>4. Separate request ingestion from status output; make shutdown signal-safe</h3>
+<p><strong>A3:</strong> former _inputs coupled request reading to synchronous status publication. Installed host31d84de separates these loops, with one nonblocking publisher owner and no queue. Eligible raw expiry permits exactly one strictly newer, same-scope, fully fresh reread under the original deadline; all600ms checks remain. Background work checks stop before snapshot, lease poll and rename. <a href="#source-S13">S13</a> · <a href="#source-S38">I/O contract and controls</a>.</p>
+<p><strong>A4:</strong> the former Event.set signal handler could deadlock. Installed handlers only set a flag; normal startup/admission/cleanup checks that predicate. Only close's explicit shutdown publication may write confirmed OFF after stop. A requested OFF or old receipt cannot substitute for final completion. The failed historical run still has no final receipt. <a href="#source-S36">S36</a> · <a href="#source-S37">Frozen evidence</a>.</p>
+<p><strong>Remaining limit:</strong> atomic rename still holds the generation lock, so blocked storage can delay cancellation. Close skips a busy publisher, but its own final write can stall when it owns publication. Independent loops do not solve machine-wide stalls; a complete shared-status receipt is distinct from actual controller OFF. These are explicit limits, not evidence of a new physical pass.</p>
+<p>The earlier temporal normalization benchmark added about0.61–0.84ms; it was a reliability change, not a speedup. Whole indication latency also contains fresh-frame collection, presentation flush, serial/settling, post-image motor proof, repeated evidence rejection and publication waits. Initial accepted-light promotion already avoids the former mandatory dark/prepare handoff when proof permits.</p>
+<p><strong>Optimization:</strong> correlate capture→analysis→PNG→collection→pose→renewal→gate wait→wire replacement→native consume, preserving original clocks and stage reasons. Compare like-distance travel and accepted hold intervals. Do not infer sound onset from dispatch or physical motor drift from one measured target error. <a href="#source-S5">S5</a> · <a href="#source-S9">S9</a> · <a href="#source-S15">S15</a>.</p>
+<h3>5. Recognition needs qualified assignment evidence, not more reset frames</h3>
+<p>The earlier R16 episode had130 ambiguity resets over25.418s with fresh frames (122ms median capture-to-consume,151ms maximum). A strong Black point was blocked by a weak expected-empty neighbor. The installed PG23 receipt preserves original frame/reference/capture provenance, positive current wood/rail evidence and change invalidation. Only low-confidence EMPTY neighbors qualify; UNCERTAIN remains blocking. It cannot clear hand uncertainty, establish legality, confirm new stones or remove prisoners from history.</p>
+<p><strong>Optimization:</strong> identify the exact blocking intersection and proof dependency, then retain the matching pixels/grid/outline checkpoint. Counts by color can constrain consistency but cannot establish location or hidden emptiness. The change is included in installed d014c63 with final approval587c778a. Exact delayed pixels were unavailable; no physical delay-reduction claim follows. <a href="#source-S10">S10</a> · <a href="#source-S6">S6</a> · <a href="#source-S1">PG23</a>.</p></section>
+<section id="retry"><h2>Physical evidence · latest0.269 and earlier returned O17</h2>
+<p><strong>Latest installed0.269:</strong> run1795767435349051000 point12 failed before adequate. Safety1864 capture age604.260ms (checked age414.192ms) crossed600ms; later lease and serial-write completion faults followed. Ctrl-C exited promptly without the earlier signal hang, but no final OFF receipt. Physical power-off confirmation pending at this snapshot. <a href="#source-S41">Current release record</a>. The earlier returned-O17 timeline below is historical, from host8ce91a1/nativefb4697c.</p>
+<p>Prior installed native0.268/fb4697c + host8ce91a1, run1795765307207891000 seq85. Saved evidence only; the initiating delay is not fully attributed.</p>
+<div class="table-wrap"><table><thead><tr><th>Event</th><th>Evidence</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>First adequate</td><td>1795765340.277897; seek3.755s /0.149930cell /zero moves</td><td>14 accepted observations, one lit renewal. No correction plans consumed.</td></tr>
+<tr><td>Frame2071 native publication</td><td>1795765347.074964; capture age157.834ms</td><td>Initially fresh; later raw age728.298ms exceeded600ms. Failed pixels not retained.</td></tr>
+<tr><td>Native OFF intent</td><td>1795765347.648278; thermal unavailable</td><td>Nearby point write335.534ms; independent safety2077 fresh. No single-lock cause established here.</td></tr>
+<tr><td>Later lease fault</td><td>1795765347.833813; monitor interval7.556s</td><td>Not proof of continuous optical validity or exact light duration.4.429s active work leaves145.571s.</td></tr>
+<tr><td>Shutdown</td><td>SIGINT stalled; user physical power OFF; child killed</td><td>No final controller OFF receipt. Game paused, O17 unplaced; prior receipts historical.</td></tr>
+</tbody></table></div><p><a href="file:///Users/Dave/Documents/SGF%20PLayer/work/requirements-implementation-20261126/returned-o17/outcome.json">Root outcome</a> · <a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md">Frozen evidence and timeline</a>.</p></section>
+<section id="timing"><h2>Separate timing scopes</h2><div class="table-wrap"><table><thead><tr><th>Limit</th><th>Scope in the diagrammed implementation</th><th>Boundary</th></tr></thead><tbody>
+<tr><td>150s active /25 local plans</td><td>One original target operation, including every recovery. Verified adequate waiting pauses only active-work accounting.</td><td>S28; initial predicted waypoints have their separate existing cap.</td></tr>
+<tr><td>≤30s recovery wall time</td><td>Provisional no-progress policy, shortened by remaining active allowance. Nested retries cannot reset it.</td><td>S28, S35; not a firmware safety limit.</td></tr>
+<tr><td>600ms optical /600ms lease</td><td>Separate original pixel-age and request-authority checks. A fresh write cannot refresh stale evidence.</td><td>S14, S26, S29.</td></tr>
+<tr><td>10s geometry certificate</td><td>Fresh fixed-anchor proof may replace the certificate using its capture time. Original dark image stays unchanged.</td><td>S16; never extends optical age or hand clearance.</td></tr>
+<tr><td>100ms optional proof /2s reserve</td><td>Defer optional lit proof if it will not fit. Enter dark renewal before certificate/light expiry.</td><td>S15, S16, S33; scheduling does not grant authority.</td></tr>
+<tr><td>55s host /60s firmware light</td><td>Original SWEEP interval; only real DARK/newSWEEP starts another origin.</td><td>S15, S21; motion/cues never renew it.</td></tr>
+<tr><td>≥300ms + watermark</td><td>Presentation flush after light/dark transition, separate from collection and motor settling.</td><td>S11, S15.</td></tr>
+<tr><td>12s native default /qualified16s outer episode</td><td>Installed native0.269 allows a provisional coordination margin only with causally advancing authenticated dark monitor evidence; same episode origin. Firmware engagement remains12s.</td><td>S31; no blanket timeout increase or retry reset.</td></tr>
+<tr><td>3 frames spanning450ms</td><td>Stable physical game evidence; uncertainty/continuity failures reset witnesses. Does not authorize laser motion.</td><td>S10; receipt optimization must retain physical acceptance boundaries.</td></tr>
+</tbody></table></div><p>Current source and final root receipts govern enabled policy. Calibration-only experimental timing is excluded from gameplay authority.</p></section>
+<section id="sources"><h2>Source index and limits</h2><p>Diagrams are a source-grounded architecture review, not a complete executable state-machine specification. Native and host source are pinned above. Older guide status paragraphs are superseded by the current checklist; the installed source snapshot and remaining physical-validation limits are stated in the banner. This work performed no camera, serial, app UI, installation or hardware actions.</p><ol><li id="source-S1"><strong>S1</strong> · Current authoritative issue register; live status outranks map snapshot<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/IntegrationChecklist.md</a></li><li id="source-S2"><strong>S2</strong> · State ownership and architecture<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Architecture.md</a></li><li id="source-S3"><strong>S3</strong> · Calibration stages; historical overrides are calibration-only<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/CalibrationAndTiming.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/CalibrationAndTiming.md</a></li><li id="source-S4"><strong>S4</strong> · Camera serial queue and delivery<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraCapture.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraCapture.swift</a></li><li id="source-S5"><strong>S5</strong> · Presentation capture time versus callback arrival<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraFrameTimestamp.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraFrameTimestamp.swift</a></li><li id="source-S6"><strong>S6</strong> · Serial analysis, early safety, immutable results<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraAnalysisPipeline.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/CameraAnalysisPipeline.swift</a></li><li id="source-S7"><strong>S7</strong> · One replaceable pending analysis input<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestAnalysisInput.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestAnalysisInput.swift</a></li><li id="source-S8"><strong>S8</strong> · Independent safety and image publication queues<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLaserFrameBroker.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLaserFrameBroker.swift</a></li><li id="source-S9"><strong>S9</strong> · Independent bounded request/status IO<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestFileExchange.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/LatestFileExchange.swift</a></li><li id="source-S10"><strong>S10</strong> · Recognition, legal commit, pending physical placement and guidance<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalAI.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalAI.swift</a></li><li id="source-S11"><strong>S11</strong> · Dark admission, leases, arming episodes, faults<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLaserGuidance.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalLaserGuidance.swift</a></li><li id="source-S12"><strong>S12</strong> · Attended READY, repeated preflight and child shutdown receipt<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Tools/launch_reviewed_feedback.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Tools/launch_reviewed_feedback.py</a></li><li id="source-S13"><strong>S13</strong> · Input/coordinator/supervision/worker threads and cancellation<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_runtime.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_runtime.py</a></li><li id="source-S14"><strong>S14</strong> · Frame identity and independent capture/publication/arrival ages<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_frames.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_frames.py</a></li><li id="source-S15"><strong>S15</strong> · One active-work ledger, sole recovery owner, optical publication and held correction<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_feedback.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_feedback.py</a></li><li id="source-S16"><strong>S16</strong> · Three-frame dark baseline; independent lit certificate; coherent dark requalification<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_optical_geometry.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_optical_geometry.py</a></li><li id="source-S17"><strong>S17</strong> · Fixed-anchor temporal tracking and independent correspondence proof<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_alignment.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_alignment.py</a></li><li id="source-S18"><strong>S18</strong> · ECC proposes; independent ORB/grid geometry admits<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/dark_geometry_registration.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/dark_geometry_registration.py</a></li><li id="source-S19"><strong>S19</strong> · Setup hashes, camera/context/size and native grid agreement<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_setup.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_setup.py</a></li><li id="source-S20"><strong>S20</strong> · Conditional model travel; fresh optical reacquisition still required<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_predicted_acquisition.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_predicted_acquisition.py</a></li><li id="source-S21"><strong>S21</strong> · Firmware motor, heartbeat, temperature and finite light controls<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/AimControl/AimControl.ino">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/AimControl/AimControl.ino</a></li><li id="source-S22"><strong>S22</strong> · AI/local/online clock boundaries and persistence<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/GameAIClocks.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/GameAIClocks.md</a></li><li id="source-S23"><strong>S23</strong> · Placement/capture/centering evidence and priority<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Markers.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/Markers.md</a></li><li id="source-S24"><strong>S24</strong> · Local recording, chronology, explicit scoring approval<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/RecordingReviewScoring.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/AgentGuide/RecordingReviewScoring.md</a></li><li id="source-S25"><strong>S25</strong> · Classified transient OFF barrier and fresh witness recovery<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalGuidanceRecovery.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalGuidanceRecovery.swift</a></li><li id="source-S26"><strong>S26</strong> · Generation cancellation and independently enforced lease<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lease.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lease.py</a></li><li id="source-S27"><strong>S27</strong> · Thermal supervision and causal telemetry freshness<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_thermal.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_thermal.py</a></li><li id="source-S28"><strong>S28</strong> · 150s shared active ledger, 25 local plans, non-resetting recovery episode<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_work_budget.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_work_budget.py</a></li><li id="source-S29"><strong>S29</strong> · Typed finite optical-result expiry; original timestamps<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_result_age.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_result_age.py</a></li><li id="source-S30"><strong>S30</strong> · Ordered background persistence of historical measured hints<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_anchor_store.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/feedback_anchor_store.py</a></li><li id="source-S31"><strong>S31</strong> · Phase-aligned cold admission; authenticated monitor liveness<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalMotorAdmission.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/PhysicalMotorAdmission.swift</a></li><li id="source-S32"><strong>S32</strong> · Explicit physical-wood support; not a guessed grid/rim perimeter<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/WoodenBoardPerimeter.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/WoodenBoardPerimeter.swift</a></li><li id="source-S33"><strong>S33</strong> · Measured laser-only geometry exclusion and bounded optional work<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lit_geometry.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/bridge_lit_geometry.py</a></li><li id="source-S34"><strong>S34</strong> · Actual write-lock and before-write boundary<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/point_session.py</a></li><li id="source-S35"><strong>S35</strong> · One-owner recovery contract and limits<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback%20recovery%20contract.md">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Feedback recovery contract.md</a></li><li id="source-S36"><strong>S36</strong> · Flag-only signal, startup cancellation and shutdown receipt ownership<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/laser_bridge.py</a></li><li id="source-S37"><strong>S37</strong> · Historical returned O17 evidence; installed repair does not validate that failed run<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md</a></li><li id="source-S38"><strong>S38</strong> · I/O isolation, newer-frame reread, shutdown fences and remaining filesystem limits<br><a href="file:///Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/IPCLatencyIsolation/README.md">/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware/Experiments/IPCLatencyIsolation/README.md</a></li><li id="source-S39"><strong>S39</strong> · Root installation receipt; physical validation remains separate<br><a href="file:///Users/Dave/Documents/SGF%20PLayer/work/requirements-implementation-20261126/install-receipt.json">/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json</a></li><li id="source-S40"><strong>S40</strong> · Positive EMPTY receipt producer, original capture binding and invalidation<br><a href="file:///Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift">/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources/BoardVision.swift</a></li><li id="source-S41"><strong>S41</strong> · Current installed release and latest attended failure; acceptance remains open<br><a href="file:///Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md">/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md</a></li></ol></section><output id="validation"></output></main><script>window.addEventListener("load",()=>{const issues=[];document.querySelectorAll("svg [data-node]").forEach(n=>{const r=n.querySelector("rect");const x=+r.getAttribute("x"),y=+r.getAttribute("y"),w=+r.getAttribute("width"),h=+r.getAttribute("height");n.querySelectorAll("text").forEach(t=>{const b=t.getBBox();if(b.x<x||b.y<y||b.x+b.width>x+w||b.y+b.height>y+h)issues.push(n.dataset.node+": text outside box")})});document.querySelectorAll("a[href^=\"#\"]").forEach(a=>{if(!document.getElementById(a.hash.slice(1)))issues.push("missing anchor "+a.hash)});document.querySelectorAll(".diagram svg").forEach(svg=>{const labels=[];const vb=svg.viewBox.baseVal;svg.querySelectorAll(".edge-label").forEach(t=>{const b=t.getBBox();if(b.x<0||b.y<0||b.x+b.width>vb.width||b.y+b.height>vb.height)issues.push("edge label outside canvas: "+t.textContent);svg.querySelectorAll("[data-node] rect").forEach(r=>{const a=r.getBBox();if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge label overlaps node: "+t.textContent)});labels.forEach(a=>{if(b.x<a.x+a.width&&b.x+b.width>a.x&&b.y<a.y+a.height&&b.y+b.height>a.y)issues.push("edge labels overlap: "+t.textContent)});labels.push(b)})});const out=document.getElementById("validation");out.textContent=JSON.stringify({diagrams:document.querySelectorAll(".diagram").length,nodes:document.querySelectorAll("[data-node]").length,issues});out.dataset.result=issues.length?"fail":"pass"});</script></body></html>

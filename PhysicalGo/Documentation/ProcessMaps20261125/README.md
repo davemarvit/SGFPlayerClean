@@ -1,58 +1,58 @@
-# Physical Go process map
+# Physical Go process maps — installed November27 release
 
-Open [index.html](index.html) for the complete, self-contained review. Start with [overview.svg](overview.svg), then follow the seven linked maps. The HTML embeds the SVGs and needs no network connection. Narrow windows intentionally scroll diagrams horizontally to preserve readable text; browser zoom and printing are supported.
+Open [index.html](index.html) for the self-contained seven-map review. [Audit20261126.md](Audit20261126.md) records the findings, repairs and remaining limits. [release-snapshot.json](release-snapshot.json) pins the installed source. **Native0.269/build270 d014c63 + host31d84de is installed and offline validated; the latest attended attempt failed and physical acceptance remains open.**
 
 | Map | Scope |
 |---|---|
-| [Overview](overview.svg) | Setup → observe → decide → guide → aim → human placement → confirmation |
-| [Calibration](calibration.svg) | Separate camera-grid and motor-map fits; independent qualification; READY |
-| [Camera and IPC](data.svg) | Capture, queues, early safety, exact PNG publication, host consumers |
-| [AI gameplay](gameplay.svg) | Ambiguity, stable evidence, legal commit, pending physical placement |
-| [Laser aiming](laser.svg) | Cold/warm admission, dark preparation, coarse travel, optical correction, holding/renewal |
-| [Recovery](recovery.svg) | Generation cancellation, dark holding versus full OFF, transient versus explicit recovery |
-| [Other modes](modes.svg) | Local recording, online bridge, review, clocks, persistence and scoring |
+| [Overview](overview.svg) | Qualify setup, observe, decide, guide, recover and independently confirm physical change |
+| [Calibration](calibration.svg) | Camera grid versus motor map; wooden perimeter; bound artifacts; attended READY |
+| [Camera/IPC](data.svg) | Original timestamps, early safety, exact PNG, independent request/status loops and stopped-publication fences |
+| [AI game](gameplay.svg) | Qualified EMPTY evidence, independent hand/dark/stable/legality gates and pending placement |
+| [Aiming](laser.svg) | Historical startup hint, initial route, contained correction, independent hold and proof renewal |
+| [Recovery](recovery.svg) | One work ledger, typed expiry/geometry recovery, flag-only signal and verified OFF receipt |
+| [Other modes](modes.svg) | Local recording, online state, clocks, review, scoring and persistence |
 
-Raster previews and browser logs are deliberately omitted from this repository copy. The original rendered work artifact remains at `/Users/Dave/Documents/SGF PLayer/work/physical-go-process-map-20261125/`. `diagram-data.json` is the machine-readable diagram content; `build_map.py` owns its editable source. `findings.html` supplies the review notes and timing tables. [sources.md](sources.md) lists all 27 source entry points.
+Open each SVG at full size or horizontally scroll the HTML. All diagrams are embedded; no network is required. The directory name is retained for link continuity. Git preserves the earlier November25/26 snapshots. No camera images, desktop screenshots, browser logs, temporary DOM output or PNG previews are included.
 
-## Architectural findings
+## Release evidence and physical boundary
 
-1. **Initial observation → holding repeats a dark preparation cycle even when already at the target.** Investigate retaining that first accepted beam with all proof scopes preserved. Fresh hold verification remains necessary. This is a proposal, not an implemented speedup.
-2. **PG23 is repeated evidence rejection, not the measured camera backlog.** R16 had 130 ambiguity resets over 25.418 s; capture-to-consume ages were 122 ms median / 151 ms maximum. Retain exact neighbor/outline/grid evidence before changing the recognition policy. Color counts can constrain consistency but cannot prove hidden emptiness or location.
-3. **Evidence scope should be explicit across subsystems.** Native geometry, host registration, temporal tracking, actual spot, motor pose and firmware limits are independent proofs. Consolidate their descriptions and invalidation diagnostics before attempting to combine checks. PG35's installed 12 s admission-episode repair illustrates why session and operation scopes must differ.
-4. **Separate appearance, motion estimation and visibility failures.** The installed host already treats live brightness scores as diagnostic-only and uses geometry to admit dark registration. The later temporal alias repair is separate. The reviewed normalization repair preserved the original pyramid/coverage and passed 112 focused tests plus paired acceptance. The latest installed host is `968ba538d457c03fc34ed0b17b0d59e853817838-app0264`; the final attended test still failed temporal reuse at frame57014. Sustained reliability remains open. It adds ~0.61–0.84 ms in reported warm module benchmarks; it is a reliability repair, not a compute speedup.
-5. **Measure one correlated turn timeline.** Recognition acceptance, AI answer, first-light acknowledgement, target acceptance, verified hold and physical confirmation differ. Native audio currently follows first light, not accepted target. Record frame waiting, mandatory flush, serial/settling, computation and rejection retries separately.
+The [root installation receipt](/Users/Dave/Documents/SGF%20PLayer/work/requirements-implementation-20261126/install-receipt.json) pins native **d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4**, host **31d84de4c35ee249312dc19b7c501efd9cce1dc1**, and final source approval **587c778a3c635ea496e217a66d436339e3e67c9b**. Root reports **1,320 host tests /57 skips, eight native suites, eight renewal replays and mandatory paired acceptance PASS**. These are offline/install results, not a passing game or measured latency improvement.
 
-The HTML contains the source links, confidence/tradeoffs, latest Q17 measured table and scoped timing limits. Values are not additive “timeout allowances.”
+| Change | Installed behavior |
+|---|---|
+| Hold recovery / shared work ledger | One operation owns acquisition, confirmation, correction and recovery; stable verified waiting pauses only active-work accounting |
+| A1 transport lock | Validator rejects/revokes without recursively writing OFF under the raw transport lock |
+| PG23 recognition receipt | Current original-capture positive EMPTY proof can exempt a low-confidence EMPTY neighbor; UNCERTAIN and independent clearance/legality/stability remain blocking |
+| Native admission | Default12s; qualified16s outer episode only with causally advancing authenticated dark evidence; firmware engagement remains12s |
+| A2 cue age | Immutable original optical proof survives status writes/heartbeats; native checks original age and scope before consuming the once-per-move cue |
+| A3 host I/O and frame reread | Request/status loops independent; one nonblocking publisher owner/no queue; at most one strictly newer, same-scope, fully fresh replacement read |
+| A4 shutdown/startup | Signal handler only assigns a flag; normal flow checks cancellation during startup/admission/cleanup; stopped background work cannot poll or publish late |
 
-## Snapshot and limits
+**Latest attended result:** installed0.269 run1795767435349051000 point12 passed pre/post-READY alignment but failed before adequate. Cached gameplay safety frame1864 reached604.260ms capture age (checked age414.192ms) against600ms, followed by a lease fault and serial write-completion deadline fault. Ctrl-C exited promptly; the prior signal hang did not recur in this attempt. However `controller_off:null` and `full_off_verified:false` mean **no verified final OFF receipt**. User physical power-off confirmation was pending at this snapshot. Prompt process exit is not controller OFF, and fault-status `laserOn:true` with `illuminationConfirmed:false` does not establish actual illumination. No physical acceptance or retry is claimed. See [the current release record](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md).
 
-Architecture snapshot: November 25, 2026. Native **0.264/build265**, source `0f9ac752414b12b85dae5e10b161bd7e6de69950`; host `fc8cb7d2648c198c319e4f046098d8fabc8b8f89`; firmware v44. Current runtime state must be read from the integration checklist/release pointer, not this document.
+The source and installation pins remain valid. This map work performed no runtime action. The installed strict-newer raw-frame reread and the separate cached-gameplay-safety failure above are different evidence boundaries; this update does not infer a cause or propose relaxing600ms.
 
-At the recorded checkpoint Q17 was optically accepted in **3.048924 s / 0.098258 cell with zero moves**, then temporal reuse rejected frame 21221. The game remained paused with 8 logical moves / 7 physical stones and Q17 pending. The separate direct full-OFF receipt was Unix **1795593357.6117432**. PG41 illuminated fine movement was installed but not exercised in that zero-move retry. PG35's admission-timer defect was physically verified fixed; broader sustained recovery remained open.
+The prior **nativefb4697c/host8ce91a1 returned-O17 run1795765307207891000** retained14 observations and one lit renewal, then failed. Raw frame2071 was initially published fresh but later rejected at728.298ms capture age versus600ms. Thermal-unavailable OFF intent preceded the later lease fault. The7.556s adequate-to-fault monitor interval is not continuous optical proof or exact light duration. No correction plans were consumed;4.429s active work did not exhaust the150s budget. Failed pixels were not retained.
 
-Latest installed/frozen host: **968ba538d457c03fc34ed0b17b0d59e853817838-app0264**. The final attended retry acquired Q17 in **3.323906 s / 0.103718 cell** with zero moves and three fresh optical results (maximum capture age **0.471306 s**), then failed temporal reuse at **frame57014**, median **0.062 px**, p95 **27.330 px**. Separate full OFF was confirmed at **1795596934.1468098**. Driver and camera stopped; Q17 remains empty/pending with eight saved moves and seven physical stones. **No passing sustained-play result is claimed.**
+That prior shutdown stalled under SIGINT. User confirmed physical power OFF before root killed the child; **there is no verified final controller OFF receipt for that run**. Installation cannot retroactively supply it. Earlier verified OFF1795712291.8697388 is historical. Game remains paused at ten logical moves/nine physical stones, O17 unplaced in the installation receipt. See [the frozen failure review](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/ReturnedO17Failure20261127.md).
 
-The source index and diagrams remain pinned to the earlier `fc8cb7d` process-flow snapshot. Subsequent exposure-normalization and dark-validation algorithm changes leave this high-level flow unchanged; they are not silently represented as part of the pinned source. Module timing numbers are the active owner's reported offline results, not a measured total-latency improvement.
+## Evidence boundaries and remaining limits
 
-The user-requested approximately **20-minute attended baseline** and separately authorized final retry have ended. Further work is offline on isolated branches. Proposed simplifications are absent from the installed baseline; see the authoritative register for any later offline candidate status. This documentation commit changes no runtime code.
+The operation shares150s active work/25 local correction plans, with a provisional30s recovery wall cap; initial predicted waypoints have their separate existing cap and run once. Retry does not restart optical, lease, motor, thermal, geometry or illumination origins. Raw-frame reread is exactly one replacement attempt for eligible finite expired clear data; frame ID and capture uptime must both advance within the original scope and deadline. Unknown/hand/future/reversed evidence is not rescued.
 
-See [frozen baseline](../BeforeArchitectureBaseline20261125.md), [current register](../IntegrationChecklist.md), and [final outcome and OFF receipt](</Users/Dave/Documents/SGF PLayer/work/feedback-play-release-20261124/dark-residual/final-retry/outcome.json>).
+Status `updatedAtUnix` describes liveness, `adequate` the last measured state, and `opticalEvidence` the immutable source receipt. An aged historical adequate state alone causes no blink, DARK or fault and does not consume the move's later fresh cue. A historical measured anchor can be valid even when off target; it grants neither present accuracy nor stone acceptance.
 
-Older guide status/version paragraphs were superseded by the current checklist. These maps summarize decision/evidence ownership, not every executable branch or every experimental launcher. They do not authorize hardware actions, establish current clearance or replace protocol source.
+I/O isolation removes request/status coupling, not all filesystem stalls. Atomic status replacement still holds the generation lock to prevent obsolete publication. A blocked rename can delay cancellation. Close skips a busy publisher without waiting; if it owns publication, the final status write can still block. Actual controller OFF and a complete shared-status shutdown receipt are separate results. Late background work is fenced before snapshot, lease polling and rename; only close's explicit `shutdown=True` path may publish confirmed OFF after stop. Missing receipts remain failures.
 
-## Rebuild and validation
+Root owns app, camera, launcher and hardware. Fresh user authorization and current post-READY checks remain necessary; maps and old preflight cannot authorize motion.
+
+## Rebuild and verification
 
 ```sh
-python3 build_map.py
+python3 -B build_map.py
+python3 -B verify_map.py
 ```
 
-Run from this directory or pass the absolute script path. Python standard library only; application/host modules are never imported. The build reads `findings.html` and writes the HTML, SVGs, diagram JSON and source index. PNG previews were generated only in the original work artifact using a separate headless Chrome profile, not desktop captures; they are not required to rebuild or view this copy.
+The builder uses Python's standard library. The validator optionally uses Pillow/local Arial metrics and records whether that check ran. `release-snapshot.json` supplies source paths/status; `findings.html` supplies prose/tables. HTML, SVGs, `diagram-data.json` and `sources.md` are generated. `source-hashes.json` and `validation.json` record the examined files and actual validation scope.
 
-Validation performed:
-
-- Headless Chrome rendered the self-contained HTML and all seven SVGs. All **80 node labels** fit their rectangles. Connector labels fit each SVG canvas and overlap neither nodes nor one another; all internal HTML anchors resolve.
-- All **27 local source paths** exist, including `AimControl/AimControl.ino`. The historical and final run-evidence links resolve.
-- Independent SVG geometry checks found no connector segment crossing a node interior. PNG previews of all seven maps were visually inspected; the overview's initially crowded connector labels were corrected.
-- Exact Q17 result events were checked for acceptance, both geometry qualifications, freshness ages and rejection. The immutable source identities and snapshot caveats are preserved.
-
-`validation.json` records the final check result. Chrome logged headless GPU/utility warnings; page execution and geometry checks completed successfully. No app build, runtime test, desktop screenshot, camera acquisition, serial access, installation or hardware action was performed. Responsive page text was checked structurally; small-window diagrams intentionally scroll rather than shrinking below legibility. No exhaustive accessibility audit or complete state-space equivalence proof is claimed.
+The original November25 maps had artifact-only headless render inspection. This update uses static SVG/XML, font metrics, connector geometry, local links, AST and source-hash checks; no screenshot, browser render, app, camera, hardware or runtime tests. It is a review aid, not an exhaustive executable state machine.

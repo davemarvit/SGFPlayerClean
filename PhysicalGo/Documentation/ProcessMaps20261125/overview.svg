@@ -21,8 +21,8 @@
 <text class="edge-label" x="725.0" y="615.0" text-anchor="middle">pause / stop</text>
 <g data-node="setup"><rect x="50" y="35" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="62">A. Qualify the setup</text>
-<text class="node-body" x="64" y="89">Camera grid + pointer map</text>
-<text class="node-body" x="64" y="110">Independent checks + READY</text>
+<text class="node-body" x="64" y="89">Grid + motor map + wood profile</text>
+<text class="node-body" x="64" y="110">Independent checks + fresh READY</text>
 </g>
 <g data-node="camera"><rect x="50" y="225" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="252">B. Observe the board</text>
@@ -41,8 +41,8 @@
 </g>
 <g data-node="host"><rect x="750" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="764" y="442">E. Aim and monitor</text>
-<text class="node-body" x="764" y="469">Dark admission → optical aim</text>
-<text class="node-body" x="764" y="490">Hold or stop; report real state</text>
+<text class="node-body" x="764" y="469">Measure → hold → bounded recovery</text>
+<text class="node-body" x="764" y="490">Lost authority → full OFF</text>
 </g>
 <g data-node="human"><rect x="400" y="415" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="442">F. Human changes board</text>
@@ -60,8 +60,9 @@
 <text class="node-body" x="414" y="700">Explicit scoring / resume</text>
 </g>
 <g data-node="fault"><rect x="750" y="625" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="764" y="652">Fault or pause → full OFF</text>
-<text class="node-body" x="764" y="679">Beam off + motor bus released</text>
-<text class="node-body" x="764" y="700">Retain game and pending move</text>
+<text class="node-title" x="764" y="652">Fault or pause → request OFF</text>
+<text class="node-body" x="764" y="679">Require beam / motor OFF receipt</text>
+<text class="node-body" x="764" y="700">Missing receipt remains unknown</text>
 </g>
+<text x="30" y="780" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
 </svg>

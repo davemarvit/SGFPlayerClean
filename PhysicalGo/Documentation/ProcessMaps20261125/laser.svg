@@ -1,98 +1,100 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1480" width="1120" height="1480" role="img" aria-labelledby="laser-title laser-desc">
-<title id="laser-title">5 · Host aiming and holding</title><desc id="laser-desc">Every observation has its own fresh pixels and actual-pose checks. Geometry can be reused only while its fixed anchor still agrees.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1390" width="1120" height="1390" role="img" aria-labelledby="laser-title laser-desc">
+<title id="laser-title">5 · Aim, publish and hold one target</title><desc id="laser-desc">Measured optical anchors and target-adequate evidence are different results. The same operation owns initial aiming and every recovery.</desc>
 <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#5e6c7d" stroke-width="1.5"/></marker></defs>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#182b40}.edge-label{font-size:14px;paint-order:stroke;stroke:#fff;stroke-width:7px;stroke-linejoin:round}.node-title{font-size:18px;font-weight:600}.node-body{font-size:15px}</style>
 <rect width="100%" height="100%" fill="#fff"/>
 <polyline points="350.0,78.0 400.0,78.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,126.0 550.0,205.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,301.0 550.0,390.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="550.0,486.0 550.0,575.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="400.0,623.0 200,623 200.0,750.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="300.0" y="615.0" text-anchor="middle">outside tolerance</text>
-<polyline points="200.0,846.0 200.0,925.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="350.0,973.0 400.0,973.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="375.0" y="915.0" text-anchor="middle">miss</text>
-<polyline points="550.0,1021.0 550,1068 200,1068 200.0,1021.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="375.0" y="1060.0" text-anchor="middle">remeasure</text>
-<polyline points="700.0,623.0 900,623 900.0,750.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="800.0" y="615.0" text-anchor="middle">already close</text>
-<polyline points="350.0,973.0 375,973 375,867 735,867 735,798 750.0,798.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="555.0" y="859.0" text-anchor="middle">measured pass</text>
-<polyline points="900.0,846.0 900.0,925.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="900.0,1021.0 900.0,1110.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<polyline points="750.0,1158.0 700.0,1158.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="725.0" y="1100.0" text-anchor="middle">refresh due</text>
-<polyline points="700.0,1158.0 720,1158 720,170 550,170 550.0,205.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
-<text class="edge-label" x="635.0" y="162.0" text-anchor="middle">new dark anchor</text>
-<polyline points="900.0,1206.0 900.0,1300.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,126.0 550.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="550.0,306.0 550.0,395.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="400.0,443.0 200,443 200.0,585.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="300.0" y="435.0" text-anchor="middle">outside band</text>
+<polyline points="700.0,443.0 900,443 900.0,585.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="800.0" y="435.0" text-anchor="middle">accepted beam</text>
+<polyline points="200.0,681.0 200.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="350.0,838.0 400.0,838.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="780.0" text-anchor="middle">outside band</text>
+<polyline points="550.0,886.0 550,940 200,940 200.0,886.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="375.0" y="932.0" text-anchor="middle">remeasure</text>
+<polyline points="350.0,838.0 375,838 375,720 735,720 735,633 750.0,633.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="555.0" y="712.0" text-anchor="middle">measured pass</text>
+<polyline points="900.0,681.0 900.0,790.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,886.0 900.0,1000.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="900.0,1096.0 900.0,1190.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<polyline points="750.0,1048.0 725,1048 725,1238 700.0,1238.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="725.0" y="1135.0" text-anchor="middle">renewal due</text>
+<polyline points="700.0,1238.0 720,1238 720,175 550,175 550.0,210.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="720.0" y="911.1" text-anchor="middle">DARK when needed</text>
+<polyline points="200.0,886.0 200.0,1000.0" fill="none" stroke="#5e6c7d" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text class="edge-label" x="200.0" y="935.0" text-anchor="middle">published sample</text>
 <g data-node="admit"><rect x="50" y="30" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
 <text class="node-title" x="64" y="57">Admit current request</text>
 <text class="node-body" x="64" y="84">Binding + fresh frame + identity</text>
-<text class="node-body" x="64" y="105">Warm receipt or cold admission</text>
+<text class="node-body" x="64" y="105">Historical anchor is only a hint</text>
 </g>
 <g data-node="arm"><rect x="400" y="30" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="414" y="57">Cold GA / warm RS</text>
-<text class="node-body" x="414" y="84">Dark motor engagement / resume</text>
-<text class="node-body" x="414" y="105">Native unfinished episode ≤12 s</text>
+<text class="node-body" x="414" y="84">Dark engagement; phase evidence</text>
+<text class="node-body" x="414" y="105">No admission-clock reset on retry</text>
 </g>
-<g data-node="prepare"><rect x="400" y="205" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="232">Prepare while dark</text>
-<text class="node-body" x="414" y="259">PREPARE → three dark frames</text>
-<text class="node-body" x="414" y="280">Fit median geometry + fresh check</text>
+<g data-node="prepare"><rect x="400" y="210" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="237">Prepare while dark</text>
+<text class="node-body" x="414" y="264">Three new dark frames + grid fit</text>
+<text class="node-body" x="414" y="285">Fresh actual pose + first-light proof</text>
 </g>
-<g data-node="initial"><rect x="400" y="390" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="417">Initial optical observation</text>
-<text class="node-body" x="414" y="444">SWEEP light; flush ≥300 ms</text>
-<text class="node-body" x="414" y="465">Fresh batch + pose before/after</text>
+<g data-node="initial"><rect x="400" y="395" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="422">Measure actual spot</text>
+<text class="node-body" x="414" y="449">SWEEP + fresh stationary batch</text>
+<text class="node-body" x="414" y="470">Post-image causal motor evidence</text>
 </g>
-<g data-node="dark"><rect x="400" y="575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="602">Initial observe darkens</text>
-<text class="node-body" x="414" y="629">DARK + state/pose recheck</text>
-<text class="node-body" x="414" y="650">Even if target already accepted</text>
+<g data-node="coarse"><rect x="50" y="585" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="612">Initial predicted travel once</text>
+<text class="node-body" x="64" y="639">Dark contained coarse waypoints</text>
+<text class="node-body" x="64" y="660">Same active time; separate step cap</text>
 </g>
-<g data-node="coarse"><rect x="50" y="750" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="777">Try predicted dark travel</text>
-<text class="node-body" x="64" y="804">Bounded model / support corridor</text>
-<text class="node-body" x="64" y="825">GOTO + recenter actual settlement</text>
+<g data-node="observe"><rect x="50" y="790" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="64" y="817">Observe actual landing</text>
+<text class="node-body" x="64" y="844">Coarse / recovery: full-board batch</text>
+<text class="node-body" x="64" y="865">Ordinary fine: measured near estimate</text>
 </g>
-<g data-node="reacquire"><rect x="50" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="64" y="952">Observe actual landing</text>
-<text class="node-body" x="64" y="979">Coarse: search across the board</text>
-<text class="node-body" x="64" y="1000">Fine: measure near predicted spot</text>
+<g data-node="fine"><rect x="400" y="790" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="817">Contained local correction</text>
+<text class="node-body" x="414" y="844">Charge shared correction-plan ledger</text>
+<text class="node-body" x="414" y="865">Fresh settled frame fence; remeasure</text>
 </g>
-<g data-node="fine"><rect x="400" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="952">If outside 0.20 cell: correct</text>
-<text class="node-body" x="414" y="979">Local response at actual pose</text>
-<text class="node-body" x="414" y="1000">Fine light allowed only if guarded</text>
+<g data-node="accept"><rect x="750" y="585" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="612">Within 0.20 cell</text>
+<text class="node-body" x="764" y="639">Fresh optical target acceptance</text>
+<text class="node-body" x="764" y="660">Keep accepted beam if eligible</text>
 </g>
-<g data-node="accept"><rect x="750" y="750" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
-<text class="node-title" x="764" y="777">Within 0.20 cell</text>
-<text class="node-body" x="764" y="804">Measured target acceptance</text>
-<text class="node-body" x="764" y="825">Does not confirm physical stone</text>
+<g data-node="hold"><rect x="750" y="790" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="764" y="817">Independent held verification</text>
+<text class="node-body" x="764" y="844">Recheck exact evidence + scope</text>
+<text class="node-body" x="764" y="865">Publish adequate; then native cue</text>
 </g>
-<g data-node="hold"><rect x="750" y="925" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="952">Verify and hold indication</text>
-<text class="node-body" x="764" y="979">If dark: new PREPARE + SWEEP</text>
-<text class="node-body" x="764" y="1000">If already lit: promote same beam</text>
+<g data-node="monitor"><rect x="750" y="1000" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1027">Monitor current held target</text>
+<text class="node-body" x="764" y="1054">Outside band → withdraw adequate</text>
+<text class="node-body" x="764" y="1075">Fresh confirmation → bounded repair</text>
 </g>
-<g data-node="monitor"><rect x="750" y="1110" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="1137">Read fresh spot repeatedly</text>
-<text class="node-body" x="764" y="1164">Must stay within 0.20 cell</text>
-<text class="node-body" x="764" y="1185">Emit adequate; await placement</text>
+<g data-node="renew"><rect x="400" y="1190" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="414" y="1217">Renew geometry certificate</text>
+<text class="node-body" x="414" y="1244">Fresh fixed-anchor lit proof if valid</text>
+<text class="node-body" x="414" y="1265">Defer optional work / DARK fallback</text>
 </g>
-<g data-node="refresh"><rect x="400" y="1110" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="414" y="1137">Renew dark geometry</text>
-<text class="node-body" x="414" y="1164">At age ≥6 s (10 s max, 4 s reserve)</text>
-<text class="node-body" x="414" y="1185">Or light interval near 55 s</text>
+<g data-node="anchor"><rect x="50" y="1000" width="300" height="96" rx="8" fill="#edf5ef" stroke="#386347"/>
+<text class="node-title" x="64" y="1027">Persist historical measured hint</text>
+<text class="node-body" x="64" y="1054">After gated optical publication</text>
+<text class="node-body" x="64" y="1075">Valid even if requested target missed</text>
 </g>
-<g data-node="placement"><rect x="750" y="1300" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
-<text class="node-title" x="764" y="1327">Hand / stone / new request</text>
-<text class="node-body" x="764" y="1354">Revoke old operation → dark/OFF</text>
-<text class="node-body" x="764" y="1375">Native confirms physical outcome</text>
+<g data-node="placement"><rect x="750" y="1190" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
+<text class="node-title" x="764" y="1217">Hand / placement / new intent</text>
+<text class="node-body" x="764" y="1244">Revoke old operation → dark/OFF</text>
+<text class="node-body" x="764" y="1265">Native independently confirms stone</text>
 </g>
-<g data-node="guards"><rect x="50" y="1300" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
-<text class="node-title" x="64" y="1327">Independent guards throughout</text>
-<text class="node-body" x="64" y="1354">Lease / hand / thermal / actual pose</text>
-<text class="node-body" x="64" y="1375">Any fault → cancellation / full OFF</text>
+<g data-node="budget"><rect x="50" y="1190" width="300" height="96" rx="8" fill="#fff4d9" stroke="#805d16"/>
+<text class="node-title" x="64" y="1217">One work ledger</text>
+<text class="node-body" x="64" y="1244">150s active / 25 local plans</text>
+<text class="node-body" x="64" y="1265">Stable adequate waiting excluded</text>
 </g>
+<text x="30" y="1380" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
 </svg>
