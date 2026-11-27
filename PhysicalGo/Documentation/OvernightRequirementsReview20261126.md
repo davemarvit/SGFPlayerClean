@@ -2,9 +2,10 @@
 
 Status: **combined source approved: host
 `936bf10e3942a0a32a47e57eb1b58cfba5af07d8` and native
-`be8befeaf3640df0b9b88efd0d9d380e76fa409d` (0.270/build271), including
+`7188dc4ddd613f158cc2418ce8c7844cdcd66f33` (0.270/build271), including
 bounded recovery, admission, PG23, A2 optical-proof age, signal-safe shutdown and
-IPC isolation with late-publisher fences and additive serial/camera diagnostics.
+IPC isolation with late-publisher fences, additive serial/camera diagnostics,
+and compatible recording-manifest caching.
 The diagnostics do not fix an established physical cause; the next attended O17
 run remains diagnostic. Final combined test
 completion, packaging, paired acceptance, installation and physical results remain
@@ -88,6 +89,57 @@ exhaustion so replay or physical evidence can justify revision.
 | Time domains | Monotonic active-time and episode deadlines tolerate ordinary scheduling | Wall-clock jump, future capture, delayed IO, reused frame ID or stream epoch, and stale immutable snapshot cannot create younger evidence or renew authority. |
 
 ## Source-first review anchors
+
+### Final recording-manifest cache review
+
+**Final exact pair approved:** host
+`936bf10e3942a0a32a47e57eb1b58cfba5af07d8` and native
+`7188dc4ddd613f158cc2418ce8c7844cdcd66f33` (0.270/build271).
+The additional native production source is identical to frozen recorder candidate
+`90ade4ec3751e4ce82e694fbef2c2edcd1c05e7a`; the host is unchanged from the previous
+diagnostics approval. No source blocker was found.
+
+`DiagnosticManifest` encodes the immutable context once as compact JSON. It removes
+all dynamic reserved keys before constructing the prefix, so status, counts and
+time cannot appear twice. A non-nil lifecycle reason overrides the initial context
+reason; nil preserves that initial value, including JSON null. Empty context,
+escaped keys/strings and nested checkpoints remain ordinary JSON objects with
+all original context fields inline. Inspected archive/replay/audit consumers parse
+JSON rather than depending on indentation or global key order. Existing writer
+locks continue to protect active archives even when manifest time/counts lag.
+
+Successful caching releases the writer's boxed context. Cache encoding failure
+does not clear that context or mark the cache valid; it follows the existing
+abort path. Publication still uses atomic Data writing. Later write failure still
+attempts a failed manifest with the same cached context and closes the writer;
+unwritable storage cannot be made durable by this change. The cache and each
+assembled publication consume memory; this is not a zero-allocation design or a
+general bound on the existing metadata queue.
+
+Gap records and their ranges/counts still append to ordered `events.jsonl`, while
+the gap-triggered full-manifest rewrite is removed. The periodic 25-frame and
+complete/failed/exit publications remain; final counters include gaps. During a
+recording, manifest omitted-image counts may lag until its next periodic/final
+publication. Live counters and the gap journal remain available. No image, safety
+evidence, checkpoint, recording selection or privacy behavior is removed or added.
+No camera, game-clock, hand, optical or controller deadline changes.
+
+The reviewer verified the frozen changed-source and focused executable hashes and
+independently reran the existing actual asynchronous writer artifact:
+**16 lifecycle checks passed**, without compiling Swift. Source review inspected
+the 25 Foundation compatibility controls, three retained whole-document semantic
+comparisons, 131 asynchronous checks and owner validation receipts. The unchanged
+broad diagnostic test passed **62 checks in its declared optimized mode** on
+frozen source. The baseline and candidate both failed when forced into debug mode;
+those results and an unsuccessful test-only wait experiment remain recorded.
+No wait, assertion change or production 1.5-second gate relaxation was retained.
+
+The observed recording implied 57 large manifest publications under the old path
+and nine under the new path, with static serialization performed once. These are
+source/retained-data observations, not measured physical disk traffic or proof of
+the live camera/serial stall's cause. Root retains responsibility for the final
+16 integrated native suites, signed build, paired acceptance, installation and
+attended morning diagnostic O17 run. No hardware or app was started here.
 
 ### November 27 diagnostics-only release review
 
