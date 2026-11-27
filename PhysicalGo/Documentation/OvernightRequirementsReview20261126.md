@@ -112,6 +112,23 @@ regression, not the cause of every thread blocked in the later physical run.
 Combined interaction with the proposed independent status publisher also remains
 to be reviewed.
 
+**Resolved and source approved in `89273086e191153b1113de8c5c9ff96ce5bdda5a`
+atop `8354e8b`:** `start(stop_requested=...)` installs the pure predicate before
+backend startup and checks it after open/configuration, before launching threads.
+`RuntimeStopEvent.is_set()` and `wait()` expose the same flag to loop and gameplay
+guards, including signals between thread launches. Long or indefinite waits poll
+at most every 100 ms; short waits check the predicate before and after the timed
+Event wait. The signal handler itself still performs only plain assignment.
+Normal close retains Event.set, cancellation and confirmed-OFF receipt handling.
+
+The reviewer independently ran **32 startup, real-signal and shutdown-receipt
+tests**, all passing. The actual-runtime regression now admits no point, while
+the deliberately disabled-predicate control still admits sequence2 and proves
+the counterexample meaningful. This approves the frozen shutdown chain at source
+level; the forthcoming status-publisher thread/lifecycle combination still needs
+its own final review. It does not establish the exact cause of every physical
+shutdown delay or any new physical OFF result.
+
 ### Later offline replay assertion follow-up
 
 The final candidate was not installed when root's retained replay reported one
