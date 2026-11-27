@@ -1,10 +1,12 @@
 # Independent overnight requirements review — November 26, 2026
 
 Status: **combined source approved: host
-`31d84de4c35ee249312dc19b7c501efd9cce1dc1` and native
-`d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4` (0.269/build270), including
+`936bf10e3942a0a32a47e57eb1b58cfba5af07d8` and native
+`be8befeaf3640df0b9b88efd0d9d380e76fa409d` (0.270/build271), including
 bounded recovery, admission, PG23, A2 optical-proof age, signal-safe shutdown and
-IPC isolation with late-publisher fences. Final combined test
+IPC isolation with late-publisher fences and additive serial/camera diagnostics.
+The diagnostics do not fix an established physical cause; the next attended O17
+run remains diagnostic. Final combined test
 completion, packaging, paired acceptance, installation and physical results remain
 root-owned and are not established by this source review**.
 Reviewer `/root/overnight_requirements_review`; root owns integration, installation,
@@ -86,6 +88,63 @@ exhaustion so replay or physical evidence can justify revision.
 | Time domains | Monotonic active-time and episode deadlines tolerate ordinary scheduling | Wall-clock jump, future capture, delayed IO, reused frame ID or stream epoch, and stale immutable snapshot cannot create younger evidence or renew authority. |
 
 ## Source-first review anchors
+
+### November 27 diagnostics-only release review
+
+**Exact source pair approved:** host
+`936bf10e3942a0a32a47e57eb1b58cfba5af07d8` and native
+`be8befeaf3640df0b9b88efd0d9d380e76fa409d` (0.270/build271).
+Both integrated trees have clean tracked source. Host Firmware is identical to
+reviewed `00807fc193b7856d79914fbbc9bd7853d1684239`, based on approved `31d84de`.
+Native production source is identical to `d83469402619db4fc16b422234b8c0ba5c51819f`
+including `b678752`; only version/build metadata differs from that reviewed tree.
+
+Host serial timing adds adjacent thread-CPU samples without replacing the original
+100 ms wall deadline, prewrite validation or immediate post-write classification.
+No retry, serial query, filesystem work or extra lock is introduced in the raw
+write path. Sampling consumes time within the existing deadline; it is not a
+claim of zero overhead. Failure evidence is bounded to eight retained exceptions
+and the existing first-eight/last-64 write history. The post-close snapshot is
+taken even when raw close raises; original close exceptions remain the propagated
+exceptions. A live receiver and snapshot failure remain explicit limitations.
+
+The runtime records the raw OFF barrier receipt separately from gate acceptance
+and copies rejection reasons under that same gate lock. Sticky transport errors,
+generation changes and nonquiescence still reject authority exactly as before.
+The version2 `full_off_verified` predicate and accepted `controller_off` remain
+unchanged; additive diagnostics cannot substitute a raw acknowledgement or write
+success for the required gate/shared-status/controller proof. This preserves
+evidence, not proof of OFF in the previous physical run.
+
+Native tracing requires the existing trace directory plus the new explicit stage
+flag. Capture, analysis and completion timing objects stay on their synchronous
+threads; events have bounded fields/stages and use the existing nonblocking,
+capacity-limited utility writer. JSON/file work remains outside producer paths.
+Capture provenance is original when available and omitted when absent; processing
+fallback time is not relabelled as capture. Camera cadence, latest-slot admission,
+recognition order, independent hand/safety results and all deadlines are unchanged.
+Thread CPU excludes other workers/GPU, so wall-minus-CPU is not a diagnosis of
+USB, scheduling or GIL contention. Additional events shorten the rotating trace's
+retention window and add bounded measurement overhead.
+
+The changes add text timing, frame/stream identity and bounded serial diagnostics.
+They do not capture desktop screenshots, add image recording, change recording
+settings or start devices. Root owns any later app launch, installation or live
+recording. Original evidence remains preserved.
+
+Independent verification: **61 focused host tests passed**, covering CPU timing,
+write attribution, late runtime/close evidence, original exception retention and
+OFF receipt rules. Without compiling Swift, the reviewer verified the retained
+native changed-source and executable hashes, then reran the existing asynchronous
+stage runner: **26 enabled + 7 disabled + 26 absent-original-capture checks passed**.
+The owner also records broader native pipeline/safety tests; those are correctness
+results, not live performance evidence. Root is performing final integrated build,
+full host, retained replay and paired checks.
+
+No physical root cause is claimed fixed. The morning READY is for an attended
+diagnostic O17 run under root's conditions: lights restored, controller reconnected,
+hands clear, user watching and setup unchanged. This reviewer has performed no
+hardware, application launch, installation, camera acquisition or screenshot.
 
 ### IPC isolation follow-up and combined shutdown review
 
