@@ -2,7 +2,7 @@
 
 Source audits are now retained canonically: [76 spatial requirement groups](SpatialRequirementsAudit.md) (38 source files; original commit54548df) and [63 temporal groups](../TemporalRequirementsAudit20261125/README.md) (277-file/1,025-hit census; original commit23163e8). They are source-pinned analyses, not automatic permission to relax a limit. Historical candidate/install descriptions inside them refer to their audit cutoff; the [issue register](../IntegrationChecklist.md) owns current status.
 
-The [authoritative register](../IntegrationChecklist.md) now records installed0.270/native7188dc4 + host936bf10. Reviewed recorder-write reduction and opt-in camera/serial evidence passed final offline checks; app/driver closed, USB absent, no camera/hardware tonight. Morning single fresh READY and live checks remain; no serial/latency physical-fix claim. [Release/review record](../MorningReadiness20261127.md).
+The [authoritative register](../IntegrationChecklist.md) records installed0.270/native7188dc4 + host936bf10 and the completed attended run:178/178 post-pose checks, one held correction and verified fullOFF1795801002.8529265. Dark rechecks interrupted light; late standby safety expiry and O17 placement ambiguity remain open. WhiteO17 is physically occupied but not accepted;10physical/10logical stones, game paused, no activeREADY. PG23 and PG16 own read-only diagnosis. No broad reliability closure.
 
 | Priority / existing scope | Concrete next work | Acceptance before promotion |
 |---|---|---|
