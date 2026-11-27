@@ -1,0 +1,86 @@
+{
+  "base": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+  "foundationChecks": 25,
+  "retainedContextEqualityComparisons": 3,
+  "pythonBuildTests": 8,
+  "focusedWriter": {
+    "suite": "diagnostic-manifest-writer-test",
+    "returncode": 0,
+    "stdout": "PASS 16 diagnostic manifest writer lifecycle checks\n",
+    "stderr": "",
+    "executable": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/DiagnosticManifestWriterTests-f0f61061fdc72f90e36e89005466776590b77506a7e0511342d8b52f0d7db4ad",
+    "receipt": {
+      "executableSHA256": "087f5124beab7dfa10c50d44f18ee9b7f504d26f0c6b43b629acaf44955d70fd",
+      "runnerIdentity": "f0f61061fdc72f90e36e89005466776590b77506a7e0511342d8b52f0d7db4ad",
+      "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runners/f0f61061fdc72f90e36e89005466776590b77506a7e0511342d8b52f0d7db4ad/complete.json",
+      "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runtimes/3a9a5dd4753077a826610c0b8ed5f2fa6ab60a3ca953c5de0cd9dd53c2de54be/complete.json",
+      "schemaVersion": 1
+    }
+  },
+  "asyncDiagnostics": {
+    "suite": "async-diagnostics-test",
+    "returncode": 0,
+    "stdout": "PASS: 131 asynchronous archive allocation, armed Start capture, clock gates, stop ordering and startup-failure checks\n",
+    "stderr": "",
+    "executable": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/AsyncDiagnosticsTests-f1d114b85676dc32cb39e6a7f38b8272aaa75717656cc0d172903b63a3b0e03d",
+    "receipt": {
+      "executableSHA256": "694b9dafb4cc0997291249eaf1deff318dd4533bc07ac5ebdac99ca3fb7f06c7",
+      "runnerIdentity": "f1d114b85676dc32cb39e6a7f38b8272aaa75717656cc0d172903b63a3b0e03d",
+      "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runners/f1d114b85676dc32cb39e6a7f38b8272aaa75717656cc0d172903b63a3b0e03d/complete.json",
+      "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runtimes/3a9a5dd4753077a826610c0b8ed5f2fa6ab60a3ca953c5de0cd9dd53c2de54be/complete.json",
+      "schemaVersion": 1
+    }
+  },
+  "debugBroadCandidateFailure": {
+    "suite": "diagnostic-test",
+    "returncode": -5,
+    "stdout": "",
+    "stderr": "DiagnosticTests/DiagnosticTests.swift:11: Fatal error: Diagnostic mode interfered with empty-board readiness\n",
+    "executable": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/DiagnosticTests-63e7504646d22b3032a7180265797af46770cc7481cba5b8376995c0d29a5321",
+    "receipt": {
+      "executableSHA256": "7ccfaf1ce11920352f93b84ae159a215709fb703c9604497b7ca634646d43d92",
+      "runnerIdentity": "63e7504646d22b3032a7180265797af46770cc7481cba5b8376995c0d29a5321",
+      "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runners/63e7504646d22b3032a7180265797af46770cc7481cba5b8376995c0d29a5321/complete.json",
+      "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runtimes/3a9a5dd4753077a826610c0b8ed5f2fa6ab60a3ca953c5de0cd9dd53c2de54be/complete.json",
+      "schemaVersion": 1
+    }
+  },
+  "debugBroadBaselineFailure": {
+    "base": "be8befe",
+    "executable": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/.build/DiagnosticTests-9534ab8f1af4d5d06d4403ce1d7a43876447c5892a42a4329e549fd763d3b012",
+    "returncode": -5,
+    "stdout": "",
+    "stderr": "DiagnosticTests/DiagnosticTests.swift:11: Fatal error: Diagnostic mode interfered with empty-board readiness\n",
+    "receipt": {
+      "executableSHA256": "b8acf8b00337b281b70c99c0ef2f8f708f0a0b12394543dc947a12439c4e297f",
+      "runnerIdentity": "9534ab8f1af4d5d06d4403ce1d7a43876447c5892a42a4329e549fd763d3b012",
+      "runnerReceipt": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/.build/RegressionModules/runners/9534ab8f1af4d5d06d4403ce1d7a43876447c5892a42a4329e549fd763d3b012/complete.json",
+      "runtimeReceipt": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/.build/RegressionModules/runtimes/55f6dd316edc6eccf38953f7f20c1e51a643ad47f1171aa8b98821718e44acf7/complete.json",
+      "schemaVersion": 1
+    }
+  },
+  "unsuccessfulTestOnlyInitialWait": [
+    {
+      "label": "baseline",
+      "returncode": -5,
+      "stdout": "",
+      "stderr": "DiagnosticTests/DiagnosticTests.swift:11: Fatal error: Diagnostic mode interfered with empty-board readiness\n",
+      "runtime": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/.build/RegressionModules/runtimes/55f6dd316edc6eccf38953f7f20c1e51a643ad47f1171aa8b98821718e44acf7",
+      "testSHA256": "f7a1739d3165a494a04d3805154971864f00b23777b128dcd4dd486910aede81"
+    },
+    {
+      "label": "candidate",
+      "returncode": -5,
+      "stdout": "",
+      "stderr": "DiagnosticTests/DiagnosticTests.swift:11: Fatal error: Diagnostic mode interfered with empty-board readiness\n",
+      "runtime": "/Users/Dave/SGFPlayerClean-worktrees/diagnostic-manifest-cache/PhysicalGo/.build/RegressionModules/runtimes/3a9a5dd4753077a826610c0b8ed5f2fa6ab60a3ca953c5de0cd9dd53c2de54be",
+      "testSHA256": "f7a1739d3165a494a04d3805154971864f00b23777b128dcd4dd486910aede81"
+    }
+  ],
+  "testOnlyWaitReverted": true,
+  "optimizedBroadStatus": "pending",
+  "sourceSHA256": {
+    "PhysicalGo/Sources/DiagnosticManifest.swift": "902e17709fa39cbd81b0104bbe2b8602e71d4089582ad6e84764ec6364f9bd4c",
+    "PhysicalGo/Sources/DiagnosticRecorder.swift": "ed70506874ac35014d678819e9cb00f67b75b0ae7ad0ad6a5a31949375200afa"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-27 00-17-09 7D7916C0",
+  "inputSHA256": {
+    "session.json": "2bcae50989b7b2b3f0487b661f2884196914786d4f0b99e6d90f3b05f366c1ce",
+    "events.jsonl": "16911e9f6691a79e3041ed77ecb1e385bdbcfaf57e3a312864348630a8f61393"
+  },
+  "events": 1341,
+  "images": 184,
+  "gapEvents": 48,
+  "sessionBytes": 56372567,
+  "eventCounts": {
+    "capture started": 1,
+    "frame": 184,
+    "operation started": 553,
+    "operation finished": 553,
+    "image writing gap": 48,
+    "capture stopping": 1,
+    "capture ended": 1
+  },
+  "manifestCallsFromSource": {
+    "open": 1,
+    "periodic": 7,
+    "gap": 48,
+    "complete": 1,
+    "total": 57,
+    "candidateTotal": 9
+  },
+  "periodicQueueIncreases": [
+    {
+      "afterFrame": 25,
+      "beforeQueueSeconds": 1.781071708071977,
+      "nextQueueSeconds": 2.466116708237678,
+      "queueIncreaseSeconds": 0.6850450001657009
+    },
+    {
+      "afterFrame": 50,
+      "beforeQueueSeconds": 1.5879689999856055,
+      "nextQueueSeconds": 2.271318417042494,
+      "queueIncreaseSeconds": 0.6833494170568883
+    },
+    {
+      "afterFrame": 75,
+      "beforeQueueSeconds": 2.3982974998652935,
+      "nextQueueSeconds": 3.0710692503489554,
+      "queueIncreaseSeconds": 0.6727717504836619
+    },
+    {
+      "afterFrame": 100,
+      "beforeQueueSeconds": 3.190572749823332,
+      "nextQueueSeconds": 3.8733831252902746,
+      "queueIncreaseSeconds": 0.6828103754669428
+    },
+    {
+      "afterFrame": 125,
+      "beforeQueueSeconds": 3.99328758334741,
+      "nextQueueSeconds": 4.683420957997441,
+      "queueIncreaseSeconds": 0.6901333746500313
+    },
+    {
+      "afterFrame": 150,
+      "beforeQueueSeconds": 12.099584416486323,
+      "nextQueueSeconds": 19.86302329180762,
+      "queueIncreaseSeconds": 7.763438875321299
+    },
+    {
+      "afterFrame": 175,
+      "beforeQueueSeconds": 5.620041166897863,
+      "nextQueueSeconds": 6.303755625151098,
+      "queueIncreaseSeconds": 0.6837144582532346
+    }
+  ],
+  "overlap": {
+    "gapEventWriterUnix": 1795767468.505962,
+    "nextFrame": 146,
+    "nextFrameWriterStartEstimateUnix": 1795767474.381812,
+    "nextFrameImageWriteSeconds": 1.406352000311017,
+    "estimateCaveat": "Producer wall time precedes actual enqueue slightly; interval includes gap append/fsync, manifest work and scheduling, not a measured manifest duration.",
+    "nativeAnalysisFrame1866Seconds": 0.524159,
+    "nativeAnalysisFrame1867Seconds": 0.505261
+  },
+  "finalFrame": {
+    "frameID": 184,
+    "cameraFrameNumber": 2044,
+    "time": 1795767496.968571,
+    "writerQueueSeconds": 6.2174136666581035,
+    "imageWriteSeconds": 0.07845287537202239
+  }
+}

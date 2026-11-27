@@ -207,6 +207,7 @@ private final class DiagnosticWriter {
     private var handle:FileHandle?
     private var bytes:Int64=0,frames=0,omittedImages=0,closed=false
     private var context:[String:Any]
+    private var cachedManifest:DiagnosticManifest?
     private var lastSync=0.0
     var onFailure:((String)->Void)?
     init(folder:URL,limit:Int64,reserve:Int64,context:[String:Any],archiveStorage:DiagnosticArchiveStorage?,minimumPayload:Int64?) {
@@ -239,11 +240,15 @@ private final class DiagnosticWriter {
         try manifest(status:"recording",reason:nil)
     }
     private func manifest(status:String,reason:String?) throws {
-        var entry=context;entry["status"]=status;entry["framesSaved"]=frames;entry["bytesWritten"]=bytes
-        entry["omittedImages"]=omittedImages
-        entry["updatedAt"]=Date().timeIntervalSince1970
-        if let reason {entry["reason"]=reason}
-        try JSONSerialization.data(withJSONObject:entry,options:[.prettyPrinted,.sortedKeys]).write(to:folder.appendingPathComponent("session.json"),options:.atomic)
+        if cachedManifest==nil {
+            cachedManifest=try DiagnosticManifest(context:context)
+            // The encoded cache now owns the complete immutable checkpoint.
+            // Do not retain its large boxed dictionary for the whole recording.
+            context=[:]
+        }
+        let data=try cachedManifest!.data(status:status,frames:frames,bytes:bytes,
+            omittedImages:omittedImages,updatedAt:Date().timeIntervalSince1970,reason:reason)
+        try data.write(to:folder.appendingPathComponent("session.json"),options:.atomic)
     }
     private func png(_ image:CGImage)throws->Data {
         let data=NSMutableData()
@@ -290,7 +295,9 @@ private final class DiagnosticWriter {
                 try self.append(["event":"image writing gap","reason":"Writer queue full",
                     "firstCaptureUptime":first,"lastCaptureUptime":last,"omittedImages":count,
                     "time":Date().timeIntervalSince1970])
-                try self.manifest(status:"recording",reason:nil)
+                // A gap is already durable in events.jsonl. Rewriting the full
+                // checkpoint here makes writer overload generate more overload.
+                // The regular 25-frame snapshot and final/abort counts remain.
             } catch {self.abort(error)}
         }
     }

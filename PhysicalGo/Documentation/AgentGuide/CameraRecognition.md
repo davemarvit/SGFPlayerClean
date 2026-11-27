@@ -199,3 +199,13 @@ board → Stone set. [StoneSetProfileStore.swift](../../Sources/StoneSetProfileS
 uses a separate `Physical Go/Stone Sets/library.json`; per-color measured thickness
 may remain unknown. Saving/selecting a profile still does not apply optical or
 parallax correction. The studied geometry candidates remain separate offline work.
+
+## Recording manifest cost
+
+The [manifest cache repair](../../Experiments/DiagnosticManifestCache/README.md)
+retains the complete initial checkpoint inline but serializes static context only
+once. Writing gaps remain in the journal without triggering another full
+manifest rewrite; periodic and final/abort counters remain compatible. This
+removes a demonstrated recording-work amplification, not a proven live freshness
+fault. Per-frame main-thread diagnostic conversion and metadata queue limits
+remain separate profiling concerns.
