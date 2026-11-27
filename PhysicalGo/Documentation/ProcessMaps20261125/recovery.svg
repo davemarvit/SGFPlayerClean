@@ -99,8 +99,8 @@
 </g>
 <g data-node="nooff"><rect x="50" y="1220" width="300" height="96" rx="8" fill="#fff0ef" stroke="#99433b" stroke-dasharray="5 3"/>
 <text class="node-title" x="64" y="1247">Missing receipt: state unknown</text>
-<text class="node-body" x="64" y="1274">Report shutdown failure honestly</text>
-<text class="node-body" x="64" y="1295">Physical power report is separate</text>
+<text class="node-body" x="64" y="1274">Raw OFF ≠ gate-accepted receipt</text>
+<text class="node-body" x="64" y="1295">Diagnostics grant no OFF authority</text>
 </g>
 <g data-node="signal"><rect x="50" y="1575" width="300" height="96" rx="8" fill="#eaf2ff" stroke="#23538a"/>
 <text class="node-title" x="64" y="1602">Signal: assign plain stop flag</text>
@@ -112,5 +112,5 @@
 <text class="node-body" x="764" y="1629">Stop predicate checked before launch</text>
 <text class="node-body" x="764" y="1650">Stopped readers cannot admit or poll</text>
 </g>
-<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">INSTALLED 0.269 · native d014c63 / host 31d84de · Latest attended attempt failed; physical acceptance OPEN</text>
+<text x="30" y="1720" style="font-size:12px;fill:#5e6c7d">DIAGNOSTICS CANDIDATE 0.270 · be8befe / 936bf10 · Installed0.269; physical acceptance OPEN</text>
 </svg>

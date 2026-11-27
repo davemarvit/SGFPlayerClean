@@ -1,16 +1,16 @@
 {
   "date": "2026-11-27",
-  "state": "Installed 0.269 \u2014 offline validated; latest attended attempt failed, physical acceptance open",
+  "state": "Diagnostics-only 0.270 candidate approved; installed remains0.269 until root receipt",
   "native_source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Sources",
-  "native_commit": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
+  "native_commit": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
   "host_source": "/Users/Dave/DYNAMIXEL-Go-Pointer-worktrees/requirements-integration-20261126/Firmware",
-  "host_commit": "31d84de4c35ee249312dc19b7c501efd9cce1dc1",
+  "host_commit": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8",
   "installed_native": "0.269/build270 d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
   "installed_host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1-app0269",
-  "physical_state": "Installed0.269 run1795767435349051000 point12 failed before adequate: cached gameplay safety frame1864 capture age604.260ms exceeded600ms, then lease/transport fault. Ctrl-C exited promptly, without the prior signal hang, but controller_off=null and full_off_verified=false. User physical power-off confirmation pending at this map snapshot. Game paused, O17 unplaced.",
-  "release_note": "Installed changes include hold recovery, PG23 receipts, qualified native admission, A1/A2 repairs, independent request/status I/O, strict newer-frame reread, signal/startup cancellation and stopped-background fences. Root reports1320 host tests/57 skips,8 native suites,8 renewal replays and mandatory paired PASS; final source approval587c778a3c635ea496e217a66d436339e3e67c9b. Source review/offline results do not establish physical reliability or latency.",
-  "svg_scope": "INSTALLED 0.269 \u00b7 native d014c63 / host 31d84de \u00b7 Latest attended attempt failed; physical acceptance OPEN",
+  "physical_state": "Latest physical attempt remains0.269 run1795767435349051000: failed before adequate, prompt exit but no verified controller OFF. User disconnected controller USB; that does not establish full power OFF. Bedtime/lights off: no hardware tonight. Morning single chat READY, after lights/controller restored, hands clear, watching and unchanged board, authorizes root checks and O17; no repeat READY question.",
+  "release_note": "Source candidate adds opt-in native stage wall/thread-CPU timing and post-worker serial/raw-OFF diagnostics only. No control-flow, safety, deadline or physical-acceptance fix. Approval164af9f; final installation receipt pending. The source snapshot includes candidate diagnostic additions; all shown control-flow boundaries are unchanged from installed0.269.",
+  "svg_scope": "DIAGNOSTICS CANDIDATE 0.270 \u00b7 be8befe / 936bf10 \u00b7 Installed0.269; physical acceptance OPEN",
   "installation_receipt": "/Users/Dave/Documents/SGF PLayer/work/requirements-implementation-20261126/install-receipt.json",
-  "source_approval": "587c778a3c635ea496e217a66d436339e3e67c9b",
+  "source_approval": "164af9f",
   "physical_validation": false
 }

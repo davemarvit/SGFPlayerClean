@@ -1,19 +1,19 @@
 {
   "date": "2026-11-27",
-  "map_state": "Installed 0.269 \u2014 offline validated; latest attended attempt failed, physical acceptance open",
+  "map_state": "Diagnostics-only 0.270 candidate approved; installed remains0.269 until root receipt",
   "diagrams": 7,
   "nodes": 91,
   "connector_labels": 32,
   "issues": [],
   "font_metrics_checked": true,
-  "source_count": 41,
+  "source_count": 45,
   "source_heads": {
-    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
+    "native": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+    "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "declared_source_heads": {
-    "native": "d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4",
-    "host": "31d84de4c35ee249312dc19b7c501efd9cce1dc1"
+    "native": "be8befeaf3640df0b9b88efd0d9d380e76fa409d",
+    "host": "936bf10e3942a0a32a47e57eb1b58cfba5af07d8"
   },
   "source_heads_match": {
     "native": true,

@@ -448,7 +448,7 @@
   {
     "key": "data",
     "title": "3 \u00b7 Camera, processing and file boundaries",
-    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent; publication retains identity and stop fences.",
+    "desc": "Native safety and pixels use separate lanes. Host request and status loops are independent. Optional stage traces measure cost; they do not renew evidence or change publication fences.",
     "height": 1220,
     "nodes": [
       {
@@ -799,7 +799,9 @@
       "S14",
       "S34",
       "S37",
-      "S38"
+      "S38",
+      "S42",
+      "S43"
     ]
   },
   {
@@ -1585,7 +1587,7 @@
         "w": 300,
         "h": 96,
         "title": "Missing receipt: state unknown",
-        "body": "Report shutdown failure honestly\nPhysical power report is separate",
+        "body": "Raw OFF \u2260 gate-accepted receipt\nDiagnostics grant no OFF authority",
         "kind": "fault"
       },
       {
@@ -1779,7 +1781,9 @@
       "S35",
       "S36",
       "S37",
-      "S38"
+      "S38",
+      "S44",
+      "S45"
     ]
   },
   {

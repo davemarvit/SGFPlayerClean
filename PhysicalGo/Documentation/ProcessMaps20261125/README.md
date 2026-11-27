@@ -14,6 +14,16 @@ Open [index.html](index.html) for the self-contained seven-map review. [Audit202
 
 Open each SVG at full size or horizontally scroll the HTML. All diagrams are embedded; no network is required. The directory name is retained for link continuity. Git preserves the earlier November25/26 snapshots. No camera images, desktop screenshots, browser logs, temporary DOM output or PNG previews are included.
 
+## Diagnostics-only0.270 candidate
+
+Source **nativebe8befe / host936bf10**, independently approved164af9f, adds measurement and retained failure evidence only. Installation is pending the root receipt; the current installed0.269 control flow below is unchanged. No deadline, safety, admission, retry or physical-acceptance fix is claimed.
+
+Native stage tracing is opt-in (`PHYSICAL_GO_CAMERA_STAGE_TRACE=1` plus the existing trace directory). It separates capture preparation/delivery, admitted latest-slot residence, vision/safety stages and completion, with original capture identity when present. Missing photo/redraw provenance remains absent. The existing bounded writer may drop records; missing events do not prove work absent. Thread CPU excludes other worker threads/GPU, so wall minus CPU is not a scheduler-delay measurement; overlapping queues cannot be summed.
+
+Host diagnostics preserve up to eight observed serial failures across request lifetimes and the bounded controller tail after raw close, including receiver/close uncertainty. Shutdown records raw OFF-barrier observation separately from the gate's acceptance and rejection reason. These optional fields do not participate in `full_off_verified`: a raw acknowledgement, process exit or USB disconnect is not a complete OFF receipt. Failed storage, abrupt kill and a live receiver can still leave incomplete evidence. No extra diagnostic serial command is added.
+
+Bedtime plan: lights off and no hardware tonight. In the morning, one chat **READY**, after lights/controller are restored, hands clear, user watching and board unchanged, authorizes root's checks and O17 attempt without a repeat READY question. Current controller USB disconnection is recorded separately from full power OFF. Root owns all runtime actions.
+
 ## Release evidence and physical boundary
 
 The [root installation receipt](/Users/Dave/Documents/SGF%20PLayer/work/requirements-implementation-20261126/install-receipt.json) pins native **d014c63b2f4b07e81e10b7c4f9f9ecfed51c15a4**, host **31d84de4c35ee249312dc19b7c501efd9cce1dc1**, and final source approval **587c778a3c635ea496e217a66d436339e3e67c9b**. Root reports **1,320 host tests /57 skips, eight native suites, eight renewal replays and mandatory paired acceptance PASS**. These are offline/install results, not a passing game or measured latency improvement.
@@ -28,7 +38,7 @@ The [root installation receipt](/Users/Dave/Documents/SGF%20PLayer/work/requirem
 | A3 host I/O and frame reread | Request/status loops independent; one nonblocking publisher owner/no queue; at most one strictly newer, same-scope, fully fresh replacement read |
 | A4 shutdown/startup | Signal handler only assigns a flag; normal flow checks cancellation during startup/admission/cleanup; stopped background work cannot poll or publish late |
 
-**Latest attended result:** installed0.269 run1795767435349051000 point12 passed pre/post-READY alignment but failed before adequate. Cached gameplay safety frame1864 reached604.260ms capture age (checked age414.192ms) against600ms, followed by a lease fault and serial write-completion deadline fault. Ctrl-C exited promptly; the prior signal hang did not recur in this attempt. However `controller_off:null` and `full_off_verified:false` mean **no verified final OFF receipt**. User physical power-off confirmation was pending at this snapshot. Prompt process exit is not controller OFF, and fault-status `laserOn:true` with `illuminationConfirmed:false` does not establish actual illumination. No physical acceptance or retry is claimed. See [the current release record](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md).
+**Latest attended result:** installed0.269 run1795767435349051000 point12 passed pre/post-READY alignment but failed before adequate. Cached gameplay safety frame1864 reached604.260ms capture age (checked age414.192ms) against600ms, followed by a lease fault and serial write-completion deadline fault. Ctrl-C exited promptly; the prior signal hang did not recur in this attempt. However `controller_off:null` and `full_off_verified:false` mean **no verified final OFF receipt**. User disconnected controller USB; that establishes USB disconnection only, not full power OFF. Prompt process exit is not controller OFF, and fault-status `laserOn:true` with `illuminationConfirmed:false` does not establish actual illumination. No physical acceptance or retry is claimed. See [the current release record](/Users/Dave/SGFPlayerClean/PhysicalGo/Documentation/RequirementsRelease20261127.md).
 
 The source and installation pins remain valid. This map work performed no runtime action. The installed strict-newer raw-frame reread and the separate cached-gameplay-safety failure above are different evidence boundaries; this update does not infer a cause or propose relaxing600ms.
 
@@ -44,7 +54,7 @@ Status `updatedAtUnix` describes liveness, `adequate` the last measured state, a
 
 I/O isolation removes request/status coupling, not all filesystem stalls. Atomic status replacement still holds the generation lock to prevent obsolete publication. A blocked rename can delay cancellation. Close skips a busy publisher without waiting; if it owns publication, the final status write can still block. Actual controller OFF and a complete shared-status shutdown receipt are separate results. Late background work is fenced before snapshot, lease polling and rename; only close's explicit `shutdown=True` path may publish confirmed OFF after stop. Missing receipts remain failures.
 
-Root owns app, camera, launcher and hardware. Fresh user authorization and current post-READY checks remain necessary; maps and old preflight cannot authorize motion.
+Root owns app, camera, launcher and hardware. The single morning chat READY described above authorizes root checks and O17; current post-READY checks remain necessary, without a second READY question. Maps and old preflight do not independently authorize motion.
 
 ## Rebuild and verification
 
