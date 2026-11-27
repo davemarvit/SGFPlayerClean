@@ -2,7 +2,7 @@
 
 Source audits are now retained canonically: [76 spatial requirement groups](SpatialRequirementsAudit.md) (38 source files; original commit54548df) and [63 temporal groups](../TemporalRequirementsAudit20261125/README.md) (277-file/1,025-hit census; original commit23163e8). They are source-pinned analyses, not automatic permission to relax a limit. Historical candidate/install descriptions inside them refer to their audit cutoff; the [issue register](../IntegrationChecklist.md) owns current status.
 
-The [authoritative register](../IntegrationChecklist.md) owns current installed0.269/native d014c63 + host31d84de and the latest physical outcome. The full reviewed batch is installed; final combined tests and camera-only preflights passed. Fresh user power/READY and physical verification remain pending. No broad reliability scope is closed. [Installed release and remaining acceptance](../RequirementsRelease20261127.md).
+The [authoritative register](../IntegrationChecklist.md) owns current installed0.269/native d014c63 + host31d84de and the latest physical outcome. The full reviewed batch is installed; final combined tests and camera-only preflights passed. The subsequent0.269 run failed before adequate on cached safety expiry, then exited promptly with serial-write failure and no confirmed controller OFF; user physical-power-off confirmation is pending. No broad reliability scope is closed. [Installed release and remaining acceptance](../RequirementsRelease20261127.md).
 
 | Priority / existing scope | Concrete next work | Acceptance before promotion |
 |---|---|---|
