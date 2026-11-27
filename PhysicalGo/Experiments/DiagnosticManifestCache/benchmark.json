@@ -1,0 +1,23 @@
+{
+  "baselineBytes": 56372547,
+  "baselineSerializationSeconds": [
+    3.150179833173752,
+    3.2055741669610143,
+    3.194455333519727
+  ],
+  "cachedAssemblySeconds": [
+    0.00010712491348385811,
+    5.4541509598493576e-05,
+    5.3833238780498505e-05
+  ],
+  "cachedBytes": 28087701,
+  "liveSpeedClaim": false,
+  "noDiskWriteBenchmark": true,
+  "prepareSeconds": 3.087889375165105,
+  "replacementBytes": 28087832,
+  "semanticComparisons": 3,
+  "source": "/Users/Dave/SGFPlayerClean-worktrees/requirements-integration-20261126/PhysicalGo/Captures/Diagnostics/Diagnostic 2026-11-27 00-17-09 7D7916C0/session.json",
+  "sourceBytes": 56372567,
+  "contended": true,
+  "contentionNote": "Root host/replay validation overlapped; serialization-only comparison is not uncontended native or live performance."
+}

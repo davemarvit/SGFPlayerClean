@@ -12,7 +12,7 @@ DEPENDENCIES = {
     'Sources/AutomaticCapture.swift': ('Sources/PlacementAlternatives.swift','Sources/CandidateMoveHistory.swift','Sources/StoneTurnAppearance.swift'),
     'Sources/HandOutlineTracker.swift': ('Sources/HandOutlineTiming.swift','Sources/HandMotionTiming.swift'),
     'Sources/HandOutlineSampling.swift': ('Sources/HandOutlineTracker.swift','Sources/BoardVision.swift'),
-    'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift',),
+    'Sources/DiagnosticRecorder.swift': ('Sources/DiagnosticArchiveStorage.swift','Sources/DiagnosticManifest.swift'),
     'Sources/CameraCapture.swift': ('Sources/CameraFrameTimestamp.swift','Sources/CameraProcessingCadence.swift','Sources/CameraFeedHealth.swift','Sources/PhysicalLatencyTrace.swift'),
     'Sources/CameraProcessingCadence.swift': ('Sources/LocalClockEngine.swift',),
     'Sources/BoardHandDetector.swift': ('Sources/HandMotionTiming.swift',),

@@ -25,6 +25,8 @@ class Suite:
         return groups[self.group] + [root / path for path in (*self.extra, *self.tests)] + [root / 'Tests/TestArtifacts.swift']
 
 SUITES = {
+    'diagnostic-manifest-test': Suite('DiagnosticManifestTests','standalone',('Tests/DiagnosticManifestTests.swift',),extra=('Sources/DiagnosticManifest.swift',),optimized=False),
+    'diagnostic-manifest-writer-test': Suite('DiagnosticManifestWriterTests','app',('Tests/DiagnosticManifestWriterTests.swift',),optimized=False),
     'camera-stage-timing-test': Suite('CameraStageTimingPipelineTests','app',('Tests/CameraStageTimingPipelineTests.swift',),optimized=False),
     'wood-boundary-test': Suite('HandBoardBoundaryTests','standalone',('Tests/HandBoardBoundaryTests.swift',),extra=('Sources/HandBoardBoundary.swift','Sources/HandOutlineTracker.swift','Sources/HandMotionTiming.swift'),optimized=False),
     'edge-placement-guard-test': Suite('EdgePlacementGuardTests','app',('Tests/EdgePlacementGuardTests.swift',),optimized=False),
