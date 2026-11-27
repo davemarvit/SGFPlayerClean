@@ -86,6 +86,32 @@ exhaustion so replay or physical evidence can justify revision.
 
 ## Source-first review anchors
 
+### Signal-shutdown follow-up: startup cancellation counterexample
+
+Candidate `8354e8b942c92d210ade295004796f670ac7be6c` removes the signal
+handler's `Event.set()` and assigns a plain stop-request flag. This addresses the
+demonstrated non-reentrant Event-condition deadlock. The reviewer independently
+passed 28 signal and shutdown-receipt tests; missing OFF acknowledgements remain
+unconfirmed and no receipt is manufactured.
+
+Approval requires a startup cancellation repair. A real SIGINT during
+`backend.open()` previously set `runtime.stop`, so newly created runtime threads
+could not enter their loops. The new flag is read only after `runtime.start()`
+returns, but that method starts input/coordinator threads before returning. The
+reviewer reproduced this with the actual runtime, a fake backend, real SIGINT,
+temporary valid OFF then POINT request files, and a controlled scheduling delay
+returning from the coordinator thread's `start()` call. Old handler: no points or
+commands. Candidate handler: stop flag true, point sequence2 admitted, commands
+`OFF`, `OFF`, `FAKE_PREPARE` before startup returned. An initial POINT alone remains
+correctly rejected by the fresh-producer OFF handshake.
+
+The requested correction is normal-flow propagation/checking of the stop request
+before thread launch, with actual runtime startup coverage; the signal handler
+must remain free of locks and I/O. The counterexample establishes an offline
+regression, not the cause of every thread blocked in the later physical run.
+Combined interaction with the proposed independent status publisher also remains
+to be reviewed.
+
 ### Later offline replay assertion follow-up
 
 The final candidate was not installed when root's retained replay reported one
